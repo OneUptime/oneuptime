@@ -16,7 +16,7 @@ Think of workflows as background helpers for your project: they react to events,
 
 Every workflow has three parts:
 
-1. **A trigger** — what starts the workflow. This can be a manual button, a schedule, an incoming webhook, or an event in OneUptime (like a new incident).
+1. **A trigger** — what starts the workflow. This can be a manual button, a schedule, an incoming webhook, an incoming email, or an event in OneUptime (like a new incident).
 2. **One or more components** — what the workflow does. Send a message, make an HTTP call, run a quick check, branch based on a condition.
 3. **Connections between them** — you draw lines from one block to the next to decide the order.
 
@@ -38,22 +38,25 @@ Open **Workflows** in the left navigation. That section holds:
 
 - **Workflows** — your list of workflows. Create a new one or open an existing one.
 - **Global Variables** — values shared across all your workflows.
-- **Runs & Logs** — execution history across every workflow in your project.
+- **Archived** — workflows you archived. They never run and are left out of the list; unarchive them from here. See [Archiving a workflow](/docs/workflows/configuration#archiving-a-workflow).
+- **Logs → Runs** — execution history across every workflow in your project.
 
 Open a single workflow and its own left menu holds:
 
 - **Overview** — name, description, labels, and the **Enabled** switch.
-- **Builder** — the canvas where you design the workflow.
+- **Builder** — the canvas where you design the workflow, with the **Enabled** switch at the top.
 - **Workflow Variables** — values scoped to this one workflow.
-- **Runs & Logs** — every run of this workflow, with details.
-- **Settings** — webhook secret, duplicate, and export.
+- **Logs → Runs** — every run of this workflow, with details.
+- **Settings** — duplicate, export and archive.
+
+**Settings** sits in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**. **Advanced** starts collapsed, in this menu and every other one, so the pages you use every day come first. Click **Advanced** to show its pages. It opens by itself whenever you are on one of them.
 
 ## Building your first workflow
 
 1. **Create** — pick a starting point, then give your workflow a name.
-2. **Pick a trigger** — manual, scheduled, webhook, or an event from OneUptime.
+2. **Pick a trigger** — manual, scheduled, webhook, incoming email, or an event from OneUptime.
 3. **Add components** — add actions to the canvas and connect them.
-4. **Turn it on** — switch **Enabled** on from the **Overview** page. A disabled workflow can't run at all, not even by hand.
+4. **Turn it on** — switch **Enabled** on at the top of the **Builder**. A disabled workflow can't run at all, not even by hand.
 5. **Test** — click **Run Workflow** on the Builder and watch the run log.
 
 ## A quick example
@@ -80,5 +83,5 @@ The next time someone opens an incident with "Sev 1" in the title, Slack lights 
 - [Triggers](/docs/workflows/triggers) — the different ways a workflow can start.
 - [Components](/docs/workflows/components) — the building blocks you can add.
 - [Variables](/docs/workflows/variables) — using values across blocks and workflows.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — checking what happened.
+- [Runs](/docs/workflows/runs-and-logs) — checking what happened.
 - [Configuration & Safety](/docs/workflows/configuration) — settings worth knowing about.

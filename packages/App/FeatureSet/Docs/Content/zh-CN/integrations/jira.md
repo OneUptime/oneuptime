@@ -104,7 +104,7 @@ Jira Cloud 的 REST API 用的是 **Basic 认证**，由你的 Atlassian 账户�
 
 description 看起来这么笨重，是因为 Jira Cloud 的 v3 API 把富文本当作 **Atlassian Document Format** 来接收——那是一棵文档树，不是一个字符串。上面这个形状已经是最小的合法文档了：一个段落，里面装一个文本节点。`environment` 以及任何多行文本自定义字段都是同样的规矩；单行文本自定义字段仍然接受纯字符串。
 
-现在从 **概览 → 编辑工作流 → 已启用** 把工作流打开，宣布一个测试事件，然后打开 **运行和日志**。`create-issue` 方块应该显示 `201`，正文里带着新工单的 `id`、`key` 和 `self`。画布上的改动会自动保存——没有保存按钮，而且被禁用的工作流根本跑不了，手动也不行。
+现在从 **概览 → 编辑工作流 → 已启用** 把工作流打开，宣布一个测试事件，然后打开 **日志 → 运行记录**。`create-issue` 方块应该显示 `201`，正文里带着新工单的 `id`、`key` 和 `self`。画布上的改动会自动保存——没有保存按钮，而且被禁用的工作流根本跑不了，手动也不行。
 
 新工单的 key 对这个方块之后的任何方块都是可用的：
 
@@ -227,13 +227,13 @@ curl -u 'you@example.com:your_api_token' \
 ### 先搭接收端的工作流
 
 1. **创建工作流**，命名为 `Jira → OneUptime`，加上 **Webhook** 触发器。
-2. 打开这个工作流的 **设置**，复制 **Webhook Secret Key**。你的 URL 是：
+2. 打开这个工作流的 **生成器**，点击 **Webhook** 触发器，再点击其设置顶部的 **复制 URL**。URL 的形式如下：
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   自托管的安装用它们自己的主机名。把这个 URL 当密码看待——拿到它的人都能启动这个工作流——万一泄露了，就在同一个页面上重置密钥。
+   自托管的安装用它们自己的主机名。把这个 URL 当密码看待——拿到它的人都能启动这个工作流。万一泄露了，就在同一个地方点击 **重置 URL**，旧 URL 会立即失效。
 
 3. 加一个 **If / Else** 方块，在其他任何事情跑起来之前先校验一个共享密钥。**Input 1** 是 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Operator** 是 `==`，**Input 2** 是 `{{global.variables.JIRA_WEBHOOK_SECRET}}`——一个你自己编出来、存成机密全局变量的值。
 4. 从 **是** 分支出发，加一个 **Update One Incident** 方块：
@@ -270,7 +270,7 @@ curl -u 'you@example.com:your_api_token' \
 
      如果你在步骤 3 里用的是标签而不是自定义字段，就发 `"labels": "{{issue.labels}}"`，然后在 OneUptime 这边用一个 **Run Custom JavaScript** 方块把 id 抠出来。
 
-4. 把规则打开，把一张测试工单挪到 Done，然后两边都检查一下：Jira 里这条规则自己的审计日志，以及 OneUptime 里的 **运行和日志**。
+4. 把规则打开，把一张测试工单挪到 Done，然后两边都检查一下：Jira 里这条规则自己的审计日志，以及 OneUptime 里的 **日志 → 运行记录**。
 
 在你真的依赖它之前，有几件事值得知道：
 
@@ -342,7 +342,7 @@ Jira 管理员可以直接在 **Settings → System → Advanced → WebHooks** 
 
 ## 故障排查
 
-先在 **运行和日志** 里打开出错的那个方块。Jira 会返回一个 JSON 正文，明确说明它拒绝了什么，而 API 组件会把它保存在 `response-body` 里。
+先在 **日志 → 运行记录** 里打开出错的那个方块。Jira 会返回一个 JSON 正文，明确说明它拒绝了什么，而 API 组件会把它保存在 `response-body` 里。
 
 **`401 Unauthorized`。** 用 `printf` 重新编码 `email:api_token` 并更新 `JIRA_AUTH`；`echo` 带来的结尾换行符是最常见的原因。然后确认拥有该令牌的账户能在那个项目里创建工单。在 Data Center 上，检查你发的是 `Bearer` 而不是 `Basic`。
 
@@ -356,7 +356,7 @@ Jira 管理员可以直接在 **Settings → System → Advanced → WebHooks** 
 
 **流转调用返回 `400`。** 这个流转 id 从工单的*当前*状态出发是不合法的。为那张工单取一次 `/transitions`，用响应里的某个 id。
 
-**自动化规则显示成功，但什么都没到 OneUptime。** 先检查端口——见上面那份受限清单。然后自己用 `curl` 往那个 webhook URL 发一个请求，看它会不会出现在 **运行和日志** 里；如果你的请求到了而 Jira 的没到，问题就在 Jira 那边。
+**自动化规则显示成功，但什么都没到 OneUptime。** 先检查端口——见上面那份受限清单。然后自己用 `curl` 往那个 webhook URL 发一个请求，看它会不会出现在 **日志 → 运行记录** 里；如果你的请求到了而 Jira 的没到，问题就在 Jira 那边。
 
 **工作流跑了，但事件没有变化。** 当 **Update One Incident** 方块的查询什么都没匹配到时，它会报 `Items Updated: 0`，而这算成功，不算错误。检查载荷里的那个 id 确实是 OneUptime 的事件 id，并且你查的是 `_id`。
 

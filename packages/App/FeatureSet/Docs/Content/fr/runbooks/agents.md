@@ -30,7 +30,7 @@ L'agent n'a besoin que de **HTTPS sortant** vers votre instance OneUptime. Il n'
 
 ### 1. Créer l'enregistrement de l'agent
 
-Allez dans **Runbooks → Paramètres → Agents** et créez un nouvel agent. Remplissez :
+Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Remplissez :
 
 | Champ           | Notes                                                                                                                                                                    |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Vérifier que l'agent est connecté
 
-Retournez à **Runbooks → Paramètres → Agents**. En environ 60 secondes, la ligne de l'agent doit passer à `Connected` avec un horodatage **Last seen** récent. Si elle reste `Disconnected` :
+Retournez à **Runbooks → Agents de runbook**. En environ 60 secondes, la ligne de l'agent doit passer à `Connected` avec un horodatage **Last seen** récent. Si elle reste `Disconnected` :
 
 - Vérifiez les logs du conteneur (`docker logs oneuptime-runner`) pour des erreurs d'auth ou de réseau.
 - Vérifiez que l'hôte atteint votre URL OneUptime avec `curl`.

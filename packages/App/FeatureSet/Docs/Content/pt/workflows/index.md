@@ -38,22 +38,22 @@ Abra **Fluxos de trabalho** na navegação à esquerda. Essa seção guarda:
 
 - **Fluxos de trabalho** — sua lista de workflows. Crie um novo ou abra um existente.
 - **Variáveis globais** — valores compartilhados entre todos os seus workflows.
-- **Execuções e registros** — o histórico de execuções de todos os workflows do projeto.
+- **Registros → Execuções** — o histórico de execuções de todos os workflows do projeto.
 
 Abra um workflow específico e o menu à esquerda dele traz:
 
 - **Visão geral** — nome, descrição, rótulos e a chave **Habilitado**.
-- **Construtor** — o canvas onde você desenha o workflow.
+- **Construtor** — o canvas onde você desenha o workflow, com a chave **Habilitado** no topo.
 - **Variáveis do fluxo** — valores restritos a este workflow.
-- **Execuções e registros** — cada execução deste workflow, com detalhes.
-- **Configurações** — segredo do webhook, duplicação e exportação.
+- **Registros → Execuções** — cada execução deste workflow, com detalhes.
+- **Configurações** — duplicação e exportação.
 
 ## Construindo seu primeiro workflow
 
 1. **Crie** — escolha um ponto de partida e dê um nome ao workflow.
 2. **Escolha um trigger** — manual, agendado, webhook ou um evento do OneUptime.
 3. **Adicione componentes** — coloque as ações no canvas e ligue-as.
-4. **Ligue** — ative **Habilitado** na página **Visão geral**. Um workflow desabilitado não roda de jeito nenhum, nem à mão.
+4. **Ligue** — ative **Habilitado** no topo do **Construtor**. Um workflow desabilitado não roda de jeito nenhum, nem à mão.
 5. **Teste** — clique em **Executar fluxo de trabalho** no Construtor e acompanhe o registro da execução.
 
 ## Um exemplo rápido
@@ -80,5 +80,5 @@ Na próxima vez que alguém abrir um incidente com "Sev 1" no título, o Slack a
 - [Gatilhos de workflow](/docs/workflows/triggers) — as diferentes formas de um workflow começar.
 - [Componentes de workflow](/docs/workflows/components) — os blocos de construção que você pode adicionar.
 - [Variáveis de workflow](/docs/workflows/variables) — usando valores entre blocos e workflows.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — verificando o que aconteceu.
+- [Execuções de workflow](/docs/workflows/runs-and-logs) — verificando o que aconteceu.
 - [Configuração e segurança de workflow](/docs/workflows/configuration) — configurações que vale a pena conhecer.

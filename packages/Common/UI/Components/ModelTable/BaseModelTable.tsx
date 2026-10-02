@@ -54,6 +54,9 @@ import List from "../List/List";
 import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal, { ModalWidth } from "../Modal/Modal";
+import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
+import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
+import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
@@ -473,72 +476,6 @@ export enum ModalType {
   Edit,
 }
 
-/*
- * The fields a row is worth naming itself by, in the order a human would pick
- * one. `title` is not decoration here: incidents, alerts and scheduled
- * maintenance key on `title` rather than `name`, and those are exactly the
- * tables where deleting the row next to the one you meant hurts most.
- *
- * Only the fields the table already selected are present on the row, so this
- * reads whatever is there and gives up quietly rather than guessing.
- */
-const ITEM_LABEL_FIELDS: Array<string> = [
-  "name",
-  "title",
-  "slug",
-  "email",
-  "username",
-  "domain",
-];
-
-type ReadLabelFieldFunction = (value: unknown) => string;
-
-/*
- * Some of these fields arrive as objects with a meaningful toString - Name,
- * Email, ObjectID all define one. Anything that does not is skipped rather
- * than rendered as "[object Object]".
- */
-const readLabelField: ReadLabelFieldFunction = (value: unknown): string => {
-  if (typeof value === "string") {
-    return value.trim();
-  }
-
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  const text: string = String(value);
-
-  return text === "[object Object]" ? "" : text.trim();
-};
-
-type GetItemLabelFunction = (item: unknown) => string;
-
-/*
- * Every per-row Delete in the product opened the same dialog: "Are you sure
- * you want to delete this monitor?" - a sentence equally true of the row that
- * was clicked and of the twenty either side of it. That is precisely the
- * moment a user wants to be told which one, and the one moment the dialog
- * would not say.
- */
-const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
-  if (!item || typeof item !== "object") {
-    return "";
-  }
-
-  const record: Record<string, unknown> = item as Record<string, unknown>;
-
-  for (const field of ITEM_LABEL_FIELDS) {
-    const label: string = readLabelField(record[field]);
-
-    if (label) {
-      return label;
-    }
-  }
-
-  return "";
-};
-
 type GetDeleteLabelFunction = (
   singularName: string | undefined,
   modelSingularName: string | null | undefined,
@@ -573,6 +510,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.bulkActions?.matchBulkSelectedItemByField || "_id";
 
   const model: TBaseModel = new props.modelType();
+
+  type GetItemLabelFunction = (item: unknown) => string;
+
+  /*
+   * Every per-row Delete in the product opened the same dialog: "Are you sure
+   * you want to delete this monitor?" - a sentence equally true of the row that
+   * was clicked and of the twenty either side of it. That is precisely the
+   * moment a user wants to be told which one, and the one moment the dialog
+   * would not say.
+   *
+   * The row is named by the model's own name column first (a template's
+   * templateName, not the title of the incident it creates), then by whatever
+   * name-like field the table selected. Only what is on the row is read: this
+   * never guesses at a name it was not given.
+   */
+  const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
+    return getRecordDisplayName(item, { model: model });
+  };
 
   /*
    * The header's create button, "<verb> <noun>". Translating the two words
@@ -3074,9 +3029,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       const deleteVerb: string | undefined =
         props.bulkActions?.deleteVerb?.trim() || undefined;
 
-      type GetItemLabelFunction = (items: Array<TBaseModel>) => string;
+      type GetTypeLabelFunction = (items: Array<TBaseModel>) => string;
 
-      const getItemLabel: GetItemLabelFunction = (
+      const getTypeLabel: GetTypeLabelFunction = (
         items: Array<TBaseModel>,
       ): string => {
         return items.length === 1
@@ -3089,7 +3044,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.DANGER,
         icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          const itemLabel: string = getItemLabel(items);
+          const itemLabel: string = getTypeLabel(items);
 
           const warning: string = props.bulkActions?.deleteConfirmationWarning
             ? ` ${props.bulkActions.deleteConfirmationWarning}`
@@ -3102,7 +3057,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.${warning}`;
         },
         confirmTitle: (items: Array<TBaseModel>) => {
-          return `${deleteVerb || "Delete"} ${items.length} ${getItemLabel(items)}`;
+          return `${deleteVerb || "Delete"} ${items.length} ${getTypeLabel(items)}`;
+        },
+        /*
+         * "Are you sure you want to delete 12 monitors?" says how many, not
+         * which. The rows were picked by hand, often across pages and after a
+         * filter, and this is the last moment to notice one that should not be
+         * there - so the first few are named under the count.
+         */
+        confirmDetails: (items: Array<TBaseModel>): ReactElement => {
+          return (
+            <DeleteItemNames
+              names={items.map((item: TBaseModel) => {
+                return getItemLabel(item);
+              })}
+              totalCount={items.length}
+            />
+          );
         },
         confirmButtonStyleType: ButtonStyleType.DANGER,
         onClick: async ({
@@ -3235,8 +3206,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * The way forward from an empty table: the "Create X" button the card's
    * header already shows - same handler, same permission gate, same label -
-   * repeated as the primary action under "No X yet.", where a new user is
-   * looking.
+   * repeated under "No X yet.", where a new user is looking. It is drawn the
+   * way the header's is, as a NORMAL button: a filled indigo one in the
+   * middle of an otherwise quiet empty card shouted, and made the two
+   * buttons that do the same thing look like different actions.
    *
    * Only under the table's own "No X yet.". A page that words its empty
    * state itself is describing a slice of the list ("Nice work! No Active
@@ -3284,7 +3257,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       <Button
         title={createButton.title}
         icon={createButton.icon}
-        buttonStyle={ButtonStyleType.PRIMARY}
+        buttonStyle={ButtonStyleType.NORMAL}
         disabled={createButton.disabled}
         tooltip={createButton.tooltip}
         dataTestId="empty-table-create-button"
@@ -4911,18 +4884,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             `Delete ${getDeleteLabel(props.singularName, model.singularName)}`
           }
           description={
-            deleteConfirmation?.description ||
-            ((): string => {
-              const label: string = getDeleteLabel(
-                props.singularName,
-                model.singularName,
-              ).toLowerCase();
-              const name: string = getItemLabel(currentDeleteableItem);
-
-              return `Are you sure you want to delete ${
-                name ? `"${name}"` : `this ${label}`
-              }? This action cannot be undone.`;
-            })()
+            deleteConfirmation?.description || (
+              <DeleteConfirmationMessage
+                kind="question"
+                name={getItemLabel(currentDeleteableItem)}
+                typeLabel={getDeleteLabel(
+                  props.singularName,
+                  model.singularName,
+                )}
+              />
+            )
           }
           onClose={() => {
             setShowDeleteConfirmModal(false);
@@ -4986,6 +4957,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onClose={() => {
             setShowViewIdModal(false);
           }}
+          closeButtonText="Close"
           submitButtonText={"Go to API Docs"}
           onSubmit={() => {
             setShowViewIdModal(false);
@@ -4996,8 +4968,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               { openInNewTab: true },
             );
           }}
-          submitButtonType={ButtonStyleType.NORMAL}
-          closeButtonType={ButtonStyleType.OUTLINE}
         />
       )}
 
@@ -5009,10 +4979,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setShowHelpModal(false);
           }}
           modalWidth={ModalWidth.Large}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setShowHelpModal(false);
-          }}
+          closeButtonText="Close"
         >
           <div className="p-2">
             <MarkdownViewer text={props.helpContent.markdown} />

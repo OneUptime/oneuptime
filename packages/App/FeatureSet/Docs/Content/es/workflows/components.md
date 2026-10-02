@@ -105,7 +105,7 @@ Envía un correo a través de un servidor SMTP que introduces en el bloque.
 - **Success** — se activa cuando el servidor SMTP aceptó el mensaje.
 - **Error** — se activa cuando se rechaza el host SMTP, no se puede contactar con el servidor o este rechaza el mensaje. Pasa adelante el mensaje de error. En cambio, si falta **To Email**, **From Email**, **SMTP Host** o **SMTP Port**, la ejecución se detiene.
 
-El bloque se conecta directamente al servidor indicado en su configuración. No usa los ajustes de [SMTP](/docs/emails/smtp) de tu proyecto ni el propio servidor de correo de OneUptime, y los correos que envía no aparecen en Registros de notificación. Para comprobar qué hizo, consulta las [Ejecuciones y registros](/docs/workflows/runs-and-logs) del flujo de trabajo.
+El bloque se conecta directamente al servidor indicado en su configuración. No usa los ajustes de [SMTP](/docs/emails/smtp) de tu proyecto ni el propio servidor de correo de OneUptime, y los correos que envía no aparecen en Registros de notificación. Para comprobar qué hizo, consulta las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo.
 
 Las conexiones a direcciones de loopback (`localhost`, `127.0.0.1`), link-local y de metadatos de nube se rechazan. En OneUptime Cloud también se rechaza un host SMTP en una dirección de red privada, o un nombre que se resuelva a una. Las instalaciones autoalojadas pueden llegar a un servidor de correo de su propia red, salvo que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esté establecido en `true`. Un host rechazado toma la salida **Error**, y no se envía nada.
 
@@ -131,7 +131,7 @@ Convierte entre texto y JSON.
 
 ## Condiciones
 
-Se ramifica según una comparación. En el panel **Add Component** este bloque se llama **If / Else** y está en la categoría Condiciones.
+Se ramifica según una comparación. En el panel **Add Component** este bloque se llama **If / Else** y está en **Popular**.
 
 **Settings**:
 
@@ -159,7 +159,7 @@ Hay un límite de seguridad para que los flujos de trabajo no acaben llamándose
 
 ## Componentes de datos de OneUptime
 
-Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, páginas de estado, políticas de guardia y muchos más), el panel **Add Component** ofrece estos componentes — búscalos por el nombre del tipo. Cada título se genera a partir del tipo de registro, así que el juego de Monitor queda así:
+Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, páginas de estado, políticas de guardia y muchos más), el panel **Add Component** ofrece estos componentes: haz clic en el tipo de registro en **OneUptime resources** (**Browse all resources** tiene los que no se muestran) o búscalo por el nombre del tipo. Cada título se genera a partir del tipo de registro, así que el juego de Monitor queda así:
 
 - **Find One Monitor** — lee un registro que coincida con la consulta.
 - **Find Many Monitors** — lee una lista de registros que coincidan con la consulta.
@@ -217,5 +217,5 @@ Unas cuantas reglas rápidas:
 ## Qué leer a continuación
 
 - [Variables de flujo de trabajo](/docs/workflows/variables) — pasar datos entre bloques.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué hizo cada bloque en una ejecución.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué hizo cada bloque en una ejecución.
 - [Configuración y seguridad del flujo de trabajo](/docs/workflows/configuration) — límites, propietarios y secretos.

@@ -105,7 +105,7 @@ API 元件的簡化版，適合「送出去就不管」的情況。把一段 JSO
 - **成功**——SMTP 伺服器接受了這封郵件時觸發。
 - **錯誤**——SMTP 主機遭到拒絕、伺服器無法連線，或伺服器拒收這封郵件時觸發。會把錯誤訊息傳下去。如果缺少 **To Email**、**From Email**、**SMTP Host** 或 **SMTP Port**，則會改為直接停止這次執行。
 
-這個區塊會直接連到它設定裡的那台伺服器。它不會使用你專案的 [SMTP](/docs/emails/smtp) 設定，也不會使用 OneUptime 自己的郵件伺服器，它寄出的郵件也不會出現在通知日誌裡。想知道它做了什麼，請查看這個工作流程的[執行與日誌](/docs/workflows/runs-and-logs)。
+這個區塊會直接連到它設定裡的那台伺服器。它不會使用你專案的 [SMTP](/docs/emails/smtp) 設定，也不會使用 OneUptime 自己的郵件伺服器，它寄出的郵件也不會出現在通知日誌裡。想知道它做了什麼，請查看這個工作流程的[執行記錄](/docs/workflows/runs-and-logs)。
 
 連到回送位址（`localhost`、`127.0.0.1`）、連結本機位址與雲端中繼資料位址的連線會被拒絕。在 OneUptime Cloud 上，位於私有網路位址的 SMTP 主機，或解析到私有網路位址的名稱，也會被拒絕。自架部署可以連到自己網路裡的郵件伺服器，除非把 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 設為 `true`。被拒絕的主機會走 **錯誤** 輸出，什麼都不會寄出。
 
@@ -131,7 +131,7 @@ API 元件的簡化版，適合「送出去就不管」的情況。把一段 JSO
 
 ## Conditions
 
-依比較的結果分支。在 **新增元件** 面板裡，這個區塊叫做 **If / Else**，歸在條件分類底下。
+依比較的結果分支。在 **新增元件** 面板裡，這個區塊叫做 **If / Else**，在 **Popular** 底下。
 
 **設定**：
 
@@ -159,7 +159,7 @@ API 元件的簡化版，適合「送出去就不管」的情況。把一段 JSO
 
 ## OneUptime 資料元件
 
-OneUptime 裡每一種記錄（監測器、事件、警示、狀態頁面、待命策略，還有很多其他的），在 **新增元件** 面板裡都有下面這些元件——用該類型的名稱搜尋就找得到。每個標題都是從記錄類型產生出來的，所以 Monitor 這一組讀起來是這樣：
+OneUptime 裡每一種記錄（監測器、事件、警示、狀態頁面、待命策略，還有很多其他的），在 **新增元件** 面板裡都有下面這些元件：在 **OneUptime resources** 底下點記錄類型（沒列出來的在 **Browse all resources** 裡），或用該類型的名稱搜尋。每個標題都是從記錄類型產生出來的，所以 Monitor 這一組讀起來是這樣：
 
 - **Find One Monitor**——讀取一筆符合查詢的記錄。
 - **Find Many Monitors**——讀取一份符合查詢的記錄清單。
@@ -217,5 +217,5 @@ Create One 上的 **JSON Object**、Create Many 上的 **JSON Array**，以及 U
 ## 接下來可以閱讀
 
 - [工作流程變數](/docs/workflows/variables)——在區塊之間傳遞資料。
-- [工作流程執行與日誌](/docs/workflows/runs-and-logs)——查看某次執行裡每個區塊做了什麼。
+- [工作流程執行記錄](/docs/workflows/runs-and-logs)——查看某次執行裡每個區塊做了什麼。
 - [工作流程設定與安全](/docs/workflows/configuration)——上限、擁有者和密鑰。

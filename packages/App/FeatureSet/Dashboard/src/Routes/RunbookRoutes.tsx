@@ -10,6 +10,9 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
 import RunbookSecrets from "../Pages/Runbook/Secrets";
+import RunbookRunners from "../Pages/Runbook/Runners/Runners";
+import RunbookRunnerView from "../Pages/Runbook/Runners/RunnerView";
+import RunbookRunnerCredentials from "../Pages/Runbook/Runners/RunnerCredentials";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
@@ -22,6 +25,9 @@ import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
 import RunbookSettingsLabelRules from "../Pages/Runbook/Settings/LabelRules";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
+import RunbookModel from "Common/Models/DatabaseModels/Runbook";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const RunbookRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -53,6 +59,33 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookSecrets
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_SECRETS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNERS] || ""}
+          element={
+            <RunbookRunners
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW] || ""}
+          element={
+            <RunbookRunnerView
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] || ""}
+          element={
+            <RunbookRunnerCredentials
+              {...props}
+              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] as Route}
             />
           }
         />
@@ -106,6 +139,13 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RunbookModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.RUNBOOKS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -184,6 +224,12 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: RunbookModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

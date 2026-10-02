@@ -33,6 +33,7 @@ import MonitorIncidents from "../Pages/Monitor/View/Incidents";
 import MonitorAlerts from "../Pages/Monitor/View/Alerts";
 import MonitorNotOperational from "../Pages/Monitor/NotOperationalMonitors";
 import MonitorDisabled from "../Pages/Monitor/DisabledMonitors";
+import MonitorArchived from "../Pages/Monitor/ArchivedMonitors";
 import MonitorViewCustomFields from "../Pages/Monitor/View/CustomFields";
 import MonitorViewInterval from "../Pages/Monitor/View/Interval";
 
@@ -67,6 +68,9 @@ import MonitorSettingsProbes from "../Pages/Monitor/Settings/MonitorProbes";
 import MonitorSettingsProbeView from "../Pages/Monitor/Settings/MonitorProbeView";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
+import MonitorModel from "Common/Models/DatabaseModels/Monitor";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -88,6 +92,17 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           <MonitorDisabled
             {...props}
             pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
+          />
+        }
+      />
+
+      {/* Static `archived` outranks the monitor view's `:id`. */}
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_ARCHIVED] || ""}
+        element={
+          <MonitorArchived
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_ARCHIVED] as Route}
           />
         }
       />
@@ -287,6 +302,13 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
         }
       />
 
+      {getDeveloperDocsRoutes({
+        modelType: MonitorModel,
+        scope: DeveloperDocsScope.List,
+        props,
+        mountPageKey: PageMap.MONITORS_ROOT,
+      })}
+
       <PageRoute
         path={MonitorsRoutePath[PageMap.MONITOR_VIEW] || ""}
         element={<MonitorViewLayout />}
@@ -475,6 +497,12 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: MonitorModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

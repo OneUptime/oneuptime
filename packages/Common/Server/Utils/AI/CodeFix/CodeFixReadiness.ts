@@ -166,7 +166,7 @@ export default class CodeFixReadiness {
       title: "AI agent online",
       detail: anyAgent
         ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
-        : "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Settings > Runners). Cloud: the shared fleet appears here automatically once enabled.",
+        : "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Runbooks > Runners). Cloud: the shared fleet appears here automatically once enabled.",
     };
   }
 

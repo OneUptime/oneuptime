@@ -1275,6 +1275,8 @@ interface FetcherCase {
   fetch: (projectId: ObjectID) => Promise<MicrosoftTeamsCardChoiceList>;
   sort: JSONObject;
   cap: number;
+  // Filters the fetcher adds to the project scope, if any.
+  extraQuery?: JSONObject | undefined;
 }
 
 function toModels(
@@ -1338,7 +1340,7 @@ function onlyArgumentOf(spy: SpyInstance<(data: unknown) => unknown>): unknown {
 
 function expectedFindBy(fetcher: FetcherCase): JSONObject {
   return {
-    query: { projectId: PROJECT_ID },
+    query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
     select: { _id: true, name: true },
     sort: fetcher.sort,
     limit: fetcher.cap,
@@ -1387,6 +1389,11 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
     },
     sort: { name: SortOrder.Ascending },
     cap: 100,
+    /*
+     * Archived policies page no one, so the card neither offers them nor
+     * counts them in "showing the first 100 of N".
+     */
+    extraQuery: { isArchived: false },
   },
 ];
 
@@ -1477,7 +1484,7 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
           expectedFindBy(fetcher),
         );
         expect(onlyArgumentOf(spies.countBy)).toStrictEqual({
-          query: { projectId: PROJECT_ID },
+          query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
           props: { isRoot: true },
         });
         expect(list.choices).toStrictEqual(choicesFor(rows));
@@ -1546,7 +1553,7 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
           await fetcher.fetch(PROJECT_ID);
 
         expect(onlyArgumentOf(spies.countBy)).toStrictEqual({
-          query: { projectId: PROJECT_ID },
+          query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
           props: { isRoot: true },
         });
         expect(list.choices).toStrictEqual(choicesFor(rows.slice(1)));

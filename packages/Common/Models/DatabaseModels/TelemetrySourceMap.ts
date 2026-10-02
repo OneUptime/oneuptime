@@ -60,6 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Code,
   tableDescription:
     "Source maps uploaded for telemetry services. Used to resolve minified browser exception stack traces back to the original source code. Maps are matched to exceptions by service and release (the service.version OpenTelemetry resource attribute).",
+  displayNameColumn: "bundlePath",
 })
 /*
  * The resolver looks maps up by (projectId, serviceId, serviceVersion) on

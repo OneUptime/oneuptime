@@ -12,6 +12,7 @@
 
 | 頁面             | 你在那裡做什麼                                               |
 | ---------------- | ------------------------------------------------------------ |
+| **人工智慧**     | 開啟或關閉自動調查、自動程式碼修復與事後分析草稿，並設定 AI 運作時的選用上限——在你設定之前，任何上限都不會生效。請參閱 [AI SRE](/docs/ai/ai-sre)。 |
 | **事件狀態**     | 新增、改名、換色，以及重新排序事件會經歷的狀態。             |
 | **事件嚴重性**   | 新增、改名、換色，以及重新排序嚴重程度層級。                 |
 | **事件範本**     | 預先填好整個事件——標題、描述、資源、待命策略、擁有者、標籤。 |
@@ -23,7 +24,7 @@
 
 **事件狀態** 與 **事件嚴重性** 在 [事件狀態與嚴重程度](/docs/incidents/states-and-severities) 有完整說明——本頁其餘部分從 **事件範本** 接著講。
 
-展開 **規則**，還會多出八個頁面：**分組規則**、**待命規則**、**擁有者規則**、**Runbook 規則**、**隱私規則**、**標籤規則**、**SLA 規則** 和 **Reminder Rules**。這些留到後面說明。
+展開 **規則**，還會多出九個頁面：**分組規則**、**待命規則**、**擁有者規則**、**Runbook 規則**、**自動補救規則**、**隱私規則**、**標籤規則**、**SLA 規則** 和 **Reminder Rules**。這些留到後面說明。
 
 ## 事件範本
 
@@ -113,20 +114,21 @@
 
 ## 事件建立時會跑的規則
 
-**事件 → 規則** 底下有八套規則引擎。它們做的是同一件事——在事件建立的當下看它一眼，符合就動作——差別在於做什麼，以及多條規則同時符合時要怎麼裁決。
+**事件 → 規則** 底下有九套規則引擎。它們做的是同一件事——在事件建立的當下看它一眼，符合就動作——差別在於做什麼，以及多條規則同時符合時要怎麼裁決。
 
 - **分組規則** —— 把相關的事件歸進同一個片段。規則依優先順序評估，數字小的先跑。
 - **待命規則** —— 為符合條件的事件執行待命值班策略。下面有詳細說明。
 - **擁有者規則** —— 自動指派擁有者。
 - **Runbook 規則** —— 事件符合條件時啟動一份 [Runbook](/docs/runbooks/index)。
+- **自動補救規則** —— 事件符合條件時建議或啟動補救用的 Runbook。若該事件有排隊中的 AI 調查，它們會等調查結束後，帶著調查的分析再執行。請參閱 [AI SRE](/docs/ai/ai-sre)。
 - **隱私規則** —— 決定符合條件的事件是不是私人的。
 - **標籤規則** —— 自動套用標籤。
 - **SLA 規則** —— 追蹤回應與解決時間。規則依順序評估，順序數字小的先跑。
 - **Reminder Rules** —— 事件還沒關閉時，定期提醒事件擁有者。規則依順序評估，第一條符合的規則勝出。
 
-**順序的語意並不一致。** 分組規則、SLA 規則和 Reminder Rules 是依順序評估的。待命規則不是——每一條符合的規則都會觸發。別以為同一套模型適用於全部八種。
+**順序的語意並不一致。** 分組規則、SLA 規則和 Reminder Rules 是依順序評估的。待命規則不是——每一條符合的規則都會觸發。別以為同一套模型適用於全部九種。
 
-**待命規則**、**擁有者規則**、**標籤規則** 與 **隱私規則** 這幾個頁面是分頁式的——一個 **Incident Rules** 分頁和一個 **Episode Rules** 分頁，各有自己的表格。除非你確實是要處理片段，否則請設定 **Incident Rules** 分頁。**分組規則**、**Runbook 規則**、**SLA 規則** 和 **Reminder Rules** 則是單一表格。
+**待命規則**、**擁有者規則**、**標籤規則** 與 **隱私規則** 這幾個頁面是分頁式的——一個 **Incident Rules** 分頁和一個 **Episode Rules** 分頁，各有自己的表格。除非你確實是要處理片段，否則請設定 **Incident Rules** 分頁。**分組規則**、**Runbook 規則**、**自動補救規則**、**SLA 規則** 和 **Reminder Rules** 則是單一表格。
 
 ## 事件待命規則
 
@@ -160,7 +162,7 @@
 
 ## 用工作流程驅動事件
 
-事件的工作流程觸發器不是手寫的——OneUptime 從資料模型產生它們，所以事件家族的每個模型都會拿到 **On Create X**、**On Update X** 與 **On Delete X** 元件，名稱取自模型的單數名。最主要的三個是 **On Create Incident**、**On Update Incident** 與 **On Delete Incident**，你可以在 `/dashboard/{projectId}/workflows` 的 **新增元件** 面板中，**事件** 分類底下找到它們。
+事件的工作流程觸發器不是手寫的——OneUptime 從資料模型產生它們，所以事件家族的每個模型都會拿到 **On Create X**、**On Update X** 與 **On Delete X** 元件，名稱取自模型的單數名。最主要的三個是 **On Create Incident**、**On Update Incident** 與 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，**OneUptime resources** → **Incident** 底下找到它們；前兩個也在 **Popular** 裡。
 
 同一套產生機制也給了你設定本身的觸發器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等等。每個模型還會拿到對應的動作元件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 以及它們的多列版本——所以名稱相近的觸發器和動作，會並排在同一個分類裡。**On Create Incident** 啟動一個工作流程；**Create One Incident** 開啟一個事件。
 

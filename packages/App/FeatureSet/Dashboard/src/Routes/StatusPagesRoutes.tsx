@@ -23,6 +23,7 @@ import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
 import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
 import StatusPagesViewAnnouncement from "../Pages/StatusPages/View/Announcements";
 import StatusPagesViewAdvancedOptions from "../Pages/StatusPages/View/AdvancedOptions";
+import StatusPagesArchived from "../Pages/StatusPages/Archived";
 import StatusPagesViewCustomHtmlCss from "../Pages/StatusPages/View/CustomHtmlCss";
 import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
 import StatusPagesViewFooterStyle from "../Pages/StatusPages/View/FooterStyle";
@@ -79,6 +80,10 @@ import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusP
 import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
 import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -110,6 +115,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPageAnnouncements
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+            />
+          }
+        />
+
+        {/* Static `archived` outranks the status page view's `:id`. */}
+        <PageRoute
+          path={StatusPagesRoutePath[PageMap.STATUS_PAGES_ARCHIVED] || ""}
+          element={
+            <StatusPagesArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route}
             />
           }
         />
@@ -266,6 +282,13 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPage,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.STATUS_PAGES_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -313,6 +336,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPageAnnouncement,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -748,6 +777,12 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: StatusPage,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

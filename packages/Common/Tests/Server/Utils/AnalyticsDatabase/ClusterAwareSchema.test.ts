@@ -373,7 +373,14 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
           expect(statement.query).toContain(
             "retentionDate SimpleAggregateFunction(max, DateTime)",
           );
-          expect(statement.query).toContain("TTL retentionDate DELETE");
+          /*
+           * Expired by retentionDate - on MetricItemAggMV1m rounded up to
+           * the midnight after it (RetentionTtl).
+           */
+          expect(model.ttlExpression).toMatch(
+            /^\S*\bretentionDate\b.* DELETE$/,
+          );
+          expect(statement.query).toContain(`TTL ${model.ttlExpression}`);
         } else {
           expect(statement.query).not.toContain("retentionDate");
         }

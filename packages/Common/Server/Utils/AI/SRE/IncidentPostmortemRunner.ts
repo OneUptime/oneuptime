@@ -28,11 +28,12 @@ const MAX_FEED_PREVIEW_CHARS: number = 6000;
 export default class AIIncidentPostmortemRunner {
   /*
    * The draft has its own switch, separate from automatic incident
-   * investigation. Investigations are read-only and on by default for new
-   * projects; a draft writes to the incident and posts to the project's
-   * Slack/Teams channels, so a project turns it on deliberately (opt-in:
-   * === true). The AI kill switch, the LLM provider and the AI balance gate
-   * it exactly as they gate an investigation.
+   * investigation, because a draft writes to the incident and posts to the
+   * project's Slack/Teams channels where an investigation only reads. Both
+   * are on for new projects; a project that existed before keeps its own
+   * value, and unset reads as off (=== true). The AI kill switch, the LLM
+   * provider and the AI balance gate it exactly as they gate an
+   * investigation.
    */
   public static async isEnabledForProject(
     projectId: ObjectID,

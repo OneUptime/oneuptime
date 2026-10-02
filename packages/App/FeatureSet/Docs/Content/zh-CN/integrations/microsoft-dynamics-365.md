@@ -151,7 +151,7 @@ OneUptime 是以应用程序而不是以某个人的身份来认证的，所以�
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-现在把工作流打开——**概览 → 编辑工作流 → 已启用**——宣布一个测试事件，然后在 **运行和日志** 下读这次运行。`create-case` 方块应该显示 `201`，正文里带着新的 `incidentid`。画布上的改动会自动保存；没有保存按钮。
+现在把工作流打开——**概览 → 编辑工作流 → 已启用**——宣布一个测试事件，然后在 **日志 → 运行记录** 下读这次运行。`create-case` 方块应该显示 `201`，正文里带着新的 `incidentid`。画布上的改动会自动保存；没有保存按钮。
 
 ### 映射严重级别和状态
 
@@ -230,13 +230,13 @@ Dynamics 自带的 `severitycode` 只有一个选项 "Default Value"，所以开
 ### 先搭接收端的工作流
 
 1. **创建工作流**，命名为 `Dynamics 365 → OneUptime`，加上 **Webhook** 触发器。
-2. 打开这个工作流的 **设置**，复制 **Webhook Secret Key**。你的 URL 是：
+2. 打开这个工作流的 **生成器**，点击 **Webhook** 触发器，再点击其设置顶部的 **复制 URL**。URL 的形式如下：
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   在自托管的安装上，换成你自己的主机名。把这个 URL 当密码看待——拿到它的人都能启动这个工作流。你可以在同一个页面上重置密钥。
+   自托管的安装用它们自己的主机名。把这个 URL 当密码看待——拿到它的人都能启动这个工作流。万一泄露了，就在同一个地方点击 **重置 URL**，旧 URL 会立即失效。
 
 3. 加一个 **If / Else** 方块，在其他任何事情发生之前先校验一个共享密钥。**Input 1** 是 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Operator** 是 `==`，**Input 2** 是 `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}`——一个你自己编出来、存成机密全局变量的值。
 4. 从 **是** 分支出发，加一个 **Update One Incident** 方块：
@@ -323,7 +323,7 @@ Dynamics 自带的 `severitycode` 只有一个选项 "Default Value"，所以开
 
 ## 故障排查
 
-先在 **运行和日志** 里读出错的那个方块——两个 Microsoft 端点都会返回一个解释性的 JSON 正文，而 API 组件会把它保存在 `response-body` 里。
+先在 **日志 → 运行记录** 里读出错的那个方块——两个 Microsoft 端点都会返回一个解释性的 JSON 正文，而 API 组件会把它保存在 `response-body` 里。
 
 **令牌请求以 `400` 加 `invalid_request` 或者不支持的 grant type 失败。** `Content-Type` 头部不是精确的 `Content-Type: application/x-www-form-urlencoded`，所以正文是以 JSON 发出去的。检查大小写。
 
@@ -343,7 +343,7 @@ Dynamics 自带的 `severitycode` 只有一个选项 "Default Value"，所以开
 
 **`429 Too Many Requests`。** 这是 Dataverse 的服务保护限制——在任意五分钟窗口内，每个用户、每台 web 服务器大约 6,000 个请求和 20 分钟的执行时间。响应里带着以秒为单位的 `Retry-After`。如果某个工作流在突发，就在里面放一个 **Delay** 方块，或者把这些活儿挪到一个做批处理的计划工作流里。
 
-**OneUptime 这边什么都没收到。** 自己用 `curl` 往那个 webhook URL 发一个请求，看看这个工作流的 **运行和日志**。如果你自己的请求出现了而 Dynamics 的没有，问题就在上游：Power Automate 的话，去看那个流自己的运行历史；原生 webhook 的话，去看 **Settings → System Jobs** 并筛选失败项。
+**OneUptime 这边什么都没收到。** 自己用 `curl` 往那个 webhook URL 发一个请求，看看这个工作流的 **日志 → 运行记录**。如果你自己的请求出现了而 Dynamics 的没有，问题就在上游：Power Automate 的话，去看那个流自己的运行历史；原生 webhook 的话，去看 **Settings → System Jobs** 并筛选失败项。
 
 **工作流跑了，但事件没有变化。** 当查询什么都没匹配到时，**Update One Incident** 方块会报 `Items Updated: 0`——那是成功，不是错误。检查载荷里的那个 id 是不是 OneUptime 的事件 id，以及你查的是不是 `_id`。
 

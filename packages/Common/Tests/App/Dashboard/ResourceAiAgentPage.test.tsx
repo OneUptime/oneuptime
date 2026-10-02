@@ -32,9 +32,21 @@ import {
   getResourceAiAgentSilentText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatus";
 import {
-  RESOURCE_REMEDIATION_MODE_LABELS,
+  RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
   RESOURCE_REMEDIATION_MODE_SUMMARIES,
+  getEveryModeProtections,
+  getResourceInvestigationOnSentence,
+  getResourceRemediationModeOptionDescriptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAccessSettingsUtil";
+import {
+  AI_ACCESS_PROTECTIONS_TITLE,
+  AI_FIXES_MODE_TONES,
+  formatAiAccessProtections,
+  getAiAccessCardDescription,
+  getAiFixesFieldDescription,
+  getAiFixesOffHint,
+  getAiInvestigationOffSentence,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import {
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentLogsCommand,
@@ -91,8 +103,10 @@ jest.mock("react-i18next", () => {
  * agent's card in each of its states (connected, offline, unreachable, not
  * installed — with the install instructions), "Needs attention" only when
  * the server has gaps — as ONE item: a headline and a short step per gap —
- * and "What AI may do" with its Change modal — whose
- * loosening rules, allowlist checks and confirmations mirror the server's.
+ * and "What AI may do" — one row for investigation and one for fixes, each
+ * with a badge and one plain sentence — with its Change modal, whose mode
+ * cards, loosening rules, allowlist checks and confirmations mirror the
+ * server's.
  */
 
 // Real components fetch; give the waits room on a loaded CI box.
@@ -366,49 +380,43 @@ async function openChangeModal(
   return dialog;
 }
 
-// The open react-select menu's options (not native <option>s).
-function menuOptions(): Array<HTMLElement> {
-  return screen
-    .queryAllByRole("option")
-    .filter((option: HTMLElement): boolean => {
-      return option.tagName !== "OPTION";
-    });
+// The Change modal's Fixes picker: one card (role "radio") per mode.
+function modeField(dialog: HTMLElement): HTMLElement {
+  return within(dialog).getByTestId("ai-remediation-mode-field");
 }
 
-async function openDropdown(
-  dialog: HTMLElement,
-  name: RegExp,
-): Promise<Array<string>> {
-  const combobox: HTMLElement = within(dialog).getByRole("combobox", {
-    name,
-  });
-  fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
-  await waitFor(
-    () => {
-      expect(menuOptions().length).toBeGreaterThan(0);
-    },
-    { timeout: WAIT_TIMEOUT },
-  );
-  return menuOptions().map((option: HTMLElement): string => {
-    return option.textContent || "";
+function modeCards(dialog: HTMLElement): Array<HTMLElement> {
+  return within(modeField(dialog)).getAllByRole("radio");
+}
+
+// Each card's title, in the order the picker shows them.
+function modeCardTitles(dialog: HTMLElement): Array<string> {
+  return modeCards(dialog).map((card: HTMLElement): string => {
+    return card.querySelector("span.font-semibold")?.textContent || "";
   });
 }
 
-async function pickOption(
+function modeCard(
   dialog: HTMLElement,
-  name: RegExp,
-  optionText: string,
-): Promise<void> {
-  await openDropdown(dialog, name);
-  const option: HTMLElement | undefined = menuOptions().find(
-    (candidate: HTMLElement): boolean => {
-      return candidate.textContent === optionText;
-    },
-  );
-  if (!option) {
-    throw new Error(`No option "${optionText}" in the ${name} dropdown.`);
+  mode: ResourceAiRemediationMode,
+): HTMLElement {
+  return within(modeField(dialog)).getByTestId(`card-select-option-${mode}`);
+}
+
+function pickMode(dialog: HTMLElement, mode: ResourceAiRemediationMode): void {
+  fireEvent.click(modeCard(dialog, mode));
+  expect(modeCard(dialog, mode)).toHaveAttribute("aria-checked", "true");
+}
+
+// The "What AI may do" card, by its title.
+async function settingsCard(): Promise<HTMLElement> {
+  const card: HTMLElement | null = (
+    await findText(SETTINGS_CARD_TITLE)
+  ).closest('[data-testid="card"]');
+  if (!card) {
+    throw new Error(`"${SETTINGS_CARD_TITLE}" is not inside a card.`);
   }
-  fireEvent.click(option);
+  return card;
 }
 
 async function toggleSwitch(
@@ -1241,6 +1249,50 @@ describe("Needs attention", () => {
     serve(
       makeStatus({
         isInvestigationReady: false,
+        gaps: [gap("ai_disabled_for_project")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-ai_disabled_for_project",
+    );
+    expect(row).toHaveTextContent("Ask a project owner or admin.");
+    expect(within(row).queryByText("Open AI Features")).not.toBeInTheDocument();
+  });
+
+  /*
+   * Enable AI is the project's only AI switch. The server no longer sends
+   * auto_remediation_disabled_for_project (the "Enable auto-remediation"
+   * switch was folded into it), but a server one release behind may while a
+   * rollout is under way: an admin is still sent to AI Features, where
+   * Enable AI is, and a member is told who to ask.
+   */
+  test("a retired project gap from an older server still links an admin to AI Features", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
+        gaps: [gap("auto_remediation_disabled_for_project")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-auto_remediation_disabled_for_project",
+    );
+    expect(
+      within(row)
+        .getByText("Open AI Features")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(`/dashboard/${PROJECT_ID}/settings/ai-features`);
+  });
+
+  test("a retired project gap from an older server tells a member who to ask", async () => {
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
         gaps: [gap("auto_remediation_disabled_for_project")],
       }),
     );
@@ -1269,18 +1321,31 @@ describe("Needs attention", () => {
 });
 
 describe("What AI may do", () => {
-  test("shows investigation and fixes in plain words, with the fixes-off hint", async () => {
+  test("one row for investigation and one for fixes, each with a badge and one plain sentence", async () => {
     openAgentPage();
 
-    expect(await findTestId("ai-access-investigation-value")).toHaveTextContent(
-      "Yes — read-only (ps, inspect, logs, stats, events)",
+    const card: HTMLElement = await settingsCard();
+    expect(
+      within(card)
+        .getAllByRole("heading", { level: 3 })
+        .map((heading: HTMLElement): string => {
+          return heading.textContent || "";
+        }),
+    ).toEqual(["Investigation", "Fixes"]);
+
+    expect(
+      screen.getByTestId("ai-access-investigation-badge"),
+    ).toHaveTextContent("On");
+    expect(
+      screen.getByTestId("ai-access-investigation-value"),
+    ).toHaveTextContent(
+      "AI may run read-only docker commands on this Docker host: ps, inspect, logs, stats, events. They never change anything.",
     );
-    expect(screen.getByText(DOCKER.investigateTitle)).toBeInTheDocument();
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+      "Off",
+    );
     expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
-      `Off — ${RESOURCE_REMEDIATION_MODE_SUMMARIES[ResourceAiRemediationMode.Disabled]}`,
-    );
-    expect(screen.getByTestId("ai-access-fixes-off-hint")).toHaveTextContent(
-      "Want AI to propose fixes? Choose Ask for approval.",
+      RESOURCE_REMEDIATION_MODE_SUMMARIES[ResourceAiRemediationMode.Disabled],
     );
     expect(
       screen.queryByTestId("ai-access-write-commands"),
@@ -1290,19 +1355,120 @@ describe("What AI may do", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("investigation off says so", async () => {
+  test("the card says what it is for, and when a change takes effect", async () => {
+    openAgentPage();
+
+    expect(
+      within(await settingsCard()).getByTestId("card-description"),
+    ).toHaveTextContent(
+      "For incidents and alerts on this Docker host. Changes apply from the next one.",
+    );
+  });
+
+  test("investigation off says what AI does not do, and what it still does", async () => {
     serve(
       makeStatus({
         isAiInvestigationEnabled: false,
         isInvestigationReady: false,
+        gaps: [gap("investigation_disabled")],
       }),
     );
     openAgentPage();
 
-    expect(await findTestId("ai-access-investigation-value")).toHaveTextContent(
-      "No — AI investigates with OneUptime data only",
+    expect(await findTestId("ai-access-investigation-badge")).toHaveTextContent(
+      "Off",
+    );
+    expect(
+      screen.getByTestId("ai-access-investigation-value"),
+    ).toHaveTextContent(getAiInvestigationOffSentence("Docker host"));
+  });
+
+  /*
+   * The card used to read "No — AI investigates with OneUptime data only"
+   * beside "Off — AI only investigates": with both off, one row said AI
+   * investigates and the other that it only investigates. Now each row
+   * speaks of its own setting only.
+   */
+  test("with both off, the two rows no longer contradict each other", async () => {
+    serve(
+      makeStatus({
+        isAiInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [gap("investigation_disabled")],
+      }),
+    );
+    openAgentPage();
+
+    const card: HTMLElement = await settingsCard();
+    expect(
+      screen.getByTestId("ai-access-investigation-badge"),
+    ).toHaveTextContent("Off");
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+      "Off",
+    );
+    expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
+      "AI never proposes or runs a fix.",
+    );
+    expect(card).not.toHaveTextContent("only investigates");
+    expect(card).not.toHaveTextContent("No — AI investigates");
+    expect(card).not.toHaveTextContent("Yes — read-only");
+  });
+
+  test("a member on fixes Off is told who may turn them on, not to click Change", async () => {
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      getAiFixesOffHint(false),
+    );
+    expect(
+      screen.getByTestId("ai-access-fixes-off-hint"),
+    ).not.toHaveTextContent("Click Change");
+  });
+
+  test("an admin on fixes Off is told to click Change and choose Ask for approval", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      "Want AI to propose fixes? Click Change and choose Ask for approval.",
     );
   });
+
+  test("a reader on fixes Off is told who to ask", async () => {
+    grant(READER_PERMISSIONS);
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      "Ask a project owner or admin to choose Ask for approval.",
+    );
+  });
+
+  test.each(Object.values(ResourceAiRemediationMode))(
+    "fixes in %s: the badge names the mode in its tone, the sentence says what it does",
+    async (mode: ResourceAiRemediationMode) => {
+      serve(makeStatus({ aiRemediationMode: mode }));
+      openAgentPage();
+
+      const badge: HTMLElement = await findTestId("ai-access-fixes-badge");
+      expect(badge).toHaveTextContent(
+        RESOURCE_REMEDIATION_MODE_SHORT_NAMES[mode],
+      );
+      expect(badge).toHaveAttribute("data-tone", AI_FIXES_MODE_TONES[mode]);
+      expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
+        RESOURCE_REMEDIATION_MODE_SUMMARIES[mode],
+      );
+      // The hint is for Off only.
+      if (mode === ResourceAiRemediationMode.Disabled) {
+        expect(
+          screen.getByTestId("ai-access-fixes-off-hint"),
+        ).toBeInTheDocument();
+      } else {
+        expect(
+          screen.queryByTestId("ai-access-fixes-off-hint"),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
 
   test("fixes on with a read-only agent: the write switch, scoped first, and the disclosure", async () => {
     serve(
@@ -1428,11 +1594,41 @@ describe("What AI may do", () => {
       }),
     );
     openAgentPage();
-    expect(await findTestId("ai-access-fixes-value")).toHaveTextContent(
+    expect(await findTestId("ai-access-fixes-badge")).toHaveTextContent(
       "Bypass approval",
     );
     expect(
       screen.queryByTestId("ai-command-allowlist-in-effect"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the allowlist and the write-access steps sit in the Fixes row", async () => {
+    serve(
+      makeStatus({
+        aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        aiCommandAllowlist: ["docker stop web", "docker restart api"],
+      }),
+    );
+    openAgentPage();
+
+    const fixes: HTMLElement = await findTestId("ai-access-fixes");
+    const allowlist: HTMLElement = within(fixes).getByTestId(
+      "ai-command-allowlist-in-effect",
+    );
+    expect(
+      within(allowlist)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["docker stop web", "docker restart api"]);
+    expect(
+      within(fixes).getByTestId("ai-access-write-commands"),
+    ).toHaveTextContent("Give the agent write access");
+    expect(
+      within(screen.getByTestId("ai-access-investigation")).queryByTestId(
+        "ai-access-write-commands",
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -1444,7 +1640,7 @@ describe("What AI may do", () => {
 
     expect(
       await findTestId("ai-command-allowlist-in-effect"),
-    ).toHaveTextContent("None");
+    ).toHaveTextContent("None — riskier fixes always wait for approval.");
   });
 
   test("the Change button is locked, with the reason, for a reader", async () => {
@@ -1486,10 +1682,14 @@ describe("the Change modal: who may loosen", () => {
       within(dialog).queryByTestId("ai-command-allowlist-field"),
     ).not.toBeInTheDocument();
 
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual([
-      RESOURCE_REMEDIATION_MODE_LABELS[ResourceAiRemediationMode.Disabled],
-      `${RESOURCE_REMEDIATION_MODE_LABELS[ResourceAiRemediationMode.RequireApproval]} (current)`,
+    // Every mode at or below the saved one, the saved one marked.
+    expect(modeCardTitles(dialog)).toEqual([
+      "Off",
+      "Ask for approval (current)",
     ]);
+    expect(
+      modeCard(dialog, ResourceAiRemediationMode.RequireApproval),
+    ).toHaveAttribute("aria-checked", "true");
   });
 
   test("a member on an Off host cannot turn fixes on", async () => {
@@ -1497,9 +1697,7 @@ describe("the Change modal: who may loosen", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual([
-      RESOURCE_REMEDIATION_MODE_LABELS[ResourceAiRemediationMode.Disabled],
-    ]);
+    expect(modeCardTitles(dialog)).toEqual(["Off (current)"]);
   });
 
   test("an admin is offered every mode, and turns fixes on from Off", async () => {
@@ -1511,23 +1709,13 @@ describe("the Change modal: who may loosen", () => {
     expect(
       within(dialog).queryByTestId("resource-ai-access-admin-note"),
     ).not.toBeInTheDocument();
-    expect(await openDropdown(dialog, /^Fixes/)).toEqual(
-      Object.values(ResourceAiRemediationMode).map(
-        (mode: ResourceAiRemediationMode): string => {
-          return RESOURCE_REMEDIATION_MODE_LABELS[mode];
-        },
-      ),
-    );
-    fireEvent.click(
-      menuOptions().find((option: HTMLElement): boolean => {
-        return (
-          option.textContent ===
-          RESOURCE_REMEDIATION_MODE_LABELS[
-            ResourceAiRemediationMode.RequireApproval
-          ]
-        );
-      })!,
-    );
+    expect(modeCardTitles(dialog)).toEqual([
+      "Off (current)",
+      "Ask for approval",
+      "Automatic",
+      "Bypass approval",
+    ]);
+    pickMode(dialog, ResourceAiRemediationMode.RequireApproval);
     saveChangeModal(dialog);
 
     expect(await waitForOneUpdate()).toEqual({
@@ -1554,11 +1742,7 @@ describe("the Change modal: who may loosen", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      RESOURCE_REMEDIATION_MODE_LABELS[ResourceAiRemediationMode.Automatic],
-    );
+    pickMode(dialog, ResourceAiRemediationMode.Automatic);
     saveChangeModal(dialog);
 
     expect(await waitForOneUpdate()).toEqual({
@@ -1578,8 +1762,8 @@ describe("the Change modal: who may loosen", () => {
     const dialog: HTMLElement = await openChangeModal();
 
     expect(
-      within(dialog).getByText(/You can remove entries or clear the list/),
-    ).toBeInTheDocument();
+      within(dialog).getByTestId("resource-ai-access-admin-note"),
+    ).toHaveTextContent("remove allowlist entries");
     await setAllowlistText(dialog, "docker stop web");
     saveChangeModal(dialog);
 
@@ -1623,13 +1807,7 @@ describe("the Change modal: who may loosen", () => {
       ),
     ).toHaveAttribute("placeholder", DOCKER.allowlistPlaceholder);
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      RESOURCE_REMEDIATION_MODE_LABELS[
-        ResourceAiRemediationMode.RequireApproval
-      ],
-    );
+    pickMode(dialog, ResourceAiRemediationMode.RequireApproval);
     await waitFor(
       () => {
         expect(
@@ -1673,13 +1851,7 @@ describe("the Change modal: who may loosen", () => {
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      RESOURCE_REMEDIATION_MODE_LABELS[
-        ResourceAiRemediationMode.RequireApproval
-      ],
-    );
+    pickMode(dialog, ResourceAiRemediationMode.RequireApproval);
     saveChangeModal(dialog);
 
     expect(await findTestId("ai-access-save-error")).toHaveTextContent(
@@ -1701,19 +1873,164 @@ describe("the Change modal: who may loosen", () => {
   });
 });
 
+describe("the Change modal: the mode cards", () => {
+  test("one card per mode, each saying what it does, the saved one chosen", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    const descriptions: Record<ResourceAiRemediationMode, string> =
+      getResourceRemediationModeOptionDescriptions(DOCKER);
+    expect(modeCards(dialog)).toHaveLength(4);
+    for (const mode of Object.values(ResourceAiRemediationMode)) {
+      const card: HTMLElement = modeCard(dialog, mode);
+      expect(card).toHaveTextContent(descriptions[mode]);
+      // Each card carries its mode's icon.
+      expect(card.querySelector("svg")).not.toBeNull();
+      expect(card).toHaveAttribute(
+        "aria-checked",
+        mode === ResourceAiRemediationMode.RequireApproval ? "true" : "false",
+      );
+    }
+  });
+
+  /*
+   * The field's help used to be one paragraph of every mode and every
+   * protection. Each card now says its own mode, and the field says what
+   * the choice is about in one line.
+   */
+  test("the Fixes field explains itself in one line, not a paragraph", async () => {
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    expect(
+      within(dialog).getByText(getAiFixesFieldDescription("Docker host")),
+    ).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("Off: AI only investigates.");
+    expect(dialog).not.toHaveTextContent(
+      "In every mode, Bypass approval included:",
+    );
+    // The mode picker is cards, not a dropdown.
+    expect(
+      within(dialog).queryByRole("combobox", { name: /^Fixes/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("radiogroup", { name: /^Fixes/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("what stays protected in every mode is folded under the cards, every clause listed", async () => {
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    const protections: HTMLElement = within(dialog).getByTestId(
+      "ai-access-protections",
+    );
+    expect(protections).not.toHaveAttribute("open");
+    expect(protections).toHaveTextContent(AI_ACCESS_PROTECTIONS_TITLE);
+    expect(
+      Array.from(
+        within(protections)
+          .getByTestId("ai-access-protections-list")
+          .querySelectorAll("li"),
+      ).map((item: Element): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(formatAiAccessProtections(getEveryModeProtections(DOCKER)));
+    // Under the cards, not above them.
+    expect(
+      modeField(dialog).compareDocumentPosition(protections) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a card chosen from the keyboard is saved like a clicked one", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    fireEvent.keyDown(modeCard(dialog, ResourceAiRemediationMode.Disabled), {
+      key: "Enter",
+    });
+    await waitFor(
+      () => {
+        expect(
+          modeCard(dialog, ResourceAiRemediationMode.Disabled),
+        ).toHaveAttribute("aria-checked", "true");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    saveChangeModal(dialog);
+
+    expect(await waitForOneUpdate()).toEqual({
+      aiRemediationMode: ResourceAiRemediationMode.Disabled,
+    });
+  });
+
+  test("choosing a card and back again sends nothing", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    pickMode(dialog, ResourceAiRemediationMode.Automatic);
+    pickMode(dialog, ResourceAiRemediationMode.RequireApproval);
+    saveChangeModal(dialog);
+
+    await waitFor(
+      () => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(updateByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member's note says what they can change first, then what needs more", async () => {
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    const note: HTMLElement = within(dialog).getByTestId(
+      "resource-ai-access-admin-note",
+    );
+    expect(note).toHaveTextContent(
+      "You can turn investigation on or off, lower fixes and remove allowlist entries.",
+    );
+    expect(note).toHaveTextContent(
+      "Turning fixes on or up, or adding allowlist entries, needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+    );
+  });
+
+  test("the allowlist help is short, and leaves who may add entries to the note", async () => {
+    serveModel({
+      aiRemediationMode: ResourceAiRemediationMode.Automatic,
+      aiCommandAllowlist: ["docker stop web"],
+    });
+    openAgentPage();
+    const dialog: HTMLElement = await openChangeModal();
+
+    await within(dialog).findByTestId(
+      "ai-command-allowlist-field",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(
+      within(dialog).getByText(
+        /^One command per line, at most \d+\. A riskier fix that matches an entry runs without approval\./,
+      ),
+    ).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent(
+      "You can remove entries or clear the list; adding or changing one needs",
+    );
+  });
+});
+
 describe("the Change modal: confirmations", () => {
   test("Bypass approval is confirmed before it is saved", async () => {
     grant(ADMIN_PERMISSIONS);
     openAgentPage();
     const dialog: HTMLElement = await openChangeModal();
 
-    await pickOption(
-      dialog,
-      /^Fixes/,
-      RESOURCE_REMEDIATION_MODE_LABELS[
-        ResourceAiRemediationMode.BypassApproval
-      ],
-    );
+    pickMode(dialog, ResourceAiRemediationMode.BypassApproval);
     saveChangeModal(dialog);
 
     const confirm: HTMLElement = await findDialogTitled(
@@ -2005,6 +2322,44 @@ describe("every resource type", () => {
       ).toHaveTextContent(
         `Install the ${descriptor.agentName} with the instructions above.`,
       );
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    '%s: "What AI may do" speaks of its own type',
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve(makeStatus({ resourceType: type }));
+      openAgentPage(descriptor);
+
+      expect(
+        within(await settingsCard()).getByTestId("card-description"),
+      ).toHaveTextContent(getAiAccessCardDescription(descriptor.noun));
+      expect(
+        screen.getByTestId("ai-access-investigation-value"),
+      ).toHaveTextContent(getResourceInvestigationOnSentence(descriptor));
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the Change modal's mode cards name its own riskier changes",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      grant(ADMIN_PERMISSIONS);
+      serve(makeStatus({ resourceType: type }));
+      openAgentPage(descriptor);
+      const dialog: HTMLElement = await openChangeModal(descriptor);
+
+      const descriptions: Record<ResourceAiRemediationMode, string> =
+        getResourceRemediationModeOptionDescriptions(descriptor);
+      for (const mode of Object.values(ResourceAiRemediationMode)) {
+        expect(modeCard(dialog, mode)).toHaveTextContent(descriptions[mode]);
+      }
+      expect(
+        within(dialog).getByText(getAiFixesFieldDescription(descriptor.noun)),
+      ).toBeInTheDocument();
     },
   );
 });

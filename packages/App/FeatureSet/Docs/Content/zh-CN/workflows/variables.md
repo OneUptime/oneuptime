@@ -61,7 +61,7 @@
 - Slack、Teams、Discord、Telegram、电子邮件的消息文本。
 - 邮件的主题和正文。
 - 头部和正文字段（在字符串值内部）。
-- **If / Else** 方块的左右两边（它列在 条件 类别下）。
+- **If / Else** 方块的左右两边。
 
 在 JSON 字段里，你可以在字符串值内部使用变量，但不能拿它当键。如果一个引用独占了整个值，它会被原样替换进去，你可以用这个办法把一整个对象塞进 JSON 字段。要动态地拼出一个结构，就先用 **Run Custom JavaScript** 方块把它拼好，再把输出传给下一个方块。
 
@@ -135,5 +135,5 @@
 ## 接下来读什么
 
 - [工作流组件](/docs/workflows/components) —— 每个方块产出的输出的完整清单。
-- [工作流运行与日志](/docs/workflows/runs-and-logs) —— 看一次运行之后每个变量的实际值。
+- [工作流运行记录](/docs/workflows/runs-and-logs) —— 看一次运行之后每个变量的实际值。
 - [工作流配置与安全](/docs/workflows/configuration) —— 什么东西适合放进全局变量。

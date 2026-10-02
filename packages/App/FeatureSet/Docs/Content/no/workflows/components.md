@@ -105,7 +105,7 @@ Send en e-post gjennom en SMTP-server som du legger inn på blokken.
 - **Suksess** — fyrer når SMTP-serveren godtok meldingen.
 - **Feil** — fyrer når SMTP-verten avvises, serveren ikke kan nås, eller serveren avviser meldingen. Sender videre feilmeldingen. Mangler **To Email**, **From Email**, **SMTP Host** eller **SMTP Port**, stopper kjøringen i stedet.
 
-Blokken kobler seg direkte til serveren i innstillingene sine. Den bruker verken prosjektets [SMTP](/docs/emails/smtp)-innstillinger eller OneUptimes egen e-postserver, og e-postene den sender, vises ikke i Varsellogger. Vil du sjekke hva den gjorde, se arbeidsflytens [kjøringer & logger](/docs/workflows/runs-and-logs).
+Blokken kobler seg direkte til serveren i innstillingene sine. Den bruker verken prosjektets [SMTP](/docs/emails/smtp)-innstillinger eller OneUptimes egen e-postserver, og e-postene den sender, vises ikke i Varsellogger. Vil du sjekke hva den gjorde, se arbeidsflytens [kjøringer](/docs/workflows/runs-and-logs).
 
 Tilkoblinger til loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og skymetadata-adresser avvises. På OneUptime Cloud avvises også en SMTP-vert på en privat nettverksadresse, eller et navn som løses opp til en slik adresse. Selvhostede installasjoner kan nå en e-postserver på sitt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er satt til `true`. En avvist vert går til **Feil**-utgangen, og ingenting blir sendt.
 
@@ -131,7 +131,7 @@ Konverter mellom tekst og JSON.
 
 ## Conditions
 
-Forgrening basert på en sammenligning. I **Legg til komponent**-panelet heter denne blokken **If / Else**, under Betingelser-kategorien.
+Forgrening basert på en sammenligning. I **Legg til komponent**-panelet heter denne blokken **If / Else**, under **Popular**.
 
 **Innstillinger**:
 
@@ -159,7 +159,7 @@ Det finnes en sikkerhetsgrense så arbeidsflyter ikke kan kalle hverandre i det 
 
 ## OneUptime-datakomponenter
 
-For hver posttype i OneUptime (monitorer, hendelser, varsler, statussider, vaktpolicyer og mange flere) har **Legg til komponent**-panelet disse komponentene — søk etter navnet på typen. Hver tittel genereres ut fra posttypen, så Monitor-settet ser slik ut:
+For hver posttype i OneUptime (monitorer, hendelser, varsler, statussider, vaktpolicyer og mange flere) har **Legg til komponent**-panelet disse komponentene: klikk på posttypen under **OneUptime resources** (**Browse all resources** har de som ikke vises), eller søk etter navnet på typen. Hver tittel genereres ut fra posttypen, så Monitor-settet ser slik ut:
 
 - **Find One Monitor** — les én post som matcher spørringen.
 - **Find Many Monitors** — les en liste med poster som matcher spørringen.
@@ -217,5 +217,5 @@ Noen kjappe regler:
 ## Hvor du leser videre
 
 - [Arbeidsflyt-variabler](/docs/workflows/variables) — å sende data mellom blokker.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva hver blokk gjorde i en kjøring.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — å sjekke hva hver blokk gjorde i en kjøring.
 - [Arbeidsflyt-konfigurasjon & sikkerhet](/docs/workflows/configuration) — grenser, eiere og hemmeligheter.

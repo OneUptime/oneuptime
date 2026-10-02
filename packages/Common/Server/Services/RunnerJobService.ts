@@ -781,7 +781,7 @@ export class Service extends DatabaseService<Model> {
     // The one "is an agent row" rule: the name marker or an agent posture.
     if (RunnerServiceClass.isKubernetesAgentRunnerRow(targetRunner)) {
       throw new BadDataException(
-        `Runner "${targetRunner.name}" is a cluster's in-cluster Runner: it runs kubectl through its cluster only, never ${data.stepType} commands. Target the Kubernetes cluster instead, or pick a Runner you created under Project Settings → Runners.`,
+        `Runner "${targetRunner.name}" is a cluster's in-cluster Runner: it runs kubectl through its cluster only, never ${data.stepType} commands. Target the Kubernetes cluster instead, or pick a Runner you created under Runbooks → Runners.`,
       );
     }
 
@@ -1162,7 +1162,7 @@ export class Service extends DatabaseService<Model> {
          */
         if (RunnerServiceClass.isKubernetesAgentRunnerRow(targetRunner)) {
           throw new BadDataException(
-            `Runner "${targetRunner.name}" is a cluster's in-cluster Runner and is never given a credential, so a kubectl command for cluster "${clusterLabel}" that needs one cannot run on it. Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on the cluster's AI agent page (AI → Agent).`,
+            `Runner "${targetRunner.name}" is a cluster's in-cluster Runner and is never given a credential, so a kubectl command for cluster "${clusterLabel}" that needs one cannot run on it. Create a Runner under Runbooks → Runners, assign the Kubernetes credential to it and select both on the cluster's AI agent page (AI → Agent).`,
           );
         }
 

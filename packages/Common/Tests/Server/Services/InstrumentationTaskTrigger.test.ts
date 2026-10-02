@@ -15,8 +15,9 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 /*
  * The ImproveInstrumentation trigger: an INCONCLUSIVE AI investigation
  * enqueues a CodeFix AIRun that opens an instrumentation PR — but ONLY for
- * projects that explicitly opted in for the investigation's incident or alert
- * lane (both default FALSE — G11 posture), only when a GitHub-App repo exists to open the PR
+ * projects with the setting on for the investigation's incident or alert
+ * lane (both columns default FALSE; new projects get them on), only when a
+ * GitHub-App repo exists to open the PR
  * against, and at most one non-terminal run per incident/alert. The trigger
  * runs inside postAnalysis, so it must NEVER throw.
  */
@@ -63,7 +64,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
     ).toBe(false);
   });
 
-  test("opt-in is strict: an unset flag (legacy row) never enqueues — default is FALSE", () => {
+  test("opt-in is strict: an unset flag (legacy row) never enqueues — the column default is FALSE", () => {
     const project: Project = {
       id: projectId,
       enableAi: true,

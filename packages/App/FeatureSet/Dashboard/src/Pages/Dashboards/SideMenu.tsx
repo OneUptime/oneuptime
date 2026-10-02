@@ -6,6 +6,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { ReactElement } from "react";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -20,6 +23,19 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
             ),
           },
           icon: IconProp.Window,
+        },
+        /*
+         * Archived dashboards are filtered out of the list above, so without
+         * this entry the only way back to one would be its URL.
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARDS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },
@@ -57,6 +73,11 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Dashboard,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

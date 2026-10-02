@@ -41,8 +41,10 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, resend. The matching API call throws
- *            HTTPErrorResponse. "resend" also marks the subscriber
+ *            investigation, conversation, conversation-send, resend. The
+ *            matching API call throws HTTPErrorResponse. "conversation" is
+ *            the read of the AI card's thread and "conversation-send" a
+ *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
  *            Failed, so the details cards offer a retry that is refused.
  *   ?resources= default | many | none
@@ -51,6 +53,16 @@
  *            Kubernetes cluster and an SLO: five categories, one of them
  *            behind a Show more. "none" leaves Incident #1042 and Scheduled
  *            Maintenance #58 with nothing attached, for the empty state.
+ *   ?thread= empty (default) | answered | working | approval | error
+ *            | crowded
+ *            What the conversation that closes the AI Investigation card of
+ *            Incident #1042 and Alert #311 holds: nobody has asked,
+ *            two answered questions (one of them the viewer's, with a table,
+ *            an executed action and a source), an answer being written with
+ *            its live steps, an action waiting for approval, a failed and a
+ *            stopped answer, or twelve messages from six people (long enough
+ *            to open folded). Sending, approving and stopping are modelled:
+ *            see "The investigation card's conversation" below.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
@@ -153,11 +165,14 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
+import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import AIRunCodeFixRecommendation from "Common/Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import {
   AIChatCitationTargetType,
+  AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -224,6 +239,17 @@ const clustersMode = ["reachable", "unreachable", "mixed"].includes(
 )
   ? params.get("clusters")
   : "none";
+/*
+ * What the investigation card's shared conversation holds for incident #1042
+ * and alert #311 (see "The investigation card's conversation" below): nobody
+ * has asked anything (the default), two answered questions, an answer being
+ * written, an action waiting for approval, a failed and a stopped answer, or
+ * a long thread six people asked in.
+ */
+const THREAD_MODES = ["answered", "working", "approval", "error", "crowded"];
+const threadMode = THREAD_MODES.includes(params.get("thread"))
+  ? params.get("thread")
+  : "empty";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -314,6 +340,7 @@ const fixture = {
     role: roleMode,
     resources: resourcesMode,
     clusters: clustersMode,
+    thread: threadMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -3263,6 +3290,528 @@ function subscriberAudience(body) {
   };
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * The investigation card's conversation
+ * ---------------------------------------------------------------------------
+ * The shared thread of incident #1042 and alert #311, as
+ * InvestigationThreadService.getView answers it: messages oldest first with
+ * who asked, and, while an answer is in flight, its run and live steps.
+ * `?thread=` picks what it starts with. Maya Chen is the viewer.
+ *
+ * It is a small state machine, so a spec can drive the card for real:
+ *  - a question that is sent appears with an answer in progress, which
+ *    narrates a step on the next read and is complete on the one after;
+ *  - an approval that is answered runs or skips its action and completes;
+ *  - Stop turns the answer in flight into a stopped one.
+ */
+function threadAuthor(user) {
+  return { userId: user.id.toString(), name: user.name.toString() };
+}
+
+let threadMessageCounter = 0;
+function threadMessage(role, author, createdAt, extra) {
+  threadMessageCounter += 1;
+  return {
+    _id: uuid("88000000", threadMessageCounter),
+    role,
+    contentInMarkdown: "",
+    status: AIChatMessageStatus.Completed,
+    citations: [],
+    widgets: [],
+    toolActions: [],
+    errorMessage: null,
+    aiRunId: null,
+    createdAt: iso(createdAt),
+    author,
+    ...extra,
+  };
+}
+
+function threadQuestion(user, createdAt, content) {
+  return threadMessage(
+    AIChatMessageRole.User,
+    typeof user.userId === "string" ? user : threadAuthor(user),
+    createdAt,
+    { contentInMarkdown: content },
+  );
+}
+
+function threadAnswer(user, createdAt, extra) {
+  return threadMessage(
+    AIChatMessageRole.Assistant,
+    typeof user.userId === "string" ? user : threadAuthor(user),
+    createdAt,
+    extra,
+  );
+}
+
+let threadRunCounter = 0;
+function threadRunId() {
+  threadRunCounter += 1;
+  return uuid("89000000", threadRunCounter);
+}
+
+/*
+ * The steps of an answer in flight, without tool arguments: getView never
+ * selects them. `openTool` leaves the last tool call running.
+ */
+function threadRunEvents(runId, startedAt, options) {
+  const events = [];
+  let time = startedAt.getTime();
+  const push = (eventType, extra, advanceMs) => {
+    events.push(
+      make(AIRunEvent, {
+        _id: uuid("8a000000", events.length + 1),
+        projectId: projectObjectId,
+        aiRunId: new ObjectID(runId),
+        sequence: events.length + 1,
+        eventType,
+        createdAt: new Date(time),
+        ...extra,
+      }),
+    );
+    time += advanceMs;
+  };
+  push(AIRunEventType.RunStarted, {}, 200);
+  push(AIRunEventType.LlmCallStarted, {}, 2100);
+  push(AIRunEventType.LlmCallCompleted, {}, 100);
+  if (options.toolCount > 0) {
+    push(AIRunEventType.ToolCallStarted, { toolName: "recent_changes" }, 470);
+    push(
+      AIRunEventType.ToolCallCompleted,
+      {
+        toolName: "recent_changes",
+        resultSummary: { rowCount: 3, durationInMs: 470 },
+      },
+      120,
+    );
+  }
+  if (options.openTool) {
+    push(AIRunEventType.ToolCallStarted, { toolName: "search_logs" }, 0);
+  }
+  return BaseModel.toJSONArray(events, AIRunEvent);
+}
+
+const THREAD_ANSWER_TO_SENT_QUESTION =
+  "checkout-api is still the only service above its latency threshold: its p95 is back under 500 ms since 18:12 and no other monitor has changed state [C1].";
+
+function seedThread(kind, number) {
+  const subject = `${kind} #${number}`;
+  const messages = [];
+  let activeRun = null;
+
+  const affectedCitations = [
+    {
+      id: "C1",
+      toolName: "query_metrics",
+      label: "db.client.connections.usage for orders-db, 17:30 – 18:15 UTC",
+      queryArguments: { metricName: "db.client.connections.usage" },
+      rowCount: 45,
+      target: { type: AIChatCitationTargetType.Metrics },
+    },
+    {
+      id: "C2",
+      toolName: "search_logs",
+      label: 'Logs matching "timeout acquiring connection" in cart-api',
+      queryArguments: { search: "timeout acquiring connection" },
+      rowCount: 0,
+      target: { type: AIChatCitationTargetType.Logs },
+    },
+    {
+      id: "C3",
+      toolName: "query_monitors",
+      label: "Monitors attached to checkout-api, cart-api and orders-db",
+      queryArguments: { nameSearch: "checkout" },
+      rowCount: 4,
+    },
+  ];
+  const affectedExchange = () => {
+    messages.push(
+      threadQuestion(
+        people.sam,
+        ago(9 * MINUTE),
+        `Is anything else affected by this ${kind}?`,
+      ),
+      threadAnswer(people.sam, ago(8 * MINUTE), {
+        contentInMarkdown: [
+          "Nothing outside checkout is degraded, but one dependency shares the cause:",
+          "",
+          "- **Orders DB connection pool** has sat at its 10-connection ceiling since 17:58 [C1].",
+          "- **cart-api** is healthy: p95 is 180 ms and it logged no pool timeouts [C2].",
+          "",
+          "Both monitors on checkout-api are the only ones not Operational [C3].",
+        ].join("\n"),
+        citations: affectedCitations,
+        aiRunId: threadRunId(),
+      }),
+    );
+  };
+
+  if (threadMode === "answered" || threadMode === "crowded") {
+    affectedExchange();
+    messages.push(
+      threadQuestion(
+        people.maya,
+        ago(4 * MINUTE),
+        `Acknowledge this ${kind} and tell me who is on call for checkout.`,
+      ),
+      threadAnswer(people.maya, ago(3 * MINUTE), {
+        contentInMarkdown: `Done — ${subject} is acknowledged. **Jordan Patel** is on call for Checkout on-call until 20:00 UTC [C1].`,
+        citations: [
+          {
+            id: "C1",
+            toolName: "get_on_call",
+            label: "Who is on call for Checkout on-call right now",
+            queryArguments: { policyName: "Checkout on-call" },
+            rowCount: 1,
+            target: { type: AIChatCitationTargetType.OnCallPolicies },
+          },
+        ],
+        toolActions: [
+          {
+            id: "call_acknowledge",
+            toolName: `acknowledge_${kind}`,
+            title: `Acknowledge ${subject}`,
+            arguments: { [`${kind}Number`]: number },
+            isMutation: true,
+            requiresApproval: false,
+            status: AIChatToolActionStatus.Executed,
+          },
+        ],
+        // Rows fetched under the asker's permissions: the viewer asked.
+        widgets: [
+          {
+            id: "W1",
+            citationId: "C1",
+            type: AIChatWidgetType.Table,
+            title: "Checkout on-call — current shift",
+            data: {
+              columns: [
+                { key: "who", title: "On call" },
+                { key: "layer", title: "Layer" },
+                { key: "until", title: "Until", type: "date" },
+              ],
+              rows: [
+                {
+                  who: "Jordan Patel",
+                  layer: "Primary",
+                  until: iso(at("20:00")),
+                },
+                {
+                  who: "Alex Kim",
+                  layer: "Secondary",
+                  until: iso(at("20:00")),
+                },
+              ],
+            },
+          },
+        ],
+        aiRunId: threadRunId(),
+      }),
+    );
+  }
+
+  if (threadMode === "crowded") {
+    // Six people have asked: the header shows four of them and "+2".
+    const askers = [
+      threadAuthor(people.jordan),
+      threadAuthor(people.alex),
+      { userId: ID.user(5), name: "Priya Nair" },
+      { userId: ID.user(6), name: "Diego Santos" },
+    ];
+    askers.forEach((author, index) => {
+      messages.push(
+        threadQuestion(
+          author,
+          ago((150 - 30 * index) * 1000),
+          [
+            "Did the 17:52 release change anything besides the pool size?",
+            "How many checkout requests failed while this was open?",
+            `Draft a short, customer-facing status update for this ${kind}. Don't post it yet.`,
+            "Is it safe to roll back to 2026.09.14-1 right now?",
+          ][index],
+        ),
+        threadAnswer(author, ago((140 - 30 * index) * 1000), {
+          contentInMarkdown: [
+            "No. The release diff only touches the pool configuration: `DB_POOL_MAX` went from 40 to 10 [C1].",
+            "About 2,140 checkout requests waited longer than 2 s between 17:58 and 18:11; 312 of them timed out [C1].",
+            "**Investigating — Checkout delays.** Some customers saw slow or failed checkouts between 17:58 and 18:11 UTC. A configuration change has been identified and reverted, and checkout is back to normal. We are monitoring.",
+            "Yes. 2026.09.14-1 ran for six days without pool exhaustion, and no migration shipped in between [C1].",
+          ][index],
+          citations:
+            index === 2
+              ? []
+              : [
+                  {
+                    id: "C1",
+                    toolName: "recent_changes",
+                    label: "Changes in the 24 hours before 18:07 UTC",
+                    queryArguments: { limitPerSource: 20 },
+                    rowCount: 2,
+                  },
+                ],
+          aiRunId: threadRunId(),
+        }),
+      );
+    });
+  }
+
+  if (threadMode === "working") {
+    affectedExchange();
+    const runId = threadRunId();
+    const answer = threadAnswer(people.sam, ago(20 * 1000), {
+      status: AIChatMessageStatus.InProgress,
+      aiRunId: runId,
+    });
+    messages.push(
+      threadQuestion(
+        people.sam,
+        ago(22 * 1000),
+        `What changed right before this ${kind} started — deploys, config, traffic, errors?`,
+      ),
+      answer,
+    );
+    activeRun = {
+      aiRunId: runId,
+      assistantMessageId: answer._id,
+      status: AIRunStatus.Running,
+      startedAt: iso(ago(20 * 1000)),
+      events: threadRunEvents(runId, ago(20 * 1000), {
+        toolCount: 1,
+        openTool: true,
+      }),
+    };
+  }
+
+  if (threadMode === "approval") {
+    const runId = threadRunId();
+    const answer = threadAnswer(people.maya, ago(40 * 1000), {
+      status: AIChatMessageStatus.WaitingForApproval,
+      aiRunId: runId,
+      toolActions: [
+        {
+          id: "call_acknowledge",
+          toolName: `acknowledge_${kind}`,
+          title: `Acknowledge ${subject}`,
+          arguments: { [`${kind}Number`]: number },
+          isMutation: true,
+          requiresApproval: true,
+          status: AIChatToolActionStatus.Pending,
+        },
+      ],
+    });
+    messages.push(
+      threadQuestion(people.maya, ago(45 * 1000), `Acknowledge this ${kind}.`),
+      answer,
+    );
+    activeRun = {
+      aiRunId: runId,
+      assistantMessageId: answer._id,
+      status: AIRunStatus.WaitingForApproval,
+      startedAt: iso(ago(40 * 1000)),
+      events: threadRunEvents(runId, ago(40 * 1000), { toolCount: 0 }),
+    };
+  }
+
+  if (threadMode === "error") {
+    messages.push(
+      threadQuestion(
+        people.maya,
+        ago(6 * MINUTE),
+        `Draft a short, customer-facing status update for this ${kind}. Don't post it yet.`,
+      ),
+      threadAnswer(people.maya, ago(6 * MINUTE - 5000), {
+        status: AIChatMessageStatus.Error,
+        errorMessage:
+          "The LLM provider returned 529 Overloaded three times. Nothing was changed.",
+        aiRunId: threadRunId(),
+      }),
+      threadQuestion(
+        people.sam,
+        ago(2 * MINUTE),
+        `What should I do right now to mitigate this ${kind}? Give me the next steps in order.`,
+      ),
+      threadAnswer(people.sam, ago(2 * MINUTE - 4000), {
+        status: AIChatMessageStatus.Cancelled,
+        contentInMarkdown: "Stopped before the answer was finished.",
+        aiRunId: threadRunId(),
+      }),
+    );
+  }
+
+  return { kind, number, messages, activeRun, turn: null };
+}
+
+const threads = {
+  [ID.incident(INCIDENT_NUMBER)]: seedThread("incident", INCIDENT_NUMBER),
+  [ID.alert(ALERT_NUMBER)]: seedThread("alert", ALERT_NUMBER),
+};
+
+function isThreadAnswerInFlight(message) {
+  return (
+    message.role === AIChatMessageRole.Assistant &&
+    [
+      AIChatMessageStatus.InProgress,
+      AIChatMessageStatus.Pending,
+      AIChatMessageStatus.WaitingForApproval,
+    ].includes(message.status)
+  );
+}
+
+function threadView(subjectId) {
+  const thread = threads[subjectId];
+  const viewerUserId = people.maya.id.toString();
+
+  // Every other incident and alert: nobody has asked anything.
+  if (!thread) {
+    return {
+      conversationId: null,
+      messages: [],
+      activeRun: null,
+      isBusy: false,
+      viewerUserId,
+    };
+  }
+
+  // The question a spec sent moves one step with every read.
+  if (thread.turn) {
+    thread.turn.reads += 1;
+    const answer = thread.messages.find((message) => {
+      return message._id === thread.turn.answerId;
+    });
+
+    if (thread.turn.reads >= 3) {
+      answer.status = AIChatMessageStatus.Completed;
+      answer.contentInMarkdown = THREAD_ANSWER_TO_SENT_QUESTION;
+      answer.citations = [
+        {
+          id: "C1",
+          toolName: "query_monitors",
+          label: "Monitors attached to checkout-api, right now",
+          queryArguments: { nameSearch: "checkout" },
+          rowCount: 2,
+          target: { type: AIChatCitationTargetType.Monitors },
+        },
+      ];
+      thread.activeRun = null;
+      thread.turn = null;
+    } else {
+      thread.activeRun = {
+        aiRunId: answer.aiRunId,
+        assistantMessageId: answer._id,
+        status: AIRunStatus.Running,
+        startedAt: iso(NOW),
+        events: threadRunEvents(answer.aiRunId, NOW, {
+          toolCount: 0,
+          openTool: thread.turn.reads >= 2,
+        }),
+      };
+    }
+  }
+
+  return {
+    conversationId: thread.messages.length > 0 ? uuid("87000000", 1) : null,
+    /*
+     * Charts and tables are built from rows fetched under the asker's
+     * permissions, so getView sends them only to the person who asked.
+     */
+    messages: thread.messages.map((message) => {
+      return message.author.userId === viewerUserId
+        ? message
+        : { ...message, widgets: [] };
+    }),
+    activeRun: thread.activeRun,
+    isBusy: thread.messages.some(isThreadAnswerInFlight),
+    viewerUserId,
+  };
+}
+
+function sendThreadMessage(body) {
+  const thread = threads[body.subjectId];
+
+  if (failures.has("conversation-send") || !thread) {
+    throw fail(
+      400,
+      "AI is turned off for this project. Turn it on in Project Settings → AI Features, then ask again.",
+    );
+  }
+
+  if (thread.messages.some(isThreadAnswerInFlight)) {
+    throw fail(
+      400,
+      "OneUptime AI is still answering the previous question. Ask again as soon as it finishes.",
+    );
+  }
+
+  const runId = threadRunId();
+  const question = threadQuestion(people.maya, NOW, body.content);
+  const answer = threadAnswer(people.maya, NOW, {
+    status: AIChatMessageStatus.InProgress,
+    aiRunId: runId,
+  });
+  thread.messages.push(question, answer);
+  thread.turn = { answerId: answer._id, reads: 0 };
+
+  return {
+    conversationId: uuid("87000000", 1),
+    userMessageId: question._id,
+    assistantMessageId: answer._id,
+    aiRunId: runId,
+  };
+}
+
+function respondToThreadApproval(body) {
+  const thread = threads[body.subjectId];
+  const answer = thread?.messages.find((message) => {
+    return message._id === body.assistantMessageId;
+  });
+
+  if (!answer || answer.status !== AIChatMessageStatus.WaitingForApproval) {
+    throw fail(400, "This answer is no longer waiting for approval.");
+  }
+
+  const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+  let approvedCount = 0;
+  answer.toolActions = answer.toolActions.map((action) => {
+    const decision = decisions.find((candidate) => {
+      return candidate.toolCallId === action.id;
+    });
+    const approved = decision ? decision.approved === true : false;
+    approvedCount += approved ? 1 : 0;
+    return {
+      ...action,
+      status: approved
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied,
+    };
+  });
+  answer.status = AIChatMessageStatus.Completed;
+  answer.contentInMarkdown =
+    approvedCount > 0
+      ? `Done — ${thread.kind} #${thread.number} is acknowledged.`
+      : `Okay — I left ${thread.kind} #${thread.number} as it is.`;
+  thread.activeRun = null;
+
+  return { assistantMessageId: answer._id, aiRunId: answer.aiRunId };
+}
+
+function cancelThreadRun(body) {
+  const thread = threads[body.subjectId];
+  const answer = thread?.messages.find(isThreadAnswerInFlight);
+
+  if (!answer) {
+    throw fail(400, "There is no answer in progress to stop.");
+  }
+
+  answer.status = AIChatMessageStatus.Cancelled;
+  answer.contentInMarkdown = "Stopped before the answer was finished.";
+  thread.activeRun = null;
+  thread.turn = null;
+
+  return { aiRunId: answer.aiRunId, cancelled: true };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -3327,21 +3876,27 @@ async function handleApi(method, options) {
   }
 
   /*
-   * The investigation box's shared conversation, which it reads on load and
-   * then polls. Nobody has asked OneUptime AI anything about these incidents
-   * and alerts, so every subject gets what InvestigationThreadService.getView
-   * answers for one without a thread. Sending a question, answering an
-   * approval and stopping a run are not modelled: a spec that does any of
-   * them finds it in `unhandled`.
+   * The investigation card's shared conversation, which it reads on load and
+   * then polls, and the three things a responder can do in it (see "The
+   * investigation card's conversation" above).
    */
   if (url.endsWith("/ai-investigation/conversation")) {
-    return ok({
-      conversationId: null,
-      messages: [],
-      activeRun: null,
-      isBusy: false,
-      viewerUserId: people.maya.id.toString(),
-    });
+    if (failures.has("conversation")) {
+      throw fail(500, "The conversation service is unavailable.");
+    }
+    return ok(threadView(body.subjectId));
+  }
+
+  if (url.endsWith("/ai-investigation/conversation/send-message")) {
+    return ok(sendThreadMessage(body));
+  }
+
+  if (url.endsWith("/ai-investigation/conversation/respond-to-approval")) {
+    return ok(respondToThreadApproval(body));
+  }
+
+  if (url.endsWith("/ai-investigation/conversation/cancel-run")) {
+    return ok(cancelThreadRun(body));
   }
 
   fixture.unhandled.push({ kind: "api", method, url });
@@ -3460,6 +4015,11 @@ const STUB_PAGES = [
   [PageMap.HOME, "Home"],
   // Where the AI Investigation card's cluster access notice links.
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT, "Kubernetes AI Agent"],
+  // Where the sources of an answer in the card's conversation lead.
+  [PageMap.METRICS, "Metrics"],
+  [PageMap.LOGS, "Logs"],
+  [PageMap.MONITORS, "Monitors"],
+  [PageMap.ON_CALL_DUTY_POLICIES, "On-Call Policies"],
 ].filter(([pageKey]) => {
   return Boolean(pageKey && RouteMap[pageKey]);
 });

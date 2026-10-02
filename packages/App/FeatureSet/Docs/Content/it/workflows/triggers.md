@@ -61,7 +61,7 @@ Al blocco successivo viene passato il record completo. Per esempio, il trigger *
 - **Status Page Subscriber** — dai il benvenuto a chi si iscrive a una pagina di stato.
 - **On-Call Duty Policy** — sincronizza i cambi di turno con un altro sistema di reperibilità.
 
-Cerca per nome nel pannello **Add Trigger** per trovare quello che ti serve.
+Nel pannello **Add Trigger** si trovano sotto **OneUptime resources**: clicca la risorsa, poi il trigger. **Browse all resources** li contiene tutti, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
 
 ## Quale trigger dovrei usare?
 
@@ -78,4 +78,4 @@ Un workflow può avere un solo trigger. Se ti servono due modi per avviare la st
 
 - [Componenti del workflow](/docs/workflows/components) — le azioni che aggiungi dopo il trigger.
 - [Variabili del workflow](/docs/workflows/variables) — leggere l'output del trigger dai blocchi successivi.
-- [Esecuzioni e log del workflow](/docs/workflows/runs-and-logs) — verificare che il tuo trigger sia scattato.
+- [Esecuzioni del workflow](/docs/workflows/runs-and-logs) — verificare che il tuo trigger sia scattato.

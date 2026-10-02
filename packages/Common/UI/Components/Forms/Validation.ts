@@ -523,10 +523,24 @@ export default class Validation {
             errors[name] = resultCustomValidation;
           }
         }
-      } else if (field.required) {
-        errors[name] = translateValidationMessage("{{field}} is required.", {
-          field: field.title || field.name || "",
-        });
+      } else {
+        /*
+         * A field nobody has filled in yet. Its `required` can depend on the
+         * other answers, so it is asked here the same way as for a field that
+         * holds a value - this branch used to treat any `required` function
+         * as true. That made the OAuth 2.0 variable's client secret, which is
+         * optional for a public client on the Refresh Token grant, required
+         * for everybody who had not typed into it.
+         */
+        const resultRequired: string | null = this.validateRequired(
+          args.values,
+          undefined,
+          field,
+        );
+
+        if (resultRequired) {
+          errors[name] = resultRequired;
+        }
       }
     }
 

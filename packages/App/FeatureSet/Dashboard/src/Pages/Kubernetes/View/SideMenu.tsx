@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   namespaces?: number | undefined;
@@ -507,6 +510,12 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: KubernetesCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

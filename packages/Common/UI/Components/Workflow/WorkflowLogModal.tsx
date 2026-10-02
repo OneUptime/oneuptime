@@ -11,6 +11,10 @@
  * The modal is presentational: whoever opens it owns the data. That is what
  * lets the builder point it at a run it is still polling while the Logs table
  * points it at a finished one.
+ *
+ * Whatever it shows can be taken away: Copy log and Download sit in the
+ * header whenever the run has logged anything or recorded a step, built from
+ * the same data the tabs draw (see WorkflowRunExportActions).
  */
 
 import { ButtonStyleType } from "../Button/Button";
@@ -19,6 +23,13 @@ import SimpleLogViewer from "../SimpleLogViewer/SimpleLogViewer";
 import { Tab, TabType } from "../Tabs/Tab";
 import Tabs from "../Tabs/Tabs";
 import StepTraceViewer from "./StepTraceViewer";
+import {
+  TraceAttention,
+  getTraceAttention,
+  getTraceSteps,
+} from "./StepTracePresentation";
+import WorkflowRunExportActions from "./WorkflowRunExportActions";
+import { WorkflowRunDetails, hasWorkflowRunContent } from "./WorkflowRunExport";
 import {
   WorkflowStepTrace,
   WorkflowStepTraceEntry,
@@ -44,19 +55,53 @@ export interface ComponentProps {
   /** The run is still being followed, so what is on screen is not final. */
   isRunning?: boolean | undefined;
   initialTabName?: string | undefined;
+  /**
+   * Which run this is - its id, workflow, status and times. A downloaded log
+   * is named after it and headed with it. Copy log and Download work without
+   * it, but the file then says nothing about where it came from.
+   */
+  run?: WorkflowRunDetails | undefined;
+  /**
+   * Actions on the run as a whole, beyond the Copy log and Download the
+   * header always has. They sit at the end of the status line, above the
+   * tabs, so they apply to either tab and stay put when the reader switches
+   * between them.
+   */
+  toolbar?: ReactElement | undefined;
 }
+
+/*
+ * The Steps tab's count takes the colour of the worst thing in the run, so a
+ * failed step or a warning shows before the tab is even open.
+ */
+const TAB_TYPE_BY_ATTENTION: Record<TraceAttention, TabType> = {
+  [TraceAttention.Error]: TabType.Error,
+  [TraceAttention.Warning]: TabType.Warning,
+  [TraceAttention.None]: TabType.Info,
+};
 
 const WorkflowLogModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const steps: Array<WorkflowStepTraceEntry> = props.stepTrace?.steps || [];
+  const steps: Array<WorkflowStepTraceEntry> = getTraceSteps(props.stepTrace);
+
+  /*
+   * A run that has not logged a line or recorded a step yet - the builder's
+   * run in its first second - has nothing to copy or download.
+   */
+  const canExport: boolean = hasWorkflowRunContent({
+    logs: props.logs || "",
+    stepTrace: props.stepTrace,
+  });
 
   const tabs: Array<Tab> = [
     {
       name: STEPS_TAB_NAME,
       countBadge: steps.length,
-      tabType: TabType.Info,
-      children: <StepTraceViewer trace={props.stepTrace} />,
+      tabType: TAB_TYPE_BY_ATTENTION[getTraceAttention(props.stepTrace)],
+      children: (
+        <StepTraceViewer trace={props.stepTrace} isRunning={props.isRunning} />
+      ),
     },
     {
       name: FULL_LOG_TAB_NAME,
@@ -87,6 +132,23 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
       isLoading={false}
       modalWidth={ModalWidth.Large}
       /*
+       * Copy log and Download live in the header, beside the ×: they stay in
+       * view however far a long log or step list is scrolled, take no row of
+       * the body, and - being in the header - are never where the dialog puts
+       * its first focus.
+       */
+      rightElement={
+        canExport ? (
+          <WorkflowRunExportActions
+            run={{
+              ...(props.run || {}),
+              logs: props.logs || "",
+              stepTrace: props.stepTrace,
+            }}
+          />
+        ) : undefined
+      }
+      /*
        * Nothing here is submitted — the modal only shows a run. One button,
        * which is the same thing the header's × and the Escape key do.
        */
@@ -95,21 +157,40 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
       closeButtonStyleType={ButtonStyleType.NORMAL}
     >
       <div>
-        {props.statusMessage && (
-          <div className="flex items-center gap-2">
-            {props.isRunning && (
-              <span
-                aria-hidden="true"
-                className="h-2 w-2 shrink-0 rounded-full bg-indigo-500 animate-pulse"
-              />
+        {(props.statusMessage || props.toolbar) && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+            data-testid="workflow-run-status-row"
+          >
+            {props.statusMessage ? (
+              <div className="flex min-w-0 items-center gap-2">
+                {props.isRunning && (
+                  <span
+                    aria-hidden="true"
+                    className="h-2 w-2 shrink-0 rounded-full bg-indigo-500 animate-pulse"
+                  />
+                )}
+                <p
+                  className={`text-sm font-medium ${
+                    props.isStatusMessageError
+                      ? "text-red-600"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {props.statusMessage}
+                </p>
+              </div>
+            ) : (
+              <div />
             )}
-            <p
-              className={`text-sm font-medium ${
-                props.isStatusMessageError ? "text-red-600" : "text-gray-600"
-              }`}
-            >
-              {props.statusMessage}
-            </p>
+            {props.toolbar && (
+              <div
+                className="flex flex-wrap items-center gap-2"
+                data-testid="workflow-run-toolbar"
+              >
+                {props.toolbar}
+              </div>
+            )}
           </div>
         )}
 

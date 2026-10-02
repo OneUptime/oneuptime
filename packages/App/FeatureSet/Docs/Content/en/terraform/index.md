@@ -25,6 +25,16 @@ provider "oneuptime" {
 
 The API key must be a **project API key** created in **Project Settings > API Keys** in the OneUptime dashboard. See the [Quick Start](/docs/terraform/quick-start) for the full walkthrough.
 
+## Copy a resource's configuration from the dashboard
+
+Every resource in the OneUptime dashboard (a monitor, a status page, a workflow, an on-call policy, and so on) has a **Developer** section in its side menu. The section is collapsed until you open it. Its **Terraform** page writes the resource's configuration from its current settings, with an `import` block, so `terraform plan` shows the resource being imported and nothing to change. The page also gives the provider block for your OneUptime: the right `oneuptime_url`, and a version constraint that matches your instance.
+
+The list pages (for example **Monitors**) have the same section. There, the **Terraform** page gives a block for a new resource, and an `import` block for each resource you already have (the first 100), ready for `terraform plan -generate-config-out`.
+
+Secrets are never shown on these pages. When the configuration needs one (for example a monitor's `Authorization` header), it reads it from a Terraform variable marked `sensitive`. Secrets it does not need are left out, and Terraform leaves them as they are in OneUptime.
+
+The same section has an **API** page, with `curl` commands for the resource, and an **AI Assistants** page, which connects Claude, GitHub Copilot or Cursor to the [MCP server](/docs/ai/mcp-server).
+
 ## Documentation
 
 | Page | What it covers |

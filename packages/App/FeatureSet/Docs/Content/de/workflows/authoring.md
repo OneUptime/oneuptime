@@ -1,12 +1,19 @@
 # Einen Workflow erstellen
 
-Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Ein Assistent namens **Create a workflow** führt Sie hindurch: zuerst **Start from** – wählen Sie **Start from scratch** oder eine der Vorlagen –, dann **Name**, und zum Schluss ein Schritt **Konfigurieren**, der nur auftaucht, wenn die gewählte Vorlage eigene Einstellungen verlangt.
+Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Ein Assistent namens **Create a workflow** führt Sie hindurch: zuerst **Start from**, dann **Name**, und zum Schluss ein Schritt **Konfigurieren**, der nur auftaucht, wenn die gewählte Vorlage eigene Einstellungen verlangt.
+
+Unter **Start from** wählen Sie, wie Sie beginnen:
+
+- **Ohne Vorlage beginnen**, neben dem Suchfeld, gibt Ihnen eine leere Arbeitsfläche.
+- Eine Vorlage gibt Ihnen einen funktionierenden Workflow, den Sie anpassen können. Der Schritt öffnet mit einigen Vorlagen unter **Empfohlen**. Die übrigen liegen in ihren Kategorien, etwa **Vorfälle**, **Monitore** und **Jira**, jeweils mit der Zahl ihrer Vorlagen, und **Alle Vorlagen** listet jede einzelne auf. Eine Suche durchsucht alle: Jedes eingegebene Wort muss passen, und jede Kategorie zeigt, wie viele ihrer Vorlagen passen.
+
+Klicken Sie auf eine Vorlage, um vor der Auswahl zu sehen, was sie tut: ihren Trigger, die Schritte, aus denen sie besteht, und die Einstellungen, nach denen sie fragt. **Diese Vorlage verwenden** bringt Sie mit ihr zu **Name**, ebenso **Enter** und ein Doppelklick. Mit den Pfeiltasten bewegen Sie sich durch die Liste, und `/` springt zurück ins Suchfeld.
 
 Sobald er angelegt ist, öffnen Sie **Builder** im linken Menü. Das ist die Arbeitsfläche, auf der Sie den Workflow entwerfen.
 
 ## Die Arbeitsfläche
 
-Ein von Grund auf neuer Workflow öffnet sich mit einem einzigen gestrichelten Baustein mit der Aufschrift **Please click here to add trigger**. Dieser Baustein ist der Startpunkt – klicken Sie ihn an, um einen Trigger auszuwählen. Ein aus einer Vorlage erstellter Workflow öffnet sich mit bereits gesetzten Bausteinen.
+Ein von Grund auf neuer Workflow öffnet sich mit einem einzigen gestrichelten Baustein mit der Aufschrift **Choose what starts this workflow**. Dieser Baustein ist der Startpunkt – klicken Sie ihn an, um einen Trigger auszuwählen. Ein aus einer Vorlage erstellter Workflow öffnet sich mit bereits gesetzten Bausteinen.
 
 Jeder Workflow hat ganz oben genau einen **Trigger**. Alles andere ist eine **Komponente**, die etwas tut. Ein zweiter Trigger ersetzt den ersten, und wenn Sie den letzten löschen, kommt der gestrichelte Platzhalter zurück.
 
@@ -15,9 +22,9 @@ Bausteine hinzufügen:
 - **Der Trigger** – klicken Sie auf den gestrichelten Platzhalter-Baustein. Es öffnet sich ein Panel mit dem Titel **Add Trigger**.
 - **Alles andere** – klicken Sie in der Werkzeugleiste über der Arbeitsfläche auf **Komponente hinzufügen**. Dasselbe Panel öffnet sich, betitelt mit **Komponente hinzufügen**.
 
-Beide Panels lassen sich durchsuchen – drücken Sie `/`, um ins Suchfeld zu springen – und sind nach Kategorien gruppiert. Wählen Sie einen Baustein aus und klicken Sie auf **Add to Workflow**.
+Beide Panels beginnen mit den Bausteinen, die die meisten Workflows brauchen, unter **Popular**; danach folgen die übrigen eingebauten Bausteine. Unter **OneUptime resources** klicken Sie auf eine Ressource wie **Incident**, um zu sehen, was Sie damit tun können; **Browse all resources** listet alle auf. Oder Sie suchen: Geben Sie ein paar Wörter ein, etwa `create incident`, und der beste Treffer steht oben. Drücken Sie `/`, um ins Suchfeld zu springen, die Pfeiltasten, um durch die Ergebnisse zu gehen, und **Enter**, um den markierten Baustein hinzuzufügen. Ein Klick auf einen Baustein fügt ihn hinzu.
 
-Neue Bausteine landen immer an derselben Stelle der Arbeitsfläche, ein neuer kann also auf etwas fallen, das Sie bereits platziert haben. Ziehen Sie ihn beiseite; die Arbeitsfläche rastet dabei an einem Raster ein. Die Positionen der Bausteine werden gespeichert – die nächste Person sieht also genau die Anordnung, die Sie hinterlassen haben.
+Ein neuer Baustein landet unter dem untersten Baustein der Arbeitsfläche, und ein neuer Trigger nimmt oben den Platz des alten ein. Der neue Baustein ist ausgewählt, und landet er außerhalb des sichtbaren Bereichs, scrollt die Arbeitsfläche gerade so weit, dass er zu sehen ist. Seine Einstellungen öffnen sich nicht von selbst: Klicken Sie den Baustein an, wenn Sie ihn einrichten möchten. Solange seine Pflichteinstellungen leer sind, steht **Click to set up** darauf. Ziehen Sie Bausteine, wohin Sie möchten; die Arbeitsfläche rastet dabei an einem Raster ein. Die Positionen der Bausteine werden gespeichert – die nächste Person sieht also genau die Anordnung, die Sie hinterlassen haben.
 
 Änderungen werden automatisch gespeichert. Eine Pille in der Werkzeugleiste hält das nach: **Saving…**, solange die Änderung unterwegs ist, dann **Gespeichert** oder **Konnte nicht gespeichert werden**, wenn es nicht geklappt hat. Es gibt keinen Speichern-Knopf und keinen separaten Veröffentlichungsschritt.
 
@@ -42,7 +49,7 @@ Sie können einen Ausgang mit mehreren Bausteinen verbinden. Alle laufen – abe
 
 ## Einen Baustein konfigurieren
 
-Klicken Sie auf einen Baustein, um seine Einstellungen in einem Dialog zu öffnen. Jede Einstellung hat das passende Eingabefeld – Textfelder, Auswahllisten, Code-Editoren, Schalter und so weiter. Füllen Sie sie aus und klicken Sie auf **Speichern**.
+Klicken Sie auf einen Baustein, um seine Einstellungen in einem Dialog zu öffnen (oder springen Sie mit **Tab** zu ihm und drücken Sie **Enter**). Jede Einstellung hat das passende Eingabefeld – Textfelder, Auswahllisten, Code-Editoren, Schalter und so weiter. Füllen Sie sie aus und klicken Sie auf **Speichern**.
 
 Im selben Dialog finden Sie außerdem:
 
@@ -54,7 +61,7 @@ Die meisten Textfelder nehmen Variablen entgegen – so fließen Daten von einem
 
 ## Prüfungen beim Bauen
 
-Der Builder prüft bei jeder Änderung den gesamten Graphen und meldet das Ergebnis in einer Pille in der Werkzeugleiste. Ein Klick auf die Pille öffnet **Problems with this workflow**: Dort steht jedes Problem, und ein Klick bringt Sie zum verantwortlichen Baustein. Bausteine mit einem Problem tragen zusätzlich ein rotes Abzeichen auf der Arbeitsfläche.
+Der Builder prüft bei jeder Änderung den gesamten Graphen und meldet das Ergebnis in einer Pille in der Werkzeugleiste. Ein Klick auf die Pille öffnet **Problems with this workflow**: Dort steht jedes Problem, und ein Klick bringt Sie zum verantwortlichen Baustein. Auf der Arbeitsfläche steht auf einem Baustein, dessen Pflichteinstellungen noch leer sind, **Click to set up**; ein Baustein mit einem anderen Problem trägt ein Abzeichen in der Ecke: rot für einen Fehler, gelb für eine Warnung. Fahren Sie mit der Maus über das Abzeichen, um zu lesen, was nicht stimmt.
 
 Er fängt die Fehler ab, die sonst unsichtbar bleiben, bis eine Ausführung schiefgeht: kein Trigger, zwei Bausteine mit derselben ID, ein Punkt in einer ID, ein Baustein, zu dem nichts führt, eine leer gelassene Pflichteinstellung, fehlerhaftes JSON, Leerzeichen in `{{ }}` und Referenzen auf einen Schritt oder Rückgabewert, den es nicht gibt.
 
@@ -64,10 +71,10 @@ Eines kann er nicht prüfen: ob ein Variablenname existiert. Eine umbenannte Var
 
 Der schnellste Weg, ein Gefühl für die Arbeitsfläche zu bekommen:
 
-1. Klicken Sie auf den gestrichelten Platzhalter-Baustein, wählen Sie im Panel **Add Trigger** den Eintrag **Manual** und klicken Sie auf **Add to Workflow**.
-2. Klicken Sie auf **Komponente hinzufügen**, wählen Sie **Log** (unter **Utils**) und klicken Sie auf **Add to Workflow**. Ziehen Sie den neuen Baustein vom Trigger weg und verbinden Sie dann den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
-3. Öffnen Sie den Log-Baustein und setzen Sie sein Feld **Wert** auf `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` ist der **Identifier** des Triggers, angezeigt auf dem Trigger-Baustein – prüfen Sie, ob er übereinstimmt.
-4. Gehen Sie auf **Übersicht**, klicken Sie auf der Karte **Details zum Arbeitsablauf** auf **Workflow bearbeiten** und schalten Sie **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand.
+1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Panel **Add Trigger** auf **Manual**.
+2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Popular** auf **Log**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
+3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und setzen Sie sein Feld **Wert** auf `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` ist der **Identifier** des Triggers, angezeigt auf dem Trigger-Baustein – prüfen Sie, ob er übereinstimmt.
+4. Schalten Sie oben im Builder **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand; wenn Sie diesen Schritt auslassen, fragt **Arbeitsablauf ausführen** zuerst, ob er eingeschaltet werden soll.
 5. Zurück im **Builder** klicken Sie auf **Arbeitsablauf ausführen**, tragen `{ "name": "Ada" }` in das Feld **JSON** ein, klicken auf **Run Workflow Manually** und bestätigen mit **Run**.
 6. Ein Panel **Workflow Run** öffnet sich von selbst und verfolgt die Ausführung. Das Protokoll zeigt `Value:` gefolgt von `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Dieser Zyklus – hinzufügen, verbinden, konfigurieren, ausführen, Protokoll l
 
 ## Den Workflow einschalten
 
-Neue Workflows starten deaktiviert, und ebenso jeder Workflow, den Sie duplizieren oder importieren.
+Neue Workflows starten deaktiviert, und ebenso jeder Workflow, den Sie duplizieren oder importieren. Solange ein Workflow ausgeschaltet ist, sagt der Builder das über der Arbeitsfläche, mit der Schaltfläche **Arbeitsablauf einschalten**.
 
-Der Schalter **Aktiviert** sitzt auf der Seite **Übersicht** des Workflows, in der Karte **Details zum Arbeitsablauf** – nicht auf der Einstellungsseite. Dieselbe Karte zeigt den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert**.
+Der Schalter **Aktiviert** sitzt oben im **Builder**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Sie finden ihn auch auf der Seite **Übersicht** des Workflows: Klicken Sie in der Karte **Details zum Arbeitsablauf** auf **Workflow bearbeiten**. Die Karte zeigt den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert**. Nur wer den Workflow bearbeiten darf, kann ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
 
-Ein deaktivierter Workflow läuft überhaupt nicht. Manuelle Ausführungen werden mit „This workflow is not enabled“ genauso abgelehnt wie ausgelöste. Die Reihenfolge lautet also: einschalten, mit **Arbeitsablauf ausführen** testen, das Ausführungsprotokoll lesen und **Aktiviert** wieder ausschalten, falls Sie noch nicht so weit sind, dass sein Trigger feuern darf. Um einen einzelnen Baustein zu testen, ohne das Ganze laufen zu lassen, nutzen Sie **Run just this step** in dessen Einstellungen.
+Ein deaktivierter Workflow läuft überhaupt nicht: Sein Trigger wird ignoriert, ebenso **Arbeitsablauf ausführen** und **Run just this step**. Führen Sie ihn oder einen seiner Bausteine aus, während er ausgeschaltet ist, fragt der Builder stattdessen **Diesen Arbeitsablauf einschalten?**. **Einschalten und ausführen** (bzw. **Einschalten und Schritt ausführen**) schaltet den Workflow ein und führt dann aus, was Sie verlangt haben, mit den Werten, die Sie angegeben haben. Die Reihenfolge lautet also: bauen, mit **Arbeitsablauf ausführen** testen, das Ausführungsprotokoll lesen und **Aktiviert** wieder ausschalten, falls Sie noch nicht so weit sind, dass sein Trigger feuern darf. Um einen einzelnen Baustein zu testen, ohne das Ganze laufen zu lassen, nutzen Sie **Run just this step** in dessen Einstellungen.
+
+Alles andere, was einen deaktivierten Workflow startet, wird mit demselben Hinweis abgewiesen. Ein Aufruf seiner Webhook-URL erhält HTTP 400 und „This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.“ Ein **Execute Workflow**-Baustein, der ihn aufruft, nimmt seinen **Error**-Pfad, und der Fehler nennt den aufgerufenen Workflow.
 
 Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert** aus. Es starten keine neuen Ausführungen. Eine Ausführung, die gerade mitten drin ist, läuft zu Ende – eine, die auf einem **Sleep**-Baustein geparkt ist, wird beim Aufwachen abgebrochen und als Fehler festgehalten.
 
@@ -96,4 +105,4 @@ Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert**
 - [Workflow-Trigger](/docs/workflows/triggers) – die vier Arten, wie ein Workflow starten kann.
 - [Workflow-Komponenten](/docs/workflows/components) – jeder Baustein, den Sie hinzufügen können.
 - [Workflow-Variablen](/docs/workflows/variables) – Daten zwischen Bausteinen bewegen.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, was passiert ist.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – nachsehen, was passiert ist.

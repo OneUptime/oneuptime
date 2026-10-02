@@ -1320,6 +1320,49 @@ export function getDatabaseEndpointScope(
   return "global";
 }
 
+/*
+ * The first port of the range an operating system picks the LOCAL port of
+ * an outgoing connection from: Linux's default `ip_local_port_range` is
+ * 32768-60999, and Windows, macOS and the BSDs use IANA's dynamic range,
+ * 49152-65535 (RFC 6335). A server is not normally configured to listen
+ * there, because any outgoing connection on its host may already hold the
+ * port. Docker's randomly published ports are the usual exception.
+ */
+export const EPHEMERAL_PORT_RANGE_START: number = 32768;
+
+/** True for a valid port at or above EPHEMERAL_PORT_RANGE_START. */
+export function isEphemeralPort(port: unknown): boolean {
+  const value: number | null = toValidPort(port);
+  return value !== null && value >= EPHEMERAL_PORT_RANGE_START;
+}
+
+/**
+ * True when the "server" a CLIENT span names is, in all likelihood, the
+ * client's own end of the connection: its port is ephemeral and is not the
+ * engine's own default port (Db2 listens on 50000).
+ *
+ * eBPF instrumentation (OpenTelemetry eBPF Instrumentation, Beyla) cannot
+ * see who opened a connection it joins mid-stream: a pooled client or a
+ * BullMQ worker that connected before the agent started, or a Redis server
+ * pushing a pub/sub message or answering a blocking pop. It then decides
+ * the direction from the bytes, and when it guesses wrong it swaps the two
+ * ends: the span names the client - `oneuptime-worker:46600` - as the
+ * server. Every new connection then names a new port, so every connection
+ * looks like a new database.
+ */
+export function isClientSocketDatabaseEndpoint(input: {
+  system: unknown;
+  endpoint: DatabaseEndpoint | null | undefined;
+}): boolean {
+  const port: number | null = toValidPort(input?.endpoint?.port);
+
+  if (port === null || port < EPHEMERAL_PORT_RANGE_START) {
+    return false;
+  }
+
+  return getDefaultDatabasePort(input.system) !== port;
+}
+
 /**
  * "host:port", "host" (unknown port), "[v6]:port", "host\instance"; plus
  * "@cluster" when qualified. The inverse is parseDatabaseEndpointString.

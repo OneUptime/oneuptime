@@ -235,6 +235,10 @@
       "invalidLink": "Denne lenken for å avslutte abonnementet er ugyldig. Den kan være ufullstendig, eller abonnementet kan være fjernet. Bruk lenken i en nylig melding fra denne statussiden for å avslutte abonnementet.",
       "failed": "Vi kunne ikke avslutte abonnementet. Prøv igjen.",
       "loadFailed": "Vi kunne ikke laste inn denne lenken for å avslutte abonnementet. Prøv igjen senere."
+    },
+    "steps": {
+      "details": "Detaljer",
+      "preferences": "Preferanser"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} kan ikke være mindre enn {{minValue}}.",
   "{{field}} is required.": "{{field}} er påkrevd.",
   "{{field}} should match {{matchField}}": "{{field}} må samsvare med {{matchField}}",
-  "Email is not valid.": "E-posten er ugyldig."
+  "Email is not valid.": "E-posten er ugyldig.",
+  "Next": "Neste"
 }

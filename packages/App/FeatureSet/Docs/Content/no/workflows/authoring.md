@@ -1,12 +1,19 @@
 # Opprette en arbeidsflyt
 
-For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. En veiviser som heter **Create a workflow** tar deg gjennom det: først **Start from** — velg **Start from scratch** eller en av malene — så **Navn**, og til slutt et **Konfigurer**-trinn, som bare dukker opp når malen du valgte ber om egne innstillinger.
+For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. En veiviser som heter **Create a workflow** tar deg gjennom det: først **Start from**, så **Navn**, og til slutt et **Konfigurer**-trinn, som bare dukker opp når malen du valgte ber om egne innstillinger.
+
+På **Start from** velger du hvordan du vil begynne:
+
+- **Start fra bunnen**, ved siden av søkefeltet, gir deg et tomt lerret.
+- En mal gir deg en arbeidsflyt som allerede virker, klar til å endres. Trinnet åpner med noen få maler under **Anbefalt**. Resten ligger under kategoriene sine, som **Hendelser**, **Monitorer** og **Jira**, hver med antallet maler den har, og **Alle maler** viser hver eneste en. Et søk ser gjennom alle: hvert ord du skriver må passe, og hver kategori viser hvor mange av malene sine som passet.
+
+Klikk på en mal for å se hva den gjør før du velger den: triggeren, trinnene den består av, og innstillingene den vil spørre om. **Bruk denne malen** tar den videre til **Navn**, og det gjør **Enter** og et dobbeltklikk også. Piltastene flytter deg gjennom listen, og `/` tar deg tilbake til søkefeltet.
 
 Så snart den er opprettet, åpner du **Bygger** i venstremenyen. Der ligger lerretet du utformer arbeidsflyten på.
 
 ## Lerretet
 
-En arbeidsflyt du bygger fra bunnen, åpner med én stiplet blokk der det står **Please click here to add trigger**. Den blokken er startpunktet — klikk på den for å velge en trigger. En arbeidsflyt laget fra en mal åpner med blokkene allerede på plass.
+En arbeidsflyt du bygger fra bunnen, åpner med én stiplet blokk der det står **Choose what starts this workflow**. Den blokken er startpunktet — klikk på den for å velge en trigger. En arbeidsflyt laget fra en mal åpner med blokkene allerede på plass.
 
 Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **komponent** som gjør noe. Legger du til en trigger til, erstatter den den forrige, og sletter du den siste, kommer den stiplede plassholderen tilbake.
 
@@ -15,9 +22,9 @@ Slik legger du til blokker:
 - **Triggeren** — klikk på den stiplede plassholderblokken. Et panel med tittelen **Add Trigger** åpnes.
 - **Alt annet** — klikk **Legg til komponent** i verktøylinjen over lerretet. Det samme panelet åpnes, nå med tittelen **Legg til komponent**.
 
-Du kan søke i begge panelene — trykk `/` for å hoppe til søkefeltet — og innholdet er gruppert etter kategori. Velg én blokk og klikk **Add to Workflow**.
+Begge panelene åpner med blokkene de fleste arbeidsflyter bruker, under **Popular**, etterfulgt av de andre innebygde blokkene. Under **OneUptime resources** klikker du på en ressurs som **Incident** for å se hva du kan gjøre med den; **Browse all resources** viser alle. Eller søk: skriv noen ord, for eksempel `create incident`, så kommer det nærmeste treffet først. Trykk `/` for å hoppe til søkefeltet, piltastene for å bevege deg gjennom resultatene og **Enter** for å legge til den uthevede blokken. Et klikk på en blokk legger den til.
 
-Nye blokker havner alltid på samme punkt på lerretet, så en ny kan lande oppå noe du allerede har plassert. Dra den unna; lerretet snapper til et rutenett underveis. Blokkposisjonene lagres, så neste person ser det samme oppsettet som du forlot.
+En ny blokk havner under den nederste blokken på lerretet, og en ny trigger tar den gamles plass øverst. Den nye blokken er valgt, og havner den utenfor synsfeltet, ruller lerretet akkurat langt nok til å vise den. Innstillingene åpner seg ikke av seg selv: klikk på blokken når du er klar til å sette den opp. Så lenge de påkrevde innstillingene er tomme, står det **Click to set up** på den. Dra blokkene dit du vil; lerretet snapper til et rutenett underveis. Blokkposisjonene lagres, så neste person ser det samme oppsettet som du forlot.
 
 Endringer lagres automatisk. En pille i verktøylinjen holder rede på det: **Saving…** mens endringen er underveis, deretter **Lagret** — eller **Kunne ikke lagre** hvis det ikke gikk. Det finnes ingen lagreknapp og ingen egen publiseringsjobb.
 
@@ -42,7 +49,7 @@ Du kan koble én utgang til flere blokker. Alle kjører — men etter hverandre,
 
 ## Å konfigurere en blokk
 
-Klikk på en blokk for å åpne innstillingene i en dialog. Hver innstilling har den inndatatypen som passer — tekstfelt, nedtrekkslister, kodeeditorer, brytere og så videre. Fyll ut og klikk **Lagre**.
+Klikk på en blokk for å åpne innstillingene i en dialog (eller gå til den med **Tab** og trykk **Enter**). Hver innstilling har den inndatatypen som passer — tekstfelt, nedtrekkslister, kodeeditorer, brytere og så videre. Fyll ut og klikk **Lagre**.
 
 I den samme dialogen finner du også:
 
@@ -54,7 +61,7 @@ De fleste tekstfelt tar imot variabler — det er slik data flyter fra én blokk
 
 ## Kontroller mens du bygger
 
-Byggeren sjekker hele grafen hver gang du endrer noe, og rapporterer det den finner i en pille i verktøylinjen. Klikk på pillen for å åpne **Problems with this workflow**, som lister opp hvert problem og hopper til blokken som er skyld i det. Blokker med problemer får også et rødt merke på lerretet.
+Byggeren sjekker hele grafen hver gang du endrer noe, og rapporterer det den finner i en pille i verktøylinjen. Klikk på pillen for å åpne **Problems with this workflow**, som lister opp hvert problem og hopper til blokken som er skyld i det. På lerretet står det **Click to set up** på en blokk der påkrevde innstillinger fortsatt er tomme, og en blokk med et annet problem får et merke i hjørnet: rødt for en feil, gult for en advarsel. Hold musepekeren over merket for å lese hva som er galt.
 
 Den fanger opp feilene som ellers er usynlige helt til en kjøring går galt — ingen trigger, to blokker som deler en id, et punktum inni en id, en blokk ingenting kobler til, en obligatorisk innstilling som står tom, feilformet JSON, mellomrom inni `{{ }}`, og referanser til et trinn eller en returverdi som ikke finnes.
 
@@ -64,10 +71,10 @@ Den fanger opp feilene som ellers er usynlige helt til en kjøring går galt —
 
 Den raskeste måten å bli kjent med lerretet på:
 
-1. Klikk på den stiplede plassholderblokken, velg **Manual** i **Add Trigger**-panelet, og klikk **Add to Workflow**.
-2. Klikk **Legg til komponent**, velg **Log** (under **Utils**), og klikk **Add to Workflow**. Dra den nye blokken unna triggeren, og koble deretter triggerens **Execute**-prikk ned til inndataprikken på Log-blokken.
-3. Åpne Log-blokken og sett **Verdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på triggerblokken — sjekk at den stemmer.
-4. Gå til **Oversikt**, klikk **Rediger arbeidsflyt** på kortet **Arbeidsflytdetaljer**, og slå på **Aktivert**. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd.
+1. Klikk på den stiplede plassholderblokken, og klikk deretter **Manual** i **Add Trigger**-panelet.
+2. Klikk **Legg til komponent**, og klikk deretter **Log** under **Popular**. Den nye blokken havner under triggeren. Koble triggerens **Execute**-prikk ned til inndataprikken på Log-blokken.
+3. Klikk på Log-blokken, der det står **Click to set up**, og sett **Verdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på triggerblokken — sjekk at den stemmer.
+4. Slå på **Aktivert** øverst i Bygger. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd; hopper du over dette trinnet, spør **Kjør arbeidsflyt** først om den skal slås på.
 5. Tilbake i **Bygger** klikker du **Kjør arbeidsflyt**, legger `{ "name": "Ada" }` i **JSON**-feltet, klikker **Run Workflow Manually** og bekrefter med **Run**.
 6. Et **Workflow Run**-panel åpner seg av seg selv og følger kjøringen. Loggen viser `Value:` etterfulgt av `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Den runden — legg til, koble, konfigurer, kjør, les loggen — er slik du byg
 
 ## Å slå den på
 
-Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer.
+Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer. Så lenge en arbeidsflyt er slått av, sier Bygger fra over lerretet, med en knapp **Slå på arbeidsflyt**.
 
-Bryteren **Aktivert** ligger på arbeidsflytens **Oversikt**-side, i kortet **Arbeidsflytdetaljer** — ikke på innstillingssiden. Det samme kortet viser gjeldende tilstand som en grønn **Aktivert**- eller rød **Deaktivert**-pille.
+Bryteren **Aktivert** ligger øverst i **Bygger**, ved siden av **Legg til komponent** og **Kjør arbeidsflyt**. Den finnes også på arbeidsflytens **Oversikt**-side: klikk **Rediger arbeidsflyt** på kortet **Arbeidsflytdetaljer**, som viser gjeldende tilstand som en grønn **Aktivert**- eller rød **Deaktivert**-pille. Bare de som kan redigere arbeidsflyten, kan slå den på eller av; alle andre ser bryteren nedtonet.
 
-En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt. Manuelle kjøringer avvises med «This workflow is not enabled» akkurat som utløste kjøringer, så rekkefølgen er: slå den på, test den med **Kjør arbeidsflyt**, les kjøreloggen, og slå **Aktivert** av igjen hvis du ikke er klar for at triggeren skal fyre. Vil du teste én enkelt blokk uten å kjøre hele greia, bruker du **Run just this step** i innstillingene til den blokken.
+En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt: triggeren ignoreres, og det samme gjør **Kjør arbeidsflyt** og **Run just this step**. Kjører du den, eller en av blokkene, mens den er slått av, spør Bygger i stedet **Slå på denne arbeidsflyten?**. **Slå på og kjør** (eller **Slå på og kjør trinn**) slår på arbeidsflyten og kjører deretter det du ba om, med verdiene du oppga. Så rekkefølgen er: bygg den, test den med **Kjør arbeidsflyt**, les kjøreloggen, og slå **Aktivert** av igjen hvis du ikke er klar for at triggeren skal fyre. Vil du teste én enkelt blokk uten å kjøre hele greia, bruker du **Run just this step** i innstillingene til den blokken.
+
+Alt annet som starter en deaktivert arbeidsflyt, avvises med det samme rådet. Et kall til webhook-URL-en får HTTP 400 og «This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.» En **Execute Workflow**-blokk som kaller den, tar **Error**-veien sin, og feilen nevner arbeidsflyten den kalte.
 
 Vil du sette en arbeidsflyt på pause uten å slette den, slår du av **Aktivert**. Ingen nye kjøringer starter. En kjøring som er midt i utførelsen, blir ferdig, men en som står parkert på en **Sleep**-blokk, avbrytes når den våkner og føres opp som en feil.
 
@@ -96,4 +105,4 @@ Vil du sette en arbeidsflyt på pause uten å slette den, slår du av **Aktivert
 - [Arbeidsflyt-triggere](/docs/workflows/triggers) — de fire måtene en arbeidsflyt kan starte på.
 - [Arbeidsflyt-komponenter](/docs/workflows/components) — hver blokk du kan legge til.
 - [Arbeidsflyt-variabler](/docs/workflows/variables) — å flytte data mellom blokker.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.

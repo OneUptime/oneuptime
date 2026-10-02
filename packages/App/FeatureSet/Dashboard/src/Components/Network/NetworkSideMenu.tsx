@@ -7,6 +7,9 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import { addDeveloperSideMenuSection } from "../DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
 
 /*
  * The one side menu for the whole Network area. Both the Network Devices
@@ -253,6 +256,11 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: NetworkDevice,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

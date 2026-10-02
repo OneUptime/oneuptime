@@ -1,4 +1,4 @@
-# Kørsler & logfiler
+# Kørsler
 
 Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der skete — hvornår det kørte, om det lykkedes, og hvad hver blok gjorde. Den optegnelse kaldes en **kørsel**. Kørsler er dem, du bruger til at bekræfte, at et workflow virkede, til at fejlfinde et, der ikke gjorde, og til at se tilbage på tidligere aktivitet.
 
@@ -6,8 +6,8 @@ Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der sket
 
 | Side                                | Hvad du ser                                                                                          |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Arbejdsgange → Kørsler og logs**  | Alle kørsler fra alle workflows i projektet. Filtrér på workflownavn, status og tid.                 |
-| **Arbejdsgang → Kørsler og logs**   | Kun kørslerne for dette ene workflow. Her er der et **Kørsels-ID**-filter i stedet for et workflowfilter. |
+| **Arbejdsgange → Protokoller → Kørsler**  | Alle kørsler fra alle workflows i projektet. Filtrér på workflownavn, status og tid.                 |
+| **Arbejdsgang → Protokoller → Kørsler**   | Kun kørslerne for dette ene workflow. Her er der et **Kørsels-ID**-filter i stedet for et workflowfilter. |
 | **En enkelt kørsel**                | Åbnes med knappen **Vis logge** på en kørselsrække — selve rækkerne kan man ikke klikke på.           |
 
 ## Kørselsstatusser
@@ -47,7 +47,7 @@ Starter du en kørsel fra **Bygger**, åbner den samme visning og følger allere
 
 ### "Mit workflow kørte ikke."
 
-1. Sikr dig, at workflowet er **Aktiveret** på siden **Oversigt**. Nye workflows starter deaktiveret, og et deaktiveret workflow afviser hver eneste kørsel — også de manuelle.
+1. Sikr dig, at workflowet er **Aktiveret**: kontakten sidder øverst i dets **Bygger**, som siger det over lærredet, når workflowet er slået fra. Nye workflows starter deaktiveret, og et deaktiveret workflow afviser hver eneste kørsel — også de manuelle. Et kald til dets webhook får HTTP 400 med en besked om, hvordan det slås til.
 2. Ved en OneUptime-begivenhedstrigger: bekræft, at begivenheden rent faktisk skete. Åbn posten, og tjek dens historik.
 3. Ved en webhook-trigger: bekræft, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — kig der.
 4. Ved en tidsplanstrigger: bekræft, at cron-udtrykket rammer det tidspunkt, du forventer.

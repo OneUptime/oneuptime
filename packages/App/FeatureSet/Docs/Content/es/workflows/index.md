@@ -38,22 +38,22 @@ Abre **Flujos de Trabajo** en la navegación izquierda. Esa sección contiene:
 
 - **Flujos de Trabajo** — tu lista de flujos de trabajo. Crea uno nuevo o abre uno existente.
 - **Variables Globales** — valores compartidos por todos tus flujos de trabajo.
-- **Ejecuciones y Registros** — el historial de ejecución de todos los flujos de trabajo de tu proyecto.
+- **Registros → Ejecuciones** — el historial de ejecución de todos los flujos de trabajo de tu proyecto.
 
 Abre un flujo de trabajo concreto y su propio menú izquierdo contiene:
 
 - **Vista General** — nombre, descripción, etiquetas y el interruptor **Habilitado**.
-- **Constructor** — el lienzo donde diseñas el flujo de trabajo.
+- **Constructor** — el lienzo donde diseñas el flujo de trabajo, con el interruptor **Habilitado** arriba.
 - **Variables de Flujo** — valores que solo existen para este flujo de trabajo.
-- **Ejecuciones y Registros** — cada ejecución de este flujo de trabajo, con sus detalles.
-- **Ajustes** — el secreto del webhook, duplicar y exportar.
+- **Registros → Ejecuciones** — cada ejecución de este flujo de trabajo, con sus detalles.
+- **Ajustes** — duplicar y exportar.
 
 ## Construir tu primer flujo de trabajo
 
 1. **Crea** — elige un punto de partida y ponle nombre a tu flujo de trabajo.
 2. **Elige un disparador** — manual, programado, webhook o un evento de OneUptime.
 3. **Añade componentes** — pon acciones en el lienzo y conéctalas.
-4. **Enciéndelo** — activa **Habilitado** desde la página **Vista General**. Un flujo de trabajo deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
+4. **Enciéndelo** — activa **Habilitado** en la parte superior del **Constructor**. Un flujo de trabajo deshabilitado no puede ejecutarse de ninguna manera, ni siquiera a mano.
 5. **Pruébalo** — haz clic en **Ejecutar flujo de trabajo** en el Constructor y observa el registro de la ejecución.
 
 ## Un ejemplo rápido
@@ -80,5 +80,5 @@ La próxima vez que alguien abra un incidente con «Sev 1» en el título, Slack
 - [Disparadores de flujo de trabajo](/docs/workflows/triggers) — las distintas formas de arrancar un flujo de trabajo.
 - [Componentes de flujo de trabajo](/docs/workflows/components) — los bloques que puedes añadir.
 - [Variables de flujo de trabajo](/docs/workflows/variables) — usar valores entre bloques y entre flujos.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué pasó.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — comprobar qué pasó.
 - [Configuración y seguridad del flujo de trabajo](/docs/workflows/configuration) — ajustes que conviene conocer.

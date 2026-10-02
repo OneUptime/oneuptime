@@ -350,7 +350,9 @@
       "amountNotPositive": "金額必須大於零。",
       "amountTooLarge": "單次調整的金額不得超過 {{max}} USD。",
       "amountTooPrecise": "金額的小數位數不得超過兩位。",
-      "reasonRequired": "請輸入此次調整的原因。"
+      "reasonRequired": "請輸入此次調整的原因。",
+      "adjustBalanceStepBalance": "餘額",
+      "adjustBalanceStepAmount": "金額和原因"
     },
     "projectSupport": {
       "title": "客戶支援存取權",
@@ -842,5 +844,10 @@
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "啟用時，所有使用者都必須使用 SSO 登入才能存取此伺服器上的任何專案。主管理員不受此限制，以便隨時能從設定錯誤的 SSO 中復原。專案本身的 SSO 設定仍會在此基礎上生效。",
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.": "啟用時，所有使用者都必須使用 SSO 登入才能存取此伺服器上的任何專案。主管理員不受此限制。",
   "Enterprise license required.": "需要 Enterprise 授權。",
-  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "OneUptime 的即時 Health 儀表板與 Query Console 需要包含執行個體健康狀態功能的 Enterprise 授權，而此部署的授權缺少、已過期或不包含該功能。請透過管理員儀表板頂端的 Enterprise Edition 徽章啟用或續訂授權。在授權缺少或過期期間，SCIM 佈建與稽核日誌記錄也會關閉；授權一旦啟用，它們會隨這些頁面一起恢復。ClickHouse 容量、執行個體日誌、全域探測器、遷移與支援包在沒有授權時仍可使用；可在左側選單中找到它們。"
+  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "OneUptime 的即時 Health 儀表板與 Query Console 需要包含執行個體健康狀態功能的 Enterprise 授權，而此部署的授權缺少、已過期或不包含該功能。請透過管理員儀表板頂端的 Enterprise Edition 徽章啟用或續訂授權。在授權缺少或過期期間，SCIM 佈建與稽核日誌記錄也會關閉；授權一旦啟用，它們會隨這些頁面一起恢復。ClickHouse 容量、執行個體日誌、全域探測器、遷移與支援包在沒有授權時仍可使用；可在左側選單中找到它們。",
+  "Are you sure you want to delete {{name}}?": "確定要刪除 {{name}} 嗎？",
+  "Permanently delete {{name}}.": "永久刪除 {{name}}。",
+  "This action cannot be undone.": "此操作無法復原。",
+  "and {{remaining}} more": "以及另外 {{remaining}} 項",
+  "Type {{name}} to confirm.": "輸入 {{name}} 以確認。"
 }

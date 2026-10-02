@@ -92,8 +92,6 @@ const CREDENTIAL_ID: ObjectID = new ObjectID(
 
 const READY_GATES: KubernetesClusterAiAccessProjectGates = {
   isAiEnabled: true,
-  isAutoRemediationEnabled: true,
-  isAiCommandExecutionEnabled: true,
   hasLlmProvider: true,
 };
 
@@ -1171,24 +1169,24 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         cluster: fakeCluster(),
         gates: {
           isAiEnabled: false,
-          isAutoRemediationEnabled: false,
-          isAiCommandExecutionEnabled: false,
           hasLlmProvider: false,
           aiBalanceBlocker: "This project's AI credit balance is used up.",
         },
       });
 
     /*
-     * The previous in-cluster Runner is a cluster target the command
-     * execution opt-in no longer gates (the cluster's Fixes setting and
-     * the chart's write RBAC do), so there is no command-execution gap.
+     * Enable AI is the project's only AI switch: the auto-remediation and
+     * command-execution switches it replaced have no gaps any more.
      */
     expect(gapCodes(status)).toEqual([
       "project_ai_disabled",
       "llm_provider_missing",
       "ai_balance_insufficient",
-      "project_auto_remediation_disabled",
     ]);
+    expect(gapCodes(status)).not.toContain("project_auto_remediation_disabled");
+    expect(gapCodes(status)).not.toContain(
+      "project_ai_command_execution_disabled",
+    );
     expect(status.isInvestigationReady).toBe(false);
     expect(status.isRemediationReady).toBe(false);
   });
@@ -1233,13 +1231,21 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     }
   });
 
-  describe("the project's command-execution opt-in gates only an advanced Runner", () => {
-    const CLOSED_OPT_IN: KubernetesClusterAiAccessProjectGates = {
+  /*
+   * Enable AI is the project's only AI switch. "Enable AI command
+   * execution" used to hold back a cluster reached through an advanced
+   * Runner (project_ai_command_execution_disabled) and "Enable
+   * auto-remediation" every fix (project_auto_remediation_disabled). Both
+   * were folded into Enable AI, so no access target needs another project
+   * switch, and with AI off the one project gap is project_ai_disabled.
+   */
+  describe("Enable AI is the only project switch an access target needs", () => {
+    const AI_OFF: KubernetesClusterAiAccessProjectGates = {
       ...READY_GATES,
-      isAiCommandExecutionEnabled: false,
+      isAiEnabled: false,
     };
 
-    it("an advanced Runner with a credential: project_ai_command_execution_disabled blocks remediation", async () => {
+    function bindAdvancedRunnerWithCredential(): void {
       jest
         .spyOn(RunnerService, "findOneBy")
         .mockResolvedValue(
@@ -1252,58 +1258,102 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         credentialType: "Kubernetes",
         runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
       } as unknown as RunbookCredential);
+    }
+
+    it("an advanced Runner with a credential: no command-execution gap, remediation ready", async () => {
+      bindAdvancedRunnerWithCredential();
 
       const status: KubernetesClusterAiAccessStatus =
         await KubernetesClusterAiAccessService.getStatusForClusterModel({
           cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
-          gates: CLOSED_OPT_IN,
+          gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual([
-        "project_ai_command_execution_disabled",
-      ]);
-      expect(status.gaps[0]?.blocks).toBe("remediation");
-      expect(status.gaps[0]?.nextStep).toBe(
-        'Turn on "Enable AI Command Execution" under Project Settings → AI Features.',
-      );
+      expect(status.accessMethod).toBe("credential");
+      expect(gapCodes(status)).toEqual([]);
       expect(status.isInvestigationReady).toBe(true);
+      expect(status.isRemediationReady).toBe(true);
+    });
+
+    it("an advanced Runner with Enable AI off: project_ai_disabled blocks both, with the AI Features step", async () => {
+      bindAdvancedRunnerWithCredential();
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(status)).toEqual(["project_ai_disabled"]);
+      expect(status.gaps[0]?.blocks).toBe("both");
+      expect(status.gaps[0]?.nextStep).toBe(
+        "Enable AI under Project Settings → AI Features.",
+      );
+      expect(status.isInvestigationReady).toBe(false);
       expect(status.isRemediationReady).toBe(false);
     });
 
-    it("the Kubernetes AI agent: no command-execution gap, remediation ready", async () => {
+    it("the Kubernetes AI agent: remediation ready, and project_ai_disabled alone when AI is off", async () => {
       agentLookup.mockResolvedValue(fakeAgent());
 
-      const status: KubernetesClusterAiAccessStatus =
+      const ready: KubernetesClusterAiAccessStatus =
         await KubernetesClusterAiAccessService.getStatusForClusterModel({
           cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-          gates: CLOSED_OPT_IN,
+          gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual([]);
-      expect(status.isRemediationReady).toBe(true);
+      expect(gapCodes(ready)).toEqual([]);
+      expect(ready.isRemediationReady).toBe(true);
+
+      const off: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(off)).toEqual(["project_ai_disabled"]);
     });
 
-    it("the previous in-cluster Runner: no command-execution gap either", async () => {
+    it("the previous in-cluster Runner: remediation ready, and project_ai_disabled alone when AI is off", async () => {
       jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
 
-      const status: KubernetesClusterAiAccessStatus =
+      const ready: KubernetesClusterAiAccessStatus =
         await KubernetesClusterAiAccessService.getStatusForClusterModel({
           cluster: fakeCluster(),
-          gates: CLOSED_OPT_IN,
+          gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual([]);
-      expect(status.isRemediationReady).toBe(true);
+      expect(gapCodes(ready)).toEqual([]);
+      expect(ready.isRemediationReady).toBe(true);
+
+      const off: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(off)).toEqual(["project_ai_disabled"]);
     });
 
-    it("nothing connected: no command-execution gap, the connection gap says it all", async () => {
-      const status: KubernetesClusterAiAccessStatus =
+    it("nothing connected: the connection gap says it all, and AI off adds only project_ai_disabled", async () => {
+      const ready: KubernetesClusterAiAccessStatus =
         await KubernetesClusterAiAccessService.getStatusForClusterModel({
           cluster: fakeCluster({ aiAccessRunnerId: undefined }),
-          gates: CLOSED_OPT_IN,
+          gates: READY_GATES,
         });
 
-      expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
+      expect(gapCodes(ready)).toEqual(["ai_agent_not_connected"]);
+
+      const off: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessRunnerId: undefined }),
+          gates: AI_OFF,
+        });
+
+      expect(gapCodes(off)).toEqual([
+        "ai_agent_not_connected",
+        "project_ai_disabled",
+      ]);
     });
   });
 
@@ -1472,27 +1522,113 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads kill switches as enabled-by-default and command execution as opt-in", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      enableAi: undefined,
-      enableAutoRemediation: undefined,
-      enableAiCommandExecution: undefined,
-    } as unknown as Project);
+  // The keys getProjectGates returns: Enable AI's and nothing it replaced.
+  const PROJECT_GATE_KEYS: Array<string> = [
+    "aiBalanceBlocker",
+    "automaticInvestigation",
+    "hasLlmProvider",
+    "isAiEnabled",
+  ];
+
+  function mockProviderAndBalance(): void {
     jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as LlmProvider);
     jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
+  }
+
+  it("reads Enable AI as on unless it is exactly false (the kill switch idiom)", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: undefined,
+    } as unknown as Project);
+    mockProviderAndBalance();
 
     const gates: KubernetesClusterAiAccessProjectGates =
       await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
 
     expect(gates).toEqual({
       isAiEnabled: true,
-      isAutoRemediationEnabled: true,
-      isAiCommandExecutionEnabled: false,
       hasLlmProvider: true,
       aiBalanceBlocker: null,
       // Absent reads as off: the investigation opt-ins count only when true.
+      automaticInvestigation: { incidents: false, alerts: false },
+    });
+  });
+
+  /*
+   * The project row is read for Enable AI and the two investigation
+   * opt-ins, and for nothing else: Enable AI is the project's only AI
+   * switch, so the columns it replaced are never selected.
+   */
+  it("selects Enable AI and the investigation opt-ins, and never a retired switch", async () => {
+    const findOneById: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({ enableAi: true } as unknown as Project);
+    mockProviderAndBalance();
+
+    await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(findOneById).toHaveBeenCalledTimes(1);
+    expect(findOneById).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: {
+        enableAi: true,
+        enableAutomaticIncidentInvestigation: true,
+        enableAutomaticAlertInvestigation: true,
+      },
+      props: { isRoot: true },
+    });
+
+    const select: Record<string, unknown> = (
+      findOneById.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(Object.keys(select)).not.toContain("enableAutoRemediation");
+    expect(Object.keys(select)).not.toContain("enableAiCommandExecution");
+  });
+
+  it.each<[string, Project | null, boolean]>([
+    ["Enable AI on", { enableAi: true } as unknown as Project, true],
+    ["Enable AI off", { enableAi: false } as unknown as Project, false],
+    ["Enable AI not selected", {} as unknown as Project, true],
+    // A missing row reads like one that never set the column.
+    ["no project row", null, true],
+  ])(
+    "returns only the project's gates: %s",
+    async (_label: string, project: Project | null, isAiEnabled: boolean) => {
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+      mockProviderAndBalance();
+
+      const gates: KubernetesClusterAiAccessProjectGates =
+        await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+      expect(Object.keys(gates).sort()).toEqual(PROJECT_GATE_KEYS);
+      expect(gates.isAiEnabled).toBe(isAiEnabled);
+      expect(gates).not.toHaveProperty("isAutoRemediationEnabled");
+      expect(gates).not.toHaveProperty("isAiCommandExecutionEnabled");
+    },
+  );
+
+  /*
+   * A row that still carries the columns Enable AI replaced (a replica of
+   * the previous build reading it mid-rollout, or a fixture) cannot switch
+   * anything off: only Enable AI is read.
+   */
+  it("ignores the retired switches on a row that still carries them", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: true,
+      enableAutoRemediation: false,
+      enableAiCommandExecution: false,
+    } as unknown as Project);
+    mockProviderAndBalance();
+
+    const gates: KubernetesClusterAiAccessProjectGates =
+      await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(gates).toEqual({
+      isAiEnabled: true,
+      hasLlmProvider: true,
+      aiBalanceBlocker: null,
       automaticInvestigation: { incidents: false, alerts: false },
     });
   });
@@ -1502,7 +1638,7 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
       return undefined;
     });
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      enableAiCommandExecution: true,
+      enableAi: true,
     } as unknown as Project);
     jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
@@ -1515,7 +1651,7 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
       await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
 
     expect(gates.hasLlmProvider).toBe(false);
-    expect(gates.isAiCommandExecutionEnabled).toBe(true);
+    expect(gates.isAiEnabled).toBe(true);
     // Unknown, so unsaid: not a second (failing) provider lookup.
     expect(blocker).not.toHaveBeenCalled();
     expect(gates.aiBalanceBlocker).toBeNull();
@@ -3679,7 +3815,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         ),
       ).toBe(true);
       expect(refusal.message).toContain(
-        'Or, under Project Settings → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
+        'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
       );
       // Only what it actually holds is asked for.
       expect(refusal.message).not.toContain('turn off "Runs AI Code Fixes"');

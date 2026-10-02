@@ -61,7 +61,7 @@ El registro completo se pasa al siguiente bloque. Por ejemplo, el disparador **I
 - **Página de estado Suscriptor** — da la bienvenida a quien se suscribe a una página de estado.
 - **On-Call Duty Policy** — sincroniza los cambios de turno con otro sistema de guardias.
 
-Busca por nombre en el panel **Add Trigger** para dar con el que quieres.
+En el panel **Add Trigger** están en **OneUptime resources**: haz clic en el recurso y luego en el disparador. **Browse all resources** los tiene todos, y el cuadro de búsqueda encuentra un disparador con unas pocas palabras, como `incident created`.
 
 ## ¿Qué disparador me conviene?
 
@@ -78,4 +78,4 @@ Un flujo de trabajo solo puede tener un disparador. Si necesitas dos formas de a
 
 - [Componentes de flujo de trabajo](/docs/workflows/components) — las acciones que añades después del disparador.
 - [Variables de flujo de trabajo](/docs/workflows/variables) — leer la salida del disparador desde bloques posteriores.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — confirmar que tu disparador saltó.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — confirmar que tu disparador saltó.

@@ -246,10 +246,12 @@ export default class TwilioCallProvider implements ICallProvider {
   public parseDialStatusWebhook(request: WebhookRequest): DialStatusData {
     const body: {
       CallSid?: string;
+      CallStatus?: string;
       DialCallStatus?: string;
       DialCallDuration?: string;
     } = request.body as {
       CallSid?: string;
+      CallStatus?: string;
       DialCallStatus?: string;
       DialCallDuration?: string;
     };
@@ -262,6 +264,7 @@ export default class TwilioCallProvider implements ICallProvider {
       callId: body.CallSid,
       dialStatus: this.mapTwilioStatus(body.DialCallStatus || "failed"),
       dialDurationSeconds: parseInt(body.DialCallDuration || "0"),
+      callerHungUp: this.hasCallEnded(body.CallStatus),
     };
   }
 
@@ -344,6 +347,25 @@ export default class TwilioCallProvider implements ICallProvider {
     }
 
     return isValid;
+  }
+
+  /*
+   * CallStatus in a <Dial> action request is the incoming call's own status,
+   * not the dialed leg's. It stays "in-progress" while the caller is on the
+   * line. Twilio requests the action URL when the caller hangs up mid-dial
+   * too, and by then the incoming call has one of its final statuses. A
+   * missing or unknown status counts as still connected: hanging up on a
+   * caller who is waiting is worse than logging one attempt too many.
+   */
+  private hasCallEnded(callStatus: string | undefined): boolean {
+    const finalStatuses: Array<string> = [
+      "completed",
+      "busy",
+      "failed",
+      "no-answer",
+      "canceled",
+    ];
+    return finalStatuses.includes(callStatus || "");
   }
 
   private mapTwilioStatus(status: string): DialStatusData["dialStatus"] {

@@ -79,6 +79,12 @@ import {
 })
 @CrudApiEndpoint(new Route("/workflow"))
 @SlugifyColumn("name", "slug")
+/*
+ * Every list of this resource pins `isArchived` inside a project (the
+ * main list hides archived rows, the Archived page shows only them), so
+ * the pair is indexed together, like every other archivable resource.
+ */
+@Index(["projectId", "isArchived"])
 @Entity({
   name: "Workflow",
 })
@@ -425,6 +431,155 @@ export default class Workflow extends BaseModel {
   })
   public deletedByUserId?: ObjectID = undefined;
 
+  /*
+   * Archiving retires a workflow without deleting it or its run history: it
+   * leaves the Workflows list and never runs again from any trigger - manual
+   * runs, webhooks, schedules, model events and incoming email are all
+   * refused (see QueueWorkflow, RunWorkflow and the trigger components).
+   * Deliberately a separate flag from `isEnabled`: unarchiving must not
+   * switch on a workflow somebody had turned off, and turning one on must
+   * not pull it back out of the archive.
+   *
+   * No dedicated permission: archiving is an update, so it is gated by Edit.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateWorkflow,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.DeleteWorkflow,
+      Permission.EditWorkflow,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Archived",
+    description:
+      "Archived workflows are hidden from the Workflows list and never run, from any trigger. Unarchiving restores them as they were.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  /*
+   * Stamped server-side from the `isArchived` write (see
+   * DatabaseService.sanitizeCreateOrUpdate), which is why these are read-only
+   * to the client: "who archived this and when" cannot be spoofed.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description:
+      "When this workflow was archived. Empty while it is not archived.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -591,16 +746,32 @@ export default class Workflow extends BaseModel {
   public triggerArguments?: JSONObject = undefined;
 
   @ColumnAccessControl({
+    // Generated by the server when the workflow is created (WorkflowService).
     create: [],
+    /*
+     * Gated on the ability to RESET the key, not on the ability to view the
+     * workflow: this read list is deliberately identical to the update list
+     * below. The key is the last segment of the Webhook trigger's URL, and
+     * anyone who has the URL can start the workflow - the same thing running
+     * it by hand does, which needs the workflow's update permissions (see
+     * assertCallerCanRunWorkflow in the workflow service's Manual and RunStep
+     * APIs).
+     *
+     * Viewer, WorkflowViewer, ReadWorkflow, ProjectMember, WorkflowAdmin and
+     * WorkflowMember used to be here. None of them can edit the workflow or
+     * run it by hand, and Viewer is the least privilege OneUptime grants, so
+     * "read-only" also meant "can start any webhook workflow in the project".
+     * Monitor's secret keys were closed the same way:
+     * https://github.com/OneUptime/oneuptime/issues/3360
+     *
+     * The dashboard asks for this column only when PermissionGate says it may
+     * (Common/UI/Components/Workflow/WorkflowWebhookSecretKey.ts): an
+     * unreadable column in a select fails the whole request.
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
-      Permission.WorkflowViewer,
-      Permission.ReadWorkflow,
+      Permission.EditWorkflow,
     ],
     update: [
       Permission.ProjectOwner,
@@ -614,13 +785,61 @@ export default class Workflow extends BaseModel {
     type: TableColumnType.LongText,
     title: "Webhook Secret Key",
     description:
-      "Secret key used to trigger this workflow via webhook. Use this instead of the workflow ID for security.",
+      "The secret part of the Webhook trigger's URL (/workflow/trigger/<key>). Anyone who has the URL can start the workflow, so only people who can edit the workflow can read the key. Generated when the workflow is created; set a new value to reset the URL.",
   })
   @Column({
     type: ColumnType.LongText,
     nullable: true,
   })
   public webhookSecretKey?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Not settable on create: the column is unique across every project, so
+     * an import or a duplicated workflow carrying it over would fail the copy.
+     * WorkflowService gives a workflow its key once its graph has an Incoming
+     * Email trigger.
+     */
+    create: [],
+    /*
+     * The same lists as webhookSecretKey, for the same reason: this key IS
+     * the Incoming Email trigger's address (workflow-{key}@{inbound domain}),
+     * and anyone who has the address can start the workflow - which running
+     * it by hand needs the workflow's update permissions for. So only people
+     * who may reset the key may read it.
+     * https://github.com/OneUptime/oneuptime/issues/3360
+     *
+     * The dashboard asks for this column only when PermissionGate says it may
+     * (Common/UI/Components/Workflow/WorkflowIncomingEmailSecretKey.ts).
+     */
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflow,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    unique: true,
+    type: TableColumnType.ObjectID,
+    title: "Incoming Email Secret Key",
+    description:
+      "The secret part of the Incoming Email trigger's address (workflow-<key>@<inbound email domain>). Anyone who has the address can start the workflow, so only people who can edit the workflow can read the key. Given to the workflow when its graph first has an Incoming Email trigger; set a new UUID to reset the address. Unique across all workflows.",
+    example: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    unique: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incomingEmailSecretKey?: ObjectID = undefined;
 
   // This is a BullMQ job key that is used to schedule job for this workflow. This is used internally to remove existing job.
   @ColumnAccessControl({

@@ -16,7 +16,6 @@ import ObjectID from "Common/Types/ObjectID";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import Field from "Common/UI/Components/Forms/Types/Field";
@@ -437,7 +436,6 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         }
         description={`Added ${result.succeeded.length} of ${totalCount} selected monitors.${skippedDescription}`}
         closeButtonText="Done"
-        closeButtonStyleType={ButtonStyleType.PRIMARY}
         onClose={props.onClose}
       >
         <div className="space-y-4">

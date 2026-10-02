@@ -9,6 +9,8 @@ import SideMenu, {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -43,6 +45,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               },
             ]
           : []),
+        /*
+         * Archived monitors are left out of every list above, so without
+         * this entry the only way back to one would be its URL.
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {
@@ -60,6 +75,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             currentMonitorStatus: {
               isOperationalState: false,
             },
@@ -77,6 +93,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             disableActiveMonitoring: true,
           },
         },
@@ -92,6 +109,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             isAllProbesDisconnectedFromThisMonitor: true,
           },
         },
@@ -107,6 +125,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,
+            isArchived: false,
             isNoProbeEnabledOnThisMonitor: true,
           },
         },
@@ -207,6 +226,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Monitor,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

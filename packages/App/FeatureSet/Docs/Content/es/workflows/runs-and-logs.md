@@ -1,4 +1,4 @@
-# Ejecuciones y Registros
+# Ejecuciones
 
 Cada vez que se ejecuta un flujo de trabajo, OneUptime guarda constancia de lo ocurrido — cuándo se ejecutó, si funcionó y qué hizo cada bloque. A esa constancia la llamamos **ejecución**. Las ejecuciones son la forma de confirmar que un flujo de trabajo funcionó, depurar el que no lo hizo y repasar la actividad pasada.
 
@@ -6,8 +6,8 @@ Cada vez que se ejecuta un flujo de trabajo, OneUptime guarda constancia de lo o
 
 | Página                        | Qué ves                                                                                       |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Flujos de Trabajo → Ejecuciones y Registros** | Todas las ejecuciones de todos los flujos de trabajo del proyecto. Filtra por nombre de flujo, estado y hora.           |
-| **Flujo de trabajo → Ejecuciones y Registros**  | Solo las ejecuciones de este flujo de trabajo. Aquí, en lugar del filtro por flujo, tienes uno de **ID de ejecución**.  |
+| **Flujos de Trabajo → Registros → Ejecuciones** | Todas las ejecuciones de todos los flujos de trabajo del proyecto. Filtra por nombre de flujo, estado y hora.           |
+| **Flujo de trabajo → Registros → Ejecuciones**  | Solo las ejecuciones de este flujo de trabajo. Aquí, en lugar del filtro por flujo, tienes uno de **ID de ejecución**.  |
 | **Una ejecución concreta**            | Se abre con el botón **Ver registros** de la fila de la ejecución — las filas en sí no son clicables.           |
 
 ## Estados de ejecución
@@ -47,7 +47,7 @@ Si arrancas una ejecución desde el **Constructor**, se abre esta misma vista si
 
 ### «Mi flujo de trabajo no se ejecutó.»
 
-1. Asegúrate de que el flujo de trabajo está **Habilitado** en su página **Vista General**. Los flujos nuevos nacen deshabilitados, y un flujo deshabilitado rechaza cualquier ejecución, incluidas las manuales.
+1. Asegúrate de que el flujo de trabajo está **Habilitado**: el interruptor está en la parte superior de su **Constructor**, que lo avisa encima del lienzo cuando el flujo está apagado. Los flujos nuevos nacen deshabilitados, y un flujo deshabilitado rechaza cualquier ejecución, incluidas las manuales. Una llamada a su webhook recibe un HTTP 400 con un mensaje que explica cómo encenderlo.
 2. Si es un disparador de evento de OneUptime: confirma que el evento ocurrió de verdad. Abre el registro y revisa su historial.
 3. Si es un disparador de webhook: confirma que el otro sistema está llamando a la URL correcta. Casi todas las herramientas dejan constancia de los webhooks que envían — míralo ahí.
 4. Si es un disparador de programación: confirma que la expresión cron coincide con la hora que esperas.

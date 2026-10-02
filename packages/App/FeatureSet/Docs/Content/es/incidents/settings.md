@@ -12,6 +12,7 @@ Abre **Incidentes** en la navegación izquierda y despliega **Ajustes** al final
 
 | Página                       | Qué haces ahí                                                                                                       |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **IA**                       | Activar o desactivar la investigación automática, las correcciones de código automáticas y los borradores de post-mortem, y fijar los límites opcionales con los que trabaja la IA: ninguno se aplica hasta que lo fijas. Consulta [AI SRE](/docs/ai/ai-sre). |
 | **Estado del Incidente**     | Añadir, renombrar, recolorear y reordenar los estados por los que pasa un incidente.                                |
 | **Gravedad del Incidente**   | Añadir, renombrar, recolorear y reordenar los niveles de severidad.                                                  |
 | **Plantillas de Incidentes** | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios y etiquetas. |
@@ -23,7 +24,7 @@ Abre **Incidentes** en la navegación izquierda y despliega **Ajustes** al final
 
 **Estado del Incidente** y **Gravedad del Incidente** se tratan a fondo en [Estados y severidades de incidentes](/docs/incidents/states-and-severities); el resto de esta página arranca a partir de **Plantillas de Incidentes**.
 
-Despliega **Reglas** y aparecen ocho pantallas más: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA** y **Reminder Rules**. Las vemos más abajo.
+Despliega **Reglas** y aparecen nueve pantallas más: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA** y **Reminder Rules**. Las vemos más abajo.
 
 ## Plantillas de incidente
 
@@ -113,20 +114,21 @@ Deja cualquiera de los dos vacío para conservar el prefijo `#` predeterminado; 
 
 ## Reglas que se ejecutan al crear un incidente
 
-**Incidentes → Reglas** reúne ocho motores de reglas. Todos hacen el mismo trabajo —mirar un incidente en cuanto se crea y actuar si coincide—, pero se diferencian en lo que hacen y en cómo se resuelven varias reglas coincidentes.
+**Incidentes → Reglas** reúne nueve motores de reglas. Todos hacen el mismo trabajo —mirar un incidente en cuanto se crea y actuar si coincide—, pero se diferencian en lo que hacen y en cómo se resuelven varias reglas coincidentes.
 
 - **Reglas de Agrupación** — agrupan incidentes relacionados en episodios. Las reglas se evalúan por orden de prioridad; los números de prioridad más bajos van primero.
 - **Reglas de guardia** — ejecutan políticas de guardia para los incidentes coincidentes. Las vemos en detalle más abajo.
 - **Reglas del propietario** — asignan propietarios automáticamente.
 - **Reglas de runbook** — arrancan un [runbook](/docs/runbooks/index) cuando un incidente coincide.
+- **Reglas de autorremediación** — proponen o arrancan runbooks de remediación cuando un incidente coincide. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis a mano. Consulta [AI SRE](/docs/ai/ai-sre).
 - **Reglas de privacidad** — deciden si un incidente coincidente es privado.
 - **Reglas de etiquetas** — aplican etiquetas automáticamente.
 - **Reglas de SLA** — hacen seguimiento de los tiempos de respuesta y resolución. Las reglas se evalúan en orden; los números de orden más bajos van primero.
 - **Reminder Rules** — recuerdan periódicamente a los propietarios del incidente mientras siga abierto. Las reglas se evalúan en orden y gana la primera que coincide.
 
-**La semántica del orden no es uniforme.** Las **Reglas de Agrupación**, las **Reglas de SLA** y las **Reminder Rules** se evalúan por orden. Las **Reglas de guardia** no: se dispara toda regla coincidente. No des por hecho que un mismo modelo vale para las ocho.
+**La semántica del orden no es uniforme.** Las **Reglas de Agrupación**, las **Reglas de SLA** y las **Reminder Rules** se evalúan por orden. Las **Reglas de guardia** no: se dispara toda regla coincidente. No des por hecho que un mismo modelo vale para las nueve.
 
-Las páginas **Reglas de guardia**, **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de privacidad** tienen pestañas: una **Incident Rules** y otra **Episode Rules**, cada una con su propia tabla. Configura la pestaña **Incident Rules** salvo que te refieras específicamente a episodios. **Reglas de Agrupación**, **Reglas de runbook**, **Reglas de SLA** y **Reminder Rules** son tablas únicas.
+Las páginas **Reglas de guardia**, **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de privacidad** tienen pestañas: una **Incident Rules** y otra **Episode Rules**, cada una con su propia tabla. Configura la pestaña **Incident Rules** salvo que te refieras específicamente a episodios. **Reglas de Agrupación**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de SLA** y **Reminder Rules** son tablas únicas.
 
 ## Reglas de guardia de incidentes
 
@@ -160,7 +162,7 @@ Para ver qué ocurrió, abre el incidente y elige **Ejecuciones de Guardia** en 
 
 ## Gobernar incidentes desde flujos de trabajo
 
-Los disparadores de flujo de trabajo para incidentes no están escritos a mano: OneUptime los genera a partir de los modelos de datos, así que cada modelo de la familia de incidentes obtiene componentes **On Create X**, **On Update X** y **On Delete X**, nombrados a partir del nombre en singular del modelo. Los tres principales son **On Create Incident**, **On Update Incident** y **On Delete Incident**, y los encuentras en la categoría **Incidente** del panel **Añadir componente**, en `/dashboard/{projectId}/workflows`.
+Los disparadores de flujo de trabajo para incidentes no están escritos a mano: OneUptime los genera a partir de los modelos de datos, así que cada modelo de la familia de incidentes obtiene componentes **On Create X**, **On Update X** y **On Delete X**, nombrados a partir del nombre en singular del modelo. Los tres principales son **On Create Incident**, **On Update Incident** y **On Delete Incident**. Los encuentras en el panel **Add Trigger**, en `/dashboard/{projectId}/workflows`, dentro de **OneUptime resources** → **Incident**; los dos primeros también están en **Popular**.
 
 Esa misma generación te da disparadores para la propia configuración: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** y más. Cada modelo obtiene además sus componentes de acción equivalentes —**Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** y sus versiones para varias filas—, de modo que un disparador y una acción con nombres parecidos conviven en la misma categoría. **On Create Incident** arranca un flujo de trabajo; **Create One Incident** abre un incidente.
 

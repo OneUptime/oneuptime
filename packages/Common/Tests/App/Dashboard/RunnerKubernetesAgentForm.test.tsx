@@ -17,8 +17,8 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerView";
-import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Runners";
+import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
+import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
   RunnerFormRestrictions,
@@ -27,7 +27,7 @@ import {
   getRunnerFormFields,
   getRunnerFormRestrictions,
   getRunnerTableFormFields,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerFormFields";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -287,7 +287,7 @@ describe("the Runner form's fields", () => {
     ).toEqual(["name", "description", "canRunAiCommands", "labels"]);
   });
 
-  test("the list page's wizard puts every field on its step", () => {
+  test("the wizard puts every field on its step", () => {
     const steps: Array<string | undefined> = getRunnerFormFields({
       withSteps: true,
       restrictions: NO_RUNNER_FORM_RESTRICTIONS,
@@ -302,7 +302,7 @@ describe("the Runner form's fields", () => {
       "capabilities",
       "labels",
     ]);
-    // The detail page's form has no steps.
+    // Without withSteps the fields carry no step.
     for (const field of getRunnerFormFields({
       withSteps: false,
       restrictions: NO_RUNNER_FORM_RESTRICTIONS,
@@ -441,12 +441,12 @@ describe("the Runner pages, rendered", () => {
   });
 
   function openRunnerView(runnerId: string): void {
-    const path: string = `/dashboard/${PROJECT_ID}/settings/runners/${runnerId}`;
+    const path: string = `/dashboard/${PROJECT_ID}/runbooks/runners/${runnerId}`;
     goTo(path);
     render(
       <MemoryRouter initialEntries={[path]}>
         <RunnerView
-          pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
+          pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route}
           currentProject={null}
           hasPaymentMethod={true}
         />
@@ -459,7 +459,8 @@ describe("the Runner pages, rendered", () => {
    * the row has loaded (its name is on the Runner Details card).
    */
   async function openRunnerEditModal(runnerName: string): Promise<HTMLElement> {
-    await screen.findByText(runnerName, {}, { timeout: WAIT_TIMEOUT });
+    // In the details, and on the Delete card at the foot of the page.
+    await screen.findAllByText(runnerName, {}, { timeout: WAIT_TIMEOUT });
     const edit: HTMLElement = await screen.findByText(
       "Edit Runner",
       {},
@@ -497,20 +498,25 @@ describe("the Runner pages, rendered", () => {
     const dialog: HTMLElement = await openRunnerEditModal(
       "kubernetes-agent/prod-east",
     );
-    await within(dialog).findByText(
-      "Runs AI Remediation Commands",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
+
+    // The Runner step: the description and the note, and no name.
     expect(
       within(dialog).getByText("In-cluster Runner (Kubernetes agent)"),
     ).toBeInTheDocument();
     expect(dialog).toHaveTextContent(AGENT_NOTE_START);
     expect(hasFieldTitled(dialog, "Name")).toBe(false);
+
+    // The Capabilities step: only the switch the server lets it change.
+    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    await within(dialog).findByText(
+      "Runs AI Remediation Commands",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(false);
     expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(false);
 
-    // Saving posts none of the fields the server refuses.
+    // Saving - from any step of an edit form - posts none of the fields the server refuses.
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
     await waitFor(
       () => {
@@ -531,12 +537,15 @@ describe("the Runner pages, rendered", () => {
     openRunnerView(HOST_RUNNER_ID);
 
     const dialog: HTMLElement = await openRunnerEditModal("bash-runner");
+    expect(hasFieldTitled(dialog, "Name")).toBe(true);
+    expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
     await within(dialog).findByText(
       "Runs AI Remediation Commands",
       {},
       { timeout: WAIT_TIMEOUT },
     );
-    expect(hasFieldTitled(dialog, "Name")).toBe(true);
     expect(hasFieldTitled(dialog, "Runs Runbooks")).toBe(true);
     expect(hasFieldTitled(dialog, "Runs AI Code Fixes")).toBe(true);
     expect(dialog).not.toHaveTextContent(AGENT_NOTE_START);
@@ -546,12 +555,12 @@ describe("the Runner pages, rendered", () => {
   });
 
   function openRunnersPage(): void {
-    const path: string = `/dashboard/${PROJECT_ID}/settings/runners`;
+    const path: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
     goTo(path);
     render(
       <MemoryRouter initialEntries={[path]}>
         <RunnersPage
-          pageRoute={RouteMap[PageMap.SETTINGS_RUNNERS] as Route}
+          pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route}
           currentProject={null}
           hasPaymentMethod={true}
         />

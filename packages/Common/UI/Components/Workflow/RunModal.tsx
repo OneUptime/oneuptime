@@ -82,7 +82,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
               props.onRun(component);
               props.onClose();
             }}
-            submitButtonType={ButtonStyleType.SUCCESS}
+            submitButtonType={ButtonStyleType.PRIMARY}
           />
         )}
 

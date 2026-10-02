@@ -59,8 +59,18 @@ const TRANSLATED_CODES: Array<string> = LOCALE_CODES.filter(
   },
 );
 
-const RUNNERS_PAGE: Array<string> = ["Pages", "Settings", "Runners.tsx"];
-const RUNNER_VIEW: Array<string> = ["Pages", "Settings", "RunnerView.tsx"];
+const RUNNERS_PAGE: Array<string> = [
+  "Pages",
+  "Runbook",
+  "Runners",
+  "Runners.tsx",
+];
+const RUNNER_VIEW: Array<string> = [
+  "Pages",
+  "Runbook",
+  "Runners",
+  "RunnerView.tsx",
+];
 const STEPS_PAGE: Array<string> = ["Pages", "Runbook", "View", "Steps.tsx"];
 const STATUS_COMPONENT: Array<string> = [
   "Components",

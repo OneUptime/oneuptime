@@ -61,7 +61,7 @@ Casi cualquier campo de texto acepta variables:
 - El texto del mensaje en Slack, Teams, Discord, Telegram y correo electrónico.
 - El asunto y el cuerpo de un correo.
 - Los campos de cabeceras y de cuerpo (dentro de valores de tipo cadena).
-- Los dos lados de un bloque **If / Else** (que está en la categoría Condiciones).
+- Los dos lados de un bloque **If / Else**.
 
 En los campos JSON puedes usar una variable dentro de un valor de tipo cadena, pero no como clave. Una referencia que ocupa un valor entero ella sola se sustituye tal cual, así que por esa vía puedes colocar un objeto completo en un campo JSON. Si necesitas construir una estructura de forma dinámica, usa un bloque **Run Custom JavaScript** para armarla y pasa su salida al bloque siguiente.
 
@@ -135,5 +135,5 @@ Dos cosas a vigilar:
 ## Qué leer a continuación
 
 - [Componentes de flujo de trabajo](/docs/workflows/components) — la lista completa de salidas que produce cada bloque.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — ver el valor real de cada variable tras una ejecución.
+- [Ejecuciones de flujo de trabajo](/docs/workflows/runs-and-logs) — ver el valor real de cada variable tras una ejecución.
 - [Configuración y seguridad del flujo de trabajo](/docs/workflows/configuration) — qué es seguro poner en una variable global.

@@ -552,7 +552,15 @@ describe("CorrelateResultStats", () => {
 
         const truncated: Array<Element> = Array.from(
           screen.getByTestId("correlate-stats").querySelectorAll(".truncate"),
-        );
+        ).filter((element: Element): boolean => {
+          /*
+           * A pill ellipsizes only in a container narrower than the pill
+           * itself, and then shows its whole text on hover (Pill.test.tsx).
+           * A severity name never meets that in a tile, and the pill's own
+           * last resort is not the tile truncating.
+           */
+          return !element.closest('[data-testid="pill"]');
+        });
 
         expect(
           truncated.map((element: Element): string | null => {
@@ -719,7 +727,11 @@ describe("CorrelateResultStats", () => {
       const pill: HTMLElement = within(value).getByTestId("pill");
 
       expect(pill).toHaveTextContent(/^Critical$/);
-      expect(window.getComputedStyle(pill).backgroundColor).toBe(
+      // The pill is a tint of its colour; its dot is the colour itself.
+      expect(
+        window.getComputedStyle(within(pill).getByTestId("pill-dot"))
+          .backgroundColor,
+      ).toBe(
         normalizeColor(getSeverityColor(OcsfSeverity.Critical).toString()),
       );
     });
@@ -765,7 +777,7 @@ describe("CorrelateResultStats", () => {
 
       expect(within(value).getByTestId("pill")).toHaveTextContent(/^Medium$/);
       expect(
-        window.getComputedStyle(within(value).getByTestId("pill"))
+        window.getComputedStyle(within(value).getByTestId("pill-dot"))
           .backgroundColor,
       ).toBe(normalizeColor(getSeverityColor(OcsfSeverity.Medium).toString()));
 

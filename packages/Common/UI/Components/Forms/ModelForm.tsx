@@ -149,6 +149,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
+  // Any step can be opened from the step list (see BasicForm).
+  allowAnyStepNavigation?: boolean | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -913,6 +915,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const result: JSONObject = {};
 
     for (const field of fields) {
+      // A form-only field drives the form; nothing of it is sent.
+      if (field.formOnly) {
+        continue;
+      }
+
       if (field.overrideFieldKey && values[field.overrideFieldKey]) {
         result[field.overrideFieldKey] =
           (values[field.overrideFieldKey] as JSONObject) || null;
@@ -1243,6 +1250,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             | undefined
         }
         summary={props.summary}
+        allowAnyStepNavigation={props.allowAnyStepNavigation}
       ></BasicModelForm>
     </div>
   );

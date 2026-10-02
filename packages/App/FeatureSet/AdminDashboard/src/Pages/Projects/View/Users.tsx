@@ -332,12 +332,17 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               modelType: TeamMember,
               modelAPI: AdminModelAPI,
               id: "invite-user-form",
+              steps: [
+                { title: "User", id: "user" },
+                { title: "Team", id: "team" },
+              ],
               fields: [
                 {
                   field: {
                     user: true,
                   },
                   title: "Email",
+                  stepId: "user",
                   description:
                     "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
                   fieldType: FormFieldSchemaType.Email,
@@ -353,6 +358,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     user: true,
                   },
                   title: "Name",
+                  stepId: "user",
                   description:
                     "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
                   fieldType: FormFieldSchemaType.Text,
@@ -371,6 +377,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     team: true,
                   },
                   title: "Team",
+                  stepId: "team",
                   description:
                     "Select the team you would like to add this user to.",
                   fieldType: FormFieldSchemaType.Dropdown,
@@ -404,6 +411,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     hasAcceptedInvitation: true,
                   },
                   title: "Accept the invitation automatically",
+                  stepId: "team",
                   description:
                     "Add this user as a member right away instead of leaving them as invited until they accept. Only a master admin can do this - use it when you are setting a project up on someone's behalf.",
                   fieldType: FormFieldSchemaType.Checkbox,

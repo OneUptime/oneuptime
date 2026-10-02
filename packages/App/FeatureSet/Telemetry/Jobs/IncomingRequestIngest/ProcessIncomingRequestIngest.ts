@@ -13,6 +13,9 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 
 export async function processIncomingRequestFromQueue(
   jobData: IncomingRequestIngestJobData,
@@ -46,9 +49,7 @@ export async function processIncomingRequestFromQueue(
     select: {
       _id: true,
       projectId: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      ...MONITOR_PAUSE_FLAGS_SELECT,
     },
     props: {
       isRoot: true,
@@ -74,13 +75,9 @@ export async function processIncomingRequestFromQueue(
    * persisting anything), so skipping here is behaviour-preserving while avoiding
    * the wasted queue/DB/lock work.
    */
-  if (
-    monitor.disableActiveMonitoring ||
-    monitor.disableActiveMonitoringBecauseOfManualIncident ||
-    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-  ) {
+  if (MonitorPauseState.isPaused(monitor)) {
     logger.debug(
-      `Incoming request received for disabled monitor ${monitor._id.toString()}. Skipping.`,
+      `Incoming request received for archived or disabled monitor ${monitor._id.toString()}. Skipping.`,
     );
     return;
   }

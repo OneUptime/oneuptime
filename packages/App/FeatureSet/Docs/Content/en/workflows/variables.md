@@ -8,12 +8,17 @@ There are two variable scopes, plus component outputs produced during a run.
 
 Project-wide values you save once and reuse anywhere. Think API keys, URLs, channel names — anything you don't want to copy into ten different workflows.
 
-Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable, which has:
+Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable in two steps. The **Variable** step asks:
 
 - **Name** — how you'll reference it. At least two characters, no spaces, and only letters, numbers, hyphens and underscores. `UPPER_SNAKE_CASE` is a good habit because it stands out in your blocks.
 - **Description** — optional, free text to remind you what it's for.
+
+Click **Next** for the **Value** step:
+
 - **Content** — the actual value. It's a long-text field, so multi-line values work.
 - **Secret** — when on, the value is scrubbed out of run logs and step traces.
+
+To change the name or description before you save, click **Variable** in the list of steps beside the form (shown on wider screens). What you typed in either step is kept.
 
 To create an **OAuth 2.0 access token** variable instead, open the **More** menu (**⋯**) next to **Create Workflow Variable** and choose **Create OAuth 2.0 Variable**. OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. A variable's type can't be changed after it's saved.
 
@@ -30,7 +35,7 @@ The list shows each variable's name, type and description. Click **View** on a r
 - **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
 - **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
 - **Use in Workflows** shows the exact reference to paste into your blocks, with a copy button.
-- **Delete Workflow Variable** deletes it, after asking you to confirm.
+- **Delete Workflow Variable** deletes it, after asking you to confirm. The confirmation names the variable, so you can check it is the one you mean.
 
 You can also update a variable over the API, which is covered at the end of this page. Global and workflow variables are a Growth plan feature.
 
@@ -65,18 +70,32 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 - **Client Credentials**: OneUptime signs in as your application. This is the usual choice for server-to-server APIs such as Microsoft Graph, Auth0 or Okta APIs, or an internal service behind Keycloak.
 - **Refresh Token**: for delegated access on behalf of a user. Authorise the application once (for example in your provider's OAuth playground or with Postman) and paste the refresh token you get. OneUptime exchanges it for access tokens. If your provider rotates refresh tokens, OneUptime saves each new one. A public client with no client secret works too.
 
-### Settings
+### Creating one
 
-- **Token URL**: your provider's token endpoint, for example `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token` (Microsoft Entra ID), `https://oauth2.googleapis.com/token` (Google), `https://{your-domain}/oauth2/default/v1/token` (Okta) or `https://{your-domain}/oauth/token` (Auth0).
-- **Client ID** and **Client Secret**: from the application you registered with the provider.
-- **Refresh Token**: Refresh Token grant only.
-- **Scope**: space-separated. Leave it empty to get the provider's default scopes.
-- **Additional Parameters**: extra form fields for the token request, such as `audience` for Auth0 or `resource` for Azure AD v1. Anyone who can read the variable can read these, so don't put secrets here.
-- **Client Authentication**: whether the client ID and secret go in an HTTP Basic header (the default) or in the request body. If your provider answers `invalid_client`, try the other one.
+**Create OAuth 2.0 Variable** asks one thing per step:
+
+1. **Variable**: the name workflows refer to it by, and a description.
+2. **Provider**: pick your **Identity Provider** and OneUptime fills in its **Token URL**:
+
+   | Identity Provider | Token URL it fills in |
+   |---|---|
+   | Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token` |
+   | Google | `https://oauth2.googleapis.com/token` |
+   | Okta | `https://{your-domain}/oauth2/default/v1/token` |
+   | Auth0 | `https://{your-domain}/oauth/token` |
+
+   Replace the part in braces with your own value, such as your Directory (tenant) ID or your Okta domain. The form won't go on while the URL still has one. For any other provider, pick **Other provider** and enter its token endpoint yourself. Then pick the **Grant Type**. Picking Google selects **Refresh Token**, because Google's OAuth clients can't use Client Credentials. The provider only fills in the form; it isn't saved with the variable.
+3. **Credentials**: the **Client ID** and **Client Secret** of the application you registered with the provider and, for the Refresh Token grant, the **Refresh Token**. A public client on the Refresh Token grant can leave the client secret empty.
+4. **Advanced**, all optional:
+   - **Scope**: space-separated. Leave it empty to get the provider's default scopes. For Client Credentials, Microsoft Entra ID needs a scope ending in `/.default` (such as `https://graph.microsoft.com/.default`) and Okta needs a custom scope.
+   - **Additional Parameters**: extra form fields for the token request, such as `audience` for Auth0 (needed for Client Credentials) or `resource` for Azure AD v1. Anyone who can read the variable can read these, so don't put secrets here.
+   - **Client Authentication**: whether the client ID and secret go in an HTTP Basic header (the default) or in the request body. If your provider answers `invalid_client`, try the other one.
+
+Under some fields the form adds a line of help for the provider you picked, for example where Microsoft Entra ID shows your tenant ID, and that its client secret is the secret's **Value**, not its **Secret ID**.
 
 When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. (Fetching a token writes to the variable, so this needs permission to edit workflow variables. If you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.)
 
-The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** changes the token URL, client ID, scope, additional parameters and client authentication; the grant type is fixed once saved.
+The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** walks the same **Provider** (token URL), **Credentials** (client ID) and **Advanced** (scope, additional parameters, client authentication) steps. **Save Changes** is on every step, so you can change one setting and save without walking the others. The grant type is fixed once saved.
 
 ### The Access Token card
 
@@ -108,7 +127,9 @@ A variable's type is fixed once it's saved. Delete the static variable and creat
 
 ## Component outputs (data from earlier blocks)
 
-Every trigger and component can produce output during an execution. Use the component-value picker in the editor to create the reference rather than typing it — it inserts the exact ids the runner expects.
+Every trigger and component can produce output during an execution. Insert a reference with the **{ }** button in any setting, or by typing `{{` there, rather than typing it out — it inserts the exact ids the runner expects, and shows the value as a chip naming the block and the value. See [Using values from earlier blocks](/docs/workflows/authoring#using-values-from-earlier-blocks).
+
+You can also start from the block that produces the value: its settings list each output under **Returns**, with the exact reference and a button to copy it.
 
 Reference an earlier block's output like this:
 
@@ -134,7 +155,7 @@ Almost every text field accepts variables:
 - The message text on Slack, Teams, Discord, Telegram, Email.
 - The subject and body of an email.
 - Headers and body fields (inside string values).
-- Both sides of an **If / Else** block (listed under the Conditions category).
+- Both sides of an **If / Else** block.
 
 In JSON fields you can use a variable inside a string value, but not as a key. A reference that occupies a whole value on its own is substituted bare, so you can drop an entire object into a JSON field that way. If you need to build a structure dynamically, use a **Run Custom JavaScript** block to build it, then pass its output to the next block.
 
@@ -151,7 +172,7 @@ Inside a text field you can iterate an array with `{{#each path}}…{{/each}}`. 
 A webhook arrives with a body like `{ "service": "checkout", "status": "failed" }`. To turn that into a OneUptime incident:
 
 1. **Webhook** trigger with the id `ci-webhook`.
-2. **If / Else** block: select the webhook's Request Body output and use its `status` property, operator `==`, right `failed`.
+2. **If / Else** block: **Value to check** is the `status` field of the webhook's Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Comparison** is **is equal to**, and **Compare with** is `failed`.
 3. From the **Yes** branch, a **Create One Incident** block with:
    - Title: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Description: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
@@ -169,7 +190,7 @@ The key stays out of the workflow and the logs.
 
 The first call gives you an ID the second one needs:
 
-1. **API** component `lookup-order`: use the picker to insert the manual trigger's JSON email field in `GET /orders?email=...`.
+1. **API** component `lookup-order`: in its **URL**, after `/orders?email=`, use **{ }** to insert the manual trigger's JSON with the path `email`.
 2. **API** component `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
 If `lookup-order` fails, its **Error** output fires instead of **Success**. Connect that to an Email or Slack block so failures don't go unnoticed.
@@ -201,14 +222,14 @@ Two things to watch:
 
 ## Gotchas
 
-- **Use the pickers.** They insert the exact component, return-value, and variable ids the runner expects, and keep references independent of display labels.
+- **Use { } (or type `{{`).** It inserts the exact component, return-value and variable ids the runner expects, and only offers values that exist when the block runs.
 - **Variable names are case-sensitive.** `{{global.variables.MyKey}}` and `{{global.variables.mykey}}` are different.
-- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run log carries a warning line naming any reference that slipped through.
-- **The builder can't check variable names.** It flags component references it can't match — an unknown step id, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists, so a renamed variable is caught only by the run log.
+- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it doesn't give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports **Executed**. The run's **Steps** tab shows a warning on the step naming any reference that slipped through, and marks the setting it was in **Did not resolve**; the run log carries the same warning line.
+- **The issues panel can't check variable names.** It flags component references it can't match — an unknown step id, an unknown return value, a malformed root — before you save. It can't tell whether a variable exists. A block's settings can: a reference to a missing variable shows there as an amber chip. Otherwise a renamed variable is caught only by the run log.
 - **Spaces inside the braces are not trimmed.** `{{ local.variables.NAME }}` is a different lookup from `{{local.variables.NAME}}` and never resolves. The one exception is inside an `{{#each}}` block, where names are trimmed.
 
 ## Where to read next
 
 - [Components](/docs/workflows/components) — the full list of outputs each block produces.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — see the actual value of every variable after a run.
+- [Runs](/docs/workflows/runs-and-logs) — see the actual value of every variable after a run.
 - [Configuration & Safety](/docs/workflows/configuration) — what's safe to put in a global variable.

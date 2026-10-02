@@ -1,4 +1,4 @@
-# Esecuzioni e log
+# Esecuzioni
 
 Ogni volta che un workflow parte, OneUptime salva un resoconto di quello che è successo: quando è stato eseguito, se ha funzionato e che cosa ha fatto ciascun blocco. Quel resoconto si chiama **esecuzione** (run). Le esecuzioni ti servono per confermare che un workflow ha funzionato, per capire perché uno non ha funzionato e per rileggere l'attività passata.
 
@@ -6,8 +6,8 @@ Ogni volta che un workflow parte, OneUptime salva un resoconto di quello che è 
 
 | Pagina                                       | Che cosa vedi                                                                                      |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Flussi di lavoro → Esecuzioni e registri** | Tutte le esecuzioni di tutti i workflow del progetto. Filtra per nome del workflow, stato e periodo. |
-| **Flusso di lavoro → Esecuzioni e registri** | Solo le esecuzioni di questo workflow. Qui, al posto del filtro per workflow, c'è un filtro **ID esecuzione**. |
+| **Flussi di lavoro → Registri → Esecuzioni** | Tutte le esecuzioni di tutti i workflow del progetto. Filtra per nome del workflow, stato e periodo. |
+| **Flusso di lavoro → Registri → Esecuzioni** | Solo le esecuzioni di questo workflow. Qui, al posto del filtro per workflow, c'è un filtro **ID esecuzione**. |
 | **Una singola esecuzione**                   | Si apre con il pulsante **Visualizza log** su una riga di esecuzione — le righe in sé non sono cliccabili. |
 
 ## Stati di un'esecuzione
@@ -47,7 +47,7 @@ Se avvii un'esecuzione dal **Costruttore**, si apre questa stessa vista già agg
 
 ### "Il mio workflow non è partito."
 
-1. Verifica che il workflow sia **Abilitato** nella sua pagina **Panoramica**. I workflow nuovi nascono disabilitati, e un workflow disabilitato rifiuta ogni esecuzione, comprese quelle manuali.
+1. Verifica che il workflow sia **Abilitato**: l'interruttore sta in cima al suo **Costruttore**, che lo segnala sopra la tela quando il workflow è spento. I workflow nuovi nascono disabilitati, e un workflow disabilitato rifiuta ogni esecuzione, comprese quelle manuali. Una chiamata al suo webhook riceve un HTTP 400 con un messaggio che spiega come accenderlo.
 2. Se il trigger è un evento di OneUptime: controlla che l'evento sia davvero avvenuto. Apri il record e guarda la sua cronologia.
 3. Se il trigger è un webhook: controlla che l'altro sistema stia chiamando l'URL giusto. Quasi tutti gli strumenti registrano l'invio di un webhook — guarda lì.
 4. Se il trigger è una pianificazione: controlla che l'espressione cron corrisponda all'orario che ti aspetti.

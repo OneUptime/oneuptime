@@ -38,22 +38,22 @@ Det hele bygger du visuelt på et lærred. De fleste workflows kræver ingen kod
 
 - **Arbejdsgange** — din liste over workflows. Opret et nyt, eller åbn et eksisterende.
 - **Globale variabler** — værdier, der deles på tværs af alle dine workflows.
-- **Kørsler og logs** — eksekveringshistorik for hvert eneste workflow i dit projekt.
+- **Protokoller → Kørsler** — eksekveringshistorik for hvert eneste workflow i dit projekt.
 
 Åbner du et enkelt workflow, rummer dets egen venstremenu:
 
 - **Oversigt** — navn, beskrivelse, etiketter og kontakten **Aktiveret**.
-- **Bygger** — lærredet, hvor du designer workflowet.
+- **Bygger** — lærredet, hvor du designer workflowet, med kontakten **Aktiveret** øverst.
 - **Arbejdsgangsvariabler** — værdier, der kun gælder dette ene workflow.
-- **Kørsler og logs** — hver kørsel af dette workflow, med detaljer.
-- **Indstillinger** — webhook-hemmelighed, dublering og eksport.
+- **Protokoller → Kørsler** — hver kørsel af dette workflow, med detaljer.
+- **Indstillinger** — dublering og eksport.
 
 ## Byg dit første workflow
 
 1. **Opret** — vælg et udgangspunkt, og giv så dit workflow et navn.
 2. **Vælg en trigger** — manuel, planlagt, webhook eller en begivenhed fra OneUptime.
 3. **Tilføj komponenter** — sæt handlinger på lærredet, og forbind dem.
-4. **Tænd for det** — slå **Aktiveret** til på siden **Oversigt**. Et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
+4. **Tænd for det** — slå **Aktiveret** til øverst i **Bygger**. Et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
 5. **Test** — klik **Kør arbejdsgang** i byggeren, og hold øje med kørselsloggen.
 
 ## Et hurtigt eksempel
@@ -80,5 +80,5 @@ Næste gang nogen åbner en hændelse med "Sev 1" i titlen, lyser Slack op.
 - [Workflow-triggere](/docs/workflows/triggers) — de forskellige måder et workflow kan starte på.
 - [Workflow-komponenter](/docs/workflows/components) — de byggesten, du kan tilføje.
 - [Workflow-variabler](/docs/workflows/variables) — sådan bruger du værdier på tværs af blokke og workflows.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad der skete.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad der skete.
 - [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — indstillinger, det er værd at kende.

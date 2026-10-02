@@ -37,6 +37,9 @@ import HostDelete from "../Pages/Host/View/Delete";
 import HostViewDocumentation from "../Pages/Host/View/Documentation";
 import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
 import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
+import HostModel from "Common/Models/DatabaseModels/Host";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const HostRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -110,6 +113,13 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: HostModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.HOST_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -354,6 +364,12 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: HostModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

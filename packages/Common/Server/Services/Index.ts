@@ -436,6 +436,7 @@ import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
+import IncomingCallLogService from "./IncomingCallLogService";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
@@ -460,6 +461,9 @@ import IoTFleetOwnerUserService from "./IoTFleetOwnerUserService";
 import UserNotificationEmailRollupItemService from "./UserNotificationEmailRollupItemService";
 import UserNotificationEmailRollupBatchService from "./UserNotificationEmailRollupBatchService";
 import UserNotificationEmailRollupSettingService from "./UserNotificationEmailRollupSettingService";
+import McpOAuthClientService from "./McpOAuthClientService";
+import McpOAuthGrantService from "./McpOAuthGrantService";
+import McpOAuthTokenService from "./McpOAuthTokenService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
@@ -903,6 +907,7 @@ const services: Array<BaseService> = [
   IncomingCallPolicyOwnerRuleService,
   IncomingCallPolicyOwnerTeamService,
   IncomingCallPolicyOwnerUserService,
+  IncomingCallLogService,
   IoTFleetLabelRuleService,
   IoTFleetOwnerRuleService,
   IoTFleetOwnerTeamService,
@@ -918,6 +923,9 @@ const services: Array<BaseService> = [
   UserNotificationEmailRollupItemService,
   UserNotificationEmailRollupBatchService,
   UserNotificationEmailRollupSettingService,
+  McpOAuthClientService,
+  McpOAuthGrantService,
+  McpOAuthTokenService,
 ];
 
 export const AnalyticsServices: Array<

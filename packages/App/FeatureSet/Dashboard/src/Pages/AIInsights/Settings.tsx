@@ -9,8 +9,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 export type ComponentProps = PageComponentProps;
 
 /*
- * Both flags default to FALSE — insights and automatic fix tasks are
- * strictly opt-in (the roadmap's ImproveInstrumentation posture). The
+ * All three switches start ON in a new project (ProjectService turns them
+ * on at creation); a project that existed before keeps what it had. The
  * server enforces the gates; this page only edits the Project columns.
  */
 const AIInsightsSettings: FunctionComponent<ComponentProps> = (
@@ -44,7 +44,7 @@ const AIInsightsSettings: FunctionComponent<ComponentProps> = (
             },
             title: "Automatically open fix PRs from insights",
             description:
-              "When enabled, insights the AI triage classifies as code faults automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Insights triaged as user errors, expected denials or infrastructure conditions never get automatic PRs. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
+              "When enabled, insights the AI triage classifies as code faults automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Insights triaged as user errors, expected denials or infrastructure conditions never get automatic PRs. Honors any open-PR cap set on the repository. Pull requests are always human-reviewed — nothing merges automatically.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

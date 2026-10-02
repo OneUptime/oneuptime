@@ -11,6 +11,9 @@ import SideMenu, {
   SideMenuItemProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
+import MonitorModel from "Common/Models/DatabaseModels/Monitor";
+import { addDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -275,6 +278,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   sections.push({
     title: "Advanced",
     items: advancedItems,
+  });
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: MonitorModel,
+    scope: DeveloperDocsScope.View,
+    modelId: props.modelId,
   });
 
   return <SideMenu sections={sections} />;

@@ -18,7 +18,7 @@ MCP server 與您的 OneUptime 執行個體一同託管，並透過 Streamable H
 - **約 155 個工具**：涵蓋 22 種資源類型（incident、警示、monitor、狀態頁面、待命等）的完整 CRUD 工具、唯讀的遙測工具，以及工作流程與輔助工具
 - **即時操作**：即時建立、讀取、更新與刪除資源
 - **型別安全的介面**：完整型別化，並具備全面的輸入驗證
-- **安全的驗證機制**：以每個請求為單位的 API 金鑰驗證，並具備妥善的錯誤處理
+- **安全的驗證機制**：以您的 OneUptime 帳號登入（OAuth 2.1），或為無人值守的代理程式在每個請求中傳送 API 金鑰
 - **安全性註記**：唯讀工具帶有 `readOnlyHint`，刪除工具帶有 `destructiveHint`，讓 MCP 用戶端能自動核准安全的呼叫，並在破壞性操作前先行詢問
 - **輕鬆整合**：可與 Claude Desktop 及其他相容於 MCP 的用戶端搭配使用
 - **無狀態設計**：沒有工作階段 ID——每個請求都是自足的，因此伺服器可在負載平衡器與多副本部署之後正常運作
@@ -39,9 +39,48 @@ MCP server 與您的 OneUptime 執行個體一同託管，並透過 Streamable H
 
 - OneUptime 執行個體（雲端或自我託管）
 - 相容於 MCP 的用戶端（Claude Desktop、搭配 GitHub Copilot 的 VS Code 等）
-- 有效的 OneUptime API 金鑰（僅需驗證的操作才需要——公開工具無需金鑰即可使用）
+- 用於登入的 OneUptime 帳號，或供無人值守執行的代理程式使用的 OneUptime API 金鑰（僅需驗證的操作才需要——公開工具兩者皆不需要即可使用）
+
+## 使用 OneUptime 帳號登入
+
+最簡單的連線方式，是只將伺服器 URL 提供給您的 MCP 用戶端，不需要提供其他任何東西。當用戶端第一次需要您的資料時，它會在您的瀏覽器中開啟一個 OneUptime 頁面，您在該頁面上：
+
+1. 登入 OneUptime（若您尚未登入）
+2. 選擇用戶端要在其中運作的專案
+3. 選擇用戶端可以 **讀取和寫入**，還是 **唯讀**
+4. 點選 **授權**
+
+之後，用戶端便會在該專案中以您的身分執行操作。不需要建立、複製或輪替任何 API 金鑰，設定檔中也不會儲存任何機密資訊。
+
+已連線的用戶端可以做什麼：
+
+- **它擁有您的權限，絕不會更多。** 您的團隊允許您在該專案中做的事，就是用戶端可以做的事。若您的角色變更或您離開了專案，這項變更會在用戶端的下一個請求立即生效。
+- **唯讀就是唯讀。** 以唯讀方式授權的用戶端可以使用 `get_`、`list_` 與 `count_` 工具。會建立、更新、刪除、確認或解決的工具都會遭到拒絕——MCP server 與其背後的 OneUptime API 都會拒絕。您永遠無法授予用戶端超出其所要求的存取權。
+- **它只適用於一個專案。** 若要使用另一個專案，請重新連接用戶端並選擇該專案。
+- **它只能透過 MCP server 運作。** 用戶端的 access token 只會被 MCP 端點接受，其他任何地方都不接受。它無法用來直接呼叫 OneUptime REST API。
+- **執行個體管理員沒有特殊待遇。** 由 master admin 連接的用戶端，擁有的是該使用者的團隊在專案中授予的權限，而非整個執行個體的存取權。
+
+### 管理已連線的用戶端
+
+每個透過登入方式連線的用戶端都會列在 **專案設定** → **MCP 伺服器** → **Connected MCP Clients**（已連線的 MCP 用戶端）之下，並顯示是誰連接的、它可以做什麼，以及上次使用的時間。您會看到自己連接的用戶端；專案擁有者與管理員則會看到所有人連接的用戶端。
+
+點選 **Disconnect**（中斷連線）即可將用戶端登出。它會立即停止運作。
+
+只要用戶端持續有在使用，就會保持連線。30 天未使用的用戶端必須重新登入。
+
+### 控管誰可以連接用戶端
+
+預設情況下，每位專案成員都可以連接 MCP 用戶端。若要阻止某個團隊的成員這麼做，請開啟該團隊，前往 **封鎖權限**，並新增 **Authorize MCP Client**（授權 MCP 用戶端）權限。這些成員已連接的用戶端會立即停止運作。
+
+若專案要求使用單一登入（SSO），請在授權用戶端之前，先在瀏覽器中以 SSO 登入該專案。用戶端的連線在該次 SSO 登入有效期間持續有效；該登入失效後，請重新連接用戶端。
+
+在 OneUptime Cloud 上，連接 MCP 用戶端的功能與 API 金鑰在相同的方案中提供（Growth 以上）。
+
+在 Enterprise Edition 上，已連線的用戶端所做的每項變更都會記錄在稽核日誌中，記在連接該用戶端的使用者名下，並附上用戶端的名稱。以 API 金鑰所做的變更則會顯示金鑰的名稱。
 
 ## 取得您的 API 金鑰
+
+對於無人值守執行的代理程式（例如排程工作或 CI pipeline），由於沒有人在場進行登入，請使用 API 金鑰。
 
 1. 登入您的 OneUptime 執行個體
 2. 前往 **設定** → **API 金鑰**
@@ -55,6 +94,53 @@ API 金鑰以專案為範圍：MCP server 會從金鑰推斷出您的專案，�
 > **警告——切勿將 master 金鑰交給 AI 代理程式。** OneUptime 的 *master* API 金鑰同樣會被此標頭接受，並授予整個執行個體的管理員存取權。請務必使用具備代理程式所需最低權限的專案 API 金鑰（唯讀金鑰即足以使用所有 `get_`／`list_`／`count_` 工具）。
 
 ## 設定
+
+### 透過登入連線
+
+將伺服器 URL 加入您的用戶端，不需任何憑證。若為自我託管的執行個體，請使用 `https://your-oneuptime-domain.com/mcp`。
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+
+接著在 Claude Code 中執行 `/mcp`，並選擇 **oneuptime** 以登入。
+
+**Claude（網頁版與桌面版）**
+
+開啟 **Customize** → **Connectors**，選擇 **Add custom connector**，然後輸入 `https://oneuptime.com/mcp`。Claude 第一次需要您的資料時，會要求您登入 OneUptime。
+
+**搭配 GitHub Copilot 的 VS Code**
+
+將以下內容加入您的 MCP 設定（該檔案的位置請參閱[搭配 GitHub Copilot 的 VS Code](#搭配-github-copilot-的-vs-code)）。當您啟動伺服器時，VS Code 會開啟 OneUptime 讓您登入：
+
+```json
+{
+  "servers": {
+    "oneuptime": {
+      "type": "http",
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+**Cursor**
+
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp"
+    }
+  }
+}
+```
+
+任何其他支援 MCP 授權的用戶端也以相同方式運作：只要提供 URL，其餘的它都會自行探索。協定細節請參閱[登入（OAuth 2.1）](#登入oauth-21)。
+
+本節的其餘部分說明如何改用 API 金鑰設定這些相同的用戶端。
 
 ### Claude Desktop 設定
 
@@ -214,9 +300,20 @@ VS Code 原生支援搭配 GitHub Copilot（版本 1.99 以上）使用 MCP serv
 | `/mcp/health` | GET    | 健康狀態檢查端點                                                                                                            |
 | `/mcp/tools`  | GET    | 用於列出可用工具的 REST API                                                                                                 |
 
+以登入方式連線的 MCP 用戶端也會使用下列 OAuth 端點。用戶端會自行找到這些端點；在此列出，是為了方便撰寫用戶端或設定代理伺服器的人。
+
+| 端點                                          | 方法   | 說明 |
+| --------------------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `/mcp/.well-known/oauth-protected-resource`   | GET    | 受保護資源中繼資料（RFC 9728）。亦可於 `/.well-known/oauth-protected-resource/mcp` 取得 |
+| `/.well-known/oauth-authorization-server/mcp` | GET    | 授權伺服器中繼資料（RFC 8414）。亦可於 `/mcp/.well-known/oauth-authorization-server` 取得 |
+| `/mcp/oauth/authorize`                        | GET    | 授權端點：用戶端會將您的瀏覽器導向此處以登入 |
+| `/mcp/oauth/token`                            | POST   | Token 端點：交換授權碼或 refresh token |
+| `/mcp/oauth/register`                         | POST   | 動態用戶端註冊（RFC 7591） |
+| `/mcp/oauth/revoke`                           | POST   | Token 撤銷（RFC 7009） |
+
 ## 驗證
 
-MCP server 支援兩種運作模式：
+MCP server 支援三種運作模式：
 
 ### 公開工具（無需驗證）
 
@@ -231,14 +328,30 @@ MCP server 支援兩種運作模式：
 
 公開狀態頁面工具可接受狀態頁面 ID（UUID）或狀態頁面網域名稱。
 
-### 需驗證的工具（需要 API 金鑰）
+### 登入（OAuth 2.1）
 
-對於所有其他操作（管理 monitor、incident、team 等），需透過以下其中一個標頭進行驗證：
+對於所有其他操作（管理 monitor、incident、team 等），必須識別呼叫者的身分。未傳送任何憑證就呼叫這些工具的用戶端，會收到 `401 Unauthorized` 回應，以及一個指向伺服器受保護資源中繼資料的 `WWW-Authenticate` 標頭。MCP 用戶端就是依據這個訊號讓您登入；`initialize`、`tools/list` 與公開工具永遠不會要求登入。
+
+伺服器實作了 [MCP 授權規範](https://modelcontextprotocol.io/specification/latest/basic/authorization)：
+
+- **流程**：搭配 PKCE（僅支援 `S256`）的 OAuth 2.1 授權碼流程。Access token 以 `Authorization: Bearer` 的形式傳送。
+- **探索**：受保護資源中繼資料（RFC 9728）與授權伺服器中繼資料（RFC 8414）。簽發者（issuer）與資源皆為 `https://<host>/mcp`。
+- **用戶端身分**：Client ID Metadata Document（用戶端 ID 是一個由伺服器擷取的 `https` URL），或動態用戶端註冊（Dynamic Client Registration，RFC 7591）。任何用戶端都不需要由管理員註冊。
+- **範圍（scope）**：`mcp:read` 適用於 `get_`、`list_` 與 `count_` 工具；`mcp:write` 則加上所有會進行變更的工具，並包含 `mcp:read`。唯讀 token 呼叫寫入工具時，會收到 `403` 與 `error="insufficient_scope"` 回應。
+- **Token 有效期限**：access token 的有效期限為一小時。Refresh token 的有效期限為 30 天，且每次使用時都會被替換；使用已被替換的 refresh token 會終止連線。
+- **資源指示符**（RFC 8707）：token 是針對 `https://<host>/mcp` 所簽發，在其他任何地方都不會被接受。
+- **撤銷**（RFC 7009）：撤銷任一 token 都會終止連線。
+
+### API 金鑰
+
+無人值守執行的代理程式，會在以下其中一個標頭中帶入 OneUptime API 金鑰進行驗證：
 
 - `x-api-key`：您的 OneUptime API 金鑰
 - `Authorization`：帶有您 API 金鑰的 Bearer token（例如 `Bearer your-api-key-here`）
 
-`Bearer` 配置不區分大小寫。工具錯誤會以帶內工具結果的形式回傳（`isError: true`），並附上 `statusCode`、詳細資訊與建議——而非以 MCP 協定錯誤回傳——因此代理程式可以讀取失敗內容並自行修正。
+`Bearer` 配置不區分大小寫。帶有 API 金鑰的請求永遠不會被要求登入。
+
+工具錯誤會以帶內工具結果的形式回傳（`isError: true`），並附上 `statusCode`、詳細資訊與建議——而非以 MCP 協定錯誤回傳——因此代理程式可以讀取失敗內容並自行修正。
 
 ## 工作流程工具
 
@@ -253,7 +366,7 @@ MCP server 支援兩種運作模式：
 
 ## 我是誰
 
-**`oneuptime_whoami`** 工具會回傳您的 API 金鑰所屬的專案（ID 與名稱）。這是代理程式用來確認自身環境的實用首次呼叫——而且由於建立類工具會從 API 金鑰推斷 `projectId`，代理程式永遠不需要傳入專案 ID。
+**`oneuptime_whoami`** 工具會回傳您的憑證所屬的專案（ID 與名稱）。對於以登入方式連線的用戶端，它還會回傳該用戶端是以誰的身分登入，以及它是否可以進行變更。這是代理程式用來確認自身環境的實用首次呼叫——而且由於建立類工具會從憑證推斷 `projectId`，代理程式永遠不需要傳入專案 ID。
 
 ## 查詢遙測資料
 
@@ -388,11 +501,32 @@ curl https://your-oneuptime-domain.com/mcp/tools
 - 監控使用情況：在 OneUptime 中持續追蹤 API 金鑰的使用情況
 - 區分金鑰：為不同的環境使用不同的 API 金鑰
 
+## 自我託管設定
+
+在自我託管的執行個體上，登入功能無須額外設定即可使用。有兩項設定可用：
+
+| 環境變數 | Helm 值 | 作用 |
+| --- | --- | --- |
+| `DISABLE_MCP_OAUTH` | `mcpOAuth.disabled` | 設為 `true` 即可關閉登入功能。OAuth 端點會停止提供服務，MCP server 只接受 API 金鑰。不會刪除任何資料；重新開啟後，已連線的用戶端即可恢復運作。 |
+| `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS` | `mcpOAuth.disableClientIdMetadataDocuments` | 在無法連上網際網路的執行個體上設為 `true`。用戶端可以用一個由 OneUptime 擷取的 URL 來表明自己的身分；設定此項後，用戶端會改為直接向您的執行個體註冊，不需要任何對外請求。 |
+
+若您在 OneUptime 前方執行自己的反向代理伺服器，請將 `/.well-known/oauth-protected-resource` 與 `/.well-known/oauth-authorization-server`（及其下的所有路徑）連同 `/mcp` 一併轉送至 OneUptime。內建的 ingress 已經這麼做了。
+
+伺服器會依據 `HOST` 與 `HTTP_PROTOCOL` 設定來建立每個 OAuth URL，因此這兩項設定必須與使用者連線至您執行個體所用的位址一致。
+
 ## 疑難排解
+
+### 登入問題
+
+- **用戶端從未要求我登入**：用戶端可能不支援 MCP 授權，或者設定了 API 金鑰標頭，而該標頭會優先採用。請移除該標頭以改用登入。
+- **我的專案在授權頁面上呈現灰色**：頁面會在專案名稱旁說明原因——專案的方案不包含連接 MCP 用戶端、專案要求使用 SSO 而此瀏覽器尚未以 SSO 登入該專案，或是您的團隊被封鎖而無法連接用戶端。
+- **工具因「read-only」而遭到拒絕**：該用戶端是以唯讀方式授權的。請重新連接並選擇 **讀取和寫入**。
+- **用戶端停止運作**：它已被中斷連線、已有 30 天未使用、您已被移出專案，或是專案的 SSO 登入已失效。請重新連接。
+- **自我託管——用戶端回報找不到授權伺服器**：請檢查 `HOST` 與 `HTTP_PROTOCOL` 是否與您的公開位址一致，以及您的代理伺服器是否會轉送 `/.well-known/oauth-*` 路徑。
 
 ### 權限錯誤
 
-請確保您的 API 金鑰具備必要的權限：
+請確保您的 API 金鑰（若為以登入方式連線的用戶端，則是您自己的帳號）具備必要的權限：
 
 - 列出資源所需的讀取存取權
 - 建立／更新資源所需的寫入存取權

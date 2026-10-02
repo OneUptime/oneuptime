@@ -415,7 +415,6 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `httpMetrics`             | 啟用 | 每個服務的 HTTP/gRPC RED 指標（請求率、延遲、錯誤）  |
 | `spanMetrics`             | 啟用 | 每個 span 的請求/回應大小與持續時間                  |
 | `serviceGraph`            | 啟用 | 呼叫端 → 被呼叫端的連線指標；驅動 service map        |
-| `hostMetrics`             | 啟用 | 每個受 instrument 的處理程序的 CPU 與記憶體          |
 | `networkMetrics`          | 啟用 | Pod 對 Pod TCP/UDP 流量計數器                        |
 | `networkInterZoneMetrics` | 停用 | 網路指標的跨區（inter-zone）變體（cardinality 加倍） |
 | `tcpStats`                | 啟用 | 節點層級的 TCP RTT、連線失敗、重傳計數器             |

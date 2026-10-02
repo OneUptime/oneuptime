@@ -350,7 +350,9 @@
       "amountNotPositive": "L'importo deve essere maggiore di zero.",
       "amountTooLarge": "L'importo non può superare {{max}} USD per singola rettifica.",
       "amountTooPrecise": "L'importo non può avere più di due cifre decimali.",
-      "reasonRequired": "Inserisci un motivo per questa rettifica."
+      "reasonRequired": "Inserisci un motivo per questa rettifica.",
+      "adjustBalanceStepBalance": "Saldo",
+      "adjustBalanceStepAmount": "Importo e motivo"
     },
     "projectSupport": {
       "title": "Accesso dell'assistenza clienti",
@@ -842,5 +844,10 @@
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "Quando abilitato, tutti gli utenti devono autenticarsi con l'SSO per accedere a qualsiasi progetto su questo server. Gli amministratori principali sono esentati, così possono sempre rimediare a un SSO configurato in modo errato. Le impostazioni SSO di ciascun progetto continuano ad applicarsi in aggiunta.",
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.": "Quando abilitato, tutti gli utenti devono autenticarsi con l'SSO per accedere a qualsiasi progetto su questo server. Gli amministratori principali sono esentati.",
   "Enterprise license required.": "Licenza Enterprise necessaria.",
-  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "Le dashboard Health in tempo reale di OneUptime e la Query Console richiedono una licenza Enterprise che includa lo stato di salute dell'istanza, e la licenza di questa installazione manca, è scaduta o non lo include. Attiva o rinnova la licenza dal badge Enterprise Edition in cima al Pannello amministratore. Finché la licenza manca o è scaduta, anche il provisioning SCIM e la registrazione di audit sono disattivati; tornano insieme a queste schermate non appena viene attivata una licenza. La capacità di ClickHouse, il log dell'istanza, le Sonde globali, le Migrazioni e il Support Bundle funzionano anche senza licenza; li trovi nel menu a sinistra."
+  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "Le dashboard Health in tempo reale di OneUptime e la Query Console richiedono una licenza Enterprise che includa lo stato di salute dell'istanza, e la licenza di questa installazione manca, è scaduta o non lo include. Attiva o rinnova la licenza dal badge Enterprise Edition in cima al Pannello amministratore. Finché la licenza manca o è scaduta, anche il provisioning SCIM e la registrazione di audit sono disattivati; tornano insieme a queste schermate non appena viene attivata una licenza. La capacità di ClickHouse, il log dell'istanza, le Sonde globali, le Migrazioni e il Support Bundle funzionano anche senza licenza; li trovi nel menu a sinistra.",
+  "Are you sure you want to delete {{name}}?": "Sei sicuro di voler eliminare {{name}}?",
+  "Permanently delete {{name}}.": "Elimina definitivamente {{name}}.",
+  "This action cannot be undone.": "Questa azione non può essere annullata.",
+  "and {{remaining}} more": "e altri {{remaining}}",
+  "Type {{name}} to confirm.": "Digita {{name}} per confermare."
 }

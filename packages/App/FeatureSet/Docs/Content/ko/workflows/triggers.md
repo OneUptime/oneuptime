@@ -61,7 +61,7 @@ OneUptime 안의 거의 모든 것 — 모니터, 인시던트, 경고, 예정�
 - **Status Page Subscriber** — 상태 페이지를 구독한 사람을 환영합니다.
 - **On-Call Duty Policy** — 일정 변경을 다른 근무표 시스템과 동기화합니다.
 
-원하는 것을 찾으려면 **Add Trigger** 패널에서 이름으로 검색하세요.
+**Add Trigger** 패널에서는 이것들이 **OneUptime resources** 아래에 있습니다. 리소스를 클릭한 다음 트리거를 클릭하세요. **Browse all resources**에는 모든 것이 있고, 검색창은 `incident created`처럼 몇 단어만으로 트리거를 찾아 줍니다.
 
 ## 어떤 트리거를 사용해야 할까요?
 
@@ -78,4 +78,4 @@ OneUptime 안의 거의 모든 것 — 모니터, 인시던트, 경고, 예정�
 
 - [워크플로우 구성 요소](/docs/workflows/components) — 트리거 뒤에 추가하는 동작들.
 - [워크플로우 변수](/docs/workflows/variables) — 이후 블록에서 트리거 출력 읽기.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 트리거가 발생했는지 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 트리거가 발생했는지 확인하기.

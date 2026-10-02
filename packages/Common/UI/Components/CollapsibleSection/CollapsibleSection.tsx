@@ -47,7 +47,9 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
   const variant: CollapsibleSectionVariant = props.variant || "default";
 
   // Associate the role="button" header with its visible title text (WCAG 4.1.2).
-  const collapsibleTitleId: string = `collapsible-title-${React.useId()}`;
+  const sectionId: string = React.useId();
+  const collapsibleTitleId: string = `collapsible-title-${sectionId}`;
+  const collapsibleBodyId: string = `collapsible-body-${sectionId}`;
 
   const getContainerClassName: () => string = (): string => {
     const baseClassName: string = props.className || "";
@@ -100,6 +102,7 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
           }
         }}
         aria-expanded={!isCollapsed}
+        aria-controls={collapsibleBodyId}
         aria-labelledby={collapsibleTitleId}
       >
         <div className="flex items-center flex-1 min-w-0">
@@ -146,9 +149,22 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
+      {/*
+       * The body stays mounted while collapsed, so the fields in it keep
+       * their state. Folded, it is also `invisible` (visibility: hidden):
+       * max-h-0 and opacity-0 alone stop the fields being SEEN, but they were
+       * still tab stops and still read out, so a keyboard user filled in an
+       * "Advanced Options" field they could not see. A transition follows
+       * the property list of the state it goes to: folding transitions
+       * visibility with the rest, so it turns invisible once the fold has
+       * finished; opening leaves it out, so the fields are reachable at once.
+       */}
       <div
-        className={`transition-all duration-200 ease-in-out overflow-hidden ${
-          isCollapsed ? "max-h-0 opacity-0" : "max-h-[5000px] opacity-100"
+        id={collapsibleBodyId}
+        className={`duration-200 ease-in-out overflow-hidden ${
+          isCollapsed
+            ? "max-h-0 opacity-0 invisible transition-all"
+            : "max-h-[5000px] opacity-100 transition-[max-height,opacity]"
         }`}
       >
         <div className={getContentClassName()}>{props.children}</div>

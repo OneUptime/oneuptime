@@ -597,6 +597,23 @@ html.dark :is(
   --tw-gradient-to: rgb(49 46 129 / 42%) var(--tw-gradient-to-position);
 }
 
+/*
+ * Pill (Common/UI/Components/Pill). Its colours are worked out from whatever
+ * hex a user picked for a state, a severity or a label, so no utility class
+ * can carry them: the pill writes the light theme's inline and the dark
+ * theme's as custom properties (PillColors.ts), and these rules swap them in.
+ * Important, because what they replace is an inline style.
+ */
+html.dark [data-ou-pill] {
+  background-color: var(--ou-pill-dark-bg) !important;
+  color: var(--ou-pill-dark-text) !important;
+  box-shadow: var(--ou-pill-dark-shadow) !important;
+}
+
+html.dark [data-ou-pill-dot] {
+  background-color: var(--ou-pill-dark-dot) !important;
+}
+
 /* Semantic light surfaces retain hue without becoming luminous cards. */
 html.dark :is(
     .bg-red-50,
@@ -1030,7 +1047,10 @@ html.dark [class*="focus-visible:ring-red-"]:focus-visible {
 
 html.dark [class*="focus:ring-blue-"]:focus,
 html.dark [class*="focus:ring-emerald-"]:focus,
-html.dark [class*="focus:ring-green-"]:focus {
+html.dark [class*="focus:ring-green-"]:focus,
+html.dark [class*="focus-visible:ring-blue-"]:focus-visible,
+html.dark [class*="focus-visible:ring-emerald-"]:focus-visible,
+html.dark [class*="focus-visible:ring-green-"]:focus-visible {
   --tw-ring-color: rgb(96 165 250 / 50%) !important;
 }
 
@@ -1065,9 +1085,60 @@ html.dark optgroup {
   color-scheme: dark;
 }
 
-/* Switch thumbs are an affordance, not a surface, and must stay distinct. */
-html.dark button[role="switch"] > span.bg-white {
+/*
+ * Switch thumbs are an affordance, not a surface, and must stay distinct -
+ * including a knob drawn inside a larger control (the session replay's
+ * transport switch), which the first selector cannot reach. That switch's
+ * TRACK is a white span straight under its button too, and an off track is
+ * a surface: it keeps the card's dark colour.
+ */
+html.dark button[role="switch"] > span.bg-white:not([data-ou-toggle-track]),
+html.dark [data-ou-toggle-knob].bg-white {
   background-color: #f8fafc !important;
+}
+
+/*
+ * The switch (Common/UI/Components/Toggle), scoped to its data attributes:
+ * these classes mean other things on other elements.
+ *
+ * Off is an outline and a knob, gray-500 in the light theme. On a dark card
+ * gray-500 is 3.4:1, and 3.0:1 on a dark panel - the very edge of WCAG
+ * 1.4.11's 3:1 - so both lift to slate-400 (6.3:1). The white track is
+ * already the card's own surface, through .bg-white above.
+ */
+html.dark [data-ou-toggle-track].border-gray-500 {
+  border-color: #94a3b8;
+}
+
+html.dark [data-ou-toggle-knob].bg-gray-500 {
+  background-color: #94a3b8;
+}
+
+html.dark [data-ou-toggle-track][class~="hover:border-gray-700"]:hover {
+  border-color: #cbd5e1;
+}
+
+/*
+ * On is filled with the brand indigo. Indigo-600 is 2.6:1 on a dark card, so
+ * the track lightens to indigo-500 (3.6:1), which still holds the near-white
+ * knob at 4.3:1. Hover lightens it again, where the light theme deepens it.
+ */
+html.dark [data-ou-toggle-track].bg-indigo-600 {
+  background-color: #6366f1;
+  border-color: #6366f1;
+}
+
+html.dark [data-ou-toggle-track][class~="hover:bg-indigo-700"]:hover {
+  background-color: #818cf8;
+  border-color: #818cf8;
+}
+
+/*
+ * The tick sits on the knob, which stays near-white in both themes, so it
+ * keeps the deep indigo instead of the light one dark text-indigo-600 gets.
+ */
+html.dark [data-ou-toggle-knob] .text-indigo-600 {
+  color: #4f46e5;
 }
 
 html.dark option,

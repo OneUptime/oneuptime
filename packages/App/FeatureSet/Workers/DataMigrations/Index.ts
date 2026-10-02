@@ -75,6 +75,8 @@ import ExtendMetricBaselineHourlyTTL from "./ExtendMetricBaselineHourlyTTL";
 import AddTelemetryStorageCompression from "./AddTelemetryStorageCompression";
 import MigrateTelemetryToV3PrimaryEntityId from "./MigrateTelemetryToV3PrimaryEntityId";
 import AddTtlOnlyDropPartsToTelemetryV3 from "./AddTtlOnlyDropPartsToTelemetryV3";
+import DropTtlOnlyDropPartsFromMixedRetentionTables from "./DropTtlOnlyDropPartsFromMixedRetentionTables";
+import RoundTtlToDayOnMixedRetentionTables from "./RoundTtlToDayOnMixedRetentionTables";
 import AddGorillaCodecToMetricValues from "./AddGorillaCodecToMetricValues";
 import AddUInt64TimestampsToTelemetryV3 from "./AddUInt64TimestampsToTelemetryV3";
 import AddUInt64ToRemainingTelemetryColumns from "./AddUInt64ToRemainingTelemetryColumns";
@@ -114,11 +116,14 @@ import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecrets";
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
+import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
 import BackfillStatusPageSubscriberUnsubscribeColumns from "./BackfillStatusPageSubscriberUnsubscribeColumns";
 import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFieldVariableKeys";
+import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
+import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -531,6 +536,50 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent: it only fills an empty key.
    */
   new BackfillIncidentCustomFieldVariableKeys(),
+  /*
+   * Accepting a project invitation is per project, not per team: a member of
+   * a project added to another of its teams no longer gets an invitation for
+   * it. Accepts the invitations left over from before for people who are
+   * already in that project, and refreshes their cached permissions.
+   * Invitations of people who have not joined are left pending. Idempotent.
+   */
+  new AcceptPendingTeamInvitationsOfProjectMembers(),
+  /*
+   * Clears ttl_only_drop_parts on the metric tables and on LogItemV3, which
+   * AddTtlOnlyDropPartsToTelemetryV3 and the models used to set: a metric
+   * partition mixes telemetry retention with monitor retention, and a log
+   * partition mixes it with the per-severity override, so neither expires
+   * as a whole and TTL evicts nothing. Its only ordering requirement is to
+   * come after that migration (boot schema-sync creates the *Local tables it
+   * alters before any data migration runs), so it sits here rather than in
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   * Cluster-aware, so it actually reaches an existing install.
+   */
+  new DropTtlOnlyDropPartsFromMixedRetentionTables(),
+  /*
+   * Rounds the TTL of those same three tables up to the midnight after each
+   * row's retentionDate, so a day's rows of one retention expire together -
+   * one merge, or a part drop - instead of the partition being rewritten
+   * every merge_with_ttl_timeout while they expire. Boot schema-sync never
+   * changes an existing table's TTL, so existing installs get it only here.
+   * MODIFY TTL without materializing it: nothing is rewritten when it runs.
+   * Cluster-aware; after the migration above only so the two read in order.
+   */
+  new RoundTtlToDayOnMixedRetentionTables(),
+  /*
+   * Seeds the missed call notification setting (email on) for existing
+   * members, so Notification Settings shows it the way it behaves. No
+   * ordering requirement, so it sits before the last slot that
+   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new AddIncomingCallMissedNotificationSettingsForUsers(),
+  /*
+   * OAuth sign-in for the MCP server: adds the two audit-log columns that
+   * say a change was made through a connected MCP client, and which one
+   * (AuditLogV2.mcpOAuthGrantId, mcpClientName). Metadata-only and
+   * idempotent; rows written before it read as "not through an MCP client".
+   */
+  new AddAuditLogMcpClientColumns(),
 ];
 
 export default DataMigrations;

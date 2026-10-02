@@ -63,8 +63,12 @@ jobs:
 
       # typeorm + ts-node live in the root package; the entities the check
       # reflects over resolve their imports through Common's.
-      - run: npm install
-      - run: cd packages/Common && npm install
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
 
       - name: Check for Postgres schema drift
         run: npm run check-postgres-schema-drift
@@ -132,6 +136,21 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DatabaseServiceUpdateColumnsIfUnlockedPostgres.test.ts --forceExit
+
+      # Clones the migrated Workflow table (its unique key included) into an
+      # isolated schema: the incoming email key's compare-and-set must write
+      # once and let exactly one racing save win, no workflow may take
+      # another's key, and an email must start the run of the key's workflow.
+      - name: Test the workflow incoming email key against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_EMAIL_KEY_TESTS: "true"
+          WORKFLOW_EMAIL_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_EMAIL_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_EMAIL_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
 
       # Clones the migrated IoTDevice and sibling inventory tables into an
       # isolated schema and executes each service's hand-built
@@ -435,15 +454,90 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProxmoxResourcePostgres.test.ts --forceExit
 
+      # Enable AI became the project's only AI switch. Clones the migrated
+      # Project, AutoRemediationRule, Runner and Fixes-mode tables into an
+      # isolated schema, puts the two dropped switches back with the
+      # migration's own down(), seeds every kind of rule, cluster binding and
+      # resource under each switch combination, and runs up(): only the
+      # unattended rows a switch was holding back may move to asking first,
+      # and the kubernetes-agent Runner predicate must agree with the
+      # server's.
+      - name: Test folding the AI switches into Enable AI on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ENABLE_AI_SWITCH_TESTS: "true"
+          ENABLE_AI_SWITCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ENABLE_AI_SWITCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ENABLE_AI_SWITCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/FoldAiSwitchesIntoEnableAiPostgres.test.ts --forceExit
+
+      # Clones the migrated TeamMember, Team and User tables into an isolated
+      # schema and runs the real create and accept pipelines: a member of a
+      # project added to another of its teams is a member of it at once, and
+      # accepting one invitation accepts that person's other invitations in
+      # that project - no other project's, no other person's - before their
+      # permissions are refreshed. Also runs the data migration's backfill.
+      - name: Test project invitations are accepted once per project on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TEAM_INVITATION_ACCEPTANCE_TESTS: "true"
+          TEAM_INVITATION_ACCEPTANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAM_INVITATION_ACCEPTANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAM_INVITATION_ACCEPTANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TeamMemberInvitationAcceptancePostgres.test.ts --forceExit
+
+      # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
+      # tables into an isolated schema and rebuilds the token -> grant foreign
+      # key from the migrated definition. Of several requests racing to claim
+      # one authorization code exactly one may win, two tokens can never share
+      # a hash, and revoking a grant must really delete it together with
+      # every code and token issued under it.
+      - name: Test the MCP OAuth token store on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MCP_OAUTH_TESTS: "true"
+          MCP_OAUTH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MCP_OAUTH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MCP_OAUTH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/McpOAuthPostgres.test.ts --forceExit
+
+      # Clones the migrated MonitorSecret, Monitor and Label tables and their
+      # junction tables into an isolated schema and runs MonitorSecretService
+      # against them (#1467): which secrets each monitor of a probe batch may
+      # use under every access mode, that nothing crosses projects, and that
+      # switching a secret's mode really deletes the list it stops reading.
+      - name: Test monitor secret access on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_SECRET_ACCESS_TESTS: "true"
+          MONITOR_SECRET_ACCESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_SECRET_ACCESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_SECRET_ACCESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorSecretAccessPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service
       # builds run by Postgres. ee's jest resolves Common and App from their
       # own installs, so both are installed first.
-      - name: Install App and ee for the Enterprise Postgres suite
-        run: |
-          cd packages/App && npm install
-          cd ../../ee && npm ci --ignore-scripts
+      - name: Install App for the Enterprise Postgres suite
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - name: Install ee for the Enterprise Postgres suite
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: ee
+          command: ci
+          args: --ignore-scripts
       - name: Test team compliance status on migrated Postgres (Enterprise)
         working-directory: ee
         env:

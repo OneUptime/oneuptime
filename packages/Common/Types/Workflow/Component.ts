@@ -1,4 +1,3 @@
-import Route from "../API/Route";
 import IconProp from "../Icon/IconProp";
 import { JSONObject } from "../JSON";
 
@@ -89,10 +88,26 @@ export interface Port {
   id: string;
 }
 
+/*
+ * A required setting that another setting can make unnecessary: If / Else's
+ * Compare with is required, except for the comparisons that look at one value
+ * only ("is empty"). `values` are matched as isArgumentRequired normalises
+ * them: trimmed, lower case, one space between words.
+ */
+export interface ArgumentNotRequiredWhen {
+  argumentId: string;
+  values: Array<string>;
+}
+
 export interface Argument {
   name: string;
   description: string;
   required: boolean;
+  /*
+   * Read `required` through isArgumentRequired, which applies this. Anything
+   * that ignores it errs on the safe side and calls the setting required.
+   */
+  notRequiredWhen?: ArgumentNotRequiredWhen | undefined;
   type: ComponentInputType;
   id: string;
   isAdvanced?: boolean | undefined;
@@ -105,6 +120,40 @@ export interface Argument {
   isSensitive?: boolean | undefined;
   placeholder?: string | undefined;
 }
+
+export type IsArgumentRequiredFunction = (
+  argument: Argument,
+  values: JSONObject | undefined | null,
+) => boolean;
+
+/**
+ * Whether a step must have this setting filled in, given what its other
+ * settings hold now.
+ */
+export const isArgumentRequired: IsArgumentRequiredFunction = (
+  argument: Argument,
+  values: JSONObject | undefined | null,
+): boolean => {
+  if (!argument.required) {
+    return false;
+  }
+
+  const rule: ArgumentNotRequiredWhen | undefined = argument.notRequiredWhen;
+
+  if (!rule) {
+    return true;
+  }
+
+  const other: unknown = values ? values[rule.argumentId] : undefined;
+
+  if (typeof other !== "string") {
+    return true;
+  }
+
+  const normalized: string = other.trim().replace(/\s+/g, " ").toLowerCase();
+
+  return !rule.values.includes(normalized);
+};
 
 export interface ReturnValue {
   id: string;
@@ -133,7 +182,11 @@ export default interface ComponentMetadata {
   inPorts: Array<Port>;
   outPorts: Array<Port>;
   tableName?: string | undefined;
-  documentationLink?: Route;
+  /*
+   * A step's "How to use" help is not part of its metadata. It is built from
+   * the metadata by Types/Workflow/Documentation, which has an entry for every
+   * ComponentID (a full Record, so a new step without help does not compile).
+   */
   runWorkflowManuallyArguments?: Array<Argument> | undefined;
 }
 
@@ -141,4 +194,10 @@ export interface ComponentCategory {
   name: string;
   description: string;
   icon: IconProp;
+  /*
+   * Set on the category of a database model's steps, which is named after
+   * the model's singular name. Two models can share that name, so the Add
+   * Component picker matches a model's steps to their category by table.
+   */
+  tableName?: string | undefined;
 }

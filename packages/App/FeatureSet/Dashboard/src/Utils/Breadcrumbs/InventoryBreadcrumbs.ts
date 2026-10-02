@@ -6,9 +6,13 @@ import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import Link from "Common/Types/Link";
 import Navigation from "Common/UI/Utils/Navigation";
+import {
+  DeveloperDocsChildPage,
+  getDeveloperDocsChildPages,
+} from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 function buildInventoryDetailBreadcrumbs(
-  pageKey: PageMap,
+  pageKey: string,
   currentTitle?: string,
 ): Dictionary<Array<Link>> {
   const currentRoute: Route = Navigation.getCurrentPath();
@@ -92,6 +96,19 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
     ...buildInventoryDetailBreadcrumbs(
       PageMap.INVENTORY_VIEW_AUDIT_LOGS,
       "Audit Logs",
+    ),
+    // An item's Developer pages (Terraform, API, AI Assistants).
+    ...getDeveloperDocsChildPages(PageMap.INVENTORY_VIEW).reduce(
+      (
+        links: Dictionary<Array<Link>>,
+        child: DeveloperDocsChildPage,
+      ): Dictionary<Array<Link>> => {
+        return {
+          ...links,
+          ...buildInventoryDetailBreadcrumbs(child.key, child.page.title),
+        };
+      },
+      {},
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_ARCHIVED, [
       "Project",

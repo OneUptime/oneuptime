@@ -334,7 +334,7 @@ export async function runSshStep(
       success: false,
       output: "",
       errorMessage:
-        "SSH step is missing a credential. Pick one under Settings → Runner Credentials.",
+        "SSH step is missing a credential. Pick one under Runbooks → Runner Credentials.",
     };
   }
 
@@ -359,7 +359,7 @@ export async function runSshStep(
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
-      "SSH step is missing a Runner. Pick one under Settings → Runners.",
+      "SSH step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
 
@@ -374,7 +374,7 @@ export async function runKubernetesStep(
       success: false,
       output: "",
       errorMessage:
-        "Kubernetes step is missing a credential. Pick one under Settings → Runner Credentials.",
+        "Kubernetes step is missing a credential. Pick one under Runbooks → Runner Credentials.",
     };
   }
 
@@ -418,6 +418,6 @@ export async function runKubernetesStep(
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
-      "Kubernetes step is missing a Runner. Pick one under Settings → Runners.",
+      "Kubernetes step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }

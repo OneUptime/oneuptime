@@ -350,7 +350,9 @@
       "amountNotPositive": "金額は0より大きい値である必要があります。",
       "amountTooLarge": "1回の調整で{{max}} USDを超える金額は指定できません。",
       "amountTooPrecise": "金額の小数点以下は2桁までです。",
-      "reasonRequired": "この調整の理由を入力してください。"
+      "reasonRequired": "この調整の理由を入力してください。",
+      "adjustBalanceStepBalance": "残高",
+      "adjustBalanceStepAmount": "金額と理由"
     },
     "projectSupport": {
       "title": "カスタマーサポートのアクセス",
@@ -842,5 +844,10 @@
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "有効にすると、このサーバー上のプロジェクトにアクセスするには、すべてのユーザーが SSO でサインインする必要があります。マスター管理者は、誤って構成された SSO からいつでも復旧できるよう対象外です。各プロジェクト独自の SSO 設定も引き続き追加で適用されます。",
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.": "有効にすると、このサーバー上のプロジェクトにアクセスするには、すべてのユーザーが SSO でサインインする必要があります。マスター管理者は対象外です。",
   "Enterprise license required.": "Enterprise ライセンスが必要です。",
-  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "OneUptime のライブ Health ダッシュボードと Query Console には、インスタンスヘルスを含む Enterprise ライセンスが必要ですが、このインストールのライセンスは存在しないか、有効期限が切れているか、それを含んでいません。管理者ダッシュボード上部の Enterprise Edition バッジから、ライセンスを有効化または更新してください。ライセンスが存在しないか有効期限が切れている間は、SCIM プロビジョニングと監査ログの記録も停止しています。ライセンスが有効化されると、これらの画面とともにすぐに再開されます。ClickHouse の容量、インスタンスログ、グローバルプローブ、マイグレーション、サポートバンドルはライセンスがなくても動作します。左側のメニューから開けます。"
+  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "OneUptime のライブ Health ダッシュボードと Query Console には、インスタンスヘルスを含む Enterprise ライセンスが必要ですが、このインストールのライセンスは存在しないか、有効期限が切れているか、それを含んでいません。管理者ダッシュボード上部の Enterprise Edition バッジから、ライセンスを有効化または更新してください。ライセンスが存在しないか有効期限が切れている間は、SCIM プロビジョニングと監査ログの記録も停止しています。ライセンスが有効化されると、これらの画面とともにすぐに再開されます。ClickHouse の容量、インスタンスログ、グローバルプローブ、マイグレーション、サポートバンドルはライセンスがなくても動作します。左側のメニューから開けます。",
+  "Are you sure you want to delete {{name}}?": "{{name}} を削除してもよろしいですか？",
+  "Permanently delete {{name}}.": "{{name}} を完全に削除します。",
+  "This action cannot be undone.": "このアクションは元に戻すことができません。",
+  "and {{remaining}} more": "他 {{remaining}} 件",
+  "Type {{name}} to confirm.": "確認のため {{name}} と入力してください。"
 }

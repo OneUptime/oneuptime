@@ -34,6 +34,9 @@ import PodmanSettingsLabelRules from "../Pages/Podman/Settings/LabelRules";
 import PodmanArchived from "../Pages/Podman/Archived";
 import PodmanHostLabelRule from "Common/Models/DatabaseModels/PodmanHostLabelRule";
 import PodmanHostOwnerRule from "Common/Models/DatabaseModels/PodmanHostOwnerRule";
+import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const PodmanRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -110,6 +113,13 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: PodmanHost,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.PODMAN_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -353,6 +363,12 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: PodmanHost,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

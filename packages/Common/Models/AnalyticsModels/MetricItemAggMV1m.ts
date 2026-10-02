@@ -1,6 +1,7 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { RETENTION_TTL_ROUNDED_UP_TO_DAY } from "../../Types/AnalyticsDatabase/RetentionTtl";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 
@@ -170,9 +171,26 @@ GROUP BY projectId, name, primaryEntityId, bucketTime`,
        * states stay on a single shard — no cross-shard partial-state merge.
        */
       shardingKey: "cityHash64(projectId, name, primaryEntityId)",
-      tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      /*
+       * No ttl_only_drop_parts, for the same reason as the raw Metric table
+       * this MV aggregates: monitor metrics and telemetry metrics share a
+       * (here monthly) partition with different retentions, so a part never
+       * expires as a whole. The per-dimension MVs (…ByService / …ByHostV2 /
+       * …ByContainer / …ByK8sCluster) still declare it. Monitor metrics never
+       * reach them - they keep only rows that carry their dimension - but two
+       * services with different retentions share their partitions all the
+       * same, so the longer one holds the shorter one's rows there too.
+       */
+      tableSettings: "non_replicated_deduplication_window = 10000",
+      /*
+       * Rounded up to the midnight after retentionDate (see RetentionTtl):
+       * a monthly partition loses one day of rows at a time, in one merge a
+       * day, instead of being rewritten every merge_with_ttl_timeout for the
+       * month its rows take to expire. Not lined up with the event's day
+       * like the raw table: there is no ingest time here, and a bucket's
+       * retentionDate is already the latest of its rows'.
+       */
+      ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_DAY,
       includeBaseColumns: false,
       defaultSortColumn: "bucketTime",
     });

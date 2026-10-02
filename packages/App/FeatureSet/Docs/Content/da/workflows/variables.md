@@ -61,7 +61,7 @@ Næsten alle tekstfelter tager imod variabler:
 - Beskedteksten på Slack, Teams, Discord, Telegram, Email.
 - Emnet og brødteksten i en e-mail.
 - Headere og body-felter (inde i strengværdier).
-- Begge sider af en **If / Else**-blok (den ligger under kategorien Conditions).
+- Begge sider af en **If / Else**-blok.
 
 I JSON-felter kan du bruge en variabel inde i en strengværdi, men ikke som nøgle. En henvisning, der udfylder en hel værdi alene, indsættes rå, så du kan lægge et helt objekt ind i et JSON-felt på den måde. Skal du bygge en struktur dynamisk, så brug en **Run Custom JavaScript**-blok til at bygge den, og send dens output videre til den næste blok.
 
@@ -135,5 +135,5 @@ To ting at holde øje med:
 ## Hvor du kan læse videre
 
 - [Workflow-komponenter](/docs/workflows/components) — den fulde liste over det output, hver blok producerer.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — se den faktiske værdi af hver variabel efter en kørsel.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — se den faktiske værdi af hver variabel efter en kørsel.
 - [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — hvad der er sikkert at lægge i en global variabel.

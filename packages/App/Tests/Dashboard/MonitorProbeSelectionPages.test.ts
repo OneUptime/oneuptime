@@ -18,6 +18,9 @@ import path from "path";
  *    edited a field on step one never saw a Save button - closing the modal
  *    threw the edit away. And the card never displayed the auto-enable toggle
  *    it edits, so even a successful save left the page looking unchanged.
+ *    Long forms are stepped again since, edit forms included, and the edit
+ *    dialog now keeps Save Changes on every step instead
+ *    (SteppedEditFormSave.test.tsx drives that through the real components).
  *
  * Sources are whitespace-squashed first so prettier re-wrapping a line cannot
  * turn a real regression check into a red herring.
@@ -175,15 +178,53 @@ describe("Probe view page makes an edit saveable and visible", () => {
     "MonitorProbeView.tsx",
   );
 
-  test("the Probe Details form is not a wizard, so Save is always on screen", () => {
-    /*
-     * ModelFormModal labels its primary button "Next" on every step but the
-     * last. With steps, someone editing the name or the auto-enable toggle saw
-     * only "Cancel" and "Next" and lost the edit by closing the modal.
-     */
-    expect(source).not.toContain("formSteps=");
-    expect(source).not.toContain(squash('stepId: "basic-info",'));
-    expect(source).not.toContain(squash('stepId: "more",'));
+  /*
+   * ModelFormModal used to label its primary button "Next" on every step but
+   * the last, so with steps someone editing the name or the auto-enable
+   * toggle saw only "Cancel" and "Next" and lost the edit by closing the
+   * modal. The form has five fields, so it walks steps again - the Create
+   * Probe form's own two - and the edit dialog keeps Save on every step.
+   */
+  test("the Probe Details form walks the Create Probe form's steps", () => {
+    expect(source).toContain(
+      squash(
+        'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "More", id: "more" }, ]}',
+      ),
+    );
+    expect(source).toContain(squash('stepId: "basic-info",'));
+    expect(source).toContain(squash('stepId: "more",'));
+  });
+
+  test("its edit dialog keeps Save on every step, so an edit is never stranded", () => {
+    const modal: string = squash(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Components",
+          "ModelFormModal",
+          "ModelFormModal.tsx",
+        ),
+        "utf8",
+      ),
+    );
+
+    // CardModelDetail's edit dialog is an Update form, the case this covers.
+    expect(modal).toContain(
+      squash(
+        "const isEditFormWithSteps: boolean = hasSteps && props.formProps.formType === FormType.Update;",
+      ),
+    );
+    expect(modal).toContain(
+      squash(
+        'isEditFormWithSteps || isOnLastFormStep ? props.submitButtonText || "Save" : "Next";',
+      ),
+    );
+    expect(modal).toContain("submitAllSteps()");
   });
 
   test("the card displays the auto-enable toggle the form edits", () => {

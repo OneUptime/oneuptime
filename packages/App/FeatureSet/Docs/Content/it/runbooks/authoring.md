@@ -60,7 +60,7 @@ Configura in un passo Bash:
 - **Execution timeout** — quanto tempo l'agente lascia girare lo script prima di terminarlo con `SIGKILL`. Il valore predefinito è 30 secondi; alzalo per i passi che richiedono legittimamente qualche minuto.
 - **Claim timeout** — quanto tempo il Worker aspetta che l'agente prenda il job. Il valore predefinito è 2 minuti.
 
-Se l'agente selezionato è offline quando il runbook arriva a questo passo, il passo attende fino al **claim timeout** (default 2 minuti) e poi fallisce con `TimedOut`. Aggiungi un agente in **Runbook → Impostazioni → Agenti** prima di affidarti a un passo Bash.
+Se l'agente selezionato è offline quando il runbook arriva a questo passo, il passo attende fino al **claim timeout** (default 2 minuti) e poi fallisce con `TimedOut`. Aggiungi un agente in **Runbook → Agenti di runbook** prima di affidarti a un passo Bash.
 
 ### AI
 

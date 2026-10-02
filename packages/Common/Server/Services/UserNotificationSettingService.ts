@@ -791,6 +791,26 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addIncidentEpisodeNotificationSettings(userId, projectId);
     await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
     await this.addSloNotificationSettings(userId, projectId);
+    await this.addIncomingCallNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * Email on by default: a missed call is a customer who could not reach
+   * anyone, and the owners are the people who can call them back.
+   * Idempotent - the AddIncomingCallMissedNotificationSettingsForUsers data
+   * migration calls this for every existing member, and the missed call
+   * notification seeds it too before sending.
+   */
+  @CaptureSpan()
+  public async addIncomingCallNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION,
+    );
   }
 
   private async addSloNotificationSettings(

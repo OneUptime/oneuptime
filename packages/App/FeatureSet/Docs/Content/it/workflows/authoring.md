@@ -1,12 +1,19 @@
 # Creare un workflow
 
-Per creare un workflow, apri **Flussi di lavoro** e clicca **Crea flusso di lavoro**. Ti accompagna una procedura guidata intitolata **Create a workflow**: prima **Start from** — scegli **Start from scratch** oppure uno dei modelli — poi **Name**, e infine il passaggio **Configure**, che compare solo se il modello che hai scelto richiede impostazioni proprie.
+Per creare un workflow, apri **Flussi di lavoro** e clicca **Crea flusso di lavoro**. Ti accompagna una procedura guidata intitolata **Create a workflow**: prima **Start from**, poi **Name**, e infine il passaggio **Configure**, che compare solo se il modello che hai scelto richiede impostazioni proprie.
+
+In **Start from** scegli come cominciare:
+
+- **Parti da zero**, accanto alla casella di ricerca, ti dà un'area di lavoro vuota.
+- Un modello ti dà un workflow già funzionante da modificare. Il passaggio si apre su alcuni modelli in **Consigliati**. Gli altri sono nelle loro categorie, come **Incidenti**, **Monitor** e **Jira**, ciascuna con il numero dei suoi modelli, e **Tutti i modelli** li elenca tutti. Una ricerca li scorre tutti: ogni parola che scrivi deve corrispondere, e ogni categoria mostra quanti dei suoi modelli corrispondono.
+
+Clicca un modello per vedere cosa fa prima di sceglierlo: il suo trigger, i passaggi che lo compongono e le impostazioni che ti chiederà. **Usa questo modello** lo porta a **Name**, e lo stesso fanno **Invio** e un doppio clic. I tasti freccia ti spostano nell'elenco, e `/` ti riporta alla casella di ricerca.
 
 Una volta creato, apri **Costruttore** nel menu di sinistra: è la tela su cui progetti il workflow.
 
 ## La tela
 
-Un workflow partito da zero si apre con un unico blocco tratteggiato che dice **Please click here to add trigger**. Quel blocco è il punto di partenza — cliccalo per scegliere un trigger. Un workflow nato da un modello si apre invece con i blocchi già al loro posto.
+Un workflow partito da zero si apre con un unico blocco tratteggiato che dice **Choose what starts this workflow**. Quel blocco è il punto di partenza — cliccalo per scegliere un trigger. Un workflow nato da un modello si apre invece con i blocchi già al loro posto.
 
 Ogni workflow ha un solo **trigger**, in cima. Tutto il resto è un **component**, cioè un blocco che fa qualcosa. Se aggiungi un secondo trigger, questo sostituisce il primo; se elimini l'ultimo, torna il segnaposto tratteggiato.
 
@@ -15,9 +22,9 @@ Per aggiungere i blocchi:
 - **Il trigger** — clicca il blocco segnaposto tratteggiato. Si apre un pannello intitolato **Add Trigger**.
 - **Tutto il resto** — clicca **Aggiungi componente** nella barra degli strumenti sopra la tela. Si apre lo stesso pannello, questa volta intitolato **Add Component**.
 
-Entrambi i pannelli hanno una ricerca — premi `/` per saltare direttamente alla casella — e raggruppano i blocchi per categoria. Seleziona un blocco e clicca **Add to Workflow**.
+Entrambi i pannelli si aprono sui blocchi che usa quasi ogni workflow, sotto **Popular**, seguiti dagli altri blocchi integrati. Sotto **OneUptime resources** clicca una risorsa come **Incident** per vedere che cosa puoi farci; **Browse all resources** le elenca tutte. Oppure cerca: scrivi qualche parola, come `create incident`, e il risultato più vicino compare per primo. Premi `/` per saltare alla casella di ricerca, le frecce per muoverti tra i risultati e **Invio** per aggiungere il blocco evidenziato. Un clic su un blocco lo aggiunge.
 
-I blocchi nuovi compaiono sempre nello stesso punto della tela, quindi può capitare che uno finisca sopra qualcosa che avevi già sistemato. Trascinalo via; mentre lo sposti la tela lo aggancia a una griglia. Le posizioni dei blocchi vengono salvate, così chi apre il workflow dopo di te ritrova la disposizione che hai lasciato.
+Un blocco nuovo compare sotto il blocco più in basso della tela, e un trigger nuovo prende in alto il posto del vecchio. Il blocco nuovo è selezionato e, se compare fuori vista, la tela scorre quel tanto che basta per mostrarlo. Le sue impostazioni non si aprono da sole: clicca il blocco quando sei pronto a configurarlo. Finché le impostazioni obbligatorie sono vuote, il blocco mostra **Click to set up**. Trascina i blocchi dove vuoi; mentre li sposti la tela li aggancia a una griglia. Le posizioni dei blocchi vengono salvate, così chi apre il workflow dopo di te ritrova la disposizione che hai lasciato.
 
 Le modifiche si salvano da sole. Una pillola nella barra degli strumenti tiene il conto: **Saving…** mentre la modifica è in volo, poi **Salvato**, oppure **Impossibile salvare** se qualcosa è andato storto. Non c'è un pulsante di salvataggio, e non c'è un passaggio di pubblicazione a parte.
 
@@ -42,7 +49,7 @@ Puoi collegare un output a più blocchi. Vengono eseguiti tutti — ma uno dopo 
 
 ## Configurare un blocco
 
-Clicca un blocco per aprirne le impostazioni in una finestra. Ogni impostazione ha il tipo di campo che le serve — testo, menu a tendina, editor di codice, interruttori e così via. Compila e clicca **Salva**.
+Clicca un blocco per aprirne le impostazioni in una finestra (oppure raggiungilo con **Tab** e premi **Invio**). Ogni impostazione ha il tipo di campo che le serve — testo, menu a tendina, editor di codice, interruttori e così via. Compila e clicca **Salva**.
 
 Nella stessa finestra trovi anche:
 
@@ -54,7 +61,7 @@ Quasi tutti i campi di testo accettano variabili: è così che i dati passano da
 
 ## I controlli mentre costruisci
 
-Il **Costruttore** ricontrolla l'intero grafo a ogni modifica e riassume quello che trova in una pillola nella barra degli strumenti. Cliccala per aprire **Problems with this workflow**, che elenca ogni problema e ti porta dritto al blocco responsabile. I blocchi con un problema hanno anche un badge rosso sulla tela.
+Il **Costruttore** ricontrolla l'intero grafo a ogni modifica e riassume quello che trova in una pillola nella barra degli strumenti. Cliccala per aprire **Problems with this workflow**, che elenca ogni problema e ti porta dritto al blocco responsabile. Sulla tela, un blocco con impostazioni obbligatorie ancora vuote mostra **Click to set up**, e un blocco con qualunque altro problema ha un badge nell'angolo: rosso per un errore, ambra per un avviso. Passa il mouse sul badge per leggere cosa non va.
 
 Intercetta gli errori che altrimenti resterebbero invisibili finché un'esecuzione non va storta: nessun trigger, due blocchi con lo stesso id, un punto dentro un id, un blocco a cui non arriva nessun collegamento, un'impostazione obbligatoria lasciata vuota, JSON malformato, spazi dentro `{{ }}` e riferimenti a un passaggio o a un valore di ritorno che non esistono.
 
@@ -64,10 +71,10 @@ Una cosa non riesce a controllarla: se il nome di una variabile esiste davvero. 
 
 Il modo più rapido per prendere le misure alla tela:
 
-1. Clicca il blocco segnaposto tratteggiato, scegli **Manual** nel pannello **Add Trigger** e clicca **Add to Workflow**.
-2. Clicca **Aggiungi componente**, scegli **Log** (nella categoria **Utils**) e clicca **Add to Workflow**. Trascina il blocco nuovo lontano dal trigger, poi collega il puntino **Execute** del trigger al puntino di input del blocco Log.
-3. Apri il blocco Log e imposta il suo **Value** su `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` è l'**Identifier** del trigger, stampato sul blocco stesso — controlla che corrisponda.
-4. Vai su **Panoramica**, clicca **Modifica flusso di lavoro** nella scheda **Dettagli del flusso di lavoro** e attiva **Abilitato**. Un workflow disabilitato non si può eseguire in nessun modo, nemmeno a mano.
+1. Clicca il blocco segnaposto tratteggiato, poi clicca **Manual** nel pannello **Add Trigger**.
+2. Clicca **Aggiungi componente**, poi clicca **Log** sotto **Popular**. Il blocco nuovo compare sotto il trigger. Collega il puntino **Execute** del trigger al puntino di input del blocco Log.
+3. Clicca il blocco Log, che mostra **Click to set up**, e imposta il suo **Value** su `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` è l'**Identifier** del trigger, stampato sul blocco stesso — controlla che corrisponda.
+4. Attiva **Abilitato** in cima al Costruttore. Un workflow disabilitato non si può eseguire in nessun modo, nemmeno a mano; se salti questo passaggio, **Esegui flusso di lavoro** ti chiede prima di attivarlo.
 5. Torna sul **Costruttore**, clicca **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, clicca **Run Workflow Manually** e conferma con **Run**.
 6. Si apre da solo un pannello **Workflow Run** che segue l'esecuzione. Nel log compare `Value:` seguito da `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Quel ciclo — aggiungi, collega, configura, esegui, leggi il log — è il modo
 
 ## Accenderlo
 
-I workflow nuovi partono disabilitati, e lo stesso vale per qualsiasi workflow che duplichi o importi.
+I workflow nuovi partono disabilitati, e lo stesso vale per qualsiasi workflow che duplichi o importi. Finché un workflow è spento, il Costruttore lo dice sopra la tela, con un pulsante **Attiva flusso di lavoro**.
 
-L'interruttore **Abilitato** sta nella pagina **Panoramica** del workflow, dentro la scheda **Dettagli del flusso di lavoro** — non nella pagina delle impostazioni. La stessa scheda mostra lo stato attuale con una pillola verde **Abilitato** o rossa **Disabilitato**.
+L'interruttore **Abilitato** sta in cima al **Costruttore**, accanto ad **Aggiungi componente** ed **Esegui flusso di lavoro**. Si trova anche nella pagina **Panoramica** del workflow: clicca **Modifica flusso di lavoro** nella scheda **Dettagli del flusso di lavoro**, che mostra lo stato attuale con una pillola verde **Abilitato** o rossa **Disabilitato**. Solo chi può modificare il workflow può accenderlo o spegnerlo; gli altri vedono l'interruttore in grigio.
 
-Un workflow disabilitato non viene eseguito affatto. Le esecuzioni manuali vengono rifiutate con "This workflow is not enabled" esattamente come quelle scatenate da un trigger, quindi l'ordine è: abilitalo, provalo con **Esegui flusso di lavoro**, leggi il log dell'esecuzione e rimetti **Abilitato** su off se non sei pronto a far scattare il suo trigger. Per provare un singolo blocco senza eseguire tutto il resto, usa **Run just this step** nelle impostazioni di quel blocco.
+Un workflow disabilitato non viene eseguito affatto: il suo trigger viene ignorato, e così **Esegui flusso di lavoro** e **Run just this step**. Se lo esegui, o esegui uno dei suoi blocchi, mentre è spento, il Costruttore chiede invece **Attivare questo flusso di lavoro?**. **Attiva ed esegui** (o **Attiva ed esegui il passaggio**) accende il workflow e poi esegue quello che hai chiesto, con i valori che hai indicato. Quindi l'ordine è: costruiscilo, provalo con **Esegui flusso di lavoro**, leggi il log dell'esecuzione e rimetti **Abilitato** su off se non sei pronto a far scattare il suo trigger. Per provare un singolo blocco senza eseguire tutto il resto, usa **Run just this step** nelle impostazioni di quel blocco.
+
+Tutto il resto che avvia un workflow disabilitato viene respinto con lo stesso consiglio. Una chiamata al suo URL webhook riceve un HTTP 400 e "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." Un blocco **Execute Workflow** che lo chiama prende il percorso **Error**, e l'errore indica il workflow chiamato.
 
 Per mettere in pausa un workflow senza eliminarlo, spegni **Abilitato**. Non parte nessuna nuova esecuzione. Un'esecuzione già a metà strada arriva in fondo, ma una parcheggiata su un blocco **Sleep** viene annullata al risveglio e registrata come errore.
 
@@ -96,4 +105,4 @@ Per mettere in pausa un workflow senza eliminarlo, spegni **Abilitato**. Non par
 - [Trigger del workflow](/docs/workflows/triggers) — i quattro modi in cui un workflow può partire.
 - [Componenti del workflow](/docs/workflows/components) — tutti i blocchi che puoi aggiungere.
 - [Variabili del workflow](/docs/workflows/variables) — spostare i dati tra i blocchi.
-- [Esecuzioni e log del workflow](/docs/workflows/runs-and-logs) — controllare che cosa è successo.
+- [Esecuzioni del workflow](/docs/workflows/runs-and-logs) — controllare che cosa è successo.

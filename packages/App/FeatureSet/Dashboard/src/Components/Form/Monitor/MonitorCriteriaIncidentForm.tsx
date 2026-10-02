@@ -20,6 +20,7 @@ import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
+import { hasIncidentAdvancedOptions } from "./CriteriaAdvancedOptions";
 
 export interface IncidentRoleOption {
   id: string;
@@ -91,12 +92,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaIncident.onCallPolicyIds?.length,
   );
-  const hasAdvancedOptions: boolean = Boolean(
-    criteriaIncident.autoResolveIncident ||
-      criteriaIncident.remediationNotes ||
-      criteriaIncident.showIncidentOnStatusPage === false ||
-      criteriaIncident.isPrivate === true,
-  );
+  // Only what the user chose: a default rule's auto-resolve does not count.
+  const hasAdvancedOptions: boolean =
+    hasIncidentAdvancedOptions(criteriaIncident);
   const hasIncidentTeam: boolean = Boolean(
     criteriaIncident.incidentMemberRoles?.length,
   );

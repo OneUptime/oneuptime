@@ -494,7 +494,8 @@ if (DisableQueueWorkers) {
           if (
             error instanceof BadDataException &&
             (error.message === ExceptionMessages.MonitorNotFound ||
-              error.message === ExceptionMessages.MonitorDisabled)
+              error.message === ExceptionMessages.MonitorDisabled ||
+              error.message === ExceptionMessages.MonitorArchived)
           ) {
             return;
           }

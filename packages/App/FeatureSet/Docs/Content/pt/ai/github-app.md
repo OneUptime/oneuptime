@@ -14,7 +14,7 @@ Mencione-o em um issue e ele abre um pull request. Mencione-o em um pull request
 
 ## Antes de começar
 
-- O repositório precisa estar **conectado a um projeto do OneUptime** pelo GitHub App. Veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) para a configuração, ou conecte-o em **Configurações do projeto → Repositórios de código** no OneUptime Cloud.
+- O repositório precisa estar **conectado a um projeto do OneUptime** pelo GitHub App. Veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) para a configuração, ou conecte-o em **Tarefas → Repositórios de código** no OneUptime Cloud.
 - Um **Runner com a capacidade "Executa Correções de Código com IA"** precisa estar online — o mesmo Runner que executa as [Tarefas de Correção com IA](/docs/ai/ai-agent). Sem ele, os comandos são aceitos e depois falham após 30 minutos com uma mensagem dizendo que nenhum agente os assumiu.
 - O GitHub App precisa ter a permissão **Issues: Leitura e Escrita** e precisa assinar os eventos de webhook listados em [O que assinar](#o-que-assinar).
 
@@ -56,7 +56,7 @@ Você também pode entregar um issue ao app **sem comentar nada**:
 | `@oneuptime status` | Diz no que ele está trabalhando neste momento nesta thread. |
 | `@oneuptime cancel` | Interrompe as execuções que ele tem em andamento nesta thread. O trabalho já enviado continua enviado. |
 
-`help`, `status` e `cancel` nunca iniciam uma execução do agente, então não custam nada e não entram no seu orçamento diário de tarefas de correção.
+`help`, `status` e `cancel` nunca iniciam uma execução do agente, então não custam nada.
 
 ## Como isso aparece na thread
 
@@ -87,10 +87,9 @@ Ele também ignora todo comentário escrito por um bot, inclusive os seus própr
 
 Todo comando que inicia trabalho é uma execução completa do agente — um clone, até 40 chamadas de LLM e 100.000 tokens de saída, mais os comandos de build e de teste do seu repositório, se você os tiver configurado.
 
-Dois limites se aplicam, e ambos são os mesmos que já governam as [Tarefas de Correção com IA](/docs/ai/ai-agent):
+Os comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de execuções de correção se aplica a eles. O único limite que pode se aplicar é o mesmo que já governa as [Tarefas de Correção com IA](/docs/ai/ai-agent):
 
-- **O limite diário de execuções de correção do projeto** (**Configurações do projeto → IA**, 25/dia por padrão). Os comandos do GitHub dividem esse orçamento com o resto das execuções de correção do seu projeto.
-- **O teto de pull requests abertos por repositório** (**Repositórios de código → o repositório → Configurações**, 5 por padrão). Revisões e ajustes estão isentos: nenhum dos dois adiciona um novo pull request à sua fila de revisão.
+- **O teto de pull requests abertos por repositório** (**Max Open Fix Pull Requests**, em **Repositórios de código → o repositório → Configurações**). Não há teto até você definir um, e 0 bloqueia os pull requests de correção com IA nesse repositório. Revisões e ajustes estão isentos: nenhum dos dois adiciona um novo pull request à sua fila de revisão.
 
 Só uma execução de cada tipo fica ativa por issue ou pull request de cada vez. Pedir duas vezes faz ele avisar que já está trabalhando; pedir uma revisão enquanto um ajuste está rodando inicia as duas, porque são pedidos diferentes.
 
@@ -129,13 +128,13 @@ Trate um pull request escrito por IA como você trataria um de um contribuidor n
 
 ## Solução de problemas
 
-**Não acontece nada quando eu menciono o app.** Verifique o handle primeiro — ele é o slug do app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (**Configurações do projeto → Repositórios de código**), se **Responder a Comandos do GitHub** está ligado e se o seu GitHub App assina os eventos acima.
+**Não acontece nada quando eu menciono o app.** Verifique o handle primeiro — ele é o slug do app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (**Tarefas → Repositórios de código**), se **Responder a Comandos do GitHub** está ligado e se o seu GitHub App assina os eventos acima.
 
 **Ele reage com 😕 e não diz nada.** Você não tem acesso de escrita ao repositório.
 
 **Ele diz que já está trabalhando nisso.** Já existe uma execução desse tipo ativa neste issue ou pull request. `@oneuptime status` diz qual é, e `@oneuptime cancel` a interrompe.
 
-**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Configurações → Runners**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
+**Ele confirmou e depois ficou muito tempo em silêncio.** Verifique se há um Runner com **Executa Correções de Código com IA** online em **Runbooks → Agentes de runbook**. Sem ele, a execução falha depois de 30 minutos e a thread é avisada.
 
 **Ele diz que o pull request vem de um fork.** Ajustes precisam de um branch neste repositório. Peça uma revisão, ou envie o branch para cá.
 

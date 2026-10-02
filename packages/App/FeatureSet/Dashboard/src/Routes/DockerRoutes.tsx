@@ -34,6 +34,9 @@ import DockerSettingsLabelRules from "../Pages/Docker/Settings/LabelRules";
 import DockerArchived from "../Pages/Docker/Archived";
 import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
 import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
+import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DockerRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -110,6 +113,13 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerHost,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DOCKER_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -353,6 +363,12 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DockerHost,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

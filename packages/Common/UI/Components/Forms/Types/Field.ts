@@ -16,7 +16,8 @@ import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/Databas
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
-import { ReactElement } from "react";
+import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
   Default = "Default",
@@ -37,6 +38,11 @@ export interface CustomElementProps {
   onBlur?: () => void;
   initialValue?: any;
   placeholder?: string | undefined;
+  /*
+   * The id of the field's label, so a custom control can be named by it the
+   * way a native input is by <label for>.
+   */
+  ariaLabelledby?: string | undefined;
 }
 
 export interface CategoryCheckboxProps {
@@ -122,6 +128,13 @@ export default interface Field<TEntity> {
    * been read back perfectly well.
    */
   allowJSON5?: boolean | undefined;
+  /*
+   * For a JSON, HTML, CSS or JavaScript field: more buttons for its code
+   * editor's toolbar, such as the workflow builder's "Insert value".
+   */
+  codeEditorToolbarActions?:
+    | ((editor: CodeEditorActions) => ReactNode)
+    | undefined;
   onChange?:
     | ((
         value: any,
@@ -148,6 +161,14 @@ export default interface Field<TEntity> {
     values: FormValues<TEntity>,
     props: CustomElementProps,
   ) => ReactElement | undefined; // custom element to render instead of the elements in the form.
+  /*
+   * The custom element draws the field's title and help itself, the way a
+   * switch field does - beside its control rather than above it. FormField
+   * leaves out the label it would draw over the element, and the gap under
+   * that label, and hands the element no ariaLabelledby to a label that is
+   * not there.
+   */
+  customElementDrawsOwnLabel?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;
@@ -156,6 +177,17 @@ export default interface Field<TEntity> {
   // set this to true if you want to show this field in the form even when the form is in edit mode.
   doNotShowWhenEditing?: boolean | undefined;
   doNotShowWhenCreating?: boolean | undefined;
+
+  /*
+   * The field only drives the form: it fills in, or edits a part of,
+   * fields that are saved, and its own value is never sent. ModelForm
+   * leaves it out of the request's misc data, where the value of a field
+   * with an overrideFieldKey otherwise goes. Examples: the identity
+   * provider picker that fills in an OAuth 2.0 variable's token URL, and
+   * the Destination step that edits a part of a workspace notification
+   * rule.
+   */
+  formOnly?: boolean | undefined;
 
   //
   jsonKeysForDictionary?: Array<string> | undefined;
@@ -172,6 +204,14 @@ export default interface Field<TEntity> {
    * Default: false (spell check enabled). Set to true to disable spell check.
    */
   disableSpellCheck?: boolean | undefined;
+
+  /*
+   * For a LongText field: start a few lines tall and grow with what is typed,
+   * up to a limit where it scrolls, rather than sitting at a fixed six lines.
+   * Suits values that are usually a line or two but sometimes run to
+   * paragraphs, such as a workflow step's message or prompt.
+   */
+  autoGrow?: boolean | undefined;
 
   /*
    * For a Markdown field: whether its editor uploads pasted, dropped and

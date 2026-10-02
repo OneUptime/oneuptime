@@ -60,6 +60,7 @@ const {
   warmUpProblems,
   readBashArray,
 } = require("./Utils/ReleaseWorkflow");
+const { stepCommandFromRoot } = require("./Utils/WorkflowStep");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const WORKFLOWS_DIR = ".github/workflows";
@@ -678,9 +679,10 @@ describe("test-release.yaml: every push to master builds the resource AI agent f
 
 describe("test.resource-ai-agent.yaml: pull requests run the agent's own tests", () => {
   const workflow = readYaml(AGENT_TEST_WORKFLOW);
+  // Each step as typed from the root: an install is an npm-install step.
   const commands = Object.values(workflow.jobs || {})
     .flatMap((job) => {
-      return (job.steps || []).map(stepCommand);
+      return (job.steps || []).map(stepCommandFromRoot);
     })
     .map((command) => {
       return command.trim().replace(/\s+/g, " ");

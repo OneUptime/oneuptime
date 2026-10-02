@@ -61,7 +61,7 @@ Der vollständige Datensatz wird an den nächsten Baustein weitergereicht. Der T
 - **Statusseite Abonnent** – jemanden begrüßen, der eine Statusseite abonniert.
 - **Bereitschaftsrichtlinie** – Änderungen am Dienstplan in ein anderes Rostersystem synchronisieren.
 
-Durchsuchen Sie das Panel **Add Trigger** nach dem Namen, um den passenden zu finden.
+Im Panel **Add Trigger** stehen sie unter **OneUptime resources**: Klicken Sie auf die Ressource und dann auf den Trigger. **Browse all resources** enthält alle, und das Suchfeld findet einen Trigger anhand weniger Wörter, etwa `incident created`.
 
 ## Welchen Trigger sollte ich nehmen?
 
@@ -78,4 +78,4 @@ Ein Workflow kann nur einen Trigger haben. Brauchen Sie zwei Wege, dieselbe Auto
 
 - [Workflow-Komponenten](/docs/workflows/components) – die Aktionen, die Sie nach dem Trigger hinzufügen.
 - [Workflow-Variablen](/docs/workflows/variables) – Trigger-Ausgaben aus späteren Bausteinen lesen.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, ob Ihr Trigger ausgelöst hat.
+- [Workflow-Ausführungen](/docs/workflows/runs-and-logs) – nachsehen, ob Ihr Trigger ausgelöst hat.

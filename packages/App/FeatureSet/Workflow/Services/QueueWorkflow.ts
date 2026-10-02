@@ -7,6 +7,8 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import CronTab from "Common/Utils/CronTab";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
+import { WORKFLOW_TURNED_OFF_MESSAGE } from "Common/Types/Workflow/WorkflowEnabled";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import ProjectService from "Common/Server/Services/ProjectService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
@@ -75,6 +77,7 @@ export default class QueueWorkflow {
       id: workflowId,
       select: {
         isEnabled: true,
+        isArchived: true,
         projectId: true,
         repeatableJobKey: true,
       },
@@ -87,8 +90,28 @@ export default class QueueWorkflow {
       throw new BadDataException("Workflow not found");
     }
 
+    /*
+     * Every way of starting a run comes through here - the Run button,
+     * "Run this step", a webhook call, a model event, an incoming email,
+     * another workflow's Run Workflow step, and the registration of a
+     * schedule - so this is where an archived workflow is stopped from
+     * running at all. Checked before isEnabled: archived is the reason a
+     * person needs to hear, whatever the toggle says (turning it on would
+     * not make it run).
+     */
+    if (workflow.isArchived) {
+      throw new BadDataException(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);
+    }
+
+    /*
+     * A workflow that is turned off does not run, however it is started: Run
+     * Workflow, Run just this step, its webhook URL or another workflow's
+     * Execute Workflow step. The refusal says how to turn it on, because a
+     * webhook sender's delivery log or a script may be the only place it is
+     * read. The Builder asks before it ever gets here (UseWorkflowEnabled).
+     */
     if (!workflow.isEnabled) {
-      throw new BadDataException("This workflow is not enabled");
+      throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);
     }
 
     if (!workflow.projectId) {

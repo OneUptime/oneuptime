@@ -20,9 +20,11 @@ import {
   SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
   SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
   SESSION_REPLAY_IDLE_FINALIZE_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
+  SessionReplayRecorderKind,
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
 import { isSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
@@ -443,6 +445,12 @@ export interface TabChunkAggregate {
    */
   firstChunkStartUnixMs: number;
 
+  /*
+   * Where this tab's recording ended - its last chunk's end, except a seal
+   * sent a whole idle window after the footage, which ends it where the
+   * footage did (see resolveTabRecordingEndUnixMs). The session's endTime
+   * and duration are the latest of these.
+   */
   lastChunkEndUnixMs: number;
   maxChunkEndOffsetMs: number;
   schemaVersion: number;
@@ -559,11 +567,13 @@ export interface ProvisionalSessionHeader {
   identifiedUserKey: string;
   identifiedUserLabel: string;
   /*
-   * From the NEWEST header version, which is the last meta-bearing chunk
-   * the ingest processed: a tag set after chunk 0 and traits from a late
-   * identify() both reach the finalized row this way. The ingest already
-   * gated traits on captureUserIdentity; the finalizer carries what it
-   * stored and never re-derives them.
+   * The identity (key, label, traits) and the tags come from the NEWEST
+   * header version that has them, not simply the newest one (#4206): a
+   * tag set after chunk 0 and traits from a late identify() reach the
+   * finalized row this way, and a later version from a page that named
+   * nobody cannot blank them. The ingest already gated them on
+   * captureUserIdentity; the finalizer carries what it stored and never
+   * re-derives them.
    */
   identifiedUserTraits: Record<string, string>;
   /*
@@ -788,6 +798,9 @@ export async function removeActivityMembersIfNotNewer(
   return removed;
 }
 
+/* The React Native recorder's chunks; see hasFootage below. */
+const REACT_NATIVE_RECORDER_KIND: SessionReplayRecorderKind = "rn-view-tree";
+
 export function buildTabAggregateStatement(data: {
   databaseName: string;
   projectId: ObjectID;
@@ -922,6 +935,15 @@ export function buildTabAggregateStatement(data: {
       max(version) AS lastChunkStoredAtUnixMs,
       toUnixTimestamp64Milli(min(sessionStartTime)) AS sessionStartUnixMs,
       toUnixTimestamp64Milli(max(chunkEndTime)) AS lastChunkEndUnixMs,
+      /*
+       * Where the tab's FOOTAGE ended, as opposed to its last chunk: the
+       * last chunk is often a seal, which carries an end time and nothing
+       * to play (hasFootage, in the inner query, says which chunks are).
+       * resolveTabRecordingEndUnixMs reads the two together. countIf guards
+       * maxIf over no rows, which is the epoch rather than "none".
+       */
+      toUnixTimestamp64Milli(maxIf(chunkEndTime, hasFootage)) AS lastFootageEndUnixMs,
+      countIf(hasFootage) AS footageChunkCount,
       max(chunkEndOffsetMs) AS maxChunkEndOffsetMs,
       max(schemaVersion) AS schemaVersion,
       any(recorderKind) AS recorderKind,
@@ -957,7 +979,31 @@ export function buildTabAggregateStatement(data: {
         rumApplicationId,
         primaryEntityId,
         primaryEntityType,
-        retentionDate
+        retentionDate,
+        /*
+         * Does this chunk hold anything to play? Not a seal, of either kind:
+         *
+         * - an empty chunk (eventCount 0), which a browser recorder sends to
+         *   end a session;
+         * - the chunk a React Native recorder before #4207's mobile fix
+         *   closed an idle session with: final, no snapshot, and one
+         *   instant long, because all it held was the rotation marker,
+         *   stamped when the app came back. Those recorders stay in
+         *   customers' apps until the apps are updated.
+         *
+         * Worked out here, on the raw columns, because the outer SELECT
+         * aliases recorderKind to an aggregate (see the shadowing note
+         * above).
+         */
+        eventCount > 0 AND NOT (
+          recorderKind = ${{
+            type: TableColumnType.Text,
+            value: REACT_NATIVE_RECORDER_KIND,
+          }}
+          AND isFinal
+          AND NOT hasFullSnapshot
+          AND chunkStartTime = chunkEndTime
+        ) AS hasFootage
       FROM ${data.databaseName}.${AnalyticsTableName.RumSessionChunk}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -1031,11 +1077,34 @@ export function buildProvisionalHeaderStatement(data: {
       recorderVersion AS recorderVersion,
       rrwebVersion AS rrwebVersion,
       countryCode AS countryCode,
-      identifiedUserKey AS identifiedUserKey,
-      identifiedUserLabel AS identifiedUserLabel,
-      identifiedUserTraits AS identifiedUserTraits,
+      /*
+       * Who the session belongs to, and its tags, from the newest version
+       * that HAS them rather than the newest version (#4206).
+       *
+       * Every page load and every tab writes header versions of its own,
+       * and one from a page that never called identify() - the login page,
+       * a link opened in a new tab - names nobody. The ingest's carry keeps
+       * such a version from publishing a blank, but the carry is one Redis
+       * value read and rewritten per upload: two uploads of one session
+       * processed at the same moment can each write a version from what
+       * they alone knew. Read this way, the finalized row still names the
+       * person the session was identified as - as long as a merge has not
+       * already collapsed the older versions into the newest one, which is
+       * why this is the backstop and the carry is the fix.
+       *
+       * Window aggregates over the WHERE's rows (every version of this one
+       * session), evaluated before the ORDER BY ... LIMIT 1 below. The
+       * aliases differ from the columns on purpose: ClickHouse resolves an
+       * identifier to a same-named alias, which would turn the condition
+       * into a reference to the window result itself. key, label and
+       * traits share one condition and one ordering, so they come from the
+       * same version.
+       */
+      argMaxIf(identifiedUserKey, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserKey,
+      argMaxIf(identifiedUserLabel, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserLabel,
+      argMaxIf(identifiedUserTraits, version, identifiedUserKey != '') OVER () AS latestIdentifiedUserTraits,
       visitorId AS visitorId,
-      tags AS tags,
+      argMaxIf(tags, version, notEmpty(mapKeys(tags))) OVER () AS latestTags,
       traceIds AS traceIds,
       exceptionFingerprints AS exceptionFingerprints,
       fidelityNotices AS fidelityNotices,
@@ -1161,7 +1230,60 @@ export function buildSessionTraceIdStatement(data: {
   return statement;
 }
 
+/*
+ * When a tab's recording really ended: its last chunk's end - unless that
+ * chunk is a seal sent a whole idle window after the last footage.
+ *
+ * A seal that late is not the user doing anything. It is a recorder that
+ * learned the user had left only once the idle window ran out, and dated
+ * its seal THEN: browser recorders before #4207's fix did so on every tab
+ * left open with nobody at it, and a tab still running one keeps doing it
+ * until it is reloaded. Taken at its word, the seal stretched each of
+ * those sessions by the whole window - listed as "30m 00s" while the
+ * player ended after under a second. React Native recorders before the
+ * mobile fix did worse: they sealed an idle session when the app came back
+ * to the foreground, so it was stretched by however long the app had been
+ * away. Nothing can be recorded across an idle window without the session
+ * ending (the recorder rotates on it), so the tab ended where its footage
+ * did.
+ *
+ * Only a seal is ever moved - an empty chunk, or that React Native marker
+ * chunk (see hasFootage in buildTabAggregateStatement): footage dates
+ * itself, and a seal inside the window (a page closed after someone read
+ * it without touching anything) is the real end of a visible page. With no
+ * footage at all there is nothing to move it back to, and the chunk end
+ * stands.
+ */
+export function resolveTabRecordingEndUnixMs(data: {
+  lastChunkEndUnixMs: number;
+  lastFootageEndUnixMs: number;
+  footageChunkCount: number;
+}): number {
+  if (data.footageChunkCount <= 0 || data.lastFootageEndUnixMs <= 0) {
+    return data.lastChunkEndUnixMs;
+  }
+
+  if (
+    data.lastChunkEndUnixMs - data.lastFootageEndUnixMs >=
+    SESSION_REPLAY_IDLE_ROLLOVER_MS
+  ) {
+    return data.lastFootageEndUnixMs;
+  }
+
+  return data.lastChunkEndUnixMs;
+}
+
 export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
+  /*
+   * A row from before these columns existed (and the fixtures that stand
+   * in for the query) simply has no footage facts, and keeps its chunk end.
+   */
+  const lastChunkEndUnixMs: number = resolveTabRecordingEndUnixMs({
+    lastChunkEndUnixMs: toNumberValue(row["lastChunkEndUnixMs"]),
+    lastFootageEndUnixMs: toNumberValue(row["lastFootageEndUnixMs"]),
+    footageChunkCount: toNumberValue(row["footageChunkCount"]),
+  });
+
   return {
     tabId: toTextValue(row["tabId"]),
     chunkCount: toNumberValue(row["chunkCount"]),
@@ -1195,7 +1317,7 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     lastChunkStoredAtUnixMs: toNumberValue(row["lastChunkStoredAtUnixMs"]),
     sessionStartUnixMs: toNumberValue(row["sessionStartUnixMs"]),
     firstChunkStartUnixMs: toNumberValue(row["firstChunkStartUnixMs"]),
-    lastChunkEndUnixMs: toNumberValue(row["lastChunkEndUnixMs"]),
+    lastChunkEndUnixMs: lastChunkEndUnixMs,
     maxChunkEndOffsetMs: toNumberValue(row["maxChunkEndOffsetMs"]),
     schemaVersion: toNumberValue(row["schemaVersion"]),
     recorderKind: toTextValue(row["recorderKind"]),
@@ -1244,11 +1366,12 @@ export function parseProvisionalHeaderRow(
     recorderVersion: toTextValue(row["recorderVersion"]),
     rrwebVersion: toTextValue(row["rrwebVersion"]),
     countryCode: toTextValue(row["countryCode"]),
-    identifiedUserKey: toTextValue(row["identifiedUserKey"]),
-    identifiedUserLabel: toTextValue(row["identifiedUserLabel"]),
-    identifiedUserTraits: toStringMapValue(row["identifiedUserTraits"]),
+    /* See buildProvisionalHeaderStatement: the newest version that has them. */
+    identifiedUserKey: toTextValue(row["latestIdentifiedUserKey"]),
+    identifiedUserLabel: toTextValue(row["latestIdentifiedUserLabel"]),
+    identifiedUserTraits: toStringMapValue(row["latestIdentifiedUserTraits"]),
     visitorId: toTextValue(row["visitorId"]),
-    tags: toStringMapValue(row["tags"]),
+    tags: toStringMapValue(row["latestTags"]),
     traceIds: toTextArrayValue(row["traceIds"]),
     exceptionFingerprints: toTextArrayValue(row["exceptionFingerprints"]),
     fidelityNotices: toTextArrayValue(row["fidelityNotices"]),

@@ -11,6 +11,8 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ArchivedResourceBanner from "../../../Components/Archive/ArchivedResourceBanner";
+import { MONITOR_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -189,6 +191,11 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={getMonitorBreadcrumbs(path)}
       sideMenu={<SideMenu monitorType={loaded.monitorType} modelId={modelId} />}
     >
+      <ArchivedResourceBanner<Monitor>
+        modelType={Monitor}
+        modelId={modelId}
+        copy={MONITOR_ARCHIVE_COPY}
+      />
       <Outlet context={outletContext} />
     </ModelPage>
   );

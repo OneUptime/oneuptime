@@ -105,7 +105,7 @@ Skicka ett e-postmeddelande via en SMTP-server som du anger i blocket.
 - **Success** — utlöses när SMTP-servern accepterade meddelandet.
 - **Error** — utlöses när SMTP-värden avvisas, servern inte går att nå eller den avvisar meddelandet. Skickar vidare felmeddelandet. Saknas **To Email**, **From Email**, **SMTP Host** eller **SMTP Port** stoppas körningen i stället.
 
-Blocket ansluter direkt till servern i sina inställningar. Det använder inte projektets [SMTP](/docs/emails/smtp)-inställningar eller OneUptimes egen e-postserver, och e-postmeddelandena det skickar visas inte i Aviseringsloggar. För att se vad det gjorde, titta i arbetsflödets [Körningar och loggar](/docs/workflows/runs-and-logs).
+Blocket ansluter direkt till servern i sina inställningar. Det använder inte projektets [SMTP](/docs/emails/smtp)-inställningar eller OneUptimes egen e-postserver, och e-postmeddelandena det skickar visas inte i Aviseringsloggar. För att se vad det gjorde, titta i arbetsflödets [Körningar](/docs/workflows/runs-and-logs).
 
 Anslutningar till loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser och molnens metadataadresser avvisas. På OneUptime Cloud avvisas även en SMTP-värd på en privat nätverksadress, eller ett namn som slås upp till en sådan. Självhostade installationer kan nå en e-postserver i sitt eget nätverk, såvida inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är satt till `true`. En avvisad värd går ut genom **Error**-utgången, och ingenting skickas.
 
@@ -131,7 +131,7 @@ Konvertera mellan text och JSON.
 
 ## Conditions
 
-Förgrena utifrån en jämförelse. I panelen **Lägg till komponent** heter det här blocket **If / Else**, under kategorin Conditions.
+Förgrena utifrån en jämförelse. I panelen **Lägg till komponent** heter det här blocket **If / Else**, under **Popular**.
 
 **Inställningar**:
 
@@ -159,7 +159,7 @@ Det finns en säkerhetsgräns så att arbetsflöden inte kan fortsätta anropa v
 
 ## OneUptime-datakomponenter
 
-För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna — sök på typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
+För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna: klicka på posttypen under **OneUptime resources** (de som inte visas finns under **Browse all resources**), eller sök på typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
 
 - **Find One Monitor** — läs en post som matchar frågan.
 - **Find Many Monitors** — läs en lista med poster som matchar frågan.
@@ -217,5 +217,5 @@ Några snabba regler:
 ## Läs vidare
 
 - [Arbetsflödesvariabler](/docs/workflows/variables) — skicka data mellan block.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — kontrollera vad varje block gjorde under en körning.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs) — kontrollera vad varje block gjorde under en körning.
 - [Arbetsflödeskonfiguration & säkerhet](/docs/workflows/configuration) — gränser, ägare och hemligheter.

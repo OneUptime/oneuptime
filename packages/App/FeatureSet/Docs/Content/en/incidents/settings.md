@@ -12,6 +12,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 
 | Page                     | What you do there                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
+| **AI**                   | Turn automatic investigation, automatic code fixes and postmortem drafts on or off, and set the optional limits AI works under — none apply until you set them. See [AI SRE](/docs/ai/ai-sre). |
 | **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
@@ -25,7 +26,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. **Forms** have a page of their own: [Incident Forms](/docs/incidents/forms).
 
-Expand **Rules** and you get eight more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
+Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
 
 ## Incident templates
 
@@ -332,22 +333,23 @@ Both are off by default, and only Project Owners and Project Admins can change t
 
 ## Rules that run when an incident is created
 
-**Incidents → Rules** holds eight rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
+**Incidents → Rules** holds nine rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
 
 - **Grouping Rules** — group related incidents into episodes. Rules are evaluated in priority order; lower priority numbers go first.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
+- **Auto Remediation Rules** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
 - **SLA Rules** — track response and resolution times. Rules are evaluated in order; lower order numbers go first.
 - **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated in order and the first matching rule wins.
 
-**Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all eight.
+**Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
 
-The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **SLA Rules** and **Reminder Rules** are single tables.
+The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **Auto Remediation Rules**, **SLA Rules** and **Reminder Rules** are single tables.
 
-Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
+Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, Auto Remediation, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
 
 ## Incident on-call rules
 
@@ -381,7 +383,7 @@ To see what happened, open the incident and choose **On-Call Executions** in its
 
 ## Driving incidents from workflows
 
-Workflow triggers for incidents are not hand-written — OneUptime generates them from the data models, so every incident-family model gets **On Create X**, **On Update X** and **On Delete X** components, named from the model's singular name. The headline three are **On Create Incident**, **On Update Incident** and **On Delete Incident**, and you'll find them under the **Incident** category in the **Add Component** panel at `/dashboard/{projectId}/workflows`.
+Workflow triggers for incidents are not hand-written — OneUptime generates them from the data models, so every incident-family model gets **On Create X**, **On Update X** and **On Delete X** components, named from the model's singular name. The headline three are **On Create Incident**, **On Update Incident** and **On Delete Incident**. You'll find them in the **Add Trigger** panel at `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; the first two are also under **Popular**.
 
 The same generation gives you triggers for the configuration itself: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** and more. Each model also gets matching action components — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** and their many-row equivalents — so a trigger and an action with similar names sit side by side in the same category. **On Create Incident** starts a workflow; **Create One Incident** opens one.
 

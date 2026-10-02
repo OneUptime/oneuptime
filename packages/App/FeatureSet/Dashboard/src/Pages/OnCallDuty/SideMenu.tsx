@@ -8,6 +8,9 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   let subItemMenuLink: Link | undefined = undefined;
@@ -51,6 +54,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.ShieldCheck,
+        },
+        /*
+         * Archived policies are filtered out of the policy list, so without
+         * this entry the only way back to one would be its URL. After
+         * Readiness, which must stay right under the list (see above).
+         */
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },
@@ -209,6 +226,11 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: OnCallDutyPolicy,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

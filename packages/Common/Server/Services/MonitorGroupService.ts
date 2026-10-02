@@ -17,6 +17,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import StatusPageResourceService from "./StatusPageResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
 
 export class Service extends DatabaseService<MonitorGroup> {
   public constructor() {
@@ -66,19 +67,24 @@ export class Service extends DatabaseService<MonitorGroup> {
     }
 
     const monitorGroupResources: Array<MonitorGroupResource> =
-      await MonitorGroupResourceService.findBy({
-        query: {
-          monitorGroupId: monitorGroup.id!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          monitorId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      ArchivedMonitorResources.withoutArchivedMonitors(
+        await MonitorGroupResourceService.findBy({
+          query: {
+            monitorGroupId: monitorGroup.id!,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            monitorId: true,
+            monitor: {
+              isArchived: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
 
     if (monitorGroupResources.length === 0) {
       return [];
@@ -156,22 +162,29 @@ export class Service extends DatabaseService<MonitorGroup> {
 
     // now get all the monitors in this group with current status.
 
+    /*
+     * An archived monitor is not checked, so its status is frozen: it does
+     * not count towards the group's status (ArchivedMonitorResources).
+     */
     const monitorGroupResources: Array<MonitorGroupResource> =
-      await MonitorGroupResourceService.findBy({
-        query: {
-          monitorGroupId: monitorGroup.id!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          monitor: {
-            currentMonitorStatusId: true,
+      ArchivedMonitorResources.withoutArchivedMonitors(
+        await MonitorGroupResourceService.findBy({
+          query: {
+            monitorGroupId: monitorGroup.id!,
           },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            monitor: {
+              currentMonitorStatusId: true,
+              isArchived: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
 
     const monitorStatuses: Array<MonitorStatus> =
       await MonitorStatusService.findBy({
@@ -259,6 +272,7 @@ export class Service extends DatabaseService<MonitorGroup> {
           monitorId: true,
           monitor: {
             currentMonitorStatusId: true,
+            isArchived: true,
           },
         },
         props: {
@@ -266,7 +280,14 @@ export class Service extends DatabaseService<MonitorGroup> {
         },
       });
 
-    for (const monitorGroupResource of monitorGroupResources) {
+    /*
+     * Archived members are left out: a status page that shows the group, its
+     * status and its timeline all come from here, and an archived monitor's
+     * frozen status must not decide any of them.
+     */
+    for (const monitorGroupResource of ArchivedMonitorResources.withoutArchivedMonitors(
+      monitorGroupResources,
+    )) {
       if (!monitorGroupResource.monitorGroupId) {
         continue;
       }

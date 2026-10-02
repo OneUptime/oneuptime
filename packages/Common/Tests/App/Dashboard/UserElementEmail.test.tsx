@@ -79,6 +79,56 @@ const avatar: AvatarFunction = (): HTMLImageElement => {
 };
 
 describe("UserElement", () => {
+  describe("in a place narrower than its text", () => {
+    /*
+     * A table column with a width cap squeezes the row. The text is what has
+     * to give (it truncates); an avatar that shrinks instead turns from a
+     * circle into a sliver, because an image may not be wider than its box.
+     */
+    test("the avatar keeps its width: its box is not allowed to shrink", () => {
+      render(
+        <UserElement
+          user={{ _id: USER_ID, name: "Jane Doe", email: "jane@acme.com" }}
+        />,
+      );
+
+      expect(avatar().parentElement).toHaveClass("shrink-0");
+      expect(avatar()).toHaveClass("h-8", "w-8", "rounded-full");
+    });
+
+    test("the text beside it is what may shrink", () => {
+      render(
+        <UserElement
+          user={{ _id: USER_ID, name: "Jane Doe", email: "jane@acme.com" }}
+        />,
+      );
+
+      const text: HTMLElement | null =
+        screen.getByTestId("user-email").parentElement;
+
+      expect(text).toHaveClass("min-w-0");
+      expect(text).not.toHaveClass("shrink-0");
+      expect(screen.getByTestId("user-email")).toHaveClass("truncate");
+    });
+
+    test("the automation row's avatar keeps its width too", () => {
+      render(<UserElement user={{}} />);
+
+      expect(avatar().parentElement).toHaveClass("shrink-0");
+    });
+
+    test("a caller can make the name truncate as well", () => {
+      render(
+        <UserElement
+          user={{ _id: USER_ID, name: "Jane Doe", email: "jane@acme.com" }}
+          usernameClassName="block truncate"
+        />,
+      );
+
+      expect(screen.getByText("Jane Doe")).toHaveClass("block", "truncate");
+    });
+  });
+
   describe("showing the email", () => {
     /*
      * The whole point of the change. If this fails, every user row in the

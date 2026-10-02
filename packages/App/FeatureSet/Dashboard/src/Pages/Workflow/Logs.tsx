@@ -6,12 +6,11 @@ import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
+import { getWorkflowRunDownloadActions } from "Common/UI/Components/Workflow/DownloadWorkflowRun";
 import {
-  WorkflowStepTrace,
-  emptyTrace,
-  parseTrace,
-} from "Common/Types/Workflow/StepTrace";
-import { JSONValue } from "Common/Types/JSON";
+  WorkflowRunExport,
+  getWorkflowRunExportFromWorkflowLog,
+} from "Common/UI/Components/Workflow/WorkflowRunExport";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -25,9 +24,8 @@ import React, {
 } from "react";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
-  const [logs, setLogs] = useState<string>("");
-  const [stepTrace, setStepTrace] = useState<WorkflowStepTrace>(emptyTrace());
+  // The run open in the modal: what it shows, and what Download saves.
+  const [openRun, setOpenRun] = useState<WorkflowRunExport | null>(null);
 
   return (
     <Fragment>
@@ -49,28 +47,37 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 item: WorkflowLog,
                 onCompleteAction: VoidFunction,
               ) => {
-                setLogs(item["logs"] as string);
-                setStepTrace(
-                  parseTrace((item["stepTrace"] as JSONValue) || null),
-                );
-                setShowViewLogsModal(true);
+                setOpenRun(getWorkflowRunExportFromWorkflowLog(item));
 
                 onCompleteAction();
               },
             },
+            // Download log and Download run as JSON, in the row's ⋯ menu.
+            ...getWorkflowRunDownloadActions(),
           ]}
           isEditable={false}
           isCreateable={false}
           name="Workflow Logs"
+          /*
+           * The menu calls this page Runs (in its Logs section), so the card
+           * and the row count say runs too, not "Workflow Logs".
+           */
+          singularName="Workflow Run"
+          pluralName="Workflow Runs"
           isViewable={false}
+          /*
+           * The log and the steps are what View Logs shows and the downloads
+           * save; the workflow's id heads a downloaded log.
+           */
           selectMoreFields={{
             logs: true,
             stepTrace: true,
+            workflowId: true,
           }}
           cardProps={{
-            title: "Workflow Logs",
+            title: "Runs",
             description:
-              "List of logs in the last 30 days for all your workflows",
+              "Every run of every workflow in this project, from the last 30 days.",
           }}
           noItemsMessage={
             "Looks like no workflow ran so far in the last 30 days."
@@ -178,14 +185,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
         />
 
-        {showViewLogsModal && (
+        {openRun && (
           <WorkflowLogModal
             title="Workflow Run"
             description="Here is what happened when this workflow ran."
-            logs={logs}
-            stepTrace={stepTrace}
+            logs={openRun.logs}
+            stepTrace={openRun.stepTrace}
+            run={openRun}
             onClose={() => {
-              setShowViewLogsModal(false);
+              setOpenRun(null);
             }}
           />
         )}

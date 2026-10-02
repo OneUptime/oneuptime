@@ -1,7 +1,11 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Route from "../../API/Route";
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
+import {
+  DatabaseOperation,
+  getDatabaseOperation,
+  WRITE_DATABASE_OPERATIONS,
+} from "../DatabaseOperation";
 import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
@@ -54,30 +58,12 @@ export default class BaseModelComponent {
     const limitDescription: string = `The most ${model.pluralName} this step will touch. Defaults to 10, so a query that matches 500 records still only affects 10. Raise this if you mean all of them.`;
 
     /*
-     * One file per operation, rather than one shared file for all eleven
-     * components. Shared, it had to describe Query, Select, the write payload,
-     * Items Updated and Items Deleted at once - so on Create One, which has
-     * none of those but the payload, most of it was about something else, and
-     * its one concrete instruction ("use the Select Fields picker") named an
-     * argument that component does not have.
-     *
-     * The route serves any filename in the docs directory, so these need no
-     * registration anywhere.
+     * Each of these steps has "How to use" help of its own, written for its
+     * operation and its model: Types/Workflow/Documentation/
+     * DatabaseDocumentation.ts. It, and the Add Component picker, read the
+     * operation off the id suffixes below through
+     * Types/Workflow/DatabaseOperation.ts. Rename a suffix there too.
      */
-    const findDocs: Route = Route.fromString("/workflow/docs/DatabaseFind.md");
-    const createDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseCreate.md",
-    );
-    const updateDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseUpdate.md",
-    );
-    const deleteDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseDelete.md",
-    );
-    // The triggers had no documentation link at all, so their card never rendered.
-    const triggerDocs: Route = Route.fromString(
-      "/workflow/docs/DatabaseTriggers.md",
-    );
 
     if (model.enableWorkflowOn.read) {
       components.push({
@@ -88,7 +74,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: findDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -148,7 +133,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: findDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -226,7 +210,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        documentationLink: triggerDocs,
         runWorkflowManuallyArguments: [
           {
             type: ComponentInputType.Text,
@@ -251,8 +234,8 @@ export default class BaseModelComponent {
         outPorts: [
           {
             title: "Success",
-            description:
-              "This is executed when the query executes successfully",
+            // A trigger runs no query of its own; this fired on a delete.
+            description: `This is executed when the ${model.singularName} is deleted.`,
             id: "success",
           },
         ],
@@ -266,7 +249,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: deleteDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -318,7 +300,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: deleteDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -388,7 +369,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        documentationLink: triggerDocs,
         runWorkflowManuallyArguments: [
           {
             type: ComponentInputType.Text,
@@ -437,7 +417,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: createDocs,
         arguments: [
           {
             id: "json",
@@ -489,7 +468,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: createDocs,
         arguments: [
           {
             id: "json-array",
@@ -543,7 +521,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        documentationLink: triggerDocs,
         runWorkflowManuallyArguments: [
           {
             type: ComponentInputType.Text,
@@ -599,7 +576,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: updateDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -659,7 +635,6 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: updateDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -725,6 +700,22 @@ export default class BaseModelComponent {
             id: "error",
           },
         ],
+      });
+    }
+
+    /*
+     * A table only OneUptime writes, such as a call log, keeps its triggers
+     * and its Find steps but offers no step that writes its rows. See
+     * EnableWorkflowOn.writeSteps.
+     */
+    if (model.enableWorkflowOn.writeSteps === false) {
+      return components.filter((component: ComponentMetadata): boolean => {
+        const operation: DatabaseOperation | null = getDatabaseOperation({
+          componentId: component.id,
+          tableName: model.tableName!,
+        });
+
+        return !operation || !WRITE_DATABASE_OPERATIONS.includes(operation);
       });
     }
 

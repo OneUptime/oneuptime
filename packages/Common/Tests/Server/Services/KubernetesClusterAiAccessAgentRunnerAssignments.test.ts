@@ -262,7 +262,7 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
         'Runner "kubernetes-agent/prod-us"',
       );
       expect((thrown as Error).message).toContain("never given a credential");
-      expect((thrown as Error).message).toContain("Project Settings → Runners");
+      expect((thrown as Error).message).toContain("Runbooks → Runners");
     });
 
     it("refuses to assign an existing credential to an agent Runner, whatever shape the list arrives in", async () => {

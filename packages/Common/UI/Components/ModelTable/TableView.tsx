@@ -12,6 +12,8 @@ import { ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
 import { BarLoader } from "react-spinners";
 import ConfirmModal from "../Modal/ConfirmModal";
+import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
+import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import { FormType } from "../Forms/ModelForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -359,8 +361,18 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   if (tableViewToDelete) {
     return (
       <ConfirmModal
-        description={`Are you sure you want to delete view - ${tableViewToDelete.name}?`}
-        title={`Delete ${tableViewToDelete.name}`}
+        /*
+         * Titled by kind and named in the sentence, like every other delete:
+         * "Delete View" / "Are you sure you want to delete Open incidents?".
+         */
+        description={
+          <DeleteConfirmationMessage
+            kind="question"
+            name={getRecordDisplayName(tableViewToDelete)}
+            typeLabel="view"
+          />
+        }
+        title="Delete View"
         isLoading={isLoading}
         onSubmit={async () => {
           await deleteTableView(tableViewToDelete);

@@ -74,7 +74,9 @@ import useTelemetrySnapshotZoom, {
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
-import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
+import InvestigationPanel, {
+  InvestigationConversationSlot,
+} from "../../../Components/AI/InvestigationPanel";
 import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
@@ -818,12 +820,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
-            renderConversation={(variant: "embedded" | "card") => {
+            renderConversation={(slot: InvestigationConversationSlot) => {
               return (
                 <InvestigationConversation
                   subjectType="alert"
                   subjectId={modelId}
-                  variant={variant}
+                  investigationStage={slot.investigationStage}
                 />
               );
             }}

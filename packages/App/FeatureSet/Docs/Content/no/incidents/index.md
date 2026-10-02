@@ -114,10 +114,9 @@ Etterpå kan du skrive en etteranalyse og eventuelt publisere den på statusside
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Oversikt**      | **Alle hendelser** og **Aktive hendelser** — den siste bærer en rød teller med antall hendelser som ikke er i den løste tilstanden.                                        |
 | **Episoder**      | Hendelsesepisoder, en egen grupperingsfunksjon med sine egne sider.                                                                                                        |
-| **KI**            | **Undersøkelse** og **Utbedring** — innstillinger for automatisk undersøkelse og automatisk utbedring.                                                                     |
 | **Arbeidsområde** | **Slack**- og **Microsoft Teams**-tilkoblinger for hendelser.                                                                                                              |
-| **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**.      |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Flere innstillinger**.   |
+| **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
+| **Innstillinger** | **KI**, **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Flere innstillinger**. |
 
 **Regler** og **Innstillinger** er sammenslått som standard — utvid dem for å finne sidene resten av denne dokumentasjonen viser til. Hendelseskonfigurasjon ligger ikke under Prosjektinnstillinger; alt sammen bor her.
 

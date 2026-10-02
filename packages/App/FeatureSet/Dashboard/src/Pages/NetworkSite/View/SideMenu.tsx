@@ -20,6 +20,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -141,6 +144,12 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: NetworkSite,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Manage">
         <SideMenuItem

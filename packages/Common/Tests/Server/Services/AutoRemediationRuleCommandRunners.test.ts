@@ -207,7 +207,7 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
       expect(message).toContain("Bash or SSH");
       expect(message).toContain("Kubernetes AI agent");
       expect(message).toContain("AI → Agent");
-      expect(message).toContain("Project Settings → Runners");
+      expect(message).toContain("Runbooks → Runners");
       expect(message).toBe(
         AutoRemediationRuleServiceClass.getAgentCommandRunnerRefusal(
           RUNNERS[2]!,

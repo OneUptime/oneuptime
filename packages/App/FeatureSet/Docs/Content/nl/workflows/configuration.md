@@ -4,14 +4,14 @@ Deze pagina behandelt de instellingen en veiligheidsgrenzen die je wilt kennen v
 
 ## Een workflow aan- of uitzetten
 
-Elke workflow heeft een schakelaar **Ingeschakeld** in **Instellingen**. Staat die uit, dan draait de workflow niet — webhook-aanroepen, geplande tijdstippen en OneUptime-gebeurtenissen worden allemaal genegeerd. Nieuwe workflows beginnen uitgeschakeld.
+Elke workflow heeft een schakelaar **Ingeschakeld** bovenaan zijn **Bouwer** en op zijn pagina **Overzicht**. Staat die uit, dan draait de workflow niet — webhook-aanroepen, geplande tijdstippen en OneUptime-gebeurtenissen worden allemaal genegeerd, en **Workflow uitvoeren** en **Run just this step** ook. Nieuwe workflows beginnen uitgeschakeld.
 
 Gebruik deze schakelaar als je "klaar voor gebruik"-poort:
 
 1. Bouw de workflow.
-2. Klik op **Workflow uitvoeren** in de **Bouwer**, met realistische waarden.
+2. Klik op **Workflow uitvoeren** in de **Bouwer**, met realistische waarden. Een uitgeschakelde workflow draait zelfs niet met de hand, dus de Bouwer vraagt eerst of hij aan moet: klik op **Inschakelen en uitvoeren**.
 3. Controleer de **Logboeken** — ga na dat elk blok terechtkwam waar je het verwachtte.
-4. Zet **Ingeschakeld** aan.
+4. Laat **Ingeschakeld** aan als hij klaar is. Zo niet, zet hem uit tot hij het is: zolang hij aan staat, gaat zijn trigger af op echte gebeurtenissen.
 
 Een workflow uitzetten stopt geen uitvoeringen die al bezig zijn; het voorkomt alleen dat er nieuwe starten.
 

@@ -24,8 +24,8 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * daily token budget, retries, TTL expiry, stale sweeping) — this module
  * only owns the insight-specific gates, mirroring the posture of
  * AIInvestigationEngine.isEnabledForProject: enableAi not disabled,
- * the subject's own strict opt-in (Project.enableAiInsights, default
- * FALSE), and a configured LLM provider.
+ * the subject's own switch (Project.enableAiInsights, on for new
+ * projects), and a configured LLM provider.
  */
 
 export interface InsightTriageResult {
@@ -76,9 +76,10 @@ export default class InsightTriage {
       }
 
       /*
-       * Strict opt-in — the column defaults to false. A triage run only
-       * exists because insights exist, so it shares the insights flag; the
-       * fix-tasks flag is a separate, stricter opt-in.
+       * Strictly === true — the column defaults to false, so unset/legacy
+       * rows never enqueue. A triage run only exists because insights
+       * exist, so it shares the insights flag; the fix-tasks flag is a
+       * separate switch.
        */
       if (project.enableAiInsights !== true) {
         logger.debug(

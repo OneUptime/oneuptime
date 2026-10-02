@@ -40,6 +40,9 @@ import VMwareVCenterDelete from "../Pages/VMware/View/Delete";
 import VMwareVCenterDocumentation from "../Pages/VMware/View/Documentation";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
 import VMwareVCenterOwnerRule from "Common/Models/DatabaseModels/VMwareVCenterOwnerRule";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const VMwareRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -116,6 +119,13 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: VMwareVCenter,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.VMWARE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -470,6 +480,12 @@ const VMwareRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: VMwareVCenter,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

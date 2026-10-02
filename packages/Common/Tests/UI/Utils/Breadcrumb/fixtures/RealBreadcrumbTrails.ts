@@ -2217,6 +2217,21 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runner-credentials",
+    titles: ["Project", "Runbooks", "Runner Credentials"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runners",
+    titles: ["Project", "Runbooks", "Runners"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/runbooks/runners/:id",
+    titles: ["Project", "Runbooks", "Runners", "View Runner"],
+  },
+  {
+    getter: "getRunbooksBreadcrumbs",
     pagePattern: "/dashboard/:projectId/runbooks/settings/secrets",
     titles: ["Project", "Runbooks", "Secrets"],
   },
@@ -3293,7 +3308,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getWorkflowsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/workflows/:id/logs",
-    titles: ["Project", "Workflows", "View Workflow", "Logs"],
+    titles: ["Project", "Workflows", "View Workflow", "Runs"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",
@@ -3313,7 +3328,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getWorkflowsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/workflows/logs",
-    titles: ["Project", "Workflows", "Logs"],
+    titles: ["Project", "Workflows", "Runs"],
   },
   {
     getter: "getWorkflowsBreadcrumbs",

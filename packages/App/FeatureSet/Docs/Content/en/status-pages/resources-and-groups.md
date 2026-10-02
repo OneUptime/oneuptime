@@ -6,6 +6,8 @@ You build both on a single screen. Open a status page and pick **Resources** in 
 
 Get this part right and the rest of the status page is decoration. Visitors judge "is it me or is it them?" from these rows, so name them the way customers talk about your product — **Checkout API**, not `prod-checkout-lb-healthcheck-us-east-1`.
 
+**Archived monitors are not shown.** A monitor that is archived is no longer checked, so its last status is frozen; the page leaves its row out (and leaves it out of a monitor group's status) rather than show that frozen status as if it were live. The row is kept, so unarchiving the monitor puts it straight back.
+
 **Resources also decide which incidents the page shows.** An incident appears here, and the page's subscribers hear about it, when one of the incident's monitors is a resource on the page, directly or through a monitor group. Put the same monitor on several pages and its incidents reach all of them, unless an incident is limited to some of those pages. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
 ## The Resources screen

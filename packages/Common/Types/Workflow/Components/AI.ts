@@ -1,4 +1,3 @@
-import Route from "../../API/Route";
 import IconProp from "../../Icon/IconProp";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
@@ -15,13 +14,12 @@ const components: Array<ComponentMetadata> = [
       "Generate text from an instruction and explicit workflow context using the project's configured LLM provider.",
     iconProp: IconProp.Sparkles,
     componentType: ComponentType.Component,
-    documentationLink: Route.fromString("/workflow/docs/AI.md"),
     arguments: [
       {
         type: ComponentInputType.LongText,
         name: "System Instructions",
         description:
-          "Optional high-level instructions that define the model's role, tone, or constraints.",
+          "High-level instructions that define the model's role, tone, or constraints.",
         required: false,
         id: "system-prompt",
         placeholder:
@@ -42,7 +40,7 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.JSON,
         name: "Context",
         description:
-          "Optional JSON data appended after an explicit marker as untrusted workflow context.",
+          "JSON data appended after an explicit marker as untrusted workflow context.",
         required: false,
         id: "context",
         placeholder: '{ "incident": "{{...}}" }',

@@ -60,12 +60,14 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **AI**                | **MCP**.                                                                                                                                       |
 | **Advanced**          | **Monitor Rules**, **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Delete Status Page**.                         |
 
+**Advanced** starts collapsed, like the **Advanced** section of every menu in OneUptime: click it to show its pages. It opens by itself whenever you are on one of them, such as **Advanced Settings**.
+
 Two naming quirks worth knowing before you go looking:
 
 - The **Resources** item is only labeled **Resources** when the project has monitor groups enabled. Otherwise it reads **Monitors**. It is the same screen either way.
 - There is no separate Groups page. Groups and resources were merged, and the old `/groups` route now redirects to the resources screen.
 
-Outside an individual page, the **Status Pages** section itself has a **More** section with **Announcements**, and a collapsed **Settings** section holding **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules** — these are project-wide, shared across every status page.
+Outside an individual page, the **Status Pages** section itself lists **All Status Pages** and **Archived** (status pages you took offline — see [Archiving a status page](#archiving-a-status-page)), has a **More** section with **Announcements**, and a collapsed **Settings** section holding **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules** — these are project-wide, shared across every status page.
 
 ## What visitors see
 
@@ -175,6 +177,17 @@ Two ways to surface status somewhere other than the page itself.
 **RSS feed.** Every status page serves `/rss` — a feed titled "{status page name} Updates" whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
 
 If you'd rather pull the data yourself, the status page is backed by public read endpoints for the overview, incidents, scheduled maintenance events, announcements and episodes — see [Public API](/docs/status-pages/public-api).
+
+## Archiving a status page
+
+Archive a status page to take it offline without deleting it. An archived status page:
+
+- **Is offline.** Its URL, its custom domains, its embedded badge, its public API and its MCP server all answer as if the page did not exist ("Status Page not found"), so a visitor cannot tell an archived page from one that was never there. The dashboard preview link stops working too.
+- **Sends nothing to its subscribers.** No incident, episode, maintenance or announcement notifications, no reports, and no subscription confirmations. Nobody can subscribe to it.
+- **Leaves the Status Pages list.** Find it under **Status Pages → Archived**.
+- **Keeps everything.** Its resources, groups, branding, domains, private users and subscribers are kept, so unarchiving puts the page back online exactly as it was.
+
+To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
 ## Where to read next
 

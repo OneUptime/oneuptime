@@ -85,8 +85,9 @@ jobs:
         working-directory: packages/Common
         run: bash test-setup.sh
       - name: Install dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Run test shard
         working-directory: packages/Common
         run: rm -rf build && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}

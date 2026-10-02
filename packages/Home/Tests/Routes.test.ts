@@ -151,6 +151,51 @@ describe("Nostr identity route", () => {
   });
 });
 
+describe("MCP manifest route", () => {
+  /*
+   * What the manifest says is covered by AIDiscovery.test.ts. The route's own
+   * job is to exist, to answer cross-origin, and to tell the generator
+   * whether this instance has OAuth sign-in for the MCP server switched off:
+   * without that last part an instance running with DISABLE_MCP_OAUTH=true
+   * would still advertise a sign-in its MCP server refuses to offer.
+   */
+  test("the manifest is registered and served cross-origin", () => {
+    expect(hasGetRoute("/.well-known/mcp.json")).toBe(true);
+
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    expect(body).toContain('res.setHeader("Access-Control-Allow-Origin", "*")');
+    expect(body).toContain("generateMcpManifest(");
+  });
+
+  test("the manifest is told whether OAuth sign-in is switched off on this instance", () => {
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    // Enabled unless the kill switch says otherwise - never the other way round.
+    expect(body).toContain("isOAuthEnabled: !DisableMcpOAuth");
+    expect(body).not.toContain("isOAuthEnabled: DisableMcpOAuth");
+  });
+
+  test("the kill switch is the instance's own setting, read from the environment config", () => {
+    const environmentImport: RegExpMatchArray | null = routesSource.match(
+      /import\s*\{([^}]*)\}\s*from\s*"Common\/Server\/EnvironmentConfig";/,
+    );
+
+    expect(environmentImport).not.toBeNull();
+    expect(
+      environmentImport![1]!.split(",").map((name: string): string => {
+        return name.trim();
+      }),
+    ).toContain("DisableMcpOAuth");
+  });
+
+  test("the manifest is still built for the URL the visitor asked on", () => {
+    const body: string = bodyOfGetRoute("/.well-known/mcp.json")!;
+
+    expect(body).toContain('res.locals["homeUrl"] as string');
+  });
+});
+
 describe("Sitemap hygiene", () => {
   test("every redirect-only path is excluded from the sitemap", () => {
     for (const routePath of [
@@ -330,6 +375,52 @@ describe("Databases product page", () => {
 
     expect(sitemapSource).toContain(
       '"/product/databases": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
+describe("Queues product page", () => {
+  /*
+   * Route, SEO entry and sitemap priority, plus the content its system and
+   * threshold lists render from, the way the Databases page is wired.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/queues")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/queues`);
+  });
+
+  test("it hands the template the product's catalogs", () => {
+    const body: string | null = bodyOfGetRoute("/product/queues");
+
+    expect(body).toContain("getSEOForPath(");
+    expect(body).toContain('"/product/queues"');
+    expect(body).toContain("queues: getQueuesPageContent()");
+    expect(routesSource).toContain(
+      'import { getQueuesPageContent } from "./Utils/Queues";',
+    );
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/queues")).toBeNull();
+    expect(isRedirectPath("/product/queues")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/queues"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/queues");
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/queues": { priority: 0.9, changefreq: "weekly" }',
     );
   });
 });

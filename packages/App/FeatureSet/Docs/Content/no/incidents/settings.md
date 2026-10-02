@@ -12,6 +12,7 @@ Denne siden er oppslagsverket for den konfigurasjonen — hva hver side innehold
 
 | Side                     | Hva du gjør der                                                                                        |
 | ------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **KI**                   | Slå automatisk undersøkelse, automatiske koderettelser og postmortem-utkast av eller på, og sett de valgfrie grensene KI arbeider innenfor — ingen av dem gjelder før du setter dem. Se [AI SRE](/docs/ai/ai-sre). |
 | **Hendelsesstatus**      | Legg til, gi nytt navn, endre farge på og omorganiser tilstandene en hendelse beveger seg gjennom.      |
 | **Hendelsesalvor**       | Legg til, gi nytt navn, endre farge på og omorganiser alvorlighetsgradene.                             |
 | **Hendelsesmaler**       | Fyll ut en hel hendelse på forhånd — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter.    |
@@ -23,7 +24,7 @@ Denne siden er oppslagsverket for den konfigurasjonen — hva hver side innehold
 
 **Hendelsesstatus** og **Hendelsesalvor** er dekket i dybden i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden tar over fra **Hendelsesmaler**.
 
-Utvider du **Regler**, får du åtte sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Reminder Rules**. Dem tar vi lenger ned.
+Utvider du **Regler**, får du ni sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Reminder Rules**. Dem tar vi lenger ned.
 
 ## Hendelsesmaler
 
@@ -113,20 +114,21 @@ La ett av dem stå tomt for å beholde standardprefikset `#`; feltet som ikke er
 
 ## Regler som kjører når en hendelse opprettes
 
-**Hendelser → Regler** rommer åtte regelmotorer. De gjør alle den samme jobben — se på en hendelse i det øyeblikket den opprettes, og handle hvis den treffer — men de skiller seg i hva de gjør og i hvordan flere treffende regler løses opp.
+**Hendelser → Regler** rommer ni regelmotorer. De gjør alle den samme jobben — se på en hendelse i det øyeblikket den opprettes, og handle hvis den treffer — men de skiller seg i hva de gjør og i hvordan flere treffende regler løses opp.
 
 - **Grupperingsregler** — grupper beslektede hendelser i episoder. Reglene evalueres i prioritert rekkefølge; lavere prioritetstall går først.
 - **Vaktregler** — kjør vaktpolicyer for hendelser som treffer. Dekket i detalj nedenfor.
 - **Eierregler** — tildel eiere automatisk.
 - **Runbook-regler** — start en [runbook](/docs/runbooks/index) når en hendelse treffer.
+- **Regler for automatisk utbedring** — foreslå eller start utbedrings-runbooks når en hendelse treffer. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen dens i hånden. Se [AI SRE](/docs/ai/ai-sre).
 - **Personvernregler** — avgjør om en hendelse som treffer, er privat.
 - **Etikettregler** — sett på etiketter automatisk.
 - **SLA-regler** — spor tid til respons og tid til løsning. Reglene evalueres i rekkefølge; lavere rekkefølgetall går først.
 - **Reminder Rules** — påminn hendelseseierne med jevne mellomrom så lenge en hendelse fortsatt er åpen. Reglene evalueres i rekkefølge, og den første som treffer, vinner.
 
-**Rekkefølgesemantikken er ikke lik overalt.** **Grupperingsregler**, **SLA-regler** og **Reminder Rules** evalueres i rekkefølge. **Vaktregler** gjør det ikke — hver regel som treffer, utløses. Ikke gå ut fra at én modell gjelder for alle åtte.
+**Rekkefølgesemantikken er ikke lik overalt.** **Grupperingsregler**, **SLA-regler** og **Reminder Rules** evalueres i rekkefølge. **Vaktregler** gjør det ikke — hver regel som treffer, utløses. Ikke gå ut fra at én modell gjelder for alle ni.
 
-Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Konfigurer fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **SLA-regler** og **Reminder Rules** er enkle tabeller.
+Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Konfigurer fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **SLA-regler** og **Reminder Rules** er enkle tabeller.
 
 ## Vaktregler for hendelser
 
@@ -160,7 +162,7 @@ For å se hva som skjedde, åpne hendelsen og velg **Vaktutførelser** i sidemen
 
 ## Å styre hendelser fra arbeidsflyter
 
-Arbeidsflyt-triggere for hendelser er ikke håndskrevne — OneUptime genererer dem fra datamodellene, så hver modell i hendelsesfamilien får komponentene **On Create X**, **On Update X** og **On Delete X**, navngitt etter modellens entallsnavn. De tre viktigste er **On Create Incident**, **On Update Incident** og **On Delete Incident**, og du finner dem under kategorien **Incident** i panelet **Legg til komponent** på `/dashboard/{projectId}/workflows`.
+Arbeidsflyt-triggere for hendelser er ikke håndskrevne — OneUptime genererer dem fra datamodellene, så hver modell i hendelsesfamilien får komponentene **On Create X**, **On Update X** og **On Delete X**, navngitt etter modellens entallsnavn. De tre viktigste er **On Create Incident**, **On Update Incident** og **On Delete Incident**. Du finner dem i **Add Trigger**-panelet på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de to første ligger også under **Popular**.
 
 Den samme genereringen gir deg triggere for selve konfigurasjonen: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** og flere. Hver modell får også tilsvarende handlingskomponenter — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** og flerradsvariantene deres — så en trigger og en handling med like navn ligger side om side i samme kategori. **On Create Incident** starter en arbeidsflyt; **Create One Incident** oppretter en hendelse.
 

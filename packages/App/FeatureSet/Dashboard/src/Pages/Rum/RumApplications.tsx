@@ -90,12 +90,17 @@ const RumApplications: FunctionComponent<
           description:
             "Browser & mobile applications auto-discovered from OpenTelemetry RUM telemetry (browser.* / device.* resource attributes). One row per application.",
         }}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "storefront-web",
@@ -105,6 +110,7 @@ const RumApplications: FunctionComponent<
               appIdentifier: true,
             },
             title: "App Identifier",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "storefront-web",
@@ -116,6 +122,7 @@ const RumApplications: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Customer-facing storefront web app",
@@ -125,6 +132,7 @@ const RumApplications: FunctionComponent<
               labels: true,
             },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,

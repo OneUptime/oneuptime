@@ -2,6 +2,7 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "../../Types/AnalyticsDatabase/RetentionTtl";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -761,9 +762,31 @@ export default class Log extends AnalyticsBaseModel {
        * bloom-filter skip index and rare here.)
        */
       shardingKey: "cityHash64(projectId, primaryEntityId, time)",
-      tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      /*
+       * Deliberately NO ttl_only_drop_parts here, for the same reason as
+       * Metric: a daily partition of this table is uniform in time but not in
+       * lifetime. `retentionDate` is stamped at ingest from the service's
+       * retainTelemetryDataForDays, and TelemetryRetentionConfig lets a
+       * project override it per severity on top of that
+       * (`logs.bySeverity`) - so one day can hold rows whose retentions
+       * differ several times over. With ttl_only_drop_parts = 1 a part is
+       * dropped only once EVERY row in it has expired, and the longest-lived
+       * severity pins the whole day.
+       *
+       * Observed on a production install: 456 Fatal rows a day - 0.0002% of
+       * that day's 267M - held the full ~40 GiB a day for 30 days instead of
+       * 15. Even after the override was lowered, six already-written
+       * partitions kept 202.7 GiB alive an extra two weeks, because the stamp
+       * is fixed at ingest and the part could not be split.
+       */
+      tableSettings: "non_replicated_deduplication_window = 10000",
+      /*
+       * Rows expire one at a time, rounded up to the midnight after their
+       * retentionDate and lined up with their partition's day, as on
+       * Metric: a day's rows of one retention go together, the last ones
+       * as a free part drop. See RetentionTtl.
+       */
+      ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
       defaultSortColumn: "time",
     });
   }

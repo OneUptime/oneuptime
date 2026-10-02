@@ -541,12 +541,18 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
               // load routes every failure into the error state.
             });
           }}
+          formSteps={[
+            { title: "Coverage Gaps", id: "coverage-gaps" },
+            { title: "Time Range", id: "time-range" },
+            { title: "Security", id: "security" },
+          ]}
           formFields={[
             {
               field: {
                 includeCoverageGaps: true,
               },
               title: "Show coverage gaps",
+              stepId: "coverage-gaps",
               description: COVERAGE_GAPS_DESCRIPTION,
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
@@ -556,6 +562,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 minimumGapMinutes: true,
               },
               title: "Minimum gap to show (minutes)",
+              stepId: "coverage-gaps",
               description:
                 "Gaps shorter than this are left out (1 to 10080 minutes).",
               fieldType: FormFieldSchemaType.Number,
@@ -570,6 +577,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 pastDays: true,
               },
               title: "Days of past shifts",
+              stepId: "time-range",
               description: `How many days back the calendar reaches (0 to ${MAX_PAST_DAYS}).`,
               fieldType: FormFieldSchemaType.Number,
               required: true,
@@ -583,6 +591,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 futureDays: true,
               },
               title: "Days ahead",
+              stepId: "time-range",
               description: `How far ahead the calendar reaches (${MIN_FUTURE_DAYS} to ${MAX_FUTURE_DAYS}).`,
               fieldType: FormFieldSchemaType.Number,
               required: true,
@@ -596,6 +605,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
                 rotateWhenMemberLeaves: true,
               },
               title: "Regenerate when someone leaves the project",
+              stepId: "security",
               description:
                 "Rotates this link automatically whenever a member is removed from the project, so a former colleague's calendar stops updating.",
               fieldType: FormFieldSchemaType.Toggle,

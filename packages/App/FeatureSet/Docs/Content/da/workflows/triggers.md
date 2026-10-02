@@ -61,7 +61,7 @@ Hele posten sendes videre til den næste blok. Triggeren **Incident → On Creat
 - **Status Page Subscriber** — byd en, der abonnerer på en statusside, velkommen.
 - **On-Call Duty Policy** — synkronisér ændringer i vagtplanen til et andet vagtsystem.
 
-Søg i panelet **Add Trigger** på navn for at finde den, du skal bruge.
+I panelet **Add Trigger** ligger de under **OneUptime resources**: klik på ressourcen og derefter på triggeren. **Browse all resources** har dem alle, og søgefeltet finder en trigger ud fra et par ord, fx `incident created`.
 
 ## Hvilken trigger skal jeg vælge?
 
@@ -78,4 +78,4 @@ Et workflow kan kun have én trigger. Har du brug for to måder at starte den sa
 
 - [Workflow-komponenter](/docs/workflows/components) — de handlinger, du tilføjer efter triggeren.
 - [Workflow-variabler](/docs/workflows/variables) — sådan læser du triggerens output fra senere blokke.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — sådan bekræfter du, at din trigger blev udløst.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — sådan bekræfter du, at din trigger blev udløst.

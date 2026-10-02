@@ -51,6 +51,7 @@ function makeGroupResource(data: {
   monitorId?: ObjectID | undefined;
   currentMonitorStatusId?: ObjectID | undefined;
   omitMonitor?: boolean;
+  isArchived?: boolean;
 }): MonitorGroupResource {
   const resource: MonitorGroupResource = new MonitorGroupResource();
   if (data.monitorGroupId) {
@@ -63,6 +64,9 @@ function makeGroupResource(data: {
     const monitor: Monitor = new Monitor();
     if (data.currentMonitorStatusId) {
       monitor.currentMonitorStatusId = data.currentMonitorStatusId;
+    }
+    if (data.isArchived !== undefined) {
+      monitor.isArchived = data.isArchived;
     }
     resource.monitor = monitor;
   }
@@ -144,12 +148,16 @@ describe("MonitorGroupService batched status helpers", () => {
       const callArg: any = findAllBySpy.mock.calls[0]![0];
       // The exact FindOperator QueryHelper.any built is what findAllBy receives.
       expect(callArg.query.monitorGroupId).toBe(anySpy.mock.results[0]!.value);
-      // The select must carry the grouping key and the member's current status.
+      /*
+       * The select must carry the grouping key, the member's current status,
+       * and whether the member is archived (archived members are dropped).
+       */
       expect(callArg.select).toEqual({
         monitorGroupId: true,
         monitorId: true,
         monitor: {
           currentMonitorStatusId: true,
+          isArchived: true,
         },
       });
       expect(callArg.props).toEqual({ isRoot: true });
@@ -171,6 +179,32 @@ describe("MonitorGroupService batched status helpers", () => {
 
       expect(result).toEqual({});
       expect(findAllBySpy).not.toHaveBeenCalled();
+    });
+
+    test("leaves archived members out: an archived monitor's frozen status must not speak for the group", async () => {
+      const group: ObjectID = ObjectID.generate();
+      const live: MonitorGroupResource = makeGroupResource({
+        monitorGroupId: group,
+        monitorId: ObjectID.generate(),
+        isArchived: false,
+      });
+      const archived: MonitorGroupResource = makeGroupResource({
+        monitorGroupId: group,
+        monitorId: ObjectID.generate(),
+        isArchived: true,
+      });
+      // Unset reads as not archived, like the column's default.
+      const unknown: MonitorGroupResource = makeGroupResource({
+        monitorGroupId: group,
+        monitorId: ObjectID.generate(),
+      });
+
+      spyOnFindAllBy([live, archived, unknown]);
+
+      const result: Dictionary<Array<MonitorGroupResource>> =
+        await MonitorGroupService.getMonitorGroupResourcesByGroupIds([group]);
+
+      expect(result[group.toString()]).toEqual([live, unknown]);
     });
   });
 

@@ -94,6 +94,8 @@ The chart's built-in datastores run as **single instances** by default. For prod
 
 Telemetry retention is enforced as a **ClickHouse TTL configured in days**, set **per project** and refinable **per signal** (logs, metrics, traces, profiles) and per bucket (for example by log severity). The hardcoded default is 15 days.
 
+Logs and metrics are deleted a day at a time, at the first midnight (ClickHouse server time) after their retention ends, which saves ClickHouse rewriting each day of them every few hours while it expires. Just before midnight, up to one day more than the retention window is still on disk: size logs and metrics for **retention days + 1**.
+
 Because retention directly multiplies ClickHouse storage, decide it before you size disk. OneUptime does **not** automatically archive or tier old telemetry to object storage — for multi-year compliance retention, extend the retention window and size ClickHouse storage to match (or export to an external archive of your choosing).
 
 ## Measure before you commit

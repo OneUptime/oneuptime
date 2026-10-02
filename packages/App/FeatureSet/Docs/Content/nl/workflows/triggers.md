@@ -61,7 +61,7 @@ Het volledige record gaat door naar het volgende blok. De trigger **Incident →
 - **Status Page Subscriber** — verwelkom iemand die zich op een statuspagina abonneert.
 - **On-Call Duty Policy** — synchroniseer roosterwijzigingen met een ander roostersysteem.
 
-Zoek in het paneel **Add Trigger** op naam om de juiste te vinden.
+In het paneel **Add Trigger** staan ze onder **OneUptime resources**: klik op de resource en daarna op de trigger. **Browse all resources** heeft ze allemaal, en het zoekveld vindt een trigger aan de hand van een paar woorden, zoals `incident created`.
 
 ## Welke trigger moet ik gebruiken?
 
@@ -78,4 +78,4 @@ Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelf
 
 - [Workflow-componenten](/docs/workflows/components) — de acties die je na de trigger toevoegt.
 - [Workflow-variabelen](/docs/workflows/variables) — triggeruitvoer lezen vanuit latere blokken.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — bevestigen dat je trigger is afgegaan.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — bevestigen dat je trigger is afgegaan.

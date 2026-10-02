@@ -68,6 +68,7 @@ jest.mock("Common/Server/Services/MonitorService", () => {
       findAllBy: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       updateOneById: jest.fn(),
+      getEnabledMonitorQuery: jest.fn(),
     },
   };
 });
@@ -92,7 +93,20 @@ interface MonitorServiceMock {
   findAllBy: jest.Mock;
   updateColumnsByIdWithoutHooks: jest.Mock;
   updateOneById: jest.Mock;
+  getEnabledMonitorQuery: jest.Mock;
 }
+
+/*
+ * What MonitorService.getEnabledMonitorQuery returns: none of the four pause
+ * flags set. The scheduler spreads it into its sweep, so an archived or
+ * disabled telemetry monitor is never stamped or queued.
+ */
+const ENABLED_MONITOR_QUERY: Record<string, boolean> = {
+  isArchived: false,
+  disableActiveMonitoring: false,
+  disableActiveMonitoringBecauseOfManualIncident: false,
+  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+};
 
 const monitorService: MonitorServiceMock =
   MonitorService as unknown as MonitorServiceMock;
@@ -177,7 +191,26 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     monitorService.findAllBy.mockResolvedValue([]);
     monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
     monitorService.updateOneById.mockResolvedValue(undefined);
+    monitorService.getEnabledMonitorQuery.mockReturnValue({
+      ...ENABLED_MONITOR_QUERY,
+    });
     enqueueJobMock.mockResolvedValue(undefined);
+  });
+
+  test("sweeps only monitors that are checked: the enabled-monitor query, archived ones left out", async () => {
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    expect(monitorService.getEnabledMonitorQuery).toHaveBeenCalled();
+    expect(monitorService.findAllBy).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, unknown> = (
+      monitorService.findAllBy.mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+      }
+    ).query;
+
+    expect(query).toMatchObject(ENABLED_MONITOR_QUERY);
+    expect(query["isArchived"]).toBe(false);
   });
 
   test("stamps every due monitor exactly once through the hookless fast path with BOTH scheduler columns", async () => {

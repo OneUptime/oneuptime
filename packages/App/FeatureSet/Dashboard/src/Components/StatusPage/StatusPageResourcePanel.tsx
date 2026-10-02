@@ -1387,10 +1387,14 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         ) : (
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 [&_button]:md:ml-0">
             {canAddToSelection ? (
+              /*
+               * Repeats the header's primary "Add Monitor", drawn plain the
+               * way an empty table repeats its Create button.
+               */
               <Button
                 title="Add Monitor"
                 icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonStyle={ButtonStyleType.NORMAL}
                 dataTestId="status-page-resource-panel-empty-add"
                 onClick={() => {
                   openCreate(null, null);

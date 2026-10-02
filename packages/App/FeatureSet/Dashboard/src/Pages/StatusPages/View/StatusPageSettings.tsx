@@ -7,6 +7,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
@@ -23,12 +28,17 @@ const StatusPageDelete: FunctionComponent<
         }}
         editButtonText="Edit Settings"
         isEditable={true}
+        formSteps={[
+          { title: "Incidents", id: "incidents" },
+          { title: "Labels & Scope", id: "labels-and-scope" },
+        ]}
         formFields={[
           {
             field: {
               showIncidentsOnStatusPage: true,
             },
             title: "Show Incidents",
+            stepId: "incidents",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -37,6 +47,7 @@ const StatusPageDelete: FunctionComponent<
               showIncidentHistoryInDays: true,
             },
             title: "Show Incident History (in days)",
+            stepId: "incidents",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "14",
@@ -46,6 +57,7 @@ const StatusPageDelete: FunctionComponent<
               showIncidentLabelsOnStatusPage: true,
             },
             title: "Show Incident Labels",
+            stepId: "labels-and-scope",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -59,6 +71,7 @@ const StatusPageDelete: FunctionComponent<
               onlyShowScopedIncidents: true,
             },
             title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
+            stepId: "labels-and-scope",
             description:
               IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,
             fieldType: FormFieldSchemaType.Toggle,
@@ -345,12 +358,18 @@ const StatusPageDelete: FunctionComponent<
         }}
         editButtonText="Edit Settings"
         isEditable={true}
+        formSteps={[
+          { title: "Subscriber Page", id: "subscriber-page" },
+          { title: "Email & SMS", id: "email-and-sms" },
+          { title: "Chat & Webhooks", id: "chat-and-webhooks" },
+        ]}
         formFields={[
           {
             field: {
               showSubscriberPageOnStatusPage: true,
             },
             title: "Show Subscriber Page",
+            stepId: "subscriber-page",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -359,6 +378,7 @@ const StatusPageDelete: FunctionComponent<
               enableEmailSubscribers: true,
             },
             title: "Enable Email Subscribers",
+            stepId: "email-and-sms",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -367,6 +387,7 @@ const StatusPageDelete: FunctionComponent<
               enableSmsSubscribers: true,
             },
             title: "Enable SMS Subscribers",
+            stepId: "email-and-sms",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -375,6 +396,7 @@ const StatusPageDelete: FunctionComponent<
               enableSlackSubscribers: true,
             },
             title: "Enable Slack Subscribers",
+            stepId: "chat-and-webhooks",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -383,6 +405,7 @@ const StatusPageDelete: FunctionComponent<
               enableMicrosoftTeamsSubscribers: true,
             },
             title: "Enable Microsoft Teams Subscribers",
+            stepId: "chat-and-webhooks",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -391,6 +414,7 @@ const StatusPageDelete: FunctionComponent<
               enableWebhookSubscribers: true,
             },
             title: "Enable Webhook Subscribers",
+            stepId: "chat-and-webhooks",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -487,6 +511,27 @@ const StatusPageDelete: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      {/*
+       * Last on the page: taking the page offline is a decision about the
+       * page as a whole, not one more thing it shows.
+       */}
+      <ArchiveResourceCard<StatusPage>
+        modelType={StatusPage}
+        modelId={modelId}
+        singularName={STATUS_PAGE_ARCHIVE_COPY.singularName}
+        listRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STATUS_PAGES] as Route,
+        )}
+        archiveCardDescription={STATUS_PAGE_ARCHIVE_COPY.archiveCardDescription}
+        unarchiveCardDescription={
+          STATUS_PAGE_ARCHIVE_COPY.unarchiveCardDescription
+        }
+        archiveConfirmMessage={STATUS_PAGE_ARCHIVE_COPY.archiveConfirmMessage}
+        unarchiveConfirmMessage={
+          STATUS_PAGE_ARCHIVE_COPY.unarchiveConfirmMessage
+        }
       />
     </Fragment>
   );

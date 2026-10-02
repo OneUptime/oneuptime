@@ -105,7 +105,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 - **Success** — SMTP 서버가 메시지를 수락했을 때 발생합니다.
 - **Error** — SMTP 호스트가 거부되었거나, 서버에 연결할 수 없거나, 서버가 메시지를 거부했을 때 발생합니다. 오류 메시지를 함께 넘깁니다. **To Email**, **From Email**, **SMTP Host**, **SMTP Port** 중 하나라도 비어 있으면 대신 실행 자체가 중지됩니다.
 
-이 블록은 설정에 있는 서버에 바로 연결합니다. 프로젝트의 [SMTP](/docs/emails/smtp) 설정이나 OneUptime 자체 메일 서버를 사용하지 않으며, 이 블록이 보낸 이메일은 알림 로그에 나타나지 않습니다. 블록이 한 일을 확인하려면 워크플로의 [실행 및 로그](/docs/workflows/runs-and-logs)를 보세요.
+이 블록은 설정에 있는 서버에 바로 연결합니다. 프로젝트의 [SMTP](/docs/emails/smtp) 설정이나 OneUptime 자체 메일 서버를 사용하지 않으며, 이 블록이 보낸 이메일은 알림 로그에 나타나지 않습니다. 블록이 한 일을 확인하려면 워크플로의 [실행 기록](/docs/workflows/runs-and-logs)을 보세요.
 
 루프백(`localhost`, `127.0.0.1`), 링크 로컬, 클라우드 메타데이터 주소로의 연결은 거부됩니다. OneUptime Cloud에서는 사설 네트워크 주소에 있는 SMTP 호스트나, 그런 주소로 해석되는 이름도 거부됩니다. 셀프 호스팅 설치는 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`가 `true`로 설정되어 있지 않다면 자체 네트워크의 메일 서버에 연결할 수 있습니다. 거부된 호스트는 **Error** 출력으로 이어지며, 아무것도 전송되지 않습니다.
 
@@ -131,7 +131,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 
 ## Conditions
 
-비교 결과에 따라 분기합니다. **Add Component** 패널에서 이 블록의 이름은 **If / Else**이며 조건 범주에 있습니다.
+비교 결과에 따라 분기합니다. **Add Component** 패널에서 이 블록의 이름은 **If / Else**이며 **Popular** 아래에 있습니다.
 
 **설정**:
 
@@ -159,7 +159,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 
 ## OneUptime 데이터 구성 요소
 
-OneUptime의 모든 레코드 종류(모니터, 인시던트, 경고, 상태 페이지, 온콜 정책 등 다수)에 대해 **Add Component** 패널에는 다음 구성 요소들이 준비되어 있습니다 — 유형 이름으로 검색하세요. 각 제목은 레코드 유형에서 자동으로 만들어지므로, Monitor 계열은 이렇게 나옵니다.
+OneUptime의 모든 레코드 종류(모니터, 인시던트, 경고, 상태 페이지, 온콜 정책 등 다수)에 대해 **Add Component** 패널에는 다음 구성 요소들이 준비되어 있습니다. **OneUptime resources** 아래에서 레코드 유형을 클릭하거나(보이지 않는 유형은 **Browse all resources**에 있습니다) 유형 이름으로 검색하세요. 각 제목은 레코드 유형에서 자동으로 만들어지므로, Monitor 계열은 이렇게 나옵니다.
 
 - **Find One Monitor** — 쿼리에 맞는 레코드 하나를 읽습니다.
 - **Find Many Monitors** — 쿼리에 맞는 레코드 목록을 읽습니다.
@@ -217,5 +217,5 @@ Create One의 **JSON Object**, Create Many의 **JSON Array**, Update 구성 요�
 ## 다음으로 읽을거리
 
 - [워크플로우 변수](/docs/workflows/variables) — 블록 사이로 데이터 넘기기.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 실행에서 각 블록이 한 일 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 실행에서 각 블록이 한 일 확인하기.
 - [워크플로우 설정 및 보안](/docs/workflows/configuration) — 한도, 소유자, 시크릿.

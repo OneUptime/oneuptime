@@ -151,7 +151,7 @@ Microsoft는 프로덕션 애플리케이션에서 클라이언트 시크릿보�
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-이제 **개요 → 워크플로 편집 → 활성화됨** 에서 워크플로를 켜고, 테스트 인시던트를 선언한 다음 **실행 및 로그** 에서 실행 내역을 읽으세요. `create-case` 블록에 `201` 과 새 `incidentid` 가 담긴 본문이 표시되어야 합니다. 캔버스의 변경 사항은 자동으로 저장되며, Save 버튼은 없습니다.
+이제 **개요 → 워크플로 편집 → 활성화됨** 에서 워크플로를 켜고, 테스트 인시던트를 선언한 다음 **로그 → 실행 기록** 에서 실행 내역을 읽으세요. `create-case` 블록에 `201` 과 새 `incidentid` 가 담긴 본문이 표시되어야 합니다. 캔버스의 변경 사항은 자동으로 저장되며, Save 버튼은 없습니다.
 
 ### 심각도와 상태 매핑하기
 
@@ -230,13 +230,13 @@ Case 테이블에 **single line of text** 컬럼을 추가하고, 예를 들어 
 ### 수신 워크플로를 먼저 구성하기
 
 1. **워크플로 생성** 으로 이름을 `Dynamics 365 → OneUptime` 으로 지정하고 **Webhook** 트리거를 추가합니다.
-2. 그 워크플로의 **설정** 을 열어 **웹훅 시크릿 키** 를 복사합니다. URL은 다음과 같습니다:
+2. 그 워크플로의 **빌더** 를 열고 **Webhook** 트리거를 클릭한 뒤, 설정 맨 위의 **URL 복사** 를 클릭합니다. URL은 다음과 같습니다:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   자체 호스팅 설치에서는 자체 호스트로 바꿔 넣으세요. 이 URL은 비밀번호처럼 다루세요 — 이 URL을 아는 사람은 누구나 워크플로를 시작할 수 있습니다. 같은 페이지에서 키를 재설정할 수 있습니다.
+   자체 호스팅 설치는 자체 호스트를 사용합니다. 이 URL은 비밀번호처럼 다루세요 — 이 URL을 아는 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정** 을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
 3. 다른 것이 실행되기 전에 공유 시크릿을 확인하는 **If / Else** 블록을 추가합니다. **Input 1** 은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** 는 `==`, **Input 2** 는 `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — 여러분이 직접 만들어 시크릿 전역 변수로 저장한 값입니다.
 4. **Yes** 분기에서 **Update One Incident** 블록을 추가합니다:
@@ -323,7 +323,7 @@ Power Automate를 쓸 수 없다면 Dataverse가 OneUptime을 직접 호출할 �
 
 ## 문제 해결
 
-먼저 **실행 및 로그** 에서 실패한 블록을 읽으세요 — 두 Microsoft 엔드포인트 모두 설명이 담긴 JSON 본문을 반환하며, API 컴포넌트는 이를 `response-body` 에 보관합니다.
+먼저 **로그 → 실행 기록** 에서 실패한 블록을 읽으세요 — 두 Microsoft 엔드포인트 모두 설명이 담긴 JSON 본문을 반환하며, API 컴포넌트는 이를 `response-body` 에 보관합니다.
 
 **토큰 요청이 `400` 과 `invalid_request` 또는 지원되지 않는 grant type으로 실패합니다.** `Content-Type` 헤더가 정확히 `Content-Type: application/x-www-form-urlencoded` 가 아니어서 본문이 JSON으로 나갔습니다. 대소문자를 확인하세요.
 
@@ -343,7 +343,7 @@ Power Automate를 쓸 수 없다면 Dataverse가 OneUptime을 직접 호출할 �
 
 **`429 Too Many Requests`.** Dataverse의 서비스 보호 한도입니다 — 웹 서버당, 5분 창 안에서 사용자당 대략 6,000 요청과 20분의 실행 시간입니다. 응답에는 초 단위의 `Retry-After` 가 담깁니다. 워크플로가 몰아서 호출한다면 **Delay** 블록을 넣거나, 배치로 처리하는 예약 워크플로로 작업을 옮기세요.
 
-**OneUptime 쪽에 아무것도 도착하지 않습니다.** `curl` 로 직접 webhook URL에 요청을 보내고 워크플로의 **실행 및 로그** 를 확인하세요. 여러분의 요청은 나타나는데 Dynamics의 것이 나타나지 않는다면 문제는 상류에 있습니다. Power Automate라면 플로 자체의 실행 이력을, 네이티브 webhook이라면 실패로 필터링한 **Settings → System Jobs** 를 보세요.
+**OneUptime 쪽에 아무것도 도착하지 않습니다.** `curl` 로 직접 webhook URL에 요청을 보내고 워크플로의 **로그 → 실행 기록** 을 확인하세요. 여러분의 요청은 나타나는데 Dynamics의 것이 나타나지 않는다면 문제는 상류에 있습니다. Power Automate라면 플로 자체의 실행 이력을, 네이티브 webhook이라면 실패로 필터링한 **Settings → System Jobs** 를 보세요.
 
 **워크플로는 실행되는데 인시던트가 바뀌지 않습니다.** **Update One Incident** 블록은 쿼리가 아무것도 찾지 못했을 때 `Items Updated: 0` 을 보고합니다 — 이는 오류가 아니라 성공입니다. 페이로드의 id가 OneUptime 인시던트 id인지, 그리고 `_id` 로 쿼리하고 있는지 확인하세요.
 

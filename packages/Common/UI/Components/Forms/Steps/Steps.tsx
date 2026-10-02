@@ -9,6 +9,11 @@ export interface ComponentProps<T> {
   onClick: (step: FormStep<T>) => void;
   currentFormStepId: string;
   formValues: FormValues<T>;
+  /*
+   * Steps not reached yet can be opened too, not only the ones walked
+   * through. Set on a form whose steps are all filled in already.
+   */
+  allowAnyStep?: boolean | undefined;
 }
 
 const Steps: <T extends GenericObject>(
@@ -50,6 +55,11 @@ const Steps: <T extends GenericObject>(
                 state={state}
                 step={step}
                 key={index}
+                isClickable={
+                  state === FormStepState.COMPLETED ||
+                  (state === FormStepState.INACTIVE &&
+                    Boolean(props.allowAnyStep))
+                }
                 onClick={(step: FormStep<T>) => {
                   props.onClick(step);
                 }}

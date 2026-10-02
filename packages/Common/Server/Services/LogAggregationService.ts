@@ -282,12 +282,13 @@ export class LogAggregationService {
   /*
    * Read-side retention filter (mirrors
    * AnalyticsDatabaseService.getRetentionReadFilter): rows past their
-   * per-service retention stay queryable until their whole part drops
-   * (ttl_only_drop_parts), so raw-table reads exclude them explicitly.
+   * retention stay on disk until the midnight after it (Log's TTL is
+   * rounded up to the day, see RetentionTtl), so raw-table reads exclude
+   * them explicitly.
    * Deliberately NOT applied to projection-shaped queries (the severity
-   * histogram): an aggregate projection cannot evaluate a predicate on a
-   * column it does not store, so adding it would silently force a full
-   * base-table scan.
+   * histogram with nothing but severities to filter on): an aggregate
+   * projection cannot evaluate a predicate on a column it does not store,
+   * so adding it would silently force a full base-table scan.
    */
   private static readonly RETENTION_FILTER: string =
     " AND retentionDate >= now()";
@@ -399,6 +400,20 @@ export class LogAggregationService {
 
     LogAggregationService.appendCommonFilters(statement, request);
 
+    /*
+     * Where it is free, the histogram leaves out rows past their retention
+     * like every other read: a filter the projection does not store already
+     * sends this query to the base table, and the retention filter only adds
+     * a column to that scan. On the projection-only shape it would force the
+     * scan, so there it is left out - and a window reaching back past the
+     * retention can count, at its far edge, up to a day of rows the list no
+     * longer shows (they are on disk until the midnight after their
+     * retentionDate).
+     */
+    if (LogAggregationService.histogramScansBaseTable(request)) {
+      statement.append(LogAggregationService.RETENTION_FILTER);
+    }
+
     statement.append(
       " GROUP BY minute, severityText ) GROUP BY bucket, severityText ORDER BY bucket ASC",
     );
@@ -419,6 +434,24 @@ export class LogAggregationService {
     );
 
     return statement;
+  }
+
+  /*
+   * Whether a histogram request filters on anything proj_severity_histogram
+   * does not store (it keeps projectId, severityText and the minute) - that
+   * is, whether its query reads the base table anyway. Decided by what the
+   * filters render, not by which fields are set: an empty attribute list or
+   * resource scope renders nothing and leaves the projection in use.
+   */
+  private static histogramScansBaseTable(request: HistogramRequest): boolean {
+    const filtersBeyondSeverity: Statement = new Statement();
+
+    LogAggregationService.appendCommonFilters(filtersBeyondSeverity, {
+      ...request,
+      severityTexts: undefined,
+    });
+
+    return filtersBeyondSeverity.query.trim().length > 0;
   }
 
   private static buildFacetStatement(request: FacetRequest): Statement {

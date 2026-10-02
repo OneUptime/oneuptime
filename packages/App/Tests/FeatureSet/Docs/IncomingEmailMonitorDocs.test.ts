@@ -317,8 +317,9 @@ describe("The defaults the section quotes", () => {
     const writesEmail: number = ingest.indexOf(
       "incomingEmailMonitorRequest: incomingEmailRequest",
     );
+    // An archived monitor is skipped at the same point, for the same reason.
     const skipsDisabled: number = ingest.indexOf(
-      "Incoming email received for disabled monitor",
+      "Incoming email received for archived or disabled monitor",
     );
 
     const evaluates: number = ingest.indexOf(

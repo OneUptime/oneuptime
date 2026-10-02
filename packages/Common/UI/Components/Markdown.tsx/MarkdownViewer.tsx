@@ -47,6 +47,7 @@ import ruby from "react-syntax-highlighter/dist/esm/languages/prism/ruby";
 import php from "react-syntax-highlighter/dist/esm/languages/prism/php";
 import graphql from "react-syntax-highlighter/dist/esm/languages/prism/graphql";
 import http from "react-syntax-highlighter/dist/esm/languages/prism/http";
+import hcl from "react-syntax-highlighter/dist/esm/languages/prism/hcl";
 
 SyntaxHighlighter.registerLanguage("javascript", javascript);
 SyntaxHighlighter.registerLanguage("js", javascript);
@@ -79,6 +80,10 @@ SyntaxHighlighter.registerLanguage("ruby", ruby);
 SyntaxHighlighter.registerLanguage("php", php);
 SyntaxHighlighter.registerLanguage("graphql", graphql);
 SyntaxHighlighter.registerLanguage("http", http);
+// Terraform configuration (the Developer > Terraform pages).
+SyntaxHighlighter.registerLanguage("hcl", hcl);
+SyntaxHighlighter.registerLanguage("terraform", hcl);
+SyntaxHighlighter.registerLanguage("tf", hcl);
 import DOMPurify from "dompurify";
 import SessionAwareImage from "./SessionAwareImage";
 import OneUptimeDate from "../../../Types/Date";
@@ -321,6 +326,9 @@ const langDisplayNames: Record<string, string> = {
   php: "PHP",
   graphql: "GraphQL",
   http: "HTTP",
+  hcl: "HCL",
+  terraform: "Terraform",
+  tf: "Terraform",
   markdown: "Markdown",
   md: "Markdown",
 };

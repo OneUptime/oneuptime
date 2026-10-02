@@ -61,7 +61,7 @@
 - Slack, Teams, Discord, Telegram, 이메일의 메시지 텍스트.
 - 이메일의 제목과 본문.
 - 헤더와 본문 필드(문자열 값 안에서).
-- **If / Else** 블록의 양쪽 값(조건 범주에 있습니다).
+- **If / Else** 블록의 양쪽 값.
 
 JSON 필드에서는 문자열 값 안에 변수를 넣을 수 있지만 키로는 쓸 수 없습니다. 참조 하나가 값 전체를 차지하면 그대로 치환되므로, 그런 식으로 객체 전체를 JSON 필드에 넣을 수 있습니다. 구조를 동적으로 만들어야 한다면 **Run Custom JavaScript** 블록에서 만든 다음 그 출력을 다음 블록으로 넘기세요.
 
@@ -135,5 +135,5 @@ API 키에는 **Edit Workflow Variables** 권한이 필요합니다. 읽기 권�
 ## 다음으로 읽을거리
 
 - [워크플로우 구성 요소](/docs/workflows/components) — 각 블록이 만들어 내는 출력의 전체 목록.
-- [워크플로우 실행 및 로그](/docs/workflows/runs-and-logs) — 실행 후 모든 변수의 실제 값 확인하기.
+- [워크플로우 실행 기록](/docs/workflows/runs-and-logs) — 실행 후 모든 변수의 실제 값 확인하기.
 - [워크플로우 설정 및 보안](/docs/workflows/configuration) — 전역 변수에 넣어도 안전한 것.

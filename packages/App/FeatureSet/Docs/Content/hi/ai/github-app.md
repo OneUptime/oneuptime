@@ -14,7 +14,7 @@ OneUptime GitHub App सिर्फ़ आपके code तक का एक c
 
 ## शुरू करने से पहले
 
-- repository का GitHub App के ज़रिए **किसी OneUptime project से connected** होना ज़रूरी है। Setup के लिए [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें, या OneUptime Cloud पर **प्रोजेक्ट सेटिंग्स → कोड रिपॉजिटरी** से इसे connect करें।
+- repository का GitHub App के ज़रिए **किसी OneUptime project से connected** होना ज़रूरी है। Setup के लिए [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें, या OneUptime Cloud पर **कार्य → कोड रिपॉजिटरी** से इसे connect करें।
 - **"AI कोड सुधार चलाता है" capability वाला एक Runner** online होना चाहिए — वही Runner जो [AI Fix Tasks](/docs/ai/ai-agent) पूरे करता है। इसके बिना commands स्वीकार तो हो जाते हैं, लेकिन 30 मिनट बाद इस संदेश के साथ fail हो जाते हैं कि किसी agent ने उन्हें उठाया ही नहीं।
 - GitHub App के पास **Issues: Read & write** permission होनी चाहिए, और उसे [किन events को subscribe करना है](#किन-events-को-subscribe-करना-है) में दिए गए webhook events subscribe होने चाहिए।
 
@@ -56,7 +56,7 @@ should cover the 429 case
 | `@oneuptime status` | बताता है कि इस thread में यह अभी किस काम पर लगा है। |
 | `@oneuptime cancel` | इस thread में इसके चल रहे runs रोक देता है। जो काम push हो चुका है वह push ही रहता है। |
 
-`help`, `status` और `cancel` कभी agent run शुरू नहीं करते, इसलिए इनकी कोई लागत नहीं है और ये आपके रोज़ाना के fix-task बजट में नहीं गिने जाते।
+`help`, `status` और `cancel` कभी agent run शुरू नहीं करते, इसलिए इनकी कोई लागत नहीं है।
 
 ## यह thread में कैसा दिखता है
 
@@ -87,10 +87,9 @@ should cover the 429 case
 
 काम शुरू करने वाला हर command एक पूरा agent run है — एक clone, अधिकतम 40 LLM calls और 100,000 output tokens, और अगर आपने अपनी repository के build और test commands configure किए हैं तो वे भी।
 
-दो सीमाएँ लागू होती हैं, और दोनों वही हैं जो पहले से [AI Fix Tasks](/docs/ai/ai-agent) पर लागू होती हैं:
+GitHub commands घटनाओं और अलर्ट के बाहर का AI काम हैं, इसलिए उन पर कोई रोज़ाना fix-run सीमा लागू नहीं होती। जो एक सीमा लागू हो सकती है, वह वही है जो पहले से [AI Fix Tasks](/docs/ai/ai-agent) पर लागू होती है:
 
-- **project की रोज़ाना fix-run सीमा** (**प्रोजेक्ट सेटिंग्स → एआई**, डिफ़ॉल्ट रूप से 25/दिन)। GitHub commands यह बजट आपके project के बाकी fix runs के साथ साझा करते हैं।
-- **हर repository के लिए खुले pull requests की अधिकतम संख्या** (**कोड रिपॉजिटरी → वह repository → सेटिंग्स**, डिफ़ॉल्ट 5)। Reviews और revisions इससे छूट पर हैं: दोनों में से कोई भी आपकी review queue में नया pull request नहीं जोड़ता।
+- **हर repository के लिए खुले pull requests की अधिकतम संख्या** (**कोड रिपॉजिटरी → वह repository → सेटिंग्स** में **Max Open Fix Pull Requests**)। जब तक आप इसे तय नहीं करते, कोई सीमा नहीं है, और 0 उस repository पर AI fix pull requests को रोक देता है। Reviews और revisions इससे छूट पर हैं: दोनों में से कोई भी आपकी review queue में नया pull request नहीं जोड़ता।
 
 किसी एक issue या pull request पर एक समय में एक ही तरह का एक ही run चलता है। दोबारा कहने पर यह बता देता है कि वह पहले से काम कर रहा है; revision चलते समय review माँगने पर दोनों शुरू हो जाते हैं, क्योंकि वे अलग-अलग requests हैं।
 
@@ -129,13 +128,13 @@ AI के लिखे pull request को वैसे ही लें जै�
 
 ## समस्या निवारण
 
-**mention करने पर कुछ नहीं होता।** पहले handle जाँचें — वह app का slug है, उसका display name नहीं। फिर जाँचें कि repository किसी project से connected है (**प्रोजेक्ट सेटिंग्स → कोड रिपॉजिटरी**), **Respond to GitHub Commands** चालू है, और आपका GitHub App ऊपर बताए गए events को subscribe किए हुए है।
+**mention करने पर कुछ नहीं होता।** पहले handle जाँचें — वह app का slug है, उसका display name नहीं। फिर जाँचें कि repository किसी project से connected है (**कार्य → कोड रिपॉजिटरी**), **Respond to GitHub Commands** चालू है, और आपका GitHub App ऊपर बताए गए events को subscribe किए हुए है।
 
 **यह 😕 react करता है और कुछ कहता नहीं।** आपके पास repository का write access नहीं है।
 
 **यह कहता है कि वह पहले से इस पर काम कर रहा है।** इस issue या pull request पर उस तरह का एक run पहले से चल रहा है। `@oneuptime status` बताएगा कि कौन-सा, और `@oneuptime cancel` उसे रोक देगा।
 
-**इसने acknowledge किया और फिर लंबे समय तक चुप रहा।** **सेटिंग्स → Runbook एजेंट** में जाँचें कि **AI कोड सुधार चलाता है** वाला कोई Runner online है। इसके बिना run 30 मिनट बाद fail कर दिया जाता है और thread में यह बता दिया जाता है।
+**इसने acknowledge किया और फिर लंबे समय तक चुप रहा।** **रनबुक → Runbook एजेंट** में जाँचें कि **AI कोड सुधार चलाता है** वाला कोई Runner online है। इसके बिना run 30 मिनट बाद fail कर दिया जाता है और thread में यह बता दिया जाता है।
 
 **यह कहता है कि pull request किसी fork से आया है।** Revisions के लिए branch इसी repository में होनी चाहिए। इसके बजाय review माँगें, या branch यहाँ push करें।
 

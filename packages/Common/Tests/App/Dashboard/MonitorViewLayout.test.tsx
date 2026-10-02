@@ -98,6 +98,30 @@ jest.mock(
   },
 );
 
+/*
+ * The archived banner reads the monitor on its own (it has its own tests in
+ * ArchivedResourceBanner.test.tsx). Replaced here so the reads these tests
+ * count are the layout's, and so where it sits can be checked.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ArchivedResourceBanner",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: {
+        modelId: { toString: () => string };
+        copy: { singularName: string };
+      }): ReactElement => {
+        return (
+          <div data-testid="archived-banner-stub">
+            {`${props.copy.singularName} banner for ${props.modelId.toString()}`}
+          </div>
+        );
+      },
+    };
+  },
+);
+
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs", () => {
   return {
     __esModule: true,
@@ -360,6 +384,19 @@ describe("Monitor view layout - the monitor's type", () => {
     expect(screen.getByTestId("monitor-page")).toBeInTheDocument();
     expect(typeReads).toEqual([MONITOR_A]);
     expect(headerReads).toEqual([MONITOR_A]);
+  });
+
+  test("puts the archived banner for this monitor above every page", async () => {
+    renderLayout();
+    await flush();
+
+    const banner: HTMLElement = screen.getByTestId("archived-banner-stub");
+
+    expect(banner).toHaveTextContent(`monitor banner for ${MONITOR_A}`);
+    expect(
+      banner.compareDocumentPosition(screen.getByTestId("monitor-page")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("re-reads the type when the id changes", async () => {

@@ -111,6 +111,10 @@ import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import AlertEpisodeOwnerRule from "Common/Models/DatabaseModels/AlertEpisodeOwnerRule";
 import AlertPrivacyRule from "Common/Models/DatabaseModels/AlertPrivacyRule";
 import AlertEpisodePrivacyRule from "Common/Models/DatabaseModels/AlertEpisodePrivacyRule";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -504,6 +508,13 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Alert,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.ALERTS_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -671,6 +682,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: Alert,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
 
       {/* Episode View Routes */}
@@ -792,6 +809,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: AlertEpisode,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

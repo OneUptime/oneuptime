@@ -1805,7 +1805,12 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     </p>
                     {!searching && scope && scope.serviceKeys.length > 0 && (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        {t("Runs")} {renderServiceChips(scope)}
+                        {/*
+                         * "Services", not the verb "Runs": translations are
+                         * keyed by the English text, and "Runs" is the noun
+                         * the Workflows menu uses for its run history.
+                         */}
+                        {t("Services")} {renderServiceChips(scope)}
                       </div>
                     )}
                   </div>

@@ -158,7 +158,7 @@ gitHubApp:
 ### گام ۱۰: وصل کردن مخزن‌ها در OneUptime
 
 1. به داشبورد OneUptime خود وارد شوید
-2. به **Products** > **Code Repositories** بروید
+2. به **Products** > **Tasks** > **Code Repositories** بروید
 3. روی **"Create Repository"** کلیک کنید یا از جریان نصب GitHub App استفاده کنید
 4. اگر از GitHub هدایت شده باشید، شناسه نصب به‌طور خودکار ثبت می‌شود
 5. مخزن‌هایی را که می‌خواهید وصل کنید از فهرست برگزینید

@@ -798,14 +798,19 @@ describe("the AI SRE page's cluster-access section", () => {
 
   it("says the Kubernetes AI agent is not a Runner: no credential, no Bash/SSH, no rule command Runner", () => {
     expect(section).toContain(
-      "The Kubernetes AI agent is not a Runner and never appears under Project Settings → Runners.",
+      "The Kubernetes AI agent is not a Runner and never appears under Runbooks → Runners.",
     );
     expect(section).toContain("OneUptime never hands it a credential");
     expect(section).toContain("never used as a Bash/SSH host");
     expect(section).toMatch(NEVER_RULE_RUNNER_PATTERN);
   });
 
-  it("says fixes through the AI agent do not need Enable AI Command Execution, and a Runner still does", () => {
+  /*
+   * Enable AI is the project's only AI switch. "Enable AI Command
+   * Execution" used to be a second one for fixes through a Runner; it was
+   * folded into Enable AI, so neither route may send anyone looking for it.
+   */
+  it("says fixes need no project switch but Enable AI, through the AI agent or a Runner", () => {
     const fixes: string = getSection(
       section,
       "### Letting AI fix what it finds",
@@ -816,11 +821,16 @@ describe("the AI SRE page's cluster-access section", () => {
     );
 
     expect(fixes).toContain(
-      "Fixes through the Kubernetes AI agent do not need the project's **Enable AI Command Execution** switch",
+      "The only project switch fixes need is **Enable AI** (Project Settings > AI > AI Features), which is on unless someone turned it off.",
     );
     expect(runner).toContain(
-      "Fixes through a Runner also need the project's **Enable AI Command Execution** switch (Project Settings > AI > AI Features)",
+      "Fixes through a Runner need no project switch beyond **Enable AI**.",
     );
+
+    for (const copy of [fixes, runner]) {
+      expect(copy).not.toMatch(/AI command execution/i);
+      expect(copy).not.toMatch(/enable auto[- ]?remediation/i);
+    }
   });
 
   it("keeps the advanced Runner + credential route, with its write limits and the switch back to the agent", () => {
@@ -906,14 +916,27 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(enabling).not.toContain("**off by default**. To enable them");
   });
 
+  it("says the other AI features on the page are on for new projects too", () => {
+    expect(enabling).toContain(
+      "So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights.",
+    );
+  });
+
   /*
-   * The docs claim is the server's: ProjectService turns both opt-ins on for
-   * a new project unless the create request set them, and never touches an
-   * existing project.
+   * The docs claim is the server's: ProjectService turns every per-feature
+   * AI switch on for a new project unless the create request set it, and
+   * never touches an existing project.
    */
   it("matches what ProjectService does for a new project", () => {
     const service: string = read(
       path.join(PACKAGES_ROOT, "Common/Server/Services/ProjectService.ts"),
+    );
+    const listStart: number = service.indexOf(
+      "export const NEW_PROJECT_AI_DEFAULT_COLUMNS",
+    );
+    const list: string = service.slice(
+      listStart,
+      service.indexOf("];", listStart),
     );
     const start: number = service.indexOf("public applyNewProjectAiDefaults(");
     const body: string = service.slice(
@@ -921,10 +944,23 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
       service.indexOf("\n  }\n", start),
     );
 
+    expect(listStart).toBeGreaterThan(-1);
     expect(start).toBeGreaterThan(-1);
-    expect(body).toContain("data.enableAutomaticIncidentInvestigation = true;");
-    expect(body).toContain("data.enableAutomaticAlertInvestigation = true;");
-    expect(body).not.toContain("enableAutomaticPostmortemDraft");
+
+    for (const column of [
+      "enableAutomaticIncidentInvestigation",
+      "enableAutomaticAlertInvestigation",
+      "enableAutomaticPostmortemDraft",
+      "enableAutomaticIncidentCodeFixes",
+      "enableAutomaticAlertCodeFixes",
+      "enableAiInsights",
+      "enableInsightFixTasks",
+    ]) {
+      expect(list).toContain(`"${column}"`);
+    }
+
+    expect(body).toContain("of NEW_PROJECT_AI_DEFAULT_COLUMNS");
+    expect(body).toContain("data[column] = true;");
   });
 
   it("sends the Enable AI switch to Project Settings > AI > AI Features", () => {
@@ -939,21 +975,40 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
   });
 
   /*
-   * Drafting a postmortem used to ride on the incident investigation flag,
-   * so turning investigations on for new projects would have started
-   * writing postmortems too. It is its own switch now, off by default.
+   * Drafting a postmortem used to ride on the incident investigation flag.
+   * It is its own switch now, on for new projects like investigations.
    */
-  it("says the postmortem draft is its own switch, off by default", () => {
+  it("says the postmortem draft is its own switch, on for new projects", () => {
     expect(postmortem).toContain(
       "**Draft a postmortem automatically when an incident resolves**",
     );
-    expect(postmortem).toContain("it is **off by default**");
+    expect(postmortem).toContain("It is **on by default for new projects**");
     expect(postmortem).toContain(
-      "Projects that already drafted postmortems keep doing so.",
+      "a project created before this default keeps its setting",
     );
+    expect(postmortem).not.toMatch(/off by default/i);
   });
 
-  it("matches the project's postmortem column: its own flag, default off", () => {
+  it("says automatic code fixes and AI Insights are on for new projects", () => {
+    const codeFixes: string = getSection(page, "## Automatic code fixes");
+    const insights: string = getSection(
+      page,
+      "## Insights — proactive detection",
+    );
+
+    expect(codeFixes).toContain("**on by default for new projects**");
+    expect(insights).toContain(
+      "Both settings are **on by default for new projects**",
+    );
+    expect(codeFixes).not.toMatch(/off by default/i);
+    expect(insights).not.toMatch(/off by default/i);
+  });
+
+  /*
+   * On for new projects comes from ProjectService, not from the column: the
+   * column default stays off so an upgrade switches no existing project on.
+   */
+  it("matches the project's postmortem column: its own flag, column default off", () => {
     const model: string = read(
       path.join(PACKAGES_ROOT, "Common/Models/DatabaseModels/Project.ts"),
     );

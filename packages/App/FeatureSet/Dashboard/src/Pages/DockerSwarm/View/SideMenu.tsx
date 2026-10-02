@@ -28,6 +28,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ResourceCounts {
   nodes?: number | undefined;
@@ -369,6 +372,12 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: DockerSwarmCluster,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Advanced">
         <SideMenuItem

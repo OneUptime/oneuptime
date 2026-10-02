@@ -27,6 +27,15 @@ export interface ComponentProps {
  */
 type ReadableValueFunction = (value: JSONValue | undefined) => string;
 
+/*
+ * The avatar never gives up its width. When this element is put somewhere
+ * narrower than its text - a table column with a width cap - the row has to
+ * shrink, and the text is what should (it truncates). Without this the avatar
+ * shrinks with it: an image may not be wider than its box, so a 32px circle
+ * becomes an 18px-wide sliver beside a name that is cut short anyway.
+ */
+const AVATAR_WRAPPER_CLASS_NAME: string = "shrink-0";
+
 const readableValue: ReadableValueFunction = (
   value: JSONValue | undefined,
 ): string => {
@@ -88,7 +97,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
   if (JSONFunctions.isEmptyObject(user)) {
     return (
       <div className="flex">
-        <div>
+        <div className={AVATAR_WRAPPER_CLASS_NAME}>
           <Image
             className="h-8 w-8 rounded-full"
             imageUrl={BlankProfilePic}
@@ -132,7 +141,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="flex">
-        <div>
+        <div className={AVATAR_WRAPPER_CLASS_NAME}>
           <Image
             className="h-8 w-8 rounded-full"
             imageUrl={profileImageUrl}

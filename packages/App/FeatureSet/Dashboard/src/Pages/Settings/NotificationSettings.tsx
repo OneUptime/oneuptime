@@ -85,14 +85,30 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Notification Settings"
+        formSteps={[
+          { title: "Calls & SMS", id: "calls-and-sms" },
+          { title: "Messaging Apps", id: "messaging-apps" },
+        ]}
         formFields={[
           {
             field: {
               enableCallNotifications: true,
             },
             title: "Enable Call Notifications",
+            stepId: "calls-and-sms",
             description:
               "Enable Call notifications for this project. This will be used for alerting users by phone call.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              enableSmsNotifications: true,
+            },
+            title: "Enable SMS Notifications",
+            stepId: "calls-and-sms",
+            description:
+              "Enable SMS notifications for this project. This will be used for alerting users by sending an SMS.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -101,6 +117,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               enableWhatsAppNotifications: true,
             },
             title: "Enable WhatsApp Notifications",
+            stepId: "messaging-apps",
             description:
               "Enable WhatsApp notifications for this project. This will be used for alerting users via WhatsApp.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -111,18 +128,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               enableTelegramNotifications: true,
             },
             title: "Enable Telegram Notifications",
+            stepId: "messaging-apps",
             description:
               "Enable Telegram notifications for this project. Users link their Telegram account via our bot to receive alerts.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableSmsNotifications: true,
-            },
-            title: "Enable SMS Notifications",
-            description:
-              "Enable SMS notifications for this project. This will be used for alerting users by sending an SMS.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

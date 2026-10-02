@@ -14,7 +14,7 @@ Mentionnez-la sur une issue et elle ouvre une pull request. Mentionnez-la sur un
 
 ## Avant de commencer
 
-- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App. Voir [Intégration GitHub (auto-hébergé)](/docs/self-hosted/github-integration) pour l'installation, ou connectez-le depuis **Paramètres du projet → Dépôts de code** sur OneUptime Cloud.
+- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App. Voir [Intégration GitHub (auto-hébergé)](/docs/self-hosted/github-integration) pour l'installation, ou connectez-le depuis **Tâches → Dépôts de code** sur OneUptime Cloud.
 - Un **Runner doté de la capacité « Runs AI Code Fixes »** doit être en ligne — le même Runner que celui qui exécute les [tâches de correction IA](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun agent ne les a prises en charge.
 - La GitHub App doit avoir la permission **Issues : Lecture & Écriture** et être abonnée aux événements de webhook listés dans [À quoi s'abonner](#à-quoi-sabonner).
 
@@ -56,7 +56,7 @@ Vous pouvez aussi confier une issue à l'application **sans écrire le moindre c
 | `@oneuptime status` | Indique ce sur quoi elle travaille actuellement dans ce fil. |
 | `@oneuptime cancel` | Arrête les exécutions qu'elle a en cours dans ce fil. Ce qui a déjà été poussé le reste. |
 
-`help`, `status` et `cancel` ne lancent jamais d'exécution d'agent : elles ne coûtent donc rien et ne sont pas soumises à votre budget quotidien de tâches de correction.
+`help`, `status` et `cancel` ne lancent jamais d'exécution d'agent : elles ne coûtent donc rien.
 
 ## Ce que cela donne dans le fil
 
@@ -87,10 +87,9 @@ Elle ignore également tout commentaire écrit par un bot, y compris les siens, 
 
 Toute commande qui déclenche du travail est une exécution d'agent complète — un clone, jusqu'à 40 appels LLM et 100 000 jetons de sortie, plus les commandes de build et de test de votre dépôt si vous les avez configurées.
 
-Deux limites s'appliquent, et ce sont exactement celles qui régissent déjà les [tâches de correction IA](/docs/ai/ai-agent) :
+Les commandes GitHub sont du travail d'IA en dehors des incidents et des alertes : aucune limite quotidienne d'exécutions de correction ne s'y applique. La seule limite qui peut s'appliquer est celle qui régit déjà les [tâches de correction IA](/docs/ai/ai-agent) :
 
-- **La limite quotidienne d'exécutions de correction du projet** (**Paramètres du projet → IA**, 25 par jour par défaut). Les commandes GitHub partagent ce budget avec le reste des exécutions de correction du projet.
-- **Le plafond de pull requests ouvertes par dépôt** (**Dépôts de code → le dépôt → Paramètres**, 5 par défaut). Les revues et les révisions en sont exemptées : ni l'une ni l'autre n'ajoute de pull request à votre file de relecture.
+- **Le plafond de pull requests ouvertes par dépôt** (**Max Open Fix Pull Requests**, dans **Dépôts de code → le dépôt → Paramètres**). Il n'y a pas de plafond tant que vous n'en fixez pas, et 0 bloque les pull requests de correction IA sur ce dépôt. Les revues et les révisions en sont exemptées : ni l'une ni l'autre n'ajoute de pull request à votre file de relecture.
 
 Une seule exécution d'un type donné est active à la fois par issue ou par pull request. Demander deux fois vous vaut une réponse disant qu'elle travaille déjà ; demander une revue pendant qu'une révision est en cours lance les deux, puisque ce sont des demandes différentes.
 
@@ -129,13 +128,13 @@ Traitez une pull request écrite par l'IA comme vous traiteriez celle d'un nouve
 
 ## Dépannage
 
-**Rien ne se passe quand je la mentionne.** Vérifiez d'abord le handle — c'est le slug de l'application, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (**Paramètres du projet → Dépôts de code**), que **Respond to GitHub Commands** est activé, et que votre GitHub App est abonnée aux événements ci-dessus.
+**Rien ne se passe quand je la mentionne.** Vérifiez d'abord le handle — c'est le slug de l'application, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (**Tâches → Dépôts de code**), que **Respond to GitHub Commands** est activé, et que votre GitHub App est abonnée aux événements ci-dessus.
 
 **Elle réagit 😕 et ne dit rien.** Vous n'avez pas d'accès en écriture au dépôt.
 
 **Elle dit qu'elle travaille déjà là-dessus.** Une exécution de ce type est déjà en cours sur cette issue ou cette pull request. `@oneuptime status` vous dira laquelle, et `@oneuptime cancel` l'arrête.
 
-**Elle a accusé réception puis n'a plus rien dit pendant longtemps.** Vérifiez qu'un Runner doté de **Runs AI Code Fixes** est en ligne sous **Paramètres → Runners**. Sans lui, l'exécution est mise en échec au bout de 30 minutes et le fil en est informé.
+**Elle a accusé réception puis n'a plus rien dit pendant longtemps.** Vérifiez qu'un Runner doté de **Runs AI Code Fixes** est en ligne sous **Runbooks → Agents de runbook**. Sans lui, l'exécution est mise en échec au bout de 30 minutes et le fil en est informé.
 
 **Elle dit que la pull request vient d'un fork.** Les révisions ont besoin d'une branche dans ce dépôt. Demandez plutôt une revue, ou poussez la branche ici.
 

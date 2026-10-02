@@ -282,10 +282,7 @@ const Telegram: () => JSX.Element = (): ReactElement => {
             setShowVerificationModal(false);
           }}
           modalWidth={ModalWidth.Medium}
-          submitButtonText={"Close"}
-          onSubmit={() => {
-            setShowVerificationModal(false);
-          }}
+          closeButtonText="Close"
         >
           <div className="space-y-4">
             {isLoadingVerification && !verificationInfo ? (

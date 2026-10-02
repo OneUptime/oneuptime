@@ -14,7 +14,7 @@ Nevn den i en sak, og den åpner en pull request. Nevn den i en pull request, og
 
 ## Før du begynner
 
-- Repositoriet må være **koblet til et OneUptime-prosjekt** gjennom GitHub App-en. Se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration) for oppsettet, eller koble det til fra **Prosjektinnstillinger → Kode-repositorier** på OneUptime Cloud.
+- Repositoriet må være **koblet til et OneUptime-prosjekt** gjennom GitHub App-en. Se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration) for oppsettet, eller koble det til fra **Oppgaver → Kode-repositorier** på OneUptime Cloud.
 - En **Runner med egenskapen «Kjører AI-koderettelser»** må være tilkoblet — den samme Runneren som utfører [AI Fix Tasks](/docs/ai/ai-agent). Uten en slik blir kommandoene tatt imot, for så å feile etter 30 minutter med en melding om at ingen agent hentet dem.
 - GitHub App-en må ha tillatelsen **Issues: Read & write** og abonnere på webhook-hendelsene som er listet opp under [Hva du må abonnere på](#hva-du-må-abonnere-på).
 
@@ -56,7 +56,7 @@ Du kan også gi appen en sak **helt uten å kommentere**:
 | `@oneuptime status` | Forteller hva den jobber med i denne tråden akkurat nå. |
 | `@oneuptime cancel` | Stopper kjøringene den har gående i denne tråden. Arbeid som allerede er pushet, forblir pushet. |
 
-`help`, `status` og `cancel` starter aldri en agentkjøring, så de koster ingenting og teller ikke mot det daglige budsjettet ditt for AI-koderettelser.
+`help`, `status` og `cancel` starter aldri en agentkjøring, så de koster ingenting.
 
 ## Slik ser det ut i tråden
 
@@ -87,10 +87,9 @@ Den ignorerer også alle kommentarer skrevet av en bot, inkludert sine egne, og 
 
 Hver kommando som starter arbeid, er en full agentkjøring — en kloning, opptil 40 LLM-kall og 100 000 output-tokens, pluss bygge- og testkommandoene til repositoriet ditt hvis du har satt dem opp.
 
-To grenser gjelder, og begge er de samme som allerede styrer [AI Fix Tasks](/docs/ai/ai-agent):
+GitHub-kommandoer er KI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettelseskjøringer gjelder for dem. Den ene grensen som kan gjelde, er den samme som allerede styrer [AI Fix Tasks](/docs/ai/ai-agent):
 
-- **Prosjektets daglige grense for rettelseskjøringer** (**Prosjektinnstillinger → AI**, 25 per dag som standard). GitHub-kommandoer deler dette budsjettet med resten av prosjektets rettelseskjøringer.
-- **Taket på åpne pull requests per repositorium** (**Kode-repositorier → repositoriet → Innstillinger**, 5 som standard). Gjennomganger og revisjoner er unntatt: ingen av dem legger en ny pull request i gjennomgangskøen din.
+- **Taket på åpne pull requests per repositorium** (**Max Open Fix Pull Requests**, under **Kode-repositorier → repositoriet → Innstillinger**). Det er ikke noe tak før du setter et, og 0 blokkerer pull requests med KI-rettelser på det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en ny pull request i gjennomgangskøen din.
 
 Bare én kjøring av hver type er aktiv per sak eller pull request om gangen. Spør du to ganger, får du beskjed om at den allerede er i gang; ber du om en gjennomgang mens en revisjon kjører, starter begge, siden det er ulike forespørsler.
 
@@ -129,13 +128,13 @@ Behandle en AI-skrevet pull request slik du ville behandlet en fra en ny bidrags
 
 ## Feilsøking
 
-**Ingenting skjer når jeg nevner appen.** Sjekk navnet du nevner den med først — det er appens slug, ikke visningsnavnet. Sjekk deretter at repositoriet er koblet til et prosjekt (**Prosjektinnstillinger → Kode-repositorier**), at **Svar på GitHub-kommandoer** er på, og at GitHub App-en din abonnerer på hendelsene over.
+**Ingenting skjer når jeg nevner appen.** Sjekk navnet du nevner den med først — det er appens slug, ikke visningsnavnet. Sjekk deretter at repositoriet er koblet til et prosjekt (**Oppgaver → Kode-repositorier**), at **Svar på GitHub-kommandoer** er på, og at GitHub App-en din abonnerer på hendelsene over.
 
 **Den reagerer med 😕 og sier ingenting.** Du har ikke skrivetilgang til repositoriet.
 
 **Den sier at den allerede jobber med dette.** En kjøring av den typen er allerede i gang på denne saken eller pull requesten. `@oneuptime status` forteller deg hva det er, og `@oneuptime cancel` stopper den.
 
-**Den bekreftet og ble så stille lenge.** Sjekk at en Runner med **Kjører AI-koderettelser** er tilkoblet under **Innstillinger → Runbook-agenter**. Uten en slik feiles kjøringen etter 30 minutter, og tråden får beskjed.
+**Den bekreftet og ble så stille lenge.** Sjekk at en Runner med **Kjører AI-koderettelser** er tilkoblet under **Runbooks → Runbook-agenter**. Uten en slik feiles kjøringen etter 30 minutter, og tråden får beskjed.
 
 **Den sier at pull requesten kommer fra en fork.** Revisjoner trenger en gren i dette repositoriet. Be om en gjennomgang i stedet, eller push grenen hit.
 

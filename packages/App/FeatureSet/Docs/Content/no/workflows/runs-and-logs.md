@@ -1,4 +1,4 @@
-# Kjøringer og logger
+# Kjøringer
 
 Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skjedde — når den kjørte, om det gikk bra, og hva hver blokk gjorde. Den oversikten kalles en **kjøring**. Kjøringer er slik du bekrefter at en arbeidsflyt virket, feilsøker en som ikke gjorde det, og ser tilbake på tidligere aktivitet.
 
@@ -6,8 +6,8 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skje
 
 | Side                                     | Hva du ser                                                                                          |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Arbeidsflyter → Kjøringer og logger**  | Alle kjøringer fra alle arbeidsflyter i prosjektet. Filtrer på arbeidsflytnavn, status og tid.      |
-| **Arbeidsflyt → Kjøringer og logger**    | Bare kjøringene til denne ene arbeidsflyten. Her får du et **Kjøre-ID**-filter i stedet for et arbeidsflytfilter. |
+| **Arbeidsflyter → Logger → Kjøringer**  | Alle kjøringer fra alle arbeidsflyter i prosjektet. Filtrer på arbeidsflytnavn, status og tid.      |
+| **Arbeidsflyt → Logger → Kjøringer**    | Bare kjøringene til denne ene arbeidsflyten. Her får du et **Kjøre-ID**-filter i stedet for et arbeidsflytfilter. |
 | **En enkelt kjøring**                    | Åpnes med knappen **Vis logger** på en kjøringsrad — selve radene er ikke klikkbare.                 |
 
 ## Kjøringsstatuser
@@ -47,7 +47,7 @@ Starter du en kjøring fra **Bygger**, åpnes denne samme visningen og følger k
 
 ### «Arbeidsflyten min kjørte ikke.»
 
-1. Kontroller at arbeidsflyten er **Aktivert** på **Oversikt**-siden sin. Nye arbeidsflyter starter deaktivert, og en deaktivert arbeidsflyt avviser enhver kjøring — også de manuelle.
+1. Kontroller at arbeidsflyten er **Aktivert**: bryteren ligger øverst i **Bygger**, som sier fra over lerretet når arbeidsflyten er slått av. Nye arbeidsflyter starter deaktivert, og en deaktivert arbeidsflyt avviser enhver kjøring — også de manuelle. Et kall til webhooken får HTTP 400 med en melding om hvordan den slås på.
 2. For en OneUptime-hendelsestrigger: bekreft at hendelsen faktisk fant sted. Åpne posten og sjekk historikken.
 3. For en webhook-trigger: bekreft at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
 4. For en tidsplantrigger: bekreft at cron-uttrykket treffer tidspunktet du forventer.

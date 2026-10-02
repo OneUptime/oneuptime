@@ -23,6 +23,11 @@ import { ModelSchemaColumn } from "../ModelSchema";
 import { columnTypeLabel, controlForColumn } from "./ColumnControl";
 import { operatorLabelFor, operatorsForControl } from "./ColumnOperators";
 import {
+  isColumnDescriptionInformative,
+  isColumnKeyInformative,
+  summarizeDescription,
+} from "./ColumnPickerOptions";
+import {
   ColumnValueMode,
   ModelColumnControl,
   ModelColumnRow,
@@ -37,7 +42,6 @@ export interface ComponentProps {
   column: ModelSchemaColumn | undefined;
   /** Every column the model describes, for this row's own picker. */
   columns: Array<ModelSchemaColumn>;
-  suggestions?: Array<string> | undefined;
   /** Focused on mount, so a condition added from the picker is ready to type into. */
   autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
@@ -59,15 +63,27 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
    * second line and repeated as a chip under the picker once it is chosen.
    * Putting both in the label - "Created At · createdAt" - is what a select
    * ellipsizes first, and the name is exactly the half that gets cut.
+   *
+   * The second line is kept to one line's worth: the shared dropdown prints an
+   * option's description in full, and the model's longest ones made a single
+   * option four lines tall. The column name only leads it where it says
+   * something the title does not.
    */
   const columnOptions: Array<DropdownOption> = props.columns.map(
     (column: ModelSchemaColumn) => {
       return {
         value: column.id,
         label: column.title,
-        description: `${column.id} · ${
-          column.description || columnTypeLabel(column)
-        }`,
+        description: [
+          isColumnKeyInformative(column) ? column.id : "",
+          (isColumnDescriptionInformative(column)
+            ? summarizeDescription(column.description, 70)
+            : "") || columnTypeLabel(column),
+        ]
+          .filter((part: string) => {
+            return part !== "";
+          })
+          .join(" · "),
       };
     },
   );
@@ -209,7 +225,6 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           values={props.row.values}
           operatorOption={operatorOption}
           placeholder={props.column?.example || props.column?.placeholder}
-          suggestions={props.suggestions}
           autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}
           onChange={(change: Partial<ModelColumnRow>) => {

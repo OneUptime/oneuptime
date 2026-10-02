@@ -152,6 +152,12 @@ export interface MonitorOverviewPresentationInput {
   currentStatus?: MonitorOverviewStatusRef | undefined;
   statusSince?: Date | undefined;
   pause: {
+    /*
+     * Archived: not checked, and hidden from the lists, until someone
+     * unarchives it. Optional so the many callers that only know the other
+     * three reasons keep working; unset reads as not archived.
+     */
+    isArchived?: boolean | undefined;
     isDisabled: boolean;
     byManualIncident: boolean;
     byScheduledMaintenance: boolean;
@@ -318,9 +324,11 @@ const MAX_FACTS: number = 4;
 const AGENT_MISSING_MINUTES: number = 3;
 
 const PAUSED_EXPLANATION: Record<
-  "disabled" | "incident" | "maintenance",
+  "archived" | "disabled" | "incident" | "maintenance",
   string
 > = {
+  archived:
+    "No checks run while the monitor is archived, so the status stays at the last one recorded. It opens no incidents or alerts and is hidden from monitor lists and status pages.",
   disabled:
     "No checks run while monitoring is off, so the status stays at the last one recorded.",
   incident:
@@ -617,6 +625,7 @@ export default class MonitorOverviewPresentationUtil {
       MonitorOverviewCriteriaUtil.getNetworkDeviceId(input.monitorSteps);
 
     const isPaused: boolean =
+      Boolean(input.pause.isArchived) ||
       input.pause.isDisabled ||
       input.pause.byManualIncident ||
       input.pause.byScheduledMaintenance;
@@ -1096,6 +1105,23 @@ export default class MonitorOverviewPresentationUtil {
             text: "Probes Disconnected",
             tone: "danger",
           });
+        }
+
+        /*
+         * Archived before Disabled: it is the reason that also explains why
+         * the monitor is missing from the lists, and unarchiving is the step
+         * that brings it back (a disabled monitor then still needs enabling).
+         */
+        if (input.pause.isArchived) {
+          return {
+            tone: "neutral",
+            badge: { text: "Archived", tone: "neutral" },
+            secondaryBadges: secondaryBadges,
+            headline: { text: "Monitoring is off because it is archived" },
+            explanation: PAUSED_EXPLANATION.archived,
+            lastKnownStatus: lastKnownStatus,
+            callToAction: { text: "Open settings", linkKey: "settings" },
+          };
         }
 
         if (input.pause.isDisabled) {

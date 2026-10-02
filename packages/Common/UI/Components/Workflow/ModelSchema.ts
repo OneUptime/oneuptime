@@ -36,6 +36,19 @@ export interface ModelSchemaColumn {
   required?: boolean | undefined;
   hasDefault?: boolean | undefined;
   isTenantColumn?: boolean | undefined;
+  /*
+   * A column OneUptime fills in itself (ID, timestamps, created by, slugs...).
+   * Absent from an older response; ColumnUse.isSystemColumn then falls back to
+   * the shared list in Types/Workflow/SystemColumns.
+   */
+  isSystemColumn?: boolean | undefined;
+  /*
+   * Whether a create may set it, and whether an update may change it. Absent
+   * means "not said", which is read as allowed - the write gate already
+   * admitted the column for one of the two.
+   */
+  canCreate?: boolean | undefined;
+  canUpdate?: boolean | undefined;
   example?: string | undefined;
   placeholder?: string | undefined;
 }
@@ -237,31 +250,13 @@ export const isBooleanColumn: IsBooleanColumnFunction = (
   return !column.isRelation && column.type === TableColumnType.Boolean;
 };
 
-/**
- * Columns a create must be given a value for.
- *
- * Mirrors the server's own rule in DatabaseService.checkRequiredFields —
- * required, minus anything carrying a default — and additionally drops the
- * project column, which the workflow runner stamps itself
- * (ModelArguments.applyTenantColumn) and which a builder must never type.
- * Relations are left out because a row holds one scalar.
+/*
+ * Columns a create must be given a value for. Defined with the rest of the
+ * column policy in ColumnEditor/ColumnUse - which stays free of the API client,
+ * so the server's tests can run real model metadata through it - and
+ * re-exported here, where its callers have always found it.
  */
-export type RequiredWritableColumnsFunction = (
-  columns: Array<ModelSchemaColumn>,
-) => Array<ModelSchemaColumn>;
-
-export const requiredWritableColumns: RequiredWritableColumnsFunction = (
-  columns: Array<ModelSchemaColumn>,
-): Array<ModelSchemaColumn> => {
-  return columns.filter((column: ModelSchemaColumn) => {
-    return (
-      Boolean(column.required) &&
-      !column.hasDefault &&
-      !column.isTenantColumn &&
-      !column.isRelation
-    );
-  });
-};
+export { requiredWritableColumns } from "./ColumnEditor/ColumnUse";
 
 export type FindColumnFunction = (
   columns: Array<ModelSchemaColumn>,

@@ -9,6 +9,10 @@ import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import {
+  DeveloperDocsChildPage,
+  getDeveloperDocsChildPages,
+} from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_DEVICE_VIEW,
@@ -28,7 +32,17 @@ const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
   PageMap.NETWORK_SITE_VIEW_SETTINGS,
   PageMap.NETWORK_SITE_VIEW_DELETE,
-].map((page: PageMap): string => {
+  // A device's and a site's Developer pages (Terraform, API, AI Assistants).
+  ...[PageMap.NETWORK_DEVICE_VIEW, PageMap.NETWORK_SITE_VIEW].flatMap(
+    (viewPage: PageMap): Array<string> => {
+      return getDeveloperDocsChildPages(viewPage).map(
+        (child: DeveloperDocsChildPage): string => {
+          return child.key;
+        },
+      );
+    },
+  ),
+].map((page: string): string => {
   return RouteUtil.getRouteString(page);
 });
 

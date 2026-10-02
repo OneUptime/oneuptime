@@ -44,12 +44,17 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.callSms.editButton")}
+        formSteps={[
+          { title: "Twilio Account", id: "twilio-account" },
+          { title: "Phone Numbers", id: "phone-numbers" },
+        ]}
         formFields={[
           {
             field: {
               twilioAccountSID: true,
             },
             title: "Twilio Account SID",
+            stepId: "twilio-account",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             description: "You can find this in your Twilio console.",
@@ -63,6 +68,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioAuthToken: true,
             },
             title: "Twilio Auth Token",
+            stepId: "twilio-account",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             description: "You can find this in your Twilio console.",
@@ -76,6 +82,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioPrimaryPhoneNumber: true,
             },
             title: "Primary Twilio Phone Number",
+            stepId: "phone-numbers",
             fieldType: FormFieldSchemaType.Phone,
             required: true,
             description: "You can find this in your Twilio console.",
@@ -89,6 +96,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               twilioSecondaryPhoneNumbers: true,
             },
             title: "Secondary Twilio Phone Number",
+            stepId: "phone-numbers",
             fieldType: FormFieldSchemaType.LongText,
             required: true,
             description:

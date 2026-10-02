@@ -151,7 +151,7 @@ Erstat konto-GUID'en med den konto, sagerne hører til. **`customerid` er reelt 
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Tænd nu for workflowet — **Oversigt → Rediger arbejdsgang → Aktiveret** — erklær en testhændelse, og læs kørslen under **Kørsler og logs**. Blokken `create-case` bør vise en `201` og en body, der indeholder det nye `incidentid`. Ændringer på lærredet gemmer sig selv; der er ingen Gem-knap.
+Tænd nu for workflowet — **Oversigt → Rediger arbejdsgang → Aktiveret** — erklær en testhændelse, og læs kørslen under **Protokoller → Kørsler**. Blokken `create-case` bør vise en `201` og en body, der indeholder det nye `incidentid`. Ændringer på lærredet gemmer sig selv; der er ingen Gem-knap.
 
 ### Afbildning af alvorlighed og status
 
@@ -230,13 +230,13 @@ Nu den anden retning: nogen lukker sagen i Dynamics, eller en medarbejder tilfø
 ### Byg det modtagende workflow først
 
 1. **Opret arbejdsgang**, navngiv det `Dynamics 365 → OneUptime`, og tilføj **Webhook**-triggeren.
-2. Åbn **Indstillinger** på det workflow og kopiér **Webhook Secret Key**. Din URL er:
+2. Åbn workflowets **Bygger**, klik på **Webhook**-triggeren, og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   På en selvhostet installation skifter du din egen vært ind. Behandl URL'en som en adgangskode — enhver, der har den, kan starte workflowet. Du kan nulstille nøglen fra den samme side.
+   Selvhostede installationer bruger deres egen vært. Behandl URL'en som en adgangskode — enhver, der har den, kan starte workflowet. Hvis den slipper ud, så klik på **Nulstil URL** samme sted; den gamle URL holder op med at virke med det samme.
 
 3. Tilføj en **If / Else**-blok, der tjekker en delt hemmelighed, før noget andet sker. **Input 1** er `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — en værdi, du finder på og gemmer som en hemmelig global variabel.
 4. Fra grenen **Yes** tilføjer du en **Update One Incident**-blok:
@@ -323,7 +323,7 @@ Et workflow har præcis én trigger, så hændelser og alarmer kræver ét workf
 
 ## Fejlfinding
 
-Læs den fejlende blok i **Kørsler og logs** først — begge Microsoft-endpoints returnerer en forklarende JSON-body, og API-komponenten gemmer den i `response-body`.
+Læs den fejlende blok i **Protokoller → Kørsler** først — begge Microsoft-endpoints returnerer en forklarende JSON-body, og API-komponenten gemmer den i `response-body`.
 
 **Token-forespørgslen fejler med `400` og `invalid_request` eller en ikke-understøttet grant type.** `Content-Type`-headeren er ikke præcis `Content-Type: application/x-www-form-urlencoded`, så bodyen gik ud som JSON. Tjek brugen af store og små bogstaver.
 
@@ -343,7 +343,7 @@ Læs den fejlende blok i **Kørsler og logs** først — begge Microsoft-endpoin
 
 **`429 Too Many Requests`.** Dataverses grænser for tjenestebeskyttelse — cirka 6.000 forespørgsler og 20 minutters eksekveringstid pr. bruger inden for et vindue på fem minutter, pr. webserver. Svaret indeholder en `Retry-After` i sekunder. Kommer et workflow i byger, så sæt en **Delay**-blok ind i det, eller flyt arbejdet til et planlagt workflow, der batcher.
 
-**Der ankommer intet på OneUptime-siden.** Send selv en forespørgsel til webhook-URL'en med `curl` og tjek workflowets **Kørsler og logs**. Hvis din egen forespørgsel dukker op, og Dynamics' ikke gør, ligger problemet opstrøms: for Power Automate skal du se på flowets egen kørselshistorik; for en indbygget webhook skal du se på **Settings → System Jobs** filtreret til fejl.
+**Der ankommer intet på OneUptime-siden.** Send selv en forespørgsel til webhook-URL'en med `curl` og tjek workflowets **Protokoller → Kørsler**. Hvis din egen forespørgsel dukker op, og Dynamics' ikke gør, ligger problemet opstrøms: for Power Automate skal du se på flowets egen kørselshistorik; for en indbygget webhook skal du se på **Settings → System Jobs** filtreret til fejl.
 
 **Workflowet kører, men hændelsen ændrer sig ikke.** En **Update One Incident**-blok melder `Items Updated: 0`, når forespørgslen ikke matchede noget — det er en succes, ikke en fejl. Tjek, at id'et i payloaden er OneUptime-hændelsens id, og at du forespørger på `_id`.
 

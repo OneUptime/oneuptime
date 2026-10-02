@@ -75,7 +75,7 @@ const getGatePresentation: GetGatePresentationFunction = (
         icon: IconProp.Server,
         iconBackgroundClassName: "bg-sky-500",
         actionTitle: "Set up agent",
-        pageMap: PageMap.SETTINGS_RUNNERS,
+        pageMap: PageMap.RUNBOOKS_RUNNERS,
       };
     default:
       return null;

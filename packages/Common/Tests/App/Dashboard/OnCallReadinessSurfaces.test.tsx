@@ -3421,8 +3421,19 @@ describe("On-call readiness page", () => {
       /*
        * The footer button. The header carries a close icon labelled "Close" too,
        * and either one shuts the modal - this is the one a reader reaches for.
+       * It is the footer's only button: the panel used to offer a "Cancel" and
+       * a primary "Close" side by side, two ways out that did the same thing.
        */
-      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      const footerClose: HTMLElement = screen.getByTestId(
+        "modal-footer-close-button",
+      );
+
+      expect(footerClose).toHaveTextContent("Close");
+      expect(
+        screen.queryByTestId("modal-footer-submit-button"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(footerClose);
 
       expect(screen.queryByText("Incident severities")).toBeNull();
     });

@@ -606,6 +606,34 @@ cannot. It runs on every PR from the "Ops Config Test" workflow.
 cd Tests/Ops && npm run lint-app-dockerfile
 ```
 
+### `CancelClosedPrRuns.test.js`
+
+`.github/workflows/cancel-closed-pr-runs.yml` stops a pull request's CI when
+the pull request is closed or merged. It does not call the API. Every workflow
+that runs on `pull_request` has the concurrency group
+`<workflow name>-<PR number>`, and the canceller has one matrix job per
+workflow that joins that group with `cancel-in-progress`. Groups are shared
+across the repository, so GitHub cancels the run as soon as the job is queued,
+without waiting for a runner. Nothing notices when a group stops matching: the
+job then succeeds and cancels nothing. So the suite pins both sides:
+
+- the canceller runs on `pull_request_target` `closed` only, with
+  `permissions: {}`, uses no action (so checks out nothing), and puts no
+  `${{ }}` in a script;
+- its job has no `needs` and no `if`, has `fail-fast: false`, and joins
+  `${{ matrix.workflow }}-${{ github.event.pull_request.number }}` with
+  `cancel-in-progress: true`;
+- its matrix is exactly the names of the workflows that run on `pull_request`,
+  and those names are unique;
+- for a `pull_request` event, each of those workflows' groups evaluates to the
+  canceller's group for it, a push to master lands in a different group (a
+  merge's own push runs are never cancelled), and none of them runs on
+  `closed`.
+
+A new or renamed pull request workflow fails it until the matrix lists it.
+Groups are evaluated by a small reader that understands context paths and `||`
+and throws on anything else.
+
 ## Utils
 
 `Utils/DockerfileTemplate.js` renders a `Dockerfile.tpl` for production or

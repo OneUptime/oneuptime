@@ -10,6 +10,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -88,38 +90,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
-    /*
-     * AI is its own destination rather than a line inside Settings: both pages
-     * under it configure autonomous work that runs against every incident, and
-     * burying them under a collapsed Settings section is how they went
-     * unnoticed. Investigation is the analysis half, Remediation the acting
-     * half.
-     */
-    {
-      title: "AI",
-      items: [
-        {
-          link: {
-            title: "Investigation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
-            ),
-          },
-          icon: IconProp.Sparkles,
-        },
-        {
-          link: {
-            title: "Remediation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Bolt,
-        },
-      ],
-    },
     {
       title: "Workspace",
       items: [
@@ -192,6 +162,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Auto Remediation Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
+        },
+        {
+          link: {
             title: "Privacy Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,
@@ -232,6 +213,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       title: "Settings",
       defaultCollapsed: true,
       items: [
+        /*
+         * First: this page governs the work AI does on its own for every
+         * incident, and nothing limits that work until a limit is set there.
+         */
+        {
+          link: {
+            title: "AI",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
         {
           link: {
             title: "Incident State",
@@ -331,6 +325,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
   ];
+
+  addDeveloperSideMenuSection(sections, {
+    modelType: Incident,
+    scope: DeveloperDocsScope.List,
+  });
 
   return <SideMenu sections={sections} />;
 };

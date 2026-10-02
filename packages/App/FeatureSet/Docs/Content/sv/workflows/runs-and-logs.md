@@ -1,4 +1,4 @@
-# Körningar och loggar
+# Körningar
 
 Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som hände — när det kördes, om det fungerade och vad varje block gjorde. Den redogörelsen kallas en **körning**. Körningar är hur du bekräftar att ett arbetsflöde fungerade, felsöker ett som inte gjorde det och tittar tillbaka på tidigare aktivitet.
 
@@ -6,8 +6,8 @@ Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som
 
 | Sida                        | Vad du ser                                                                                         |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Arbetsflöden → Körningar och loggar** | Varje körning av varje arbetsflöde i projektet. Filtrera på arbetsflödesnamn, status och tid.  |
-| **Arbetsflöde → Körningar och loggar**  | Bara körningarna för det här enda arbetsflödet. Den här har ett **Körnings-ID**-filter istället för ett arbetsflödesfilter. |
+| **Arbetsflöden → Loggar → Körningar** | Varje körning av varje arbetsflöde i projektet. Filtrera på arbetsflödesnamn, status och tid.  |
+| **Arbetsflöde → Loggar → Körningar**  | Bara körningarna för det här enda arbetsflödet. Den här har ett **Körnings-ID**-filter istället för ett arbetsflödesfilter. |
 | **En enskild körning**      | Öppnas med knappen **Visa loggar** på en körningsrad — raderna i sig går inte att klicka på.        |
 
 ## Körningsstatusar
@@ -47,7 +47,7 @@ Att starta en körning från **Byggare** öppnar samma vy, redan inställd på a
 
 ### "Mitt arbetsflöde kördes inte."
 
-1. Kontrollera att arbetsflödet är **Aktiverad** på sin sida **Översikt**. Nya arbetsflöden startar inaktiverade, och ett inaktiverat arbetsflöde avvisar varje körning — även manuella.
+1. Kontrollera att arbetsflödet är **Aktiverad**: växeln sitter högst upp i dess **Byggare**, som säger till ovanför arbetsytan när arbetsflödet är avstängt. Nya arbetsflöden startar inaktiverade, och ett inaktiverat arbetsflöde avvisar varje körning — även manuella. Ett anrop till dess webhook får HTTP 400 med ett meddelande om hur det slås på.
 2. För en OneUptime-händelseutlösare: bekräfta att händelsen verkligen inträffade. Öppna posten och kontrollera dess historik.
 3. För en webhook-utlösare: bekräfta att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kolla där.
 4. För en schemautlösare: bekräfta att cron-uttrycket matchar tiden du förväntar dig.

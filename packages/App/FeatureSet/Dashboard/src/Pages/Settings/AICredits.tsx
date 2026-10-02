@@ -72,10 +72,10 @@ const AIBillingSettings: FunctionComponent<
       />
 
       {/*
-       * Enable AI, Enable auto-remediation and Enable AI command execution
-       * moved to Project Settings → AI Features (Pages/Settings/AIFeatures),
-       * which every install shows. This page is listed only when billing is
-       * on, so it keeps the balance and recharge settings alone.
+       * Enable AI moved to Project Settings → AI Features
+       * (Pages/Settings/AIFeatures), which every install shows. This page is
+       * listed only when billing is on, so it keeps the balance and recharge
+       * settings alone.
        */}
       {/* Auto Recharge */}
       <CardModelDetail

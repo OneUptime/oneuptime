@@ -76,7 +76,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Good to know:
 
-- **Self-hosted OneUptime: upgrade the server first.** The agent needs a OneUptime server of this chart's version or newer. On an older server it logs that the server has no Kubernetes AI agent API and keeps retrying every few minutes; the rest of the chart is not affected.
+- **Self-hosted OneUptime: upgrade the server first.** The agent needs a OneUptime server of this chart's version or newer. On an older server it logs that the server has no Kubernetes AI agent API and keeps retrying every few minutes. (The chart's eBPF tracer also wants a current server — see [Upgrading](#upgrading).)
 - **Not connecting?** The agent's log says why — whether a refusal clears on its own (while a previous agent pod, or the in-cluster Runner it replaces, is still shutting down) or what you need to change: `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. An API key with a **Pinned Service Name** cannot register the agent; give the chart a key without one.
 - **It is not a OneUptime Runner.** It never appears on the Runners page, never gets a Kubernetes credential, and never runs runbooks or Bash/SSH steps: it uses its own ServiceAccount only. It is also not related to the "AI Agent" retired in OneUptime 12.
 - **Egress proxy?** Set `HTTPS_PROXY` and `NO_PROXY` with `aiAgent.extraEnv`.
@@ -483,7 +483,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set profiling.enabled=true
 ```
 
-When `ebpf.enabled` is also true (the default), the profiler correlates samples with OBI's trace context via the shared bpffs map, so each span gets its own flame graph linkable from the trace view.
+When `ebpf.enabled` is also true (the default), the profiler correlates samples with OBI's trace context via the shared bpffs map, so each span gets its own flame graph linkable from the trace view. Since v0.14 OBI only keeps that map filled when asked, so the chart sets `OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true` on the eBPF DaemonSet whenever `profiling.enabled` and `profiling.obiProcessContext` are both on. Filling it costs instrumented apps a little on every async context switch (on Node.js, a hook on every callback); set `profiling.obiProcessContext=false` if you want flame graphs without the per-span link.
 
 | Key | Default | Description |
 | --- | --- | --- |
@@ -492,14 +492,14 @@ When `ebpf.enabled` is also true (the default), the profiler correlates samples 
 | `profiling.samplesPerSecond` | `19` | Sampling frequency. Higher = more detail + more CPU. |
 | `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling at the given sampling probability — diagnoses lock contention and blocking I/O. Off by default. |
 | `profiling.tracers` | `""` *(all)* | Comma-separated list of language tracers to load. Narrow to e.g. `"go,python"` if you don't care about the others. |
-| `profiling.obiProcessContext` | `true` | Correlate samples with OBI's trace context. Has no effect when `ebpf.enabled` is false. |
+| `profiling.obiProcessContext` | `true` | Correlate samples with OBI's trace context. With `profiling.enabled`, also asks OBI to keep that context filled (`OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT=true`), which OBI v0.14+ otherwise skips. Has no effect when `ebpf.enabled` is false. |
 
 ### Other data collection knobs
 
 - **`hostMetrics.*`** — host-level OS metrics from the OTel `hostmetrics` receiver, scraped inside the log-collector DaemonSet (no extra pods). Fills the gaps that `kubeletstats` doesn't cover. Every `system.*` series is stamped with the collecting node's `k8s.node.name`, so it groups per node like the `kubeletstats` node metrics; `hostMetrics.collectionInterval` (default `30s`) is the lever if the row volume is more than you need.
 - **`kubeletstats.utilizationMetrics.*`** / **`kubeletstats.volumeMetrics.*`** — opt-in metric groups in the existing `kubeletstats` receiver. The first enables 8 derived saturation series (CPU/memory as % of request & limit) for containers and pods; the second adds per-PVC disk usage. Both run inside the existing DaemonSet — no extra pods, no extra scrapes. Separately, and with no flag, the chart always enables `k8s.node.cpu.usage` and `k8s.pod.cpu.usage` (CPU in use, in cores), which `kubeletstats` also leaves off by default. The High Node CPU Utilization monitor divides `k8s.node.cpu.usage` by the node's allocatable CPU and never fires without it. They add one series per node and one per pod, with no extra scrape. Drop them with `filters.metrics.exclude` if you really don't want them.
 - **`cadvisor.*`** — scrapes the kubelet's `/metrics/cadvisor` endpoint from each node's DaemonSet pod for the container metrics `kubeletstats` doesn't translate: CFS throttling counters (`container_cpu_cfs_throttled_seconds_total`, `container_cpu_cfs_periods_total`) and OOM kill events (`container_oom_events_total`). A relabel allowlist keeps only those three series so cardinality stays bounded.
-- **`kubeStateMetrics.*`** — pulls cluster-state metrics from kube-state-metrics: pod phases (Pending / Terminating), pod scheduling status (`kube_pod_status_scheduled`, for pods that fail to schedule), container waiting reasons (CrashLoopBackOff, ImagePullBackOff), and resource quota usage. Off by default because the `bundled` mode adds a small KSM Deployment to the chart's footprint. If you already run KSM in the cluster, set `kubeStateMetrics.mode: external` and `kubeStateMetrics.endpoint: <url>` to scrape that instead. A relabel allowlist forwards only the metric families that power monitors (KSM exports ~100 by default).
+- **`kubeStateMetrics.*`** — pulls cluster-state metrics from kube-state-metrics: pod phases (Pending / Terminating), pod scheduling status (`kube_pod_status_scheduled`, for pods that fail to schedule), container waiting reasons (CrashLoopBackOff, ImagePullBackOff), and resource quota usage. Off by default because the `bundled` mode adds a small KSM Deployment to the chart's footprint. If you already run KSM in the cluster, set `kubeStateMetrics.mode: external` and `kubeStateMetrics.endpoint: <url>` to scrape that instead. The URL is scraped where it points: `https://` over TLS, and a path other than `/metrics` at that path. A URL with credentials, a query string or a fragment is refused when the chart renders, since a scrape job cannot carry them. An https endpoint needs a certificate from a public CA; there is no setting yet to trust a private CA, skip verification or send credentials. A relabel allowlist forwards only the metric families that power monitors (KSM exports ~100 by default).
 - **`auditLogs.*`** — Kubernetes API audit logs. Off by default because most managed K8s platforms don't expose them as files. Enable on self-managed clusters where you set `--audit-log-path`.
 - **`csi.*`** — auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their `metrics` port. Most cloud-provider CSI drivers fit this convention.
 - **`coreDns.*`** — scrapes the cluster's CoreDNS service on `:9153/metrics`. Surfaces DNS query rate, latency, cache hit rate, and error counts — a common P99 latency culprit.
@@ -529,9 +529,16 @@ Useful knobs:
 | Key | Default | Description |
 | --- | --- | --- |
 | `ebpf.enabled` | `true` | Master switch. |
-| `ebpf.image.tag` | `v0.9.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes. |
-| `ebpf.autoTargetExe` | `*` | Glob of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
-| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
+| `ebpf.image.tag` | `v0.13.0` | OBI image tag. Pin to a known-good version; OBI is pre-1.0 so minor bumps may introduce changes (since v0.12 it refuses to start on an unknown metrics feature name). OBI before v0.14 cannot link Node.js 26+ requests to their calls — set `v0.14.0` once it is published; see [Every trace is a single span](#every-trace-is-a-single-span). |
+| `ebpf.autoTargetExe` | `*` | Comma-separated globs of executable paths to auto-instrument. Narrow this (e.g. `*/python,*/java`) if you only want to track specific runtimes. |
+| `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself, browsers, ClickHouse — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
+| `ebpf.dropDatabaseServerSpans` | `true` | Drop the span OBI records inside a database server, which duplicates the caller's own span — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
+| `ebpf.dropUnlinkedDatabaseCalls` | `true` | Drop an app's database calls that belong to no trace (background work). A database only background work talks to is then not discovered from traces — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
+| `ebpf.nodejs.enabled` | `true` | OBI's Node.js agent, which links a Node.js request's outgoing HTTP/SQL/Redis calls to it. It is injected through the Node inspector (SIGUSR1; loopback-only `127.0.0.1:9229`, open for about a second), so each Node.js app logs `Debugger listening on ws://127.0.0.1:9229/…` and `Debugger attached.` once when OBI finds it. Turn off if policy forbids that; Node.js spans then stay unlinked. Route templates do not depend on it: OBI reads them from the app's files either way. |
+| `ebpf.excludeOtelInstrumentedServices` | `true` | OBI's default: stop exporting eBPF telemetry for a process once it sees that process export OTLP itself, so an SDK-instrumented app is not traced twice. Set `false` if those SDKs report to a different project or backend and you want eBPF traces for them here too. |
+| `ebpf.routes.patterns` | `[]` | Route templates (e.g. `/api/items/{id}`) that name HTTP spans for frameworks OBI cannot harvest routes from. |
+| `ebpf.routes.unmatched` | `""` (OBI's `heuristic`) | Route for a path no pattern matches: `heuristic`, `low-cardinality`, `wildcard`, `path` (unbounded cardinality) or `unset`. |
+| `ebpf.extraSpanAttributes` | `[]` | Span attributes to add to the ones the chart always exports — see [What eBPF traces look like](#what-ebpf-traces-look-like). E.g. `http.request.body.size` and `http.response.body.size` (sent by default before OBI v0.14), `obi.http.response.observed`, or `db.query.text` (the raw query, which can carry personal data). `*` is ignored. |
 | `ebpf.logLevel` | `info` | `debug`, `info`, `warn`, `error`. |
 | `ebpf.printTraces` | `false` | Print spans to the OBI pod's stdout. Useful for confirming OBI is seeing traffic before checking the dashboard. |
 | `ebpf.resources.*` | `100m / 512Mi` requests, `2000m / 2Gi` limits | Tune for cluster size. |
@@ -543,10 +550,26 @@ Useful knobs:
 | `ebpf.features.httpMetrics` | `true` | HTTP/gRPC RED metrics (request rate, latency, errors) per service. |
 | `ebpf.features.spanMetrics` | `true` | Per-span request/response size and duration histograms. |
 | `ebpf.features.serviceGraph` | `true` | Caller → callee request edges; drives the service map view. |
-| `ebpf.features.hostMetrics` | `true` | CPU and memory per instrumented process. |
 | `ebpf.features.networkMetrics` | `true` | Pod-to-pod TCP/UDP byte and packet counters. |
 | `ebpf.features.networkInterZoneMetrics` | `false` | Inter-zone variant of `networkMetrics` (doubles cardinality). |
 | `ebpf.features.tcpStats` | `true` | Node-level TCP RTT, failed-connection, and retransmit counters. |
+
+#### What eBPF traces look like
+
+eBPF sees network calls, not your code, so an eBPF trace is built from the requests a process serves and the calls it makes while serving them:
+
+- **A request and its calls are one trace.** A request into a service is the root span, named `<METHOD> <route>`; the HTTP, gRPC, SQL and Redis calls the service makes while handling it are its children. For Node.js that needs OBI's Node.js agent (`ebpf.nodejs.enabled`), because Node runs every request on one thread and the kernel alone cannot tell which request a call belongs to. Even then, calls that concurrent requests send down one shared connection — a Redis client usually pipelines everything over one — cannot always be told apart, so some of those are not placed in their request's trace.
+- **Hops between services on different nodes are separate traces** unless something carries the trace context across: an OpenTelemetry SDK, or the opt-in `ebpf.contextPropagation` below. When the caller and the callee run on the same node, OBI sees both ends of the connection and links them itself.
+- **Work no request triggered has no request to belong to.** A queue worker polling Redis, a connection pool pinging, a cron job — each call is its own trace.
+- **Database servers usually stand alone.** OBI records a span inside the database server for every command it receives, but database wire protocols carry no trace context: unless the caller runs on the same node (see above), that span is a trace of one, duplicating the client span the caller already recorded.
+
+Those last two produce one-span traces named after a bare command — `set`, `evalsha`, `SELECT` — and on a busy cluster they are most of what OBI sends. The agent's collector drops them: the database server's own span, linked or not, since it always duplicates the caller's span — on the same node OBI links it under the call and every database call shows up twice (`ebpf.dropDatabaseServerSpans`) — and an app's call outside any trace, including calls OBI could not place in their request's trace (`ebpf.dropUnlinkedDatabaseCalls`). Both are on by default. An app's database calls inside a request trace are kept, spans your apps push from their own SDKs are never touched, and OBI's database metrics still count every command.
+
+The second switch has a cost. OneUptime discovers databases, and draws them on the service map, from database client spans, so a database that only background work talks to (a worker's queue, a cron job's warehouse) is then no longer discovered from traces — an existing entry stops being seen and is eventually archived — and shows on the service map as a remote endpoint. Its metrics are unaffected. Set `ebpf.dropUnlinkedDatabaseCalls=false` to keep those spans, one-span traces included.
+
+Span names come from the wire: HTTP spans are `<METHOD> <route>`, where the route is the app's own template when OBI can harvest it and otherwise derived from the path, with id-like segments replaced by `*` (add `ebpf.routes.patterns` to name them yourself); SQL spans are `<OPERATION> <table>`; Redis spans are the command. OBI v0.14 harvests the route templates of Go (net/http, Gorilla mux, Gin), Java (Spring, JAX-RS), Node.js (Express, Fastify, Koa, NestJS, Next.js), Python (Django, FastAPI, Flask), Ruby (Rails), .NET (ASP.NET Core attribute routes) and PHP (Symfony, Laravel, Slim) apps. Names like `worker.job ProcessTelemetry` or `OrderService.charge` exist only in code, and need an OpenTelemetry SDK.
+
+Span attributes are OBI's defaults (`error.type`, `network.peer.address`, `db.query.summary`, `url.query`, `user_agent.original` and a few more) plus `service.peer.name`, which names the service a call went to and feeds the service map; OBI v0.14 made it opt-in, so the chart asks for it. OBI v0.14 also stopped sending `http.request.body.size` and `http.response.body.size` by default. Add those, or other opt-in attributes, with `ebpf.extraSpanAttributes`. `db.query.text` carries the raw SQL or Redis command, literal values included, so think before turning it on. The chart never asks for every attribute (`*`), which would also export AI prompt and completion payloads.
 
 **Cross-service trace linking** — **off by default, opt in:**
 
@@ -599,6 +622,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --reuse-values
 ```
 
+> ⚠️ **Self-hosted OneUptime: upgrade the server first, or install the chart version that matches it.** The eBPF tracer this chart runs (OBI v0.14) names a called service in `service.peer.name` and reports a message broker's own Kafka/MQTT/NATS spans as producer/consumer spans; OneUptime servers older than this chart read neither, so the service map loses named peers and Queues count each broker as a producer and consumer of its topics.
+
 > ⚠️ **`--reuse-values` skips defaults for newly added settings.** When the chart adds a new top-level field (e.g. `profiling.*` in v0.4.x, `ebpf.features.*` in v0.4.x), Helm's `--reuse-values` keeps your old value file as-is and does **not** merge the new defaults — so the new feature stays unset and renders as disabled in the templates.
 >
 > To pick up new defaults:
@@ -626,7 +651,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 This chart runs the [Kubernetes AI agent](#kubernetes-ai-agent-ai-investigations-and-fixes) by default — one new, read-only pod — and it is on after the upgrade even with `--reuse-values`. Before you upgrade:
 
-- **Self-hosted OneUptime: upgrade the OneUptime server first.** The agent needs a server of this chart's version or newer. Against an older server it only logs that the server has no Kubernetes AI agent API and keeps retrying; telemetry is not affected.
+- **Self-hosted OneUptime: upgrade the OneUptime server first.** The agent needs a server of this chart's version or newer. Against an older server it only logs that the server has no Kubernetes AI agent API and keeps retrying; the AI agent itself does not affect telemetry (but see [Upgrading](#upgrading) for the eBPF tracer).
 - **The new pod pulls `docker.io/oneuptime/kubernetes-ai-agent:release`.** If the cluster cannot pull from Docker Hub, or you upgrade with `--wait` / `--atomic`, Terraform or Flux behind an image allowlist, mirror the image (`--set aiAgent.image.repository=<your-registry>/oneuptime/kubernetes-ai-agent`, plus `aiAgent.imagePullSecrets` if the mirror needs a login) or pass `--set aiAgent.enabled=false`. Otherwise the upgrade can wait on a pod that never starts.
 - **To go back to an older chart, use `helm rollback <release> <revision>`**, not `helm upgrade --version <older> --reuse-values`: the stored values now include `aiAgent`, which an older chart's schema rejects.
 - **This is not the "AI Agent" retired in OneUptime 12.** That was part of the OneUptime server chart (it became the Runner); this is a new pod in the Kubernetes agent chart.
@@ -790,15 +815,15 @@ If a ClickHouse pod refuses to start and its logs show:
 
 the binary is fine — this is OBI attaching a **uprobe** to `/usr/bin/clickhouse` and patching its in-memory text. ClickHouse hashes its own executable at startup and aborts when the hash changes. Because OneUptime's own telemetry store is ClickHouse, an un-excluded agent will crash-loop the platform's database.
 
-The default `ebpf.excludeExePaths` now ships `*/clickhouse`, so a fresh install is protected. If you're on an older release or maintain a custom exclude list, add it and roll the agent:
+The default `ebpf.excludeExePaths` ships `*/clickhouse`. **Older releases of this chart listed it too, but passed the list to OBI as `OTEL_EBPF_EXCLUDE_AUTO_TARGET_EXE`, which is not an OBI setting — no exclusion was ever applied.** The list now reaches OBI through its config file (`discovery.exclude_instrument`), so upgrade the agent first. If you maintain a custom exclude list, make sure `*/clickhouse` is on it and roll the agent:
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
-  --set ebpf.excludeExePaths="...existing list...,*/clickhouse"
+  --set 'ebpf.excludeExePaths=...existing list...\,*/clickhouse'
 ```
 
-Then restart the affected ClickHouse pod(s) — `kubectl delete pod -l app.kubernetes.io/name=clickhouse -n <ns>` — so it boots without the uprobe attached. Instrumenting a database server via uprobes has little value anyway; observe it through native metrics and client-side traces instead.
+(`--set` splits on commas, so each comma inside the list is escaped as `\,`; a values file needs no escaping.) Then restart the affected ClickHouse pod(s) — `kubectl delete pod -l app.kubernetes.io/name=clickhouse -n <ns>` — so it boots without the uprobe attached. Instrumenting a database server via uprobes has little value anyway; observe it through native metrics and client-side traces instead.
 
 ### No traces appear even though OBI pods are running
 
@@ -816,6 +841,28 @@ Three things to check, in order:
     ```
 
     No spans there means OBI isn't capturing traffic on that node. Spans there but nothing in OneUptime means the OTLP export path is broken — check the metrics-collector Deployment logs.
+4. **The service exports OTLP itself** — with `ebpf.excludeOtelInstrumentedServices: true` (OBI's default), OBI stops exporting eBPF traces for a process as soon as it sees it send OTLP. If that app's SDK reports to a different project or backend, set it to `false`.
+
+### Every trace is a single span
+
+Check what kind of span it is before anything else:
+
+- **A bare database command (`set`, `evalsha`, `SELECT`)** — a database server's own span or a call made outside any request. These cannot be linked; `ebpf.dropDatabaseServerSpans` and `ebpf.dropUnlinkedDatabaseCalls` (both on by default) drop them. Only an explicit `false` turns either off — a key missing from `helm get values` (a release upgraded with `--reuse-values`) counts as on. To see what is actually running: `kubectl get configmap -n oneuptime-kubernetes-agent <release>-kubernetes-agent-deployment -o yaml | grep -A4 'filter/ebpf-unlinked-db:'`.
+- **A request (`GET /api/...`) with none of its downstream calls under it, from a Node.js service** — OBI's Node.js agent is not running in that process. Check that OBI identified the process as Node.js (`type=nodejs` on its `instrumenting process` line), then what OBI's Node.js injector (`component=nodejs.Injector`) logged:
+
+    ```bash
+    kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=-1 \
+      | grep -E 'instrumenting process.*cmd=[^ ]*node|component=nodejs\.Injector|skipping agent injection'
+    ```
+
+    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. OBI v0.14 fixes this: run the agent with `--set ebpf.image.tag=v0.14.0` (or later) once that release is published. The chart already renders what v0.14 needs.
+    - `Script successfully injected` means the agent is in. OBI v0.13 logs a `loading NodeJS instrumentation pid=…` line before each attempt; v0.14 logs it at debug only (`--set ebpf.logLevel=debug`).
+    - On OBI v0.13, `Node.js process has a custom SIGUSR1 handler, skipping agent injection` means the app uses SIGUSR1 itself, and OBI will not interfere.
+    - On OBI v0.14, `skipping Node.js agent injection` comes with a `reason=`: `process has a custom SIGUSR1 handler` or `process source files reference SIGUSR1` (the app uses the signal itself, and OBI will not interfere), `SIGUSR1 is neither caught nor ignored, so it would terminate the process` or `SIGUSR1 handling is unknown`, `the Node.js version could not be read from the executable`, or `Node.js … does not provide AsyncLocalStorage` (older than 12.17, or a 13.x before 13.10).
+    - `couldn't attach NodeJS injector` (an error) means the injection was tried and failed; its `error=` says why.
+    - `injection queue is full, skipping agent injection runtime=node` means OBI found more than 100 Node.js processes at once (at OBI start on a busy node, for example). Restart the affected app pod to have it injected; restarting OBI rediscovers everything at once and can overflow again.
+    - No injector line at all for a `type=nodejs` process: check that `ebpf.nodejs.enabled` is not `false`, which turns the agent off entirely.
+- **A request whose caller is in another service** — expected when the two run on different nodes: cross-node links need trace context on the wire. See *Cross-service trace linking* above.
 
 ### `kubectl exec` into an agent pod fails — no shell, curl, or bash
 

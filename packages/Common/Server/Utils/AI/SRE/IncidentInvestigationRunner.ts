@@ -6,6 +6,7 @@ import InvestigationEligibility from "./InvestigationEligibility";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import AIWorkloadLimits from "../../../../Types/AI/AIWorkloadLimits";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
@@ -62,14 +63,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * pod restart can no longer orphan an investigation; the heavy lifting (run
  * lifecycle, the agent loop, confidence gating) lives in the shared
  * AIInvestigationEngine.
+ *
+ * A project may narrow which incidents are investigated with a severity floor
+ * and a per-monitor cooldown. Both are off until a project sets them, so by
+ * default every incident is investigated.
  */
-/*
- * The cooldown default. Matches the alert lane: a monitor that was just
- * investigated does not need a second opinion minutes later.
- */
-export const DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES: number = 30;
-
-const MAX_INCIDENT_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
 
 export interface IncidentGateDecision {
   investigate: boolean;
@@ -243,17 +241,12 @@ export default class AIIncidentInvestigationRunner {
     }
 
     /*
-     * Per-monitor dedupe window: per-project override, defaulting to 30
-     * minutes, clamped to at most a day; 0 disables the cooldown. An incident
-     * affecting no monitor has no dedupe key.
+     * Per-monitor cooldown: off unless the project sets one, clamped to at
+     * most a day (see AIWorkloadLimits). An incident affecting no monitor has
+     * no dedupe key.
      */
-    const dedupeWindowMinutes: number = Math.min(
-      MAX_INCIDENT_DEDUPE_WINDOW_MINUTES,
-      Math.max(
-        0,
-        project?.incidentInvestigationDedupeWindowMinutes ??
-          DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES,
-      ),
+    const dedupeWindowMinutes: number = AIWorkloadLimits.getCooldownInMinutes(
+      project?.incidentInvestigationDedupeWindowMinutes,
     );
 
     if (monitorIds.length > 0 && dedupeWindowMinutes > 0) {
@@ -601,8 +594,8 @@ export default class AIIncidentInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * opted-in projects (the incident instrumentation-fix setting,
-           * default false), queue an ImproveInstrumentation fix task that
+           * projects with the incident instrumentation-fix setting on (on
+           * for new projects), queue an ImproveInstrumentation fix task that
            * opens a PR adding the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.

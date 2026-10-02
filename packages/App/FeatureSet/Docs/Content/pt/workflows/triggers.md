@@ -61,7 +61,7 @@ O registro completo é passado ao bloco seguinte. O trigger **Incident → On Cr
 - **Status Page Subscriber** — dê boas-vindas a quem se inscreve em uma página de status.
 - **On-Call Duty Policy** — sincronize mudanças de escala com outro sistema de plantão.
 
-Busque pelo nome no painel **Add Trigger** para achar o que você quer.
+No painel **Add Trigger**, eles ficam em **OneUptime resources**: clique no recurso e depois no trigger. **Browse all resources** tem todos, e o campo de busca encontra um trigger a partir de poucas palavras, como `incident created`.
 
 ## Qual trigger devo usar?
 
@@ -78,4 +78,4 @@ Um workflow só pode ter um trigger. Se você precisa de duas formas de iniciar 
 
 - [Componentes de workflow](/docs/workflows/components) — as ações que você adiciona depois do trigger.
 - [Variáveis de workflow](/docs/workflows/variables) — lendo a saída do trigger em blocos posteriores.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — confirmando que seu trigger disparou.
+- [Execuções de workflow](/docs/workflows/runs-and-logs) — confirmando que seu trigger disparou.

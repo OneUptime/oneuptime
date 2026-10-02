@@ -4,6 +4,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import { DASHBOARD_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -45,6 +47,15 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerTeamModelType: DashboardOwnerTeam,
       resourceIdField: "dashboardId",
     });
+
+  // Archived dashboards leave this list; they are on the Archived page.
+  const { archiveBulkActions } = useBulkArchiveActions<Dashboard>({
+    modelType: Dashboard,
+    singularName: DASHBOARD_ARCHIVE_COPY.singularName,
+    pluralName: DASHBOARD_ARCHIVE_COPY.pluralName,
+    archiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+    unarchiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+  });
 
   const {
     getOwnersForResource,
@@ -130,7 +141,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        query={mergeFiltersIntoQuery(undefined)}
+        query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<Dashboard>) => {
           onResourcesFetched(data);
         }}
@@ -144,7 +155,11 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           setShowCreateForm(false);
         }}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Dashboards"
         isViewable={true}

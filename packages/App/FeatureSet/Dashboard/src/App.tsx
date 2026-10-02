@@ -4,6 +4,7 @@ import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/Dashboard
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
+import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
 import PageMap from "./Utils/PageMap";
 import {
   ProjectSelectionNavigationDecision,
@@ -407,6 +408,18 @@ const App: () => JSX.Element = () => {
         },
       });
       setProjects(result.data);
+
+      /*
+       * Somebody who was on their way to connecting an MCP client and had to
+       * sign in first. Every kind of sign-in ends here, so this is where the
+       * browser is sent back to the consent screen (see
+       * Utils/McpAuthorizationResume). Checked only once the project list has
+       * loaded, because that is what proves there is a session to return
+       * with.
+       */
+      if (resumePendingMcpAuthorization()) {
+        return;
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

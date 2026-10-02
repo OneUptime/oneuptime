@@ -22,6 +22,7 @@ import ComponentMetadata, {
   NodeDataProp,
   NodeType,
 } from "Common/Types/Workflow/Component";
+import ComponentID from "Common/Types/Workflow/ComponentID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -29,6 +30,17 @@ import Dictionary from "Common/Types/Dictionary";
 import { WorkflowLintResult } from "Common/UI/Components/Workflow/GraphLint";
 import { buildStepTitlesByNodeId } from "Common/UI/Components/Workflow/GraphLintSummary";
 import WorkflowIssuesModal from "Common/UI/Components/Workflow/WorkflowIssuesModal";
+import useWorkflowEnabled, {
+  UseWorkflowEnabledResult,
+  WorkflowRunKind,
+} from "Common/UI/Components/Workflow/UseWorkflowEnabled";
+import WorkflowEnabledSwitch from "Common/UI/Components/Workflow/WorkflowEnabledSwitch";
+import WorkflowTurnedOffNotice from "Common/UI/Components/Workflow/WorkflowTurnedOffNotice";
+import WorkflowTurnOnModal from "Common/UI/Components/Workflow/WorkflowTurnOnModal";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import WorkflowStatusBar, {
   WorkflowSaveState,
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
@@ -37,15 +49,28 @@ import Workflow, {
   getEdgeDefaultProps,
   getPlaceholderTriggerNode,
 } from "Common/UI/Components/Workflow/Workflow";
+import {
+  getWebhookSecretKeySelect,
+  resetWebhookSecretKey,
+} from "Common/UI/Components/Workflow/WorkflowWebhookSecretKey";
+import {
+  getIncomingEmailSecretKeySelect,
+  resetIncomingEmailSecretKey,
+} from "Common/UI/Components/Workflow/WorkflowIncomingEmailSecretKey";
+import Select from "Common/Types/BaseDatabase/Select";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
+import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
+import { subscribeToArchiveStateChanges } from "../../../Components/Archive/ArchiveStateEvents";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
+  useMemo,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -65,7 +90,30 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [nodes, setNodes] = useState<Array<Node>>([]);
   const [edges, setEdges] = useState<Array<Edge>>([]);
   const [error, setError] = useState<string>("");
+  /*
+   * An archived workflow does not run, from any trigger, whatever its
+   * Enabled switch says. The banner above every one of its pages says so and
+   * offers Unarchive; the Builder only has to stop offering to turn it on.
+   */
+  const [isArchived, setIsArchived] = useState<boolean>(false);
+  /*
+   * The Webhook trigger's URL is built from this key, and its settings show,
+   * copy and reset it. Only loaded when the user may read it: see
+   * WorkflowWebhookSecretKey.
+   */
   const [webhookSecretKey, setWebhookSecretKey] = useState<string>("");
+  const [canSeeWebhookSecretKey, setCanSeeWebhookSecretKey] =
+    useState<boolean>(false);
+  /*
+   * The same for the Incoming Email trigger's address, which is built from
+   * this key: see WorkflowIncomingEmailSecretKey.
+   */
+  const [incomingEmailSecretKey, setIncomingEmailSecretKey] =
+    useState<string>("");
+  const [canSeeIncomingEmailSecretKey, setCanSeeIncomingEmailSecretKey] =
+    useState<boolean>(false);
+  // Names a run downloaded from the run modal, and heads its log.
+  const [workflowName, setWorkflowName] = useState<string>("");
 
   const [showComponentPickerModal, setShowComponentPickerModal] =
     useState<boolean>(false);
@@ -105,6 +153,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             workflowStatus: true,
             logs: true,
             stepTrace: true,
+            // A run downloaded from the modal is named and headed with these.
+            createdAt: true,
+            startedAt: true,
+            completedAt: true,
           },
           sort: { createdAt: SortOrder.Descending },
         });
@@ -120,12 +172,93 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         status: latest.workflowStatus as WorkflowStatus,
         logs: latest.logs || "",
         stepTrace: parseTrace((latest.stepTrace as JSONValue) || null),
+        scheduledAt: latest.createdAt || null,
+        startedAt: latest.startedAt || null,
+        completedAt: latest.completedAt || null,
       };
     };
 
   const runWatch: UseRunWatchResult = useRunWatch({
     fetchLatestRun: fetchLatestRun,
   });
+
+  /*
+   * Whether the workflow is turned on, its Enabled switch at the top of the
+   * page, and what a run started while it is off does: it is held, and a
+   * dialog offers to turn the workflow on and then run it. That used to be
+   * an Error dialog saying "This workflow is not enabled", with no way to
+   * turn it on and no word of where the switch was. See UseWorkflowEnabled.
+   */
+  const workflowEnabled: UseWorkflowEnabledResult = useWorkflowEnabled({
+    saveIsEnabled: async (isEnabled: boolean): Promise<void> => {
+      await ModelAPI.updateById<WorkflowModel>({
+        modelType: WorkflowModel,
+        id: modelId,
+        data: {
+          isEnabled: isEnabled,
+        },
+      });
+    },
+    fetchIsEnabled: async (): Promise<boolean | null> => {
+      const workflow: WorkflowModel | null = await ModelAPI.getItem({
+        modelType: WorkflowModel,
+        id: modelId,
+        select: {
+          isEnabled: true,
+        },
+        requestOptions: {},
+      });
+
+      return typeof workflow?.isEnabled === "boolean"
+        ? workflow.isEnabled
+        : null;
+    },
+    onError: (message: string): void => {
+      setError(message);
+    },
+  });
+
+  // Unarchived from the banner on this page: the Builder follows at once.
+  useEffect(() => {
+    return subscribeToArchiveStateChanges({
+      modelType: WorkflowModel,
+      modelId: modelId,
+      onChange: (newValue: boolean) => {
+        setIsArchived(newValue);
+      },
+    });
+  }, [modelId.toString()]);
+
+  /*
+   * A run of an archived workflow is refused by the server whether or not
+   * the workflow is on, so it is not held behind the "turn it on" dialog -
+   * turning it on would change the switch and still not run it. Say why
+   * instead, in the server's own words.
+   */
+  const refuseRunWhileArchived: () => boolean = (): boolean => {
+    if (!isArchived) {
+      return false;
+    }
+
+    setError(WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE);
+    return true;
+  };
+
+  /*
+   * Turning the workflow on or off is an edit of the workflow, gated like
+   * one. Someone who may not still sees the switch, disabled, with the
+   * permission they would need. Before the permission snapshot has landed
+   * there is nothing honest to say, so the switch is offered and the server
+   * decides.
+   */
+  const enabledSwitchGate: PermissionGateResult = useMemo(() => {
+    return PermissionGate.check(new WorkflowModel(), ModelAction.Update, {
+      verb: "edit",
+    });
+  }, []);
+
+  const canTurnWorkflowOnOrOff: boolean =
+    enabledSwitchGate.isAllowed || !enabledSwitchGate.disabledReason;
 
   type StartWatchingRunFunction = () => void;
 
@@ -143,20 +276,49 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
+
+      /*
+       * Asking for a column the user cannot read fails the whole request, and
+       * the key is readable only by people who can edit the workflow. Anyone
+       * else still gets the builder; the Webhook trigger then says who can
+       * see its URL.
+       */
+      const webhookSecretKeySelect: Select<WorkflowModel> =
+        getWebhookSecretKeySelect();
+      const incomingEmailSecretKeySelect: Select<WorkflowModel> =
+        getIncomingEmailSecretKeySelect();
+
       const workflow: WorkflowModel | null = await ModelAPI.getItem({
         modelType: WorkflowModel,
         id: modelId,
         select: {
           graph: true,
-          webhookSecretKey: true,
+          name: true,
+          // Read by the Enabled switch and the notice shown while it is off.
+          isEnabled: true,
+          isArchived: true,
+          ...webhookSecretKeySelect,
+          ...incomingEmailSecretKeySelect,
         },
         requestOptions: {},
       });
 
       if (workflow) {
-        if (workflow.webhookSecretKey) {
-          setWebhookSecretKey(workflow.webhookSecretKey);
-        }
+        setCanSeeWebhookSecretKey(
+          Boolean(webhookSecretKeySelect.webhookSecretKey),
+        );
+        setWebhookSecretKey(workflow.webhookSecretKey || "");
+        setCanSeeIncomingEmailSecretKey(
+          Boolean(incomingEmailSecretKeySelect.incomingEmailSecretKey),
+        );
+        setIncomingEmailSecretKey(
+          workflow.incomingEmailSecretKey?.toString() || "",
+        );
+        setWorkflowName(workflow.name || "");
+        setIsArchived(Boolean(workflow.isArchived));
+        workflowEnabled.setLoadedIsEnabled(
+          typeof workflow.isEnabled === "boolean" ? workflow.isEnabled : null,
+        );
 
         const allComponents: {
           components: Array<ComponentMetadata>;
@@ -364,6 +526,80 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const stepTitlesByNodeId: Dictionary<string> = buildStepTitlesByNodeId(nodes);
 
+  /*
+   * The trigger, named by the dialog that turns the workflow on: from then on
+   * it starts the workflow too. Not a Manual trigger, which nothing but Run
+   * Workflow starts.
+   */
+  const triggerNode: Node | undefined = nodes.find((node: Node) => {
+    return (
+      node.data?.componentType === ComponentType.Trigger &&
+      node.data?.nodeType === NodeType.Node
+    );
+  });
+
+  const triggerTitleForTurnOn: string | undefined =
+    triggerNode && triggerNode.data?.metadataId !== ComponentID.Manual
+      ? triggerNode.data?.metadata?.title || undefined
+      : undefined;
+
+  type SendRunFunction = (component: NodeDataProp) => Promise<void>;
+
+  // Run just this step. Rejects with the API's error when it is refused.
+  const sendStepRun: SendRunFunction = async (
+    component: NodeDataProp,
+  ): Promise<void> => {
+    await runWatch.captureRunBeforeTrigger();
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
+          "/run-step/" + modelId.toString(),
+        ),
+        data: {
+          componentId: component.id,
+        },
+        headers: ModelAPI.getCommonHeaders(),
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    startWatchingRun();
+  };
+
+  // Run Workflow, with the trigger's values from the run panel.
+  const sendWorkflowRun: SendRunFunction = async (
+    component: NodeDataProp,
+  ): Promise<void> => {
+    await runWatch.captureRunBeforeTrigger();
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
+          "/manual/run/" + modelId.toString(),
+        ),
+        data: {
+          data: component.arguments,
+        },
+        /*
+         * /workflow/manual/run is a custom route, so it gets no tenant header
+         * unless the call site adds one. It needs the header to check the
+         * caller is a member of the workflow's project before running it.
+         */
+        headers: ModelAPI.getCommonHeaders(),
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    startWatchingRun();
+  };
+
   return (
     <Fragment>
       <>
@@ -371,8 +607,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: "0.75rem",
             padding: "0.75rem 1rem",
             backgroundColor: "var(--ou-surface-primary, #ffffff)",
             borderRadius: "10px",
@@ -400,25 +638,89 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
           />
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Button
-              title="Add Component"
-              icon={IconProp.Add}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                setShowComponentPickerModal(true);
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "0.75rem",
+            }}
+          >
+            {/*
+             * Only once the workflow has said whether it is on: a switch
+             * drawn before then would show "off" for a workflow that is on.
+             */}
+            {workflowEnabled.isEnabled !== null ? (
+              <WorkflowEnabledSwitch
+                isEnabled={workflowEnabled.isEnabled}
+                isSaving={workflowEnabled.isSaving}
+                disabledReason={
+                  canTurnWorkflowOnOrOff
+                    ? undefined
+                    : enabledSwitchGate.disabledReason
+                }
+                onChange={(isEnabled: boolean) => {
+                  void workflowEnabled.setIsEnabled(isEnabled);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+            {/*
+             * On a phone the two buttons get a row of their own, and Run
+             * Workflow drops below Add Component rather than either label
+             * breaking over two lines inside its button.
+             */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "0.5rem",
               }}
-            />
-            <Button
-              title="Run Workflow"
-              icon={IconProp.Play}
-              buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-              onClick={() => {
-                setShowRunModal(true);
-              }}
-            />
+            >
+              <Button
+                title="Add Component"
+                icon={IconProp.Add}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                className="whitespace-nowrap"
+                onClick={() => {
+                  setShowComponentPickerModal(true);
+                }}
+              />
+              <Button
+                title="Run Workflow"
+                icon={IconProp.Play}
+                buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                className="whitespace-nowrap"
+                onClick={() => {
+                  setShowRunModal(true);
+                }}
+              />
+            </div>
           </div>
         </div>
+
+        {/*
+         * Said up front, so nobody has to find out from a refused run that
+         * the workflow is off, with the one thing to do about it.
+         */}
+        {workflowEnabled.isEnabled === false && !isArchived ? (
+          <div style={{ marginBottom: "0.75rem" }}>
+            <WorkflowTurnedOffNotice
+              onTurnOn={
+                canTurnWorkflowOnOrOff
+                  ? () => {
+                      void workflowEnabled.setIsEnabled(true);
+                    }
+                  : undefined
+              }
+              isTurningOn={workflowEnabled.isSaving}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
 
         {/* Canvas */}
         {isLoading ? (
@@ -440,6 +742,31 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <Workflow
             workflowId={modelId}
             webhookSecretKey={webhookSecretKey}
+            canSeeWebhookSecretKey={canSeeWebhookSecretKey}
+            onResetWebhookSecretKey={async (): Promise<void> => {
+              /*
+               * Saved straight away, not with the graph: the old URL stops
+               * working the moment this resolves. A failure is shown by the
+               * Webhook trigger's confirmation, which stays open for it.
+               */
+              const secretKey: string = await resetWebhookSecretKey(modelId);
+
+              setWebhookSecretKey(secretKey);
+            }}
+            incomingEmailSecretKey={incomingEmailSecretKey}
+            canSeeIncomingEmailSecretKey={canSeeIncomingEmailSecretKey}
+            onResetIncomingEmailSecretKey={async (): Promise<void> => {
+              /*
+               * Saved straight away, like the webhook URL's reset: the old
+               * address stops working the moment this resolves. Also gives a
+               * workflow its first address, when the Incoming Email trigger
+               * is opened before the graph that added it was saved.
+               */
+              const secretKey: string =
+                await resetIncomingEmailSecretKey(modelId);
+
+              setIncomingEmailSecretKey(secretKey);
+            }}
             showComponentsPickerModal={showComponentPickerModal}
             onComponentPickerModalUpdate={(value: boolean) => {
               setShowComponentPickerModal(value);
@@ -466,58 +793,29 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               await saveGraph(nodes, edges);
             }}
             onRunStep={async (component: NodeDataProp) => {
-              try {
-                await runWatch.captureRunBeforeTrigger();
-
-                const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-                  await API.post({
-                    url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
-                      "/run-step/" + modelId.toString(),
-                    ),
-                    data: {
-                      componentId: component.id,
-                    },
-                    headers: ModelAPI.getCommonHeaders(),
-                  });
-
-                if (result instanceof HTTPErrorResponse) {
-                  throw result;
-                }
-
-                startWatchingRun();
-              } catch (err) {
-                setError(API.getFriendlyMessage(err));
+              if (refuseRunWhileArchived()) {
+                return;
               }
+
+              await workflowEnabled.run({
+                kind: WorkflowRunKind.Step,
+                stepTitle: component.metadata?.title || component.id,
+                run: async (): Promise<void> => {
+                  await sendStepRun(component);
+                },
+              });
             }}
             onRun={async (component: NodeDataProp) => {
-              try {
-                await runWatch.captureRunBeforeTrigger();
-
-                const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-                  await API.post({
-                    url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
-                      "/manual/run/" + modelId.toString(),
-                    ),
-                    data: {
-                      data: component.arguments,
-                    },
-                    /*
-                     * /workflow/manual/run is a custom route, so it gets no
-                     * tenant header unless the call site adds one. It needs
-                     * the header to check the caller is a member of the
-                     * workflow's project before running it.
-                     */
-                    headers: ModelAPI.getCommonHeaders(),
-                  });
-
-                if (result instanceof HTTPErrorResponse) {
-                  throw result;
-                }
-
-                startWatchingRun();
-              } catch (err) {
-                setError(API.getFriendlyMessage(err));
+              if (refuseRunWhileArchived()) {
+                return;
               }
+
+              await workflowEnabled.run({
+                kind: WorkflowRunKind.Workflow,
+                run: async (): Promise<void> => {
+                  await sendWorkflowRun(component);
+                },
+              });
             }}
           />
         )}
@@ -528,6 +826,19 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description="This is the run you just started."
             logs={runWatch.logs}
             stepTrace={runWatch.stepTrace}
+            run={
+              runWatch.run
+                ? {
+                    runId: runWatch.run.runId,
+                    workflowId: modelId.toString(),
+                    workflowName: workflowName,
+                    status: runWatch.run.status,
+                    scheduledAt: runWatch.run.scheduledAt,
+                    startedAt: runWatch.run.startedAt,
+                    completedAt: runWatch.run.completedAt,
+                  }
+                : undefined
+            }
             statusMessage={runWatch.message}
             isStatusMessageError={runWatch.hasFailed}
             isRunning={runWatch.isWatching}
@@ -535,6 +846,28 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowRunLogModal(false);
             }}
           />
+        )}
+
+        {/*
+         * After the canvas, so it opens over a step's settings: Run just this
+         * step is pressed in there.
+         */}
+        {workflowEnabled.heldRun ? (
+          <WorkflowTurnOnModal
+            attempt={workflowEnabled.heldRun}
+            triggerTitle={triggerTitleForTurnOn}
+            canTurnOn={canTurnWorkflowOnOrOff}
+            isTurningOn={workflowEnabled.isTurningOn}
+            error={workflowEnabled.turnOnError}
+            onTurnOn={() => {
+              void workflowEnabled.turnOnAndRun();
+            }}
+            onClose={() => {
+              workflowEnabled.dismissHeldRun();
+            }}
+          />
+        ) : (
+          <></>
         )}
 
         {error && (

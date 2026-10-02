@@ -12,6 +12,7 @@ Den här sidan är referensen för den konfigurationen — vad varje sida inneh�
 
 | Sida                     | Vad du gör där                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **AI**                   | Slå på eller av automatisk utredning, automatiska kodfixar och postmortem-utkast, och sätt de valfria gränser som AI arbetar inom — ingen av dem gäller förrän du sätter den. Se [AI SRE](/docs/ai/ai-sre). |
 | **Incidentstatus**       | Lägg till, byt namn, byt färg på och ordna om de tillstånd en incident rör sig genom.                       |
 | **Incidentallvar**       | Lägg till, byt namn, byt färg på och ordna om allvarlighetsgrader.                                          |
 | **Incidentmallar**       | Förifyll en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.                    |
@@ -23,7 +24,7 @@ Den här sidan är referensen för den konfigurationen — vad varje sida inneh�
 
 **Incidentstatus** och **Incidentallvar** behandlas på djupet i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan tar vid från **Incidentmallar**.
 
-Fäll ut **Regler** så får du åtta sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Reminder Rules**. De behandlas längre ned.
+Fäll ut **Regler** så får du nio sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Reminder Rules**. De behandlas längre ned.
 
 ## Incidentmallar
 
@@ -113,20 +114,21 @@ Lämna endera tomt för att behålla standardprefixet `#`; det osatta fältet vi
 
 ## Regler som körs när en incident skapas
 
-**Incidenter → Regler** rymmer åtta regelmotorer. De gör alla samma sak — tittar på en incident i samma stund som den skapas och agerar om den matchar — men de skiljer sig i vad de gör och i hur flera matchande regler löses upp.
+**Incidenter → Regler** rymmer nio regelmotorer. De gör alla samma sak — tittar på en incident i samma stund som den skapas och agerar om den matchar — men de skiljer sig i vad de gör och i hur flera matchande regler löses upp.
 
 - **Grupperingsregler** — grupperar besläktade incidenter till episoder. Regler utvärderas i prioritetsordning; lägre prioritetsnummer går först.
 - **Jourregler** — kör jourpolicyer för matchande incidenter. Behandlas i detalj nedan.
 - **Ägarregler** — tilldelar ägare automatiskt.
 - **Runbook-regler** — startar ett [runbook](/docs/runbooks/index) när en incident matchar.
+- **Regler för automatisk åtgärd** — föreslår eller startar åtgärds-runbooks när en incident matchar. Står en AI-utredning i kö för incidenten körs de när den är klar, med dess analys i handen. Se [AI SRE](/docs/ai/ai-sre).
 - **Sekretessregler** — avgör om en matchande incident är privat.
 - **Etikettregler** — sätter etiketter automatiskt.
 - **SLA-regler** — följer upp svars- och lösningstider. Regler utvärderas i ordning; lägre ordningsnummer går först.
 - **Reminder Rules** — påminner incidentägare med jämna mellanrum så länge en incident är öppen. Regler utvärderas i ordning och första matchande regel vinner.
 
-**Ordningssemantiken är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning. Jourregler gör det inte — varje matchande regel avfyras. Utgå inte från att en och samma modell gäller alla åtta.
+**Ordningssemantiken är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning. Jourregler gör det inte — varje matchande regel avfyras. Utgå inte från att en och samma modell gäller alla nio.
 
-Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte uttryckligen menar episoder. **Grupperingsregler**, **Runbook-regler**, **SLA-regler** och **Reminder Rules** är enkla tabeller.
+Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte uttryckligen menar episoder. **Grupperingsregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **SLA-regler** och **Reminder Rules** är enkla tabeller.
 
 ## Jourregler för incidenter
 
@@ -160,7 +162,7 @@ För att se vad som hände öppnar du incidenten och väljer **Jourexekveringar*
 
 ## Styra incidenter från arbetsflöden
 
-Arbetsflödesutlösare för incidenter är inte handskrivna — OneUptime genererar dem från datamodellerna, så varje modell i incidentfamiljen får komponenterna **On Create X**, **On Update X** och **On Delete X**, namngivna efter modellens singularnamn. De tre viktigaste är **On Create Incident**, **On Update Incident** och **On Delete Incident**, och du hittar dem under kategorin **Incident** i panelen **Lägg till komponent** på `/dashboard/{projectId}/workflows`.
+Arbetsflödesutlösare för incidenter är inte handskrivna — OneUptime genererar dem från datamodellerna, så varje modell i incidentfamiljen får komponenterna **On Create X**, **On Update X** och **On Delete X**, namngivna efter modellens singularnamn. De tre viktigaste är **On Create Incident**, **On Update Incident** och **On Delete Incident**. Du hittar dem i panelen **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de två första finns också under **Popular**.
 
 Samma generering ger dig utlösare för själva konfigurationen: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** med flera. Varje modell får dessutom motsvarande åtgärdskomponenter — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** och deras flerradsvarianter — så att en utlösare och en åtgärd med snarlika namn ligger sida vid sida i samma kategori. **On Create Incident** startar ett arbetsflöde; **Create One Incident** öppnar en incident.
 

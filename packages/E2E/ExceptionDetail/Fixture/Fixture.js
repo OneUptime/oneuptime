@@ -605,7 +605,7 @@ function aiReadiness() {
           ok: false,
           title: "AI agent online",
           detail:
-            "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Settings > Runners).",
+            "No agent is available for this project. Install a OneUptime Runner and enable Runs AI Code Fixes on it (Runbooks > Runners).",
         },
       ],
     };

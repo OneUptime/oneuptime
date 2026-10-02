@@ -28,6 +28,31 @@ export enum SessionRotationReason {
 
   /* Stored state was unreadable or inconsistent; fail into a fresh session. */
   Corrupt = "corrupt",
+
+  /*
+   * The page identified a DIFFERENT user than the one the session already
+   * belongs to - one person signed out and another signed in on the same
+   * browser. A session is one person's: the recording so far stays theirs
+   * and the new person's activity starts a session of its own.
+   */
+  IdentityChange = "identity-change",
+}
+
+/*
+ * What identify(userRef) does to the session it is called in.
+ *
+ *  - Same: the session already belongs to this user. Nothing changes.
+ *  - Attach: the session is anonymous so far. It becomes this user's,
+ *    from its start: a visitor who signs in part-way through a visit is
+ *    still the one person who made it, and the pages before the sign-in
+ *    are usually the part worth watching.
+ *  - SwitchUser: the session belongs to someone else. It ends, and a new
+ *    one starts for this user.
+ */
+export enum SessionIdentifyDecision {
+  Same = "same",
+  Attach = "attach",
+  SwitchUser = "switch-user",
 }
 
 export interface StoredSessionState {
@@ -42,6 +67,38 @@ export interface SessionRotationDecision {
 }
 
 export default class SessionIdentity {
+  /*
+   * Do two end-user references name the same person?
+   *
+   * Compared trimmed and case-sensitively, exactly as the server keys them
+   * (SessionReplayIdentity.buildUserKey trims and never folds case): two
+   * references the server would file under one key must never split a
+   * session, and two it would file under different keys must never share
+   * one.
+   */
+  public static isSameUserRef(a: string, b: string): boolean {
+    return a.trim() === b.trim();
+  }
+
+  /*
+   * See SessionIdentifyDecision. `sessionUserRef` is who the session
+   * belongs to so far - the reference this page gave it, or the one an
+   * earlier page or another tab of the same session stored - and null for
+   * an anonymous session.
+   */
+  public static decideIdentify(
+    sessionUserRef: string | null,
+    nextUserRef: string,
+  ): SessionIdentifyDecision {
+    if (sessionUserRef === null || sessionUserRef.trim().length === 0) {
+      return SessionIdentifyDecision.Attach;
+    }
+
+    return SessionIdentity.isSameUserRef(sessionUserRef, nextUserRef)
+      ? SessionIdentifyDecision.Same
+      : SessionIdentifyDecision.SwitchUser;
+  }
+
   /*
    * Is this a visitor id the recorder could have minted?
    *
@@ -101,6 +158,37 @@ export default class SessionIdentity {
     }
 
     return { shouldRotate: false };
+  }
+
+  /*
+   * Did activity at `activityUnixMs` happen after the stored session had
+   * already gone idle?
+   *
+   * The idle rule says a session ends at its last activity once the idle
+   * window has passed with nothing in it. Activity that arrives AFTER that -
+   * the user back from lunch, a laptop woken from sleep - is the first thing
+   * of a NEW session, never more of the old one. Written through to the
+   * stored record it would revive the expired session instead: its
+   * lastActivity moves forward, shouldRotateSession() answers "no", and the
+   * one session now holds a dead zone as long as the user was away.
+   *
+   * False with no stored session: there is nothing to have expired, and
+   * shouldRotateSession() already answers that case.
+   */
+  public static isActivityAfterIdleExpiry(
+    stored: StoredSessionState | null,
+    activityUnixMs: number,
+    idleRolloverMs: number = SESSION_REPLAY_IDLE_ROLLOVER_MS,
+  ): boolean {
+    if (
+      !stored ||
+      !Number.isFinite(activityUnixMs) ||
+      !Number.isFinite(stored.lastActivityUnixMs)
+    ) {
+      return false;
+    }
+
+    return activityUnixMs - stored.lastActivityUnixMs >= idleRolloverMs;
   }
 
   public static isStoredStateValid(

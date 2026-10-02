@@ -105,7 +105,7 @@ Envia um e-mail por meio de um servidor SMTP que você informa no bloco.
 - **Sucesso** — dispara quando o servidor SMTP aceitou a mensagem.
 - **Erro** — dispara quando o host SMTP é recusado, quando o servidor não pode ser alcançado ou quando ele rejeita a mensagem. Repassa a mensagem de erro. Já a falta de **To Email**, **From Email**, **SMTP Host** ou **SMTP Port** interrompe a execução em vez disso.
 
-O bloco se conecta diretamente ao servidor definido nas configurações dele. Ele não usa as configurações de [SMTP](/docs/emails/smtp) do seu projeto nem o servidor de e-mail do próprio OneUptime, e os e-mails que ele envia não aparecem nos Logs de notificação. Para conferir o que ele fez, veja as [Execuções e registros](/docs/workflows/runs-and-logs) do workflow.
+O bloco se conecta diretamente ao servidor definido nas configurações dele. Ele não usa as configurações de [SMTP](/docs/emails/smtp) do seu projeto nem o servidor de e-mail do próprio OneUptime, e os e-mails que ele envia não aparecem nos Logs de notificação. Para conferir o que ele fez, veja as [Execuções](/docs/workflows/runs-and-logs) do workflow.
 
 Conexões com endereços de loopback (`localhost`, `127.0.0.1`), link-local e de metadados de nuvem são recusadas. No OneUptime Cloud, um host SMTP em um endereço de rede privada, ou um nome que resolva para um endereço desse tipo, também é recusado. Instalações self-hosted podem alcançar um servidor de e-mail na própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esteja definido como `true`. Um host recusado segue pela saída **Erro**, e nada é enviado.
 
@@ -131,7 +131,7 @@ Converte entre texto e JSON.
 
 ## Conditions
 
-Ramifica com base em uma comparação. No painel **Add Component**, este bloco se chama **If / Else**, na categoria Conditions.
+Ramifica com base em uma comparação. No painel **Add Component**, este bloco se chama **If / Else**, em **Popular**.
 
 **Settings**:
 
@@ -159,7 +159,7 @@ Existe um limite de segurança para que os workflows não fiquem se chamando em 
 
 ## Componentes de dados do OneUptime
 
-Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), o painel **Add Component** traz estes componentes — busque pelo nome do tipo. Cada título é gerado a partir do tipo de registro, então o conjunto de Monitor fica assim:
+Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), o painel **Add Component** traz estes componentes: clique no tipo de registro em **OneUptime resources** (os que não aparecem estão em **Browse all resources**) ou busque pelo nome do tipo. Cada título é gerado a partir do tipo de registro, então o conjunto de Monitor fica assim:
 
 - **Find One Monitor** — lê um registro que corresponda à consulta.
 - **Find Many Monitors** — lê uma lista de registros que correspondam à consulta.
@@ -217,5 +217,5 @@ Algumas regras rápidas:
 ## Onde ler em seguida
 
 - [Variáveis de workflow](/docs/workflows/variables) — passando dados entre blocos.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — conferindo o que cada bloco fez em uma execução.
+- [Execuções de workflow](/docs/workflows/runs-and-logs) — conferindo o que cada bloco fez em uma execução.
 - [Configuração e segurança de workflow](/docs/workflows/configuration) — limites, proprietários e segredos.

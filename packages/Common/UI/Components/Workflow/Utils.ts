@@ -10,10 +10,14 @@ import ComponentMetadata, {
 import Components, { Categories } from "../../../Types/Workflow/Components";
 import BaseModelComponentFactory from "../../../Types/Workflow/Components/BaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { ConditionValueType } from "../../../Types/Workflow/Components/Condition";
 import {
-  ConditionOperator,
-  ConditionValueType,
-} from "../../../Types/Workflow/Components/Condition";
+  CONDITION_COMPARISONS,
+  CONDITION_VALUE_TYPE_LABELS,
+  ConditionComparison,
+  ConditionComparisonKind,
+} from "../../../Types/Workflow/Components/ConditionComparison";
 
 type LoadComponentsAndCategoriesFunction = () => {
   components: Array<ComponentMetadata>;
@@ -30,16 +34,30 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
 
     initComponents = initComponents.concat(Components);
 
-    for (const model of Entities) {
-      initComponents = initComponents.concat(
-        BaseModelComponentFactory.getComponents(new model()),
-      );
+    for (const modelType of Entities) {
+      const model: BaseModel = new modelType();
+      const modelComponents: Array<ComponentMetadata> =
+        BaseModelComponentFactory.getComponents(model);
+
+      // A model with no workflow steps has nothing for its category to hold.
+      if (modelComponents.length === 0) {
+        continue;
+      }
+
+      initComponents = initComponents.concat(modelComponents);
+
+      /*
+       * The model's own description says what the resource is ("Manage
+       * incidents for your project"); the Add Component picker shows it when
+       * the resource is opened.
+       */
       initCategories.push({
-        name: new model().singularName || "Model",
-        description: `Interact with ${
-          new model().singularName
-        } in your workflow.`,
-        icon: new model().icon || IconProp.Database,
+        name: model.singularName || "Model",
+        description:
+          model.tableDescription ||
+          `Interact with ${model.singularName} in your workflow.`,
+        icon: model.icon || IconProp.Database,
+        tableName: model.tableName || undefined,
       });
     }
 
@@ -121,23 +139,76 @@ export const parseStringDictionaryValue: ParseStringDictionaryValueFunction = (
   return entries;
 };
 
+/*
+ * Free text that runs past a line as often as not: a message, a prompt, a
+ * value written to the run log. Each of these is a plain box that grows with
+ * what is typed, and it stays one whatever the value holds - a message with a
+ * {{...}} reference in it is still a message.
+ *
+ * Markdown is in this list on purpose. The visual Markdown editor rebuilds the
+ * whole value from what it shows on every keystroke, and on the way it rewrites
+ * anything that looks like formatting to it: the underscores in
+ * {{local.variables.my_var}} ... {{global.variables.your_var}} come back as
+ * asterisks, which breaks both references, and Slack's own _italic_ comes back
+ * as *italic*, which Slack shows in bold. A step hands its arguments on exactly
+ * as they are stored, so they have to be stored exactly as typed.
+ *
+ * AnyValue is anything at all that is typed by hand, which is text: a word, a
+ * sentence, a JSON document.
+ */
+export const MULTI_LINE_TEXT_INPUT_TYPES: ReadonlyArray<ComponentInputType> = [
+  ComponentInputType.LongText,
+  ComponentInputType.Markdown,
+  ComponentInputType.AnyValue,
+];
+
+export interface ArgumentFormFieldType {
+  fieldType: FormFieldSchemaType;
+  dropdownOptions?: Array<DropdownOption> | undefined;
+  // See Field.autoGrow. Set for the multi-line text types above.
+  autoGrow?: boolean | undefined;
+}
+
 type ComponentInputTypeToFormFieldTypeFunction = (
   componentInputType: ComponentInputType,
   argValue: unknown,
-) => {
-  fieldType: FormFieldSchemaType;
-  dropdownOptions?: Array<DropdownOption> | undefined;
-};
+) => ArgumentFormFieldType;
 
+/**
+ * The form control for an argument of a given type. This is the one place a
+ * workflow step's settings, and the Run Workflow form, decide which control a
+ * type gets; ArgumentsForm only overrides it for the editors that need the
+ * component's database table (row editors, field picker) and for the cron
+ * picker.
+ */
 export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTypeFunction =
   (
     componentInputType: ComponentInputType,
     argValue: unknown,
-  ): {
-    fieldType: FormFieldSchemaType;
-    dropdownOptions?: Array<DropdownOption> | undefined;
-  } => {
-    // first priority.
+  ): ArgumentFormFieldType => {
+    /*
+     * First priority: types whose control does not depend on the value. Each
+     * of these can hold a {{...}} reference as it is.
+     */
+
+    if (MULTI_LINE_TEXT_INPUT_TYPES.includes(componentInputType)) {
+      return {
+        fieldType: FormFieldSchemaType.LongText,
+        autoGrow: true,
+      };
+    }
+
+    /*
+     * An email body is HTML, and a reference inside it is part of that HTML.
+     * This used to sit below the {{ check, so the moment a body gained a
+     * reference it was shown in a one-line text box the next time the step was
+     * opened, and a whole email had to be read and edited through a slot.
+     */
+    if (componentInputType === ComponentInputType.HTML) {
+      return {
+        fieldType: FormFieldSchemaType.HTML,
+      };
+    }
 
     if (componentInputType === ComponentInputType.BaseModel) {
       return {
@@ -160,12 +231,6 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
     if (componentInputType === ComponentInputType.JSONArray) {
       return {
         fieldType: FormFieldSchemaType.JSON,
-      };
-    }
-
-    if (componentInputType === ComponentInputType.Markdown) {
-      return {
-        fieldType: FormFieldSchemaType.Markdown,
       };
     }
 
@@ -208,13 +273,12 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
       };
     }
 
-    if (componentInputType === ComponentInputType.LongText) {
-      return {
-        fieldType: FormFieldSchemaType.LongText,
-      };
-    }
-
-    // Second priority.
+    /*
+     * Second priority: a control that holds one value of its own kind - a
+     * toggle, a dropdown, a number, a date, an address - cannot show a
+     * {{...}} reference, so a value holding one is shown as the one line of
+     * text it is.
+     */
 
     if (typeof argValue === "string" && argValue.includes("{{")) {
       return {
@@ -226,13 +290,6 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
     if (componentInputType === ComponentInputType.Boolean) {
       return {
         fieldType: FormFieldSchemaType.Toggle,
-        dropdownOptions: [],
-      };
-    }
-
-    if (componentInputType === ComponentInputType.HTML) {
-      return {
-        fieldType: FormFieldSchemaType.HTML,
         dropdownOptions: [],
       };
     }
@@ -277,51 +334,24 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
       };
     }
 
+    /*
+     * If / Else draws its own comparison list (Workflow/Condition); this is
+     * the same list of stored operators, in the same words, for anything else
+     * that has an Operator setting.
+     */
     if (componentInputType === ComponentInputType.Operator) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: [
-          {
-            label: "Equal To",
-            value: ConditionOperator.EqualTo,
+        dropdownOptions: CONDITION_COMPARISONS.filter(
+          (comparison: ConditionComparison) => {
+            return comparison.kind !== ConditionComparisonKind.TrueOrFalse;
           },
-          {
-            label: "Not Equal To",
-            value: ConditionOperator.NotEqualTo,
-          },
-          {
-            label: "Greater Than",
-            value: ConditionOperator.GreaterThan,
-          },
-          {
-            label: "Less Than",
-            value: ConditionOperator.LessThan,
-          },
-          {
-            label: "Greater Than or Equal",
-            value: ConditionOperator.GreaterThanOrEqualTo,
-          },
-          {
-            label: "Less Than or Equal",
-            value: ConditionOperator.LessThanOrEqualTo,
-          },
-          {
-            label: "Contains",
-            value: ConditionOperator.Contains,
-          },
-          {
-            label: "Does Not Contain",
-            value: ConditionOperator.DoesNotContain,
-          },
-          {
-            label: "Starts With",
-            value: ConditionOperator.StartsWith,
-          },
-          {
-            label: "Ends With",
-            value: ConditionOperator.EndsWith,
-          },
-        ],
+        ).map((comparison: ConditionComparison) => {
+          return {
+            label: comparison.label,
+            value: comparison.operator,
+          };
+        }),
       };
     }
 
@@ -339,28 +369,14 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
     if (componentInputType === ComponentInputType.ValueType) {
       return {
         fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: [
-          {
-            label: "Text",
-            value: ConditionValueType.Text,
+        dropdownOptions: Object.values(ConditionValueType).map(
+          (type: ConditionValueType) => {
+            return {
+              label: CONDITION_VALUE_TYPE_LABELS[type],
+              value: type,
+            };
           },
-          {
-            label: "Boolean",
-            value: ConditionValueType.Boolean,
-          },
-          {
-            label: "Number",
-            value: ConditionValueType.Number,
-          },
-          {
-            label: "Null",
-            value: ConditionValueType.Null,
-          },
-          {
-            label: "Undefined",
-            value: ConditionValueType.Undefined,
-          },
-        ],
+        ),
       };
     }
 

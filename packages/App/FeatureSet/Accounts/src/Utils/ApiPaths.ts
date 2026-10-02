@@ -115,3 +115,29 @@ export const INCIDENT_FORM_PUBLIC_API_URL: URL = URL.fromURL(
 export const RESEND_VERIFICATION_EMAIL_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/resend-verification-email"));
+
+/*
+ * The MCP consent screen's own calls (Pages/McpAuthorize): what an MCP client
+ * is asking for, and the member's answer. They sit under /mcp/oauth beside
+ * the rest of the MCP authorization server rather than under /api, and are
+ * authenticated by the session cookie - which is why they are only ever
+ * called from this page, on this origin. The origin is the API's own: the
+ * same app serves both.
+ */
+const MCP_OAUTH_CONSENT_URL: URL = new URL(
+  APP_API_URL.protocol,
+  APP_API_URL.hostname,
+  new Route("/mcp/oauth/consent"),
+);
+
+export const MCP_OAUTH_CONSENT_DETAILS_API_URL: URL = URL.fromURL(
+  MCP_OAUTH_CONSENT_URL,
+).addRoute(new Route("/details"));
+
+export const MCP_OAUTH_CONSENT_APPROVE_API_URL: URL = URL.fromURL(
+  MCP_OAUTH_CONSENT_URL,
+).addRoute(new Route("/approve"));
+
+export const MCP_OAUTH_CONSENT_DENY_API_URL: URL = URL.fromURL(
+  MCP_OAUTH_CONSENT_URL,
+).addRoute(new Route("/deny"));

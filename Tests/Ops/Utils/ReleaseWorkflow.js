@@ -14,6 +14,12 @@
 
 const { spawnSync } = require("child_process");
 
+/*
+ * What a step runs: `run`, the npm command of an npm-install step, or the
+ * `command` of a nick-fields/retry step (see WorkflowStep).
+ */
+const { stepCommand } = require("./WorkflowStep");
+
 /**
  * A job's needs as a list: GitHub accepts one name or a list of names.
  * @param {Object} job
@@ -62,21 +68,6 @@ function danglingNeeds(jobs) {
         return `${name} -> ${need}`;
       });
   });
-}
-
-/**
- * What a step runs: `run`, or the `command` of a nick-fields/retry step.
- * @param {Object} step
- * @returns {string}
- */
-function stepCommand(step) {
-  if (typeof step.run === "string") {
-    return step.run;
-  }
-  if (step.with && typeof step.with.command === "string") {
-    return step.with.command;
-  }
-  return "";
 }
 
 /**

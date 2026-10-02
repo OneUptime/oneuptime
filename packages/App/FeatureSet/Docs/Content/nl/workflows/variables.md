@@ -61,7 +61,7 @@ Bijna elk tekstveld accepteert variabelen:
 - De berichttekst op Slack, Teams, Discord, Telegram en E-mail.
 - Het onderwerp en de body van een e-mail.
 - Header- en bodyvelden (binnen stringwaarden).
-- Beide zijden van een blok **If / Else** (te vinden onder de categorie Voorwaarden).
+- Beide zijden van een blok **If / Else**.
 
 In JSON-velden kun je een variabele binnen een stringwaarde gebruiken, maar niet als sleutel. Een verwijzing die in haar eentje een hele waarde vult, wordt kaal ingevuld, dus zo laat je een compleet object in een JSON-veld vallen. Moet je een structuur dynamisch opbouwen, gebruik dan een blok **Run Custom JavaScript** om hem te bouwen en geef de uitvoer door aan het volgende blok.
 
@@ -135,5 +135,5 @@ Twee dingen om op te letten:
 ## Waar je verder kunt lezen
 
 - [Workflow-componenten](/docs/workflows/components) — de volledige lijst met uitvoer die elk blok oplevert.
-- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — de werkelijke waarde van elke variabele na een run.
+- [Workflow-uitvoeringen](/docs/workflows/runs-and-logs) — de werkelijke waarde van elke variabele na een run.
 - [Workflow-configuratie en veiligheid](/docs/workflows/configuration) — wat veilig is om in een globale variabele te zetten.

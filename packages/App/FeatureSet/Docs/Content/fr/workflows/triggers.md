@@ -61,7 +61,7 @@ L'enregistrement complet est transmis au bloc suivant. Par exemple, le déclench
 - **Page de statut Abonné** — souhaiter la bienvenue à quelqu'un qui s'abonne à une page de statut.
 - **Politique d'astreinte** — répercuter les changements de planning vers un autre système de roulement.
 
-Cherchez par son nom dans le panneau **Add Trigger** pour trouver celui qu'il vous faut.
+Dans le panneau **Add Trigger**, ils se trouvent sous **OneUptime resources** : cliquez sur la ressource, puis sur le déclencheur. **Browse all resources** les contient tous, et le champ de recherche trouve un déclencheur à partir de quelques mots, comme `incident created`.
 
 ## Quel déclencheur choisir ?
 
@@ -78,4 +78,4 @@ Un workflow ne peut avoir qu'un seul déclencheur. Si vous avez besoin de deux f
 
 - [Composants de workflow](/docs/workflows/components) — les actions que vous ajoutez après le déclencheur.
 - [Variables de workflow](/docs/workflows/variables) — lire la sortie du déclencheur depuis les blocs suivants.
-- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — vérifier que votre déclencheur s'est bien activé.
+- [Exécutions de workflow](/docs/workflows/runs-and-logs) — vérifier que votre déclencheur s'est bien activé.

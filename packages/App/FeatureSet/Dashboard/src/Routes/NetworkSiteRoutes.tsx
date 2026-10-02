@@ -20,6 +20,9 @@ import NetworkSiteViewStatusTimeline from "../Pages/NetworkSite/View/StatusTimel
 import NetworkSiteViewScheduledMaintenance from "../Pages/NetworkSite/View/ScheduledMaintenance";
 import NetworkSiteViewSettings from "../Pages/NetworkSite/View/Settings";
 import NetworkSiteViewDelete from "../Pages/NetworkSite/View/Delete";
+import NetworkSiteModel from "Common/Models/DatabaseModels/NetworkSite";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -181,6 +184,12 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: NetworkSiteModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

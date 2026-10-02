@@ -75,6 +75,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.Bolt,
   tableDescription:
     "LAN endpoints (POS terminals, kiosks, cameras, printers) discovered via ARP and FDB walks of Network Devices. Rows are upserted by the server; users can classify them.",
+  displayNameColumn: "ipAddress",
 })
 @Entity({
   name: "NetworkEndpoint",

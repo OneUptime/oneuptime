@@ -150,11 +150,6 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
         onClose={() => {
           props.onClose();
         }}
-        submitButtonText="Cancel"
-        submitButtonStyleType={ButtonStyleType.OUTLINE}
-        onSubmit={() => {
-          props.onClose();
-        }}
       >
         <div className="space-y-3">
           <div className="relative">
@@ -225,9 +220,14 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
                           </p>
                         )}
                       </div>
+                      {/*
+                       * One Run per row, so a plain one: a filled button on
+                       * every row is as many "main actions" as there are
+                       * runbooks.
+                       */}
                       <Button
                         title={isStarting ? "Starting..." : "Run"}
-                        buttonStyle={ButtonStyleType.PRIMARY}
+                        buttonStyle={ButtonStyleType.NORMAL}
                         buttonSize={ButtonSize.Small}
                         icon={IconProp.Play}
                         onClick={() => {

@@ -56,6 +56,7 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -1200,13 +1201,16 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
-   * Read-side retention filter. TTL is `retentionDate DELETE` with
-   * ttl_only_drop_parts=1, so a part survives until EVERY row in it has
-   * expired — rows past their per-service retention stay on disk (and
-   * were queryable) for up to a partition's worth of extra time. For
+   * Read-side retention filter. TTL deletes rows by `retentionDate`, and
+   * ClickHouse applies it only when it merges: on a table with
+   * ttl_only_drop_parts=1 a part survives until EVERY row in it has
+   * expired, and on the metric and log tables, whose TTL is rounded up
+   * to the midnight after retentionDate (RetentionTtl), an expired row
+   * survives until that midnight - up to a day. Either way rows past
+   * their retention stay on disk (and were queryable) for a while. For
    * models that carry a retentionDate column, every centrally generated
    * read appends this predicate so expired rows become invisible the
-   * moment they expire rather than when their part finally drops.
+   * moment they expire rather than when they are finally removed.
    *
    * Returns the raw SQL fragment (server-evaluated now(), no parameter)
    * or "" when the model has no retentionDate column.
@@ -1904,6 +1908,11 @@ export default class AnalyticsDatabaseService<
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
     try {
+      // Refused before any hook runs; see assertCredentialCanWrite.
+      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(
+        deleteBy.props,
+      );
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -1965,6 +1974,11 @@ export default class AnalyticsDatabaseService<
 
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
     try {
+      // Refused before any hook runs; see assertCredentialCanWrite.
+      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(
+        updateBy.props,
+      );
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -2222,6 +2236,9 @@ export default class AnalyticsDatabaseService<
   public async createMany(
     createBy: CreateManyBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
+    // Refused before any hook runs; see assertCredentialCanWrite.
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(createBy.props);
+
     // add tenantId if present.
     const tenantColumnName: string | null =
       this.model.getTenantColumn()?.key || null;

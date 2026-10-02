@@ -113,3 +113,46 @@ describe("Icon indent and outdent", () => {
     expect(paths.slice(2)).not.toContain(paths[1]);
   });
 });
+
+/*
+ * A stopped AI answer is marked with StopCircle (the Ask AI panel and the AI
+ * Investigation card's conversation). It used to draw the circle alone: an
+ * empty ring, which reads as an unticked radio button.
+ */
+describe("Icon stop circle", () => {
+  it("draws the square inside the circle", () => {
+    const path: string = getIconPath(IconProp.StopCircle);
+
+    // The circle...
+    expect(path.startsWith("M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z")).toBe(true);
+    // ...and a second, closed shape inside it, from (9,9) to (15,15).
+    expect(path).toContain("M9 9.563");
+    expect(path.match(/Z/g)).toHaveLength(2);
+  });
+
+  it("is not the bare circle PauseCircle and friends are built on", () => {
+    expect(getIconPath(IconProp.StopCircle)).not.toBe(
+      "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+    );
+    expect(getIconPath(IconProp.StopCircle)).not.toBe(
+      getIconPath(IconProp.PauseCircle),
+    );
+  });
+});
+
+/*
+ * Eye marks "read-only" and "viewer" (the AI permission picker, the team
+ * permission table, show/hide toggles). It used to draw the outline of the
+ * eye without its pupil: an empty almond next to EyeSlash's full glyph.
+ */
+describe("Icon eye", () => {
+  it("draws the pupil inside the outline", () => {
+    const path: string = getIconPath(IconProp.Eye);
+
+    // The outline...
+    expect(path.startsWith("M2.036 12.322")).toBe(true);
+    // ...and the pupil, a circle of radius 3 around the centre.
+    expect(path).toContain("M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z");
+    expect(path.match(/Z/g)).toHaveLength(2);
+  });
+});

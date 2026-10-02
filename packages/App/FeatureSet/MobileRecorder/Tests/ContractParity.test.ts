@@ -14,6 +14,7 @@ import {
   SESSION_REPLAY_WIRE_VERSION as COMMON_WIRE_VERSION,
   SessionReplayFidelityNotice as CommonFidelityNotice,
 } from "../../../../Common/Types/Rum/SessionReplay";
+import { SessionReplayCustomEventTag } from "../../../../Common/Types/Rum/SessionReplayCustomEvents";
 import {
   encodeSessionReplayEnvelopeLine,
   escapeSessionReplayJson,
@@ -28,6 +29,7 @@ import {
   SESSION_REPLAY_USER_REF_HEADER,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
+  SESSION_ROTATED_CUSTOM_EVENT_TAG,
   SessionReplayFidelityNotice,
 } from "../src/Contract";
 
@@ -66,6 +68,12 @@ describe("published SDK wire contract", () => {
     );
     expect(SessionReplayFidelityNotice.MobileAnimationSampled).toBe(
       CommonFidelityNotice.MobileAnimationSampled,
+    );
+  });
+
+  test("marks a rotated session with the tag the browser recorder uses", () => {
+    expect(SESSION_ROTATED_CUSTOM_EVENT_TAG).toBe(
+      SessionReplayCustomEventTag.SessionRotated,
     );
   });
   /*

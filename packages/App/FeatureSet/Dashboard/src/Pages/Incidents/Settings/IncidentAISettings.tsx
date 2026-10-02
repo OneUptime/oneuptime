@@ -46,7 +46,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Automatic Incident Investigation",
           description:
-            "When enabled, OneUptime AI automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires an LLM provider to be configured in Settings > AI > LLM Providers.",
+            "When enabled, OneUptime AI automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. No limits apply until you set one below. Requires an LLM provider to be configured in Project Settings > AI > LLM Providers.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -83,7 +83,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             stepId: "investigation",
             title: "Minimum Severity To Investigate",
             description:
-              "Only incidents at or above this severity are investigated. Leave unset to investigate every incident — unlike alerts, incidents have no default floor, because an incident already cleared a threshold to be declared.",
+              "Only incidents at or above this severity are investigated. Leave unset to investigate every incident, whatever its severity.",
             required: false,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
@@ -100,10 +100,10 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             stepId: "investigation",
             title: "Re-investigation Cooldown (Minutes)",
             description:
-              "Incidents affecting a monitor that was investigated within this many minutes are not re-investigated — the first analysis stands. Leave empty for the default of 30 minutes; set 0 to investigate every qualifying incident.",
+              "Incidents affecting a monitor that was investigated within this many minutes are not re-investigated — the first analysis stands. Leave empty for no cooldown, so every incident is investigated. At most 1440 minutes (a day).",
             required: false,
             fieldType: FormFieldSchemaType.Number,
-            placeholder: "30",
+            placeholder: "No cooldown",
           },
           {
             field: {
@@ -112,10 +112,10 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             stepId: "limits",
             title: "Max Concurrent Incident Investigations",
             description:
-              "How many incident investigations may run at the same time for this project. Queued incident investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
+              "How many incident investigations may run at the same time for this project. Leave empty for no limit — every incident investigation starts right away. With a limit set (minimum 1), queued incident investigations wait for a free slot and expire after 30 minutes.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
-            placeholder: "3",
+            placeholder: "No limit",
           },
           {
             field: {
@@ -170,10 +170,10 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             stepId: "fix-tasks",
             title: "Daily Incident AI Fix Task Limit",
             description:
-              "Maximum incident AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across manual and automatic incident fix recipes. Leave empty for the default of 25 per day; set 0 to pause incident AI fix tasks entirely.",
+              "Maximum incident AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across manual and automatic incident fix recipes. Leave empty for no limit; set 0 to pause incident AI fix tasks entirely.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
-            placeholder: "25",
+            placeholder: "No limit",
           },
         ]}
         modelDetailProps={{
@@ -204,7 +204,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
                 incidentInvestigationDedupeWindowMinutes: true,
               },
               title: "Re-investigation Cooldown (Minutes)",
-              placeholder: "Default (30 minutes)",
+              placeholder: "No cooldown",
               fieldType: FieldType.Number,
             },
             {
@@ -212,7 +212,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
                 incidentAiMaxConcurrentInvestigations: true,
               },
               title: "Max Concurrent Incident Investigations",
-              placeholder: "Default (3)",
+              placeholder: "No limit",
               fieldType: FieldType.Number,
             },
             {
@@ -252,7 +252,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
                 incidentAiDailyFixTaskLimit: true,
               },
               title: "Daily Incident AI Fix Task Limit",
-              placeholder: "Default (25)",
+              placeholder: "No limit",
               fieldType: FieldType.Number,
             },
           ],
@@ -262,8 +262,8 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
 
       {/*
        * Its own card and its own save: drafting a postmortem writes to the
-       * incident, so it is a separate switch from investigating one (and
-       * no longer turns on with it). A card writes every field it is given,
+       * incident, so it is a separate switch from investigating one (both
+       * start on in a new project). A card writes every field it is given,
        * so keeping it apart also keeps either save from touching the other.
        */}
       <CardModelDetail<Project>
@@ -283,7 +283,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Draft a postmortem automatically when an incident resolves",
             description:
-              "The draft is saved on the incident for someone to review and edit. It never replaces a postmortem that already exists. Off by default.",
+              "The draft is saved on the incident for someone to review and edit. It never replaces a postmortem that already exists. On for new projects.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

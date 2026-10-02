@@ -11,6 +11,10 @@ interface ArchivableResource {
   resource: string;
   model: string;
   overview?: string;
+  // Where the resource's own pages live, when not Pages/<resource>/View.
+  viewDirectory?: string;
+  // The Settings page's file, when not Settings.tsx.
+  settings?: string;
 }
 
 const RESOURCES: Array<ArchivableResource> = [
@@ -36,7 +40,36 @@ const RESOURCES: Array<ArchivableResource> = [
   { resource: "Slo", model: "ServiceLevelObjective", overview: "Index.tsx" },
   { resource: "Database", model: "DatabaseServer" },
   { resource: "MessageQueue", model: "MessageQueue" },
+  /*
+   * The resources people create and keep, archivable since the archive
+   * feature reached them. Each keeps its archive card where every other
+   * resource does: on its Settings page, never on its overview.
+   */
+  { resource: "Workflow", model: "Workflow", overview: "Index.tsx" },
+  { resource: "Monitor", model: "Monitor", overview: "Index.tsx" },
+  { resource: "Dashboards", model: "Dashboard", overview: "Overview.tsx" },
+  {
+    resource: "StatusPages",
+    model: "StatusPage",
+    overview: "Index.tsx",
+    // The page the status page menu calls Advanced Settings.
+    settings: "StatusPageSettings.tsx",
+  },
+  {
+    resource: "OnCallDuty",
+    model: "OnCallDutyPolicy",
+    overview: "Index.tsx",
+    viewDirectory: "Pages/OnCallDuty/OnCallDutyPolicy",
+  },
 ];
+
+function viewDirectoryOf(resource: ArchivableResource): string {
+  return resource.viewDirectory || `Pages/${resource.resource}/View`;
+}
+
+function settingsPageOf(resource: ArchivableResource): string {
+  return `${viewDirectoryOf(resource)}/${resource.settings || "Settings.tsx"}`;
+}
 
 function readSource(relativePath: string): string {
   return fs
@@ -66,10 +99,9 @@ function getPageFiles(directory: string): Array<string> {
 describe("resource archive controls belong to Settings", () => {
   test.each(RESOURCES)(
     "$resource Settings retains exactly one archive card for its own model",
-    ({ resource, model }: ArchivableResource): void => {
-      const settings: string = readSource(
-        `Pages/${resource}/View/Settings.tsx`,
-      );
+    (archivable: ArchivableResource): void => {
+      const model: string = archivable.model;
+      const settings: string = readSource(settingsPageOf(archivable));
 
       expect(settings.match(/<ArchiveResourceCard\b/g)).toHaveLength(1);
       expect(settings).toContain(`<ArchiveResourceCard<${model}>`);
@@ -79,9 +111,11 @@ describe("resource archive controls belong to Settings", () => {
 
   test.each(RESOURCES)(
     "$resource Overview has no archive control",
-    ({ resource, overview }: ArchivableResource): void => {
+    (archivable: ArchivableResource): void => {
       expect(
-        readSource(`Pages/${resource}/View/${overview || "Overview.tsx"}`),
+        readSource(
+          `${viewDirectoryOf(archivable)}/${archivable.overview || "Overview.tsx"}`,
+        ),
       ).not.toContain("ArchiveResourceCard");
     },
   );
@@ -98,8 +132,8 @@ describe("resource archive controls belong to Settings", () => {
       });
 
     expect(archivePages.sort()).toEqual(
-      RESOURCES.map(({ resource }: ArchivableResource): string => {
-        return `Pages/${resource}/View/Settings.tsx`;
+      RESOURCES.map((archivable: ArchivableResource): string => {
+        return settingsPageOf(archivable);
       }).sort(),
     );
   });

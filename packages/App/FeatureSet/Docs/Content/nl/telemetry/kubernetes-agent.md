@@ -414,7 +414,6 @@ Allemaal standaard aan. Schakel er een uit met `--set ebpf.features.<name>=false
 | `httpMetrics`             | aan       | HTTP/gRPC RED-metrieken (request rate, latentie, errors) per service  |
 | `spanMetrics`             | aan       | Request-/response-grootte en -duur per span                           |
 | `serviceGraph`            | aan       | Caller → callee edge-metrieken; voedt de service-map                  |
-| `hostMetrics`             | aan       | CPU en geheugen per geïnstrumenteerd proces                           |
 | `networkMetrics`          | aan       | Pod-naar-pod TCP/UDP-flow-tellers                                     |
 | `networkInterZoneMetrics` | uit       | Inter-zone-variant van netwerkmetrieken (verdubbelt de cardinaliteit) |
 | `tcpStats`                | aan       | TCP RTT op node-niveau, mislukte-verbinding-, retransmit-tellers      |

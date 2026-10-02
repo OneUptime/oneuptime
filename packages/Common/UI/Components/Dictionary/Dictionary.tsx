@@ -51,6 +51,20 @@ export interface ComponentProps {
    * compatibility with simple key/value forms.
    */
   enableOperators?: boolean | undefined;
+  /*
+   * Draws the value box of a Text row in place of the default text input -
+   * the workflow builder puts its value picker there, so a header can be set
+   * from an earlier step or a variable. Rows with an operator that takes a
+   * list keep the list control.
+   */
+  renderTextValueInput?:
+    | ((args: {
+        value: string;
+        onChange: (value: string) => void;
+        placeholder?: string | undefined;
+        rowIndex: number;
+      }) => ReactElement)
+    | undefined;
 }
 
 interface Item {
@@ -458,7 +472,23 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   )}
                 {!hideValueInput &&
                   item.type === ValueType.Text &&
-                  !operatorOption.expectsMultiValue && (
+                  !operatorOption.expectsMultiValue &&
+                  props.renderTextValueInput &&
+                  props.renderTextValueInput({
+                    value: item.value.toString(),
+                    placeholder: props.valuePlaceholder,
+                    rowIndex: index,
+                    onChange: (value: string) => {
+                      const newData: Array<Item> = [...data];
+                      newData[index]!.value = value;
+                      setData(newData);
+                      onDataChange(newData);
+                    },
+                  })}
+                {!hideValueInput &&
+                  item.type === ValueType.Text &&
+                  !operatorOption.expectsMultiValue &&
+                  !props.renderTextValueInput && (
                     <AutocompleteTextInput
                       value={item.value.toString()}
                       placeholder={

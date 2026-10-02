@@ -81,9 +81,6 @@ export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
 // The page's heading, matching the AI Insights page's title and subtitle.
 export const RESOURCE_AI_AGENT_PAGE_TITLE: string = "AI agent";
 
-export const RESOURCE_AI_FIXES_OFF_HINT: string =
-  "Want AI to propose fixes? Choose Ask for approval.";
-
 export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string =
   "Ask a project owner or admin.";
 
@@ -529,6 +526,10 @@ export function getResourceAiAgentGapAction(
   switch (gap.code) {
     case "investigation_disabled":
       return "turn_on_investigation";
+    /*
+     * auto_remediation_disabled_for_project is retired (Enable AI covers
+     * it); an older server may still send it mid-rollout.
+     */
     case "ai_disabled_for_project":
     case "auto_remediation_disabled_for_project":
       return "open_ai_features";
@@ -618,14 +619,18 @@ export function getResourceAiAttentionStepText(
       return "Turn on AI investigation.";
     case "remediation_write_access_missing":
       return `Give the ${agentName} write access with the steps below.`;
+    /*
+     * auto_remediation_disabled_for_project is retired: Enable AI covers
+     * it, so an older server that still sends it mid-rollout gets the same
+     * step.
+     */
     case "ai_disabled_for_project":
+    case "auto_remediation_disabled_for_project":
       return "Turn on AI for this project.";
     case "llm_provider_missing":
       return "Add an AI provider for this project, or use OneUptime AI credits.";
     case "ai_balance_insufficient":
       return "Add AI credits to this project, or turn on auto-recharge.";
-    case "auto_remediation_disabled_for_project":
-      return "Turn on auto-remediation for this project.";
     default:
       return gap.nextStep || gap.title;
   }

@@ -14,7 +14,7 @@ Mention it on an issue and it opens a pull request. Mention it on a pull request
 
 ## Before you start
 
-- The repository must be **connected to a OneUptime project** through the GitHub App. See [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) for the setup, or connect it from **Project Settings → Code Repositories** on OneUptime Cloud.
+- The repository must be **connected to a OneUptime project** through the GitHub App. See [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) for the setup, or connect it from **Tasks → Code Repositories** on OneUptime Cloud.
 - A **Runner with the "Runs AI Code Fixes" capability** must be online — the same Runner that carries out [AI Fix Tasks](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes with a message saying no agent picked them up.
 - The GitHub App must have the **Issues: Read & write** permission and be subscribed to the webhook events listed under [What to subscribe to](#what-to-subscribe-to).
 
@@ -56,7 +56,7 @@ You can also hand the app an issue **without commenting at all**:
 | `@oneuptime status` | Says what it is currently working on in this thread. |
 | `@oneuptime cancel` | Stops the runs it has going on this thread. Work already pushed stays pushed. |
 
-`help`, `status` and `cancel` never start an agent run, so they cost nothing and are not subject to your daily fix-task budget.
+`help`, `status` and `cancel` never start an agent run, so they cost nothing.
 
 ## What it looks like in the thread
 
@@ -87,10 +87,9 @@ It also ignores every comment written by a bot, including its own, and ignores m
 
 Every command that starts work is a full agent run — a clone, up to 40 LLM calls and 100,000 output tokens, plus your repository's build and test commands if you have configured them.
 
-Two limits apply, and both are the ones that already govern [AI Fix Tasks](/docs/ai/ai-agent):
+GitHub commands are AI work outside incidents and alerts, so no daily fix-run limit applies to them. The one limit that can apply is the one that already governs [AI Fix Tasks](/docs/ai/ai-agent):
 
-- **The project's daily fix-run limit** (**Project Settings → AI**, 25/day by default). GitHub commands share this budget with the rest of your project's fix runs.
-- **The per-repository open pull request cap** (**Code Repositories → the repository → Settings**, 5 by default). Reviews and revisions are exempt: neither adds a new pull request to your review queue.
+- **The per-repository open pull request cap** (**Max Open Fix Pull Requests**, under **Code Repositories → the repository → Settings**). There is no cap until you set one, and 0 blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a new pull request to your review queue.
 
 Only one run of a given kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision is running starts both, since they are different requests.
 
@@ -129,13 +128,13 @@ Treat an AI-authored pull request the way you would treat one from a new contrib
 
 ## Troubleshooting
 
-**Nothing happens when I mention it.** Check the handle first — it is the app's slug, not its display name. Then check that the repository is connected to a project (**Project Settings → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
+**Nothing happens when I mention it.** Check the handle first — it is the app's slug, not its display name. Then check that the repository is connected to a project (**Tasks → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
 
 **It reacts 😕 and says nothing.** You do not have write access to the repository.
 
 **It says it is already working on this.** A run of that kind is already live on this issue or pull request. `@oneuptime status` will tell you what, and `@oneuptime cancel` stops it.
 
-**It acknowledged and then went quiet for a long time.** Check that a Runner with **Runs AI Code Fixes** is online under **Settings → Runners**. Without one, the run is failed after 30 minutes and the thread is told.
+**It acknowledged and then went quiet for a long time.** Check that a Runner with **Runs AI Code Fixes** is online under **Runbooks → Runners**. Without one, the run is failed after 30 minutes and the thread is told.
 
 **It says the pull request comes from a fork.** Revisions need a branch in this repository. Ask for a review instead, or push the branch here.
 

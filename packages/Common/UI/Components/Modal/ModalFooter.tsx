@@ -1,5 +1,6 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
+import type { ModalSecondaryButton } from "./Modal";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,6 +15,7 @@ export interface ComponentProps {
   closeButtonText?: undefined | string;
   leftFooterElement?: ReactElement | undefined;
   hasContentHiddenBelow?: boolean | undefined;
+  secondaryButton?: ModalSecondaryButton | undefined;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -42,11 +44,11 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         {props.onClose ? (
           <Button
-            buttonStyle={
-              props.closeButtonStyleType
-                ? props.closeButtonStyleType
-                : ButtonStyleType.NORMAL
-            }
+            /*
+             * `??`, not a truthiness test: ButtonStyleType.PRIMARY is the
+             * enum's 0, which a truthiness test reads as "not given".
+             */
+            buttonStyle={props.closeButtonStyleType ?? ButtonStyleType.NORMAL}
             title={props.closeButtonText ? props.closeButtonText : "Cancel"}
             data-dismiss="modal"
             onClick={() => {
@@ -59,13 +61,29 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {props.secondaryButton ? (
+          <Button
+            // Plain, like Cancel: the submit button stays the one action.
+            buttonStyle={ButtonStyleType.NORMAL}
+            title={props.secondaryButton.title}
+            onClick={() => {
+              props.secondaryButton?.onClick();
+            }}
+            disabled={props.secondaryButton.disabled || false}
+            type={ButtonType.Button}
+            dataTestId={
+              props.secondaryButton.dataTestId ||
+              "modal-footer-secondary-button"
+            }
+            className="sm:!w-auto md:!ml-0"
+          />
+        ) : (
+          <></>
+        )}
+
         {props.onSubmit ? (
           <Button
-            buttonStyle={
-              props.submitButtonStyleType
-                ? props.submitButtonStyleType
-                : ButtonStyleType.PRIMARY
-            }
+            buttonStyle={props.submitButtonStyleType ?? ButtonStyleType.PRIMARY}
             title={
               props.submitButtonText ? props.submitButtonText : "Save Changes"
             }

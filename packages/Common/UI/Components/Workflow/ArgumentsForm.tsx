@@ -1,10 +1,12 @@
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
+import { CodeEditorActions } from "../CodeEditor/CodeEditor";
+import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
-import ComponentValuePickerModal from "./ComponentValuePickerModal";
+import ConditionEditor from "./Condition/ConditionEditor";
 import CronScheduleField from "./CronScheduleField";
 import ModelColumnEditor, {
   ModelColumnEditorMode,
@@ -12,35 +14,48 @@ import ModelColumnEditor, {
 } from "./ModelColumnEditor";
 import ModelFieldPicker from "./ModelFieldPicker";
 import {
+  ArgumentFormFieldType,
   componentInputTypeToFormFieldType,
   parseStringDictionaryValue,
 } from "./Utils";
-import VariableModal from "./VariableModal";
+import {
+  ArgumentControl,
+  argumentControlFor,
+} from "./ValuePicker/ArgumentControl";
+import InsertValueButton from "./ValuePicker/InsertValueButton";
+import { StepValueSources } from "./ValuePicker/StepGraph";
+import {
+  containsTemplateExpression,
+  referenceForJSON,
+} from "./ValuePicker/TemplateText";
+import { ValuePickerProvider } from "./ValuePicker/ValuePickerContext";
+import ValueSingleField, {
+  ValueSingleFieldKind,
+} from "./ValuePicker/ValueSingleField";
+import { ValueSuggestionSource } from "./ValuePicker/ValueSuggestion";
+import ValueTextField from "./ValuePicker/ValueTextField";
 import Dictionary from "../../../Types/Dictionary";
+import Email from "../../../Types/Email";
+import Exception from "../../../Types/Exception/Exception";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import URL from "../../../Types/API/URL";
 import {
   Argument,
   ComponentInputType,
   NodeDataProp,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
-import {
-  componentReturnValueReference,
-  globalVariableReference,
-  variableReference,
-} from "../../../Types/Workflow/TemplateSyntax";
+import ComponentID from "../../../Types/Workflow/ComponentID";
 import { DropdownOption } from "../Dropdown/Dropdown";
-import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
-import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -50,8 +65,81 @@ export interface ComponentProps {
   onHasFormValidationErrors: (values: Dictionary<boolean>) => void;
   workflowId: ObjectID;
   graphComponents: Array<NodeDataProp>;
+  /*
+   * Which steps run before and after this one (ValuePicker/StepGraph). The
+   * value picker only offers the ones before. Without it, every other step.
+   */
+  valueSources?: StepValueSources | undefined;
+  /*
+   * Where the value picker's values come from: the steps before this one,
+   * what they held the last times they ran, and the variables, unless a
+   * caller says otherwise.
+   */
+  valueSuggestionSources?: Array<ValueSuggestionSource> | undefined;
+  /*
+   * The workflow's webhook URL, when the reader may see it. A step after a
+   * Webhook that nothing has called yet offers a test request to copy.
+   */
+  webhookUrl?: string | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
+
+const SINGLE_FIELD_KINDS: Partial<
+  Record<ArgumentControl, ValueSingleFieldKind>
+> = {
+  [ArgumentControl.Number]: ValueSingleFieldKind.Number,
+  [ArgumentControl.Password]: ValueSingleFieldKind.Password,
+  [ArgumentControl.Boolean]: ValueSingleFieldKind.Boolean,
+  [ArgumentControl.Date]: ValueSingleFieldKind.Date,
+  [ArgumentControl.DateTime]: ValueSingleFieldKind.DateTime,
+};
+
+type DescribeArgumentFunction = (arg: Argument) => string;
+
+/*
+ * A setting's help: whether it is required, then what it is for. Under the
+ * label for most settings, and under a switch's name beside it.
+ */
+const describeArgument: DescribeArgumentFunction = (arg: Argument): string => {
+  return `${arg.required ? "Required" : "Optional"}. ${arg.description}`;
+};
+
+type ValidateTypedValueFunction = (
+  type: ComponentInputType,
+  value: unknown,
+) => string | null;
+
+/*
+ * The checks a URL or an email box made of what was typed in it. They only
+ * apply to a value typed out in full: one with a reference in it is not
+ * known until the step runs.
+ */
+export const validateTypedValue: ValidateTypedValueFunction = (
+  type: ComponentInputType,
+  value: unknown,
+): string | null => {
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  if (containsTemplateExpression(value)) {
+    return null;
+  }
+
+  if (type === ComponentInputType.URL) {
+    try {
+      URL.fromString(value.trim());
+    } catch (err: unknown) {
+      return err instanceof Exception ? err.getMessage() : "URL is not valid.";
+    }
+  }
+
+  if (type === ComponentInputType.Email && !Email.isValid(value.trim())) {
+    return "Email is not valid.";
+  }
+
+  return null;
+};
 
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -60,14 +148,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     FormValues<JSONObject>
   > | null> = useRef<FormProps<FormValues<JSONObject>> | null>(null);
   const [component, setComponent] = useState<NodeDataProp>(props.component);
-  const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
-  const [showComponentPickerModal, setShowComponentPickerModal] =
-    useState<boolean>(false);
   const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
   >({});
-
-  const [selectedArgId, setSelectedArgId] = useState<string>("");
 
   /*
    * Arguments flagged isAdvanced are collapsed behind a disclosure, so the
@@ -241,121 +324,6 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     // Only re-fetch when the component in the settings panel changes identity.
   }, [component.id, hasWorkflowSelectArg]);
 
-  /*
-   * Every reference the builder could type into a row, offered as autocomplete
-   * on any row whose column has no suggestions of its own.
-   *
-   * The row editor replaces the "pick this value from other component or from
-   * variable" footer on the arguments it takes over, and a create payload is
-   * almost always assembled out of a trigger's return values - so without this
-   * the row editor would be a step backwards for exactly the case it exists to
-   * serve. The old footer cannot simply be kept: it appends the reference to
-   * the whole field, turning {"title":"x"} into {"title":"x"}{{...}}, which is
-   * not JSON and which the linter rejects immediately.
-   */
-  const hasColumnEditorArgument: boolean = Boolean(
-    component.metadata.tableName &&
-      component.metadata.arguments?.some((arg: Argument) => {
-        return (
-          arg.type === ComponentInputType.Query ||
-          arg.type === ComponentInputType.JSON ||
-          arg.type === ComponentInputType.BaseModel
-        );
-      }),
-  );
-
-  const componentReferenceSuggestions: Array<string> = useMemo(() => {
-    const suggestions: Array<string> = [];
-
-    for (const graphComponent of props.graphComponents || []) {
-      // A component cannot reference its own output.
-      if (graphComponent.id === component.id) {
-        continue;
-      }
-
-      /*
-       * Placeholder nodes carry a partial metadata object with no return
-       * values at all, so this cannot assume the array is there.
-       */
-      for (const returnValue of graphComponent.metadata?.returnValues || []) {
-        suggestions.push(
-          componentReturnValueReference(graphComponent.id, returnValue.id),
-        );
-      }
-    }
-
-    return suggestions;
-  }, [props.graphComponents, component.id]);
-
-  const [variableSuggestions, setVariableSuggestions] = useState<Array<string>>(
-    [],
-  );
-
-  useEffect(() => {
-    if (!hasColumnEditorArgument) {
-      return;
-    }
-
-    let cancelled: boolean = false;
-
-    const loadVariables: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<WorkflowVariable> =
-          await ModelAPI.getList<WorkflowVariable>({
-            modelType: WorkflowVariable,
-            // Null workflowId is a project-wide variable, usable from any workflow.
-            query: {
-              workflowId: new EqualToOrNull(props.workflowId.toString()),
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-              workflowId: true,
-            },
-            sort: {
-              name: "Ascending" as any,
-            },
-          });
-
-        if (cancelled) {
-          return;
-        }
-
-        setVariableSuggestions(
-          result.data
-            .filter((variable: WorkflowVariable) => {
-              return Boolean(variable.name);
-            })
-            .map((variable: WorkflowVariable) => {
-              return variable.workflowId
-                ? variableReference(variable.name as string)
-                : globalVariableReference(variable.name as string);
-            }),
-        );
-      } catch {
-        /*
-         * Swallow: suggestions are an accelerator, not the only way in. The
-         * builder can still type a reference by hand.
-         */
-        if (!cancelled) {
-          setVariableSuggestions([]);
-        }
-      }
-    };
-
-    void loadVariables();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [hasColumnEditorArgument, props.workflowId.toString()]);
-
-  const referenceSuggestions: Array<string> = useMemo(() => {
-    return [...componentReferenceSuggestions, ...variableSuggestions];
-  }, [componentReferenceSuggestions, variableSuggestions]);
-
   useEffect(() => {
     props.onHasFormValidationErrors(hasFormValidationErrors);
   }, [hasFormValidationErrors]);
@@ -364,8 +332,393 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     props.onFormChange(component);
   }, [component]);
 
+  type FieldForArgumentFunction = (
+    arg: Argument,
+    argIndex: number,
+  ) => ArgumentFormFieldType & {
+    getCustomElement?: (
+      values: FormValues<JSONObject>,
+      customProps: CustomElementProps,
+    ) => ReactElement | undefined;
+    codeEditorToolbarActions?:
+      | ((editor: CodeEditorActions) => ReactNode)
+      | undefined;
+    customElementDrawsOwnLabel?: boolean | undefined;
+  };
+
+  const fieldForArgument: FieldForArgumentFunction = (
+    arg: Argument,
+    argIndex: number,
+  ) => {
+    const storedValue: unknown =
+      component.arguments && component.arguments[arg.id]
+        ? component.arguments[arg.id]
+        : null;
+
+    /*
+     * Database Select args (the "Select Fields" / "Listen on" trigger inputs)
+     * get a tree-style field picker backed by the model's schema, instead of
+     * a raw JSON textarea. We need a tableName on the component metadata to
+     * fetch the column list; without it, fall back to the JSON editor.
+     */
+    if (
+      arg.type === ComponentInputType.Select &&
+      Boolean(component.metadata.tableName)
+    ) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <ModelFieldPicker
+              tableName={component.metadata.tableName as string}
+              initialValue={customProps.initialValue}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              placeholder={customProps.placeholder}
+              error={customProps.error}
+              tabIndex={customProps.tabIndex}
+            />
+          );
+        },
+      };
+    }
+
+    /*
+     * Query arguments (which records does this act on) and the write payload
+     * (which values does it set) are both keyed on the model's columns, so
+     * both get the row editor backed by the model schema. Same tableName
+     * requirement as the field picker.
+     *
+     * The write payload is typed JSON, not BaseModel: Create One's "json" and
+     * Update's "data" are declared ComponentInputType.JSON in
+     * Types/Workflow/Components/BaseModel, and BaseModel appears there only as
+     * a *return* value. Retyping those arguments would move them into
+     * JSON5_TOLERANT_INPUT_TYPES and change how RunWorkflow parses them, so
+     * the predicate is widened instead.
+     *
+     * tableName is set only by the database component generator, and the
+     * only JSON-typed arguments on those components are the two above, so
+     * this cannot reach a JSON argument on any other component.
+     *
+     * JSONArray (Create Many) is deliberately not included: it holds a list
+     * of records, which rows cannot represent.
+     *
+     * Each of the row editor's value cells is a value picker of its own.
+     */
+    const columnEditorMode: ModelColumnEditorMode | undefined = !component
+      .metadata.tableName
+      ? undefined
+      : arg.type === ComponentInputType.Query
+        ? ModelColumnEditorMode.Query
+        : arg.type === ComponentInputType.JSON ||
+            arg.type === ComponentInputType.BaseModel
+          ? ModelColumnEditorMode.Record
+          : undefined;
+
+    if (columnEditorMode) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <ModelColumnEditor
+              tableName={component.metadata.tableName as string}
+              mode={columnEditorMode}
+              /*
+               * A create writes a whole record, so it opens with a row for
+               * every column it must be given. An update legitimately writes
+               * one column. The create payload is the argument called "json"
+               * (BaseModel components); an update's is "data".
+               */
+              recordIntent={
+                arg.id === "json" ? RecordIntent.Create : RecordIntent.Update
+              }
+              initialValue={customProps.initialValue}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              placeholder={customProps.placeholder}
+              error={customProps.error}
+              tabIndex={customProps.tabIndex}
+            />
+          );
+        },
+      };
+    }
+
+    /*
+     * The Schedule trigger's CronTab argument gets a dedicated cron picker
+     * (presets, custom expression with live preview, or a variable) instead
+     * of a bare dropdown.
+     */
+    if (arg.type === ComponentInputType.CronTab) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <CronScheduleField
+              initialValue={customProps.initialValue as string | null}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              placeholder={customProps.placeholder}
+              error={customProps.error}
+              tabIndex={customProps.tabIndex}
+            />
+          );
+        },
+      };
+    }
+
+    const control: ArgumentControl = argumentControlFor({
+      type: arg.type,
+      value: storedValue,
+      isRowsDictionary:
+        arg.type === ComponentInputType.StringDictionary &&
+        parseStringDictionaryValue(storedValue) !== null,
+    });
+
+    /*
+     * The first setting takes the focus as the dialog opens, as BasicForm
+     * gives it to a first text box: the keyboard starts where the step is set
+     * up.
+     */
+    const autoFocus: boolean = argIndex === 0;
+
+    if (
+      control === ArgumentControl.Text ||
+      control === ArgumentControl.MultiLineText
+    ) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <ValueTextField
+              value={customProps.initialValue}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              multiline={control === ArgumentControl.MultiLineText}
+              placeholder={customProps.placeholder}
+              ariaLabelledby={customProps.ariaLabelledby}
+              error={customProps.error}
+              autoFocus={autoFocus}
+              tabIndex={customProps.tabIndex}
+              dataTestId={`workflow-argument-${arg.id}`}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      };
+    }
+
+    const singleKind: ValueSingleFieldKind | undefined =
+      SINGLE_FIELD_KINDS[control];
+
+    if (singleKind) {
+      /*
+       * A switch is one row, as a switch field is everywhere else: the
+       * switch, its name beside it and its help under the name. The form
+       * draws no label above it.
+       */
+      const isSwitch: boolean = singleKind === ValueSingleFieldKind.Boolean;
+
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        customElementDrawsOwnLabel: isSwitch,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <ValueSingleField
+              kind={singleKind}
+              title={isSwitch ? arg.name : undefined}
+              description={isSwitch ? describeArgument(arg) : undefined}
+              value={
+                singleKind === ValueSingleFieldKind.Boolean
+                  ? component.arguments?.[arg.id]
+                  : customProps.initialValue
+              }
+              onChange={(value: string | boolean) => {
+                void customProps.onChange?.(value);
+              }}
+              placeholder={customProps.placeholder}
+              ariaLabelledby={customProps.ariaLabelledby}
+              error={customProps.error}
+              autoFocus={autoFocus}
+              tabIndex={customProps.tabIndex}
+              dataTestId={`workflow-argument-${arg.id}`}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      };
+    }
+
+    /*
+     * Request headers and the like, as key/value rows: each value can be a
+     * value from an earlier step or a variable - an Authorization header from
+     * a secret variable is the usual one.
+     */
+    if (control === ArgumentControl.KeyValueRows) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <DictionaryForm
+              keyPlaceholder="Key"
+              valuePlaceholder="Value"
+              addButtonSuffix={arg.name}
+              valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
+              initialValue={
+                customProps.initialValue &&
+                typeof customProps.initialValue === "object"
+                  ? customProps.initialValue
+                  : {}
+              }
+              onChange={(value: Dictionary<unknown>) => {
+                void customProps.onChange?.(value);
+              }}
+              renderTextValueInput={(row: {
+                value: string;
+                onChange: (value: string) => void;
+                placeholder?: string | undefined;
+                rowIndex: number;
+              }): ReactElement => {
+                return (
+                  <ValueTextField
+                    value={row.value}
+                    onChange={row.onChange}
+                    multiline={false}
+                    placeholder={row.placeholder}
+                    ariaLabel={`${arg.name} value ${row.rowIndex + 1}`}
+                    dataTestId={`workflow-argument-${arg.id}-value-${row.rowIndex}`}
+                  />
+                );
+              }}
+            />
+          );
+        },
+      };
+    }
+
+    // Everything else is chosen by type: code, JSON, toggles, dropdowns.
+    const baseField: ArgumentFormFieldType & {
+      codeEditorToolbarActions?:
+        | ((editor: CodeEditorActions) => ReactNode)
+        | undefined;
+    } = componentInputTypeToFormFieldType(arg.type, storedValue);
+
+    if (
+      control === ArgumentControl.JSONCode ||
+      control === ArgumentControl.HTMLCode
+    ) {
+      const isJSON: boolean = control === ArgumentControl.JSONCode;
+
+      baseField.codeEditorToolbarActions = (
+        editor: CodeEditorActions,
+      ): ReactNode => {
+        return (
+          <InsertValueButton
+            dataTestId={`workflow-argument-${arg.id}-insert-value`}
+            onPick={(reference: string) => {
+              const selection: { start: number; end: number } =
+                editor.getSelection();
+
+              /*
+               * In JSON a reference goes inside quotes, which come with it
+               * where the caret is not already in a string; on its own it
+               * stands for the whole document.
+               */
+              editor.insertText(
+                isJSON
+                  ? referenceForJSON({
+                      text: editor.getText(),
+                      start: selection.start,
+                      end: selection.end,
+                      reference: reference,
+                      allowJSON5: isJSON5ToleratedInputType(arg.type),
+                    })
+                  : reference,
+              );
+            }}
+            onCloseFocus={() => {
+              editor.focus();
+            }}
+          />
+        );
+      };
+    }
+
+    return baseField;
+  };
+
+  /*
+   * If / Else is set up as the sentence its settings make, not as a form of
+   * five fields (Condition/ConditionEditor). It edits the same stored
+   * settings, and reports whether the step can be saved the way the form
+   * below does, under "arguments".
+   */
+  if (component.metadata.id === ComponentID.IfElse) {
+    return (
+      <ValuePickerProvider
+        workflowId={props.workflowId}
+        component={component}
+        graphComponents={props.graphComponents}
+        valueSources={props.valueSources}
+        sources={props.valueSuggestionSources}
+        webhookUrl={props.webhookUrl}
+      >
+        <ConditionEditor
+          arguments={component.arguments}
+          onChange={(patch: JSONObject) => {
+            setComponent((current: NodeDataProp) => {
+              return {
+                ...current,
+                arguments: {
+                  ...((current.arguments as JSONObject) || {}),
+                  ...patch,
+                },
+              };
+            });
+          }}
+          onValidationChange={(hasError: boolean) => {
+            setHasFormValidationErrors((current: Dictionary<boolean>) => {
+              return current["arguments"] === hasError
+                ? current
+                : { ...current, arguments: hasError };
+            });
+          }}
+        />
+      </ValuePickerProvider>
+    );
+  }
+
   return (
-    <div>
+    <ValuePickerProvider
+      workflowId={props.workflowId}
+      component={component}
+      graphComponents={props.graphComponents}
+      valueSources={props.valueSources}
+      sources={props.valueSuggestionSources}
+      webhookUrl={props.webhookUrl}
+    >
       <div>
         {component.metadata.arguments &&
           component.metadata.arguments.length === 0 && (
@@ -413,183 +766,21 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               fields={
                 component.metadata.arguments &&
                 orderedArguments.map((arg: Argument, argIndex: number) => {
-                  const isWorkflowSelect: boolean =
-                    arg.type === ComponentInputType.WorkflowSelect;
-
-                  /*
-                   * Database Select args (the "Select Fields" / "Listen on"
-                   * trigger inputs) get a tree-style field picker backed by
-                   * the model's schema, instead of a raw JSON textarea. We
-                   * need a tableName on the component metadata to fetch the
-                   * column list; without it, fall back to the JSON editor.
-                   */
-                  const useFieldPicker: boolean =
-                    arg.type === ComponentInputType.Select &&
-                    Boolean(component.metadata.tableName);
-
-                  /*
-                   * The Schedule trigger's CronTab argument gets a dedicated
-                   * cron picker (presets, custom expression with live preview,
-                   * or a variable reference) instead of a bare dropdown.
-                   */
-                  const useCronPicker: boolean =
-                    arg.type === ComponentInputType.CronTab;
-
-                  /*
-                   * Query arguments (which records does this act on) and the
-                   * write payload (which values does it set) are both keyed on
-                   * the model's columns, so both get the row editor backed by
-                   * the model schema. Same tableName requirement as the field
-                   * picker.
-                   *
-                   * The write payload is typed JSON, not BaseModel: Create One's
-                   * "json" and Update's "data" are declared
-                   * ComponentInputType.JSON in Types/Workflow/Components/BaseModel,
-                   * and BaseModel appears there only as a *return* value. Keying
-                   * this branch on BaseModel alone therefore never matched a real
-                   * component, and every create and update opened on a bare code
-                   * editor. Retyping those arguments would be the smaller-looking
-                   * fix and is the wrong one - it moves them into
-                   * JSON5_TOLERANT_INPUT_TYPES and changes how RunWorkflow parses
-                   * them. Widening the predicate leaves every runtime path alone.
-                   *
-                   * tableName is set only by the database component generator, and
-                   * the only JSON-typed arguments on those components are the two
-                   * above, so this cannot reach a JSON argument on any other
-                   * component.
-                   *
-                   * JSONArray (Create Many) is deliberately not included: it holds
-                   * a list of records, which rows cannot represent.
-                   */
-                  const columnEditorMode: ModelColumnEditorMode | undefined =
-                    !component.metadata.tableName
-                      ? undefined
-                      : arg.type === ComponentInputType.Query
-                        ? ModelColumnEditorMode.Query
-                        : arg.type === ComponentInputType.JSON ||
-                            arg.type === ComponentInputType.BaseModel
-                          ? ModelColumnEditorMode.Record
-                          : undefined;
-
-                  let baseField: {
-                    fieldType: import("../Forms/Types/FormFieldSchemaType").default;
-                    dropdownOptions?: Array<DropdownOption> | undefined;
+                  const baseField: ArgumentFormFieldType & {
                     getCustomElement?: (
                       values: FormValues<JSONObject>,
                       customProps: CustomElementProps,
                     ) => ReactElement | undefined;
-                  };
-
-                  if (columnEditorMode) {
-                    baseField = {
-                      fieldType: FormFieldSchemaType.CustomComponent,
-                      getCustomElement: (
-                        _values: FormValues<JSONObject>,
-                        customProps: CustomElementProps,
-                      ): ReactElement => {
-                        return (
-                          <ModelColumnEditor
-                            tableName={component.metadata.tableName as string}
-                            mode={columnEditorMode}
-                            /*
-                             * A create writes a whole record, so it opens with a
-                             * row for every column it must be given. An update
-                             * legitimately writes one column, and seeding it
-                             * with six would present five fields nobody asked
-                             * for. The create payload is the argument called
-                             * "json" (BaseModel components); an update's is
-                             * "data".
-                             */
-                            recordIntent={
-                              arg.id === "json"
-                                ? RecordIntent.Create
-                                : RecordIntent.Update
-                            }
-                            initialValue={customProps.initialValue}
-                            onChange={(value: string) => {
-                              void customProps.onChange?.(value);
-                            }}
-                            placeholder={customProps.placeholder}
-                            error={customProps.error}
-                            tabIndex={customProps.tabIndex}
-                            valueSuggestions={referenceSuggestions}
-                          />
-                        );
-                      },
-                    };
-                  } else if (useFieldPicker) {
-                    baseField = {
-                      fieldType: FormFieldSchemaType.CustomComponent,
-                      getCustomElement: (
-                        _values: FormValues<JSONObject>,
-                        customProps: CustomElementProps,
-                      ): ReactElement => {
-                        return (
-                          <ModelFieldPicker
-                            tableName={component.metadata.tableName as string}
-                            initialValue={customProps.initialValue}
-                            onChange={(value: string) => {
-                              void customProps.onChange?.(value);
-                            }}
-                            placeholder={customProps.placeholder}
-                            error={customProps.error}
-                            tabIndex={customProps.tabIndex}
-                          />
-                        );
-                      },
-                    };
-                  } else if (useCronPicker) {
-                    baseField = {
-                      fieldType: FormFieldSchemaType.CustomComponent,
-                      getCustomElement: (
-                        _values: FormValues<JSONObject>,
-                        customProps: CustomElementProps,
-                      ): ReactElement => {
-                        return (
-                          <CronScheduleField
-                            workflowId={props.workflowId}
-                            initialValue={
-                              customProps.initialValue as string | null
-                            }
-                            onChange={(value: string) => {
-                              void customProps.onChange?.(value);
-                            }}
-                            placeholder={customProps.placeholder}
-                            error={customProps.error}
-                            tabIndex={customProps.tabIndex}
-                          />
-                        );
-                      },
-                    };
-                  } else {
-                    baseField = componentInputTypeToFormFieldType(
-                      arg.type,
-                      component.arguments && component.arguments[arg.id]
-                        ? component.arguments[arg.id]
-                        : null,
-                    );
-                  }
+                    customElementDrawsOwnLabel?: boolean | undefined;
+                  } = fieldForArgument(arg, argIndex);
 
                   /*
                    * For WorkflowSelect, inject the dynamically fetched list
                    * of workflows as dropdown options.
                    */
-                  if (isWorkflowSelect) {
+                  if (arg.type === ComponentInputType.WorkflowSelect) {
                     baseField.dropdownOptions = workflowDropdownOptions;
                   }
-
-                  /*
-                   * The "pick from component / variable" footer doesn't
-                   * apply to the field picker (it edits a structured object,
-                   * not a free-text expression), to WorkflowSelect, or to the
-                   * cron picker (which has its own built-in variable selector,
-                   * and a schedule can't reference component return values).
-                   */
-                  const showVariableFooter: boolean =
-                    !isWorkflowSelect &&
-                    !useFieldPicker &&
-                    !useCronPicker &&
-                    !columnEditorMode;
 
                   const isAdvanced: boolean = isCollapsibleAdvanced(arg);
 
@@ -609,35 +800,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           return showAdvanced;
                         }
                       : undefined,
-                    footerElement: showVariableFooter ? (
-                      <div className="text-gray-500">
-                        <p className="text-sm">
-                          Pick this value from other{" "}
-                          <button
-                            className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
-                            onClick={() => {
-                              setSelectedArgId(arg.id);
-                              setShowComponentPickerModal(true);
-                            }}
-                          >
-                            component
-                          </button>{" "}
-                          or from{" "}
-                          <button
-                            className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
-                            onClick={() => {
-                              setSelectedArgId(arg.id);
-                              setShowVariableModal(true);
-                            }}
-                          >
-                            variable.
-                          </button>
-                        </p>
-                      </div>
-                    ) : undefined,
-                    description: `${
-                      arg.required ? "Required" : "Optional"
-                    }. ${arg.description}`,
+                    description: describeArgument(arg),
                     field: {
                       [arg.id]: true,
                     },
@@ -649,6 +812,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                      * that will actually see the value.
                      */
                     allowJSON5: isJSON5ToleratedInputType(arg.type),
+                    /*
+                     * A URL or an address typed out in full is checked as the
+                     * box used to; one built from a value is not known yet.
+                     */
+                    customValidation:
+                      arg.type === ComponentInputType.URL ||
+                      arg.type === ComponentInputType.Email
+                        ? (values: FormValues<JSONObject>): string | null => {
+                            return validateTypedValue(
+                              arg.type,
+                              (values as JSONObject)[arg.id],
+                            );
+                          }
+                        : undefined,
                     ...baseField,
                   };
                 })
@@ -675,47 +852,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
-      {showVariableModal && (
-        <VariableModal
-          workflowId={props.workflowId}
-          onClose={() => {
-            setShowVariableModal(false);
-          }}
-          onSave={(variableId: string) => {
-            setShowVariableModal(false);
-            formRef.current?.setFieldValue(
-              selectedArgId,
-              (component.arguments && component.arguments[selectedArgId]
-                ? component.arguments[selectedArgId]
-                : "") + variableId,
-            );
-          }}
-        />
-      )}
-
-      {showComponentPickerModal && (
-        <ComponentValuePickerModal
-          /* A component cannot read its own output. */
-          components={(props.graphComponents || []).filter(
-            (graphComponent: NodeDataProp) => {
-              return graphComponent.id !== component.id;
-            },
-          )}
-          onClose={() => {
-            setShowComponentPickerModal(false);
-          }}
-          onSave={(returnValuePath: string) => {
-            setShowComponentPickerModal(false);
-            formRef.current?.setFieldValue(
-              selectedArgId,
-              (component.arguments && component.arguments[selectedArgId]
-                ? component.arguments[selectedArgId]
-                : "") + returnValuePath,
-            );
-          }}
-        />
-      )}
-    </div>
+    </ValuePickerProvider>
   );
 };
 

@@ -12,6 +12,7 @@ Abra **Incidentes** na navegação à esquerda e expanda **Configurações** no 
 
 | Tela                     | O que você faz ali                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
+| **IA**                   | Ligar ou desligar a investigação automática, as correções de código automáticas e os rascunhos de post-mortem, e definir os limites opcionais sob os quais a IA trabalha — nenhum se aplica até você defini-lo. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Estado do incidente**       | Adicionar, renomear, recolorir e reordenar os estados pelos quais um incidente passa.                       |
 | **Severidade do incidente**    | Adicionar, renomear, recolorir e reordenar os níveis de severidade.                                            |
 | **Modelos de incidentes**   | Preencher um incidente inteiro de antemão — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
@@ -23,7 +24,7 @@ Abra **Incidentes** na navegação à esquerda e expanda **Configurações** no 
 
 **Estado do incidente** e **Severidade do incidente** são tratados a fundo em [Estados e severidades de incidentes](/docs/incidents/states-and-severities) — o resto desta página começa em **Modelos de incidentes**.
 
-Expanda **Regras** e você ganha mais oito telas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Reminder Rules**. Todas elas aparecem mais adiante.
+Expanda **Regras** e você ganha mais nove telas: **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de remediação automática**, **Regras de privacidade**, **Regras de Rótulos**, **Regras de SLA** e **Reminder Rules**. Todas elas aparecem mais adiante.
 
 ## Modelos de incidentes
 
@@ -113,20 +114,21 @@ Deixe qualquer um dos dois vazio para manter o prefixo padrão `#`; o campo não
 
 ## Regras que rodam quando um incidente é criado
 
-**Incidentes → Regras** guarda oito motores de regra. Todos fazem o mesmo trabalho — olhar um incidente no instante em que ele é criado e agir se ele corresponder — mas diferem no que fazem e em como várias regras correspondentes se resolvem entre si.
+**Incidentes → Regras** guarda nove motores de regra. Todos fazem o mesmo trabalho — olhar um incidente no instante em que ele é criado e agir se ele corresponder — mas diferem no que fazem e em como várias regras correspondentes se resolvem entre si.
 
 - **Regras de agrupamento** — agrupam incidentes relacionados em episódios. As regras são avaliadas por ordem de prioridade; números de prioridade menores vêm primeiro.
 - **Regras de Plantão** — executam políticas de plantão para os incidentes correspondentes. Detalhadas mais abaixo.
 - **Regras de proprietário** — atribuem proprietários automaticamente.
 - **Regras de runbook** — iniciam um [runbook](/docs/runbooks/index) quando um incidente corresponde.
+- **Regras de remediação automática** — propõem ou iniciam runbooks de remediação quando um incidente corresponde. Se houver uma investigação de IA na fila para o incidente, elas rodam quando ela termina, já com a análise em mãos. Veja [AI SRE](/docs/ai/ai-sre).
 - **Regras de privacidade** — decidem se um incidente correspondente é privado.
 - **Regras de Rótulos** — aplicam rótulos automaticamente.
 - **Regras de SLA** — acompanham tempos de resposta e de resolução. As regras são avaliadas em ordem; números de ordem menores vêm primeiro.
 - **Reminder Rules** — lembram periodicamente os proprietários enquanto o incidente segue aberto. As regras são avaliadas em ordem e a primeira correspondência vence.
 
-**A semântica de ordem não é uniforme.** Regras de agrupamento, Regras de SLA e Reminder Rules são avaliadas em ordem. As Regras de Plantão não são — toda regra correspondente dispara. Não presuma que um mesmo modelo vale para as oito.
+**A semântica de ordem não é uniforme.** Regras de agrupamento, Regras de SLA e Reminder Rules são avaliadas em ordem. As Regras de Plantão não são — toda regra correspondente dispara. Não presuma que um mesmo modelo vale para as nove.
 
-As telas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Incident Rules** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Incident Rules**, a não ser que você queira mesmo falar de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de SLA** e **Reminder Rules** são tabelas únicas.
+As telas **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm abas — uma aba **Incident Rules** e uma aba **Episode Rules**, cada uma com sua própria tabela. Configure a aba **Incident Rules**, a não ser que você queira mesmo falar de episódios. **Regras de agrupamento**, **Regras de runbook**, **Regras de remediação automática**, **Regras de SLA** e **Reminder Rules** são tabelas únicas.
 
 ## Regras de plantão de incidente
 
@@ -160,7 +162,7 @@ Para ver o que aconteceu, abra o incidente e escolha **Execuções de plantão**
 
 ## Dirigir incidentes a partir de workflows
 
-Os gatilhos de workflow para incidentes não são escritos à mão — o OneUptime os gera a partir dos modelos de dados, então todo modelo da família de incidentes ganha componentes **On Create X**, **On Update X** e **On Delete X**, batizados com o nome no singular do modelo. Os três principais são **On Create Incident**, **On Update Incident** e **On Delete Incident**, e você os encontra na categoria **Incidente** do painel **Adicionar componente**, em `/dashboard/{projectId}/workflows`.
+Os gatilhos de workflow para incidentes não são escritos à mão — o OneUptime os gera a partir dos modelos de dados, então todo modelo da família de incidentes ganha componentes **On Create X**, **On Update X** e **On Delete X**, batizados com o nome no singular do modelo. Os três principais são **On Create Incident**, **On Update Incident** e **On Delete Incident**. Você os encontra no painel **Add Trigger**, em `/dashboard/{projectId}/workflows`, em **OneUptime resources** → **Incident**; os dois primeiros também estão em **Popular**.
 
 A mesma geração lhe dá gatilhos para a própria configuração: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** e outros. Cada modelo também ganha componentes de ação equivalentes — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** e suas versões para várias linhas — de modo que um gatilho e uma ação de nomes parecidos ficam lado a lado na mesma categoria. **On Create Incident** inicia um workflow; **Create One Incident** abre um incidente.
 

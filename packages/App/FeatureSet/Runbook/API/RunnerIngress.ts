@@ -48,7 +48,7 @@ export default class RunnerIngressAPI {
 
   // Why a job naming a credential is failed for a kubernetes-agent Runner.
   public static readonly AGENT_RUNNER_CREDENTIAL_REFUSAL: string =
-    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Project Settings → Runners, assign the credential to it and target that Runner instead.";
+    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Runbooks → Runners, assign the credential to it and target that Runner instead.";
 
   public constructor() {
     this.router = Express.getRouter();

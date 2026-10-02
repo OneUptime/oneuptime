@@ -33,4 +33,8 @@ jobs:
       # must not pull server dependencies. The shared pure logic it does use
       # (masking, sampling, URL scrubbing) is inlined by the bundler at build
       # time and unit-tested on the Common side.
-      - run: cd packages/App/FeatureSet/BrowserRecorder && npm install && npm run test
+      - name: Install Browser Recorder dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/BrowserRecorder
+      - run: cd packages/App/FeatureSet/BrowserRecorder && npm run test

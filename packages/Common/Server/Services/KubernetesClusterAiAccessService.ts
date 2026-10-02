@@ -104,9 +104,11 @@ export {
  */
 
 export interface KubernetesClusterAiAccessProjectGates {
+  /*
+   * Project.enableAi, the project's only AI switch: it covers
+   * investigation, fixes and AI commands on Runners alike.
+   */
   isAiEnabled: boolean;
-  isAutoRemediationEnabled: boolean;
-  isAiCommandExecutionEnabled: boolean;
   hasLlmProvider: boolean;
   /*
    * Why no AI run can start for lack of AI credits (AIService.
@@ -458,7 +460,7 @@ export function getPreviousInstanceRetryAfterSeconds(data: {
 
 /*
  * One thing an agent Runner row holds beyond what registration gave it, and
- * what an operator does under Project Settings → Runners to remove it.
+ * what an operator does under Runbooks → Runners to remove it.
  */
 export interface AgentRunnerHolding {
   description: string;
@@ -524,8 +526,6 @@ class KubernetesClusterAiAccessServiceClass {
       id: projectId,
       select: {
         enableAi: true,
-        enableAutoRemediation: true,
-        enableAiCommandExecution: true,
         enableAutomaticIncidentInvestigation: true,
         enableAutomaticAlertInvestigation: true,
       },
@@ -566,11 +566,8 @@ class KubernetesClusterAiAccessServiceClass {
     }
 
     return {
-      // Kill switches: a missing column counts as enabled (=== false idiom).
+      // Kill switch: a missing column counts as enabled (=== false idiom).
       isAiEnabled: project?.enableAi !== false,
-      isAutoRemediationEnabled: project?.enableAutoRemediation !== false,
-      // Explicit opt-in (=== true idiom), same as the Bash/SSH lane.
-      isAiCommandExecutionEnabled: project?.enableAiCommandExecution === true,
       // A failed lookup reads as none, like no provider at all.
       hasLlmProvider: Boolean(llmProvider),
       aiBalanceBlocker,
@@ -878,40 +875,6 @@ class KubernetesClusterAiAccessServiceClass {
       });
     }
 
-    if (!gates.isAutoRemediationEnabled) {
-      gaps.push({
-        code: "project_auto_remediation_disabled",
-        title: "Auto-remediation is disabled for this project",
-        description:
-          "The project-level auto-remediation kill switch is off, so no AI fix can be proposed or run.",
-        nextStep:
-          "Enable auto-remediation under Project Settings → AI Features.",
-        blocks: "remediation",
-      });
-    }
-
-    /*
-     * The project's command-execution opt-in governs AI-composed commands
-     * on Runners. A cluster reached through its Kubernetes AI agent (or the
-     * chart's previous in-cluster Runner) is governed by the cluster's own
-     * Fixes setting and the chart's write RBAC instead, so the opt-in only
-     * gates a cluster reached through an advanced Runner and credential.
-     */
-    if (
-      loaded.target.type === "advanced_runner" &&
-      !gates.isAiCommandExecutionEnabled
-    ) {
-      gaps.push({
-        code: "project_ai_command_execution_disabled",
-        title: "AI command execution is not enabled for this project",
-        description:
-          "This cluster is reached through a Runner, and AI-composed commands (kubectl fixes included) never run on a Runner in a project that has not opted in.",
-        nextStep:
-          'Turn on "Enable AI Command Execution" under Project Settings → AI Features.',
-        blocks: "remediation",
-      });
-    }
-
     const blocksInvestigation: boolean = gaps.some(
       (gap: KubernetesAiAccessGap) => {
         return gap.blocks === "investigation" || gap.blocks === "both";
@@ -1201,7 +1164,7 @@ class KubernetesClusterAiAccessServiceClass {
         title: "The Runner does not accept AI commands",
         description: `"Runs AI Remediation Commands" is turned off on Runner "${runner.name}", so it will not be served kubectl work.`,
         nextStep:
-          'Turn on "Runs AI Remediation Commands" on the Runner (Project Settings → Runners).',
+          'Turn on "Runs AI Remediation Commands" on the Runner (Runbooks → Runners).',
         blocks: "both",
       });
     }
@@ -1270,7 +1233,7 @@ class KubernetesClusterAiAccessServiceClass {
             : credential.credentialType !== RunbookCredentialType.Kubernetes
               ? `"${credential.name}" is not a Kubernetes credential.`
               : `"${credential.name}" is not assigned to Runner "${runner.name}".`,
-          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Project Settings → Runner Credentials, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
+          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → Runner Credentials, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
           blocks: "both",
         });
       } else {
@@ -2221,7 +2184,7 @@ class KubernetesClusterAiAccessServiceClass {
        */
       throw new KubernetesAgentRegistrationRefusedException({
         reason: "runner_holds_more_than_defaults",
-        message: `Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner. Or, under Project Settings → Runners, on Runner "${data.runner.name}": ${this.describeHoldingRemedies(
+        message: `Upgrade the Kubernetes agent chart: its Kubernetes AI agent replaces this in-cluster Runner. Or, under Runbooks → Runners, on Runner "${data.runner.name}": ${this.describeHoldingRemedies(
           holdings,
         )}. It is offline, but it holds more than an in-cluster Runner's defaults (${this.describeHoldings(
           holdings,
@@ -2351,7 +2314,7 @@ class KubernetesClusterAiAccessServiceClass {
       );
 
       throw new TooManyRequestsException(
-        `This project already has ${totalAgentRunners} in-cluster Runners, which is its limit (${MAX_KUBERNETES_AGENT_RUNNERS_PER_PROJECT}). Delete the Runners of clusters that no longer exist under Project Settings → Runners, then retry.`,
+        `This project already has ${totalAgentRunners} in-cluster Runners, which is its limit (${MAX_KUBERNETES_AGENT_RUNNERS_PER_PROJECT}). Delete the Runners of clusters that no longer exist under Runbooks → Runners, then retry.`,
       );
     }
 

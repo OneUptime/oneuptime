@@ -18,9 +18,7 @@ cloud your plan decides which of these features you get.
 
 > **Single sign-on is in every edition.** SAML and OIDC sign-in for projects
 > and status pages, global SSO and "Require SSO for login" are part of the
-> Community Edition, and no license state switches them off. In 14.0.0 to
-> 14.0.10 they were Enterprise Edition features that stopped when the license
-> lapsed; releases after 14.0.10 serve them in both editions.
+> Community Edition, and no license state switches them off.
 
 This page covers what each edition includes, how to run the Enterprise
 Edition, how licensing works, and what happens when you switch editions.

@@ -38,22 +38,22 @@ Allt det här bygger du visuellt på en arbetsyta. Ingen kodning krävs för de 
 
 - **Arbetsflöden** — din lista över arbetsflöden. Skapa ett nytt eller öppna ett befintligt.
 - **Globala variabler** — värden som delas mellan alla dina arbetsflöden.
-- **Körningar och loggar** — körhistorik för varje arbetsflöde i projektet.
+- **Loggar → Körningar** — körhistorik för varje arbetsflöde i projektet.
 
 Öppnar du ett enskilt arbetsflöde rymmer dess egen vänstermeny:
 
 - **Översikt** — namn, beskrivning, etiketter och växeln **Aktiverad**.
-- **Byggare** — arbetsytan där du designar arbetsflödet.
+- **Byggare** — arbetsytan där du designar arbetsflödet, med växeln **Aktiverad** högst upp.
 - **Arbetsflödesvariabler** — värden som bara gäller det här enda arbetsflödet.
-- **Körningar och loggar** — varje körning av det här arbetsflödet, med detaljer.
-- **Inställningar** — webhook-hemlighet, duplicering och export.
+- **Loggar → Körningar** — varje körning av det här arbetsflödet, med detaljer.
+- **Inställningar** — duplicering och export.
 
 ## Bygg ditt första arbetsflöde
 
 1. **Skapa** — välj en startpunkt och ge sedan arbetsflödet ett namn.
 2. **Välj en utlösare** — manuell, schemalagd, webhook eller en händelse från OneUptime.
 3. **Lägg till komponenter** — lägg åtgärder på arbetsytan och koppla ihop dem.
-4. **Slå på det** — slå på **Aktiverad** från sidan **Översikt**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
+4. **Slå på det** — slå på **Aktiverad** högst upp i **Byggare**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
 5. **Testa** — klicka på **Kör arbetsflöde** i Byggaren och följ körloggen.
 
 ## Ett snabbt exempel
@@ -80,5 +80,5 @@ Nästa gång någon öppnar en incident med "Sev 1" i titeln lyser Slack upp.
 - [Arbetsflödesutlösare](/docs/workflows/triggers) — de olika sätten ett arbetsflöde kan starta på.
 - [Arbetsflödeskomponenter](/docs/workflows/components) — byggstenarna du kan lägga till.
 - [Arbetsflödesvariabler](/docs/workflows/variables) — att använda värden mellan block och arbetsflöden.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — att kontrollera vad som hände.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs) — att kontrollera vad som hände.
 - [Arbetsflödeskonfiguration & säkerhet](/docs/workflows/configuration) — inställningar värda att känna till.

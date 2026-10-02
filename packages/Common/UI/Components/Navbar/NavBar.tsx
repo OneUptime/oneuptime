@@ -295,6 +295,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
           icon: item.icon,
           route: item.route,
           activeRoute: item.activeRoute,
+          additionalActiveRoutes: item.additionalActiveRoutes,
           description: item.description,
         };
       }),
@@ -313,13 +314,13 @@ const Navbar: FunctionComponent<ComponentProps> = (
     });
   }
 
-  // Find the currently active item
+  // Find the currently active item (with the same extra routes as desktop)
   const activeItem: any =
     allNavItems.find((item: any) => {
       const routeToCheck: any = item.activeRoute || item.route;
       return item.exact
         ? Navigation.isOnThisPage(routeToCheck)
-        : Navigation.isStartWith(routeToCheck);
+        : isMoreMenuItemActive(item);
     }) || allNavItems[0];
 
   // Mobile view

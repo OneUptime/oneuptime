@@ -6,6 +6,7 @@ import {
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
+import { normalizeObiReceivingSideMessagingSpanKind } from "../Utils/ObiReceivingSideMessagingSpan";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
@@ -727,8 +728,20 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
 
                   const spanName: string = (span["name"] as string) || "";
+                  /*
+                   * OBI v0.14 reports a Kafka / MQTT / NATS exchange it saw
+                   * on the receiving side (a broker, a subscriber handed a
+                   * delivery) as PRODUCER / CONSUMER; v0.13 and every
+                   * consumer of span kinds here treat it as SERVER. Decided
+                   * before the evaluation row, so drop filters, scrub rules,
+                   * pipelines and the entity keys all see the stored kind.
+                   * See ObiReceivingSideMessagingSpan.
+                   */
                   const spanKind: SpanKind =
-                    OtelTracesIngestService.mapSpanKind(span["kind"]);
+                    normalizeObiReceivingSideMessagingSpanKind({
+                      kind: OtelTracesIngestService.mapSpanKind(span["kind"]),
+                      attributes: spanAttributes,
+                    });
 
                   let spanEvents: Array<JSONObject> = [];
                   let hasException: boolean = false;

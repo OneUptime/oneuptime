@@ -12,16 +12,22 @@ import {
   findColumn,
   requiredWritableColumns,
 } from "../ModelSchema";
-import AddColumnDropdown from "./AddColumnDropdown";
-import { isOfferableColumn } from "./ColumnControl";
+import AddColumnPicker from "./AddColumnPicker";
+import { isOfferableColumn, jsonOnlyColumns } from "./ColumnControl";
 import ColumnFieldRow from "./ColumnFieldRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
+import { ColumnUse } from "./ColumnUse";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   rows: Array<ModelColumnRow>;
   columns: Array<ModelSchemaColumn>;
-  suggestions?: Array<string> | undefined;
+  /*
+   * Create or Update. It decides which fields are offered: a create offers
+   * what may be set on a new record, an update what may be changed on one
+   * that exists - and neither offers what OneUptime fills in itself.
+   */
+  use: ColumnUse.Create | ColumnUse.Update;
   onChange: (rows: Array<ModelColumnRow>) => void;
 }
 
@@ -30,17 +36,23 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   /*
    * The row just added from the picker, so its value control can take focus.
-   * Without it the picker remounts to clear its own selection and focus falls
-   * to the document body, which for a keyboard user means starting again from
-   * the top of the panel.
+   * Without it the picker's list closes and focus falls to the document body,
+   * which for a keyboard user means starting again from the top of the panel.
    */
   const [justAddedKey, setJustAddedKey] = useState<string>("");
 
-  const requiredColumnIds: Array<string> = requiredWritableColumns(
-    props.columns,
-  ).map((column: ModelSchemaColumn) => {
-    return column.id;
-  });
+  /*
+   * Only a create has required fields: an update writes whichever columns it
+   * names and leaves the rest of the record as it was.
+   */
+  const requiredColumnIds: Array<string> =
+    props.use === ColumnUse.Create
+      ? requiredWritableColumns(props.columns).map(
+          (column: ModelSchemaColumn) => {
+            return column.id;
+          },
+        )
+      : [];
 
   const usedColumnIds: Array<string> = props.rows.map((row: ModelColumnRow) => {
     return row.columnId;
@@ -48,22 +60,19 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
 
   const offerableColumns: Array<ModelSchemaColumn> = props.columns.filter(
     (column: ModelSchemaColumn) => {
-      return isOfferableColumn(column) && !usedColumnIds.includes(column.id);
+      return (
+        isOfferableColumn(column, props.use) &&
+        !usedColumnIds.includes(column.id)
+      );
     },
   );
 
-  /*
-   * Named so the builder is not left wondering where a column went. Relations
-   * and blobs cannot be a single box, and saying which ones is kinder than
-   * silently offering a shorter list than the model has.
-   */
-  const unofferableColumnTitles: Array<string> = props.columns
-    .filter((column: ModelSchemaColumn) => {
-      return !isOfferableColumn(column) && !column.isTenantColumn;
-    })
-    .map((column: ModelSchemaColumn) => {
-      return column.title;
-    });
+  const unofferableColumnTitles: Array<string> = jsonOnlyColumns(
+    props.columns,
+    props.use,
+  ).map((column: ModelSchemaColumn) => {
+    return column.title;
+  });
 
   const knownColumnIds: Array<string> = props.columns.map(
     (column: ModelSchemaColumn) => {
@@ -108,7 +117,6 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
                   column={findColumn(props.columns, row.columnId)}
                   knownColumnIds={knownColumnIds}
                   isRequired={requiredColumnIds.includes(row.columnId)}
-                  suggestions={props.suggestions}
                   autoFocus={row.key === justAddedKey}
                   onChange={(nextRow: ModelColumnRow) => {
                     replaceRow(index, nextRow);
@@ -127,10 +135,11 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
         )}
 
         <div className="border-t border-gray-100 bg-gray-50/40 px-3 py-2.5">
-          <AddColumnDropdown
+          <AddColumnPicker
             columns={offerableColumns}
+            use={props.use}
             requiredColumnIds={requiredColumnIds}
-            placeholder="Add a field..."
+            triggerLabel="Add a field"
             allowCustomColumn={true}
             dataTestId="model-column-add"
             onAdd={(columnId: string) => {

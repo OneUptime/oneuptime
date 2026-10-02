@@ -51,6 +51,7 @@ import { generateNostrWellKnown } from "./Utils/Nostr";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
+import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
@@ -72,7 +73,11 @@ import {
   getGitHubCommitsCount,
   formatCount,
 } from "./Jobs/FetchGitHubStats";
-import { Host, GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  DisableMcpOAuth,
+  Host,
+  GoogleTagManagerEnabled,
+} from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 // Helper to get SEO data and merge with homeUrl for templates
@@ -206,7 +211,11 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader("Cache-Control", "public, max-age=600");
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.json(generateMcpManifest(res.locals["homeUrl"] as string));
+        res.json(
+          generateMcpManifest(res.locals["homeUrl"] as string, {
+            isOAuthEnabled: !DisableMcpOAuth,
+          }),
+        );
       },
     );
 
@@ -947,6 +956,18 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    app.get("/product/queues", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/queues",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/queues`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+        queues: getQueuesPageContent(),
+      });
+    });
 
     app.get(
       "/product/profiles",

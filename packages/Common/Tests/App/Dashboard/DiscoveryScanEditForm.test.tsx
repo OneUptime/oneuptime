@@ -514,9 +514,6 @@ describe("Editing a discovery scan after it was created", () => {
 
     expect(editFields()).toHaveLength(wizardFields.length);
 
-    let headed: number = 0;
-    const titledStepIds: Set<string> = new Set<string>();
-
     editFields().forEach((field: CapturedFormField, index: number) => {
       const wizardField: CapturedFormField = wizardFields[
         index
@@ -539,30 +536,23 @@ describe("Editing a discovery scan after it was created", () => {
         hasShowIf: Boolean(wizardField.showIf),
       });
 
-      let expectedSectionTitle: string | undefined = wizardField.sectionTitle;
-
       /*
-       * The edit layout adds each wizard step's title to the first field in
-       * that step. Field-level subsection titles are part of the shared field
-       * definition, though, and must survive unchanged in both layouts. The
-       * scan-method toggle's "What to check" heading is one such subsection.
+       * Field-level subsection titles are part of the shared field
+       * definition and read the same in both forms. The scan-method toggle's
+       * "What to check" heading is one such subsection.
        */
-      if (wizardField.stepId && !titledStepIds.has(wizardField.stepId)) {
-        expectedSectionTitle = formSteps.find(
-          (step: { id: string; title: string }): boolean => {
-            return step.id === wizardField.stepId;
-          },
-        )?.title;
-
-        expect(expectedSectionTitle).toBeDefined();
-        titledStepIds.add(wizardField.stepId);
-        headed++;
-      }
-
-      expect(field.sectionTitle).toBe(expectedSectionTitle);
+      expect(field.sectionTitle).toBe(wizardField.sectionTitle);
     });
 
-    expect(headed).toBe(formSteps.length);
+    // Every field is on one of the steps both forms walk.
+    for (const field of editFields()) {
+      expect(
+        formSteps.some((step: { id: string; title: string }): boolean => {
+          return step.id === field.stepId;
+        }),
+      ).toBe(true);
+    }
+
     expect(
       wizardFields.find((field: CapturedFormField): boolean => {
         return fieldKeyOf(field) === "isSnmpEnabled";
@@ -602,17 +592,32 @@ describe("Editing a discovery scan after it was created", () => {
   });
 
   /*
-   * Not a wizard. A stepped form has no Back button — the only way backwards
-   * is the step rail, which BasicForm hides below the `lg` breakpoint — and
-   * three "Next" clicks to reach the toggle you came to flip is the wrong
-   * shape for a repair. The wizard's step titles survive as section headings
-   * so the grouping is not lost with the steps.
+   * The edit dialog walks the create wizard's own steps - Scan Target, SNMP
+   * Credentials, Schedule - from the one list both forms are handed, so a
+   * setting can never sit on a step one of them lacks. Long forms are
+   * stepped, edit forms included; being an Update form, the dialog saves
+   * from any step and opens any step from its step list
+   * (SteppedEditFormSave.test.tsx drives that), so flipping the schedule is
+   * not three Next clicks away, and there is still no Back button.
    */
-  test("lays the settings out on one page, under the wizard's own headings", async () => {
+  test("walks the create wizard's own steps", async () => {
     await openEditDialog();
 
-    expect(capturedModalProps?.formProps?.steps).toBeUndefined();
+    expect(capturedModalProps?.formProps?.steps).toBeDefined();
+    expect(capturedModalProps?.formProps?.steps).toBe(
+      capturedTableProps?.formSteps,
+    );
+    expect(
+      (capturedModalProps?.formProps?.steps || []).map(
+        (step: { id: string; title: string }): string => {
+          return step.title;
+        },
+      ),
+    ).toEqual(["Scan Target", "SNMP Credentials", "Schedule"]);
+    expect(capturedModalProps?.formProps?.formType).toBe(FormType.Update);
 
+    const wizardFields: Array<CapturedFormField> =
+      capturedTableProps?.formFields || [];
     const headings: Array<string> = editFields()
       .map((field: CapturedFormField): string | undefined => {
         return field.sectionTitle;
@@ -621,60 +626,25 @@ describe("Editing a discovery scan after it was created", () => {
         return Boolean(title);
       }) as Array<string>;
 
-    /*
-     * NOT simply the step titles in order any more, which is what this
-     * assertion used to be. The scan-method toggle carries a subsection
-     * heading of its own ("What to check") in the middle of the Scan Target
-     * group, so the edit dialog's headings are the step titles INTERLEAVED
-     * with the field-level ones — and an assertion that only knew about steps
-     * would have to be relaxed to accommodate that, which would stop it
-     * noticing a step heading going missing.
-     *
-     * Rebuilt from the wizard's own fields instead: first field of a step
-     * contributes that step's title (the edit layout overwrites its
-     * sectionTitle with it), every other field contributes whatever
-     * sectionTitle it declares. That keeps the assertion exact while staying
-     * true for both kinds of heading.
-     */
-    const wizardFields: Array<CapturedFormField> =
-      capturedTableProps?.formFields || [];
-    const formSteps: Array<{ id: string; title: string }> =
-      capturedTableProps?.formSteps || [];
-    const titledStepIds: Set<string> = new Set<string>();
-    const expectedHeadings: Array<string> = [];
-
-    wizardFields.forEach((field: CapturedFormField): void => {
-      if (field.stepId && !titledStepIds.has(field.stepId)) {
-        const stepTitle: string | undefined = formSteps.find(
-          (step: { id: string; title: string }): boolean => {
-            return step.id === field.stepId;
-          },
-        )?.title;
-
-        expect(stepTitle).toBeDefined();
-        expectedHeadings.push(stepTitle as string);
-        titledStepIds.add(field.stepId);
-        return;
-      }
-
-      if (field.sectionTitle) {
-        expectedHeadings.push(field.sectionTitle);
-      }
-    });
-
-    expect(headings).toEqual(expectedHeadings);
+    // The steps name the groups; no step title is repeated as a heading.
+    expect(headings).toEqual(
+      wizardFields
+        .map((field: CapturedFormField): string | undefined => {
+          return field.sectionTitle;
+        })
+        .filter((title: string | undefined): boolean => {
+          return Boolean(title);
+        }),
+    );
+    expect(headings).not.toContain("Scan Target");
+    expect(headings).not.toContain("SNMP Credentials");
+    expect(headings).not.toContain("Schedule");
     expect(headings).toContain("What to check");
 
-    /*
-     * A heading is carried by the FIRST field of its group, so which field
-     * carries it is not decoration — it is where the group begins. The SNMP
-     * group used to begin at `snmpVersion`, the first of nine flat fields;
-     * it now begins at `snmpConfigs`, which is the only field on that step.
-     * Pinned because the heading silently moves to whatever field happens to
-     * come first, and a group that begins in the wrong place puts the
-     * credentials under the schedule's heading with no other symptom.
-     */
-    expect(editFieldNamed("snmpConfigs").sectionTitle).toBe("SNMP Credentials");
+    // The credentials are on their own step, and the schedule on its.
+    expect(editFieldNamed("snmpConfigs").stepId).toBe("snmp");
+    expect(editFieldNamed("isRecurring").stepId).toBe("schedule");
+    expect(editFieldNamed("cidr").stepId).toBe("scan-target");
 
     /*
      * And the toggle keeps its own heading rather than being promoted to a

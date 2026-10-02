@@ -38,22 +38,22 @@ Alt dette bygger du visuelt på et lerret. De fleste arbeidsflyter krever ingen 
 
 - **Arbeidsflyter** — listen din over arbeidsflyter. Opprett en ny eller åpne en du har.
 - **Globale variabler** — verdier som deles på tvers av alle arbeidsflytene dine.
-- **Kjøringer og logger** — kjørehistorikk på tvers av hver arbeidsflyt i prosjektet.
+- **Logger → Kjøringer** — kjørehistorikk på tvers av hver arbeidsflyt i prosjektet.
 
 Åpner du én arbeidsflyt, rommer dens egen venstremeny:
 
 - **Oversikt** — navn, beskrivelse, etiketter og bryteren **Aktivert**.
-- **Bygger** — lerretet der du utformer arbeidsflyten.
+- **Bygger** — lerretet der du utformer arbeidsflyten, med bryteren **Aktivert** øverst.
 - **Arbeidsflytvariabler** — verdier som bare gjelder denne ene arbeidsflyten.
-- **Kjøringer og logger** — hver kjøring av denne arbeidsflyten, med detaljer.
-- **Innstillinger** — webhook-hemmelighet, duplisering og eksport.
+- **Logger → Kjøringer** — hver kjøring av denne arbeidsflyten, med detaljer.
+- **Innstillinger** — duplisering og eksport.
 
 ## Bygg din første arbeidsflyt
 
 1. **Opprett** — velg et utgangspunkt, og gi arbeidsflyten et navn.
 2. **Velg en trigger** — manuell, planlagt, webhook eller noe som skjer i OneUptime.
 3. **Legg til komponenter** — legg handlinger på lerretet og koble dem sammen.
-4. **Slå den på** — skru på **Aktivert** fra siden **Oversikt**. En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
+4. **Slå den på** — skru på **Aktivert** øverst i **Bygger**. En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
 5. **Test** — klikk **Kjør arbeidsflyt** i byggeren og følg med i kjøreloggen.
 
 ## Et lite eksempel
@@ -80,5 +80,5 @@ Neste gang noen åpner en hendelse med «Sev 1» i tittelen, lyser Slack opp.
 - [Arbeidsflyt-triggere](/docs/workflows/triggers) — de forskjellige måtene en arbeidsflyt kan starte på.
 - [Arbeidsflyt-komponenter](/docs/workflows/components) — byggeklossene du kan legge til.
 - [Arbeidsflyt-variabler](/docs/workflows/variables) — å bruke verdier på tvers av blokker og arbeidsflyter.
-- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.
+- [Arbeidsflyt-kjøringer](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.
 - [Arbeidsflyt-konfigurasjon & sikkerhet](/docs/workflows/configuration) — innstillinger det er verdt å kjenne til.

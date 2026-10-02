@@ -7,9 +7,23 @@ A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It le
 - **Transport**: Streamable HTTP at `/mcp`. The server is **stateless** — no session IDs are issued or required, so it is safe behind load balancers and multi-replica deployments.
 - **Hosted endpoint**: `https://oneuptime.com/mcp`
 - **Self-hosted endpoint**: `https://<your-host>/mcp` (served by the App container behind Nginx)
-- **Auth**: per-request API key via the `x-api-key` header or `Authorization: Bearer <key>` (scheme is case-insensitive). There is no environment-variable API key — every request carries its own key.
+- **Auth**: sign in with OneUptime (OAuth 2.1, per the MCP authorization specification), or a per-request API key via the `x-api-key` header or `Authorization: Bearer <key>` (scheme is case-insensitive). There is no environment-variable API key — every request carries its own credential.
 
 ## Connecting a client
+
+### By signing in
+
+Give the client the URL and nothing else. The first call to a tool that needs an identity is answered `401` with a `WWW-Authenticate` challenge; the client discovers the authorization server from it, opens the consent screen in the user's browser, and gets tokens for the project the user picks.
+
+```bash
+claude mcp add --transport http oneuptime https://oneuptime.com/mcp
+```
+
+```json
+{ "servers": { "oneuptime": { "type": "http", "url": "https://oneuptime.com/mcp" } } }
+```
+
+The rest of this section configures the same clients with an API key instead, for agents that run unattended.
 
 ### Claude Desktop
 
@@ -83,11 +97,30 @@ For self-hosted instances, replace `oneuptime.com` with your OneUptime host in a
 
 ## Authentication
 
+### API key
+
 Create a **project API key** in OneUptime under **Project Settings → API Keys** and grant it the least privilege the agent needs (read-only keys work for all `get_`/`list_`/`count_` tools). The project is inferred from the key — create tools never need a `projectId` argument.
 
 > **Warning — never give an AI agent a master key.** A OneUptime *master* API key is also accepted on this header and grants instance-wide admin access. Always use a project-scoped API key with least privilege for AI agents.
 
-Public status page tools and `oneuptime_help` / `oneuptime_list_resources` work without any API key.
+Public status page tools and `oneuptime_help` / `oneuptime_list_resources` work without any credential.
+
+### OAuth sign-in
+
+The code is in `OAuth/`; each file opens with the reasoning behind it. The shape of it:
+
+- **One issuer under `/mcp`.** `https://<host>/mcp` is both the protected resource (RFC 9728) and the authorization server's issuer (RFC 8414). Every endpoint sits under `/mcp/oauth`, and every URL is built from `HOST` / `HTTP_PROTOCOL`, never from the request.
+- **Lazy, at the HTTP layer.** `OAuth/RequestGate` runs before the MCP SDK sees a request. `initialize`, `tools/list` and the public tools pass with no credential; a call to a tool that needs an identity is refused `401` (or `403 insufficient_scope` for a read-only grant calling a write tool) with a Bearer challenge. It cannot live in a tool handler: a refusal from inside the SDK is a `200`, and a client only starts signing its user in on a real `401`.
+- **Clients identify themselves.** A Client ID Metadata Document (`OAuth/ClientIdMetadataDocument`, fetched through the egress guard with private addresses always blocked) or Dynamic Client Registration (`OAuth/RegistrationEndpoint`). Nobody registers a client by hand.
+- **Authorization code + PKCE (S256 only)**, resource indicators (RFC 8707), `iss` in the authorization response (RFC 9207), rotating refresh tokens with reuse detection, revocation (RFC 7009).
+- **Opaque tokens, stored as hashes.** `oumcp_ac_…` / `oumcp_at_…` / `oumcp_rt_…`; only the SHA-256 is kept (`McpOAuthToken`). A grant (`McpOAuthGrant`) is one member letting one client act for them in one project; revoking is deleting the grant, which cascades to its tokens.
+- **Only an access token is a credential.** `x-api-key` carries an API key and nothing else; `Authorization` carries an API key or an access token. Any other `oumcp_` secret presented in either header — a refresh token, a code, a client secret, or an access token in `x-api-key` — is refused `401 invalid_token` by `OAuth/RequestGate` and is never passed on to the API as an API key.
+- **Scopes** `mcp:read` and `mcp:write` (write includes read). The consent screen can narrow what a client asked for, never widen it.
+- **The API never sees the client's token.** Having accepted an access token, the MCP layer calls the REST API with a 60-second signed *delegation token* (`Common/Server/Utils/Mcp/McpDelegationToken`). `Common/Server/Middleware/McpDelegationAuthorization` turns that into a request authorized as the member — never as a master admin — in the grant's project, with their live permissions, and marked read-only when the grant is. A stolen access token is therefore worth exactly what the MCP tools can do with it.
+- **Checked on every use.** `Common/Server/Utils/Mcp/McpOAuthGrantAccess` re-evaluates the grant per request and per token exchange: the member still exists, is not blocked, still belongs to the project, is not on a team that blocks `AuthorizeMcpClient`, and still satisfies the project's SSO requirement.
+- **Consent** is the Accounts page `/accounts/mcp-authorize`; **managing connected clients** is Settings → MCP Server in the Dashboard.
+
+Two settings: `DISABLE_MCP_OAUTH=true` switches the whole thing off (the routes answer 404 and an unauthenticated tool call gets the in-band "API key is required" result it always got), and `DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS=true` is for instances that cannot make outbound requests.
 
 ## Tool catalog
 
@@ -109,12 +142,12 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 - `acknowledge_alert`, `resolve_alert`
 - `add_incident_note` (with `visibility: "internal" | "public"` — public notes post to the status page)
 - `add_alert_note`
-- `oneuptime_whoami` — returns the project (ID and name) the API key belongs to
+- `oneuptime_whoami` — returns the project (ID and name) the credential belongs to; for an OAuth sign-in, also who is signed in, through which client, and whether the connection is read-only
 
 ### Helper and public tools
 
 - `oneuptime_help`, `oneuptime_list_resources`
-- No API key needed: `get_public_status_page_overview`, `get_public_status_page_incidents`, `get_public_status_page_scheduled_maintenance`, `get_public_status_page_announcements`
+- No credential needed: `get_public_status_page_overview`, `get_public_status_page_incidents`, `get_public_status_page_scheduled_maintenance`, `get_public_status_page_announcements`
 
 ### Annotations and results
 
@@ -168,7 +201,7 @@ Values are `"ASC"` or `"DESC"`.
 
 A typical incident-response loop an agent can run:
 
-1. `oneuptime_whoami` — confirm which project the key belongs to.
+1. `oneuptime_whoami` — confirm which project the credential belongs to.
 2. `list_incidents` with `{"sort": {"createdAt": "DESC"}, "limit": 5}` — find the active incident.
 3. `acknowledge_incident` — take ownership.
 4. `list_logs` with a time-range filter (`{"time": {"_type": "GreaterThan", "value": "..."}}`) and `list_exception_instances` — investigate.
@@ -184,6 +217,13 @@ A typical incident-response loop an agent can run:
 | `/mcp`        | DELETE | No-op (stateless — nothing to terminate)                                  |
 | `/mcp/tools`  | GET    | REST listing of available tools                                           |
 | `/mcp/health` | GET    | Health check, including the protocol versions this build speaks           |
+| `/mcp/.well-known/oauth-protected-resource` | GET | Protected resource metadata (also at `/.well-known/oauth-protected-resource[/mcp]`) |
+| `/.well-known/oauth-authorization-server/mcp` | GET | Authorization server metadata (also at `/mcp/.well-known/oauth-authorization-server` and the origin's root) |
+| `/mcp/oauth/authorize` | GET, POST | Authorization endpoint: checks the client's request and redirects to the consent screen |
+| `/mcp/oauth/token` | POST | Code exchange and refresh |
+| `/mcp/oauth/register` | POST | Dynamic Client Registration |
+| `/mcp/oauth/revoke` | POST | Token revocation |
+| `/mcp/oauth/consent/{details,approve,deny}` | POST | The consent screen's own calls (session cookie, same origin only) |
 
 ## Protocol compatibility
 
@@ -226,11 +266,13 @@ snapshot taken before the headers are rewritten, so they report what was
 actually sent rather than the values this server normalised them to. Every field
 in them — header values and the JSON-RPC method alike — is stripped of control
 characters and length-capped, so a caller cannot forge log lines or flood the
-log through them. The API key is never logged.
+log through them. The API key or access token is never logged.
 
 ## Self-hosting
 
-The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. The OneUptime API URL it talks to is derived from the `HOST` and `HTTP_PROTOCOL` environment variables via `packages/Common/Server/EnvironmentConfig` (inherited from the App service's environment). API keys are never configured on the server; clients supply them per request.
+The MCP server ships as part of the App container and is served at `/mcp` behind Nginx — no separate deployment is needed. Its tools call the OneUptime API at the App's internal address - `SERVER_APP_HOSTNAME` and `APP_PORT`, the address Nginx proxies `/api` to (inherited from the App service's environment) - never through the public `HOST`, which the App container cannot always reach (with `HOST=localhost` it is the container itself). API keys are never configured on the server; clients supply them per request.
+
+OAuth sign-in needs nothing configured either, but it does depend on `HOST` and `HTTP_PROTOCOL` being the address people actually use: the issuer, the token audience and every endpoint in the discovery documents are built from them. A reverse proxy in front of OneUptime has to forward `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server` (and everything under them) to the App along with `/mcp`; the bundled Nginx does.
 
 ## Development
 

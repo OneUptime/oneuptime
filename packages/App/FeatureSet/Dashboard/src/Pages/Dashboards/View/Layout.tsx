@@ -6,6 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import ArchivedResourceBanner from "../../../Components/Archive/ArchivedResourceBanner";
+import { DASHBOARD_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -24,6 +26,11 @@ const DashboardViewLayout: FunctionComponent<
       breadcrumbLinks={getDashboardBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >
+      <ArchivedResourceBanner<Dashboard>
+        modelType={Dashboard}
+        modelId={modelId}
+        copy={DASHBOARD_ARCHIVE_COPY}
+      />
       <Outlet />
     </ModelPage>
   );

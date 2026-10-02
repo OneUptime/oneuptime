@@ -12,6 +12,7 @@
 
 | 页面                     | 你在那里做什么                                                                                |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
+| **人工智能**             | 开启或关闭自动调查、自动代码修复和事后分析草稿，并设置 AI 工作时的可选上限——在你设置之前，任何上限都不生效。参见 [AI SRE](/docs/ai/ai-sre)。 |
 | **事件状态**             | 新增、改名、改颜色，以及重新排列事件所经历的各个状态。                                        |
 | **事件严重性**           | 新增、改名、改颜色，以及重新排列严重级别。                                                    |
 | **事件模板**             | 预填一整个事件——标题、描述、资源、值班策略、所有者、标签。                                    |
@@ -23,7 +24,7 @@
 
 **事件状态** 和 **事件严重性** 在[事件状态与严重级别](/docs/incidents/states-and-severities)里有详细展开——本页从 **事件模板** 开始接着讲。
 
-展开 **规则**，你会再得到八个页面：**分组规则**、**值班规则**、**所有者规则**、**Runbook 规则**、**隐私规则**、**标签规则**、**SLA 规则** 和 **Reminder Rules**。这些在下文中介绍。
+展开 **规则**，你会再得到九个页面：**分组规则**、**值班规则**、**所有者规则**、**Runbook 规则**、**自动补救规则**、**隐私规则**、**标签规则**、**SLA 规则** 和 **Reminder Rules**。这些在下文中介绍。
 
 ## 事件模板
 
@@ -113,20 +114,21 @@
 
 ## 事件创建时运行的规则
 
-**事件 → 规则** 里有八个规则引擎。它们干的活是一样的——在事件创建的那一刻审视它，命中就动手——但各自做的事不同，多条规则同时命中时的处理方式也不同。
+**事件 → 规则** 里有九个规则引擎。它们干的活是一样的——在事件创建的那一刻审视它，命中就动手——但各自做的事不同，多条规则同时命中时的处理方式也不同。
 
 - **分组规则**——把相关事件归并成片段。规则按优先级顺序求值；优先级数字小的先来。
 - **值班规则**——为命中的事件执行值班策略。详见下文。
 - **所有者规则**——自动指派所有者。
 - **Runbook 规则**——事件命中时启动一份 [runbook](/docs/runbooks/index)。
+- **自动补救规则**——事件命中时建议或启动补救 runbook。如果该事件有排队中的 AI 调查，它们会等调查结束后，带着调查的分析再运行。参见 [AI SRE](/docs/ai/ai-sre)。
 - **隐私规则**——决定命中的事件是否为私密。
 - **标签规则**——自动打标签。
 - **SLA 规则**——跟踪响应时间和解决时间。规则按 order 顺序求值；order 数字小的先来。
 - **Reminder Rules**——在事件仍未关闭期间定期提醒事件所有者。规则按顺序求值，第一条命中的规则胜出。
 
-**顺序语义并不统一。** 分组规则、SLA 规则和 Reminder Rules 是按顺序求值的。值班规则不是——每一条命中的规则都会触发。别以为一套模型适用于全部八种。
+**顺序语义并不统一。** 分组规则、SLA 规则和 Reminder Rules 是按顺序求值的。值班规则不是——每一条命中的规则都会触发。别以为一套模型适用于全部九种。
 
-**值班规则**、**所有者规则**、**标签规则** 和 **隐私规则** 这四个页面带标签页——一个 **Incident Rules** 标签和一个 **Episode Rules** 标签，各有各的表格。除非你确实指的是片段，否则配置 **Incident Rules** 标签。**分组规则**、**Runbook 规则**、**SLA 规则** 和 **Reminder Rules** 则是单张表格。
+**值班规则**、**所有者规则**、**标签规则** 和 **隐私规则** 这四个页面带标签页——一个 **Incident Rules** 标签和一个 **Episode Rules** 标签，各有各的表格。除非你确实指的是片段，否则配置 **Incident Rules** 标签。**分组规则**、**Runbook 规则**、**自动补救规则**、**SLA 规则** 和 **Reminder Rules** 则是单张表格。
 
 ## 事件值班规则
 
@@ -160,7 +162,7 @@
 
 ## 通过工作流驱动事件
 
-事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族的每个模型都会得到 **On Create X**、**On Update X** 和 **On Delete X** 组件，名字取自模型的单数名称。最核心的三个是 **On Create Incident**、**On Update Incident** 和 **On Delete Incident**，你可以在 `/dashboard/{projectId}/workflows` 的 **添加组件** 面板中的 **事件** 分类下找到它们。
+事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族的每个模型都会得到 **On Create X**、**On Update X** 和 **On Delete X** 组件，名字取自模型的单数名称。最核心的三个是 **On Create Incident**、**On Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，**OneUptime resources** → **Incident** 下面找到它们；前两个也在 **Popular** 里。
 
 同一套生成机制也给配置本身提供了触发器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等等。每个模型还会得到配套的动作组件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 以及它们的多行版本——于是名字相近的触发器和动作会并排出现在同一个分类里。**On Create Incident** 启动一个工作流；**Create One Incident** 开出一个事件。
 

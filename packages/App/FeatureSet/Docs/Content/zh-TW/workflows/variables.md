@@ -61,7 +61,7 @@
 - Slack、Teams、Discord、Telegram、電子郵件的訊息文字。
 - 電子郵件的主旨和內文。
 - 標頭和內文欄位（在字串值裡面）。
-- **If / Else** 區塊的左右兩邊（列在條件分類底下）。
+- **If / Else** 區塊的左右兩邊。
 
 在 JSON 欄位裡，變數可以放在字串值裡面，但不能當作鍵。如果一個參照自己就佔滿整個值，它會被原樣代進去，所以你可以用這個方式把一整個物件塞進 JSON 欄位。如果你需要動態組出一個結構，就用 **Run Custom JavaScript** 區塊組好，再把它的輸出傳給下一個區塊。
 
@@ -135,5 +135,5 @@
 ## 接下來可以閱讀
 
 - [工作流程元件](/docs/workflows/components)——每個區塊會產出哪些輸出的完整清單。
-- [工作流程執行與日誌](/docs/workflows/runs-and-logs)——執行過後查看每個變數的實際值。
+- [工作流程執行記錄](/docs/workflows/runs-and-logs)——執行過後查看每個變數的實際值。
 - [工作流程設定與安全](/docs/workflows/configuration)——什麼東西適合放進全域變數。

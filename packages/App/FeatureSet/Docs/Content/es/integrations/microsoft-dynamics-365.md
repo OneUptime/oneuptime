@@ -151,7 +151,7 @@ Sustituye el GUID de la cuenta por la cuenta a la que pertenecen estos casos. **
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-Ahora enciende el workflow —**Vista General → Editar flujo de trabajo → Habilitado**—, declara un incidente de prueba y lee la ejecución en **Ejecuciones y Registros**. El bloque `create-case` debería mostrar un `201` y un cuerpo que contiene el nuevo `incidentid`. Los cambios en el lienzo se guardan solos; no hay botón de guardar.
+Ahora enciende el workflow —**Vista General → Editar flujo de trabajo → Habilitado**—, declara un incidente de prueba y lee la ejecución en **Registros → Ejecuciones**. El bloque `create-case` debería mostrar un `201` y un cuerpo que contiene el nuevo `incidentid`. Los cambios en el lienzo se guardan solos; no hay botón de guardar.
 
 ### Mapear gravedad y estado
 
@@ -230,13 +230,13 @@ Ahora la otra dirección: alguien cierra el caso en Dynamics, o un agente añade
 ### Construye primero el workflow receptor
 
 1. **Crear flujo de trabajo**, nómbralo `Dynamics 365 → OneUptime` y añade el disparador **Webhook**.
-2. Abre los **Ajustes** de ese workflow y copia la **Clave secreta del webhook**. Tu URL es:
+2. Abre el **Constructor** de ese workflow, haz clic en el disparador **Webhook** y luego en **Copiar URL**, arriba de sus ajustes. La URL tiene este aspecto:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   En una instalación autoalojada, sustituye por tu propio host. Trata la URL como una contraseña — cualquiera que la tenga puede arrancar el workflow. Puedes restablecer la clave desde esa misma página.
+   Las instalaciones autoalojadas usan su propio host. Trata la URL como una contraseña: cualquiera que la tenga puede arrancar el workflow. Si se filtra, haz clic en **Restablecer URL** en ese mismo lugar; la URL anterior deja de funcionar al instante.
 
 3. Añade un bloque **If / Else** que compruebe un secreto compartido antes de que ocurra cualquier otra cosa. **Input 1** es `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** `{{global.variables.DYNAMICS_WEBHOOK_SECRET}}` — un valor que inventas y guardas como variable global secreta.
 4. Desde la rama **Sí**, añade un bloque **Update One Incident**:
@@ -323,7 +323,7 @@ Un workflow tiene exactamente un disparador, así que los incidentes y las alert
 
 ## Solución de problemas
 
-Lee primero el bloque que falla en **Ejecuciones y Registros** — ambos endpoints de Microsoft devuelven un cuerpo JSON explicativo, y el componente API lo conserva en `response-body`.
+Lee primero el bloque que falla en **Registros → Ejecuciones** — ambos endpoints de Microsoft devuelven un cuerpo JSON explicativo, y el componente API lo conserva en `response-body`.
 
 **La petición del token falla con `400` e `invalid_request` o un tipo de concesión no admitido.** La cabecera `Content-Type` no es exactamente `Content-Type: application/x-www-form-urlencoded`, así que el cuerpo salió como JSON. Revisa la capitalización.
 
@@ -343,7 +343,7 @@ Lee primero el bloque que falla en **Ejecuciones y Registros** — ambos endpoin
 
 **`429 Too Many Requests`.** Los límites de protección del servicio de Dataverse — aproximadamente 6.000 peticiones y 20 minutos de tiempo de ejecución por usuario en cualquier ventana de cinco minutos, por servidor web. La respuesta lleva un `Retry-After` en segundos. Si un workflow está haciendo ráfagas, ponle un bloque **Delay** o traslada el trabajo a un workflow programado que agrupe.
 
-**No llega nada del lado de OneUptime.** Envía tú mismo una petición a la URL del webhook con `curl` y comprueba las **Ejecuciones y Registros** del workflow. Si tu propia petición aparece y la de Dynamics no, el problema está aguas arriba: para Power Automate, mira el historial de ejecuciones del propio flujo; para un webhook nativo, mira **Settings → System Jobs** filtrado por fallos.
+**No llega nada del lado de OneUptime.** Envía tú mismo una petición a la URL del webhook con `curl` y comprueba **Registros → Ejecuciones** en el workflow. Si tu propia petición aparece y la de Dynamics no, el problema está aguas arriba: para Power Automate, mira el historial de ejecuciones del propio flujo; para un webhook nativo, mira **Settings → System Jobs** filtrado por fallos.
 
 **El workflow se ejecuta pero el incidente no cambia.** Un bloque **Update One Incident** informa de `Items Updated: 0` cuando la consulta no encontró nada — eso es un éxito, no un error. Comprueba que el id de la carga útil es el id del incidente de OneUptime y que estás consultando `_id`.
 

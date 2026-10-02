@@ -877,6 +877,17 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   value: {{ default 3000 $.Values.onCallCalendarFeed.rateLimit.perIpPerWindow | squote }}
 
 {{/*
+  OAuth sign-in for the MCP server: the kill switch, and the switch for
+  instances that cannot fetch a client's metadata document. Read through
+  `dig` so a values file written before these keys existed still renders.
+*/}}
+- name: DISABLE_MCP_OAUTH
+  value: {{ dig "disabled" false ($.Values.mcpOAuth | default dict) | squote }}
+
+- name: DISABLE_MCP_OAUTH_CLIENT_ID_METADATA_DOCUMENTS
+  value: {{ dig "disableClientIdMetadataDocuments" false ($.Values.mcpOAuth | default dict) | squote }}
+
+{{/*
   Source map ingestion and resolution limits. `default` is safe on all of
   these because 0 is not a valid value for any of them -- the app falls back
   to its own default too -- and every one is clamped app-side, so a value the

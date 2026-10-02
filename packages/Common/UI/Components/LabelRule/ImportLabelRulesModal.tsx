@@ -167,9 +167,8 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
       <Modal
         title="Import complete"
         modalWidth={ModalWidth.Large}
-        onSubmit={props.onClose}
         onClose={props.onClose}
-        submitButtonText="Close"
+        closeButtonText="Close"
       >
         <div className="space-y-4 py-4">
           <Alert

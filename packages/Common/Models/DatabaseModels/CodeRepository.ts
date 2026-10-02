@@ -604,7 +604,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.Number,
     title: "Max Open Fix Pull Requests",
     description:
-      "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs are refused a repository token, so they cannot push branches or open pull requests. Unset means the default of 5; 0 blocks AI fix pull requests for this repository entirely.",
+      "Maximum AI-authored fix pull requests that may be open on this repository at the same time. At the cap, new AI fix runs are refused a repository token, so they cannot push branches or open pull requests. Unset means no cap; 0 blocks AI fix pull requests for this repository entirely.",
     example: 5,
   })
   @Column({

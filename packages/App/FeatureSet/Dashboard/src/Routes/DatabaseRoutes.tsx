@@ -30,6 +30,9 @@ import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
 import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServerOwnerRule";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DatabaseRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,6 +117,13 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DatabaseServer,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.DATABASE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -328,6 +338,12 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: DatabaseServer,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

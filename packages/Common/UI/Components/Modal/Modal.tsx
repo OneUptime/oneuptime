@@ -25,6 +25,19 @@ export enum ModalWidth {
   Large,
 }
 
+/*
+ * A plain button the footer draws between Cancel and the submit button: a
+ * way to move on that is not the dialog's action, such as Next on a stepped
+ * edit form whose submit button saves from any step. Never primary - the
+ * submit button is the dialog's one primary action.
+ */
+export interface ModalSecondaryButton {
+  title: string;
+  onClick: () => void;
+  dataTestId?: string | undefined;
+  disabled?: boolean | undefined;
+}
+
 export interface ComponentProps {
   title: string;
   description?: string | undefined;
@@ -44,7 +57,81 @@ export interface ComponentProps {
   closeButtonText?: string | undefined;
   leftFooterElement?: ReactElement | undefined;
   disableCloseOnBackdropClick?: boolean | undefined;
+  secondaryButton?: ModalSecondaryButton | undefined;
 }
+
+/*
+ * Where focus starts when a dialog opens.
+ *
+ * A field in the body comes first, so a form can be typed into straight away.
+ * A dialog with nothing to fill in - a confirmation, a notice - starts on the
+ * button the dialog is for: the affirmative action, so Enter does what the
+ * one highlighted button says. Starting on Cancel, the first button in the
+ * footer, put the focus ring round Cancel and made it look like the main
+ * action. A destructive confirmation (a DANGER submit) is the exception and
+ * starts on Cancel, the least destructive choice, so a stray Enter never
+ * deletes anything. The header's X is never the starting point, and nor is
+ * anything else in the header: a control there (rightElement) is an aside -
+ * a way to the help, say - and starting on it would take the focus away from
+ * the field the dialog is for.
+ */
+export const pickInitialFocusElement: (data: {
+  focusableElements: Array<HTMLElement>;
+  footer: HTMLElement | null;
+  isSubmitDestructive: boolean;
+  header?: HTMLElement | null | undefined;
+}) => HTMLElement | undefined = (data: {
+  focusableElements: Array<HTMLElement>;
+  footer: HTMLElement | null;
+  isSubmitDestructive: boolean;
+  header?: HTMLElement | null | undefined;
+}): HTMLElement | undefined => {
+  const header: HTMLElement | null | undefined = data.header;
+  const candidates: Array<HTMLElement> = data.focusableElements.filter(
+    (element: HTMLElement) => {
+      return (
+        element.getAttribute("data-testid") !== "close-button" &&
+        !(header && header.contains(element))
+      );
+    },
+  );
+
+  const footer: HTMLElement | null = data.footer;
+
+  const firstOutsideTheFooter: HTMLElement | undefined = candidates.find(
+    (element: HTMLElement) => {
+      return !footer || !footer.contains(element);
+    },
+  );
+
+  if (firstOutsideTheFooter || !footer) {
+    return firstOutsideTheFooter || candidates[0];
+  }
+
+  const findFooterButton: (testId: string) => HTMLElement | undefined = (
+    testId: string,
+  ): HTMLElement | undefined => {
+    return candidates.find((element: HTMLElement) => {
+      return (
+        footer.contains(element) &&
+        element.getAttribute("data-testid") === testId
+      );
+    });
+  };
+
+  const submitButton: HTMLElement | undefined = findFooterButton(
+    "modal-footer-submit-button",
+  );
+  const cancelButton: HTMLElement | undefined = findFooterButton(
+    "modal-footer-close-button",
+  );
+
+  const preferred: HTMLElement | undefined = data.isSubmitDestructive
+    ? cancelButton || submitButton
+    : submitButton || cancelButton;
+
+  return preferred || candidates[0];
+};
 
 const Modal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -77,6 +164,13 @@ const Modal: FunctionComponent<ComponentProps> = (
   const onCloseRef: React.MutableRefObject<(() => void) | undefined> = useRef<
     (() => void) | undefined
   >(props.onClose);
+  const submitButtonStyleType: ButtonStyleType =
+    props.submitButtonStyleType ?? ButtonStyleType.PRIMARY;
+  const isSubmitDestructiveRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  isSubmitDestructiveRef.current =
+    submitButtonStyleType === ButtonStyleType.DANGER ||
+    submitButtonStyleType === ButtonStyleType.DANGER_OUTLINE;
   const backdropPressStartedOutsideRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   const backdropPressEndedInsideRef: React.MutableRefObject<boolean> =
@@ -221,9 +315,28 @@ const Modal: FunctionComponent<ComponentProps> = (
         });
       };
 
+    /*
+     * The footer is a direct child of the panel. Searching the whole panel
+     * would find a nested dialog's footer first, since a dialog opened from
+     * inside this one renders in its body.
+     */
+    const footer: HTMLElement | null =
+      (Array.from(modal.children).find((child: Element) => {
+        return child.getAttribute("data-testid") === "modal-footer";
+      }) as HTMLElement | undefined) || null;
+
+    // Found the same way, for the same reason.
+    const header: HTMLElement | null =
+      (Array.from(modal.children).find((child: Element) => {
+        return child.getAttribute("data-testid") === "modal-header";
+      }) as HTMLElement | undefined) || null;
+
     const initialFocusElement: HTMLElement | undefined =
-      getFocusableElements().find((element: HTMLElement) => {
-        return element.getAttribute("data-testid") !== "close-button";
+      pickInitialFocusElement({
+        focusableElements: getFocusableElements(),
+        footer,
+        isSubmitDestructive: isSubmitDestructiveRef.current,
+        header,
       });
 
     if (isTopmostDialog()) {
@@ -432,6 +545,7 @@ const Modal: FunctionComponent<ComponentProps> = (
             tabIndex={-1}
           >
             <div
+              data-testid="modal-header"
               className={`relative z-10 flex shrink-0 items-start gap-3 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-4 transition-shadow duration-200 sm:gap-4 sm:rounded-t-xl sm:px-6 ${
                 isContentHiddenAbove
                   ? "shadow-[0_6px_10px_-10px_var(--ou-modal-scroll-shadow,rgb(15_23_42_/_0.35))]"
@@ -505,15 +619,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                   ? props.submitButtonType
                   : ButtonType.Button
               }
-              submitButtonStyleType={
-                props.submitButtonStyleType
-                  ? props.submitButtonStyleType
-                  : ButtonStyleType.PRIMARY
-              }
+              /*
+               * `??`, not a truthiness test: ButtonStyleType.PRIMARY is 0, so
+               * `style ? style : default` threw an explicit PRIMARY away.
+               */
+              submitButtonStyleType={submitButtonStyleType}
               closeButtonStyleType={
-                props.closeButtonStyleType
-                  ? props.closeButtonStyleType
-                  : ButtonStyleType.NORMAL
+                props.closeButtonStyleType ?? ButtonStyleType.NORMAL
               }
               submitButtonText={
                 translatedSubmitButtonText
@@ -533,6 +645,20 @@ const Modal: FunctionComponent<ComponentProps> = (
               }
               leftFooterElement={props.leftFooterElement}
               hasContentHiddenBelow={isContentHiddenBelow}
+              secondaryButton={
+                props.secondaryButton
+                  ? {
+                      ...props.secondaryButton,
+                      title:
+                        translateString(props.secondaryButton.title) ||
+                        props.secondaryButton.title,
+                      disabled:
+                        props.isLoading ||
+                        props.isBodyLoading ||
+                        props.secondaryButton.disabled,
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>

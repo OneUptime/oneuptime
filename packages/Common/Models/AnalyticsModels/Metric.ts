@@ -2,6 +2,7 @@ import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "../../Types/AnalyticsDatabase/RetentionTtl";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../Types/AnalyticsDatabase/TableColumn";
@@ -1218,9 +1219,33 @@ export default class Metric extends AnalyticsBaseModel {
        * (the MV GROUP BY starts with these columns).
        */
       shardingKey: "cityHash64(projectId, name, primaryEntityId)",
-      tableSettings:
-        "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
-      ttlExpression: "retentionDate DELETE",
+      /*
+       * Deliberately NO ttl_only_drop_parts here, unlike the other
+       * time-partitioned telemetry tables. A daily partition of this one is
+       * not uniform in lifetime: telemetry rows take their retention per
+       * service (retainTelemetryDataForDays), while monitor metrics - and the
+       * other series the platform writes itself, such as SLO, incident and
+       * alert, and session replay budget metrics - take
+       * GlobalConfig.monitorMetricRetentionInDays instead (see
+       * MonitorMetricUtil), and all of them write into this same table. With
+       * ttl_only_drop_parts = 1 a part is dropped only once EVERY row in it
+       * has expired, so a handful of long-lived monitor rows pin the whole
+       * day. Observed on a production install: not one metric partition had
+       * ever been dropped, the oldest being day one - ~69k monitor rows a
+       * day holding ~52 GiB a day of expired telemetry, until the setting
+       * was cleared by hand. SloHistory keeps its 400-day rows out of this
+       * table for the same reason (AnalyticsTableName).
+       */
+      tableSettings: "non_replicated_deduplication_window = 10000",
+      /*
+       * Rows expire one at a time, rounded up to the midnight after their
+       * retentionDate (and lined up with their partition's day when the
+       * event was stamped ahead of the ingest clock): a day's rows of one
+       * retention expire together, the last ones as a free part drop,
+       * instead of the partition being rewritten every
+       * merge_with_ttl_timeout while they expire. See RetentionTtl.
+       */
+      ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,
       /*
        * `time` is the 4th column of the Metric sort key (after
        * projectId + name + primaryEntityId). A list query that filters

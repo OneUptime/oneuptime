@@ -92,7 +92,7 @@ export default class InvestigationEligibility {
         title: recorded
           ? "Severity was below the investigation threshold at creation"
           : "Severity is below the current investigation threshold",
-        description: `${recorded ? `When this ${kind} was created, its` : `This ${kind}'s`}${details?.severityName ? ` ${details.severityName}` : ""} severity ${recorded ? "did not meet" : "does not meet"} ${details?.minimumSeverityName ? `the minimum ${details.minimumSeverityName} investigation severity` : "the configured investigation threshold"}.${kind === "alert" ? " By default, only the two highest alert severity tiers are investigated." : ""}`,
+        description: `${recorded ? `When this ${kind} was created, its` : `This ${kind}'s`}${details?.severityName ? ` ${details.severityName}` : ""} severity ${recorded ? "did not meet" : "does not meet"} ${details?.minimumSeverityName ? `the minimum ${details.minimumSeverityName} investigation severity` : "the configured investigation threshold"}.`,
         nextStep:
           "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
       },

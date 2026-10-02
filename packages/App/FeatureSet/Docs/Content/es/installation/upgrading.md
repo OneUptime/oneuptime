@@ -21,15 +21,6 @@ Dashboard. Before this change both editions ran the same code, and
 `IS_ENTERPRISE_EDITION` decided which features were switched on. Now the image
 decides, and the Community image does not contain the `ee/` directory.
 
-> **Releases after 14.0.10:** SAML and OIDC single sign-on, global SSO and
-> "Require SSO for login" are part of the Community Edition again, and no
-> license state switches them off. In 14.0.0 to 14.0.10 they needed the
-> Enterprise Edition and stopped when its license lapsed, which is what the
-> 13 → 14 notes below describe. A "Require SSO for login" setting that was
-> saved but not enforced (on the Community image, or under a lapsed license)
-> is enforced again after this upgrade, so check that its provider still works
-> before you upgrade.
-
 The [Enterprise Edition](/docs/self-hosted/enterprise) page has the full
 feature comparison, licensing details and what happens when you switch
 editions.
@@ -108,21 +99,19 @@ settings that used to show an upgrade prompt.
 
 ## Actualización de OneUptime 13 → 14
 
-> **Versiones posteriores a la 14.0.10:** el inicio de sesión único SAML y OIDC, el SSO global y «Require SSO for login» vuelven a formar parte de la edición Community, y ningún estado de la licencia los desactiva. Donde esta sección dice que la imagen Community no incluye el inicio de sesión único, o que este se detiene o no se aplica sin licencia, describe las versiones 14.0.0 a 14.0.10. Lo que dice sobre SCIM, los ajustes de cumplimiento de equipos, los registros de auditoría y los paneles **Health** sigue siendo válido.
-
-OneUptime 14 divide la aplicación en dos ediciones, y la imagen que descargue decide cuál se ejecuta. La **edición Community** (Apache-2.0, las etiquetas `release` y `<version>`) no contiene el directorio `ee/` del repositorio: SAML SSO, OpenID Connect, el aprovisionamiento SCIM, los ajustes de cumplimiento de equipos, los registros de auditoría, los paneles **Health** de administración y la **Query Console** no están en esa imagen en absoluto. La **edición Enterprise** (las etiquetas `enterprise-release` y `enterprise-<version>`) los incluye y comprueba una licencia Enterprise mientras se ejecuta, algo que OneUptime 13 nunca hizo.
+OneUptime 14 divide la aplicación en dos ediciones, y la imagen que descargue decide cuál se ejecuta. La **edición Community** (Apache-2.0, las etiquetas `release` y `<version>`) incluye SAML SSO, OpenID Connect, el SSO global y «Require SSO for login». No contiene el directorio `ee/` del repositorio, así que el aprovisionamiento SCIM, los ajustes de cumplimiento de equipos, los registros de auditoría, los paneles **Health** de administración y la **Query Console** no están en esa imagen en absoluto. La **edición Enterprise** (las etiquetas `enterprise-release` y `enterprise-<version>`) los incluye y comprueba una licencia Enterprise mientras se ejecuta, algo que OneUptime 13 nunca hizo. El inicio de sesión único no depende de esa licencia.
 
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images), más arriba, es la referencia de este cambio: qué contiene cada edición, qué hay que definir en cada forma de despliegue y qué hace la licencia. Esta sección es la actualización en sí. Actualice desde la 13 — si todavía está en la 12, haga primero 12 → 13.
 
-No se borra nada en ninguna de las dos ediciones. Su configuración de SSO, OIDC y SCIM, sus ajustes de «Require SSO for login» y los registros de auditoría ya grabados siguen en la base de datos. La edición Community simplemente no los sirve ni los exige, y cambiar de edición no necesita ninguna migración en ninguna dirección.
+No se borra nada en ninguna de las dos ediciones. El inicio de sesión único funciona igual en ambas: su configuración de SSO y OIDC y sus ajustes de «Require SSO for login» se conservan tal como están. Su configuración de SCIM y los registros de auditoría ya grabados siguen en la base de datos. La edición Community simplemente no los sirve, y cambiar de edición no necesita ninguna migración en ninguna dirección.
 
 ### Lo que tiene que hacer
 
-1. **Decida qué edición ejecuta esta instalación.** Si usa SAML SSO, OpenID Connect, aprovisionamiento SCIM, ajustes de cumplimiento de equipos o registros de auditoría, o quiere los paneles **Health** de administración, esa es la edición Enterprise. Si no, aquí no hay nada que decidir: la edición Community es lo que ya tiene.
+1. **Decida qué edición ejecuta esta instalación.** Si usa aprovisionamiento SCIM, ajustes de cumplimiento de equipos o registros de auditoría, o quiere los paneles **Health** de administración, esa es la edición Enterprise. Si no, aquí no hay nada que decidir: la edición Community es lo que ya tiene, e incluye SAML SSO y OpenID Connect.
 2. **En Helm, indique la edición en su archivo de valores:** `image.type: enterprise-edition` (el valor predeterminado es `community-edition`). No toque `image.tag` — el chart añade el prefijo `enterprise-` por sí mismo, así que `image.tag: release` descarga `oneuptime/app:enterprise-release`. Este valor no es nuevo: si ya ejecuta `enterprise-edition`, no hay nada que cambiar, porque la etiqueta que ya descarga ahora contiene `ee/`.
-3. **En Docker Compose, defina `APP_TAG=enterprise-release`** (o `enterprise-<version>` para fijar una versión) en `config.env`. `APP_TAG=release` es la imagen Community. Esto es lo único que detiene una instalación de la 13: en la 13, una instalación Enterprise con Compose era `APP_TAG=release` más `IS_ENTERPRISE_EDITION=true`, y esa combinación ahora **se niega a arrancar** en lugar de levantarse como edición Community sin seguir exigiendo su configuración de SSO. `npm run update` reescribe `APP_TAG` por usted mientras `IS_ENTERPRISE_EDITION=true` (`release` pasa a `enterprise-release`, un `13.0.8` fijado pasa a `enterprise-13.0.8`) e imprime lo que cambió. Si descarga las imágenes a mano, defina `APP_TAG` usted mismo antes.
+3. **En Docker Compose, defina `APP_TAG=enterprise-release`** (o `enterprise-<version>` para fijar una versión) en `config.env`. `APP_TAG=release` es la imagen Community. Esto es lo único que detiene una instalación de la 13: en la 13, una instalación Enterprise con Compose era `APP_TAG=release` más `IS_ENTERPRISE_EDITION=true`, y esa combinación ahora **se niega a arrancar** en lugar de levantarse como edición Community con el aprovisionamiento SCIM y el registro de auditoría detenidos en silencio. `npm run update` reescribe `APP_TAG` por usted mientras `IS_ENTERPRISE_EDITION=true` (`release` pasa a `enterprise-release`, un `13.0.8` fijado pasa a `enterprise-13.0.8`) e imprime lo que cambió. Si descarga las imágenes a mano, defina `APP_TAG` usted mismo antes.
 4. **En la edición Enterprise, active una licencia.** Una instalación sin licencia obtiene una prueba de 14 días, contada desde su primer arranque de la edición Enterprise — en una actualización, ese es el día en que actualiza, no el día en que instaló OneUptime. Un administrador maestro la activa desde la etiqueta de edición en el encabezado del panel de administración; las instalaciones aisladas de la red activan con un token firmado. Consulte [Licensing](/docs/self-hosted/enterprise#licensing).
-5. **Si esta instalación va a ejecutar la edición Community mientras el SSO obligatorio está configurado, revise quién tiene acceso antes de actualizar.** «Require SSO for login» deja de exigirse, con lo que el inicio de sesión con contraseña vuelve a aceptarse, y cualquiera que conserve una cuenta y acceso a su buzón puede fijarse una contraseña con «He olvidado mi contraseña» — incluidas las personas que su proveedor de identidad dio de baja, porque el desaprovisionamiento SCIM también se detiene. Elimine a esos usuarios primero: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
+5. **Si esta instalación va a ejecutar la edición Community mientras su proveedor de identidad da de baja a los usuarios mediante SCIM, revise quién tiene acceso antes de actualizar.** El desaprovisionamiento SCIM se detiene, así que las personas que elimine en su proveedor de identidad conservan sus cuentas de OneUptime y, a menos que «Require SSO for login» se les aplique, cualquiera que todavía tenga acceso al buzón de una de esas cuentas puede fijarse una contraseña con «He olvidado mi contraseña» e iniciar sesión. Elimine a esos usuarios primero: [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
 6. **Si monitoriza direcciones IPv6 con monitores Ping, Port o SSL, vuelva a guardar esos monitores después de actualizar.** Los destinos guardados antes de la 14 pueden haberse almacenado truncados — véase más abajo.
 
 ### Ediciones: qué cambió y qué no
@@ -133,7 +122,8 @@ No se borra nada en ninguna de las dos ediciones. Su configuración de SSO, OIDC
 | Selector en Helm | `image.type` | `image.type` — igual, pero ahora las imágenes son realmente distintas |
 | Selector en Compose | `IS_ENTERPRISE_EDITION=true` | `APP_TAG=enterprise-release` |
 | Licencia Enterprise | nunca se comprobaba en ejecución | se comprueba al arrancar y una vez al día |
-| Endpoints de SSO, OIDC y SCIM | las mismas rutas en ambas ediciones | las mismas rutas en Enterprise; `404` en Community |
+| Endpoints de SSO y OIDC | las mismas rutas en ambas ediciones | las mismas rutas en ambas ediciones, sea cual sea el estado de la licencia |
+| Endpoints de SCIM | las mismas rutas en ambas ediciones | las mismas rutas en Enterprise; `404` en Community |
 | Su configuración Enterprise | almacenada, exigida | almacenada en ambos casos, exigida en Enterprise |
 
 Se ejecuta una migración: una columna `enterpriseEditionFirstSeenAt` que admite nulos en la tabla `GlobalConfig`, de una sola fila, así que es instantánea. No hay ninguna migración de ClickHouse, no se elimina nada y cambiar de edición no necesita migración en ninguna dirección.
@@ -142,8 +132,8 @@ Se ejecuta una migración: una columna `enterpriseEditionFirstSeenAt` que admite
 
 - **Una instalación sin licencia** ejecuta una prueba de 14 días, contada desde el primer arranque de la edición Enterprise. Durante ella funcionan todas las funciones Enterprise, y la etiqueta de edición avisa antes de que termine. La prueba es para evaluación: el uso en producción de la edición Enterprise requiere una suscripción bajo la OneUptime Enterprise License.
 - **Una licencia que caduca** obtiene un periodo de gracia de 30 días desde su fecha de caducidad, durante el cual funcionan todas las funciones Enterprise y la etiqueta de edición avisa.
-- **Después de la prueba, o después de ese periodo de gracia**, y hasta que se active una licencia: los inicios de sesión por SSO y OIDC se rechazan, «Require SSO for login» ya no se exige (los usuarios entran con su contraseña), las peticiones SCIM de su proveedor de identidad se rechazan y el registro de auditoría deja de grabar. La configuración Enterprise pasa a ser de solo lectura — puede seguir consultándola y borrándola, desactivar un proveedor de SSO u OIDC y restablecer un token de portador SCIM, que es justo lo que hace falta ante un incidente — y los paneles Health y la Query Console quedan bloqueados.
-- **No se borra nada y la monitorización principal nunca se ve afectada.** Monitores, alertas, incidentes, guardias, páginas de estado y telemetría quedan fuera de la licencia, y el inicio de sesión con contraseña sigue disponible para todos los usuarios, administradores maestros incluidos. Activar una licencia restaura el inicio de sesión por SSO, la exigencia de SSO, el aprovisionamiento SCIM y el registro de auditoría con la configuración que ya tiene, sin reiniciar.
+- **Después de la prueba, o después de ese periodo de gracia**, y hasta que se active una licencia: las peticiones SCIM de su proveedor de identidad se rechazan y el registro de auditoría deja de grabar. La configuración Enterprise pasa a ser de solo lectura — puede seguir consultándola y borrándola, y restablecer un token de portador SCIM, que es justo lo que hace falta ante un incidente — y los paneles Health y la Query Console quedan bloqueados.
+- **No se borra nada y la monitorización principal nunca se ve afectada.** Monitores, alertas, incidentes, guardias, páginas de estado y telemetría quedan fuera de la licencia, y también el inicio de sesión: el inicio de sesión por SSO y OIDC, «Require SSO for login» y el inicio de sesión con contraseña de todos los usuarios, administradores maestros incluidos, funcionan igual en cualquier estado de la licencia. Activar una licencia restaura el aprovisionamiento SCIM y el registro de auditoría con la configuración que ya tiene, sin reiniciar.
 - **Una clave de licencia que ya tenga se acepta**, como licencia «unverified»: su fecha de caducidad y su límite de puestos vienen de lo que el servidor de licencias ya comunicó a esta instalación, y recibe el mismo periodo de gracia de 30 días tras esa caducidad. Las licencias emitidas de ahora en adelante van firmadas y las verifica la propia aplicación. Esta actualización no necesita una clave nueva.
 - **Una clave cuya caducidad esta instalación nunca registró** sigue funcionando durante la prueba en lugar de detenerse. El servidor de licencias escribe la clave y la fecha de caducidad por separado, así que una instalación puede tener una clave cuya caducidad nunca se le comunicó. Esa instalación se trata exactamente como una sin licencia: todas las funciones Enterprise funcionan durante la prueba de 14 días, contada desde el primer arranque de la edición Enterprise, y después de la prueba ocurre lo mismo que arriba. El límite de puestos no se aplica mientras la licencia está en este estado, porque el registro de licencia que tiene la instalación ya está incompleto. Que un administrador maestro reactive la licencia desde la etiqueta de edición, o que la sincronización diaria de licencias recupere la caducidad desde oneuptime.com, lo restaura todo sin reiniciar.
 
@@ -159,7 +149,7 @@ npm run update
 
 - **`npm run update` mueve `APP_TAG` mientras `IS_ENTERPRISE_EDITION=true`**, a la imagen Enterprise de la misma versión, e imprime lo que cambió. Conserva sus comentarios y sus comillas, deja intacto un `APP_TAG` que ya sea una etiqueta `enterprise-`, y no cambia nada en una segunda ejecución.
 - **Descargar las imágenes a mano se salta eso**, y entonces la aplicación termina al arrancar con un error que dice exactamente qué definir: `APP_TAG=enterprise-<version>` para conservar la edición Enterprise, o `IS_ENTERPRISE_EDITION=false` para ejecutar la edición Community.
-- **Para pasar deliberadamente a la edición Community**, defina `APP_TAG=release` e `IS_ENTERPRISE_EDITION=false`. Lea antes el punto 5 si esta instalación exige SSO.
+- **Para pasar deliberadamente a la edición Community**, defina `APP_TAG=release` e `IS_ENTERPRISE_EDITION=false`. Lea antes el punto 5 si su proveedor de identidad da de baja a los usuarios mediante SCIM.
 - No hace falta cambiar nada más en `config.env` para esta versión.
 
 ### Helm: elegir el tipo de imagen
@@ -170,7 +160,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
 - **Una instalación que ya está en `image.type: enterprise-edition` no necesita cambiar ningún valor.** El chart lleva mucho tiempo añadiendo el prefijo a la etiqueta; lo nuevo es que las imágenes `enterprise-` contienen `ee/`. La licencia se les aplica desde esta versión, según el calendario anterior.
-- **`image.tag: release` es el valor predeterminado**, así que un chart que siga en esa etiqueta flotante pasa a la 14 en su próxima actualización sin cambiar ningún valor. Si esa instalación tiene SSO, OIDC o SCIM configurados en `community-edition`, defina `image.type: enterprise-edition` en la misma actualización.
+- **`image.tag: release` es el valor predeterminado**, así que un chart que siga en esa etiqueta flotante pasa a la 14 en su próxima actualización sin cambiar ningún valor. Si esa instalación tiene SCIM configurado en `community-edition`, defina `image.type: enterprise-edition` en la misma actualización.
 - **El chart sigue emitiendo `IS_ENTERPRISE_EDITION`**, derivado de `image.type` para que ambos nunca puedan contradecirse. No controla nada. Forzarlo a `true` mediante `extraEnv` en una imagen Community solo provoca que la aplicación se niegue a arrancar. No defina nunca `ONEUPTIME_EDITION` a través del chart.
 - **Las sondas del chart vuelven a respetar `probes.<key>.allowPrivateNetworkMonitors`** ([#3879](https://github.com/OneUptime/oneuptime/issues/3879)). Nada cambia si no define ese valor — sigue siendo `false` — y se aplica a los monitores de **todos los proyectos** de la instancia, porque las sondas del chart son sondas globales. El bucle local, el enlace local y `169.254.169.254` siguen bloqueados con cualquier valor.
 
@@ -180,6 +170,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **Los paneles Health y la Query Console de administración requieren la edición Enterprise**, igual que las alertas de salud de PostgreSQL y Valkey. En la 13 venían solo con `IS_ENTERPRISE_EDITION=true`, así que es una pérdida visible para una instalación Community que los usara. La vista de capacidad de ClickHouse y su purga, el estado de las migraciones, las sondas globales y el paquete de soporte están en ambas ediciones.
 - **Los monitores HTTPS que llegan a una dirección IP a través del proxy de una sonda vuelven a funcionar.** La sonda enviaba la IP como nombre de servidor TLS; una IP no es un nombre de servidor válido y Node la rechaza de plano, así que un monitor en `https://<IP privada>` desde una sonda global con `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` fallaba en el saludo TLS. La sonda ahora omite el nombre de servidor cuando el destino es una IP y verifica el certificado contra la propia IP. Los destinos por nombre de host no cambian.
 - **La CLI `oneuptime` informa de su versión real** en `--version`, en lugar de un texto de relleno.
+- **Los Runners se han movido de Ajustes del proyecto a Runbooks.** Los Runners están ahora en **Runbooks → Agentes de runbook** (`…/runbooks/runners`) y las Runner Credentials en **Runbooks → Agentes de runbook → Credenciales** (`…/runbooks/runner-credentials`), junto a los runbooks cuyos pasos ejecutan. Las URL antiguas `…/settings/runners` y `…/settings/runner-credentials` redirigen, así que los marcadores siguen funcionando. No cambia nada más: los Runners conservan sus identificadores, claves, capacidades y permisos, y siguen ejecutando las correcciones de código con IA y los comandos de remediación con IA. Una imagen del Runner anterior a esta versión sigue escribiendo «Project Settings > Runners» en sus mensajes de log; léalo como Runbooks → Agentes de runbook.
 - Los endpoints que se movieron o se restringieron, incluidos `GET /api/global-config/license` y los endpoints del servidor de licencias que las instalaciones autoalojadas ya no sirven, están más arriba en [API and endpoint changes](#api-and-endpoint-changes).
 
 ### Monitores IPv6: Ping, Port y SSL
@@ -193,7 +184,7 @@ No hay migración para los destinos ya almacenados, así que **vuelva a abrir ca
 - La **etiqueta de edición en el encabezado del panel de administración** indica qué edición se está ejecutando y, en la edición Enterprise, el estado de la licencia.
 - **Compose:** `docker compose images` enumera las etiquetas en ejecución — en la edición Enterprise, cada imagen de OneUptime lleva el prefijo `enterprise-`.
 - **Helm:** `kubectl get pods -n <namespace> -o jsonpath='{..image}'` imprime las imágenes que ejecutan los pods; se aplica la misma regla del prefijo.
-- Los endpoints de SSO, OIDC y SCIM distinguen los dos casos: `404` significa que esa imagen no lleva `ee/` (edición Community), mientras que `402` o `403` significa que la edición Enterprise está en marcha con una licencia que necesita atención.
+- Los endpoints de SCIM distinguen los dos casos: `404` significa que esa imagen no lleva `ee/` (edición Community), mientras que `402` o `403` significa que la edición Enterprise está en marcha con una licencia que necesita atención.
 
 ### Volver a la 13
 
@@ -202,7 +193,7 @@ No hay migración para los destinos ya almacenados, así que **vuelva a abrir ca
 - **Helm:** `helm rollback my-oneuptime`, o fije `image.tag` en `13.0.8`.
 - Ejecutar la 14 no toca su configuración Enterprise, así que una vuelta atrás la encuentra tal como estaba.
 
-> Consejo: en la edición Enterprise, active la licencia el día en que actualice y no al final de la prueba. La activación es lo que mantiene exigido el inicio de sesión único, y la prueba se cuenta desde esta actualización, no desde la fecha de su instalación original.
+> Consejo: en la edición Enterprise, active la licencia el día en que actualice y no al final de la prueba. La activación es lo que mantiene en marcha el aprovisionamiento SCIM y el registro de auditoría, y la prueba se cuenta desde esta actualización, no desde la fecha de su instalación original.
 
 ## Actualización de OneUptime 12 → 13
 
@@ -375,7 +366,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Ajustes → Agentes de runbook** and use **Mostrar
+(Or open the Runner in **Runbooks → Agentes de runbook** and use **Mostrar
 instrucciones de configuración** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
@@ -396,7 +387,7 @@ The **Ajustes → IA → Agentes de IA** page is gone and the `oneuptime/ai-agen
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Ajustes → Agentes de runbook** and install it with the
+1. Create a Runner under **Runbooks → Agentes de runbook** and install it with the
    command from **Mostrar instrucciones de configuración**.
 2. Enable **Ejecuta correcciones de código con IA** on it. The change is picked up on the next
    heartbeat.
@@ -489,6 +480,11 @@ wiki links:
 
 Runbook Secrets stays where it was, under Runbooks → Ajustes → Secretos.
 
+That is where the pages were in 12 and 13. In 14 the two Runner pages moved
+again, to **Runbooks → Agentes de runbook** (`…/runbooks/runners`) and
+**Runbooks → Agentes de runbook → Credenciales** (`…/runbooks/runner-credentials`); the 12 and 13
+URLs in the table redirect there. See [Otros cambios en la 14](#otros-cambios-en-la-14).
+
 ### New in 12, nothing to enable by accident
 
 v12 adds AI-composed remediation commands: the AI can propose a command
@@ -504,52 +500,38 @@ it participate. Upgrading changes nothing here.
 
 ## Actualización de OneUptime 10 → 11
 
-<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for v11 SSO->Enterprise change). -->
+<!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v11 SCIM and team compliance change). -->
 
-### Identity features (SSO, OIDC, SCIM) now require the Enterprise Edition
+### SCIM and team compliance settings now require the Enterprise Edition
 
-> **Releases after 14.0.10:** SAML SSO, OIDC and global SSO are part of the
-> Community Edition again, together with "Require SSO for login", and need no
-> license. SCIM provisioning and team compliance settings still need the
-> Enterprise Edition. The rest of this section describes v11 to 14.0.10.
+In v11, the following access-management features moved to the **OneUptime
+Enterprise Edition** and are no longer part of the free, open-source
+(Community) build:
 
-In v11, the following authentication and access-management features moved to
-the **OneUptime Enterprise Edition** and are no longer part of the free,
-open-source (Community) build:
-
-- **SAML SSO** — both project login and status-page login
-- **OpenID Connect (OIDC)** — both project login and status-page login
 - **SCIM user provisioning** — project and status page
-- **Global (instance-wide) SSO / OIDC**
 - **Team compliance settings**
 
-**What you'll see after upgrading:** if you configured any of these on a
-Community Edition build, the settings pages show an upgrade prompt instead of
-the configuration form, and the configuration can no longer be changed. Until
-the Community and Enterprise images were split, providers you had already
-configured could keep signing users in on a Community build, because it still
-contained the sign-in code. The Community images of 14.0.0 to 14.0.10 contain
-no SSO, OIDC or SCIM code, so sign-in through them stops once you upgrade to
-one of those releases — see
+SAML SSO, OpenID Connect (OIDC) and global (instance-wide) SSO, for both
+project login and status-page login, are part of the Community Edition — see
 [Community and Enterprise Edition images](#community-and-enterprise-edition-images).
-Your existing provider records are **preserved in the database** — nothing is
-deleted — and they work again as soon as the instance runs the Enterprise
-Edition, or, for SSO and OIDC, any release after 14.0.10.
+
+**What you'll see after upgrading:** if you configured SCIM or team compliance
+settings on a Community Edition build, the settings pages show an upgrade
+prompt instead of the configuration form, and the configuration can no longer
+be changed. Your existing configuration is **preserved in the database** —
+nothing is deleted — and it works again as soon as the instance runs the
+Enterprise Edition.
 
 **Availability:**
 
-- **Self-hosted:** SCIM and team compliance settings require the
-  **Enterprise Edition** build. SSO and OIDC require it only on v11 to
-  14.0.10; releases after 14.0.10 include them in every edition.
+- **Self-hosted:** requires the **Enterprise Edition** build.
 - **OneUptime Cloud:** requires the **Scale** plan (or above).
 
-**If you rely on SSO and self-host**, upgrade to a release after 14.0.10,
-where every edition serves SSO and OIDC. For SCIM, email
+**If you rely on SCIM and self-host**, email
 [support@oneuptime.com](mailto:support@oneuptime.com) for an Enterprise Edition
 license, mention that you upgraded from v10 to v11, and we'll help you get it
-back online. If your team is mid-upgrade and this
-is blocking sign-in, contact us before upgrading production so we can plan it
-with you.
+back online. If your team is mid-upgrade and this is blocking provisioning,
+contact us before upgrading production so we can plan it with you.
 
 OneUptime 11 reconstruye el almacenamiento de telemetría de ClickHouse. Esta página explica qué cambia, quién debe actuar y — para las instalaciones que quieran conservar la telemetría histórica — cada consulta necesaria para hacerlo.
 

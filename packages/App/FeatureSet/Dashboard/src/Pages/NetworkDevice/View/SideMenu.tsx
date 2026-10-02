@@ -7,6 +7,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -79,6 +82,12 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.AltGlobe}
         />
       </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: NetworkDevice,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
 
       <SideMenuSection title="Manage">
         <SideMenuItem

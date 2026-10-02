@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>Message Queue Monitoring | Kafka, RabbitMQ, SQS, Pub/Sub & More | OneUptime</title>
+  <meta name="description"
+    content="Every queue, topic and subscription your applications use, discovered from OpenTelemetry traces and broker metrics: producers and consumers, backlog, consumer lag and dead letters, with alerts wired to on-call. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="queues-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - indigo color -->
+      <div id="queues-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(79, 70, 229, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(79, 70, 229, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-indigo-600 mb-4">OpenTelemetry Native Queue Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Every queue and topic, found and monitored
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              OneUptime finds the queues, topics and subscriptions your applications use in the messaging spans they already send, and in your brokers' own metrics. Each one gets its own page: messages published and consumed, the services on each side, processing time, and the broker's backlog, consumer lag and dead letters.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Auto-discovered</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Producers & consumers</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span>Backlog & consumer lag</span>
+              <span class="max-sm:hidden sm:inline text-gray-300">|</span>
+              <span><%= queues.systemCount %> messaging systems</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Queues list mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Queues Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/queues', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Queues</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="max-sm:hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-md text-xs font-medium text-indigo-600 border border-indigo-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                        38 queues
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3 lg:grid-cols-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Queues</div>
+                          <div class="w-6 h-6 rounded-md bg-indigo-50 flex items-center justify-center">
+                            <%- include('./Partials/icons/queues', {iconClass: 'w-3.5 h-3.5'}) %>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">38</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-indigo-500"></span>
+                          <span class="text-[10px] text-indigo-600 font-medium">6 found this week</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Published</div>
+                          <div class="w-6 h-6 rounded-md bg-sky-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">4.6M</div>
+                        <div class="text-[10px] text-gray-400 mt-1">from 27 services</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Error rate</div>
+                          <div class="w-6 h-6 rounded-md bg-rose-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">0.2%</div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-rose-400 h-1.5 rounded-full" style="width: 2%"></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">p95 processing</div>
+                          <div class="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">42 ms</div>
+                        <div class="text-[10px] text-gray-400 mt-1">as the consumers measure it</div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Broker health</div>
+                          <div class="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">29<span class="text-sm font-medium text-gray-400"> / 38</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                          <div class="bg-violet-400 h-1.5 rounded-full" style="width: 76%"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-1 gap-3 mb-5 md:grid-cols-3">
+                      <!-- Messages chart -->
+                      <div class="md:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Messages from applications</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Publish and consumer spans, all queues</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                              <span class="text-[10px] text-gray-500">Published</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span class="text-[10px] text-gray-500">Consumed</span>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- SVG Chart -->
+                        <!-- Drawn at the card's own aspect ratio, so the lines span its full width -->
+                        <svg viewBox="0 0 640 100" class="w-full h-auto">
+                          <defs>
+                            <linearGradient id="queuesPublishedGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <!-- Grid lines -->
+                          <line x1="0" y1="25" x2="640" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="640" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="640" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <!-- Published fill -->
+                          <path d="M0,56 L40,52 L80,54 L120,47 L160,44 L200,48 L240,41 L280,36 L320,40 L360,34 L400,31 L440,35 L480,30 L520,27 L560,32 L600,28 L640,25 L640,100 L0,100 Z" fill="url(#queuesPublishedGrad)"/>
+                          <!-- Published line -->
+                          <path d="M0,56 L40,52 L80,54 L120,47 L160,44 L200,48 L240,41 L280,36 L320,40 L360,34 L400,31 L440,35 L480,30 L520,27 L560,32 L600,28 L640,25" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Consumed line: falls behind for a while, then catches up -->
+                          <path d="M0,57 L40,53 L80,55 L120,48 L160,45 L200,49 L240,47 L280,50 L320,52 L360,44 L400,33 L440,34 L480,31 L520,28 L560,32 L600,29 L640,26" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 3"/>
+                          <!-- Y-axis labels -->
+                          <text x="2" y="23" fill="#9ca3af" font-size="8">120k/min</text>
+                          <text x="2" y="48" fill="#9ca3af" font-size="8">80k/min</text>
+                          <text x="2" y="73" fill="#9ca3af" font-size="8">40k/min</text>
+                        </svg>
+                      </div>
+
+                      <!-- Discovery source breakdown -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">Discovered from</div>
+                        <div class="text-[10px] text-gray-400 mb-4">What found each queue</div>
+                        <div class="flex items-center gap-4">
+                          <div class="relative flex-shrink-0">
+                            <svg viewBox="0 0 80 80" class="w-20 h-20">
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#6366f1" stroke-width="8" stroke-dasharray="133.93 188.5" stroke-dashoffset="0" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="44.64 188.5" stroke-dashoffset="-133.93" transform="rotate(-90 40 40)"/>
+                              <circle cx="40" cy="40" r="30" fill="none" stroke="#9ca3af" stroke-width="8" stroke-dasharray="9.92 188.5" stroke-dashoffset="-178.57" transform="rotate(-90 40 40)"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                              <span class="text-lg font-bold text-gray-900">38</span>
+                            </div>
+                          </div>
+                          <div class="flex-1 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-500"></span><span class="text-[11px] text-gray-600">Application traces</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">27</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span><span class="text-[11px] text-gray-600">Broker metrics</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">9</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-400"></span><span class="text-[11px] text-gray-600">Added manually</span></div>
+                              <span class="text-[11px] font-semibold text-gray-800">2</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Queue list -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <div class="grid grid-cols-12 gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                        <div class="col-span-7 md:col-span-3">Name</div>
+                        <div class="col-span-5 md:col-span-3">System</div>
+                        <div class="max-md:hidden md:block md:col-span-2">Broker</div>
+                        <div class="max-md:hidden md:block md:col-span-2">Discovered from</div>
+                        <div class="max-md:hidden md:block md:col-span-2">Last seen</div>
+                      </div>
+                      <div class="divide-y divide-gray-100">
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-3 min-w-0 text-xs font-medium text-gray-900 truncate">orders</div>
+                          <div class="col-span-5 md:col-span-3 text-xs text-gray-700">Apache Kafka</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-[10px] font-mono text-gray-600 truncate">kafka-1:9092</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Application traces</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-500">1 minute ago</div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-3 min-w-0 text-xs font-medium text-gray-900 truncate">payments</div>
+                          <div class="col-span-5 md:col-span-3 text-xs text-gray-700">Azure Service Bus</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-[10px] font-mono text-gray-600 truncate">shop-prod</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Application traces</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-500">2 minutes ago</div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-3 min-w-0 text-xs font-medium text-gray-900 truncate">email-jobs</div>
+                          <div class="col-span-5 md:col-span-3 text-xs text-gray-700">RabbitMQ</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-[10px] font-mono text-gray-600 truncate">rabbitmq:5672</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Application traces</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-500">1 minute ago</div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-3 min-w-0 text-xs font-medium text-gray-900 truncate">invoice-events</div>
+                          <div class="col-span-5 md:col-span-3 text-xs text-gray-700">Amazon SQS</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-400">—</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Broker metrics</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-500">14 minutes ago</div>
+                        </div>
+                        <div class="grid grid-cols-12 items-center gap-3 px-4 py-2.5">
+                          <div class="col-span-7 md:col-span-3 min-w-0 text-xs font-medium text-gray-900 truncate">clickstream-billing</div>
+                          <div class="col-span-5 md:col-span-3 text-xs text-gray-700">Google Cloud Pub/Sub</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-400">—</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-600">Added manually</div>
+                          <div class="max-md:hidden md:block md:col-span-2 text-xs text-gray-500">6 minutes ago</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- What You Get Section -->
+    <div class="relative bg-white py-24 sm:py-32" id="queues-sources">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">What You Get</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            Three sources, one page per queue
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Traces tell OneUptime that a queue exists and how your applications use it. Only the broker knows how full it is. Everything that names the same queue joins its page, instead of making another.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <!-- Application traces -->
+          <div class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50 ring-1 ring-yellow-200">
+              <%- include('./Partials/icons/traces', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Application traces</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Messages published and consumed, errors and processing time, the services on each side, and the traces themselves.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> applications instrumented with OpenTelemetry.</p>
+          </div>
+
+          <!-- Broker metrics -->
+          <div class="flex flex-col rounded-2xl border border-indigo-200 bg-indigo-50/40 p-6 transition-all duration-300 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white ring-1 ring-indigo-200">
+              <%- include('./Partials/icons/queues', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Broker metrics</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">Broker health: backlog, consumer lag, dead letters, oldest message age, throttling and the broker's own message rates.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> an OpenTelemetry Collector with the receiver or scrape for your broker.</p>
+          </div>
+
+          <!-- Client metrics -->
+          <div class="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 ring-1 ring-purple-200">
+              <%- include('./Partials/icons/metrics', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <h3 class="mt-4 text-lg font-semibold text-gray-900">Client metrics</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">The message counts and durations your messaging clients report, and any queue gauge of your own, on the queue's Metrics tab.</p>
+            <p class="mt-auto pt-4 text-xs text-gray-500"><span class="font-semibold text-gray-700">Needs:</span> instrumentation that reports OpenTelemetry messaging metrics.</p>
+          </div>
+        </div>
+
+        <p class="mt-10 text-center text-sm text-gray-600">
+          Not found on its own? Add it by hand with its messaging system and destination, and its Traces tab fills in from the spans already stored.
+        </p>
+      </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            From the spans you already send to a monitored queue
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Discovery needs no broker credentials and nothing OneUptime-specific in your code. Broker health comes from a stock OpenTelemetry Collector, reading your broker or your cloud provider's monitoring API.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="max-lg:hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-indigo-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Instrument your applications</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">OpenTelemetry instrumentation for your Kafka, RabbitMQ, SQS, Pub/Sub or Service Bus clients. Its messaging spans already name each queue.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Queues appear on their own</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Spans and broker metrics are read every 10 minutes. A queue appears once 3 of its spans arrive in 15 minutes, or once its broker reports a single metric for it.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Connect broker health</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Add your broker's receiver or scrape to an OpenTelemetry Collector. Each queue's Documentation tab has the setup for its messaging system.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alert on what piles up</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Press Create monitor beside a broker health chart for a monitor scoped to that queue, and route it to on-call, status pages and incidents.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-6">
+            <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-indigo-700">Why OneUptime for Queues</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl text-balance">
+            Queue monitoring that sees both sides
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            A broker's dashboard shows how many messages wait, but not which service stopped reading them. Your traces show the services, but not the backlog. OneUptime puts the publishers, the consumers and the broker's own numbers for every queue on one page, next to the alert that pages you.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Producers and consumers -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Producers &amp; Consumers</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">See every queue from both sides</h3>
+              <p class="mt-4 text-lg text-gray-600">Your applications' messaging spans already describe every message they publish and consume. OneUptime turns them into messages published and consumed, failed spans and p95 processing time for each queue, and lists the services on each side with their own numbers. When work stops flowing, you can see whether the publishers went quiet or a consumer started failing.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Published, consumed, errors and p95 processing time
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Producers and consumers, each with their own counts
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Every span that names it, including spans sent before it was discovered
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Producers and Consumers Mockup -->
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                      <div class="flex gap-1.5">
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      </div>
+                      <div class="flex-1 text-center">
+                        <span class="text-xs text-gray-400">orders &middot; Apache Kafka</span>
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="rounded-lg border border-gray-200 p-2.5" data-queue-tile="Published">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">Published</div>
+                          <div class="text-lg font-bold text-gray-900">1.82M</div>
+                          <div class="text-[9px] text-gray-400">publish spans, selected range</div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-2.5" data-queue-tile="Consumed">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">Consumed</div>
+                          <div class="text-lg font-bold text-gray-900">3.59M</div>
+                          <div class="text-[9px] text-gray-400">consumer spans, selected range</div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-2.5" data-queue-tile="Errors">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">Errors</div>
+                          <div class="text-lg font-bold text-gray-900">5,412</div>
+                          <div class="text-[9px] text-gray-400">0.10% of 5.41M spans</div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-2.5" data-queue-tile="p95 processing time">
+                          <div class="text-[9px] uppercase tracking-wider text-gray-400">p95 processing time</div>
+                          <div class="text-lg font-bold text-gray-900">184 ms</div>
+                          <div class="text-[9px] text-gray-400">consumer spans, as the consumers measure them</div>
+                        </div>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 overflow-hidden mb-3">
+                        <div class="px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold text-gray-700">Producers</div>
+                        <div class="grid grid-cols-12 gap-2 px-3 py-1.5 border-b border-gray-100 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+                          <div class="col-span-5">Service</div>
+                          <div class="col-span-3 text-right">Published</div>
+                          <div class="col-span-2 text-right">Errors</div>
+                          <div class="col-span-2 text-right">p95 publish</div>
+                        </div>
+                        <div class="divide-y divide-gray-100 text-[11px]">
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2"><div class="col-span-5 font-medium text-gray-800 truncate">checkout-api</div><div class="col-span-3 text-right text-gray-600">1.21M</div><div class="col-span-2 text-right text-gray-600">0.0%</div><div class="col-span-2 text-right text-gray-600">4 ms</div></div>
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2"><div class="col-span-5 font-medium text-gray-800 truncate">cart-service</div><div class="col-span-3 text-right text-gray-600">610k</div><div class="col-span-2 text-right text-gray-600">0.0%</div><div class="col-span-2 text-right text-gray-600">3 ms</div></div>
+                        </div>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold text-gray-700">Consumers</div>
+                        <div class="grid grid-cols-12 gap-2 px-3 py-1.5 border-b border-gray-100 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+                          <div class="col-span-5">Service</div>
+                          <div class="col-span-3 text-right">Consumed</div>
+                          <div class="col-span-2 text-right">Errors</div>
+                          <div class="col-span-2 text-right">p95 processing</div>
+                        </div>
+                        <div class="divide-y divide-gray-100 text-[11px]">
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2 bg-amber-50/60"><div class="col-span-5 font-medium text-gray-800 truncate">billing-worker</div><div class="col-span-3 text-right text-gray-600">1.79M</div><div class="col-span-2 text-right font-semibold text-amber-600">0.3%</div><div class="col-span-2 text-right font-semibold text-amber-600">212 ms</div></div>
+                          <div class="grid grid-cols-12 gap-2 px-3 py-2"><div class="col-span-5 font-medium text-gray-800 truncate">fulfillment</div><div class="col-span-3 text-right text-gray-600">1.80M</div><div class="col-span-2 text-right text-gray-600">0.0%</div><div class="col-span-2 text-right text-gray-600">21 ms</div></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Broker health -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Broker Health Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Broker health</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">email-jobs &middot; RabbitMQ</div>
+                        <div class="text-xs text-gray-500">from the collector's rabbitmq receiver</div>
+                      </div>
+                      <span class="flex items-center gap-1 px-2 py-1 bg-indigo-50 rounded text-xs text-indigo-600 border border-indigo-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        received 28 s ago
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="rounded-lg border border-amber-200 bg-amber-50 p-2.5" data-broker-chart="Queue depth" data-create-monitor="true">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Queue depth</span><span class="text-[10px] font-semibold text-amber-600">3,812</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,20 L12,19 L25,19 L37,17 L50,14 L62,12 L75,9 L87,6 L100,4" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>
+                        <div class="mt-1 text-[9px] font-medium text-indigo-600">Create monitor</div>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5" data-broker-chart="Consumers" data-create-monitor="true">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Consumers</span><span class="text-[10px] font-semibold text-gray-700">2</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,8 L25,8 L37,8 L50,16 L62,16 L75,16 L87,16 L100,16" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/></svg>
+                        <div class="mt-1 text-[9px] font-medium text-indigo-600">Create monitor</div>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5" data-broker-chart="Published">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Published</span><span class="text-[10px] font-semibold text-gray-700">84/s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,12 L12,11 L25,12 L37,10 L50,11 L62,10 L75,11 L87,10 L100,11" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5" data-broker-chart="Delivered">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Delivered</span><span class="text-[10px] font-semibold text-gray-700">61/s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,11 L12,12 L25,11 L37,12 L50,15 L62,16 L75,15 L87,16 L100,15" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5" data-broker-chart="Acknowledged">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Acknowledged</span><span class="text-[10px] font-semibold text-gray-700">60/s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,11 L12,12 L25,11 L37,12 L50,15 L62,16 L75,16 L87,16 L100,16" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                      <div class="rounded-lg border border-gray-200 p-2.5" data-broker-chart="Dropped">
+                        <div class="flex items-center justify-between"><span class="text-[10px] font-medium text-gray-600">Dropped</span><span class="text-[10px] font-semibold text-gray-700">0/s</span></div>
+                        <svg viewBox="0 0 100 24" class="mt-1.5 w-full h-6"><path d="M0,21 L100,21" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/></svg>
+                      </div>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <span class="text-xs text-gray-600">Ready and unacknowledged, added up</span>
+                      <span class="text-[10px] font-mono text-gray-500">rabbitmq.message.current</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Broker Health</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Backlog and lag, from the broker itself</h3>
+              <p class="mt-4 text-lg text-gray-600">Traces show messages moving. They cannot show the ones still waiting. Once your broker's metrics arrive, each queue charts its system's curated set: queue depth, consumer lag, dead letters, the age of the oldest message, throttling and the broker's own message rates. Counters are drawn as rates, a RabbitMQ queue's ready and unacknowledged messages add up, and the consumer group furthest behind is the lag.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Curated broker health charts for <%= queues.systemsWithBrokerHealthCount %> messaging systems
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Every metric the collector sends, in the Metrics explorer too
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Until they arrive, the page says where they come from
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Any broker, one model -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Any Broker</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Kafka topics, SQS queues and Service Bus subscriptions, side by side</h3>
+              <p class="mt-4 text-lg text-gray-600">Every messaging attribute in OpenTelemetry is still in development, so applications in one project report the same queue under up to five generations of names. OneUptime reads them all, never parses span names, and reduces what each instrumentation reports to the queue's own name: a queue URL, a topic ARN, a resource name or a subscription path all land on the queue they belong to.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  AmazonSQS, aws.sqs and aws_sqs are one system
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Orders and orders are one queue
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Azure Service Bus and Event Hubs queues keep their namespace
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Destination Names Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">What your spans report &rarr; the queue</span>
+                    </div>
+                  </div>
+                  <div class="divide-y divide-gray-100">
+                    <div class="px-4 py-2.5" data-destination-example data-system="aws_sqs">
+                      <div class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Amazon SQS</div>
+                      <div class="mt-1 flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-mono text-[10px] text-gray-500" data-reported-as="https://sqs.us-east-1.amazonaws.com/123456789012/orders">https://sqs.us-east-1.amazonaws.com/123456789012/orders</span>
+                        <span class="flex-shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-indigo-700" data-queue="orders">orders</span>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5" data-destination-example data-system="aws.sns">
+                      <div class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Amazon SNS</div>
+                      <div class="mt-1 flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-mono text-[10px] text-gray-500" data-reported-as="arn:aws:sns:us-east-1:123456789012:order-events">arn:aws:sns:us-east-1:123456789012:order-events</span>
+                        <span class="flex-shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-indigo-700" data-queue="order-events">order-events</span>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5" data-destination-example data-system="gcp_pubsub">
+                      <div class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Google Cloud Pub/Sub</div>
+                      <div class="mt-1 flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-mono text-[10px] text-gray-500" data-reported-as="projects/shop/topics/orders">projects/shop/topics/orders</span>
+                        <span class="flex-shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-indigo-700" data-queue="orders">orders</span>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5" data-destination-example data-system="servicebus">
+                      <div class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Azure Service Bus</div>
+                      <div class="mt-1 flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-mono text-[10px] text-gray-500" data-reported-as="orders/Subscriptions/billing">orders/Subscriptions/billing</span>
+                        <span class="flex-shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-indigo-700" data-queue="orders">orders</span>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5" data-destination-example data-system="pulsar">
+                      <div class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Apache Pulsar</div>
+                      <div class="mt-1 flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-mono text-[10px] text-gray-500" data-reported-as="orders-partition-3">orders-partition-3</span>
+                        <span class="flex-shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-indigo-700" data-queue="persistent://public/default/orders">persistent://public/default/orders</span>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5" data-destination-example data-system="kafka">
+                      <div class="text-[10px] font-medium uppercase tracking-wider text-gray-400">Apache Kafka</div>
+                      <div class="mt-1 flex items-center justify-between gap-3">
+                        <span class="min-w-0 truncate font-mono text-[10px] text-gray-500" data-reported-as="reply-7f1c2a9e-4b1d-4c3e-9f1a-2b3c4d5e6f70">reply-7f1c2a9e-4b1d-4c3e-9f1a-2b3c4d5e6f70</span>
+                        <span class="flex-shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-indigo-700" data-queue="reply-{uuid}">reply-{uuid}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Queue alerting -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Alert Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Active Alerts</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-red-100 rounded text-[10px] font-bold text-red-600">CRITICAL</span>
+                        <span class="text-xs text-gray-500">3 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Messages In Flight Near Quota</div>
+                      <div class="text-xs text-gray-500 mt-1">Amazon SQS thumbnails &middot; 112,400 messages in flight</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">9 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Consumer Lag High</div>
+                      <div class="text-xs text-gray-500 mt-1">Apache Kafka orders &middot; 48,210 messages behind</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">22 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Dead-Lettered Messages</div>
+                      <div class="text-xs text-gray-500 mt-1">Azure Service Bus payments &middot; 14 dead-lettered messages</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">WARNING</span>
+                        <span class="text-xs text-gray-500">1 hr ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">Queue Depth High</div>
+                      <div class="text-xs text-gray-500 mt-1">RabbitMQ email-jobs &middot; 3,812 messages waiting</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Queue Alerting</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Alerts on backlog, lag and dead letters, wired to on-call</h3>
+              <p class="mt-4 text-lg text-gray-600">Press <strong class="font-medium text-gray-800">Create monitor</strong> beside a broker health chart and a Metrics monitor opens, already filtered to that one queue, with a starting threshold where the metric has an obvious bad direction: backlog, consumer lag, dead letters, oldest message age, throttling and errors. CloudWatch and Cloud Monitoring publish minutes late, so monitors on SQS, SNS and Pub/Sub charts start with a window long enough to hold their points.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Filtered on the exact values that name this queue
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Or one monitor for every queue of a system, each alerting on its own
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  On-call escalation, incidents and status pages in the same product
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Multi-channel notifications (Slack, Teams, SMS, call)
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Supported Messaging Systems Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32" id="queues-systems">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">Supported Messaging Systems</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            <%= queues.systemCount %> messaging systems, known by name
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            OneUptime recognises each system below in your spans, under the spellings instrumentations really send, and knows where its broker metrics come from. A queue's page charts broker health for <%= queues.systemsWithBrokerHealthCount %> of them.
+          </p>
+        </div>
+
+        <!-- Columns rather than a grid: the groups differ in size, and a grid row would stretch a short one to the tallest -->
+        <div class="gap-6 lg:columns-2">
+          <% for (const group of queues.systemGroups) { %>
+          <div class="mb-6 break-inside-avoid rounded-2xl border <%= group.key === 'collector-receiver' ? 'border-indigo-200 ring-1 ring-indigo-100' : 'border-gray-200' %> bg-white p-6" data-system-group="<%= group.key %>">
+            <div class="flex items-baseline justify-between gap-3">
+              <h3 class="text-base font-semibold text-gray-900"><%= group.title %></h3>
+              <span class="flex-shrink-0 text-xs font-medium text-gray-500"><%= group.systems.length %> <%= group.systems.length === 1 ? 'system' : 'systems' %></span>
+            </div>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed"><%= group.description %></p>
+            <ul class="mt-4 divide-y divide-gray-100">
+              <% for (const entry of group.systems) { %>
+              <li class="py-3" data-messaging-system="<%= entry.system %>">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <span class="text-sm font-medium text-gray-900"><%= entry.displayName %></span>
+                  <% if (entry.metricsSource) { %>
+                  <code class="text-[11px] text-gray-500"><%= entry.metricsSource %></code>
+                  <% } %>
+                </div>
+                <% if (entry.brokerHealthCharts.length > 0) { %>
+                <ul class="mt-2 flex flex-wrap gap-1.5">
+                  <% for (const chart of entry.brokerHealthCharts) { %>
+                  <li class="inline-flex items-center rounded-md <%= group.key === 'collector-receiver' ? 'bg-indigo-50 text-indigo-800 ring-indigo-200' : 'bg-gray-50 text-gray-700 ring-gray-200' %> px-2 py-1 text-xs ring-1 ring-inset" data-broker-health-chart><%= chart %></li>
+                  <% } %>
+                </ul>
+                <% } else if (entry.metricsSource) { %>
+                <p class="mt-1 text-xs text-gray-500">Its broker metrics arrive in the Metrics explorer, not on a queue's page.</p>
+                <% } else { %>
+                <p class="mt-1 text-xs text-gray-500">Queues from traces, with no broker metrics of their own.</p>
+                <% } %>
+              </li>
+              <% } %>
+            </ul>
+          </div>
+          <% } %>
+        </div>
+
+        <p class="mt-10 text-center text-xs text-gray-500 max-w-3xl mx-auto">
+          A broker that is not listed still works: a well-formed <code>messaging.system</code> value such as <code>ibmmq</code> or <code>solace</code> is kept as it came, so its queues are discovered from traces and shown under that name. Broker and service names are trademarks of their owners; OneUptime is not affiliated with or endorsed by them.
+        </p>
+        <div class="mt-6 text-center">
+          <a href="/docs/telemetry/queues#broker-health-metrics" class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">See each system's collector setup in the docs <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Starting Thresholds Section -->
+    <div class="relative bg-white py-24 sm:py-32" id="queues-monitors">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">Ready-Made Thresholds</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            <%= queues.alertThresholdCount %> starting thresholds for <%= queues.systemsWithAlertThresholdsCount %> messaging systems
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Each is where Create monitor starts beside that chart on a queue's page: a Metrics monitor already filtered to the one queue, with the threshold and severity below. They are starting points, so retune them to your queue's normal peak.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <% for (const group of queues.alertThresholdGroups) { %>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6" data-alert-threshold-group="<%= group.system %>">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/queues', {iconClass: 'h-4 w-4'}) %>
+              </span>
+              <h3 class="text-base font-semibold text-gray-900"><%= group.title %></h3>
+            </div>
+            <ul class="mt-4 space-y-2 text-sm text-gray-600">
+              <% for (const threshold of group.thresholds) { %>
+              <li class="flex items-center justify-between gap-3"><span><%= threshold.name %></span><span class="flex flex-shrink-0 items-center gap-2"><span class="text-xs text-gray-500"><%= threshold.threshold %></span><span class="text-[10px] font-semibold uppercase <%= threshold.severity === 'Critical' ? 'text-red-600' : 'text-amber-600' %>"><%= threshold.severity %></span></span></li>
+              <% } %>
+            </ul>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Build your own -->
+        <div class="mt-8 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50/40 p-6 lg:flex lg:items-center lg:justify-between lg:gap-10">
+          <div class="flex items-start gap-3">
+            <span class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white ring-1 ring-indigo-200">
+              <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </span>
+            <div>
+              <h3 class="text-base font-semibold text-gray-900">Or build your own</h3>
+              <p class="mt-1 text-sm text-gray-600 leading-relaxed">Every other gauge under Broker health opens a monitor too, without a starting threshold. Build one by hand on any metric that names a queue, or group it by the attribute that names the queue so that every queue of a system alerts on its own.</p>
+            </div>
+          </div>
+          <a href="/docs/telemetry/queues#alerting" class="mt-4 lg:mt-0 inline-flex flex-shrink-0 items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">Read about queue alerts <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-6">
+            <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-indigo-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            Built for the way messaging actually runs
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Reply queues, retries, five naming generations and cloud metrics that arrive late: the list stays one row per real queue.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: No queue per request -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">No Queue per Request</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Temporary and anonymous destinations, server-named reply queues such as RabbitMQ's <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">amq.gen-…</code>, NATS inboxes and the placeholders instrumentations report instead of a name never become queues. A UUID inside a name becomes <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">{uuid}</code>, so a reply queue per request is one queue.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: JMS and ActiveMQ -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-blue-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">JMS and ActiveMQ, One Queue</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Java applications reach ActiveMQ through the JMS API, whose spans say <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">jms</code> whatever the broker, while the broker's own metrics can only say <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">activemq</code>. Both land on one queue: it shows as JMS until the broker's metrics arrive, and as Apache ActiveMQ from then on.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Lifecycle -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">A List That Cleans Up</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">A discovered queue nobody has seen for 7 days is archived on its own, unless somebody renamed it, described it, labelled it or gave it owners, and it comes back by itself when it is seen again. Archive one yourself to dismiss it for good.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Owners & labels -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Owners, Labels &amp; Rules</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Give every queue owning teams and users, label it, and let label and owner rules pick queues up by name, description, labels or messaging system: a system pattern of <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">kafka</code> matches every Kafka topic.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Late cloud metrics -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Late Cloud Metrics, Handled</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">CloudWatch, Azure Monitor and Cloud Monitoring publish each number minutes after the time it measures. Discovery reads their metrics from the last hour, so a late point still finds its queue, and monitors built from SQS, SNS and Pub/Sub charts start with windows long enough to hold one.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Traces -->
+            <div class="group relative">
+              <a href="/product/traces" class="block relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-yellow-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
+                  <%- include('./Partials/icons/traces', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Straight to the Trace</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Every messaging span is tagged with its queue as it is ingested, so a queue's Traces tab holds every span that publishes to or consumes from it. The slow handler or the failed publish is one click from the chart that showed it.</p>
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+              Queue alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get notified in Slack and Microsoft Teams when a consumer group falls behind, a backlog stops draining, or messages land in a dead-letter queue. Acknowledge and resolve without leaving your chat app.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive queue alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Queue & broker context
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Rich formatting
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <!-- Decorative gradient background -->
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#queue-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]" id="queues-slack-messages">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime</span>
+                      <span class="text-xs text-white/40">2:47 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-amber-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30">WARNING</span>
+                          <span class="text-white/40 text-xs">Consumer Lag High</span>
+                        </div>
+                        <p class="text-white font-semibold">orders is 48,210 messages behind</p>
+                        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            Apache Kafka &middot; orders
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                            </svg>
+                            Threshold: 10,000 messages
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge Alert
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                            View Alert
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve Alert
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🔧</span>
+                        <span class="text-white/60">1</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Thread Replies Container -->
+                <div id="queues-thread-container" class="ml-12 space-y-3 hidden">
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #queue-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing & Self-Hosting Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">Pricing & Self-Hosting</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            Pay for data, or run it yourself
+          </h2>
+        </div>
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <h3 class="text-xl font-semibold text-gray-900">OneUptime Cloud</h3>
+            <p class="mt-3 text-gray-600 leading-relaxed">Usage-based: $0.10 per GB of telemetry ingested. There is no fee per queue, topic, partition or broker, so a new topic or another consumer group costs what its spans and metrics weigh.</p>
+            <ul class="mt-6 space-y-2 text-sm text-gray-600">
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>No per-queue or per-broker licence</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Discovery reads the telemetry you already send</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>On-call, status pages, and incidents included</li>
+            </ul>
+            <a href="/pricing" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">See pricing <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <h3 class="text-xl font-semibold text-gray-900">Self-Hosted</h3>
+            <p class="mt-3 text-gray-600 leading-relaxed">Queues is part of the open source Community Edition (Apache 2.0). Run it on your own Kubernetes cluster or Docker host, keep every span and broker metric inside your network, and point your collectors at your own instance instead of ours. Everything else is identical.</p>
+            <ul class="mt-6 space-y-2 text-sm text-gray-600">
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Air-gapped and data-residency deployments supported</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Discovery threshold, auto-create budget and archive window are tunable</li>
+              <li class="flex items-center gap-2"><svg class="h-4 w-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Same collector configs, same pages, same thresholds</li>
+            </ul>
+            <a href="/enterprise/self-hosted" class="mt-6 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700">Self-hosting guide <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="relative bg-white py-24 sm:py-32" id="queues-faq">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">FAQ</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl text-balance">
+            Questions platform teams ask
+          </h2>
+        </div>
+
+        <dl class="divide-y divide-gray-200">
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Do I have to install anything on the broker?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No agent of ours. Queues come from the messaging spans your instrumented applications already send. Broker health comes from a stock <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">otel/opentelemetry-collector-contrib</code> collector reading the broker's management API or metrics endpoint, or your cloud provider's monitoring API. Some brokers need their metrics switched on first: RabbitMQ's management plugin, RocketMQ's Prometheus exporter or NATS's monitoring port, and ActiveMQ takes the OpenTelemetry JMX Scraper beside it.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">What access does the collector need?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Enough to read the broker's statistics, and no more. On RabbitMQ that is a user tagged <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">monitoring</code>, given access to each virtual host with empty permission patterns, so it can neither configure, publish nor consume. On AWS it is <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">cloudwatch:ListMetrics</code> and <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">cloudwatch:GetMetricData</code>, on Azure the <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">Monitoring Reader</code> role, and on Google Cloud the <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">Monitoring Viewer</code> role. Kafka's receiver connects to the brokers like any client, with SASL and TLS when your cluster uses them.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Will every reply queue and test script become a queue?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No. Traces create a queue only once 3 of its spans arrive in 15 minutes, so a one-off script does not make one. Temporary and anonymous destinations, server-named reply queues and inboxes are never queues, and a UUID inside a name is folded into <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">{uuid}</code>. Automatic creation stops at 500 live discovered queues per project, and an untouched discovered queue nobody has seen for 7 days is archived on its own.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">We run two Kafka clusters with a topic of the same name. Are they two queues?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">No, they share one. A Kafka topic, a RabbitMQ queue or an SQS queue is keyed by its system and name alone, because spans rarely name the cluster they come from: putting the cluster in the key would split one topic by instrumentation instead. Azure Service Bus and Event Hubs are the exception. Their namespace is part of the queue, since both the SDKs and Azure Monitor name it reliably.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">How do I alert on a queue?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Open the queue and press Create monitor beside a broker health chart: it opens a <a href="/docs/monitor/metrics-monitor" class="text-indigo-600 hover:text-indigo-700 font-medium">Metrics monitor</a> filtered to that queue, with a starting threshold where the metric has one. To watch every queue of a system with one monitor, group by the attribute that names the queue, and each queue alerts on its own. The monitor routes to on-call, incidents and status pages like any other.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Do Azure Functions triggered by Service Bus show up?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Yes. With OpenTelemetry turned on in the Functions host, it exports the Service Bus and Event Hubs processor spans behind triggered functions, and their queues appear from those spans like any other consumer's. The functions themselves, with their invocations, cold starts and errors, are on <a href="/product/serverless" class="text-indigo-600 hover:text-indigo-700 font-medium">Serverless</a>.</dd>
+          </div>
+
+          <div class="py-8">
+            <dt class="text-lg font-semibold text-gray-900">Where do I start?</dt>
+            <dd class="mt-3 text-gray-600 leading-relaxed">Create a project, send OpenTelemetry traces from the services that publish and consume, and open <strong class="font-medium text-gray-800">Resources → Queues</strong>. Each queue's Documentation tab has the setup for its messaging system. The <a href="/docs/telemetry/queues" class="text-indigo-600 hover:text-indigo-700 font-medium">Queues docs</a> cover discovery, instrumenting applications in each language, broker health metrics for every system, alerting and troubleshooting.</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('queues-hero-section');
+      const gridGlow = document.getElementById('queues-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

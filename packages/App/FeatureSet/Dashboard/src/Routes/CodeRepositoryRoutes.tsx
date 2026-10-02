@@ -18,6 +18,9 @@ import CodeRepositoryView from "../Pages/CodeRepository/View/Index";
 import CodeRepositoryViewDelete from "../Pages/CodeRepository/View/Delete";
 
 import CodeRepositoryViewSettings from "../Pages/CodeRepository/View/Settings";
+import CodeRepositoryModel from "Common/Models/DatabaseModels/CodeRepository";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -34,6 +37,13 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CodeRepositoryModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.CODE_REPOSITORY_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -75,6 +85,12 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: CodeRepositoryModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

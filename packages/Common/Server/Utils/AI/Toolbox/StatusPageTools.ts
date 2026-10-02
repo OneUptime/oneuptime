@@ -14,6 +14,7 @@ import StatusPageSubscriberService from "../../../Services/StatusPageSubscriberS
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
+import ArchivedMonitorResources from "../../../../Utils/StatusPage/ArchivedMonitorResources";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -48,6 +49,15 @@ const resolveAnnouncementReadPermissions: () => Array<Permission> =
     }
     return cachedAnnouncementReadPermissions;
   };
+
+/*
+ * An archived status page is offline: its public page is not served and its
+ * subscribers are sent nothing. The list leaves archived pages out (as the
+ * Status Pages page does), so the model never plans a post around one; read
+ * by id, one is still returned, flagged, with this said alongside.
+ */
+export const ARCHIVED_STATUS_PAGE_NOTE: string =
+  "This status page is archived: its public page is not served and its subscribers are sent nothing, so an update reaches no one through it. Unarchive it to publish it again.";
 
 // Resources a detail view lists — enough for any real page, still bounded.
 const MAX_RESOURCES_PER_PAGE: number = 50;
@@ -120,7 +130,7 @@ function buildPagingPrefix(data: {
 export const QueryStatusPagesTool: ObservabilityTool = {
   name: "query_status_pages",
   description:
-    "List the status pages in this project and what each one shows to the outside world. Use this BEFORE post_incident_status_update so you know which status pages exist, what an incident affects publicly, and how many subscribers a post will reach. List mode returns every page's id, name, description, visibility and public URL. Pass statusPageId (an id from the list) for detail mode: the monitors/resources displayed on that page and the count of active (confirmed, not unsubscribed) email/SMS/webhook subscribers a public post notifies. Use query_status_page_announcements to see what has already been announced.",
+    "List the status pages in this project and what each one shows to the outside world. Use this BEFORE post_incident_status_update so you know which status pages exist, what an incident affects publicly, and how many subscribers a post will reach. List mode returns every page's id, name, description, visibility and public URL; archived status pages are left out, as they are offline. Pass statusPageId (an id from the list) for detail mode: the monitors/resources displayed on that page and the count of active (confirmed, not unsubscribed) email/SMS/webhook subscribers a public post notifies. Use query_status_page_announcements to see what has already been announced.",
   inputSchema: {
     type: "object",
     properties: {
@@ -163,6 +173,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
             pageTitle: true,
             pageDescription: true,
             isPublicStatusPage: true,
+            isArchived: true,
           },
           props: ctx.props,
         },
@@ -207,6 +218,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
             displayName: true,
             monitor: {
               name: true,
+              isArchived: true,
             },
             monitorGroup: {
               name: true,
@@ -231,7 +243,14 @@ export const QueryStatusPagesTool: ObservabilityTool = {
         resolvePublicUrl(statusPageId),
       ]);
 
-      const resourceSummaries: string = resources
+      /*
+       * An archived monitor is left off the public page, so it is not
+       * among the resources the page shows.
+       */
+      const shownResources: Array<StatusPageResource> =
+        ArchivedMonitorResources.withoutArchivedMonitors(resources);
+
+      const resourceSummaries: string = shownResources
         .map((resource: StatusPageResource) => {
           return describeResource(resource);
         })
@@ -253,8 +272,9 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           visibility: visibility,
           publicUrl: publicUrl,
           resourcesShown: resourceSummaries || undefined,
-          resourceCount: resources.length,
+          resourceCount: shownResources.length,
           activeSubscriberCount: activeSubscribers.toNumber(),
+          archived: statusPage.isArchived === true ? true : undefined,
         },
       ];
 
@@ -264,13 +284,19 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       const cardFields: Array<{ label: string; value: string }> = [
         { label: "Visibility", value: visibility },
       ];
+      if (statusPage.isArchived === true) {
+        cardFields.push({
+          label: "Archived",
+          value: "Yes - offline, sends nothing",
+        });
+      }
       if (publicUrl) {
         cardFields.push({ label: "Public URL", value: publicUrl });
       }
       cardFields.push({
         label: "Resources shown",
         value: resourceSummaries
-          ? `${resources.length}: ${resourceSummaries}`
+          ? `${shownResources.length}: ${resourceSummaries}`
           : "0",
       });
       cardFields.push({
@@ -279,7 +305,10 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       });
 
       return {
-        dataForLlm: serialized.text,
+        dataForLlm:
+          statusPage.isArchived === true
+            ? `${ARCHIVED_STATUS_PAGE_NOTE}\n${serialized.text}`
+            : serialized.text,
         rowCount: serialized.rowCount,
         citationLabel: `Status page "${statusPage.name || statusPageId.toString()}"`,
         citationTarget: {
@@ -316,7 +345,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
     const [statusPages, totalCount]: [Array<StatusPage>, PositiveNumber] =
       await Promise.all([
         StatusPageService.findBy({
-          query: {},
+          query: { isArchived: false },
           select: {
             _id: true,
             name: true,
@@ -331,7 +360,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           props: ctx.props,
         }),
         StatusPageService.countBy({
-          query: {},
+          query: { isArchived: false },
           props: ctx.props,
         }),
       ]);

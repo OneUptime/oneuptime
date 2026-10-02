@@ -13,6 +13,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -392,21 +393,51 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
     return item.keyType === TelemetryIngestionKeyType.Browser;
   };
 
+  /*
+   * The steps of the create wizard on the Telemetry Ingestion Keys page, so
+   * the two doors onto creating a key walk the same way: Details, Key Type
+   * (left out when the guide has pinned the type), Browser Settings for a
+   * browser key, and Billing on the Free plan.
+   */
+  const getCreateKeyFormSteps: () => Array<
+    FormStep<TelemetryIngestionKey>
+  > = (): Array<FormStep<TelemetryIngestionKey>> => {
+    const hasBillingStep: boolean =
+      getTelemetryPayAsYouGoFormFields().length > 0;
+
+    /*
+     * A guide that pins a Server key, on a paid plan, asks for a name and
+     * a description only: one short page, with no steps to walk.
+     */
+    if (
+      props.keyTypeFilter === TelemetryIngestionKeyType.Server &&
+      !hasBillingStep
+    ) {
+      return [];
+    }
+
+    return [
+      { id: "details", title: "Details" },
+      ...(props.keyTypeFilter ? [] : [{ id: "key-type", title: "Key Type" }]),
+      {
+        id: "browser-settings",
+        title: "Browser Settings",
+        showIf: isBrowserKeyBeingCreated,
+      },
+      ...(hasBillingStep ? [{ id: "billing", title: "Billing" }] : []),
+    ];
+  };
+
   const getCreateKeyFormFields: () => Array<
     ModelField<TelemetryIngestionKey>
   > = (): Array<ModelField<TelemetryIngestionKey>> => {
     const fields: Array<ModelField<TelemetryIngestionKey>> = [
-      /*
-       * The same pay-as-you-go notice and acknowledgement the settings
-       * page shows. This is the second door onto creating a key, and a
-       * gate with a way around it is not a gate.
-       */
-      ...getTelemetryPayAsYouGoFormFields(),
       {
         field: {
           name: true,
         },
         title: "Name",
+        stepId: "details",
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "e.g. Production Key",
@@ -419,6 +450,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           description: true,
         },
         title: "Description",
+        stepId: "details",
         fieldType: FormFieldSchemaType.LongText,
         required: false,
         placeholder: "Optional description for this key",
@@ -437,6 +469,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           keyType: true,
         },
         title: "Key Type",
+        stepId: "key-type",
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions:
           DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
@@ -454,6 +487,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         allowedOrigins: true,
       },
       title: "Allowed Origins",
+      stepId: "browser-settings",
       fieldType: FormFieldSchemaType.JSON,
       showIf: isBrowserKeyBeingCreated,
       required: isBrowserKeyBeingCreated,
@@ -467,6 +501,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         pinnedServiceName: true,
       },
       title: "Pinned Service Name",
+      stepId: "browser-settings",
       fieldType: FormFieldSchemaType.Text,
       showIf: isBrowserKeyBeingCreated,
       required: false,
@@ -474,6 +509,21 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
       description:
         "Forces service.name to this value on everything the key writes. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
     });
+
+    /*
+     * The same pay-as-you-go notice the settings page shows, on the same last
+     * step. This is the second door onto creating a key, and a gate with a
+     * way around it is not a gate.
+     */
+    fields.push(
+      ...getTelemetryPayAsYouGoFormFields().map(
+        (
+          field: ModelField<TelemetryIngestionKey>,
+        ): ModelField<TelemetryIngestionKey> => {
+          return { ...field, stepId: "billing" };
+        },
+      ),
+    );
 
     return fields;
   };
@@ -516,6 +566,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             name: "Create Ingestion Key",
             modelType: TelemetryIngestionKey,
             id: "create-ingestion-key",
+            steps: getCreateKeyFormSteps(),
             fields: getCreateKeyFormFields(),
             formType: FormType.Create,
           }}

@@ -29,16 +29,16 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * completes (InsightTriageRunner → InsightFixRouting) and only for
  * insights the triage classified as code faults.
  *
- * Everything is opt-in and quiet: only projects with the default-false
- * enableAiInsights flag are scanned, insights never page and never
+ * Everything is switchable and quiet: only projects with enableAiInsights
+ * on (on for new projects) are scanned, insights never page and never
  * open incidents, and every layer (project, detector, insight) fails in
  * isolation — one broken tenant or sensor must not stop the sweep.
  */
 export default class InsightScanner {
   /*
-   * One scan tick across all opted-in projects. The flag query IS the gate:
-   * enableAiInsights defaults to false, so nothing runs for a project
-   * that never opted in. Runs as root with explicit projectId scoping
+   * One scan tick across all projects with AI Insights on. The flag query
+   * IS the gate: nothing runs for a project whose enableAiInsights is
+   * off. Runs as root with explicit projectId scoping
    * (monitor-worker precedent), not per-user ACL. Never throws — the cron
    * caller gets a clean resolve either way.
    */

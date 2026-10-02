@@ -16,6 +16,9 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceHydrationUtil, {
@@ -31,11 +34,13 @@ import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import {
+  redactGeneratedInboundAddressKeys,
   redactMonitorEmailAddress,
   redactMonitorSecret,
 } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import Select from "Common/Server/Types/Database/Select";
+import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowDelivery";
 
 export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
@@ -214,11 +219,7 @@ export async function processSnmpTrapFromQueue(
   let matchedSteps: number = 0;
 
   for (const monitor of monitors) {
-    if (
-      monitor.disableActiveMonitoring ||
-      monitor.disableActiveMonitoringBecauseOfManualIncident ||
-      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-    ) {
+    if (MonitorPauseState.isPaused(monitor)) {
       continue;
     }
 
@@ -374,9 +375,7 @@ const INCOMING_EMAIL_MONITOR_SELECT: Select<Monitor> = {
   projectId: true,
   incomingEmailSecretKey: true,
   incomingEmailCustomLocalPart: true,
-  disableActiveMonitoring: true,
-  disableActiveMonitoringBecauseOfManualIncident: true,
-  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+  ...MONITOR_PAUSE_FLAGS_SELECT,
 };
 
 /*
@@ -440,6 +439,19 @@ export async function processIncomingEmailFromQueue(
     throw new BadDataException("Incoming email data not found");
   }
 
+  /*
+   * Mail to a workflow's Incoming Email trigger. The workflow service finds
+   * the workflow and starts the run; it was received when the webhook queued
+   * it, not when this worker got to it.
+   */
+  if (emailData.workflowSecretKey) {
+    await IncomingEmailWorkflowDelivery.deliver({
+      emailData: emailData,
+      receivedAt: jobData.ingestionTimestamp,
+    });
+    return;
+  }
+
   const monitor: Monitor | null = await findIncomingEmailMonitor(emailData);
 
   if (!monitor || !monitor._id) {
@@ -470,16 +482,25 @@ export async function processIncomingEmailFromQueue(
    *
    * https://github.com/OneUptime/oneuptime/issues/3360
    */
-  const redactedEmailData: IncomingEmailJobData = redactMonitorEmailAddress(
-    redactMonitorSecret(
-      emailData,
-      monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
-    ),
-    {
-      localPart: monitor.incomingEmailCustomLocalPart,
-      domain: InboundEmailProviderFactory.getInboundDomain(),
-    },
-  );
+  const redactedEmailData: IncomingEmailJobData =
+    redactGeneratedInboundAddressKeys(
+      redactMonitorEmailAddress(
+        redactMonitorSecret(
+          emailData,
+          monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
+        ),
+        {
+          localPart: monitor.incomingEmailCustomLocalPart,
+          domain: InboundEmailProviderFactory.getInboundDomain(),
+        },
+      ),
+      /*
+       * A workflow's address on the same email (the email went to this
+       * monitor and to a workflow's Incoming Email trigger) is that
+       * workflow's credential, and must not reach the monitor's readers.
+       */
+      ["workflow"],
+    );
 
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -529,13 +550,9 @@ export async function processIncomingEmailFromQueue(
    * the CheckOnlineStatus cron skips disabled monitors and resumes afterwards,
    * relying on that timestamp.
    */
-  if (
-    monitor.disableActiveMonitoring ||
-    monitor.disableActiveMonitoringBecauseOfManualIncident ||
-    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-  ) {
+  if (MonitorPauseState.isPaused(monitor)) {
     logger.debug(
-      `Incoming email received for disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
+      `Incoming email received for archived or disabled monitor ${monitor._id.toString()}. Skipping evaluation.`,
     );
     return;
   }

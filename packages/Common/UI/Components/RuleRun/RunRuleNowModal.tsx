@@ -8,6 +8,7 @@ import {
 import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import RuleRunClient, { RuleRunOutcome } from "../../Utils/Rules/RuleRunClient";
+import { ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ConfirmModal from "../Modal/ConfirmModal";
 import React, {
@@ -112,6 +113,11 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
       error={error || undefined}
       isLoading={isRunning}
       submitButtonText="Run Rule"
+      /*
+       * Explicit, because Cancel is taken away while the run is in flight and
+       * a ConfirmModal without a Cancel draws its button plain.
+       */
+      submitButtonType={ButtonStyleType.PRIMARY}
       onSubmit={runRule}
       onClose={isRunning ? undefined : props.onClose}
     >

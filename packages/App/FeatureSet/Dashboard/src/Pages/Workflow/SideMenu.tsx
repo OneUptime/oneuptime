@@ -5,7 +5,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { ReactElement } from "react";
+import { getDeveloperSideMenuSectionProps } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
+import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -30,9 +33,33 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Variable,
         },
+        /*
+         * Archived workflows are filtered out of the list above, so without
+         * this entry the only way back to one would be its URL.
+         */
         {
           link: {
-            title: "Runs & Logs",
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.WORKFLOWS_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
+    /*
+     * Runs get a Logs section of their own, open and second in the menu: the
+     * run history is where people go to check that a workflow worked, so it
+     * should not read as one more thing to build. The page keeps its old
+     * /workflows/logs URL, which the section's name now matches.
+     */
+    {
+      title: "Logs",
+      items: [
+        {
+          link: {
+            title: "Runs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.WORKFLOWS_LOGS] as Route,
             ),
@@ -65,6 +92,10 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    getDeveloperSideMenuSectionProps({
+      modelType: Workflow,
+      scope: DeveloperDocsScope.List,
+    }),
   ];
 
   return <SideMenu sections={sections} />;

@@ -34,6 +34,9 @@ import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
 import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
 import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
+import NetworkDeviceModel from "Common/Models/DatabaseModels/NetworkDevice";
+import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
+import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 
 const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -280,6 +283,13 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: NetworkDeviceModel,
+          scope: DeveloperDocsScope.List,
+          props,
+          mountPageKey: PageMap.NETWORK_DEVICE_ROOT,
+        })}
       </PageRoute>
 
       <PageRoute
@@ -391,6 +401,12 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {getDeveloperDocsRoutes({
+          modelType: NetworkDeviceModel,
+          scope: DeveloperDocsScope.View,
+          props,
+        })}
       </PageRoute>
     </Routes>
   );

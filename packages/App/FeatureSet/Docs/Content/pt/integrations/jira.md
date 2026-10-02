@@ -104,7 +104,7 @@ Se a sua organização usa a gestão centralizada de usuários da Atlassian, há
 
 A descrição parece pesada porque a API v3 do Jira Cloud recebe rich text como **Atlassian Document Format** — uma árvore de documento, não uma string. O formato acima é o documento válido mínimo: um parágrafo contendo um nó de texto. O mesmo vale para `environment` e para qualquer campo personalizado de texto de várias linhas; campos personalizados de texto de uma linha ainda aceitam uma string simples.
 
-Agora ligue o workflow em **Visão geral → Editar fluxo de trabalho → Habilitado**, declare um incidente de teste e abra **Execuções e registros**. O bloco `create-issue` deve exibir um `201` e um corpo contendo o `id`, a `key` e o `self` do novo issue. As mudanças no canvas se salvam sozinhas — não há botão de salvar, e um workflow desabilitado não roda de jeito nenhum, nem à mão.
+Agora ligue o workflow em **Visão geral → Editar fluxo de trabalho → Habilitado**, declare um incidente de teste e abra **Registros → Execuções**. O bloco `create-issue` deve exibir um `201` e um corpo contendo o `id`, a `key` e o `self` do novo issue. As mudanças no canvas se salvam sozinhas — não há botão de salvar, e um workflow desabilitado não roda de jeito nenhum, nem à mão.
 
 A chave do novo issue fica disponível para qualquer bloco depois deste:
 
@@ -227,13 +227,13 @@ Agora a outra direção: alguém move o issue para Done, e o incidente do OneUpt
 ### Construa primeiro o workflow que recebe
 
 1. **Criar fluxo de trabalho**, nomeie-o `Jira → OneUptime` e adicione o gatilho **Webhook**.
-2. Abra as **Configurações** desse workflow e copie a **Chave secreta do webhook**. Sua URL é:
+2. Abra o **Construtor** desse workflow, clique no gatilho **Webhook** e depois em **Copiar URL**, no topo das configurações dele. A URL tem este formato:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   Instalações auto-hospedadas usam o próprio host. Trate a URL como uma senha — quem a tiver pode iniciar o workflow — e redefina a chave nessa mesma página se ela vazar.
+   Instalações auto-hospedadas usam o próprio host. Trate a URL como uma senha: quem a tiver pode iniciar o workflow. Se ela vazar, clique em **Redefinir URL** no mesmo lugar; a URL antiga para de funcionar na hora.
 
 3. Adicione um bloco **If / Else** que verifica um segredo compartilhado antes que qualquer outra coisa rode. **Input 1** é `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Operator** `==`, **Input 2** é `{{global.variables.JIRA_WEBHOOK_SECRET}}` — um valor que você inventa e salva como variável global secreta.
 4. Da ramificação **Sim**, adicione um bloco **Update One Incident**:
@@ -270,7 +270,7 @@ Deixe o workflow habilitado. Agora dê ao Jira algo para chamar.
 
      Se você usou uma label em vez de um campo personalizado no Passo 3, envie `"labels": "{{issue.labels}}"` e extraia o id com um bloco **Run Custom JavaScript** do lado do OneUptime.
 
-4. Ligue a regra, mova um issue de teste para Done e confira os dois lados: o audit log da própria regra no Jira e as **Execuções e registros** no OneUptime.
+4. Ligue a regra, mova um issue de teste para Done e confira os dois lados: o audit log da própria regra no Jira e **Registros → Execuções** no OneUptime.
 
 Coisas que vale saber antes de depender disso:
 
@@ -342,7 +342,7 @@ Um workflow tem exatamente um gatilho, então incidentes e alertas precisam de u
 
 ## Solução de problemas
 
-Abra primeiro o bloco que falhou em **Execuções e registros**. O Jira devolve um corpo JSON nomeando exatamente o que ele recusou, e o componente API o mantém em `response-body`.
+Abra primeiro o bloco que falhou em **Registros → Execuções**. O Jira devolve um corpo JSON nomeando exatamente o que ele recusou, e o componente API o mantém em `response-body`.
 
 **`401 Unauthorized`.** Recodifique `email:api_token` com `printf` e atualize `JIRA_AUTH`; uma quebra de linha no final, vinda do `echo`, é a causa habitual. Depois confirme que a conta dona do token pode criar issues naquele projeto. No Data Center, verifique se você está enviando `Bearer`, e não `Basic`.
 
@@ -356,7 +356,7 @@ Abra primeiro o bloco que falhou em **Execuções e registros**. O Jira devolve 
 
 **A chamada de transição devolve `400`.** O id da transição não é válido a partir do status *atual* do issue. Busque `/transitions` para aquele issue e use um id da resposta.
 
-**A automation rule aparece como bem-sucedida, mas nada chega ao OneUptime.** Verifique primeiro a porta — veja a lista de restrições acima. Depois envie você mesmo uma requisição para a URL do webhook com `curl` e veja se ela aparece em **Execuções e registros**; se a sua chega e a do Jira não, o problema está do lado do Jira.
+**A automation rule aparece como bem-sucedida, mas nada chega ao OneUptime.** Verifique primeiro a porta — veja a lista de restrições acima. Depois envie você mesmo uma requisição para a URL do webhook com `curl` e veja se ela aparece em **Registros → Execuções**; se a sua chega e a do Jira não, o problema está do lado do Jira.
 
 **O workflow roda, mas o incidente não muda.** Um bloco **Update One Incident** reporta `Items Updated: 0` quando a consulta dele não correspondeu a nada, e isso conta como sucesso, não erro. Confira se o id no payload é mesmo o id do incidente no OneUptime e se você está consultando `_id`.
 

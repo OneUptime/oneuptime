@@ -50,6 +50,8 @@ import {
 } from "./LogsFacetFilters";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
+import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -2542,8 +2544,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
       {savedViewToDelete && (
         <ConfirmModal
-          title={`Delete ${savedViewToDelete.name || "saved view"}`}
-          description={`Are you sure you want to delete ${savedViewToDelete.name || "this saved view"}?`}
+          title="Delete Saved View"
+          description={
+            <DeleteConfirmationMessage
+              kind="question"
+              name={getRecordDisplayName(savedViewToDelete)}
+              typeLabel="saved view"
+            />
+          }
           isLoading={isSavedViewLoading}
           submitButtonText="Delete"
           submitButtonType={ButtonStyleType.DANGER}

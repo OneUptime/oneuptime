@@ -19,6 +19,7 @@ import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
+import { STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageArchive";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
@@ -422,6 +423,20 @@ export class Service extends DatabaseService<Model> {
         projectId: data.data.projectId?.toString(),
         statusPageId: data.data.statusPageId?.toString(),
       } as LogAttributes);
+
+      /*
+       * An archived page is left out above. Someone adding a subscriber to
+       * it from the dashboard should hear why, not "not found".
+       */
+      if (
+        data.data.statusPageId &&
+        (await StatusPageService.isStatusPageArchived(data.data.statusPageId))
+      ) {
+        throw new BadDataException(
+          STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE,
+        );
+      }
+
       throw new BadDataException("Status Page not found");
     }
 
@@ -2443,6 +2458,14 @@ Stay informed about service availability! 🚀`;
     const statusPages: Array<StatusPage> = await StatusPageService.findBy({
       query: {
         _id: QueryHelper.any(statusPageIds),
+        /*
+         * Every subscriber notification - incidents, episodes, notes,
+         * postmortems, scheduled maintenance, announcements, reports, and the
+         * confirmation a new subscription sends - finds its status pages
+         * here, so leaving archived pages out is what makes an archived page
+         * send nothing at all.
+         */
+        isArchived: false,
       },
       props: {
         isRoot: true,

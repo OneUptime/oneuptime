@@ -69,8 +69,15 @@ jobs:
       - run: cd packages/Common && bash test-setup.sh
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.
-      - run: cd packages/Common && npm install
-      - run: cd packages/App && npm install && npm run test
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
+      - name: Install App dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - run: cd packages/App && npm run test
 
   session-replay-ui:
     name: Session Replay UI
@@ -92,15 +99,19 @@ jobs:
       # These browser tests render Dashboard sources with fixture API data.
       # They need the frontend dependencies, but no test database or Docker stack.
       - name: Install shared dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install Dashboard dependencies
-        working-directory: packages/App/FeatureSet/Dashboard
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install browser test dependencies
-        working-directory: packages/E2E
-        # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
-        run: npm install --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
+          args: --ignore-scripts
       - name: Install Chromium
         working-directory: packages/E2E
         run: npx playwright install --with-deps chromium
@@ -144,18 +155,23 @@ jobs:
       # Each suite bundles real Dashboard / Status Page sources with esbuild and
       # serves them against fixture data on 127.0.0.1: no database or Docker stack.
       - name: Install shared dependencies
-        working-directory: packages/Common
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install Dashboard dependencies
-        working-directory: packages/App/FeatureSet/Dashboard
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install Status Page dependencies
-        working-directory: packages/App/FeatureSet/StatusPage
-        run: npm install
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/StatusPage
       - name: Install browser test dependencies
-        working-directory: packages/E2E
-        # Skip the preinstall hook that downloads every browser.
-        run: npm install --ignore-scripts
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # Skip the preinstall hook that downloads every browser.
+          args: --ignore-scripts
       - name: Install browsers
         working-directory: packages/E2E
         # The Alerts suite also runs in Firefox; every other suite is Chromium only.
@@ -210,6 +226,11 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-code-editor-ui
+      # Chromium and Firefox: the chip editor's caret handling differs in each.
+      - name: Run Workflow Value Picker UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-value-picker-ui
       - name: Run Alerts UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
@@ -226,6 +247,10 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-topology-ui
+      - name: Run Workflow Builder UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-workflow-builder-ui
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -254,6 +279,7 @@ jobs:
             output/playwright/pencil-button/test-results
             output/playwright/code-editor-ui/*.png
             output/playwright/code-editor-ui/test-results
+            output/playwright/value-picker-ui/test-results
             output/playwright/alerts/*.png
             output/playwright/alerts/test-results
             output/playwright/label-rule-import-export/*.png
@@ -262,4 +288,5 @@ jobs:
             output/playwright/discovery/test-results
             output/playwright/topology/*.png
             output/playwright/topology/test-results
+            output/playwright/workflow-builder-ui/test-results
           retention-days: 7

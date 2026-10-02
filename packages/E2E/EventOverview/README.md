@@ -43,10 +43,17 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
     answers 400.
   - alert: an `AlertList` (C1), charts, tables, a trace, and an `ExceptionList` (C8).
   - pinned (`isPinnedToInvestigationTime`) and current-data citations are both present.
-- **AI investigation conversation**: `POST /ai-investigation/conversation` answers an empty
-  thread for every incident and alert (nobody has asked anything yet). Sending a question,
-  answering an approval and stopping a run are not modelled.
-    `verdict` and `create-fix-task` record and succeed.
+- **AI investigation conversation**: the shared thread that closes the AI Investigation card
+  of incident #1042 and alert #311, as `InvestigationThreadService.getView` answers it
+  (`POST /ai-investigation/conversation`): messages oldest first with who asked, and, while an
+  answer is in flight, its run and live steps. `?thread=` picks what it starts with; Maya Chen
+  is the viewer, and charts and tables go only to the person who asked. Every other incident
+  and alert has an empty thread. It is a small state machine, so a spec can drive the card:
+  - `send-message` adds the viewer's question and an answer in progress, which narrates a step
+    on the next read and is complete (one citation, one source) on the one after;
+  - `respond-to-approval` runs or denies the pending action and completes the answer;
+  - `cancel-run` turns the answer in flight into a stopped one.
+- `verdict` and `create-fix-task` record and succeed.
 - **Alert #311** "Payment webhook 5xx rate above 5%" with its monitor and alert episode #7. Its
   hero offers Declare Incident after the state actions, which opens the create-incident page
   with `?alertIds=<alert #311>`.
@@ -63,7 +70,8 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   one is closed and the event moves to the new state, so a background refresh reads the result.
 
 Navigation targets that are not modelled (AI task, monitor, host, Kubernetes cluster, SLO,
-on-call policy, status page, user, team, roles and member lists, list pages, side-menu
+on-call policy, status page, user, team, roles and member lists, list pages (the metrics,
+logs, monitors and on-call policies lists are where an answer's sources lead), side-menu
 sub-pages, and Create Incident -
 `INCIDENT_CREATE` `/dashboard/:projectId/incidents/create`, where an alert's Declare Incident
 leads) render a small stub page with `data-testid="stub-page"`, `data-page="<PageMap key>"`
@@ -81,15 +89,16 @@ Query parameters, parsed once per page load:
 | `?title=`     | `default` or `long` (alert #311 is titled "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster", 67 characters, wider than the room its header leaves beside the actions)                                                                                                                                                                                                                           |
 | `?verdict=`   | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311)                                                                                                                                                                                                                                                                                        |
 | `?sm=`        | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end)                                                                                                                                                                                                                                            |
-| `?fail=`      | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused)                                                                                                                                                                                                                                            |
+| `?fail=`      | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `conversation` (the thread cannot be loaded), `conversation-send` (a question is refused: "AI is turned off for this project…"), `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused)                                                                                                           |
 | `?resources=` | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
 | `?theme=`     | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?role=`      | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
 | `?clusters=`  | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
+| `?thread=`    | what the card's conversation holds: nobody has asked (default), `answered` (Sam's question and its cited answer, then the viewer's with a table, an executed action and a source), `working` (an answer being written, with live steps), `approval` (an action waiting for approval), `error` (a failed and a stopped answer) or `crowded` (twelve messages from six people, so the thread opens folded)            |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (157 tests):
+`EventOverview.spec.ts` (218 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -130,6 +139,28 @@ Query parameters, parsed once per page load:
   cluster notes are plain lines whose fix link opens the cluster's AI agent page; a chip's
   highlight reaches 12px past the text on `::before` while the row and its divider stay put,
   and uses the dark indigo wash in the dark theme.
+- **One AI card**: the investigation and the conversation with OneUptime AI are one card. In
+  every state above the conversation is inside the AI Investigation card, last in its region,
+  with no card or card-level heading of its own, and the card ends with its composer; the alert
+  page too. The section is drawn like the card's other rows (a hairline above it, the verdict
+  row's heading and description styles, no icon tile), and the status pill ends at the card's
+  content edge. What it suggests per state (the root-cause question leads with nothing
+  investigated and after a run that stopped, never while one is underway), as plain chips
+  straight above the composer. Asking: a suggested question is sent on the click, answered
+  live and cited; a suggested action is only put in the composer; Enter sends, Shift+Enter is a
+  new line and nothing is sent while an answer is written; Stop; `?fail=conversation-send` and
+  `?fail=conversation`. A shared thread: who asked what, sources as a quiet list whose linked
+  rows open their page, inline citations, charts and tables only for the asker, an executed
+  action as a line, Copy, live steps on a rule, failed and stopped answers as lines. An action
+  waiting for approval, run or denied. A long thread opening folded, unfolding with focus
+  handed to the thread, avatars that do not hide each other's initials, and no scrolling box
+  between the thread and the card. The composer: one framed control, no focus on load, the
+  indigo focus, Send in the primary colour, the mode's menu inside the card at 1440px and
+  390px, a chosen mode sent with the next question, and (with production's Inter) the caption
+  on the picker's row at 1280px. No panel inside the card whatever the thread holds, with the
+  fix task and verdict messages as lines. On a phone: no sideways scroll, a message's text at
+  full width, the composer's rows, and the pill beside or under the title. The dark theme's
+  colours, and the previous incident's thread never following a navigation.
 - **Incident and alert**: hero (identifier, title, state, severity, duration, facts and their
   links), stat bar cells, the AI card leading the left column, the right column's stacked card
   headers, Edit buttons and details field order, Resolve / Acknowledge from the hero through
@@ -197,7 +228,10 @@ checkout might be running, stop it first or run with `CI=1`.
 
 Screenshots land in `output/playwright/event-overview-ui/`, named `*-synthetic.png` because
 every record in them is fabricated. The AI card's states are
-`ai-card-{running,running-clusters,queued,failed,pending,none,clusters,dark}`. The hero
+`ai-card-{running,running-clusters,queued,failed,pending,none,clusters,dark}`, and with a
+conversation in it
+`ai-card-conversation-{answered,none-answered,working,approval,error,crowded,dark,mobile}` and
+`ai-card-none-mobile`. The hero
 title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
 and the Affected Resources tests add
 `{incident,alert,scheduled-maintenance}-overview-affected-resources` and

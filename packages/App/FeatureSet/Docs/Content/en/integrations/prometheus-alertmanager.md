@@ -154,10 +154,10 @@ Use this when you need logic beyond "alert becomes incident".
 
 1. Open **Workflows → Create Workflow**, name it `Alertmanager → Incidents`, and open the **Builder**.
 2. Add a **Webhook** trigger and **copy its URL**. Rename the block to `Alertmanager`.
-3. Add a **Conditions** block connected to the trigger:
-   - **Left**: `{{Alertmanager.Request Body.status}}`
-   - **Operator**: `==`
-   - **Right**: `firing`
+3. Add an **If / Else** block (Conditions category) connected to the trigger:
+   - **Value to check**: `{{Alertmanager.Request Body.status}}`
+   - **Comparison**: **is equal to**
+   - **Compare with**: `firing`
 4. From **Yes**, add a **Create Incident** block:
    - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
    - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`

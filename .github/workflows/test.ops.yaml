@@ -76,7 +76,10 @@ jobs:
       # against a vulnerable npm from the registry, and inside
       # node:26-alpine3.24 through the real .dockerignore, the way every Node
       # image runs it. It needs the npm registry and docker.
-      - run: cd Tests/Ops && npm install
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
       # Both real-Docker tests above build FROM
       # public.ecr.aws/docker/library/node:26-alpine3.24, and public.ecr.aws
       # serves anonymous pullers from a shared data quota that a busy CI window
@@ -103,9 +106,31 @@ jobs:
       # Runs the pinned collector image over the four agent configs and over
       # both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh
+      # `validate` proves the agent's OTTL parses; this proves what it DOES.
+      # It runs the Kubernetes agent's filter/ebpf-unlinked-db exactly as the
+      # chart renders it, in the collector image the chart ships, and checks
+      # which spans survive: unlinked eBPF database spans dropped, request
+      # traces and SDK spans kept. A wrong condition here is not a crash, it
+      # is a customer's traces quietly missing (or the one-span flood back).
+      - run: bash Tests/Ops/agent-trace-filter-behaviour.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and
       # the development render, without building anything; the jest suite
       # above pins what the stages contain.
       - run: bash Tests/Ops/lint-app-dockerfile.sh
+      # What agent-trace-filter-behaviour.sh does for the agent's collector,
+      # this does for its eBPF DaemonSet. helm-unittest pins OBI's config file
+      # and env as text, but only OBI can say whether it takes them: it
+      # refuses to start on a metrics feature it does not know (the
+      # `application_host` that would crash-loop every node on v0.14), and it
+      # silently ignores a YAML key it does not know. This loads each rendered
+      # variant in the OBI image the chart pins, unprivileged (no
+      # capabilities, no network, never --privileged or --pid=host), and
+      # checks the effective configuration OBI prints before it gives up for
+      # lack of privileges.
+      #
+      # It pulls the image the chart renders, so a tag nobody can pull fails
+      # it: a chart pinning such an image puts every node in ImagePullBackOff.
+      # Last in the job, so a red run here never skips the steps above.
+      - run: bash Tests/Ops/agent-obi-config-load.sh

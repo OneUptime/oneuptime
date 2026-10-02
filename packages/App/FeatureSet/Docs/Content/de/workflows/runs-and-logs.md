@@ -1,4 +1,4 @@
-# Ausführungen & Protokolle
+# Ausführungen
 
 Jedes Mal, wenn ein Workflow läuft, hält OneUptime fest, was passiert ist – wann er lief, ob es geklappt hat und was jeder Baustein getan hat. Dieser Datensatz heißt **Ausführung**. Über Ausführungen bestätigen Sie, dass ein Workflow funktioniert hat, suchen den Fehler, wenn nicht, und schauen sich zurückliegende Aktivität an.
 
@@ -6,8 +6,8 @@ Jedes Mal, wenn ein Workflow läuft, hält OneUptime fest, was passiert ist – 
 
 | Seite                                       | Was Sie sehen                                                                                      |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Arbeitsabläufe → Ausführungen & Protokolle** | Jede Ausführung jedes Workflows im Projekt. Filtern Sie nach Workflow-Name, Status und Zeit.    |
-| **Workflow → Ausführungen & Protokolle**  | Nur die Ausführungen dieses einen Workflows. Hier gibt es statt des Workflow-Filters einen Filter **Ausführungs-ID**. |
+| **Arbeitsabläufe → Protokolle → Ausführungen** | Jede Ausführung jedes Workflows im Projekt. Filtern Sie nach Workflow-Name, Status und Zeit.    |
+| **Workflow → Protokolle → Ausführungen**  | Nur die Ausführungen dieses einen Workflows. Hier gibt es statt des Workflow-Filters einen Filter **Ausführungs-ID**. |
 | **Eine einzelne Ausführung**            | Wird über den Knopf **Protokolle anzeigen** in einer Ausführungszeile geöffnet – die Zeilen selbst sind nicht anklickbar. |
 
 ## Status einer Ausführung
@@ -47,7 +47,7 @@ Starten Sie eine Ausführung aus dem **Builder** heraus, öffnet sich genau dies
 
 ### „Mein Workflow ist nicht gelaufen.“
 
-1. Stellen Sie sicher, dass der Workflow auf seiner Seite **Übersicht** auf **Aktiviert** steht. Neue Workflows starten deaktiviert, und ein deaktivierter Workflow lehnt jede Ausführung ab – auch manuelle.
+1. Stellen Sie sicher, dass der Workflow auf **Aktiviert** steht: Der Schalter sitzt oben in seinem **Builder**, der über der Arbeitsfläche Bescheid gibt, wenn der Workflow ausgeschaltet ist. Neue Workflows starten deaktiviert, und ein deaktivierter Workflow lehnt jede Ausführung ab – auch manuelle. Ein Aufruf seines Webhooks erhält HTTP 400 mit einer Meldung, wie er eingeschaltet wird.
 2. Bei einem OneUptime-Ereignis-Trigger: Prüfen Sie, ob das Ereignis wirklich stattgefunden hat. Öffnen Sie den Datensatz und sehen Sie sich seine Historie an.
 3. Bei einem Webhook-Trigger: Prüfen Sie, ob das andere System an die richtige URL sendet. Die meisten Tools protokollieren, wenn sie einen Webhook schicken – schauen Sie dort nach.
 4. Bei einem Zeitplan-Trigger: Prüfen Sie, ob der Cron-Ausdruck zu der Zeit passt, die Sie erwarten.

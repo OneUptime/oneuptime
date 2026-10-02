@@ -237,12 +237,17 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
            * left blank gets one from the server's CSPRNG
            * (EnterpriseLicenseService.onBeforeCreate).
            */
+          formSteps={[
+            { title: "Customer", id: "customer" },
+            { title: "License", id: "license" },
+          ]}
           formFields={[
             {
               field: {
                 companyName: true,
               },
               title: "Company Name",
+              stepId: "customer",
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Acme, Inc.",
@@ -252,6 +257,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 email: true,
               },
               title: "Email",
+              stepId: "customer",
               description:
                 "The address the customer booked their meeting with. Joins this licence to the conversion that produced it.",
               fieldType: FormFieldSchemaType.Email,
@@ -260,9 +266,20 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                annualContractValue: true,
+              },
+              title: "Annual Contract Value (USD)",
+              stepId: "customer",
+              fieldType: FormFieldSchemaType.PositiveNumber,
+              required: false,
+              placeholder: "0",
+            },
+            {
+              field: {
                 licenseKey: true,
               },
               title: "License Key",
+              stepId: "license",
               description: "Leave blank to auto-generate a key.",
               fieldType: FormFieldSchemaType.Text,
               required: false,
@@ -274,6 +291,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 expiresAt: true,
               },
               title: "Expires At",
+              stepId: "license",
               fieldType: FormFieldSchemaType.Date,
               required: true,
             },
@@ -282,6 +300,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 isEvaluationLicense: true,
               },
               title: "Evaluation License",
+              stepId: "license",
               description:
                 "Turn on for an evaluation/testing key. The customer's installation shows an evaluation notice and it is not meant for production use.",
               fieldType: FormFieldSchemaType.Toggle,
@@ -292,20 +311,12 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 userLimit: true,
               },
               title: "User Limit",
+              stepId: "license",
               description:
                 "Maximum number of users allowed under this license. Leave blank for no limit.",
               fieldType: FormFieldSchemaType.PositiveNumber,
               required: false,
               placeholder: "No limit",
-            },
-            {
-              field: {
-                annualContractValue: true,
-              },
-              title: "Annual Contract Value (USD)",
-              fieldType: FormFieldSchemaType.PositiveNumber,
-              required: false,
-              placeholder: "0",
             },
           ]}
           selectMoreFields={{

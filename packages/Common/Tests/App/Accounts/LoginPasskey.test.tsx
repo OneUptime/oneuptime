@@ -37,6 +37,9 @@ import WebAuthnTestUtil, {
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 
+// A filled button - what a primary button looks like, whatever its colour.
+const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
 /*
  * These tests expect the SSO choice next to the password and passkey ones,
  * which the page offers in every edition. Pinned to the Community Edition
@@ -141,6 +144,30 @@ describe("Passwordless passkey login", () => {
       screen.getByText("Use single sign-on (SSO) instead"),
     ).toBeInTheDocument();
     expect(posted).toHaveLength(0);
+  });
+
+  /*
+   * The page offers two ways in and used to draw both as filled indigo
+   * buttons - two primary buttons asking for two things at once. The password
+   * form's "Login" is the page's one primary button; the passkey option keeps
+   * its tinted panel at the top, with a plain button.
+   */
+  test("has one primary button, the password form's, and a plain passkey button", async () => {
+    renderPage();
+    await screen.findByTestId("email");
+
+    const passkey: HTMLElement = screen.getByTestId("passkey-login");
+    const signIn: HTMLElement = screen.getByTestId("Login");
+    const filled: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement) => {
+        return FILLED_BUTTON_CLASS.test(button.className);
+      });
+
+    expect(passkey).toHaveClass("bg-white");
+    expect(passkey).not.toHaveClass("bg-indigo-600");
+    expect(signIn).toHaveClass("bg-indigo-600");
+    expect(filled).toEqual([signIn]);
   });
 
   test("signs in without email or password and uses normal user/token finalization", async () => {

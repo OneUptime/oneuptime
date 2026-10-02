@@ -55,6 +55,11 @@ const {
   contextSourceProblem,
   findEnterpriseLeaks,
 } = require("./Utils/DockerfileContext");
+const {
+  stepCommand,
+  stepCommandFromRoot,
+  stepWorkingDirectory,
+} = require("./Utils/WorkflowStep");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const EE_DIR = path.join(REPO_ROOT, "ee");
@@ -938,19 +943,10 @@ describe(".gitignore keeps ee key material out of the repository too", () => {
 });
 
 /*
- * Workflow helpers. A "step command" is a step's `run`, or the `command` of a
- * nick-fields/retry step.
+ * Workflow helpers. A "step command" is what a step runs as shell
+ * (Utils/WorkflowStep): its `run`, the npm command of an npm-install step, or
+ * the `command` of a nick-fields/retry step.
  */
-function stepCommand(step) {
-  if (typeof step.run === "string") {
-    return step.run;
-  }
-  if (step.with && typeof step.with.command === "string") {
-    return step.with.command;
-  }
-  return "";
-}
-
 function removesEnterprise(step) {
   return /^\s*rm -rf ee\s*$/m.test(stepCommand(step));
 }
@@ -984,6 +980,19 @@ describe("core CI is the Community Edition by construction", () => {
     expect(coreJobs.length).toBeGreaterThan(15);
   });
 
+  test("it can see their installs (an install it cannot read passes the check below)", () => {
+    /*
+     * When installs moved into ./.github/actions/npm-install, the step reader
+     * saw two of the 22 core jobs' installs, and the check below passed the
+     * other 20 without looking at them.
+     */
+    const installing = coreJobs.filter(([, job]) => {
+      return (job.steps || []).some(installsPackages);
+    });
+
+    expect(installing.length).toBeGreaterThan(15);
+  });
+
   test.each(coreJobs)(
     "%s removes ee/ before it installs anything",
     (_label, job) => {
@@ -1002,29 +1011,30 @@ describe("core CI is the Community Edition by construction", () => {
 describe("the Enterprise Edition's own CI", () => {
   test("compile-ee installs what ee type-checks against, then ee, then compiles it", () => {
     const job = readYaml(".github/workflows/compile.yml").jobs["compile-ee"];
-    const commands = job.steps.map(stepCommand);
-    const indexOf = (pattern) => {
-      return commands.findIndex((command) => {
-        return pattern.test(command);
-      });
+    // Each step as typed from the root: every install is a step of its own.
+    const commands = job.steps.map((step) => {
+      return stepCommandFromRoot(step).trim();
+    });
+    const indexOf = (command) => {
+      return commands.indexOf(command);
     };
 
-    const common = indexOf(/cd packages\/Common && npm install/);
-    const app = indexOf(/cd packages\/App && npm install/);
+    const common = indexOf("cd packages/Common && npm install");
+    const app = indexOf("cd packages/App && npm install");
     const dashboard = indexOf(
-      /cd packages\/App\/FeatureSet\/Dashboard && npm install/,
+      "cd packages/App/FeatureSet/Dashboard && npm install",
     );
     const admin = indexOf(
-      /cd packages\/App\/FeatureSet\/AdminDashboard && npm install/,
+      "cd packages/App/FeatureSet/AdminDashboard && npm install",
     );
-    const ee = indexOf(
-      /cd ee && npm ci --ignore-scripts && npm run compile && npm run dep-check/,
-    );
+    const ee = indexOf("cd ee && npm ci --ignore-scripts");
+    const compile = indexOf("cd ee && npm run compile && npm run dep-check");
 
-    for (const index of [common, app, dashboard, admin, ee]) {
+    for (const index of [common, app, dashboard, admin, ee, compile]) {
       expect(index).toBeGreaterThan(-1);
     }
     expect(Math.max(common, app, dashboard, admin)).toBeLessThan(ee);
+    expect(ee).toBeLessThan(compile);
     expect(job.steps.some(removesEnterprise)).toBe(false);
   });
 
@@ -1041,7 +1051,7 @@ describe("the Enterprise Edition's own CI", () => {
     const inDirectory = (directory, pattern) => {
       return (step) => {
         return (
-          step["working-directory"] === directory &&
+          stepWorkingDirectory(step) === directory &&
           pattern.test(stepCommand(step))
         );
       };
@@ -1076,13 +1086,13 @@ describe("the Enterprise Edition's own CI", () => {
     };
     const app = indexOf((step) => {
       return (
-        step["working-directory"] === "packages/App" &&
+        stepWorkingDirectory(step) === "packages/App" &&
         /^npm install$/.test(stepCommand(step))
       );
     });
     const guards = indexOf((step) => {
       return (
-        step["working-directory"] === "packages/App" &&
+        stepWorkingDirectory(step) === "packages/App" &&
         stepCommand(step).trim() ===
           "node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit"
       );

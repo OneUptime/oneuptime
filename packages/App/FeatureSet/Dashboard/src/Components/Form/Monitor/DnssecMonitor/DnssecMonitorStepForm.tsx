@@ -64,12 +64,9 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
 
       <div>
-        <FieldLabelElement
+        <Toggle
           title="Check Nameserver Consistency"
           description="Query each authoritative nameserver directly and verify they return the same SOA serial. Requires outbound DNS to arbitrary IPs; disable if your network blocks this."
-          required={false}
-        />
-        <Toggle
           value={props.monitorStepDnssecMonitor.checkNameserverConsistency}
           onChange={(value: boolean) => {
             props.onChange({

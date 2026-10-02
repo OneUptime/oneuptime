@@ -14,7 +14,7 @@ OneUptime GitHub App 不只是一条通往代码的连接——您可以在自�
 
 ## 开始之前
 
-- 仓库必须通过 GitHub App **连接到某个 OneUptime 项目**。安装步骤参见 [GitHub 集成（自托管）](/docs/self-hosted/github-integration)；在 OneUptime Cloud 上，从 **项目设置 → 代码仓库** 连接即可。
+- 仓库必须通过 GitHub App **连接到某个 OneUptime 项目**。安装步骤参见 [GitHub 集成（自托管）](/docs/self-hosted/github-integration)；在 OneUptime Cloud 上，从 **任务 → 代码仓库** 连接即可。
 - 必须有一个启用了 **执行 AI 代码修复** 能力的 Runner 在线——就是执行 [AI 修复任务](/docs/ai/ai-agent)的那个 Runner。没有它，命令会被接受，然后在 30 分钟后失败，并提示没有任何代理接手。
 - GitHub App 必须具备 **Issues：读写** 权限，并订阅[需要订阅哪些事件](#需要订阅哪些事件)中列出的 Webhook 事件。
 
@@ -56,7 +56,7 @@ should cover the 429 case
 | `@oneuptime status` | 说明它当前在这个对话里正在做什么。 |
 | `@oneuptime cancel` | 停止它在这个对话里进行中的运行。已经推送出去的成果会保留。 |
 
-`help`、`status` 和 `cancel` 从不启动代理运行，因此它们不产生任何开销，也不占用您的每日修复任务预算。
+`help`、`status` 和 `cancel` 从不启动代理运行，因此它们不产生任何开销。
 
 ## 它在对话里是什么样子
 
@@ -87,10 +87,9 @@ should cover the 429 case
 
 每一条会启动工作的命令都是一次完整的代理运行——一次克隆、最多 40 次 LLM 调用和 100,000 个输出 token；如果您配置了仓库的构建和测试命令，还要加上它们。
 
-有两条限制适用，而且它们就是已经管着 [AI 修复任务](/docs/ai/ai-agent)的那两条：
+GitHub 命令属于事件和警报之外的 AI 工作，因此不受任何每日修复运行上限的约束。唯一可能适用的限制，就是已经管着 [AI 修复任务](/docs/ai/ai-agent)的那一条：
 
-- **项目的每日修复运行上限**（**项目设置 → 人工智能**，默认每天 25 次）。GitHub 命令与项目中其余的修复运行共用这份预算。
-- **单个仓库的未关闭 Pull Request 上限**（**代码仓库 → 对应仓库 → 设置**，默认 5 个）。评审和修订不受此限：两者都不会往您的待评审队列里新增 Pull Request。
+- **单个仓库的未关闭 Pull Request 上限**（**代码仓库 → 对应仓库 → 设置** 里的 **Max Open Fix Pull Requests**）。在您设置之前没有上限；设为 0 则会阻止 AI 在该仓库上开修复 Pull Request。评审和修订不受此限：两者都不会往您的待评审队列里新增 Pull Request。
 
 同一个 Issue 或 Pull Request 上，每种运行同时只能有一个在进行。再问一次，它会告诉您它已经在做了；而在修订进行期间请求评审则会同时启动两者，因为它们是不同的请求。
 
@@ -129,13 +128,13 @@ Issue 文本、Pull Request 描述、diff 和评论都会成为代理提示词�
 
 ## 故障排查
 
-**我提及它，什么都没发生。** 先检查 handle——它是应用的 slug，不是显示名称。然后检查仓库是否已连接到某个项目（**项目设置 → 代码仓库**）、**Respond to GitHub Commands** 是否开启，以及您的 GitHub App 是否订阅了上面列出的事件。
+**我提及它，什么都没发生。** 先检查 handle——它是应用的 slug，不是显示名称。然后检查仓库是否已连接到某个项目（**任务 → 代码仓库**）、**Respond to GitHub Commands** 是否开启，以及您的 GitHub App 是否订阅了上面列出的事件。
 
 **它回了个 😕，什么也没说。** 您对该仓库没有写入权限。
 
 **它说它已经在处理这个了。** 该 Issue 或 Pull Request 上已经有一个同类型的运行在进行。`@oneuptime status` 会告诉您是哪一个，`@oneuptime cancel` 可以停掉它。
 
-**它确认之后就长时间没有动静。** 检查 **设置 → Runbook 代理** 下是否有启用了 **执行 AI 代码修复** 的 Runner 在线。没有的话，运行会在 30 分钟后失败，并在对话里说明情况。
+**它确认之后就长时间没有动静。** 检查 **运行手册 → Runbook 代理** 下是否有启用了 **执行 AI 代码修复** 的 Runner 在线。没有的话，运行会在 30 分钟后失败，并在对话里说明情况。
 
 **它说这个 Pull Request 来自 fork。** 修订需要一个位于本仓库中的分支。改为请它评审，或者把分支推到这里来。
 

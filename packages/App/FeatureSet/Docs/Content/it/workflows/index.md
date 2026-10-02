@@ -38,22 +38,22 @@ Apri **Flussi di lavoro** nella navigazione a sinistra. Quella sezione contiene:
 
 - **Flussi di lavoro** — l'elenco dei tuoi workflow. Creane uno nuovo o aprine uno esistente.
 - **Variabili globali** — valori condivisi tra tutti i tuoi workflow.
-- **Esecuzioni e registri** — la cronologia delle esecuzioni di ogni workflow del progetto.
+- **Registri → Esecuzioni** — la cronologia delle esecuzioni di ogni workflow del progetto.
 
 Apri un singolo workflow e il suo menu a sinistra contiene:
 
 - **Panoramica** — nome, descrizione, etichette e l'interruttore **Abilitato**.
-- **Costruttore** — la tela su cui progetti il workflow.
+- **Costruttore** — la tela su cui progetti il workflow, con l'interruttore **Abilitato** in cima.
 - **Variabili del flusso** — valori validi solo per questo workflow.
-- **Esecuzioni e registri** — ogni esecuzione di questo workflow, con i dettagli.
-- **Impostazioni** — chiave segreta del webhook, duplicazione ed esportazione.
+- **Registri → Esecuzioni** — ogni esecuzione di questo workflow, con i dettagli.
+- **Impostazioni** — duplicazione ed esportazione.
 
 ## Costruire il tuo primo workflow
 
 1. **Crea** — scegli un punto di partenza, poi dai un nome al tuo workflow.
 2. **Scegli un trigger** — manuale, pianificato, webhook o un evento di OneUptime.
 3. **Aggiungi i componenti** — metti le azioni sulla tela e collegale.
-4. **Accendilo** — attiva **Abilitato** nella pagina **Panoramica**. Un workflow disabilitato non può essere eseguito in alcun modo, nemmeno a mano.
+4. **Accendilo** — attiva **Abilitato** in cima al **Costruttore**. Un workflow disabilitato non può essere eseguito in alcun modo, nemmeno a mano.
 5. **Provalo** — clicca **Esegui flusso di lavoro** nel Costruttore e osserva il registro dell'esecuzione.
 
 ## Un esempio veloce
@@ -80,5 +80,5 @@ La prossima volta che qualcuno apre un incidente con "Sev 1" nel titolo, Slack s
 - [Trigger del workflow](/docs/workflows/triggers) — i diversi modi in cui un workflow può partire.
 - [Componenti del workflow](/docs/workflows/components) — i mattoncini che puoi aggiungere.
 - [Variabili del workflow](/docs/workflows/variables) — usare valori tra blocchi e workflow diversi.
-- [Esecuzioni e log del workflow](/docs/workflows/runs-and-logs) — controllare che cosa è successo.
+- [Esecuzioni del workflow](/docs/workflows/runs-and-logs) — controllare che cosa è successo.
 - [Configurazione e sicurezza del workflow](/docs/workflows/configuration) — impostazioni che vale la pena conoscere.

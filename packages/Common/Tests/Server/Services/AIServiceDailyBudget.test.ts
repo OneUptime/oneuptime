@@ -616,6 +616,66 @@ describe("AIService.executeWithLogging autonomous lane forwarding", () => {
   });
 });
 
+/*
+ * The AI section these messages used to point at is gone from the Incidents
+ * and Alerts side menus: the limit lives on the AI page under Settings.
+ */
+describe("AIService.executeWithLogging budget exhaustion message", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    ["incident", "Incidents > Settings > AI"],
+    ["alert", "Alerts > Settings > AI"],
+  ])(
+    "an exhausted %s lane names where its limit is set now",
+    async (lane: string, location: string) => {
+      const projectId: ObjectID = ObjectID.generate();
+      const subject: { incidentId?: ObjectID; alertId?: ObjectID } =
+        lane === "incident"
+          ? { incidentId: ObjectID.generate() }
+          : { alertId: ObjectID.generate() };
+
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+        id: projectId,
+        enableAi: true,
+      } as unknown as Project);
+      jest.spyOn(LlmProviderService, "getProviderForChat").mockResolvedValue({
+        id: ObjectID.generate(),
+        llmType: LlmType.OpenAI,
+        isGlobalLlm: false,
+      } as unknown as LlmProvider);
+      jest
+        .spyOn(AIService, "getAutonomousDailyBudgetStatus")
+        .mockResolvedValue({
+          exhausted: true,
+          limitInTokens: 1_000,
+          usedTokensToday: 1_000,
+        });
+      const completion: jest.SpyInstance = jest.spyOn(
+        LLMService,
+        "getCompletion",
+      );
+      jest.spyOn(LlmLogService, "create").mockResolvedValue(new LlmLog());
+
+      const call: Promise<unknown> = AIService.executeWithLogging({
+        projectId,
+        ...subject,
+        feature:
+          lane === "incident"
+            ? AI_INCIDENT_INVESTIGATION_FEATURE
+            : AI_ALERT_INVESTIGATION_FEATURE,
+        messages: [{ role: "user", content: "investigate" }],
+      });
+
+      await expect(call).rejects.toThrow(location);
+      await expect(call).rejects.not.toThrow(/AI > Investigation/);
+      expect(completion).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe("AIInvestigationQueue budget skip", () => {
   afterEach(() => {
     jest.restoreAllMocks();

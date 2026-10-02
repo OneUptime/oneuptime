@@ -470,3 +470,113 @@ describe("Ordered states list items", () => {
     ]);
   });
 });
+
+/*
+ * The ⋯ on every one of these surfaces is a bare icon, like the one in a card
+ * header - no border, fill or shadow boxing it in beside the row's button.
+ * RowActionsTrigger.test.tsx covers the trigger in detail; this checks that
+ * each surface really draws that trigger and not one of its own.
+ */
+const expectBareMoreTrigger: (rowActions: HTMLElement) => void = (
+  rowActions: HTMLElement,
+): void => {
+  const trigger: HTMLElement = within(rowActions).getByTestId(
+    "row-actions-more-button",
+  );
+  const rowButton: HTMLElement = within(rowActions).getByRole("button", {
+    name: "View Domain",
+  });
+
+  expect(trigger).not.toHaveClass("border-gray-300");
+  expect(trigger).not.toHaveClass("bg-white");
+  expect(trigger).not.toHaveClass("shadow-sm");
+  expect(trigger).toHaveClass("border-transparent");
+  expect(trigger).toHaveClass("bg-transparent");
+  expect(trigger).toHaveClass("hover:bg-gray-100");
+  expect(trigger).toHaveClass("focus-visible:ring-2");
+
+  // The row's own button is still a bordered button.
+  expect(rowButton).toHaveClass("border-gray-300");
+};
+
+describe("the ⋯ on every row surface has no border", () => {
+  test("on every desktop table row", () => {
+    const { actions } = makeRowActions();
+
+    renderTable({ actions });
+
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
+
+    expect(rowActions).toHaveLength(2);
+    rowActions.forEach(expectBareMoreTrigger);
+  });
+
+  test("while a row's menu is open", () => {
+    const { actions } = makeRowActions();
+
+    renderTable({ actions });
+
+    const rowActions: HTMLElement = screen.getAllByTestId("row-actions")[0]!;
+
+    openMenuIn(rowActions);
+
+    expect(
+      within(rowActions).getByTestId("row-actions-more-button"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expectBareMoreTrigger(rowActions);
+  });
+
+  test("on every mobile card", () => {
+    setViewportWidth(500);
+
+    const { actions } = makeRowActions();
+
+    renderTable({ actions });
+
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
+
+    expect(document.querySelector("table")).toBeNull();
+    expect(rowActions).toHaveLength(2);
+    rowActions.forEach(expectBareMoreTrigger);
+  });
+
+  test("on every list card", () => {
+    const { actions } = makeRowActions();
+
+    render(
+      <List<Row>
+        id="domains-list"
+        data={ROWS}
+        fields={[{ title: "Domain", key: "name", fieldType: FieldType.Text }]}
+        actionButtons={actions}
+        onNavigateToPage={() => {}}
+        currentPageNumber={1}
+        totalItemsCount={ROWS.length}
+        itemsOnPage={10}
+        error=""
+        isLoading={false}
+        singularLabel="Domain"
+        pluralLabel="Domains"
+      />,
+    );
+
+    const rowActions: Array<HTMLElement> = screen.getAllByTestId("row-actions");
+
+    expect(rowActions).toHaveLength(2);
+    rowActions.forEach(expectBareMoreTrigger);
+  });
+
+  test("on an ordered-states item", () => {
+    const { actions } = makeRowActions();
+
+    render(
+      <OrderedStatesListItem<Row>
+        item={ROWS[0]!}
+        titleField="name"
+        actionButtons={actions}
+      />,
+    );
+
+    expectBareMoreTrigger(screen.getByTestId("row-actions"));
+  });
+});

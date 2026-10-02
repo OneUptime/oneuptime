@@ -1,12 +1,19 @@
 # Skapa ett arbetsflöde
 
-För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. En guide som heter **Create a workflow** tar dig genom det: först **Start from** — välj **Start from scratch** eller en av mallarna — sedan **Namn**, och till sist ett **Konfigurera**-steg, som bara dyker upp när mallen du valde vill ha egna inställningar.
+För att skapa ett arbetsflöde, öppna **Arbetsflöden** och klicka på **Skapa arbetsflöde**. En guide som heter **Create a workflow** tar dig genom det: först **Start from**, sedan **Namn**, och till sist ett **Konfigurera**-steg, som bara dyker upp när mallen du valde vill ha egna inställningar.
+
+På **Start from** väljer du hur du vill börja:
+
+- **Börja från grunden**, bredvid sökrutan, ger dig en tom arbetsyta.
+- En mall ger dig ett arbetsflöde som redan fungerar, redo att ändras. Steget öppnas med några mallar under **Rekommenderade**. Resten ligger under sina kategorier, som **Incidenter**, **Monitorer** och **Jira**, var och en med hur många mallar den har, och **Alla mallar** visar varenda en. En sökning letar i alla: varje ord du skriver måste matcha, och varje kategori visar hur många av dess mallar som matchade.
+
+Klicka på en mall för att se vad den gör innan du väljer den: dess utlösare, stegen den består av och inställningarna den kommer att fråga efter. **Använd den här mallen** tar den vidare till **Namn**, och det gör **Enter** och ett dubbelklick också. Piltangenterna flyttar dig genom listan, och `/` tar dig tillbaka till sökrutan.
 
 När det är skapat, öppna **Byggare** i vänstermenyn. Det är arbetsytan där du designar arbetsflödet.
 
 ## Arbetsytan
 
-Ett arbetsflöde som byggs från grunden öppnas med ett enda streckat block där det står **Please click here to add trigger**. Det blocket är startpunkten — klicka på det för att välja en utlösare. Ett arbetsflöde skapat från en mall öppnas med sina block redan på plats.
+Ett arbetsflöde som byggs från grunden öppnas med ett enda streckat block där det står **Choose what starts this workflow**. Det blocket är startpunkten — klicka på det för att välja en utlösare. Ett arbetsflöde skapat från en mall öppnas med sina block redan på plats.
 
 Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **komponent** som gör något. Lägger du till en andra utlösare ersätter den den första, och tar du bort den sista kommer den streckade platshållaren tillbaka.
 
@@ -15,9 +22,9 @@ Att lägga till block:
 - **Utlösaren** — klicka på det streckade platshållarblocket. En panel med rubriken **Add Trigger** öppnas.
 - **Allt annat** — klicka på **Lägg till komponent** i verktygsfältet ovanför arbetsytan. Samma panel öppnas, med rubriken **Lägg till komponent**.
 
-Båda panelerna är sökbara — tryck på `/` för att hoppa till sökrutan — och grupperade efter kategori. Markera ett block och klicka på **Add to Workflow**.
+Båda panelerna öppnas med de block som de flesta arbetsflöden använder, under **Popular**, följda av de övriga inbyggda blocken. Under **OneUptime resources** klickar du på en resurs som **Incident** för att se vad du kan göra med den; **Browse all resources** listar alla. Eller sök: skriv några ord, till exempel `create incident`, så hamnar den närmaste träffen först. Tryck på `/` för att hoppa till sökrutan, piltangenterna för att flytta mellan resultaten och **Enter** för att lägga till det markerade blocket. Ett klick på ett block lägger till det.
 
-Nya block landar alltid på samma plats på arbetsytan, så ett nytt kan hamna ovanpå något du redan placerat. Dra undan det; arbetsytan snäpper till ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma upplägg som du lämnade efter dig.
+Ett nytt block landar under det nedersta blocket på arbetsytan, och en ny utlösare tar den gamlas plats högst upp. Det nya blocket är markerat, och landar det utanför synfältet rullar arbetsytan precis så långt att det syns. Dess inställningar öppnas inte av sig själva: klicka på blocket när du är redo att ställa in det. Så länge de obligatoriska inställningarna är tomma står det **Click to set up** på det. Dra blocken dit du vill; arbetsytan snäpper till ett rutnät medan du drar. Blockens positioner sparas, så nästa person ser samma upplägg som du lämnade efter dig.
 
 Ändringar sparas automatiskt. En liten etikett i verktygsfältet håller koll på det: **Saving…** medan ändringen är på väg, sedan **Sparad**, eller **Could not save** om det inte gick. Det finns ingen spara-knapp och inget separat publiceringssteg.
 
@@ -42,7 +49,7 @@ Du kan koppla en utgång till flera block. Alla körs — men en i taget, i en e
 
 ## Konfigurera ett block
 
-Klicka på ett block för att öppna dess inställningar i en dialog. Varje inställning har rätt sorts inmatning — textfält, rullgardinsmenyer, kodredigerare, växlar och så vidare. Fyll i och klicka på **Spara**.
+Klicka på ett block för att öppna dess inställningar i en dialog (eller gå till det med **Tab** och tryck på **Enter**). Varje inställning har rätt sorts inmatning — textfält, rullgardinsmenyer, kodredigerare, växlar och så vidare. Fyll i och klicka på **Spara**.
 
 I samma dialog hittar du också:
 
@@ -54,7 +61,7 @@ De flesta textfält tar emot variabler — det är så data flödar från ett bl
 
 ## Kontroller medan du bygger
 
-Byggaren kontrollerar hela grafen varje gång du ändrar något och rapporterar vad den hittar i en etikett i verktygsfältet. Klicka på etiketten för att öppna **Problems with this workflow**, som listar varje problem och tar dig till blocket som orsakar det. Block med problem får också en röd markering på arbetsytan.
+Byggaren kontrollerar hela grafen varje gång du ändrar något och rapporterar vad den hittar i en etikett i verktygsfältet. Klicka på etiketten för att öppna **Problems with this workflow**, som listar varje problem och tar dig till blocket som orsakar det. På arbetsytan står det **Click to set up** på ett block vars obligatoriska inställningar fortfarande är tomma, och ett block med något annat problem får en markering i hörnet: röd för ett fel, gul för en varning. Håll muspekaren över markeringen för att läsa vad som är fel.
 
 Den fångar misstagen som annars är osynliga tills en körning går fel — ingen utlösare, två block som delar id, en punkt inuti ett id, ett block som ingenting kopplar till, en obligatorisk inställning som lämnats tom, felformad JSON, mellanslag inuti `{{ }}` och referenser till ett steg eller returvärde som inte finns.
 
@@ -64,10 +71,10 @@ En sak den inte kan kontrollera: om ett variabelnamn finns. En omdöpt variabel 
 
 Snabbaste sättet att få känsla för arbetsytan:
 
-1. Klicka på det streckade platshållarblocket, välj **Manual** i panelen **Add Trigger** och klicka på **Add to Workflow**.
-2. Klicka på **Lägg till komponent**, välj **Log** (under **Utils**) och klicka på **Add to Workflow**. Dra det nya blocket undan från utlösaren och koppla sedan utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
-3. Öppna Log-blocket och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
-4. Gå till **Översikt**, klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer** och slå på **Aktiverad**. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
+1. Klicka på det streckade platshållarblocket och sedan på **Manual** i panelen **Add Trigger**.
+2. Klicka på **Lägg till komponent** och sedan på **Log** under **Popular**. Det nya blocket landar under utlösaren. Koppla utlösarens **Execute**-punkt ner till Log-blockets inmatningspunkt.
+3. Klicka på Log-blocket, där det står **Click to set up**, och sätt dess **Value** till `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` är utlösarens **Identifier**, som står på utlösarblocket — kontrollera att det stämmer.
+4. Slå på **Aktiverad** högst upp i Byggare. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand; hoppar du över det här steget frågar **Kör arbetsflöde** först om det ska slås på.
 5. Tillbaka i **Byggare**, klicka på **Kör arbetsflöde**, lägg `{ "name": "Ada" }` i fältet **JSON**, klicka på **Run Workflow Manually** och bekräfta med **Run**.
 6. En panel med **Workflow Run** öppnas av sig själv och följer körningen. Loggen visar `Value:` följt av `Hello from Ada`.
 
@@ -75,11 +82,13 @@ Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är så du
 
 ## Slå på det
 
-Nya arbetsflöden startar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar.
+Nya arbetsflöden startar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar. Så länge ett arbetsflöde är avstängt säger Byggare det ovanför arbetsytan, med knappen **Slå på arbetsflödet**.
 
-Växeln **Aktiverad** sitter på arbetsflödets sida **Översikt**, i kortet **Arbetsflödesdetaljer** — inte på inställningssidan. Samma kort visar aktuellt tillstånd som en grön **Aktiverad**- eller röd **Inaktiverad**-etikett.
+Växeln **Aktiverad** sitter högst upp i **Byggare**, bredvid **Lägg till komponent** och **Kör arbetsflöde**. Den finns också på arbetsflödets sida **Översikt**: klicka på **Redigera arbetsflöde** på kortet **Arbetsflödesdetaljer**, som visar aktuellt tillstånd som en grön **Aktiverad**- eller röd **Inaktiverad**-etikett. Bara den som får redigera arbetsflödet kan slå på eller av det; alla andra ser växeln nedtonad.
 
-Ett inaktiverat arbetsflöde kan inte köras alls. Manuella körningar avvisas med "This workflow is not enabled" precis som utlösta, så ordningen är: aktivera det, testa det med **Kör arbetsflöde**, läs körloggen och slå av **Aktiverad** igen om du inte är redo för att dess utlösare ska smälla. För att testa ett enskilt block utan att köra hela saken, använd **Run just this step** i det blockets inställningar.
+Ett inaktiverat arbetsflöde kan inte köras alls: dess utlösare ignoreras, och det gör även **Kör arbetsflöde** och **Run just this step**. Kör du det, eller ett av dess block, medan det är avstängt frågar Byggare i stället **Slå på det här arbetsflödet?**. **Slå på och kör** (eller **Slå på och kör steget**) slår på arbetsflödet och kör sedan det du bad om, med de värden du angav. Så ordningen är: bygg det, testa det med **Kör arbetsflöde**, läs körloggen och slå av **Aktiverad** igen om du inte är redo för att dess utlösare ska smälla. För att testa ett enskilt block utan att köra hela saken, använd **Run just this step** i det blockets inställningar.
+
+Allt annat som startar ett inaktiverat arbetsflöde avvisas med samma råd. Ett anrop till dess webhook-URL får HTTP 400 och "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." Ett **Execute Workflow**-block som anropar det tar sin **Error**-väg, och felet namnger arbetsflödet det anropade.
 
 För att pausa ett arbetsflöde utan att ta bort det, slå av **Aktiverad**. Inga nya körningar startar. En körning som är mitt i exekveringen slutförs, men en som står parkerad på ett **Sleep**-block avbryts när den vaknar och registreras som ett fel.
 
@@ -96,4 +105,4 @@ För att pausa ett arbetsflöde utan att ta bort det, slå av **Aktiverad**. Ing
 - [Arbetsflödesutlösare](/docs/workflows/triggers) — de fyra sätten ett arbetsflöde kan starta på.
 - [Arbetsflödeskomponenter](/docs/workflows/components) — varje block du kan lägga till.
 - [Arbetsflödesvariabler](/docs/workflows/variables) — flytta data mellan block.
-- [Arbetsflödeskörningar & loggar](/docs/workflows/runs-and-logs) — kontrollera vad som hände.
+- [Arbetsflödeskörningar](/docs/workflows/runs-and-logs) — kontrollera vad som hände.

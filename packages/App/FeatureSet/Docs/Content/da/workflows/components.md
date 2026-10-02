@@ -105,7 +105,7 @@ Send en e-mail gennem en SMTP-server, som du angiver på blokken.
 - **Succes** — fyrer, når SMTP-serveren accepterede beskeden.
 - **Fejl** — fyrer, når SMTP-værten afvises, serveren ikke kan nås, eller serveren afviser beskeden. Sender fejlmeddelelsen videre. Mangler **To Email**, **From Email**, **SMTP Host** eller **SMTP Port**, stopper kørslen i stedet.
 
-Blokken opretter forbindelse direkte til den server, der står i dens indstillinger. Den bruger hverken dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i Notifikationslogs. Vil du tjekke, hvad den gjorde, så se workflowets [kørsler & logfiler](/docs/workflows/runs-and-logs).
+Blokken opretter forbindelse direkte til den server, der står i dens indstillinger. Den bruger hverken dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i Notifikationslogs. Vil du tjekke, hvad den gjorde, så se workflowets [kørsler](/docs/workflows/runs-and-logs).
 
 Forbindelser til loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og cloud-metadata-adresser afvises. På OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der opløses til en sådan adresse. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært går til **Fejl**-outputtet, og intet bliver sendt.
 
@@ -131,7 +131,7 @@ Konvertér mellem tekst og JSON.
 
 ## Conditions
 
-Forgren efter en sammenligning. I panelet **Tilføj komponent** hedder blokken **If / Else** og ligger under kategorien Conditions.
+Forgren efter en sammenligning. I panelet **Tilføj komponent** hedder blokken **If / Else** og ligger under **Popular**.
 
 **Indstillinger**:
 
@@ -159,7 +159,7 @@ Der er en sikkerhedsgrænse, så workflows ikke kan blive ved med at kalde hinan
 
 ## OneUptime-datakomponenter
 
-For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter — søg efter typens navn. Hver titel dannes ud fra posttypen, så sættet for Monitor lyder:
+For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter: klik på posttypen under **OneUptime resources** (**Browse all resources** har dem, der ikke vises), eller søg efter typens navn. Hver titel dannes ud fra posttypen, så sættet for Monitor lyder:
 
 - **Find One Monitor** — læs én post, der matcher forespørgslen.
 - **Find Many Monitors** — læs en liste af poster, der matcher forespørgslen.
@@ -217,5 +217,5 @@ Et par hurtige regler:
 ## Hvor du kan læse videre
 
 - [Workflow-variabler](/docs/workflows/variables) — sådan sender du data mellem blokke.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad hver blok gjorde i en kørsel.
+- [Workflow-kørsler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad hver blok gjorde i en kørsel.
 - [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — grænser, ejere og hemmeligheder.

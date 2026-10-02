@@ -5,12 +5,14 @@
  * is how one shared documentation file came to be attached to eight of them and
  * to none of the three triggers.
  *
- * These pin the metadata a builder actually reads: which documentation each
- * component points at, which arguments it opens on, and what its own palette
- * entry says it does.
+ * These pin the metadata a builder actually reads: the help each component
+ * gets, which arguments it opens on, and what its own palette entry says it
+ * does.
  */
 
 import BaseModelComponent from "../../../Types/Workflow/Components/BaseModel";
+import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
+import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
 import ComponentMetadata, {
   Argument,
   ComponentInputType,
@@ -102,64 +104,64 @@ describe("generated database components", () => {
   });
 });
 
-describe("documentation links", () => {
+describe("help", () => {
   /*
-   * One shared file used to serve all eight components, so on Create One most
-   * of it described arguments that component does not have. Splitting it per
-   * operation is only correct if every component points at its own file.
+   * One shared Markdown file once served all eight components, so on Create
+   * One most of it described arguments that component does not have; then one
+   * file per operation, still shared by every model. Each component's help is
+   * now built for its own operation and model (DatabaseDocumentation.ts), and
+   * ComponentDocumentation.test.ts holds what it says. Here: that every one of
+   * the eleven gets help of its own, and only for what it is.
    */
-  type ExpectDocsFunction = (idSuffix: string, fileName: string) => void;
+  type DocsOfFunction = (idSuffix: string) => ComponentDocumentation;
 
-  const expectDocs: ExpectDocsFunction = (
-    idSuffix: string,
-    fileName: string,
-  ): void => {
-    expect(find(idSuffix).documentationLink?.toString()).toBe(
-      `/workflow/docs/${fileName}`,
-    );
+  const docsOf: DocsOfFunction = (idSuffix: string): ComponentDocumentation => {
+    const metadata: ComponentMetadata = find(idSuffix);
+    const documentation: ComponentDocumentation | null =
+      getComponentDocumentation({ metadata, stepId: `${metadata.id}-1` });
+
+    if (!documentation) {
+      throw new Error(`No help for ${metadata.id}`);
+    }
+
+    return documentation;
   };
 
-  test("find components point at the find docs", () => {
-    expectDocs("-find-one", "DatabaseFind.md");
-    expectDocs("-find-many", "DatabaseFind.md");
+  test("every generated component has help", () => {
+    for (const idSuffix of [...COMPONENT_IDS, ...TRIGGER_IDS]) {
+      expect(docsOf(idSuffix).summary.length).toBeGreaterThan(0);
+    }
   });
 
-  test("create components point at the create docs", () => {
-    expectDocs("-create-one", "DatabaseCreate.md");
-    expectDocs("-create-many", "DatabaseCreate.md");
+  test("each component's help is its own, not one shared page", () => {
+    const summaries: Set<string> = new Set(
+      [...COMPONENT_IDS, ...TRIGGER_IDS].map((idSuffix: string) => {
+        return docsOf(idSuffix).summary;
+      }),
+    );
+
+    expect(summaries.size).toBe(COMPONENT_IDS.length + TRIGGER_IDS.length);
   });
 
-  test("update components point at the update docs", () => {
-    expectDocs("-update-one", "DatabaseUpdate.md");
-    expectDocs("-update-many", "DatabaseUpdate.md");
-  });
-
-  test("delete components point at the delete docs", () => {
-    expectDocs("-delete-one", "DatabaseDelete.md");
-    expectDocs("-delete-many", "DatabaseDelete.md");
+  test("the help names the model it is about", () => {
+    for (const idSuffix of [...COMPONENT_IDS, ...TRIGGER_IDS]) {
+      expect(docsOf(idSuffix).summary).toMatch(/Monitors?\b/);
+    }
   });
 
   /*
-   * The triggers had no documentationLink at all, so ComponentSettingsModal
-   * rendered no documentation card for them and nothing explained the absence.
+   * The triggers once had no documentation at all, so their dialog showed no
+   * card for it and nothing explained the absence.
    */
-  test("triggers now have documentation of their own", () => {
+  test("triggers have help of their own", () => {
     for (const idSuffix of TRIGGER_IDS) {
-      expectDocs(idSuffix, "DatabaseTriggers.md");
+      expect(docsOf(idSuffix).summary).toMatch(/^Starts this workflow/);
     }
   });
 
-  test("no component is left pointing at the old shared file", () => {
+  test("no component carries a link to a Markdown file any more", () => {
     for (const component of COMPONENTS) {
-      expect(component.documentationLink?.toString()).not.toContain(
-        "DatabaseComponents.md",
-      );
-    }
-  });
-
-  test("every generated component has documentation", () => {
-    for (const component of COMPONENTS) {
-      expect(component.documentationLink).toBeDefined();
+      expect(Object.keys(component)).not.toContain("documentationLink");
     }
   });
 });
@@ -426,20 +428,24 @@ describe("a model that enables only some operations", () => {
     }
   });
 
-  test("each component's documentation matches its own operation", () => {
+  test("each component's help is about its own operation", () => {
     for (const component of secretComponents) {
-      const link: string = component.documentationLink?.toString() || "";
+      const summary: string =
+        getComponentDocumentation({
+          metadata: component,
+          stepId: `${component.id}-1`,
+        })?.summary || "";
 
       if (component.id.includes("-create-")) {
-        expect(link).toBe("/workflow/docs/DatabaseCreate.md");
+        expect(summary).toMatch(/^Creates /);
       } else if (component.id.includes("-find-")) {
-        expect(link).toBe("/workflow/docs/DatabaseFind.md");
+        expect(summary).toMatch(/^Finds /);
       } else if (component.id.includes("-update-")) {
-        expect(link).toBe("/workflow/docs/DatabaseUpdate.md");
+        expect(summary).toMatch(/^Changes /);
       } else if (component.id.includes("-delete-")) {
-        expect(link).toBe("/workflow/docs/DatabaseDelete.md");
+        expect(summary).toMatch(/^Deletes /);
       } else {
-        expect(link).toBe("/workflow/docs/DatabaseTriggers.md");
+        expect(summary).toMatch(/^Starts this workflow /);
       }
     }
   });

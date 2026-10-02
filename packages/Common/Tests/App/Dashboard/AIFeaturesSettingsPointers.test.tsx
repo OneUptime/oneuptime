@@ -11,11 +11,13 @@ import { cleanup, render } from "@testing-library/react";
 import * as React from "react";
 
 /*
- * The project's AI switches (Enable AI, Enable auto-remediation, Enable AI
- * command execution) live on "Project Settings → AI Features", which every
- * install shows. Copy that sends people to one of them has to name that
- * page: "Project Settings" alone leaves them hunting, and the old home (AI
- * Credits) is listed only when billing is on.
+ * The project's AI switch, Enable AI, lives on "Project Settings → AI
+ * Features", which every install shows. Copy that sends people to it has to
+ * name that page: "Project Settings" alone leaves them hunting, and the old
+ * home (AI Credits) is listed only when billing is on. It is the only
+ * project switch auto-remediation answers to: "Enable auto-remediation" and
+ * "Enable AI command execution" were folded into it, so the rules table
+ * must not send anyone looking for either.
  *
  * The auto-remediation rules table is shared by the incident and alert
  * settings pages. Only the props it hands to ModelTable are under test, so
@@ -37,6 +39,16 @@ import AutoRemediationRulesTable from "../../../../App/FeatureSet/Dashboard/src/
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 
 const AI_FEATURES: string = "Project Settings → AI Features";
+
+/*
+ * The retired switches, however the copy might spell them. Rule help that
+ * names either sends people to a toggle that no longer exists.
+ */
+const RETIRED_SWITCH_PATTERNS: Array<RegExp> = [
+  /AI command execution/i,
+  /enable auto-remediation/i,
+  /auto-remediation can be turned off/i,
+];
 
 interface CapturedField {
   field?: Record<string, unknown>;
@@ -102,39 +114,63 @@ describe.each([
 ])(
   "the %s auto-remediation rules table",
   (trigger: AutoRemediationTriggerEntity) => {
-    test("the Let AI Compose Commands field says where the command execution switch is", () => {
+    test("the Let AI Compose Commands field needs an opted-in Runner and no project switch", () => {
       const { composeDescription } = renderRules(trigger);
 
       expect(composeDescription).toContain(
-        `Requires Enable AI Command Execution (in ${AI_FEATURES})`,
+        "Requires at least one Runner with Runs AI Remediation Commands.",
       );
-      expect(composeDescription).not.toContain(
-        "the project's Enable AI Command Execution setting",
-      );
-    });
-
-    test("every help sentence about the command execution switch names AI Features", () => {
-      const { markdown } = renderRules(trigger);
-      const sentences: Array<string> = sentencesMentioning(
-        markdown,
-        "Enable AI Command Execution",
-      );
-
-      expect(sentences.length).toBeGreaterThan(0);
-      for (const sentence of sentences) {
-        expect(sentence).toContain(AI_FEATURES);
+      expect(composeDescription).not.toContain("Project Settings");
+      for (const pattern of RETIRED_SWITCH_PATTERNS) {
+        expect({
+          pattern: String(pattern),
+          named: pattern.test(composeDescription),
+        }).toEqual({ pattern: String(pattern), named: false });
       }
     });
 
-    test("the guardrails say where auto-remediation is turned off for the project", () => {
+    test("the Let AI Compose Commands help names the Runner opt-in as its one requirement", () => {
       const { markdown } = renderRules(trigger);
 
       expect(markdown).toContain(
-        `auto-remediation can be turned off for the whole project in ${AI_FEATURES}.`,
+        "It requires at least one Runner with **Runs AI Remediation Commands** turned on;",
+      );
+    });
+
+    test("the help never sends anyone to a retired switch", () => {
+      const { markdown } = renderRules(trigger);
+
+      for (const pattern of RETIRED_SWITCH_PATTERNS) {
+        expect({
+          pattern: String(pattern),
+          named: pattern.test(markdown),
+        }).toEqual({ pattern: String(pattern), named: false });
+      }
+    });
+
+    test("the guardrails name Enable AI as the project-wide stop, on AI Features", () => {
+      const { markdown } = renderRules(trigger);
+
+      expect(markdown).toContain(
+        `turning off **Enable AI** in ${AI_FEATURES} stops auto-remediation for the whole project.`,
       );
       expect(markdown).not.toContain(
         "disabled project-wide from Project Settings",
       );
+    });
+
+    test("every help sentence that names a project setting names Enable AI on AI Features", () => {
+      const { markdown } = renderRules(trigger);
+      const sentences: Array<string> = sentencesMentioning(
+        markdown,
+        "Project Settings",
+      );
+
+      expect(sentences.length).toBeGreaterThan(0);
+      for (const sentence of sentences) {
+        expect(sentence).toContain("**Enable AI**");
+        expect(sentence).toContain(AI_FEATURES);
+      }
     });
 
     test("nothing points at AI Credits for a switch", () => {

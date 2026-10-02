@@ -49,6 +49,11 @@ const IncidentFormPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/IncidentForm");
   },
 );
+const McpAuthorizePage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/McpAuthorize");
+  },
+);
 
 function App(): ReactElement {
   Navigation.setNavigateHook(useNavigate());
@@ -105,6 +110,15 @@ function App(): ReactElement {
             <Route
               path="/accounts/incident-form/:shareKey"
               element={<IncidentFormPage />}
+            />
+            {/*
+             * The consent screen an MCP client sends its user to when it
+             * signs in with OAuth. It needs a session; a visitor without one
+             * is sent to sign in and brought back (see the page).
+             */}
+            <Route
+              path="/accounts/mcp-authorize"
+              element={<McpAuthorizePage />}
             />
             {/* 👇️ only match this when no other routes match */}
             <Route path="*" element={<NotFound />} />

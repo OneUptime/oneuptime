@@ -235,6 +235,10 @@
       "invalidLink": "Este enlace para cancelar la suscripción no es válido. Puede estar incompleto o la suscripción puede haberse eliminado. Para cancelarla, use el enlace de un mensaje reciente de esta página de estado.",
       "failed": "No se pudo cancelar la suscripción. Inténtelo de nuevo.",
       "loadFailed": "No se pudo cargar este enlace para cancelar la suscripción. Inténtelo de nuevo más tarde."
+    },
+    "steps": {
+      "details": "Detalles",
+      "preferences": "Preferencias"
     }
   },
   "accounts": {
@@ -327,5 +331,6 @@
   "{{field}} should not be less than {{minValue}}.": "{{field}} no debe ser menor que {{minValue}}.",
   "{{field}} is required.": "{{field}} es obligatorio.",
   "{{field}} should match {{matchField}}": "{{field}} debe coincidir con {{matchField}}",
-  "Email is not valid.": "El correo electrónico no es válido."
+  "Email is not valid.": "El correo electrónico no es válido.",
+  "Next": "Siguiente"
 }

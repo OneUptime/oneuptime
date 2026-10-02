@@ -14,7 +14,7 @@ Vermeld hem in een issue en hij opent een pull request. Vermeld hem in een pull 
 
 ## Voordat u begint
 
-- De repository moet via de GitHub App **aan een OneUptime-project gekoppeld** zijn. Zie [GitHub-integratie (zelf-gehost)](/docs/self-hosted/github-integration) voor de installatie, of koppel hem op OneUptime Cloud via **Projectinstellingen → Code-opslagplaatsen**.
+- De repository moet via de GitHub App **aan een OneUptime-project gekoppeld** zijn. Zie [GitHub-integratie (zelf-gehost)](/docs/self-hosted/github-integration) voor de installatie, of koppel hem op OneUptime Cloud via **Taken → Code-opslagplaatsen**.
 - Er moet een **Runner met de capability "Voert AI-codefixes uit"** online zijn — dezelfde Runner die [AI Fix Tasks](/docs/ai/ai-agent) uitvoert. Zonder Runner worden commando's wel aangenomen, maar mislukken ze na 30 minuten met de melding dat geen enkele agent ze heeft opgepakt.
 - De GitHub App moet de machtiging **Issues: Lezen & Schrijven** hebben en geabonneerd zijn op de webhookgebeurtenissen onder [Waarop u zich moet abonneren](#waarop-u-zich-moet-abonneren).
 
@@ -56,7 +56,7 @@ U kunt een issue ook **zonder ook maar een opmerking te plaatsen** aan de app ov
 | `@oneuptime status` | Vertelt waar hij in deze thread op dit moment aan werkt. |
 | `@oneuptime cancel` | Stopt de runs die hij in deze thread heeft lopen. Werk dat al gepusht is, blijft gepusht. |
 
-`help`, `status` en `cancel` starten nooit een agent-run: ze kosten dus niets en vallen niet onder uw dagelijkse budget voor fixtaken.
+`help`, `status` en `cancel` starten nooit een agent-run: ze kosten dus niets.
 
 ## Hoe het eruitziet in de thread
 
@@ -87,10 +87,9 @@ Hij negeert ook elke opmerking die door een bot is geschreven, inclusief die van
 
 Elk commando dat werk start, is een volledige agent-run — een clone, maximaal 40 LLM-aanroepen en 100.000 outputtokens, plus de build- en testcommando's van uw repository als u die hebt geconfigureerd.
 
-Er gelden twee limieten, en het zijn allebei dezelfde die al voor [AI Fix Tasks](/docs/ai/ai-agent) gelden:
+GitHub-commando's zijn AI-werk buiten incidenten en waarschuwingen, dus voor hen geldt geen dagelijkse limiet op fixruns. De enige limiet die kan gelden, is dezelfde die al voor [AI Fix Tasks](/docs/ai/ai-agent) geldt:
 
-- **De dagelijkse limiet op fixruns van het project** (**Projectinstellingen → AI**, standaard 25 per dag). GitHub-commando's delen dit budget met de overige fixruns van uw project.
-- **Het maximum aan open pull requests per repository** (**Code-opslagplaatsen → de repository → Instellingen**, standaard 5). Reviews en herzieningen vallen daarbuiten: geen van beide voegt een nieuwe pull request toe aan uw reviewwachtrij.
+- **Het maximum aan open pull requests per repository** (**Max Open Fix Pull Requests**, onder **Code-opslagplaatsen → de repository → Instellingen**). Er is geen maximum totdat u er een instelt, en 0 blokkeert AI-fix-pull-requests op die repository. Reviews en herzieningen vallen daarbuiten: geen van beide voegt een nieuwe pull request toe aan uw reviewwachtrij.
 
 Per issue of pull request loopt er maar één run van een bepaald soort tegelijk. Vraagt u het twee keer, dan krijgt u te horen dat hij er al mee bezig is; vraagt u om een review terwijl er een herziening loopt, dan starten er twee, want dat zijn verschillende verzoeken.
 
@@ -129,13 +128,13 @@ Behandel een door AI geschreven pull request zoals u er een zou behandelen van e
 
 ## Probleemoplossing
 
-**Er gebeurt niets als ik hem vermeld.** Controleer eerst de handle — dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (**Projectinstellingen → Code-opslagplaatsen**), of **Reageren op GitHub-commando's** aanstaat, en of uw GitHub App geabonneerd is op de bovenstaande gebeurtenissen.
+**Er gebeurt niets als ik hem vermeld.** Controleer eerst de handle — dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (**Taken → Code-opslagplaatsen**), of **Reageren op GitHub-commando's** aanstaat, en of uw GitHub App geabonneerd is op de bovenstaande gebeurtenissen.
 
 **Hij reageert met 😕 en zegt niets.** U hebt geen schrijftoegang tot de repository.
 
 **Hij zegt dat hij hier al mee bezig is.** Er loopt al een run van dat soort op deze issue of pull request. `@oneuptime status` vertelt u welke, en `@oneuptime cancel` stopt hem.
 
-**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Instellingen → Runners** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
+**Hij heeft bevestigd en bleef daarna lang stil.** Controleer of er onder **Runbooks → Runbook-agenten** een Runner met **Voert AI-codefixes uit** online is. Zonder Runner wordt de run na 30 minuten als mislukt gemarkeerd en krijgt de thread dat te horen.
 
 **Hij zegt dat de pull request uit een fork komt.** Herzieningen hebben een branch in deze repository nodig. Vraag in plaats daarvan om een review, of push de branch hierheen.
 

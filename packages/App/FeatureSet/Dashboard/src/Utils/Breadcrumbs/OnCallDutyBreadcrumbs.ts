@@ -17,6 +17,12 @@ export function getOnCallDutyBreadcrumbs(
       "On-Call Duty",
       "Policies",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED, [
+      "Project",
+      "On-Call Duty",
+      "Policies",
+      "Archived",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_READINESS, [
       "Project",
       "On-Call Duty",
@@ -109,6 +115,12 @@ export function getOnCallDutyBreadcrumbs(
       "On-Call Duty",
       "View On-Call Policy",
       "Delete On-Call Policy",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW_SETTINGS, [
+      "Project",
+      "On-Call Duty",
+      "View On-Call Policy",
+      "Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULE_VIEW, [
       "Project",

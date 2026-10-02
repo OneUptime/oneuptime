@@ -350,7 +350,9 @@
       "amountNotPositive": "Het bedrag moet groter zijn dan nul.",
       "amountTooLarge": "Het bedrag mag niet meer zijn dan {{max}} USD per aanpassing.",
       "amountTooPrecise": "Het bedrag mag niet meer dan twee decimalen hebben.",
-      "reasonRequired": "Voer een reden in voor deze aanpassing."
+      "reasonRequired": "Voer een reden in voor deze aanpassing.",
+      "adjustBalanceStepBalance": "Saldo",
+      "adjustBalanceStepAmount": "Bedrag en reden"
     },
     "projectSupport": {
       "title": "Toegang voor klantenondersteuning",
@@ -842,5 +844,10 @@
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.": "Wanneer ingeschakeld, moeten alle gebruikers zich met SSO aanmelden om toegang te krijgen tot een project op deze server. Hoofdbeheerders zijn uitgezonderd, zodat ze een verkeerd geconfigureerde SSO altijd kunnen herstellen. De eigen SSO-instellingen van een project blijven daarnaast gelden.",
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.": "Wanneer ingeschakeld, moeten alle gebruikers zich met SSO aanmelden om toegang te krijgen tot een project op deze server. Hoofdbeheerders zijn uitgezonderd.",
   "Enterprise license required.": "Enterprise-licentie vereist.",
-  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "De live Health-dashboards van OneUptime en de Query Console hebben een Enterprise-licentie nodig die instantiegezondheid omvat, en de licentie van deze installatie ontbreekt, is verlopen of omvat dit niet. Activeer of vernieuw de licentie via de Enterprise Edition-badge bovenaan het Admin-dashboard. Zolang de licentie ontbreekt of verlopen is, staan ook SCIM-provisioning en auditlogging uit; ze komen samen met deze schermen terug zodra een licentie wordt geactiveerd. ClickHouse-capaciteit, het instantielogboek, Globale sondes, Migraties en de support bundle werken ook zonder licentie; u vindt ze in het menu aan de linkerkant."
+  "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "De live Health-dashboards van OneUptime en de Query Console hebben een Enterprise-licentie nodig die instantiegezondheid omvat, en de licentie van deze installatie ontbreekt, is verlopen of omvat dit niet. Activeer of vernieuw de licentie via de Enterprise Edition-badge bovenaan het Admin-dashboard. Zolang de licentie ontbreekt of verlopen is, staan ook SCIM-provisioning en auditlogging uit; ze komen samen met deze schermen terug zodra een licentie wordt geactiveerd. ClickHouse-capaciteit, het instantielogboek, Globale sondes, Migraties en de support bundle werken ook zonder licentie; u vindt ze in het menu aan de linkerkant.",
+  "Are you sure you want to delete {{name}}?": "Weet u zeker dat u {{name}} wilt verwijderen?",
+  "Permanently delete {{name}}.": "{{name}} permanent verwijderen.",
+  "This action cannot be undone.": "Deze actie kan niet ongedaan worden gemaakt.",
+  "and {{remaining}} more": "en {{remaining}} meer",
+  "Type {{name}} to confirm.": "Typ {{name}} om te bevestigen."
 }
