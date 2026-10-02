@@ -2,6 +2,7 @@ import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { toHeadline } from "./EmptyTableMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -115,7 +116,16 @@ export const TABLE_EMPTY_STATE_TEST_ID: string = "table-empty-state";
 const TableEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateValue } = useTranslateValue();
+  const { translateValue, translateString } = useTranslateValue();
+
+  /*
+   * A title given as a sentence ("No services match the current filters.")
+   * is drawn as a heading, in the reader's language, without the stop.
+   */
+  const title: string | ReactElement =
+    typeof props.title === "string"
+      ? toHeadline(translateString(props.title) ?? props.title)
+      : props.title;
 
   const testId: string = props.dataTestId || TABLE_EMPTY_STATE_TEST_ID;
   const style: KindStyle = TABLE_EMPTY_STATE_KIND_STYLES[props.kind];
@@ -156,7 +166,7 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
         className="mt-5 max-w-lg text-base font-semibold leading-6 text-gray-900"
         data-testid={`${testId}-title`}
       >
-        {translateValue(props.title)}
+        {title}
       </h3>
 
       {props.description ? (

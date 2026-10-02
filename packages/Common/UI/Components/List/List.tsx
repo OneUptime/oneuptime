@@ -263,6 +263,16 @@ const List: ListFunction = <T extends GenericObject>(
               {getListbody()}
             </div>
           </DragDropContext>
+          {/*
+           * The footer used to run on into the card's bottom padding. With
+           * it left out, the list's grey runs on there instead, so the card
+           * does not end in a white band under the empty state.
+           */}
+          {isPaginationHidden && !props.disablePagination ? (
+            <div className="-mb-6 h-6 rounded-b-xl bg-gray-50" />
+          ) : (
+            <></>
+          )}
           {!isPaginationHidden && (
             <div className="mt-5 -mb-6">
               <Pagination

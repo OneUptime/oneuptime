@@ -12,7 +12,14 @@ import {
   TableEmptyStateKind,
   TableEmptyStateProps,
 } from "../Table/TableEmptyState";
-import { getMessageEmptyStateParts } from "../Table/TableEmptyStateBuilders";
+import {
+  CLEAR_FILTERS,
+  CLEAR_SEARCH,
+  CLEAR_SEARCH_AND_FILTERS,
+  EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
+  getFilteredEmptyStateProps,
+  getMessageEmptyStateParts,
+} from "../Table/TableEmptyStateBuilders";
 import EmptyStateOptions from "./EmptyStateOptions";
 import { ReactElement } from "react";
 
@@ -22,9 +29,13 @@ import { ReactElement } from "react";
  * filters, the viewer's permission - and draws what this returns.
  */
 
-export const CLEAR_SEARCH: string = "Clear Search";
-export const CLEAR_FILTERS: string = "Clear Filters";
-export const CLEAR_SEARCH_AND_FILTERS: string = "Clear Search and Filters";
+export {
+  CLEAR_FILTERS,
+  CLEAR_SEARCH,
+  CLEAR_SEARCH_AND_FILTERS,
+  EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
+};
+
 export const VIEW_DOCUMENTATION: string = "View Documentation";
 
 /*
@@ -41,8 +52,6 @@ export const NO_ACCESS_DESCRIPTION: string =
 
 export const EMPTY_TABLE_CREATE_BUTTON_TEST_ID: string =
   "empty-table-create-button";
-export const EMPTY_TABLE_CLEAR_FILTERS_TEST_ID: string =
-  "empty-table-clear-filters-button";
 export const EMPTY_TABLE_HELP_LINK_TEST_ID: string = "empty-table-help-link";
 export const EMPTY_TABLE_DOCS_LINK_TEST_ID: string = "empty-table-docs-link";
 
@@ -85,9 +94,14 @@ export interface ModelTableEmptyState {
   usesCardDescription: boolean;
 }
 
+interface ClearAction {
+  title: string;
+  onClear: () => void;
+}
+
 type GetClearActionFunction = (
   input: ModelTableEmptyStateInput,
-) => TableEmptyStateAction | undefined;
+) => ClearAction | undefined;
 
 /*
  * The way out of a search or filter that hides every row, named for what it
@@ -95,7 +109,7 @@ type GetClearActionFunction = (
  */
 const getClearAction: GetClearActionFunction = (
   input: ModelTableEmptyStateInput,
-): TableEmptyStateAction | undefined => {
+): ClearAction | undefined => {
   const isTableFiltered: boolean = input.isSearchActive || input.isFilterActive;
   const pageClear: (() => void) | undefined = input.options?.isFiltered
     ? input.options.onClearFilters
@@ -117,9 +131,7 @@ const getClearAction: GetClearActionFunction = (
 
   return {
     title: title,
-    icon: IconProp.Close,
-    dataTestId: EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
-    onClick: (): void => {
+    onClear: (): void => {
       if (isTableFiltered) {
         input.onClearSearchAndFilters();
       }
@@ -175,19 +187,18 @@ export const buildModelTableEmptyState: (
    * creating one is the wrong answer to a search that missed.
    */
   if (input.isSearchActive || input.isFilterActive || options.isFiltered) {
-    const clearAction: TableEmptyStateAction | undefined =
-      getClearAction(input);
+    const clearAction: ClearAction | undefined = getClearAction(input);
 
     return {
-      emptyStateProps: {
-        kind: TableEmptyStateKind.Filtered,
+      emptyStateProps: getFilteredEmptyStateProps({
         title: getEmptyTableTitle({
           pluralLabel: input.pluralLabel,
           isFiltered: true,
           translate: input.translate,
         }),
-        actions: clearAction ? [clearAction] : [],
-      },
+        onClear: clearAction?.onClear,
+        clearTitle: clearAction?.title,
+      }),
       usesCardDescription: false,
     };
   }

@@ -11,10 +11,12 @@ import TableEmptyState, {
   TableEmptyStateKind,
   TableEmptyStateProps,
 } from "./TableEmptyState";
-import { EmptyMessageParts } from "./EmptyTableMessage";
+import { EmptyMessageParts, getEmptyTableTitle } from "./EmptyTableMessage";
 import {
+  getFilteredEmptyStateProps,
   getLoadErrorStateProps,
   getMessageEmptyStateParts,
+  hasFilterValues,
 } from "./TableEmptyStateBuilders";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
@@ -314,6 +316,46 @@ const Table: TableFunction = <T extends GenericObject>(
         <div className="my-10 text-center text-sm text-gray-500">
           {props.noItemsMessage}
         </div>
+      );
+    }
+
+    /*
+     * The table's own filter form hides every row: what the page says about
+     * that, or the table's own "No X match your search or filters", with the
+     * way to clear them - never the way to create one.
+     */
+    if (
+      hasFilterValues(
+        props.filterData as { [key: string]: unknown } | undefined,
+      )
+    ) {
+      const filteredParts: EmptyMessageParts | undefined =
+        typeof props.noItemsMessage === "string" && props.noItemsMessage.trim()
+          ? getMessageEmptyStateParts({
+              pluralLabel: props.pluralLabel,
+              noItemsMessage: props.noItemsMessage,
+              translate: translate,
+            })
+          : undefined;
+
+      return (
+        <TableEmptyState
+          {...getFilteredEmptyStateProps({
+            title:
+              filteredParts?.title ||
+              getEmptyTableTitle({
+                pluralLabel: props.pluralLabel,
+                isFiltered: true,
+                translate: translate,
+              }),
+            description: filteredParts?.description,
+            onClear: props.onFilterChanged
+              ? (): void => {
+                  props.onFilterChanged?.({});
+                }
+              : undefined,
+          })}
+        />
       );
     }
 

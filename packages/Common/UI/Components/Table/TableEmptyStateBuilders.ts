@@ -20,9 +20,69 @@ import {
  */
 
 export const TRY_AGAIN: string = "Try again";
+export const CLEAR_SEARCH: string = "Clear Search";
+export const CLEAR_FILTERS: string = "Clear Filters";
+export const CLEAR_SEARCH_AND_FILTERS: string = "Clear Search and Filters";
 
 // The retry keeps the hook every table's Refresh link had.
 export const TABLE_RETRY_BUTTON_TEST_ID: string = "refresh-button";
+export const EMPTY_TABLE_CLEAR_FILTERS_TEST_ID: string =
+  "empty-table-clear-filters-button";
+
+export interface FilteredEmptyStateOptions {
+  // What the reader is told: "No services match the current filters."
+  title: string;
+  description?: string | undefined;
+  // Empties whatever is hiding the rows. No button without one.
+  onClear?: (() => void) | undefined;
+  // The button's words, when it clears more (or less) than filters.
+  clearTitle?: string | undefined;
+}
+
+/*
+ * Rows exist, but a search or filter hides every one of them: say so, and
+ * offer the way back - never a Create button, the wrong answer to a search
+ * that missed.
+ */
+export const getFilteredEmptyStateProps: (
+  options: FilteredEmptyStateOptions,
+) => TableEmptyStateProps = (
+  options: FilteredEmptyStateOptions,
+): TableEmptyStateProps => {
+  const actions: Array<TableEmptyStateAction> = [];
+
+  if (options.onClear) {
+    actions.push({
+      title: options.clearTitle || CLEAR_FILTERS,
+      icon: IconProp.Close,
+      onClick: options.onClear,
+      dataTestId: EMPTY_TABLE_CLEAR_FILTERS_TEST_ID,
+    });
+  }
+
+  return {
+    kind: TableEmptyStateKind.Filtered,
+    title: options.title,
+    description: options.description,
+    actions: actions,
+  };
+};
+
+/*
+ * Whether filter-form values narrow the rows - the same test BaseModelTable
+ * applies to its own filters: any key with a value.
+ */
+export const hasFilterValues: (
+  filterData: { [key: string]: unknown } | undefined,
+) => boolean = (filterData: { [key: string]: unknown } | undefined): boolean => {
+  if (!filterData) {
+    return false;
+  }
+
+  return Object.keys(filterData).some((key: string): boolean => {
+    return Boolean(filterData[key]);
+  });
+};
 
 export interface LoadErrorStateOptions {
   pluralLabel: string;
