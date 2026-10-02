@@ -223,3 +223,27 @@ describe("the incident custom field docs describe the simple form", () => {
     expect(section).toContain("A new field's values are typed in.");
   });
 });
+
+/*
+ * The same change elsewhere: an LLM provider's Set as Default and Additional
+ * Parameters left a wizard step of their own for a collapsed Advanced
+ * section, and its docs say where they are now.
+ */
+describe("the LLM provider docs say what is under Advanced", () => {
+  test.each(LANGUAGES)("%s", (language: string) => {
+    const markdown: string = fs.readFileSync(
+      path.join(CONTENT_DIR, language, "ai", "llm-provider.md"),
+      "utf8",
+    );
+
+    const bullet: string | undefined = markdown
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith(`- **${ADVANCED_FORM_SECTION_TITLE}**`);
+      });
+
+    expect(bullet).toBeDefined();
+    expect(bullet).toContain("**Set as Default**");
+    expect(bullet).toContain("**Additional Parameters**");
+  });
+});
