@@ -39,6 +39,14 @@ import ts from "typescript";
  * are told apart by doNotShowWhenCreating / doNotShowWhenEditing, and the
  * longer of the two is what is judged.
  *
+ * A folded section counts once. Fields next to each other that share a
+ * collapsibleSection (an "Advanced" section, getAdvancedFormSection) are
+ * drawn as one header until the user opens it, so the form - or the step -
+ * is judged by the rows it shows, the section's header being one of them
+ * (countFieldRows). Fields are told to share a section by how their
+ * collapsibleSection is written, so write the same expression on each: one
+ * constant, built once.
+ *
  * What counts as steps. A non-empty steps list (formSteps, steps,
  * formProps.steps), or a summary turned on (BasicForm then walks a default
  * step and a Summary step).
@@ -116,6 +124,12 @@ export interface FormFieldFacts {
   isCreateOnly: boolean;
   // doNotShowWhenCreating - the Edit form only.
   isEditOnly: boolean;
+  /*
+   * The field's collapsibleSection as written (whitespace dropped), or
+   * undefined when it is not in one. Fields next to each other with the same
+   * text are one folded section.
+   */
+  collapsibleSection: string | undefined;
   file: string;
   line: number;
 }
@@ -145,7 +159,10 @@ export interface FormFacts {
   hasSummaryOnly: boolean;
   // Whether a ModelTable offers its Edit form (isEditable written as true).
   hasEditForm: boolean;
-  // The fields the user can see, on the longer of the forms the host draws.
+  /*
+   * The fields the user can see, on the longer of the forms the host draws -
+   * a folded section counting once (countFieldRows).
+   */
   visibleFieldCount: number;
   /*
    * The form edits a rule model (one extending RuleBaseModel), whose
@@ -1250,18 +1267,20 @@ export class FormStepsScanner {
       },
     );
 
-    let visibleFieldCount: number = shown.length;
+    let visibleFieldCount: number = countFieldRows(shown);
 
     if (hostName === "ModelTable" || hostName === "RuleTable") {
-      const onCreate: number = shown.filter(
-        (field: FormFieldFacts): boolean => {
+      const onCreate: number = countFieldRows(
+        shown.filter((field: FormFieldFacts): boolean => {
           return !field.isEditOnly;
-        },
-      ).length;
+        }),
+      );
       const onEdit: number = hasEditForm
-        ? shown.filter((field: FormFieldFacts): boolean => {
-            return !field.isCreateOnly;
-          }).length
+        ? countFieldRows(
+            shown.filter((field: FormFieldFacts): boolean => {
+              return !field.isCreateOnly;
+            }),
+          )
         : 0;
       visibleFieldCount = Math.max(onCreate, onEdit);
     }
@@ -1508,6 +1527,8 @@ export class FormStepsScanner {
     const title: ts.Node | null = initializerOf("title");
     const stepId: ts.Node | null = initializerOf("stepId");
     const showIf: ts.Node | null = initializerOf("showIf");
+    const collapsibleSection: ts.Node | null =
+      initializerOf("collapsibleSection");
 
     let stepIdValue: string | null | undefined = undefined;
 
@@ -1540,6 +1561,17 @@ export class FormStepsScanner {
       isConditional: Boolean(showIf && !isConstantFalseFunction(showIf)),
       isCreateOnly: isTrue("doNotShowWhenEditing"),
       isEditOnly: isTrue("doNotShowWhenCreating"),
+      collapsibleSection:
+        collapsibleSection &&
+        collapsibleSection.kind !== ts.SyntaxKind.UndefinedKeyword &&
+        !(
+          ts.isIdentifier(collapsibleSection) &&
+          collapsibleSection.text === "undefined"
+        )
+          ? collapsibleSection
+              .getText(collapsibleSection.getSourceFile())
+              .replace(/\s+/g, "")
+          : undefined,
       file: toRepositoryPath(
         this.repositoryRoot,
         call ? call.getSourceFile().fileName : parsed.file,
@@ -1878,7 +1910,8 @@ export interface StepFieldCount {
 /*
  * Every step of a stepped form, with the fields it can show. Counted like a
  * form's length: a field shown under a condition counts (the step can be
- * that long), a constant `showIf: () => false` registration does not, and a
+ * that long), a constant `showIf: () => false` registration does not, a
+ * folded section counts once (countFieldRows), and a
  * ModelTable is judged by the longer of its Create and Edit forms. A rule
  * model's Match Criteria step counts as one field, because ModelForm draws
  * the criteria builder there instead of the fields listed on it.
@@ -1905,18 +1938,20 @@ export function countStepFields(form: FormFacts): Array<StepFieldCount> {
       },
     );
 
-    let count: number = onStep.length;
+    let count: number = countFieldRows(onStep);
 
     if (form.host === "ModelTable" || form.host === "RuleTable") {
-      const onCreate: number = onStep.filter(
-        (field: FormFieldFacts): boolean => {
+      const onCreate: number = countFieldRows(
+        onStep.filter((field: FormFieldFacts): boolean => {
           return !field.isEditOnly;
-        },
-      ).length;
+        }),
+      );
       const onEdit: number = form.hasEditForm
-        ? onStep.filter((field: FormFieldFacts): boolean => {
-            return !field.isCreateOnly;
-          }).length
+        ? countFieldRows(
+            onStep.filter((field: FormFieldFacts): boolean => {
+              return !field.isCreateOnly;
+            }),
+          )
         : 0;
       count = Math.max(onCreate, onEdit);
     }
@@ -1945,15 +1980,41 @@ export function findOverloadedSteps(
   });
 }
 
-export function describeStepFieldCount(count: StepFieldCount): string {
-  const titles: Array<string> = count.fields.map(
-    (field: FormFieldFacts): string => {
-      return (
-        (field.title || field.key || "?") +
-        (field.isConditional ? " (when shown)" : "")
-      );
-    },
+/*
+ * The rows a list of fields takes on screen. Every field is a row, except
+ * that fields next to each other in one folded section (collapsibleSection,
+ * e.g. getAdvancedFormSection) are one row between them: the section's
+ * header, which is all the form shows of them until the user opens it.
+ */
+export function countFieldRows(fields: Array<FormFieldFacts>): number {
+  let rows: number = 0;
+  let previousSection: string | undefined = undefined;
+
+  for (const field of fields) {
+    if (
+      field.collapsibleSection !== undefined &&
+      field.collapsibleSection === previousSection
+    ) {
+      continue;
+    }
+
+    rows++;
+    previousSection = field.collapsibleSection;
+  }
+
+  return rows;
+}
+
+function describeFieldTitle(field: FormFieldFacts): string {
+  return (
+    (field.title || field.key || "?") +
+    (field.isConditional ? " (when shown)" : "") +
+    (field.collapsibleSection !== undefined ? " (folded)" : "")
   );
+}
+
+export function describeStepFieldCount(count: StepFieldCount): string {
+  const titles: Array<string> = count.fields.map(describeFieldTitle);
 
   return `${count.form.file}:${count.form.line} ${count.form.label} - step "${count.step.id}" (${count.step.title}) shows ${count.count} fields: ${titles.join(", ")}`;
 }
@@ -1963,12 +2024,7 @@ export function describeForm(form: FormFacts): string {
     .filter((field: FormFieldFacts): boolean => {
       return !field.isNeverShown;
     })
-    .map((field: FormFieldFacts): string => {
-      return (
-        (field.title || field.key || "?") +
-        (field.isConditional ? " (when shown)" : "")
-      );
-    });
+    .map(describeFieldTitle);
 
   return `${form.file}:${form.line} ${form.label} - ${form.visibleFieldCount} fields: ${titles.join(", ")}`;
 }
