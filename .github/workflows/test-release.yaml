@@ -1154,7 +1154,7 @@ jobs:
   # with one worker, exactly as the unsharded suite ran. On one runner the
   # suite took ~67 minutes against the SaaS stack and ~42 against the
   # self-hosted one; four and three shards put each at about 17 and 14.
-  # `npm run test-sharding` (the Compile workflow's compile-e2e) checks that
+  # `npm run test-sharding` (the Compile workflow's compile-services) checks that
   # the shards of both counts add up to exactly the whole suite, so change
   # WORKFLOW_SHARD_TOTALS in packages/E2E/Sharding/Sharding.spec.ts with them.
   #
