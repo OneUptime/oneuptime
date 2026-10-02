@@ -502,13 +502,16 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
          * The value is the engine's stored intent (snapshot.skipInactive);
          * the shell owns the default and the persisted preference. Idle
          * stretches are drawn on the track and every skip shows a toast, so
-         * a jump is never mistaken for a bug.
+         * a jump is never mistaken for a bug. A stretch the recorder paused
+         * through is skipped with the switch off as well (there is nothing
+         * in it to watch), which the tooltip says, so the switch does not
+         * look broken the first time one is skipped with it off.
          */}
         <ReplaySwitch
           dataTestId="replay-skip-idle"
           label="Skip idle"
           isChecked={props.isSkipInactiveEnabled}
-          title="Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track."
+          title="Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track. Stretches where the recording paused are always skipped."
           onChange={props.onSkipInactiveChange}
         />
       </div>

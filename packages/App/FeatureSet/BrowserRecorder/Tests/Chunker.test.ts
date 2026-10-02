@@ -414,6 +414,59 @@ describe("Chunker", (): void => {
     });
 
     /*
+     * #4208: the pagehide path closes through closeSplit, and a tab closed
+     * while the recorder was paused for idle has nothing open - its seal
+     * has to be dated at the footage, as close() dates the idle rollover's,
+     * or twenty minutes nobody recorded are counted as recording.
+     */
+    it("dates an empty final split at the end it is given, too", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 300_000 }));
+      chunker.close(false);
+
+      withClockAt(SESSION_START + 25 * 60 * 1000, (): void => {
+        chunker.closeSplit(true, 70, 70, 10, SESSION_START + 2_000);
+      });
+
+      const seal: PendingChunk = chunks[1] as PendingChunk;
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.eventCount).toBe(0);
+      expect(seal.payload).toBe("[]");
+
+      /* Never before the footage ahead of it: the marker that ended it. */
+      expect(seal.chunkStartOffsetMs).toBe(300_000);
+      expect(seal.chunkEndOffsetMs).toBe(300_000);
+    });
+
+    it("still dates an empty final split at now when no end is given", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      withClockAt(SESSION_START + 9_000, (): void => {
+        chunker.closeSplit(true, 70, 70);
+      });
+
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(9_000);
+    });
+
+    it("leaves a split with events dated by its events, whatever end it is given", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 3_000 }));
+      chunker.add(event({ timestampMs: SESSION_START + 8_000 }));
+
+      withClockAt(SESSION_START + 31 * 60 * 1000, (): void => {
+        chunker.closeSplit(true, 1_000, 1_000, 0, SESSION_START + 1_000);
+      });
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(true);
+      expect(chunks[0]?.chunkStartOffsetMs).toBe(3_000);
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(8_000);
+    });
+
+    /*
      * Events date themselves. Whatever was still open when the session
      * ended IS its last footage, and its own times say where that ended.
      */

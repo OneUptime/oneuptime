@@ -150,6 +150,16 @@ export interface ErrorRecorderOptions {
    * wiring can land independently of this module.
    */
   onCapReached?: (cap: number) => void;
+
+  /*
+   * True while the recorder is paused because nobody is at the page (see
+   * SESSION_REPLAY_IDLE_PAUSE_MS). Nothing is recorded then, and nothing
+   * is counted against the per-session cap either: a page polling or
+   * logging on its own for twenty minutes must not spend the budget the
+   * user's own session needs once they come back. Optional, so the module
+   * still works on its own.
+   */
+  isSuspended?: () => boolean;
 }
 
 /*
@@ -312,6 +322,15 @@ export default class ErrorRecorder {
   }
 
   private handle(error: RecordedError, occurredAtUnixMs?: number): void {
+    /*
+     * Before the fingerprint is remembered, too: the same error thrown
+     * again once the user is back is a first occurrence in the footage,
+     * not a repeat of one nobody recorded.
+     */
+    if (this.options.isSuspended && this.options.isSuspended()) {
+      return;
+    }
+
     const atUnixMs: number = occurredAtUnixMs ?? Date.now();
     const fingerprint: string = ErrorRecorder.fingerprintOf(error);
 

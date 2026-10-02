@@ -70,6 +70,16 @@ export interface ReplayRailGlyph {
   description: string;
 }
 
+/*
+ * The one marker with a glyph of its own: a recording pause is where the
+ * footage stops and starts again, which a viewer scanning the merged
+ * stream should not have to read every title to find.
+ */
+const IDLE_PAUSE_GLYPH: { label: string; noun: string } = {
+  label: "‖",
+  noun: "recording pause",
+};
+
 const KIND_GLYPHS: Record<ReplaySignalKind, { label: string; noun: string }> = {
   console: { label: "·", noun: "console" },
   network: { label: "→", noun: "request" },
@@ -87,7 +97,9 @@ const KIND_GLYPHS: Record<ReplaySignalKind, { label: string; noun: string }> = {
 
 export function glyphForSignal(signal: ReplaySignal): ReplayRailGlyph {
   const glyph: { label: string; noun: string } =
-    KIND_GLYPHS[signal.kind] || KIND_GLYPHS.marker;
+    signal.kind === "marker" && signal.detail["markerKind"] === "idle-pause"
+      ? IDLE_PAUSE_GLYPH
+      : KIND_GLYPHS[signal.kind] || KIND_GLYPHS.marker;
 
   let className: string = "bg-gray-100 text-gray-500";
 
@@ -249,6 +261,8 @@ const TRUNCATION_TAB_FOR_KIND: Partial<
   click: "interactions",
   custom: "interactions",
   performance: "performance",
+  /* The pause rows are markers, and markers list under Nav. */
+  "idle-pause": "navigation",
 };
 
 /*

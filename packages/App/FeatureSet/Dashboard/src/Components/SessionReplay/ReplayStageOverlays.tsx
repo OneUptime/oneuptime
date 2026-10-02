@@ -127,7 +127,7 @@ export function navigationUrlsFromSignals(
   return result;
 }
 
-/* The idle / background-tab band the playhead is inside, if any. */
+/* The idle / background-tab / paused band the playhead is inside, if any. */
 export function findIdleBandAt(
   bands: ReadonlyArray<ReplayIdleBand> | null | undefined,
   currentTimeMs: number,
@@ -151,6 +151,55 @@ const OPENABLE_URL_PATTERN: RegExp = /^https?:\/\//;
 /* How long the gap interstitial and the idle-skip toast stay up. */
 export const REPLAY_GAP_TOAST_MS: number = 2000;
 export const REPLAY_IDLE_SKIP_TOAST_MS: number = 1500;
+
+/*
+ * The words for a skipped band, by kind. A paused stretch says WHY it was
+ * skipped, because unlike an idle skip it happens with Skip idle off: a
+ * viewer who never asked for a jump is owed the reason there was nothing
+ * to watch.
+ */
+export function describeIdleSkip(band: ReplayIdleBand): string {
+  const length: string = formatReplayDuration(band.endMs - band.startMs);
+
+  switch (band.kind) {
+    case "background-tab":
+      return `Skipped ${length} in the background`;
+    case "paused":
+      return `Skipped ${length}: recording paused while the page was idle`;
+    case "idle":
+      return `Skipped ${length} idle`;
+    default: {
+      /* Exhaustiveness: a new band kind needs its own words. */
+      const unreachable: never = band.kind;
+      return unreachable;
+    }
+  }
+}
+
+/* The stage chip's words for the band under the playhead, by kind. */
+export function describeIdleBandChip(band: ReplayIdleBand): string {
+  const length: string = formatReplayDuration(band.endMs - band.startMs);
+
+  switch (band.kind) {
+    case "background-tab":
+      return `Tab was in the background for ${length}`;
+    case "paused":
+      return `Recording paused · ${length}`;
+    case "idle":
+      return `Idle ${length}${band.fidelity === "coarse" ? " (approx.)" : ""}`;
+    default: {
+      const unreachable: never = band.kind;
+      return unreachable;
+    }
+  }
+}
+
+/*
+ * What a paused band means, for the chip's tooltip: the chip has room for
+ * the length, not for the reason.
+ */
+export const REPLAY_PAUSED_BAND_EXPLANATION: string =
+  "Nobody touched the page, so the recorder paused and nothing was recorded until the next input.";
 
 /* The session the ended card offers next: the user's next newer session. */
 export interface ReplayNextUserSession {
@@ -707,17 +756,12 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     centreOverlay = (
       <div
         data-testid="replay-overlay-idle-skip"
+        data-kind={idleToast.value.kind}
         role="status"
         className={PILL_CLASS}
       >
         <Icon icon={IconProp.Forward} className="h-3.5 w-3.5" />
-        Skipped{" "}
-        {formatReplayDuration(
-          idleToast.value.endMs - idleToast.value.startMs,
-        )}{" "}
-        {idleToast.value.kind === "background-tab"
-          ? "in the background"
-          : "idle"}
+        {describeIdleSkip(idleToast.value)}
       </div>
     );
   } else if (phase === "ended" && props.isLive) {
@@ -957,7 +1001,13 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       >
         {props.children}
 
-        {/* Top strip: idle chip, background-tab chip, seek-clamped notice. */}
+        {/*
+         * Top strip: idle chip, background-tab chip, paused chip,
+         * seek-clamped notice. The paused chip is mostly seen while
+         * paused - playing, the engine skips a paused band on its own -
+         * so it carries the same Skip as the others for the viewer who
+         * scrubbed into one.
+         */}
         {!isTextSelectionActive && (
           <div className="pointer-events-none absolute left-2 right-2 top-2 flex flex-wrap items-start gap-2">
             {idleBand && (
@@ -966,7 +1016,9 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                 data-testid={
                   idleBand.kind === "background-tab"
                     ? "replay-background-tab-chip"
-                    : "replay-idle-chip"
+                    : idleBand.kind === "paused"
+                      ? "replay-paused-chip"
+                      : "replay-idle-chip"
                 }
                 data-fidelity={idleBand.fidelity}
                 disabled={!canSkipIdle}
@@ -975,25 +1027,28 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
                     ? "hover:bg-gray-900"
                     : "cursor-default opacity-90"
                 }`}
-                title={
+                title={`${
+                  idleBand.kind === "paused"
+                    ? `${REPLAY_PAUSED_BAND_EXPLANATION} `
+                    : ""
+                }${
                   canSkipIdle
                     ? "Skip past this stretch (s)"
                     : "The stretch ends in under two seconds"
-                }
+                }`}
                 onClick={(): void => {
                   if (canSkipIdle) {
                     props.onSkipIdle(idleBand);
                   }
                 }}
               >
-                <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-                {idleBand.kind === "background-tab"
-                  ? `Tab was in the background for ${formatReplayDuration(
-                      idleBand.endMs - idleBand.startMs,
-                    )}`
-                  : `Idle ${formatReplayDuration(
-                      idleBand.endMs - idleBand.startMs,
-                    )}${idleBand.fidelity === "coarse" ? " (approx.)" : ""}`}
+                <Icon
+                  icon={
+                    idleBand.kind === "paused" ? IconProp.Pause : IconProp.Clock
+                  }
+                  className="h-3.5 w-3.5"
+                />
+                {describeIdleBandChip(idleBand)}
                 {canSkipIdle && (
                   <span className="text-indigo-200">skip &gt;</span>
                 )}
