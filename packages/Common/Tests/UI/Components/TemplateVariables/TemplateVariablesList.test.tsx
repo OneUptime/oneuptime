@@ -162,6 +162,34 @@ describe("the Template variables list", () => {
     ).toBe(false);
   });
 
+  test("a long name may wrap after each dot, never inside a word", () => {
+    render(<TemplateVariablesList groups={GROUPS} />);
+
+    const code: HTMLElement = within(listOf()).getByText(
+      "{{incident.customFields.customer_impact}}",
+    );
+
+    expect(code.querySelectorAll("wbr")).toHaveLength(2);
+    expect(code.innerHTML).toBe(
+      "{{incident.<wbr>customFields.<wbr>customer_impact}}",
+    );
+    expect(code).toHaveTextContent("{{incident.customFields.customer_impact}}");
+  });
+
+  test("a name with no dot is one piece", () => {
+    render(
+      <TemplateVariablesList
+        groups={[
+          { variables: [{ name: "slaStatus", description: "SLA Status" }] },
+        ]}
+      />,
+    );
+
+    expect(within(listOf()).getByText("{{slaStatus}}").innerHTML).toBe(
+      "{{slaStatus}}",
+    );
+  });
+
   test("shows an example when the variable has one", () => {
     render(
       <TemplateVariablesList
@@ -257,9 +285,7 @@ describe("the Template variables list", () => {
   test("without a field to add to, it is a list to read: no buttons, no hint", () => {
     render(<TemplateVariablesList groups={GROUPS} />);
 
-    expect(screen.queryAllByTestId("template-variable-insert")).toHaveLength(
-      0,
-    );
+    expect(screen.queryAllByTestId("template-variable-insert")).toHaveLength(0);
     expect(screen.getAllByTestId("template-variable")).toHaveLength(3);
     expect(screen.queryByTestId("template-variables-hint")).toBeNull();
     expect(within(listOf()).queryAllByRole("button")).toHaveLength(0);

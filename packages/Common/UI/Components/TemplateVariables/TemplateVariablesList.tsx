@@ -32,11 +32,38 @@ import {
   translateTemplateAround,
 } from "../../Utils/TranslateTemplate";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   ReactNode,
   useId,
 } from "react";
+
+/*
+ * A variable's {{name}}, allowed to wrap after each dot: a long custom field
+ * variable then breaks as "{{incident.customFields." / "customer_impact}}"
+ * rather than in the middle of a word.
+ */
+export const BreakableTemplateVariableName: (props: {
+  name: string;
+}) => ReactElement = (props: { name: string }): ReactElement => {
+  const parts: Array<string> = formatTemplateVariable(props.name).split(".");
+
+  return (
+    <>
+      {parts.map((part: string, index: number): ReactElement => {
+        const isLast: boolean = index === parts.length - 1;
+
+        return (
+          <Fragment key={index}>
+            {isLast ? part : `${part}.`}
+            {isLast ? null : <wbr />}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+};
 
 export interface TemplateVariablesListProps {
   groups: TemplateVariableGroups;
@@ -88,12 +115,17 @@ const TemplateVariablesList: FunctionComponent<TemplateVariablesListProps> = (
   ): ReactElement => {
     const content: ReactElement = (
       <>
-        <code className="break-all font-mono text-xs font-medium text-indigo-700">
-          {formatTemplateVariable(variable.name)}
+        {/*
+         * overflow-wrap: anywhere, not break-word: only "anywhere" lets a
+         * long name with no dot to wrap at ({{timeToResolutionDeadline}})
+         * shrink the card's min-content width instead of overflowing it.
+         */}
+        <code className="w-full font-mono text-xs font-medium text-indigo-700 [overflow-wrap:anywhere]">
+          <BreakableTemplateVariableName name={variable.name} />
         </code>
         <span className="text-xs text-gray-600">{describe(variable)}</span>
         {variable.example ? (
-          <span className="break-all text-xs text-gray-400">
+          <span className="w-full text-xs text-gray-400 [overflow-wrap:anywhere]">
             {variable.example}
           </span>
         ) : null}

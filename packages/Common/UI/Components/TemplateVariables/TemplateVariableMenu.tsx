@@ -327,7 +327,10 @@ const TemplateVariableMenu: React.ForwardRefExoticComponent<
                         <span className="truncate text-sm text-gray-900">
                           {option.description}
                         </span>
-                        <span className="truncate font-mono text-xs text-indigo-700">
+                        <span
+                          className="truncate font-mono text-xs text-indigo-700"
+                          title={formatTemplateVariable(option.variable.name)}
+                        >
                           {formatTemplateVariable(option.variable.name)}
                         </span>
                       </div>

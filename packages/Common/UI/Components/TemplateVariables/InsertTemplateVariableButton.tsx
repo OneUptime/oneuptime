@@ -9,6 +9,7 @@
  */
 
 import TemplateVariableMenu from "./TemplateVariableMenu";
+import { VALUE_PICKER_MIN_WIDTH_PX } from "../Workflow/ValuePicker/ValuePickerPopup";
 import TemplateVariablePopup, {
   TemplateVariablePopupCloseReason,
   TemplateVariablePopupMode,
@@ -98,7 +99,36 @@ const InsertTemplateVariableButton: FunctionComponent<
           ariaLabel={label}
           dataTestId="insert-template-variable-popup"
           getAnchorRect={(): DOMRect | null => {
-            return anchorRef.current?.getBoundingClientRect() || null;
+            const rect: DOMRect | undefined =
+              anchorRef.current?.getBoundingClientRect();
+
+            if (!rect) {
+              return null;
+            }
+
+            /*
+             * The list ends where the button ends: the button sits at the
+             * right of its toolbar, and a list hanging out past the editor -
+             * past the dialog - looked lost.
+             */
+            const width: number = Math.max(
+              rect.width,
+              VALUE_PICKER_MIN_WIDTH_PX,
+            );
+
+            return {
+              left: rect.right - width,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom,
+              width: width,
+              height: rect.height,
+              x: rect.right - width,
+              y: rect.top,
+              toJSON: (): object => {
+                return {};
+              },
+            } as DOMRect;
           }}
           isInsideAnchor={(target: Node): boolean => {
             return Boolean(anchorRef.current?.contains(target));
