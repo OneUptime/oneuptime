@@ -1008,6 +1008,110 @@ describe("pagination", () => {
   });
 });
 
+/*
+ * The list endpoint skips COUNT(*) and answers `skip + rows + 1` with
+ * `hasMore` (issue #4202). The footer used to print that as the total —
+ * "Showing 1-50 of 51 security events" — beside a volume chart whose
+ * header states the real total. It pages on hasMore instead now.
+ */
+describe("the footer and the list endpoint's lower bound (#4202)", () => {
+  function stubFullPages(): void {
+    getListMock.mockImplementation(
+      async (data: {
+        limit: number;
+        skip?: number;
+      }): Promise<ListResult<SecurityEvent>> => {
+        if (data.limit === 1) {
+          return { data: [EVENTS[0]!], count: 1, skip: 0, limit: 1 };
+        }
+
+        const skip: number = Number(data.skip || 0);
+
+        return {
+          data: Array.from(
+            { length: data.limit },
+            (_: unknown, index: number): SecurityEvent => {
+              return event({ eventUid: `uid-page-${skip + index}` });
+            },
+          ),
+          count: skip + data.limit + 1,
+          skip: skip,
+          limit: data.limit,
+          hasMore: true,
+        };
+      },
+    );
+  }
+
+  const footerSummary: () => string = (): string => {
+    return screen.getByTestId("pagination-summary").textContent || "";
+  };
+
+  test("a full page with more to come pages forward and never prints 'of 51'", async () => {
+    stubFullPages();
+
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(footerSummary()).toBe("Showing 1-50+ security events");
+    });
+    expect(screen.getByTestId("telemetry-pagination").textContent).not.toMatch(
+      /of 51/,
+    );
+    expect(screen.queryAllByTestId(/^pagination-page-\d+$/)).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: "Go to next page" }),
+    ).not.toBeDisabled();
+
+    // The window's total is still the chart's, as it was.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID),
+      ).toHaveTextContent("13 events");
+    });
+  });
+
+  test("page 2's lower bound of 101 is not a total either", async () => {
+    stubFullPages();
+
+    renderViewer();
+    await waitForLoad();
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to next page" }));
+
+    await waitFor(() => {
+      expect(footerSummary()).toBe("Showing 51-100+ security events");
+    });
+  });
+
+  test("a list that ends on its page proves its total, and the footer says it", async () => {
+    getListMock.mockImplementation(
+      async (data: { limit: number }): Promise<ListResult<SecurityEvent>> => {
+        return {
+          data: EVENTS.map((listed: SecurityEvent): SecurityEvent => {
+            return Object.assign(new SecurityEvent(), listed);
+          }),
+          count: EVENTS.length,
+          skip: 0,
+          limit: data.limit,
+          hasMore: false,
+        };
+      },
+    );
+
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(footerSummary()).toBe("Showing 1-2 of 2 security events");
+    });
+    expect(
+      screen.getByRole("button", { name: "Go to next page" }),
+    ).toBeDisabled();
+  });
+});
+
 describe("opening an event", () => {
   test("clicking a row opens the drawer on that event", async () => {
     renderViewer();

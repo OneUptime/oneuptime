@@ -142,7 +142,11 @@ export default function useResultTotal<TQuery>(
         });
       },
     );
-  }, [needsCount, isUpToDate, options.query, refreshKey]);
+    /*
+     * `counted` is here so a landing re-runs the effect: when a refresh came
+     * while the count was out, nothing else changes when that count lands.
+     */
+  }, [needsCount, isUpToDate, options.query, refreshKey, counted]);
 
   if (!page) {
     return { status: ResultTotalStatus.Counting };
