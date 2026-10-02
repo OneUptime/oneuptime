@@ -168,6 +168,9 @@ const SESSION_START_KEY_PREFIX: string = "replay:session-start:";
  */
 const SESSION_CARRY_KEY_PREFIX: string = "replay:session-carry:";
 
+/* What SessionReplayIdentity.buildUserKey yields: a hex SHA-256 HMAC. */
+const USER_KEY_PATTERN: RegExp = /^[0-9a-f]{64}$/;
+
 /*
  * Long enough that a session idle for the finalizer's whole 10-minute
  * window is still present when the cron next runs, short enough that a
@@ -248,7 +251,45 @@ interface SessionHeaderCarry {
    * not blank what chunk 0 established.
    */
   visitorId: string;
+  /*
+   * Who the session belongs to, already derived under the policy (the
+   * HMAC key, the raw label, the capped traits), "" / {} until a chunk
+   * supplies a usable reference while identity capture is on.
+   *
+   * Carried because every page load and every tab of a session writes
+   * header versions of its own - its chunk 0 and its final chunk - and
+   * the list reads argMax(col, version). A page that had not called
+   * identify() yet (the login page, a link opened in a new tab, a page
+   * whose identify() waits on a /me request) used to publish an EMPTY
+   * identity as the newest version, so a session the user had signed in
+   * to was listed as "Visitor <id>" (#4206). The finalizer copies the
+   * newest version too, so the blank became permanent.
+   *
+   * The newest NON-empty reference wins: a chunk that names nobody adds
+   * nothing, and one that names someone else replaces the person (the
+   * recorder starts a new session when a different user signs in, so on
+   * a current recorder that only happens for a hand-crafted POST).
+   * Traits follow the person: kept while later chunks name the same
+   * person without any (a later page that did not repeat them, or an
+   * envelope that shed them for size), dropped with the person when
+   * someone else is named.
+   */
+  identifiedUserKey: string;
+  identifiedUserLabel: string;
+  identifiedUserTraits: Record<string, string>;
+  /*
+   * The session's tags, newest non-empty set wins - for the same reason
+   * as the identity: setTags() is per page, so a later page that never
+   * set any must not wipe the ones an earlier page did.
+   */
+  tags: Record<string, string>;
 }
+
+/* The person half of the carry, as one chunk's meta yields it. */
+type SessionHeaderIdentity = Pick<
+  SessionHeaderCarry,
+  "identifiedUserKey" | "identifiedUserLabel" | "identifiedUserTraits"
+>;
 
 /*
  * Bounds on what the carry may hold, so the memo cannot grow without
@@ -1219,8 +1260,9 @@ export default class SessionReplayIngestService {
        * aggregate is left at zero for the finalizer to compute with one
        * GROUP BY: ReplacingMergeTree is pure last-write-wins, so a
        * read-modify-write increment here would be a lost-update bug at the
-       * worker's concurrency. The finalizer reads the NEWEST header version,
-       * which is how "tags from the highest-version meta" reaches the list.
+       * worker's concurrency. The finalizer reads the NEWEST header version
+       * - and the newest one that names a person, and has tags - so the
+       * identity and tags the carry holds are what reach the list.
        *
        * Even the terminal chunk's version stays isFinalized=false. A final
        * chunk ends one TAB, not necessarily the session (every page load of
@@ -1238,6 +1280,7 @@ export default class SessionReplayIngestService {
          */
         const carry: SessionHeaderCarry = await this.resolveHeaderCarry({
           projectId: projectId,
+          policy: policy,
           envelope: envelope,
           cache: headerCarryCache,
         });
@@ -1544,12 +1587,19 @@ export default class SessionReplayIngestService {
    */
   private static async resolveHeaderCarry(data: {
     projectId: ObjectID;
+    policy: SessionReplayGatePolicy;
     envelope: SessionReplayChunkEnvelope;
     cache: Map<string, SessionHeaderCarry>;
   }): Promise<SessionHeaderCarry> {
     const envelope: SessionReplayChunkEnvelope = data.envelope;
 
     const exitUrl: string = UrlScrubber.scrub(envelope.url, []);
+
+    const identity: SessionHeaderIdentity = this.deriveChunkIdentity({
+      projectId: data.projectId,
+      policy: data.policy,
+      envelope: envelope,
+    });
 
     const fromThisChunk: SessionHeaderCarry = {
       errorCount: envelope.signals.errorCount,
@@ -1577,6 +1627,10 @@ export default class SessionReplayIngestService {
        * the recorder could not have minted; absent meta reads as "".
        */
       visitorId: envelope.meta?.visitorId ?? "",
+      identifiedUserKey: identity.identifiedUserKey,
+      identifiedUserLabel: identity.identifiedUserLabel,
+      identifiedUserTraits: identity.identifiedUserTraits,
+      tags: this.deriveChunkTags(envelope),
     };
 
     const key: string = `${SESSION_CARRY_KEY_PREFIX}${data.projectId.toString()}:${envelope.sessionId}`;
@@ -1684,7 +1738,121 @@ export default class SessionReplayIngestService {
        * hand-crafted POST, and neither should rewrite the link.
        */
       visitorId: previous.visitorId || next.visitorId,
+      ...this.mergeCarriedIdentity(previous, next),
+      /* Newest non-empty set wins; see SessionHeaderCarry.tags. */
+      tags: Object.keys(next.tags).length > 0 ? next.tags : previous.tags,
     };
+  }
+
+  /*
+   * The newest chunk that names a person decides who the session belongs
+   * to; a chunk that names nobody changes nothing. See
+   * SessionHeaderCarry.identifiedUserKey for why a blank must never win.
+   */
+  private static mergeCarriedIdentity(
+    previous: SessionHeaderIdentity,
+    next: SessionHeaderIdentity,
+  ): SessionHeaderIdentity {
+    if (!next.identifiedUserKey) {
+      return {
+        identifiedUserKey: previous.identifiedUserKey,
+        identifiedUserLabel: previous.identifiedUserLabel,
+        identifiedUserTraits: previous.identifiedUserTraits,
+      };
+    }
+
+    const isSamePerson: boolean =
+      next.identifiedUserKey === previous.identifiedUserKey;
+
+    return {
+      identifiedUserKey: next.identifiedUserKey,
+      identifiedUserLabel: next.identifiedUserLabel,
+      identifiedUserTraits:
+        isSamePerson && Object.keys(next.identifiedUserTraits).length === 0
+          ? previous.identifiedUserTraits
+          : next.identifiedUserTraits,
+    };
+  }
+
+  /*
+   * End-user identity, when the application asked for it.
+   *
+   * The recorder only puts identifiedUserRef on the wire when the policy
+   * has captureUserIdentity on (see Recorder.buildMeta), so an absent ref
+   * is the normal case and every field stays empty. The policy is checked
+   * again here anyway: the recorder's copy of the policy can be up to a
+   * config-cache TTL stale, and a hand-crafted POST is not bound by it at
+   * all, so the server must not store a label for an application that has
+   * identity capture switched off.
+   *
+   * The key is an HMAC so the column is searchable and erasable without
+   * being a directory of the customer's users; the label is the raw
+   * reference and carries its own narrower column ACL.
+   *
+   * Traits ride under the same switch as the label: they describe the
+   * person, and an application that has not turned identity capture on
+   * must store nothing about who was recorded, whatever the recorder (or a
+   * hand-crafted POST) put on the wire. They are kept only beside a usable
+   * reference - traits that name nobody cannot be attached to anybody -
+   * and re-capped with the shared sanitiser so the header can never hold
+   * more than the recorder sends.
+   *
+   * Derived only on the few chunks that write a header (chunk 0 and any
+   * later chunk carrying meta), so it is a handful of SHA-256s over at
+   * most SESSION_REPLAY_MAX_USER_REF_LENGTH bytes per recording, never one
+   * per chunk.
+   */
+  private static deriveChunkIdentity(data: {
+    projectId: ObjectID;
+    policy: SessionReplayGatePolicy;
+    envelope: SessionReplayChunkEnvelope;
+  }): SessionHeaderIdentity {
+    const userRef: unknown = data.envelope.meta?.identifiedUserRef;
+
+    if (
+      !data.policy.captureUserIdentity ||
+      !SessionReplayIdentity.isUsableUserRef(userRef)
+    ) {
+      return {
+        identifiedUserKey: "",
+        identifiedUserLabel: "",
+        identifiedUserTraits: {},
+      };
+    }
+
+    return {
+      identifiedUserKey: SessionReplayIdentity.buildUserKey({
+        projectId: data.projectId,
+        userRef: userRef,
+      }),
+      identifiedUserLabel: SessionReplayIdentity.buildUserLabel(userRef),
+      identifiedUserTraits: this.sanitizeTraits(
+        data.envelope.meta?.identifiedUserTraits,
+      ),
+    };
+  }
+
+  /* Tags describe the session, not the person: no identity switch. */
+  private static deriveChunkTags(
+    envelope: SessionReplayChunkEnvelope,
+  ): Record<string, string> {
+    return this.sanitizeTags(envelope.meta?.tags);
+  }
+
+  private static sanitizeTraits(value: unknown): Record<string, string> {
+    return sanitizeSessionReplayStringMap(value, {
+      maxKeys: SESSION_REPLAY_MAX_TRAIT_KEYS,
+      maxKeyLength: SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+      maxValueLength: SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
+    });
+  }
+
+  private static sanitizeTags(value: unknown): Record<string, string> {
+    return sanitizeSessionReplayStringMap(value, {
+      maxKeys: SESSION_REPLAY_MAX_TAG_KEYS,
+      maxKeyLength: SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+      maxValueLength: SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+    });
   }
 
   private static mergeCappedList(
@@ -1752,11 +1920,45 @@ export default class SessionReplayIngestService {
         visitorId: SessionIdentity.isVisitorId(view["visitorId"])
           ? view["visitorId"]
           : "",
+        ...this.parseCarriedIdentity(view),
+        /* Re-capped for the same reason; a memo from before reads as {}. */
+        tags: this.sanitizeTags(view["tags"]),
       };
     } catch {
       /* A memo we cannot read is a memo we do not have. */
       return null;
     }
+  }
+
+  /*
+   * All or nothing: a memo whose key is not the HMAC shape, or whose label
+   * is missing, carries nobody - publishing a key without its label (or a
+   * label under a key that cannot be erased by it) would be worse than
+   * publishing no identity at all. A memo written before identity was
+   * carried has neither field and reads as anonymous, which is what every
+   * header version of it published.
+   */
+  private static parseCarriedIdentity(view: JSONObject): SessionHeaderIdentity {
+    const key: JSONValue | undefined = view["identifiedUserKey"];
+    const label: JSONValue | undefined = view["identifiedUserLabel"];
+
+    if (
+      typeof key !== "string" ||
+      !USER_KEY_PATTERN.test(key) ||
+      !SessionReplayIdentity.isUsableUserRef(label)
+    ) {
+      return {
+        identifiedUserKey: "",
+        identifiedUserLabel: "",
+        identifiedUserTraits: {},
+      };
+    }
+
+    return {
+      identifiedUserKey: key,
+      identifiedUserLabel: label,
+      identifiedUserTraits: this.sanitizeTraits(view["identifiedUserTraits"]),
+    };
   }
 
   private static readCarryCount(value: JSONValue | undefined): number {
@@ -2093,62 +2295,34 @@ export default class SessionReplayIngestService {
       UrlScrubber.scrub(envelope.meta?.entryUrl || envelope.url, []);
 
     /*
-     * End-user identity, when the application asked for it.
-     *
-     * The recorder only puts identifiedUserRef on the wire when the policy
-     * has captureUserIdentity on (see Recorder.buildMeta), so an absent ref
-     * is the normal case and both columns stay empty. The policy is checked
-     * again here anyway: the recorder's copy of the policy can be up to a
-     * config-cache TTL stale, and a hand-crafted POST is not bound by it at
-     * all, so the server must not store a label for an application that has
-     * identity capture switched off.
-     *
-     * The key is an HMAC so the column is searchable and erasable without
-     * being a directory of the customer's users; the label is the raw
-     * reference and carries its own narrower column ACL.
+     * Who the session belongs to: the carried identity, so a header version
+     * from a page that never named anyone cannot make an identified session
+     * anonymous again (#4206) - see SessionHeaderCarry.identifiedUserKey.
+     * deriveChunkIdentity already applied the identity switch to what went
+     * INTO the carry; it is applied again to what comes out, because the
+     * carry outlives a policy change. An application that switched identity
+     * capture off mid-session stores nobody from then on, whatever an
+     * earlier chunk established.
      */
-    const userRef: unknown = envelope.meta?.identifiedUserRef;
+    const isIdentityCaptured: boolean = data.policy.captureUserIdentity;
 
-    const hasUsableUserRef: boolean =
-      data.policy.captureUserIdentity &&
-      SessionReplayIdentity.isUsableUserRef(userRef);
-
-    const identifiedUserKey: string = hasUsableUserRef
-      ? SessionReplayIdentity.buildUserKey({
-          projectId: data.projectId,
-          userRef: userRef as string,
-        })
+    const identifiedUserKey: string = isIdentityCaptured
+      ? carry.identifiedUserKey
       : "";
 
-    const identifiedUserLabel: string = hasUsableUserRef
-      ? SessionReplayIdentity.buildUserLabel(userRef as string)
+    const identifiedUserLabel: string = isIdentityCaptured
+      ? carry.identifiedUserLabel
       : "";
 
-    /*
-     * Traits ride under the same switch as the label: they describe the
-     * person, and an application that has not turned identity capture on
-     * must store nothing about who was recorded, whatever the recorder (or
-     * a hand-crafted POST) put on the wire. Re-capped here with the shared
-     * sanitiser so the header can never hold more than the recorder sends.
-     */
-    const identifiedUserTraits: Record<string, string> = data.policy
-      .captureUserIdentity
-      ? sanitizeSessionReplayStringMap(envelope.meta?.identifiedUserTraits, {
-          maxKeys: SESSION_REPLAY_MAX_TRAIT_KEYS,
-          maxKeyLength: SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
-          maxValueLength: SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
-        })
+    const identifiedUserTraits: Record<string, string> = isIdentityCaptured
+      ? carry.identifiedUserTraits
       : {};
 
-    /* Tags describe the session, not the person: no identity switch. */
-    const tags: Record<string, string> = sanitizeSessionReplayStringMap(
-      envelope.meta?.tags,
-      {
-        maxKeys: SESSION_REPLAY_MAX_TAG_KEYS,
-        maxKeyLength: SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
-        maxValueLength: SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
-      },
-    );
+    /*
+     * Tags describe the session, not the person: no identity switch. From
+     * the carry for the same reason as the identity.
+     */
+    const tags: Record<string, string> = carry.tags;
 
     /*
      * What this recorder build could capture, on the header as an
@@ -2270,12 +2444,7 @@ export default class SessionReplayIngestService {
        * The IP itself is never stored.
        */
       countryCode: data.policy.captureGeo ? data.jobData.countryCode : "",
-      /*
-       * Derived above, on the few chunks that write a header (chunk 0 and
-       * any later chunk carrying meta), so it is a handful of SHA-256s over
-       * at most SESSION_REPLAY_MAX_USER_REF_LENGTH bytes per recording,
-       * never one per chunk.
-       */
+      /* From the carry, gated on the current policy; see above. */
       identifiedUserKey: identifiedUserKey,
       identifiedUserLabel: identifiedUserLabel,
       identifiedUserTraits: identifiedUserTraits,

@@ -16,6 +16,10 @@ import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerRea
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_MAX_USER_REF_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
@@ -4357,5 +4361,612 @@ describe("SessionReplayIngestService.processFromQueue - frames written for a web
     for (const chunk of chunks) {
       expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
     }
+  });
+});
+
+/*
+ * REGRESSION (#4206): a session somebody signed in to was listed as
+ * "Visitor <id>".
+ *
+ * Every page load and every tab of a session writes header versions of its
+ * own - its chunk 0, its final chunk - and the list (and the finalizer)
+ * read the NEWEST version. A page that had not called identify() yet - the
+ * login page, a link opened in a new tab, a page whose identify() waits on
+ * a /me request, the login page an app's own sign-out redirects to - used
+ * to publish an EMPTY identity as that newest version, and the session
+ * that had been identified a page earlier went back to being anonymous.
+ */
+describe("SessionReplayIngestService.processFromQueue - a signed-in session stays signed in (#4206)", () => {
+  const USER_REF: string = "jshoemaker@wbhq.example";
+  const OTHER_USER_REF: string = "350310@wbhq.example";
+  const SESSION_ID: string = "a".repeat(32);
+  const LOGIN_TAB: string = "1".repeat(16);
+  const APP_TAB: string = "2".repeat(16);
+  const SECOND_TAB: string = "3".repeat(16);
+
+  function meta(
+    overrides?: Partial<SessionReplayChunkMeta>,
+  ): SessionReplayChunkMeta {
+    return { ...buildEnvelope().meta!, ...overrides };
+  }
+
+  async function ingest(
+    envelopes: Array<Partial<SessionReplayChunkEnvelope>>,
+  ): Promise<Array<JSONObject>> {
+    submitMock.mockClear();
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody(envelopes)),
+    );
+
+    return getSubmittedRows("RumSessionV1");
+  }
+
+  function carryKey(): string {
+    return `replay:session-carry:${PROJECT_ID.toString()}:${SESSION_ID}`;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: true }) as never,
+    );
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  /*
+   * The customer's own path, one job per upload as a real browser sends
+   * them: an anonymous login page, the app it lands on (which identifies
+   * the user on a later chunk), a link opened in a second tab that never
+   * calls identify(), and finally the login page the app's sign-out
+   * redirects to, sealed. Every header version after the sign-in must name
+   * the user, the last one above all - it is the one the list shows.
+   */
+  test("login page, sign-in, a second tab and the login page again: every later version names the user", async () => {
+    const loginPage: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: LOGIN_TAB, chunkIndex: 0, meta: meta() },
+      {
+        sessionId: SESSION_ID,
+        tabId: LOGIN_TAB,
+        chunkIndex: 1,
+        isFinal: true,
+        meta: meta(),
+      },
+    ]);
+
+    /* Nobody has signed in yet: anonymous is the truth here. */
+    expect(loginPage).toHaveLength(2);
+
+    for (const header of loginPage) {
+      expect(header["identifiedUserLabel"]).toBe("");
+      expect(header["identifiedUserKey"]).toBe("");
+    }
+
+    await ingest([
+      { sessionId: SESSION_ID, tabId: APP_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    const signedIn: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        tabId: APP_TAB,
+        chunkIndex: 2,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { role: "manager" },
+        }),
+      },
+    ]);
+
+    expect(signedIn[0]!["identifiedUserLabel"]).toBe(USER_REF);
+
+    const userKey: string = signedIn[0]!["identifiedUserKey"] as string;
+
+    expect(userKey).toMatch(/^[0-9a-f]{64}$/);
+
+    /* A new tab's chunk 0, from a page that never called identify(). */
+    const secondTab: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    /* The sign-out redirect: an anonymous login page, then its seal. */
+    const backToLogin: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: LOGIN_TAB, chunkIndex: 0, meta: meta() },
+      {
+        sessionId: SESSION_ID,
+        tabId: LOGIN_TAB,
+        chunkIndex: 1,
+        isFinal: true,
+        meta: meta(),
+      },
+    ]);
+
+    expect(secondTab).toHaveLength(1);
+    expect(backToLogin).toHaveLength(2);
+
+    for (const header of [...secondTab, ...backToLogin]) {
+      expect(header["identifiedUserLabel"]).toBe(USER_REF);
+      expect(header["identifiedUserKey"]).toBe(userKey);
+      expect(header["identifiedUserTraits"]).toEqual({ role: "manager" });
+    }
+  });
+
+  test("a final chunk whose meta names nobody keeps the identity", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({ identifiedUserRef: USER_REF }),
+      },
+    ]);
+
+    const sealed: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, chunkIndex: 4, isFinal: true, meta: meta() },
+    ]);
+
+    expect(sealed).toHaveLength(1);
+    expect(sealed[0]!["sealedReason"]).toBe("final-chunk");
+    expect(sealed[0]!["identifiedUserLabel"]).toBe(USER_REF);
+  });
+
+  test("an identified frame followed by an anonymous one in the same upload keeps the identity", async () => {
+    const headers: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        tabId: APP_TAB,
+        chunkIndex: 0,
+        meta: meta({ identifiedUserRef: USER_REF }),
+      },
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(headers).toHaveLength(2);
+    expect(headers[1]!["identifiedUserLabel"]).toBe(USER_REF);
+  });
+
+  test("the identity reaches the carry memo, so the next upload can keep it", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { plan: "pro" },
+        }),
+      },
+    ]);
+
+    const memo: JSONObject = JSON.parse(redisStrings.get(carryKey())!);
+
+    expect(memo["identifiedUserLabel"]).toBe(USER_REF);
+    expect(memo["identifiedUserKey"]).toMatch(/^[0-9a-f]{64}$/);
+    expect(memo["identifiedUserTraits"]).toEqual({ plan: "pro" });
+  });
+
+  /*
+   * Traits describe the person. A later page that names the same person
+   * without repeating them - or an envelope that shed them for size - must
+   * not strip them; a later page that sends new ones replaces them.
+   */
+  test("traits stay with the same person until that person's traits are sent again", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { plan: "pro", role: "admin" },
+        }),
+      },
+    ]);
+
+    const withoutTraits: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        tabId: SECOND_TAB,
+        chunkIndex: 0,
+        meta: meta({ identifiedUserRef: USER_REF }),
+      },
+    ]);
+
+    expect(withoutTraits[0]!["identifiedUserTraits"]).toEqual({
+      plan: "pro",
+      role: "admin",
+    });
+
+    const newTraits: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        tabId: SECOND_TAB,
+        chunkIndex: 3,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { plan: "enterprise" },
+        }),
+      },
+    ]);
+
+    expect(newTraits[0]!["identifiedUserTraits"]).toEqual({
+      plan: "enterprise",
+    });
+  });
+
+  /*
+   * The recorder starts a new session when a different user signs in, so
+   * on a current recorder this only happens for an older bundle or a
+   * hand-crafted POST. The newest person named wins, and the previous
+   * person's traits never end up describing them.
+   */
+  test("a chunk naming someone else replaces the person and drops the previous person's traits", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { role: "manager" },
+        }),
+      },
+    ]);
+
+    const replaced: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 5,
+        meta: meta({ identifiedUserRef: OTHER_USER_REF }),
+      },
+    ]);
+
+    expect(replaced[0]!["identifiedUserLabel"]).toBe(OTHER_USER_REF);
+    expect(replaced[0]!["identifiedUserKey"]).toBe(
+      SessionReplayIdentity.buildUserKey({
+        projectId: PROJECT_ID,
+        userRef: OTHER_USER_REF,
+      }),
+    );
+    expect(replaced[0]!["identifiedUserTraits"]).toEqual({});
+
+    /* And a later anonymous page keeps the NEW person. */
+    const anonymousAfter: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(anonymousAfter[0]!["identifiedUserLabel"]).toBe(OTHER_USER_REF);
+  });
+
+  /*
+   * The carry outlives a policy change. An application that turns identity
+   * capture off mid-session must stop storing the person from that moment
+   * on, even though an earlier chunk established them.
+   */
+  test("switching identity capture off mid-session stops publishing the carried identity", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { plan: "pro" },
+        }),
+      },
+    ]);
+
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: false }) as never,
+    );
+
+    const afterSwitch: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(afterSwitch[0]!["identifiedUserKey"]).toBe("");
+    expect(afterSwitch[0]!["identifiedUserLabel"]).toBe("");
+    expect(afterSwitch[0]!["identifiedUserTraits"]).toEqual({});
+  });
+
+  test("a reference that arrives while capture is off is never carried into a later version", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: false }) as never,
+    );
+
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({
+          identifiedUserRef: USER_REF,
+          identifiedUserTraits: { plan: "pro" },
+        }),
+      },
+    ]);
+
+    expect(redisStrings.get(carryKey())).toBeDefined();
+    expect(redisStrings.get(carryKey())).not.toContain(USER_REF);
+    expect(redisStrings.get(carryKey())).not.toContain("pro");
+
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: true }) as never,
+    );
+
+    const later: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(later[0]!["identifiedUserLabel"]).toBe("");
+    expect(later[0]!["identifiedUserTraits"]).toEqual({});
+  });
+
+  /*
+   * Traits that name nobody cannot be attached to anybody: a hand-crafted
+   * POST with traits and no usable reference stores none.
+   */
+  test("traits without a usable reference are not stored", async () => {
+    const headers: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({ identifiedUserTraits: { plan: "pro" } }),
+      },
+    ]);
+
+    expect(headers[0]!["identifiedUserKey"]).toBe("");
+    expect(headers[0]!["identifiedUserTraits"]).toEqual({});
+  });
+
+  /*
+   * Deploy-time continuity: a memo written by the previous build has no
+   * identity fields. It reads as anonymous - which is what every version
+   * of it published - and the chunk's own reference still applies.
+   */
+  test("a memo from before identity was carried reads as anonymous and the chunk's own reference applies", async () => {
+    redisStrings.set(
+      carryKey(),
+      JSON.stringify({
+        errorCount: 1,
+        rageClickCount: 0,
+        deadClickCount: 0,
+        errorClickCount: 0,
+        refreshRageCount: 0,
+        pageCount: 1,
+        chunkEndOffsetMs: 15000,
+        routes: ["https://shop.example.com/"],
+        traceIds: [],
+        entryUrl: "https://shop.example.com/",
+        triggerReason: "error",
+        isFinal: false,
+        visitorId: "",
+      }),
+    );
+
+    const anonymous: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(anonymous[0]!["identifiedUserLabel"]).toBe("");
+    expect(anonymous[0]!["tags"]).toEqual({});
+
+    const identified: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 2,
+        meta: meta({ identifiedUserRef: USER_REF }),
+      },
+    ]);
+
+    expect(identified[0]!["identifiedUserLabel"]).toBe(USER_REF);
+  });
+
+  /*
+   * The memo is the one place a value reaches the header row without
+   * passing the envelope parser. A key that is not the HMAC shape, or a
+   * key without a usable label, carries nobody - a label under a key no
+   * erasure request could reach is worse than no identity at all.
+   */
+  test("a memo whose identity is malformed carries nobody", async () => {
+    const malformed: Array<JSONObject> = [
+      {
+        identifiedUserKey: "not-a-digest",
+        identifiedUserLabel: USER_REF,
+        identifiedUserTraits: { plan: "pro" },
+      },
+      {
+        identifiedUserKey: "F".repeat(64),
+        identifiedUserLabel: USER_REF,
+        identifiedUserTraits: { plan: "pro" },
+      },
+      {
+        identifiedUserKey: "f".repeat(64),
+        identifiedUserLabel: "",
+        identifiedUserTraits: { plan: "pro" },
+      },
+      {
+        identifiedUserKey: "f".repeat(64),
+        identifiedUserLabel: 42,
+      },
+    ];
+
+    for (const identity of malformed) {
+      redisStrings.set(
+        carryKey(),
+        JSON.stringify({ isFinal: false, routes: [], ...identity }),
+      );
+
+      const headers: Array<JSONObject> = await ingest([
+        {
+          sessionId: SESSION_ID,
+          tabId: SECOND_TAB,
+          chunkIndex: 0,
+          meta: meta(),
+        },
+      ]);
+
+      expect(headers[0]!["identifiedUserKey"]).toBe("");
+      expect(headers[0]!["identifiedUserLabel"]).toBe("");
+      expect(headers[0]!["identifiedUserTraits"]).toEqual({});
+    }
+  });
+
+  test("a well-formed memo identity is published by an anonymous chunk", async () => {
+    redisStrings.set(
+      carryKey(),
+      JSON.stringify({
+        isFinal: false,
+        routes: [],
+        identifiedUserKey: "f".repeat(64),
+        identifiedUserLabel: USER_REF,
+        identifiedUserTraits: { plan: "pro" },
+      }),
+    );
+
+    const headers: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(headers[0]!["identifiedUserKey"]).toBe("f".repeat(64));
+    expect(headers[0]!["identifiedUserLabel"]).toBe(USER_REF);
+    expect(headers[0]!["identifiedUserTraits"]).toEqual({ plan: "pro" });
+  });
+
+  test("a memo's traits and tags are re-capped like the wire's", async () => {
+    const oversized: Record<string, string> = {};
+
+    for (let i: number = 0; i < 50; i++) {
+      oversized[`key${i}`] = "v".repeat(1000);
+    }
+
+    redisStrings.set(
+      carryKey(),
+      JSON.stringify({
+        isFinal: false,
+        routes: [],
+        identifiedUserKey: "f".repeat(64),
+        identifiedUserLabel: USER_REF,
+        identifiedUserTraits: oversized,
+        tags: oversized,
+      }),
+    );
+
+    const headers: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    const traits: Record<string, string> = headers[0]![
+      "identifiedUserTraits"
+    ] as Record<string, string>;
+    const tags: Record<string, string> = headers[0]!["tags"] as Record<
+      string,
+      string
+    >;
+
+    expect(Object.keys(traits)).toHaveLength(SESSION_REPLAY_MAX_TRAIT_KEYS);
+    expect(traits["key0"]).toHaveLength(SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH);
+    expect(Object.keys(tags)).toHaveLength(SESSION_REPLAY_MAX_TAG_KEYS);
+    expect(tags["key0"]).toHaveLength(SESSION_REPLAY_MAX_TAG_VALUE_LENGTH);
+  });
+
+  /*
+   * Tags are per page too (setTags() lives in the page's memory), so they
+   * had the same blank-wins bug: a later page that set none wiped the
+   * build or tenant an earlier one had tagged the session with.
+   */
+  test("tags set by an earlier page survive a later page that set none", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({ tags: { build: "1.2.3", tenant: "acme" } }),
+      },
+    ]);
+
+    const laterPage: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+      {
+        sessionId: SESSION_ID,
+        tabId: SECOND_TAB,
+        chunkIndex: 1,
+        isFinal: true,
+        meta: meta(),
+      },
+    ]);
+
+    expect(laterPage).toHaveLength(2);
+
+    for (const header of laterPage) {
+      expect(header["tags"]).toEqual({ build: "1.2.3", tenant: "acme" });
+    }
+  });
+
+  test("a later page's tags replace the earlier set, as setTags() does", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({ tags: { build: "1.2.3", tenant: "acme" } }),
+      },
+    ]);
+
+    const replaced: Array<JSONObject> = await ingest([
+      {
+        sessionId: SESSION_ID,
+        tabId: SECOND_TAB,
+        chunkIndex: 0,
+        meta: meta({ tags: { build: "1.2.4" } }),
+      },
+    ]);
+
+    expect(replaced[0]!["tags"]).toEqual({ build: "1.2.4" });
+  });
+
+  test("another session's identity is never borrowed", async () => {
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({ identifiedUserRef: USER_REF }),
+      },
+    ]);
+
+    const otherSession: Array<JSONObject> = await ingest([
+      { sessionId: "c".repeat(32), chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(otherSession[0]!["identifiedUserLabel"]).toBe("");
+  });
+
+  /*
+   * Without Redis the carry only spans one upload. Across uploads the
+   * newest version then publishes what its own chunk knew - the old
+   * behaviour - and the finalizer's sticky read is what repairs it.
+   */
+  test("without Redis an anonymous upload after an identified one degrades to its own meta", async () => {
+    redisConnected = false;
+
+    await ingest([
+      {
+        sessionId: SESSION_ID,
+        chunkIndex: 0,
+        meta: meta({ identifiedUserRef: USER_REF }),
+      },
+    ]);
+
+    const degraded: Array<JSONObject> = await ingest([
+      { sessionId: SESSION_ID, tabId: SECOND_TAB, chunkIndex: 0, meta: meta() },
+    ]);
+
+    expect(degraded[0]!["identifiedUserLabel"]).toBe("");
   });
 });
