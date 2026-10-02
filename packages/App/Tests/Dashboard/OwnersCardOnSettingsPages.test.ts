@@ -68,13 +68,18 @@ const PAGES: Array<OwnersPage> = [
   },
 ];
 
-// Comments removed, whitespace squashed.
+/*
+ * Comments removed, whitespace squashed, and none kept inside a type
+ * argument list: prettier breaks a long `<OwnersCard<User, Team>` over
+ * lines, which would otherwise read back as `<OwnersCard< User, Team >`.
+ */
 function readCode(relativePath: string): string {
   return fs
     .readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/(^|\s)\/\/.*$/gm, " ")
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ")
+    .replace(/<OwnersCard<\s*([\w]+),\s*([\w]+)\s*>/g, "<OwnersCard<$1, $2>");
 }
 
 describe.each(PAGES)("$file", (page: OwnersPage) => {
