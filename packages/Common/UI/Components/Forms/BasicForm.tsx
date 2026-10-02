@@ -1,5 +1,6 @@
 import API from "../../Utils/API/API";
 import UiAnalytics from "../../Utils/Analytics";
+import DropdownUtil from "../../Utils/Dropdown";
 import useTranslateValue from "../../Utils/Translation";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
@@ -350,7 +351,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           try {
             const options: Array<DropdownOption | DropdownOptionGroup> =
               await item.fetchDropdownOptions(refCurrentValue.current);
-            item.dropdownOptions = options;
+            /*
+             * The field's own list replaces the one the form fetched for its
+             * dropdown model, but never the colours that list carried: a
+             * state picked from a re-sorted list still shows its colour.
+             */
+            item.dropdownOptions = DropdownUtil.keepKnownOptionColors(
+              options,
+              item.dropdownOptions,
+            );
           } catch (err) {
             setFormError(API.getFriendlyMessage(err));
           }

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useId } from "react";
+import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
@@ -26,6 +27,12 @@ export interface ComponentProps {
    * up with the labels of the items around it that do.
    */
   isIconSpaceReserved?: boolean | undefined;
+  /*
+   * A dot of this colour in the icon's place, for an item that picks a state,
+   * a severity or a monitor status: "Change state to" shows each state's
+   * colour the way the state dropdowns do. An icon, when given, wins.
+   */
+  color?: Color | string | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
@@ -46,6 +53,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
    * to say stays natively disabled and is skipped, as before.
    */
   const isExplainedLock: boolean = isDisabled && Boolean(props.tooltip);
+
+  const dotColor: string | undefined =
+    props.color?.toString().trim() || undefined;
 
   const colorClassName: string = isDestructive
     ? "text-red-600"
@@ -96,7 +106,19 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           } ${props.iconClassName || ""}`}
         />
       )}
-      {!props.icon && props.isIconSpaceReserved && (
+      {!props.icon && dotColor && (
+        <span
+          className="mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center"
+          aria-hidden="true"
+          data-testid="more-menu-item-color"
+        >
+          <span
+            className="h-2.5 w-2.5 rounded-full border border-gray-200"
+            style={{ backgroundColor: dotColor }}
+          ></span>
+        </span>
+      )}
+      {!props.icon && !dotColor && props.isIconSpaceReserved && (
         <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
       )}
       <div className="flex w-full justify-between items-center">
