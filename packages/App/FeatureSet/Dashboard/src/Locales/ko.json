@@ -6945,5 +6945,6 @@
   "Preview:": "미리 보기:",
   "Use 20 characters or fewer.": "20자 이하로 입력하세요.",
   "Use only letters, numbers and - _ . / : # (no spaces).": "문자, 숫자, - _ . / : #만 사용할 수 있습니다(공백 불가).",
-  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "문자나 - 같은 기호로 끝내세요. 끝에 숫자가 오면 번호와 붙어 버립니다: SEV1이면 SEV142가 됩니다."
+  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "문자나 - 같은 기호로 끝내세요. 끝에 숫자가 오면 번호와 붙어 버립니다: SEV1이면 SEV142가 됩니다.",
+  "Archived Policies": "보관된 정책"
 }

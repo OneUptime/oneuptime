@@ -26,15 +26,6 @@ const PodmanSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.PODMAN_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
-        {
-          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PODMAN_DOCUMENTATION] as Route,
@@ -65,6 +56,25 @@ const PodmanSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+      ],
+    },
+    /*
+     * The way back to archived Podman hosts, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened,
+     * and open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.PODMAN_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },

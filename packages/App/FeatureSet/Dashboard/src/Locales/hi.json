@@ -6945,5 +6945,6 @@
   "Preview:": "पूर्वावलोकन:",
   "Use 20 characters or fewer.": "20 या उससे कम वर्ण इस्तेमाल करें।",
   "Use only letters, numbers and - _ . / : # (no spaces).": "केवल अक्षर, अंक और - _ . / : # इस्तेमाल करें (कोई स्पेस नहीं)।",
-  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "अंत में कोई अक्षर या - जैसा चिह्न रखें। अंत का अंक संख्या से जुड़ जाता है: SEV1 से SEV142 बन जाएगा।"
+  "End with a letter or a symbol such as -. A digit at the end runs into the number: SEV1 would make SEV142.": "अंत में कोई अक्षर या - जैसा चिह्न रखें। अंत का अंक संख्या से जुड़ जाता है: SEV1 से SEV142 बन जाएगा।",
+  "Archived Policies": "संग्रहीत नीतियां"
 }

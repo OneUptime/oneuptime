@@ -24,19 +24,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.CheckCircle,
         },
-        /*
-         * Archived status pages are filtered out of the list above, so
-         * without this entry the only way back to one would be its URL.
-         */
-        {
-          link: {
-            title: "Archived",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route,
-            ),
-          },
-          icon: IconProp.Archive,
-        },
       ],
     },
     {
@@ -105,6 +92,25 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+      ],
+    },
+    /*
+     * The way back to archived status pages, which the list leaves out. Few
+     * visits need it, so it waits in Advanced: folded away until opened,
+     * and open by itself on the Archived page.
+     */
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGES_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
         },
       ],
     },
