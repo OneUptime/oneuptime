@@ -30,7 +30,7 @@ Use a global variable in any workflow with:
 
 For example, if you saved your PagerDuty key as `PAGERDUTY_KEY`, any block can use it as `{{global.variables.PAGERDUTY_KEY}}` — the editor stores the reference, and workflow logging scrubs the resolved secret value.
 
-The list shows each variable's name, type and description. Click **View** on a row to open the variable's page, where you can do everything else:
+The list shows each variable's name and description. Click **View** on a row to open the variable's page. It shows whether the variable is static or OAuth 2.0, and it's where you do everything else:
 
 - **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
 - **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
