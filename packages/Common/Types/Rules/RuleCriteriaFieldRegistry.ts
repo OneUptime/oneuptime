@@ -366,7 +366,23 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "runbookNamePattern",
     "runbookDescriptionPattern",
   ],
-  RunbookRule: ["titlePattern", "descriptionPattern"],
+  /*
+   * One table for incident, alert and scheduled maintenance runbook rules:
+   * the union of what the three match on. Each rule may only use its own
+   * trigger's share (Types/Runbook/RunbookRuleCriteria). titlePattern stays
+   * the first pattern field: it is the column the legacy shadow writes.
+   */
+  RunbookRule: [
+    "monitors",
+    "incidentSeverities",
+    "alertSeverities",
+    "labels",
+    "monitorLabels",
+    "titlePattern",
+    "descriptionPattern",
+    "monitorNamePattern",
+    "monitorDescriptionPattern",
+  ],
   ScheduledMaintenanceLabelRule: [
     "monitors",
     "scheduledMaintenanceLabels",

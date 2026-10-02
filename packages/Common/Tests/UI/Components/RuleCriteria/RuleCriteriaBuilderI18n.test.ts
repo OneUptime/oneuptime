@@ -95,6 +95,7 @@ const BUILDER_STRINGS: Array<string> = Array.from(
 const COMPUTED_CRITERIA_NAMES: Array<string> = [
   "Incident Labels",
   "Alert Labels",
+  "Event Labels",
   "Incident Title",
   "Alert Title",
   "Event Title",
