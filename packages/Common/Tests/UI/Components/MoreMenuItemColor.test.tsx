@@ -173,7 +173,11 @@ describe("MoreMenuItem color", () => {
     const onClick: MockFunction = getJestMockFunction();
 
     render(
-      <MoreMenuItem text="Resolved" color={new Color(GREEN)} onClick={onClick} />,
+      <MoreMenuItem
+        text="Resolved"
+        color={new Color(GREEN)}
+        onClick={onClick}
+      />,
     );
 
     fireEvent.click(screen.getByRole("menuitem"));

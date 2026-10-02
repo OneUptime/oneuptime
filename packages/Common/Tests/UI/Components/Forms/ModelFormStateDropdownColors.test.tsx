@@ -234,9 +234,7 @@ function initialStateField(
   return field;
 }
 
-const SORTED_BY_ORDER: NonNullable<
-  Field<IncidentTemplate>["dropdownModal"]
-> = {
+const SORTED_BY_ORDER: NonNullable<Field<IncidentTemplate>["dropdownModal"]> = {
   type: IncidentState,
   labelField: "name",
   valueField: "_id",
@@ -406,9 +404,9 @@ describe("a state dropdown in a ModelForm shows each state's colour", () => {
      */
     rowsForForm = [...statesInOrder(true)].reverse();
 
-    const fetchOwnList: () => Promise<Array<DropdownOption>> = async (): Promise<
+    const fetchOwnList: () => Promise<
       Array<DropdownOption>
-    > => {
+    > = async (): Promise<Array<DropdownOption>> => {
       return [
         { label: "Identified", value: IDENTIFIED_ID },
         { label: "Acknowledged", value: ACKNOWLEDGED_ID },

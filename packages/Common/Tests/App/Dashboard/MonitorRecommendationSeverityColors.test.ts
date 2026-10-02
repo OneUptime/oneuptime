@@ -1,6 +1,7 @@
 import { toSeverityDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCreateSideOver";
-import { MonitorRecommendationSeverityOption } from "../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
-import MonitorRecommendationSeverityMapper from "../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
+import MonitorRecommendationSeverityMapper, {
+  MonitorRecommendationSeverityOption,
+} from "../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
@@ -66,9 +67,7 @@ describe("monitor recommendation severity pickers", () => {
   test("the colour rides along without changing which severity is chosen", () => {
     // The mapper reads ids and ranks only; a colour is just carried.
     expect(
-      MonitorRecommendationSeverityMapper.getDefaultSeverityMapping(
-        SEVERITIES,
-      ),
+      MonitorRecommendationSeverityMapper.getDefaultSeverityMapping(SEVERITIES),
     ).toEqual({ Critical: CRITICAL_ID, Warning: MINOR_ID });
   });
 });

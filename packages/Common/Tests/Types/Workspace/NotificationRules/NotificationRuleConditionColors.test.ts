@@ -1,5 +1,7 @@
-import { NotificationRuleConditionUtil } from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
-import { NotificationRuleConditionCheckOn } from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
+import {
+  NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+} from "../../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../../Models/DatabaseModels/AlertState";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
@@ -78,16 +80,14 @@ function dropdownData(): {
 
 type OptionTriple = [string, string, string | undefined];
 
-function optionsFor(checkOn: NotificationRuleConditionCheckOn): Array<OptionTriple> {
+function optionsFor(
+  checkOn: NotificationRuleConditionCheckOn,
+): Array<OptionTriple> {
   return NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
     ...dropdownData(),
     checkOn: checkOn,
   }).map((option: DropdownOption): OptionTriple => {
-    return [
-      option.label,
-      option.value as string,
-      option.color?.toString(),
-    ];
+    return [option.label, option.value as string, option.color?.toString()];
   });
 }
 
@@ -187,7 +187,9 @@ describe("workspace rule condition options carry their colours", () => {
     const options: Array<DropdownOption> =
       NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
         ...dropdownData(),
-        incidentStates: [named(new IncidentState(), "inc-state-1", "Identified")],
+        incidentStates: [
+          named(new IncidentState(), "inc-state-1", "Identified"),
+        ],
         checkOn: NotificationRuleConditionCheckOn.IncidentState,
       });
 

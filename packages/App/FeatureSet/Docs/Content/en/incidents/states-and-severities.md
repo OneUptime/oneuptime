@@ -1,6 +1,6 @@
 # States & Severities
 
-Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. In the dashboard they look alike — both render as colored pills on the incidents list, both are project-scoped lists you can rename and recolor. They do very different jobs.
+Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. In the dashboard they look alike — both render as colored pills on the incidents list and as a colored dot before the name wherever you pick one, both are project-scoped lists you can rename and recolor. They do very different jobs.
 
 States drive behavior. Three boolean flags on the state rows decide which incidents count as active, which buttons appear on the incident header, when the SLA clock stops, and when the incident drops off your status page. Severities drive nothing by themselves — they are labels that describe impact, and that other rules can match on.
 
@@ -50,7 +50,7 @@ Go to **Incidents → Settings → Incident State**. The page is an ordered list
 
 - **Name** — required, at least two characters. The placeholder suggests something like "Investigating".
 - **Description** — optional free text explaining when an incident sits in this state.
-- **Color** — required. Picked from the color picker; stored as a hex value like `#fd625e`.
+- **Color** — required. Picked from the color picker; stored as a hex value like `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
 
 You cannot set the three flags from this form — they belong to the seeded rows. A state you add is therefore an unflagged state, which has two consequences worth planning around:
 

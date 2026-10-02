@@ -170,6 +170,11 @@ function lineOf(source: string, index: number): number {
 
 const MODEL_PATTERN: string = COLORED_MODELS.join("|");
 
+// An option's label, its colour, and a select that asks for the colour.
+const SETS_A_LABEL: RegExp = /\blabel\s*:/;
+const MENTIONS_COLOR: RegExp = /\bcolor\b/;
+const SELECTS_COLOR: RegExp = /\bcolor\s*:\s*true\b/;
+
 /*
  * Every `.map((row: <Model>) => ...)` over a state, severity or status row,
  * with the callback's source.
@@ -307,11 +312,11 @@ describe("state, severity and status options keep their colours", () => {
     for (const file of SOURCES) {
       for (const map of rowMaps(file)) {
         // Only maps that build a dropdown option (they set its label).
-        if (!/\blabel\s*:/.test(map.callback)) {
+        if (!SETS_A_LABEL.test(map.callback)) {
           continue;
         }
 
-        if (!/\bcolor\b/.test(map.callback)) {
+        if (!MENTIONS_COLOR.test(map.callback)) {
           missing.push(`${file.relativePath}:${map.line}`);
         }
       }
@@ -327,7 +332,7 @@ describe("state, severity and status options keep their colours", () => {
       for (const fetch of inlineFetchDropdownOptions(file)) {
         for (const model of COLORED_MODELS) {
           for (const select of listSelectsFor(fetch.body, model)) {
-            if (!/\bcolor\s*:\s*true\b/.test(select)) {
+            if (!SELECTS_COLOR.test(select)) {
               missing.push(`${file.relativePath}:${fetch.line} (${model})`);
             }
           }
@@ -367,7 +372,9 @@ describe("3. the bulk Change State dialogs show each state's colour", () => {
       },
     )
       .map((file: SourceFile): string => {
-        return file.relativePath.split(path.join("Dashboard", "src") + path.sep)[1]!;
+        return file.relativePath.split(
+          path.join("Dashboard", "src") + path.sep,
+        )[1]!;
       })
       .map((relativePath: string): string => {
         return relativePath.split(path.sep).join("/");
@@ -392,9 +399,9 @@ describe("3. the bulk Change State dialogs show each state's colour", () => {
       );
 
       expect(stateOptionsIndex).toBeGreaterThan(modalIndex);
-      expect(
-        source.slice(stateOptionsIndex, stateOptionsIndex + 80),
-      ).toContain("DropdownUtil.getDropdownOptionsFromEntityArray(");
+      expect(source.slice(stateOptionsIndex, stateOptionsIndex + 80)).toContain(
+        "DropdownUtil.getDropdownOptionsFromEntityArray(",
+      );
     },
   );
 
@@ -507,7 +514,9 @@ describe("5. the monitor criteria and recommendations show status and severity c
     "the recommendations fetch every %s with its colour",
     (model: string) => {
       const selects: Array<string> = listSelectsFor(
-        readDashboardSource("Components/Recommendations/MonitorRecommendations.tsx"),
+        readDashboardSource(
+          "Components/Recommendations/MonitorRecommendations.tsx",
+        ),
         model,
       );
 

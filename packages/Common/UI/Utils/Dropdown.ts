@@ -160,9 +160,7 @@ export default class DropdownUtil {
     const remember: (option: DropdownOption) => void = (
       option: DropdownOption,
     ): void => {
-      const color: Color | undefined = DropdownUtil.toOptionColor(
-        option.color,
-      );
+      const color: Color | undefined = DropdownUtil.toOptionColor(option.color);
 
       if (color) {
         colorByValue.set(String(option.value), color);
