@@ -38,11 +38,12 @@ When a rule matches, the alert's \`isPrivate\` flag is set to \`true\`. Multiple
 const alertEpisodePrivacyDocumentation: string = `
 ### How Alert Episode Privacy Rules Work
 
-Match an alert episode on creation and mark it as **private** automatically. Empty criteria are skipped.
+Match an alert episode on creation and mark it as **private** automatically.
 
-- **Severities** — any-of
-- **Episode Labels** — any-of
-- **Title / Description Pattern** — case-insensitive regex
+### Match Criteria
+
+- **Alert Severities**, **Episode Labels** — any of the selected values
+- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
 `;
 
 interface RulesTableProps {
@@ -202,7 +203,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { alertTitlePattern: true },
-          title: "Alert Title Pattern",
+          title: "Alert Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -213,7 +214,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { alertDescriptionPattern: true },
-          title: "Alert Description Pattern",
+          title: "Alert Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -221,7 +222,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorNamePattern: true },
-          title: "Monitor Name Pattern",
+          title: "Monitor Name",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -229,7 +230,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { monitorDescriptionPattern: true },
-          title: "Monitor Description Pattern",
+          title: "Monitor Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -366,7 +367,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeTitlePattern: true },
-          title: "Episode Title Pattern",
+          title: "Episode Title",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -377,7 +378,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
         },
         {
           field: { episodeDescriptionPattern: true },
-          title: "Episode Description Pattern",
+          title: "Episode Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

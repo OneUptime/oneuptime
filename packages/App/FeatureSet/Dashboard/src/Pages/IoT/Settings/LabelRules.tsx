@@ -144,7 +144,7 @@ const IoTFleetLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { iotFleetNamePattern: true },
-          title: "IoT Fleet Name Pattern",
+          title: "IoT Fleet Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -155,7 +155,7 @@ const IoTFleetLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { iotFleetDescriptionPattern: true },
-          title: "IoT Fleet Description Pattern",
+          title: "IoT Fleet Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

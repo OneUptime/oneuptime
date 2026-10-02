@@ -10,30 +10,37 @@ All three pages edit the same underlying rule model — they're just filtered to
 
 ## Anatomy of a rule
 
-| Field                   | Purpose                                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| **Name**                | Short, human label. Shown in audit logs.                                                        |
-| **Description**         | Optional context for teammates.                                                                 |
-| **Enabled**             | Toggle to suspend a rule without deleting it.                                                   |
-| **Title Pattern**       | Case-insensitive regex matched against the entity's title. Empty = match any title.             |
-| **Description Pattern** | Case-insensitive regex matched against the entity's description. Empty = match any description. |
-| **Runbooks to Start**   | One or more runbooks to launch when the rule fires.                                             |
+| Field                 | Purpose                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Name**              | Short, human label. Shown in audit logs.                                                                  |
+| **Description**       | Optional context for teammates.                                                                           |
+| **Enabled**           | Toggle to suspend a rule without deleting it.                                                             |
+| **Conditions**        | What the rule matches, on the **Match Criteria** step. Leave it empty to match every event of its type.  |
+| **Runbooks to Start** | One or more runbooks to launch when the rule fires.                                                       |
+
+## Conditions
+
+Each condition compares one thing about the event with a value you give:
+
+- **Incident Title** / **Alert Title** / **Event Title** — the title of the incident, alert or scheduled maintenance event.
+- **Incident Description** / **Alert Description** / **Event Description** — its description.
+
+Pick an operator for each condition: **Contains** (where a new condition starts), **Does not contain**, **Equals**, **Does not equal**, **Starts with**, **Ends with**, or **Matches pattern** / **Does not match pattern** for a case-insensitive regular expression or a `*` wildcard. Text comparisons ignore case.
+
+With two or more conditions, choose **Match all** (every condition must be true) or **Match any** (at least one must be).
 
 ## Matching semantics
 
-A rule matches when **all specified criteria pass**. Empty criteria are skipped, so:
-
-- A rule with no patterns set runs on every event of its type (a global "always run" rule).
-- A rule with only a title pattern fires on events whose title matches that regex.
+- A rule with no conditions runs on every event of its type (a global "always run" rule).
 - Multiple rules can match the same event — every match fires, and the union of their runbooks runs (each runbook gets its own execution).
 
 ## Example: DB failover for database incidents
 
 ```
-Name:           Start DB failover for DB incidents
-Trigger:        Incident
-Title Pattern:  (?:^|\b)(db|database|postgres|mysql|mongo)
-Runbooks:       [DB failover playbook, Notify DBA team]
+Name:        Start DB failover for DB incidents
+Trigger:     Incident
+Conditions:  Incident Title matches pattern (?:^|\b)(db|database|postgres|mysql|mongo)
+Runbooks:    [DB failover playbook, Notify DBA team]
 ```
 
 This will create two runbook executions every time an incident with "db", "database", "postgres", etc. in the title is created.
@@ -41,11 +48,10 @@ This will create two runbook executions every time an incident with "db", "datab
 ## Example: Always-run hygiene rule
 
 ```
-Name:                 Always-run pre-flight check
-Trigger:              Incident
-Title Pattern:        (empty)
-Description Pattern:  (empty)
-Runbooks:             [Capture pre-incident state]
+Name:        Always-run pre-flight check
+Trigger:     Incident
+Conditions:  (none)
+Runbooks:    [Capture pre-incident state]
 ```
 
 Fires on every incident — useful for capturing system state snapshots, page metrics, etc.
@@ -65,4 +71,4 @@ If a rule references a runbook that has `isEnabled = false`, the rule still matc
 
 ## Testing a rule
 
-Before relying on a rule in production, create a test incident (or alert) with a title that matches the pattern and confirm the expected runbooks fire. Rules are evaluated at the moment of creation — editing an incident's title later does not re-trigger rules.
+Before relying on a rule in production, create a test incident (or alert) with a title that matches the rule's conditions and confirm the expected runbooks fire. Rules are evaluated at the moment of creation — editing an incident's title later does not re-trigger rules.

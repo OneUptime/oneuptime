@@ -1088,11 +1088,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           title="Change Incident State"
           description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
           stateFieldKey="incidentStateId"
-          stateOptions={incidentStates.map((state: IncidentState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: incidentStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Public}
           noteTitle="Public Note"

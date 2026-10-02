@@ -161,7 +161,7 @@ const DockerSwarmClusterOwnerRulesPage: FunctionComponent<
         },
         {
           field: { dockerSwarmClusterNamePattern: true },
-          title: "Docker Swarm Cluster Name Pattern",
+          title: "Docker Swarm Cluster Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -172,7 +172,7 @@ const DockerSwarmClusterOwnerRulesPage: FunctionComponent<
         },
         {
           field: { dockerSwarmClusterDescriptionPattern: true },
-          title: "Docker Swarm Cluster Description Pattern",
+          title: "Docker Swarm Cluster Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

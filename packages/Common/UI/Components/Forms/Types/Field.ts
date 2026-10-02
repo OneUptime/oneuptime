@@ -16,6 +16,7 @@ import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/Databas
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
@@ -114,10 +115,22 @@ export default interface Field<TEntity> {
     | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
+  /*
+   * The model a dropdown lists. ModelForm fetches it with its colour column,
+   * so a state, severity or monitor status shows its colour before its name
+   * (Field.fetchDropdownOptions, when a field has one, keeps those colours).
+   */
   dropdownModal?: {
     type: DatabaseBaseModelType;
     labelField: string;
     valueField: string;
+    /*
+     * The order to list the options in, by columns of the dropdown's model -
+     * `{ order: SortOrder.Ascending }` lists states in the order an incident
+     * moves through them. Unset, the list comes in the server's default
+     * order (newest first).
+     */
+    sort?: { [columnName: string]: SortOrder } | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a

@@ -14,7 +14,7 @@ import {
   getPeoplePickerOptionsFromModels,
 } from "../PeoplePicker/PeoplePickerKinds";
 import { PeoplePickerFieldKind } from "../PeoplePicker/PeoplePickerTypes";
-import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaBuilder";
+import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaFields";
 import {
   getLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,

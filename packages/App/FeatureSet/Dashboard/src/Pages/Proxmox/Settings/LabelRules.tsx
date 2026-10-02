@@ -148,7 +148,7 @@ const ProxmoxClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { proxmoxClusterNamePattern: true },
-          title: "Proxmox Cluster Name Pattern",
+          title: "Proxmox Cluster Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -159,7 +159,7 @@ const ProxmoxClusterLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { proxmoxClusterDescriptionPattern: true },
-          title: "Proxmox Cluster Description Pattern",
+          title: "Proxmox Cluster Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

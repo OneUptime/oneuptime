@@ -158,7 +158,7 @@ const CephClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { cephClusterNamePattern: true },
-          title: "Ceph Cluster Name Pattern",
+          title: "Ceph Cluster Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -169,7 +169,7 @@ const CephClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { cephClusterDescriptionPattern: true },
-          title: "Ceph Cluster Description Pattern",
+          title: "Ceph Cluster Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
