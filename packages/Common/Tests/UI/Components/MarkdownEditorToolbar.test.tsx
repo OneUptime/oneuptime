@@ -15,7 +15,6 @@ import {
   beforeEach,
   describe,
   expect,
-  jest,
   test,
 } from "@jest/globals";
 import { createInstance, i18n } from "i18next";

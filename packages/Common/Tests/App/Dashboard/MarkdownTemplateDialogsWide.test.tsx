@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
-import React, { ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { JSONObject } from "../../../Types/JSON";
 import Permission from "../../../Types/Permission";
@@ -161,7 +161,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 
 interface TemplatePage {
   name: string;
-  Page: (props: PageComponentProps) => ReactElement;
+  Page: FunctionComponent<PageComponentProps>;
   title: string;
   // The step the Markdown editor is on.
   editorStep: string;
