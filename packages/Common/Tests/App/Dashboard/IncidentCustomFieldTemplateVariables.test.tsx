@@ -19,10 +19,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Under a subscriber notification template's variable reference, for an
- * incident event: a warning that custom fields and the affected status
- * pages are internal data, and the project's incident custom fields with the
- * {{customFields.<key>}} variable each is placed by and whether it is
- * already in the default messages.
+ * incident event: who may place custom fields and labels, and the project's
+ * incident custom fields with the {{customFields.<key>}} variable each is
+ * placed by and whether it is already in the default messages.
+ *
+ * No warning box: a yellow "Internal data" one used to open the panel, the
+ * twin of the one the note template form had, and both were taken out as
+ * clutter.
  *
  * The list request is stubbed and recorded; the words go through a
  * translation stub that records what it was asked to translate.
@@ -58,6 +61,13 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 const translated: Array<string> = [];
+
+// The removed warning's title.
+const WARNING_TITLE: RegExp = /internal data/i;
+// A copy key that names a warning.
+const WARNING_KEY: RegExp = /warning|internaldata/i;
+// The removed warning's title, and its closing advice.
+const WARNING_TEXT: RegExp = /internal data|whose subscribers may see them/i;
 
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
@@ -134,6 +144,27 @@ const FIELDS: Array<IncidentCustomField> = [
   customField({ name: "Legacy", variableKey: "Not A Key" }),
 ];
 
+/*
+ * No alert of any kind in the panel - the removed warning was the shared
+ * Alert's amber (yellow) box - and none of its words.
+ */
+function expectNoWarning(panel: HTMLElement): void {
+  expect(within(panel).queryAllByRole("alert")).toHaveLength(0);
+  expect(
+    screen.queryByTestId("incident-template-variables-internal-data-warning"),
+  ).not.toBeInTheDocument();
+  expect(panel.querySelector(".alert")).toBeNull();
+  expect(panel.querySelector(".bg-amber-50")).toBeNull();
+  expect(panel).not.toHaveTextContent(/internal data/i);
+  expect(panel).not.toHaveTextContent(/outside your team/i);
+  expect(panel).not.toHaveTextContent(/whose subscribers may see them/i);
+  expect(
+    translated.some((text: string): boolean => {
+      return WARNING_TITLE.test(text);
+    }),
+  ).toBe(false);
+}
+
 beforeEach(() => {
   getListMock.mockResolvedValue({ data: FIELDS, count: FIELDS.length });
 });
@@ -168,20 +199,9 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     [Event.SubscriberIncidentNoteUpdated],
     [Event.SubscriberIncidentPostmortemPublished],
   ])(
-    "for %s, warns that custom fields and the affected status pages are internal",
+    "for %s, lists the fields under who may place them, with no warning box",
     async (eventType: StatusPageSubscriberNotificationEventType) => {
       render(<IncidentCustomFieldTemplateVariables eventType={eventType} />);
-
-      const warning: HTMLElement = screen.getByTestId(
-        "incident-template-variables-internal-data-warning",
-      );
-
-      expect(warning).toHaveTextContent(
-        IncidentCustomFieldTemplateVariablesCopy.internalDataWarningTitle,
-      );
-      expect(warning).toHaveTextContent(
-        IncidentCustomFieldTemplateVariablesCopy.internalDataWarning,
-      );
 
       await waitFor(() => {
         expect(
@@ -190,6 +210,17 @@ describe("IncidentCustomFieldTemplateVariables", () => {
           ),
         ).toBeInTheDocument();
       });
+
+      const panel: HTMLElement = screen.getByTestId(
+        "incident-custom-field-template-variables",
+      );
+
+      expectNoWarning(panel);
+
+      // The panel opens with who may place custom fields and labels.
+      expect(panel.firstElementChild).toBe(
+        screen.getByTestId("incident-template-variables-placement-permission"),
+      );
     },
   );
 
@@ -326,7 +357,7 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     );
   });
 
-  test("keeps the warning, and says the fields could not be listed, when they cannot be read", async () => {
+  test("says the fields could not be listed, still with no warning box, when they cannot be read", async () => {
     getListMock.mockRejectedValue(new Error("Not authorized"));
 
     render(
@@ -345,9 +376,73 @@ describe("IncidentCustomFieldTemplateVariables", () => {
       );
     });
 
+    expectNoWarning(
+      screen.getByTestId("incident-custom-field-template-variables"),
+    );
+  });
+
+  test("shows no warning box while the fields are still loading", () => {
+    // A request that never answers: the panel stays in its loading state.
+    getListMock.mockReturnValue(new Promise<never>(() => {}));
+
+    render(
+      <IncidentCustomFieldTemplateVariables
+        eventType={Event.SubscriberIncidentNoteCreated}
+      />,
+    );
+
+    const panel: HTMLElement = screen.getByTestId(
+      "incident-custom-field-template-variables",
+    );
+
+    expectNoWarning(panel);
     expect(
-      screen.getByTestId("incident-template-variables-internal-data-warning"),
+      screen.getByTestId("incident-template-variables-placement-permission"),
     ).toBeInTheDocument();
+  });
+
+  test("shows no warning box when the project has no incident custom fields", async () => {
+    getListMock.mockResolvedValue({ data: [], count: 0 });
+
+    render(
+      <IncidentCustomFieldTemplateVariables
+        eventType={Event.SubscriberIncidentPostmortemPublished}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("incident-custom-field-template-variables-empty"),
+      ).toBeInTheDocument();
+    });
+
+    expectNoWarning(
+      screen.getByTestId("incident-custom-field-template-variables"),
+    );
+  });
+
+  test("the copy carries no warning text", () => {
+    expect(
+      Object.keys(IncidentCustomFieldTemplateVariablesCopy).some(
+        (key: string): boolean => {
+          return WARNING_KEY.test(key);
+        },
+      ),
+    ).toBe(false);
+    expect(
+      Object.values(IncidentCustomFieldTemplateVariablesCopy).some(
+        (text: string): boolean => {
+          return WARNING_TEXT.test(text);
+        },
+      ),
+    ).toBe(false);
+    // What stays: who may place them, and the fields' table.
+    expect(
+      IncidentCustomFieldTemplateVariablesCopy.placementPermission,
+    ).toMatch(/custom field/);
+    expect(IncidentCustomFieldTemplateVariablesCopy.customFieldsTitle).toBe(
+      "Incident Custom Fields",
+    );
   });
 
   test("translates the words, never a variable", async () => {
@@ -382,5 +477,7 @@ describe("IncidentCustomFieldTemplateVariables", () => {
     ).toBe(false);
     // A field's name is the team's own text: shown as written.
     expect(translated).not.toContain("Affected Location");
+    // The removed warning's title is not looked up any more.
+    expect(translated).not.toContain("Internal data");
   });
 });
