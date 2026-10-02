@@ -8,7 +8,7 @@ import {
 } from "@jest/globals";
 
 /*
- * The rate limiter in front of the public incident form routes.
+ * The rate limiter in front of the public form routes.
  *
  * Two buckets with opposite jobs. Reading a form is load control, like
  * reading a public dashboard, and fails open. Submitting one declares an
@@ -60,18 +60,18 @@ jest.mock("../../../Server/Utils/Response", () => {
 import Redis from "../../../Server/Infrastructure/Redis";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
-import IncidentFormRateLimit, {
-  INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-  INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE,
-  INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE,
-  INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
-  IncidentFormCeilingException,
-  IncidentFormRateLimitBucket,
-  IncidentFormRateLimitBucketConfig,
-  IncidentFormRateLimitDecision,
-  IncidentFormRateLimitOutcome,
-  IncidentFormRateLimitScope,
-} from "../../../Server/Middleware/IncidentFormRateLimit";
+import FormRateLimit, {
+  FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+  FORM_READ_RATE_LIMIT_MESSAGE,
+  FORM_SUBMIT_RATE_LIMIT_MESSAGE,
+  FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  FormCeilingException,
+  FormRateLimitBucket,
+  FormRateLimitBucketConfig,
+  FormRateLimitDecision,
+  FormRateLimitOutcome,
+  FormRateLimitScope,
+} from "../../../Server/Middleware/FormRateLimit";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import Exception from "../../../Types/Exception/Exception";
 import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
@@ -243,7 +243,7 @@ const HOUR_ALIGNED_TIME: number =
   1_700_000_000_000 -
   (1_700_000_000_000 % (SUBMIT_PER_FORM_WINDOW_SECONDS * 1000));
 
-describe("IncidentFormRateLimit", () => {
+describe("FormRateLimit", () => {
   let client: FakeRedisClient;
   let nowSpy: ReturnType<typeof jest.spyOn>;
   let currentTime: number;
@@ -266,15 +266,15 @@ describe("IncidentFormRateLimit", () => {
   });
 
   const consume: (data: {
-    bucket: IncidentFormRateLimitBucket;
+    bucket: FormRateLimitBucket;
     formKey?: string;
     clientIp?: string;
-  }) => Promise<IncidentFormRateLimitDecision> = (data: {
-    bucket: IncidentFormRateLimitBucket;
+  }) => Promise<FormRateLimitDecision> = (data: {
+    bucket: FormRateLimitBucket;
     formKey?: string;
     clientIp?: string;
   }) => {
-    return IncidentFormRateLimit.consume({
+    return FormRateLimit.consume({
       formKey: data.formKey || FORM_KEY,
       clientIp: data.clientIp || CLIENT_IP,
       bucket: data.bucket,
@@ -284,19 +284,19 @@ describe("IncidentFormRateLimit", () => {
   const consumeRead: (data?: {
     formKey?: string;
     clientIp?: string;
-  }) => Promise<IncidentFormRateLimitDecision> = (
+  }) => Promise<FormRateLimitDecision> = (
     data: { formKey?: string; clientIp?: string } = {},
   ) => {
-    return consume({ ...data, bucket: IncidentFormRateLimitBucket.Read });
+    return consume({ ...data, bucket: FormRateLimitBucket.Read });
   };
 
   const consumeSubmit: (data?: {
     formKey?: string;
     clientIp?: string;
-  }) => Promise<IncidentFormRateLimitDecision> = (
+  }) => Promise<FormRateLimitDecision> = (
     data: { formKey?: string; clientIp?: string } = {},
   ) => {
-    return consume({ ...data, bucket: IncidentFormRateLimitBucket.Submit });
+    return consume({ ...data, bucket: FormRateLimitBucket.Submit });
   };
 
   // An address per index, all distinct: 10.1.x.y.
@@ -306,8 +306,8 @@ describe("IncidentFormRateLimit", () => {
 
   describe("the budgets", () => {
     it("reads at 120 per minute per form and address, 600 per address, failing open", () => {
-      const read: IncidentFormRateLimitBucketConfig =
-        IncidentFormRateLimit.getBucketConfig(IncidentFormRateLimitBucket.Read);
+      const read: FormRateLimitBucketConfig =
+        FormRateLimit.getBucketConfig(FormRateLimitBucket.Read);
 
       expect(read).toEqual({
         windowSeconds: READ_WINDOW_SECONDS,
@@ -319,9 +319,9 @@ describe("IncidentFormRateLimit", () => {
     });
 
     it("submits at 10 per 15 minutes per form and address, 30 per address, 60 an hour per form, failing closed", () => {
-      const submit: IncidentFormRateLimitBucketConfig =
-        IncidentFormRateLimit.getBucketConfig(
-          IncidentFormRateLimitBucket.Submit,
+      const submit: FormRateLimitBucketConfig =
+        FormRateLimit.getBucketConfig(
+          FormRateLimitBucket.Submit,
         );
 
       expect(submit).toEqual({
@@ -344,9 +344,9 @@ describe("IncidentFormRateLimit", () => {
     });
 
     it("hands out copies, so a caller cannot loosen the limits in force", async () => {
-      const copy: IncidentFormRateLimitBucketConfig =
-        IncidentFormRateLimit.getBucketConfig(
-          IncidentFormRateLimitBucket.Submit,
+      const copy: FormRateLimitBucketConfig =
+        FormRateLimit.getBucketConfig(
+          FormRateLimitBucket.Submit,
         );
 
       copy.perFormAndIpLimit = 100000;
@@ -357,11 +357,11 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect((await consumeSubmit()).outcome).toBe(
-        IncidentFormRateLimitOutcome.RateLimited,
+        FormRateLimitOutcome.RateLimited,
       );
       expect(
-        IncidentFormRateLimit.getBucketConfig(
-          IncidentFormRateLimitBucket.Submit,
+        FormRateLimit.getBucketConfig(
+          FormRateLimitBucket.Submit,
         ).perForm?.limit,
       ).toBe(SUBMIT_PER_FORM_LIMIT);
     });
@@ -372,7 +372,7 @@ describe("IncidentFormRateLimit", () => {
       const shareKey: string = ObjectID.generate().toString();
 
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({ params: { shareKey } }),
         ),
       ).toBe(`k:${shareKey.toLowerCase()}`);
@@ -386,11 +386,11 @@ describe("IncidentFormRateLimit", () => {
       const shareKey: string = ObjectID.generate().toString();
 
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({ params: { shareKey: shareKey.toUpperCase() } }),
         ),
       ).toBe(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({ params: { shareKey: shareKey.toLowerCase() } }),
         ),
       );
@@ -400,7 +400,7 @@ describe("IncidentFormRateLimit", () => {
       const shareKey: string = ObjectID.generate().toString();
 
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({ params: { shareKey: `  ${shareKey}\t` } }),
         ),
       ).toBe(`k:${shareKey.toLowerCase()}`);
@@ -422,7 +422,7 @@ describe("IncidentFormRateLimit", () => {
       "collapses %s into the one invalid bucket",
       (_label: string, value: string) => {
         expect(
-          IncidentFormRateLimit.resolveFormKey(
+          FormRateLimit.resolveFormKey(
             buildRequest({ params: { shareKey: value } }),
           ),
         ).toBe("invalid");
@@ -430,9 +430,9 @@ describe("IncidentFormRateLimit", () => {
     );
 
     it("uses a stable key when no share key is named", () => {
-      expect(IncidentFormRateLimit.resolveFormKey(buildRequest())).toBe("none");
+      expect(FormRateLimit.resolveFormKey(buildRequest())).toBe("none");
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({ params: { shareKey: "   " } }),
         ),
       ).toBe("none");
@@ -440,7 +440,7 @@ describe("IncidentFormRateLimit", () => {
 
     it("ignores a share key that is not text", () => {
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({ params: { shareKey: { evil: true } } }),
         ),
       ).toBe("none");
@@ -448,7 +448,7 @@ describe("IncidentFormRateLimit", () => {
 
     it("never reads another parameter", () => {
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({
             params: { id: ObjectID.generate().toString() },
           }),
@@ -465,7 +465,7 @@ describe("IncidentFormRateLimit", () => {
      */
     it("bills the hop our own proxy appended, not the one the caller forged", () => {
       expect(
-        IncidentFormRateLimit.resolveClientIp(
+        FormRateLimit.resolveClientIp(
           buildRequest({
             headers: { "x-forwarded-for": "9.9.9.9, 203.0.113.7" },
           }),
@@ -475,13 +475,13 @@ describe("IncidentFormRateLimit", () => {
 
     it("gives two forging callers from one real address the same bucket", () => {
       expect(
-        IncidentFormRateLimit.resolveClientIp(
+        FormRateLimit.resolveClientIp(
           buildRequest({
             headers: { "x-forwarded-for": "1.1.1.1, 203.0.113.7" },
           }),
         ),
       ).toBe(
-        IncidentFormRateLimit.resolveClientIp(
+        FormRateLimit.resolveClientIp(
           buildRequest({
             headers: { "x-forwarded-for": "2.2.2.2, 203.0.113.7" },
           }),
@@ -491,21 +491,21 @@ describe("IncidentFormRateLimit", () => {
 
     it("falls back to the socket address with no forwarding header", () => {
       expect(
-        IncidentFormRateLimit.resolveClientIp(
+        FormRateLimit.resolveClientIp(
           buildRequest({ socketAddress: "198.51.100.4" }),
         ),
       ).toBe("198.51.100.4");
     });
 
     it("puts callers with no address at all in one shared bucket", () => {
-      expect(IncidentFormRateLimit.resolveClientIp(buildRequest())).toBe(
+      expect(FormRateLimit.resolveClientIp(buildRequest())).toBe(
         "unknown",
       );
     });
 
     it("puts a trusted entry that is not an address in the shared bucket", () => {
       expect(
-        IncidentFormRateLimit.resolveClientIp(
+        FormRateLimit.resolveClientIp(
           buildRequest({
             headers: { "x-forwarded-for": "1.2.3.4\n\r evil*key" },
           }),
@@ -515,7 +515,7 @@ describe("IncidentFormRateLimit", () => {
 
     it("keeps IPv6 addresses", () => {
       expect(
-        IncidentFormRateLimit.resolveClientIp(
+        FormRateLimit.resolveClientIp(
           buildRequest({
             headers: { "x-forwarded-for": "2001:db8::8a2e:370:7334" },
           }),
@@ -528,7 +528,7 @@ describe("IncidentFormRateLimit", () => {
     it("allows 120 reads a minute from one address", async () => {
       for (let i: number = 0; i < READ_PER_FORM_AND_IP_LIMIT; i++) {
         expect((await consumeRead()).outcome).toBe(
-          IncidentFormRateLimitOutcome.Allowed,
+          FormRateLimitOutcome.Allowed,
         );
       }
     });
@@ -538,10 +538,10 @@ describe("IncidentFormRateLimit", () => {
         await consumeRead();
       }
 
-      const decision: IncidentFormRateLimitDecision = await consumeRead();
+      const decision: FormRateLimitDecision = await consumeRead();
 
-      expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.FormAndIp);
+      expect(decision.outcome).toBe(FormRateLimitOutcome.RateLimited);
+      expect(decision.scope).toBe(FormRateLimitScope.FormAndIp);
       expect(decision.isFirstRejectionInWindow).toBe(true);
     });
 
@@ -551,10 +551,10 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect((await consumeRead({ clientIp: "198.51.100.4" })).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
       expect((await consumeRead({ formKey: OTHER_FORM_KEY })).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
     });
 
@@ -564,16 +564,16 @@ describe("IncidentFormRateLimit", () => {
      * Postgres lookup, 404 or not.
      */
     it("stops a caller rotating share keys at the per-address ceiling", async () => {
-      let rejected: IncidentFormRateLimitDecision | null = null;
+      let rejected: FormRateLimitDecision | null = null;
       let rejectedAt: number = -1;
 
       for (let i: number = 0; i < READ_PER_IP_LIMIT + 10; i++) {
-        const decision: IncidentFormRateLimitDecision = await consumeRead({
+        const decision: FormRateLimitDecision = await consumeRead({
           formKey: `k:rotating-${i}`,
         });
 
         if (
-          decision.outcome === IncidentFormRateLimitOutcome.RateLimited &&
+          decision.outcome === FormRateLimitOutcome.RateLimited &&
           !rejected
         ) {
           rejected = decision;
@@ -582,7 +582,7 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect(rejectedAt).toBe(READ_PER_IP_LIMIT);
-      expect(rejected?.scope).toBe(IncidentFormRateLimitScope.Ip);
+      expect(rejected?.scope).toBe(FormRateLimitScope.Ip);
     });
 
     it("reports the form and address counter first when both are over", async () => {
@@ -591,7 +591,7 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect((await consumeRead()).scope).toBe(
-        IncidentFormRateLimitScope.FormAndIp,
+        FormRateLimitScope.FormAndIp,
       );
     });
 
@@ -599,8 +599,8 @@ describe("IncidentFormRateLimit", () => {
       await consumeRead();
 
       expect(client.keysMatching(":f:")).toEqual([]);
-      expect(client.keysMatching("iform:rl:read:fi:")).toHaveLength(1);
-      expect(client.keysMatching("iform:rl:read:i:")).toHaveLength(1);
+      expect(client.keysMatching("form:rl:read:fi:")).toHaveLength(1);
+      expect(client.keysMatching("form:rl:read:i:")).toHaveLength(1);
     });
 
     it("costs one round trip", async () => {
@@ -619,7 +619,7 @@ describe("IncidentFormRateLimit", () => {
     it("allows ten submissions from one address to one form in 15 minutes", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_AND_IP_LIMIT; i++) {
         expect((await consumeSubmit()).outcome).toBe(
-          IncidentFormRateLimitOutcome.Allowed,
+          FormRateLimitOutcome.Allowed,
         );
       }
     });
@@ -629,23 +629,23 @@ describe("IncidentFormRateLimit", () => {
         await consumeSubmit();
       }
 
-      const decision: IncidentFormRateLimitDecision = await consumeSubmit();
+      const decision: FormRateLimitDecision = await consumeSubmit();
 
-      expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.FormAndIp);
+      expect(decision.outcome).toBe(FormRateLimitOutcome.RateLimited);
+      expect(decision.scope).toBe(FormRateLimitScope.FormAndIp);
     });
 
     it("caps one address across every form at thirty", async () => {
       let rejectedAt: number = -1;
-      let rejected: IncidentFormRateLimitDecision | null = null;
+      let rejected: FormRateLimitDecision | null = null;
 
       for (let i: number = 0; i < SUBMIT_PER_IP_LIMIT + 5; i++) {
-        const decision: IncidentFormRateLimitDecision = await consumeSubmit({
+        const decision: FormRateLimitDecision = await consumeSubmit({
           formKey: `k:form-${i}`,
         });
 
         if (
-          decision.outcome === IncidentFormRateLimitOutcome.RateLimited &&
+          decision.outcome === FormRateLimitOutcome.RateLimited &&
           !rejected
         ) {
           rejected = decision;
@@ -654,7 +654,7 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect(rejectedAt).toBe(SUBMIT_PER_IP_LIMIT);
-      expect(rejected?.scope).toBe(IncidentFormRateLimitScope.Ip);
+      expect(rejected?.scope).toBe(FormRateLimitScope.Ip);
     });
 
     it("tells a caller refused by an address counter to come back when its quarter hour rolls", async () => {
@@ -664,9 +664,9 @@ describe("IncidentFormRateLimit", () => {
 
       currentTime = currentTime + 5 * 60 * 1000;
 
-      const decision: IncidentFormRateLimitDecision = await consumeSubmit();
+      const decision: FormRateLimitDecision = await consumeSubmit();
 
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.FormAndIp);
+      expect(decision.scope).toBe(FormRateLimitScope.FormAndIp);
       expect(decision.retryAfterSeconds).toBe(10 * 60);
     });
 
@@ -682,7 +682,7 @@ describe("IncidentFormRateLimit", () => {
         await consumeSubmit({ clientIp: addressNumber(i % 20) });
       }
 
-      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([]);
+      expect(client.keysMatching("form:rl:submit:f:")).toEqual([]);
       expect(client.keysMatching(":f:")).toEqual([]);
     });
 
@@ -690,7 +690,7 @@ describe("IncidentFormRateLimit", () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT + 1; i++) {
         expect(
           (await consumeSubmit({ clientIp: addressNumber(i) })).outcome,
-        ).toBe(IncidentFormRateLimitOutcome.Allowed);
+        ).toBe(FormRateLimitOutcome.Allowed);
       }
     });
 
@@ -705,7 +705,7 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect((await consumeRead()).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
 
       for (let i: number = 0; i < 100; i++) {
@@ -713,7 +713,7 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect((await consumeSubmit({ formKey: OTHER_FORM_KEY })).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
     });
   });
@@ -721,28 +721,28 @@ describe("IncidentFormRateLimit", () => {
   /*
    * The ceiling that survives address rotation: however many addresses hold
    * the link, the form declares at most this many incidents an hour. Spent
-   * by IncidentFormService only for a submission about to declare one.
+   * by FormService only for a submission about to create its record.
    */
   describe("consumeFormCeiling - the form's hourly ceiling", () => {
     const consumeCeiling: (
       formKey?: string,
-    ) => Promise<IncidentFormRateLimitDecision> = (
+    ) => Promise<FormRateLimitDecision> = (
       formKey: string = FORM_KEY,
     ) => {
-      return IncidentFormRateLimit.consumeFormCeiling({ formKey });
+      return FormRateLimit.consumeFormCeiling({ formKey });
     };
 
-    it("allows sixty incidents an hour and refuses the next, naming the form ceiling", async () => {
+    it("allows sixty submissions an hour and refuses the next, naming the form ceiling", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
         expect((await consumeCeiling()).outcome).toBe(
-          IncidentFormRateLimitOutcome.Allowed,
+          FormRateLimitOutcome.Allowed,
         );
       }
 
-      const decision: IncidentFormRateLimitDecision = await consumeCeiling();
+      const decision: FormRateLimitDecision = await consumeCeiling();
 
-      expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
+      expect(decision.outcome).toBe(FormRateLimitOutcome.RateLimited);
+      expect(decision.scope).toBe(FormRateLimitScope.Form);
       expect(decision.isFirstRejectionInWindow).toBe(true);
       expect((await consumeCeiling()).isFirstRejectionInWindow).toBe(false);
     });
@@ -754,9 +754,9 @@ describe("IncidentFormRateLimit", () => {
 
       currentTime = currentTime + 20 * 60 * 1000;
 
-      const decision: IncidentFormRateLimitDecision = await consumeCeiling();
+      const decision: FormRateLimitDecision = await consumeCeiling();
 
-      expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
+      expect(decision.scope).toBe(FormRateLimitScope.Form);
       // Forty minutes left of the hour, not what is left of 15 minutes.
       expect(decision.retryAfterSeconds).toBe(40 * 60);
     });
@@ -769,13 +769,13 @@ describe("IncidentFormRateLimit", () => {
       currentTime = currentTime + SUBMIT_WINDOW_SECONDS * 1000;
 
       expect((await consumeCeiling()).outcome).toBe(
-        IncidentFormRateLimitOutcome.RateLimited,
+        FormRateLimitOutcome.RateLimited,
       );
 
       currentTime = HOUR_ALIGNED_TIME + SUBMIT_PER_FORM_WINDOW_SECONDS * 1000;
 
       expect((await consumeCeiling()).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
     });
 
@@ -785,28 +785,28 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect((await consumeCeiling()).scope).toBe(
-        IncidentFormRateLimitScope.Form,
+        FormRateLimitScope.Form,
       );
       expect((await consumeCeiling(OTHER_FORM_KEY)).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
     });
 
     it("counts the form under the key the middleware gives it", async () => {
       await consumeCeiling();
 
-      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([
+      expect(client.keysMatching("form:rl:submit:f:")).toEqual([
         expect.stringMatching(
-          new RegExp(`^iform:rl:submit:f:${FORM_KEY}:\\d+$`),
+          new RegExp(`^form:rl:submit:f:${FORM_KEY}:\\d+$`),
         ),
       ]);
       expect(
-        IncidentFormRateLimit.getFormKey(
+        FormRateLimit.getFormKey(
           "  7C9E6679-7425-40DE-944B-E07FC1F90AE7 ",
         ),
       ).toBe(FORM_KEY);
       expect(
-        IncidentFormRateLimit.resolveFormKey(
+        FormRateLimit.resolveFormKey(
           buildRequest({
             params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
           }),
@@ -818,7 +818,7 @@ describe("IncidentFormRateLimit", () => {
       await consumeCeiling();
 
       const formCounter: string = client.keysMatching(
-        `iform:rl:submit:f:${FORM_KEY}:`,
+        `form:rl:submit:f:${FORM_KEY}:`,
       )[0]!;
 
       expect(client.expiresForKey(formCounter)).toEqual([
@@ -857,7 +857,7 @@ describe("IncidentFormRateLimit", () => {
         breakRedis();
 
         expect((await consumeCeiling()).outcome).toBe(
-          IncidentFormRateLimitOutcome.CounterUnavailable,
+          FormRateLimitOutcome.CounterUnavailable,
         );
       },
     );
@@ -868,7 +868,7 @@ describe("IncidentFormRateLimit", () => {
 
     const refusalOf: () => Promise<unknown> = async () => {
       try {
-        await IncidentFormRateLimit.reserveFormSubmission({
+        await FormRateLimit.reserveFormSubmission({
           shareKey: SHARE_KEY,
         });
       } catch (err) {
@@ -878,7 +878,7 @@ describe("IncidentFormRateLimit", () => {
       return undefined;
     };
 
-    it("spends one of the form's incidents, and refuses the sixty-first with when to come back", async () => {
+    it("spends one of the form's submissions, and refuses the sixty-first with when to come back", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_LIMIT; i++) {
         expect(await refusalOf()).toBeUndefined();
       }
@@ -887,17 +887,17 @@ describe("IncidentFormRateLimit", () => {
 
       const error: unknown = await refusalOf();
 
-      expect(error).toBeInstanceOf(IncidentFormCeilingException);
+      expect(error).toBeInstanceOf(FormCeilingException);
       expect(error).toBeInstanceOf(TooManyRequestsException);
       expect((error as Exception).code).toBe(429);
       expect((error as Exception).message).toBe(
-        INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+        FORM_TOTAL_RATE_LIMIT_MESSAGE,
       );
-      expect((error as IncidentFormCeilingException).retryAfterSeconds).toBe(
+      expect((error as FormCeilingException).retryAfterSeconds).toBe(
         45 * 60,
       );
       expect(
-        client.keysMatching(`iform:rl:submit:f:${FORM_KEY}:`),
+        client.keysMatching(`form:rl:submit:f:${FORM_KEY}:`),
       ).toHaveLength(1);
     });
 
@@ -924,23 +924,23 @@ describe("IncidentFormRateLimit", () => {
       expect(error).toBeInstanceOf(ServiceUnavailableException);
       expect((error as Exception).code).toBe(503);
       expect((error as Exception).message).toBe(
-        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       );
     });
 
     it("writes the refusal's Retry-After on the route's response, and nothing for any other error", () => {
       const built: BuiltResponse = buildResponse();
 
-      IncidentFormRateLimit.setRetryAfterFor(
+      FormRateLimit.setRetryAfterFor(
         built.response,
         new TooManyRequestsException("another limiter"),
       );
 
       expect(built.headers).toEqual({});
 
-      IncidentFormRateLimit.setRetryAfterFor(
+      FormRateLimit.setRetryAfterFor(
         built.response,
-        new IncidentFormCeilingException(1234),
+        new FormCeilingException(1234),
       );
 
       expect(built.headers).toEqual({ "Retry-After": "1234" });
@@ -970,12 +970,12 @@ describe("IncidentFormRateLimit", () => {
     it("gives every counter a TTL of two of its windows", async () => {
       await consumeRead();
       await consumeSubmit();
-      await IncidentFormRateLimit.consumeFormCeiling({ formKey: FORM_KEY });
+      await FormRateLimit.consumeFormCeiling({ formKey: FORM_KEY });
 
       expect(client.expires.length).toBe(5);
 
       for (const recorded of client.expires) {
-        const windowSeconds: number = recorded.key.startsWith("iform:rl:read:")
+        const windowSeconds: number = recorded.key.startsWith("form:rl:read:")
           ? READ_WINDOW_SECONDS
           : recorded.key.includes(":f:")
             ? SUBMIT_PER_FORM_WINDOW_SECONDS
@@ -993,13 +993,13 @@ describe("IncidentFormRateLimit", () => {
       currentTime = currentTime + (READ_WINDOW_SECONDS - 1) * 1000;
 
       expect((await consumeRead()).outcome).toBe(
-        IncidentFormRateLimitOutcome.RateLimited,
+        FormRateLimitOutcome.RateLimited,
       );
 
       currentTime = HOUR_ALIGNED_TIME + READ_WINDOW_SECONDS * 1000;
 
       expect((await consumeRead()).outcome).toBe(
-        IncidentFormRateLimitOutcome.Allowed,
+        FormRateLimitOutcome.Allowed,
       );
     });
 
@@ -1025,7 +1025,7 @@ describe("IncidentFormRateLimit", () => {
         await consumeRead();
       }
 
-      const atStart: IncidentFormRateLimitDecision = await consumeRead();
+      const atStart: FormRateLimitDecision = await consumeRead();
 
       expect(atStart.retryAfterSeconds).toBe(READ_WINDOW_SECONDS);
 
@@ -1050,15 +1050,15 @@ describe("IncidentFormRateLimit", () => {
 
   describe("consume - counter unavailable", () => {
     it.each([
-      [IncidentFormRateLimitBucket.Read],
-      [IncidentFormRateLimitBucket.Submit],
+      [FormRateLimitBucket.Read],
+      [FormRateLimitBucket.Submit],
     ])(
       "reports unavailable for %s when Redis has no client",
-      async (bucket: IncidentFormRateLimitBucket) => {
+      async (bucket: FormRateLimitBucket) => {
         getClientMock.mockReturnValue(null);
 
         expect((await consume({ bucket })).outcome).toBe(
-          IncidentFormRateLimitOutcome.CounterUnavailable,
+          FormRateLimitOutcome.CounterUnavailable,
         );
       },
     );
@@ -1067,7 +1067,7 @@ describe("IncidentFormRateLimit", () => {
       isConnectedMock.mockReturnValue(false);
 
       expect((await consumeSubmit()).outcome).toBe(
-        IncidentFormRateLimitOutcome.CounterUnavailable,
+        FormRateLimitOutcome.CounterUnavailable,
       );
     });
 
@@ -1075,7 +1075,7 @@ describe("IncidentFormRateLimit", () => {
       client.failNextExec = new Error("connection reset");
 
       expect((await consumeRead()).outcome).toBe(
-        IncidentFormRateLimitOutcome.CounterUnavailable,
+        FormRateLimitOutcome.CounterUnavailable,
       );
     });
 
@@ -1084,7 +1084,7 @@ describe("IncidentFormRateLimit", () => {
       client.failExecNumber = 2;
 
       expect((await consumeSubmit()).outcome).toBe(
-        IncidentFormRateLimitOutcome.CounterUnavailable,
+        FormRateLimitOutcome.CounterUnavailable,
       );
     });
 
@@ -1111,7 +1111,7 @@ describe("IncidentFormRateLimit", () => {
         client.malformedExecResult = result;
 
         expect((await consumeSubmit()).outcome).toBe(
-          IncidentFormRateLimitOutcome.CounterUnavailable,
+          FormRateLimitOutcome.CounterUnavailable,
         );
       },
     );
@@ -1125,21 +1125,21 @@ describe("IncidentFormRateLimit", () => {
 
   describe("getMiddleware", () => {
     const runMiddleware: (data: {
-      bucket?: IncidentFormRateLimitBucket;
+      bucket?: FormRateLimitBucket;
       request?: ExpressRequest;
       response?: ExpressResponse;
     }) => Promise<{
       nextCalled: boolean;
       headers: Record<string, string>;
     }> = async (data: {
-      bucket?: IncidentFormRateLimitBucket;
+      bucket?: FormRateLimitBucket;
       request?: ExpressRequest;
       response?: ExpressResponse;
     }) => {
       const built: BuiltResponse = buildResponse();
       let nextCalled: boolean = false;
 
-      await IncidentFormRateLimit.getMiddleware(data.bucket)(
+      await FormRateLimit.getMiddleware(data.bucket)(
         data.request ||
           buildRequest({
             params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
@@ -1163,7 +1163,7 @@ describe("IncidentFormRateLimit", () => {
 
     it("passes an allowed request through", async () => {
       expect(
-        (await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit }))
+        (await runMiddleware({ bucket: FormRateLimitBucket.Submit }))
           .nextCalled,
       ).toBe(true);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
@@ -1172,13 +1172,13 @@ describe("IncidentFormRateLimit", () => {
     it("counts on the read bucket unless told otherwise", async () => {
       await runMiddleware({});
 
-      expect(client.keysMatching("iform:rl:read:")).toHaveLength(2);
-      expect(client.keysMatching("iform:rl:submit:")).toHaveLength(0);
+      expect(client.keysMatching("form:rl:read:")).toHaveLength(2);
+      expect(client.keysMatching("form:rl:submit:")).toHaveLength(0);
     });
 
     it("counts the share key in the path and the trusted client address", async () => {
       await runMiddleware({
-        bucket: IncidentFormRateLimitBucket.Read,
+        bucket: FormRateLimitBucket.Read,
         request: buildRequest({
           params: { shareKey: "7C9E6679-7425-40DE-944B-E07FC1F90AE7" },
           headers: { "x-forwarded-for": "1.2.3.4, 203.0.113.7" },
@@ -1197,17 +1197,17 @@ describe("IncidentFormRateLimit", () => {
      */
     it("stops a refused submission before the handler", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_AND_IP_LIMIT; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+        await runMiddleware({ bucket: FormRateLimitBucket.Submit });
       }
 
       const refused: { nextCalled: boolean; headers: Record<string, string> } =
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+        await runMiddleware({ bucket: FormRateLimitBucket.Submit });
 
       expect(refused.nextCalled).toBe(false);
       expect(sendErrorResponseMock).toHaveBeenCalledTimes(1);
       expect(lastError().code).toBe(ExceptionCode.TooManyRequestsException);
       expect(lastError().code).toBe(429);
-      expect(lastError().message).toBe(INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE);
+      expect(lastError().message).toBe(FORM_SUBMIT_RATE_LIMIT_MESSAGE);
       expect(Number(refused.headers["Retry-After"])).toBe(
         SUBMIT_WINDOW_SECONDS,
       );
@@ -1215,11 +1215,11 @@ describe("IncidentFormRateLimit", () => {
 
     it("words a refused read as a read", async () => {
       for (let i: number = 0; i < READ_PER_FORM_AND_IP_LIMIT + 1; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Read });
+        await runMiddleware({ bucket: FormRateLimitBucket.Read });
       }
 
       expect(lastError().code).toBe(429);
-      expect(lastError().message).toBe(INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE);
+      expect(lastError().message).toBe(FORM_READ_RATE_LIMIT_MESSAGE);
     });
 
     /*
@@ -1232,7 +1232,7 @@ describe("IncidentFormRateLimit", () => {
         expect(
           (
             await runMiddleware({
-              bucket: IncidentFormRateLimitBucket.Submit,
+              bucket: FormRateLimitBucket.Submit,
               request: buildRequest({
                 params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
                 headers: { "x-forwarded-for": addressNumber(i) },
@@ -1243,15 +1243,15 @@ describe("IncidentFormRateLimit", () => {
       }
 
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
-      expect(client.keysMatching("iform:rl:submit:f:")).toEqual([]);
+      expect(client.keysMatching("form:rl:submit:f:")).toEqual([]);
     });
 
     it("never tells a refused caller the limit or its count", async () => {
       const messages: Array<string> = [
-        INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE,
-        INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE,
-        INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
-        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_READ_RATE_LIMIT_MESSAGE,
+        FORM_SUBMIT_RATE_LIMIT_MESSAGE,
+        FORM_TOTAL_RATE_LIMIT_MESSAGE,
+        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       ];
 
       for (const message of messages) {
@@ -1263,7 +1263,7 @@ describe("IncidentFormRateLimit", () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_AND_IP_LIMIT + 2; i++) {
         await expect(
           runMiddleware({
-            bucket: IncidentFormRateLimitBucket.Submit,
+            bucket: FormRateLimitBucket.Submit,
             response: {} as unknown as ExpressResponse,
           }),
         ).resolves.toBeDefined();
@@ -1279,7 +1279,7 @@ describe("IncidentFormRateLimit", () => {
       isConnectedMock.mockReturnValue(false);
 
       expect(
-        (await runMiddleware({ bucket: IncidentFormRateLimitBucket.Read }))
+        (await runMiddleware({ bucket: FormRateLimitBucket.Read }))
           .nextCalled,
       ).toBe(true);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
@@ -1289,7 +1289,7 @@ describe("IncidentFormRateLimit", () => {
       client.failNextExec = new Error("connection reset");
 
       expect(
-        (await runMiddleware({ bucket: IncidentFormRateLimitBucket.Read }))
+        (await runMiddleware({ bucket: FormRateLimitBucket.Read }))
           .nextCalled,
       ).toBe(true);
     });
@@ -1302,14 +1302,14 @@ describe("IncidentFormRateLimit", () => {
       isConnectedMock.mockReturnValue(false);
 
       const result: { nextCalled: boolean } = await runMiddleware({
-        bucket: IncidentFormRateLimitBucket.Submit,
+        bucket: FormRateLimitBucket.Submit,
       });
 
       expect(result.nextCalled).toBe(false);
       expect(lastError().code).toBe(ExceptionCode.ServiceUnavailableException);
       expect(lastError().code).toBe(503);
       expect(lastError().message).toBe(
-        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       );
     });
 
@@ -1317,7 +1317,7 @@ describe("IncidentFormRateLimit", () => {
       client.failNextExec = new Error("connection reset");
 
       expect(
-        (await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit }))
+        (await runMiddleware({ bucket: FormRateLimitBucket.Submit }))
           .nextCalled,
       ).toBe(false);
       expect(lastError().code).toBe(503);
@@ -1329,12 +1329,12 @@ describe("IncidentFormRateLimit", () => {
      */
     it("logs the moment a caller crosses the line, then stays quiet", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_AND_IP_LIMIT; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+        await runMiddleware({ bucket: FormRateLimitBucket.Submit });
       }
 
       loggerWarnMock.mockClear();
 
-      await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+      await runMiddleware({ bucket: FormRateLimitBucket.Submit });
 
       expect(loggerWarnMock).toHaveBeenCalledTimes(1);
       expect(String(loggerWarnMock.mock.calls[0]![0])).toContain(
@@ -1342,7 +1342,7 @@ describe("IncidentFormRateLimit", () => {
       );
 
       for (let i: number = 0; i < 50; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+        await runMiddleware({ bucket: FormRateLimitBucket.Submit });
       }
 
       expect(loggerWarnMock).toHaveBeenCalledTimes(1);
@@ -1350,14 +1350,14 @@ describe("IncidentFormRateLimit", () => {
 
     it("logs the crossing again once the window rolls", async () => {
       for (let i: number = 0; i < READ_PER_FORM_AND_IP_LIMIT + 5; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Read });
+        await runMiddleware({ bucket: FormRateLimitBucket.Read });
       }
 
       currentTime = currentTime + READ_WINDOW_SECONDS * 1000;
       loggerWarnMock.mockClear();
 
       for (let i: number = 0; i < READ_PER_FORM_AND_IP_LIMIT + 5; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Read });
+        await runMiddleware({ bucket: FormRateLimitBucket.Read });
       }
 
       expect(loggerWarnMock).toHaveBeenCalledTimes(1);
@@ -1374,8 +1374,8 @@ describe("IncidentFormRateLimit", () => {
       loggerErrorMock.mockClear();
 
       for (let i: number = 0; i < 100; i++) {
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Read });
-        await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+        await runMiddleware({ bucket: FormRateLimitBucket.Read });
+        await runMiddleware({ bucket: FormRateLimitBucket.Submit });
       }
 
       /*
@@ -1393,12 +1393,12 @@ describe("IncidentFormRateLimit", () => {
       isConnectedMock.mockReturnValue(false);
       currentTime = currentTime + 20 * 60 * 1000;
 
-      await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+      await runMiddleware({ bucket: FormRateLimitBucket.Submit });
 
       currentTime = currentTime + 60_000;
       loggerErrorMock.mockClear();
 
-      await runMiddleware({ bucket: IncidentFormRateLimitBucket.Submit });
+      await runMiddleware({ bucket: FormRateLimitBucket.Submit });
 
       expect(loggerErrorMock).toHaveBeenCalledTimes(1);
     });
@@ -1406,7 +1406,7 @@ describe("IncidentFormRateLimit", () => {
     it("keeps one bucket for one real client however the header is forged", async () => {
       for (let i: number = 0; i < SUBMIT_PER_FORM_AND_IP_LIMIT; i++) {
         await runMiddleware({
-          bucket: IncidentFormRateLimitBucket.Submit,
+          bucket: FormRateLimitBucket.Submit,
           request: buildRequest({
             params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
             headers: { "x-forwarded-for": `10.0.0.${i}, ${CLIENT_IP}` },
@@ -1417,7 +1417,7 @@ describe("IncidentFormRateLimit", () => {
       expect(
         (
           await runMiddleware({
-            bucket: IncidentFormRateLimitBucket.Submit,
+            bucket: FormRateLimitBucket.Submit,
             request: buildRequest({
               params: { shareKey: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
               headers: { "x-forwarded-for": `1.2.3.4, ${CLIENT_IP}` },
@@ -1433,7 +1433,7 @@ describe("IncidentFormRateLimit", () => {
  * The budgets are read from the environment when the module loads, so these
  * reload it rather than calling into the already configured one.
  */
-describe("IncidentFormRateLimit configuration", () => {
+describe("FormRateLimit configuration", () => {
   const originalEnv: NodeJS.ProcessEnv = { ...process.env };
 
   afterEach(() => {
@@ -1442,7 +1442,7 @@ describe("IncidentFormRateLimit configuration", () => {
   });
 
   interface ReloadedModule {
-    limiter: typeof IncidentFormRateLimit;
+    limiter: typeof FormRateLimit;
     client: FakeRedisClient;
   }
 
@@ -1455,10 +1455,10 @@ describe("IncidentFormRateLimit configuration", () => {
       default: { getClient: MockedFn; isConnected: MockedFn };
     };
 
-    const limiterModule: { default: typeof IncidentFormRateLimit } =
+    const limiterModule: { default: typeof FormRateLimit } =
       (await import(
-        "../../../Server/Middleware/IncidentFormRateLimit"
-      )) as unknown as { default: typeof IncidentFormRateLimit };
+        "../../../Server/Middleware/FormRateLimit"
+      )) as unknown as { default: typeof FormRateLimit };
 
     const client: FakeRedisClient = new FakeRedisClient();
 
@@ -1471,120 +1471,136 @@ describe("IncidentFormRateLimit configuration", () => {
   it.each([
     [
       "INCIDENT_FORM_RATE_LIMIT_WINDOW_SECONDS",
-      IncidentFormRateLimitBucket.Read,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Read,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.windowSeconds;
       },
     ],
     [
       "INCIDENT_FORM_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
-      IncidentFormRateLimitBucket.Read,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Read,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.perFormAndIpLimit;
       },
     ],
     [
       "INCIDENT_FORM_RATE_LIMIT_PER_IP_PER_WINDOW",
-      IncidentFormRateLimitBucket.Read,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Read,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.perIpLimit;
       },
     ],
     [
       "INCIDENT_FORM_SUBMIT_RATE_LIMIT_WINDOW_SECONDS",
-      IncidentFormRateLimitBucket.Submit,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Submit,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.windowSeconds;
       },
     ],
     [
       "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
-      IncidentFormRateLimitBucket.Submit,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Submit,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.perFormAndIpLimit;
       },
     ],
     [
       "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW",
-      IncidentFormRateLimitBucket.Submit,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Submit,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.perIpLimit;
       },
     ],
     [
       "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS",
-      IncidentFormRateLimitBucket.Submit,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Submit,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.perForm?.windowSeconds;
       },
     ],
     [
       "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW",
-      IncidentFormRateLimitBucket.Submit,
-      (config: IncidentFormRateLimitBucketConfig): unknown => {
+      FormRateLimitBucket.Submit,
+      (config: FormRateLimitBucketConfig): unknown => {
         return config.perForm?.limit;
       },
     ],
   ])(
-    "honours %s",
+    "honours %s, under its own name and the incident forms' one",
     async (
-      envKey: string,
-      bucket: IncidentFormRateLimitBucket,
-      read: (config: IncidentFormRateLimitBucketConfig) => unknown,
+      oldEnvKey: string,
+      bucket: FormRateLimitBucket,
+      read: (config: FormRateLimitBucketConfig) => unknown,
     ) => {
+      const envKey: string = oldEnvKey.replace(/^INCIDENT_FORM_/, "FORM_");
+
+      // The name forms read first.
       process.env[envKey] = "7";
+      expect(read((await reload()).limiter.getBucketConfig(bucket))).toBe(7);
 
-      const { limiter } = await reload();
+      // The name incident forms read: an installation that tuned them keeps
+      // its limits.
+      delete process.env[envKey];
+      process.env[oldEnvKey] = "9";
+      expect(read((await reload()).limiter.getBucketConfig(bucket))).toBe(9);
 
-      expect(read(limiter.getBucketConfig(bucket))).toBe(7);
+      // Both set: the new name wins.
+      process.env[envKey] = "11";
+      expect(read((await reload()).limiter.getBucketConfig(bucket))).toBe(11);
+
+      // A new name that is not a limit falls back to the old one.
+      process.env[envKey] = "zero";
+      expect(read((await reload()).limiter.getBucketConfig(bucket))).toBe(9);
     },
   );
 
   it.each([["not-a-number"], ["0"], ["-5"], [""]])(
     "falls back to the default for %j",
     async (value: string) => {
+      process.env["FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW"] = value;
       process.env["INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW"] =
         value;
+      process.env["FORM_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW"] = value;
       process.env["INCIDENT_FORM_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW"] =
         value;
 
       const { limiter } = await reload();
 
       expect(
-        limiter.getBucketConfig(IncidentFormRateLimitBucket.Submit).perForm
+        limiter.getBucketConfig(FormRateLimitBucket.Submit).perForm
           ?.limit,
       ).toBe(SUBMIT_PER_FORM_LIMIT);
       expect(
-        limiter.getBucketConfig(IncidentFormRateLimitBucket.Read)
+        limiter.getBucketConfig(FormRateLimitBucket.Read)
           .perFormAndIpLimit,
       ).toBe(READ_PER_FORM_AND_IP_LIMIT);
     },
   );
 
   it("enforces a configured per-form ceiling", async () => {
-    process.env["INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW"] = "3";
+    process.env["FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW"] = "3";
 
     const { limiter } = await reload();
 
     for (let i: number = 0; i < 3; i++) {
       expect(
         (await limiter.consumeFormCeiling({ formKey: FORM_KEY })).outcome,
-      ).toBe(IncidentFormRateLimitOutcome.Allowed);
+      ).toBe(FormRateLimitOutcome.Allowed);
     }
 
-    const decision: IncidentFormRateLimitDecision =
+    const decision: FormRateLimitDecision =
       await limiter.consumeFormCeiling({ formKey: FORM_KEY });
 
-    expect(decision.outcome).toBe(IncidentFormRateLimitOutcome.RateLimited);
-    expect(decision.scope).toBe(IncidentFormRateLimitScope.Form);
+    expect(decision.outcome).toBe(FormRateLimitOutcome.RateLimited);
+    expect(decision.scope).toBe(FormRateLimitScope.Form);
   });
 
   it("enforces a configured per-address read ceiling", async () => {
-    process.env["INCIDENT_FORM_RATE_LIMIT_PER_IP_PER_WINDOW"] = "4";
+    process.env["FORM_RATE_LIMIT_PER_IP_PER_WINDOW"] = "4";
 
     const { limiter } = await reload();
 
-    const outcomes: Array<IncidentFormRateLimitScope | undefined> = [];
+    const outcomes: Array<FormRateLimitScope | undefined> = [];
 
     for (let i: number = 0; i < 6; i++) {
       outcomes.push(
@@ -1592,7 +1608,7 @@ describe("IncidentFormRateLimit configuration", () => {
           await limiter.consume({
             formKey: `k:rotating-${i}`,
             clientIp: CLIENT_IP,
-            bucket: IncidentFormRateLimitBucket.Read,
+            bucket: FormRateLimitBucket.Read,
           })
         ).scope,
       );
@@ -1603,8 +1619,8 @@ describe("IncidentFormRateLimit configuration", () => {
       undefined,
       undefined,
       undefined,
-      IncidentFormRateLimitScope.Ip,
-      IncidentFormRateLimitScope.Ip,
+      FormRateLimitScope.Ip,
+      FormRateLimitScope.Ip,
     ]);
   });
 

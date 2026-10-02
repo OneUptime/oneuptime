@@ -21,26 +21,26 @@ jest.mock("../../../Server/Utils/Logger", () => {
   };
 });
 
-import IncidentFormAPI, {
-  INCIDENT_FORM_FOREIGN_PAGE_MESSAGE,
-  INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
-} from "../../../Server/API/IncidentFormAPI";
+import FormAPI, {
+  FORM_FOREIGN_PAGE_MESSAGE,
+  FORM_SUBMISSION_BODY_MESSAGE,
+} from "../../../Server/API/FormAPI";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import Redis from "../../../Server/Infrastructure/Redis";
 import {
-  INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-  INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE,
-  INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE,
-  INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
-} from "../../../Server/Middleware/IncidentFormRateLimit";
+  FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+  FORM_READ_RATE_LIMIT_MESSAGE,
+  FORM_SUBMIT_RATE_LIMIT_MESSAGE,
+  FORM_TOTAL_RATE_LIMIT_MESSAGE,
+} from "../../../Server/Middleware/FormRateLimit";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
-import IncidentFormService, {
-  INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
-  INCIDENT_FORM_NOT_AVAILABLE_MESSAGE,
-} from "../../../Server/Services/IncidentFormService";
-import IncidentFormSubmissionService from "../../../Server/Services/IncidentFormSubmissionService";
+import FormService, {
+  FORM_NETWORK_NOT_ALLOWED_MESSAGE,
+  FORM_NOT_AVAILABLE_MESSAGE,
+} from "../../../Server/Services/FormService";
+import FormSubmissionService from "../../../Server/Services/FormSubmissionService";
 import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
@@ -53,15 +53,21 @@ import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import SameOriginRequest from "../../../Server/Utils/SameOriginRequest";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Incident from "../../../Models/DatabaseModels/Incident";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
+import Form from "../../../Models/DatabaseModels/Form";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Email from "../../../Types/Email";
 import {
-  INCIDENT_FORM_PAGE_HEADER,
-  INCIDENT_FORM_PAGE_HEADER_VALUE,
-  IncidentFormFieldSetting,
-} from "../../../Types/Incident/IncidentFormPublic";
+  FormField,
+  FormFieldSource,
+  FormSubmitterField,
+} from "../../../Types/Form/FormField";
+import {
+  FORM_PAGE_HEADER,
+  FORM_PAGE_HEADER_VALUE,
+} from "../../../Types/Form/FormPublic";
+import FormTargetType from "../../../Types/Form/FormTargetType";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -97,10 +103,10 @@ if (
 }
 
 /*
- * The public incident form routes, driven through a real Express app with
+ * The public form routes, driven through a real Express app with
  * cookie-parser, the JSON body parser and the production error handler -
- * the real IncidentFormAPI router, the real limiter, the real user
- * middleware and the real IncidentFormService. Only the data layer (and the
+ * the real FormAPI router, the real limiter, the real user
+ * middleware and the real FormService. Only the data layer (and the
  * captcha provider and Redis) are stubbed.
  *
  * It pins what the public form page has to handle - the status codes and
@@ -213,29 +219,63 @@ class FakePipeline {
   }
 }
 
+/*
+ * What an incident form asked, as a form's questions: a required title, an
+ * optional description, and the submitter's name and email, required.
+ */
+const FIELDS: Array<FormField> = [
+  {
+    id: "title",
+    source: FormFieldSource.TargetField,
+    targetField: "title",
+    label: "Title",
+    helpText: "A short summary of what is wrong.",
+    isRequired: true,
+  },
+  {
+    id: "description",
+    source: FormFieldSource.TargetField,
+    targetField: "description",
+    label: "Description",
+    isRequired: false,
+  },
+  {
+    id: "name",
+    source: FormFieldSource.Submitter,
+    submitterField: FormSubmitterField.Name,
+    label: "Your Name",
+    isRequired: true,
+  },
+  {
+    id: "email",
+    source: FormFieldSource.Submitter,
+    submitterField: FormSubmitterField.Email,
+    label: "Your Email",
+    isRequired: true,
+  },
+];
+
 function buildForm(data: {
   shareKey: string;
   isEnabled?: boolean;
   ipWhitelist?: string;
-}): IncidentForm {
-  const form: IncidentForm = new IncidentForm();
+}): Form {
+  const form: Form = new Form();
   form._id = FORM_ID;
   form.projectId = PROJECT_ID;
   form.name = "Report a Problem";
   form.description = "Tell us what is broken.";
   form.isEnabled = data.isEnabled !== false;
   form.shareKey = new ObjectID(data.shareKey);
-  form.incidentSeverityId = new ObjectID(SEVERITY_ID);
-  form.allowReporterToChooseSeverity = false;
-  form.descriptionSetting = IncidentFormFieldSetting.Optional;
-  form.customFieldSettings = {};
-  form.isReporterDetailsRequired = true;
+  form.targetType = FormTargetType.Incident;
+  form.fields = FIELDS as unknown as JSONObject[];
+  form.targetSettings = { incidentSeverityId: SEVERITY_ID };
   form.successMessage = "Thanks - we are on it.";
   form.ipWhitelist = data.ipWhitelist || "";
   return form;
 }
 
-const FORMS: Array<IncidentForm> = [
+const FORMS: Array<Form> = [
   buildForm({ shareKey: SHARE_KEY }),
   buildForm({ shareKey: OFF_SHARE_KEY, isEnabled: false }),
   buildForm({ shareKey: LOCKED_SHARE_KEY, ipWhitelist: "198.51.100.0/24" }),
@@ -244,21 +284,52 @@ const FORMS: Array<IncidentForm> = [
 const PUBLIC_FORM: JSONObject = {
   name: "Report a Problem",
   description: "Tell us what is broken.",
-  descriptionSetting: "Optional",
-  isReporterDetailsRequired: true,
-  customFields: [],
+  fields: [
+    {
+      id: "title",
+      label: "Title",
+      helpText: "A short summary of what is wrong.",
+      type: "Text",
+      isRequired: true,
+      maxLength: 500,
+    },
+    {
+      id: "description",
+      label: "Description",
+      type: "Markdown",
+      isRequired: false,
+      maxLength: 20000,
+    },
+    {
+      id: "name",
+      label: "Your Name",
+      type: "Text",
+      isRequired: true,
+      maxLength: 100,
+    },
+    {
+      id: "email",
+      label: "Your Email",
+      type: "Email",
+      isRequired: true,
+      maxLength: 100,
+    },
+  ],
   isCaptchaRequired: false,
 };
 
+// The request's data: the answers, keyed by question.
 const ANSWERS: JSONObject = {
-  title: "Checkout is down",
-  description: "Every order fails.",
-  reporterName: "Jane Doe",
-  reporterEmail: "jane@example.com",
+  answers: {
+    title: "Checkout is down",
+    description: "Every order fails.",
+    name: "Jane Doe",
+    email: "jane@example.com",
+  },
 };
 
 const SUBMISSION_RESULT: JSONObject = {
-  incidentNumber: "INC-42",
+  reference: "INC-42",
   successMessage: "Thanks - we are on it.",
 };
 
@@ -339,7 +410,7 @@ function send(data: {
         tenantid: "",
         ...(data.withoutPageHeader
           ? {}
-          : { [INCIDENT_FORM_PAGE_HEADER]: INCIDENT_FORM_PAGE_HEADER_VALUE }),
+          : { [FORM_PAGE_HEADER]: FORM_PAGE_HEADER_VALUE }),
         // What our proxy appends: the client address, the trusted hop.
         "x-forwarded-for": data.clientIp || ALLOWED_IP,
         ...(data.headers || {}),
@@ -427,7 +498,7 @@ function seen(result: HttpResult): { status: number; body: unknown } {
   return { status: result.status, body: result.body };
 }
 
-describe("the public incident form routes over HTTP", () => {
+describe("the public form routes over HTTP", () => {
   let server: http.Server;
   let port: number;
   let client: FakeRedisClient;
@@ -437,11 +508,11 @@ describe("the public incident form routes over HTTP", () => {
   let onPlan: MockedFn;
 
   const readPath: (shareKey: string) => string = (shareKey: string) => {
-    return `/api/incident-form/public/${shareKey}`;
+    return `/api/form/public/${shareKey}`;
   };
 
   const submitPath: (shareKey: string) => string = (shareKey: string) => {
-    return `/api/incident-form/public/${shareKey}/submit`;
+    return `/api/form/public/${shareKey}/submit`;
   };
 
   beforeAll(async () => {
@@ -453,7 +524,7 @@ describe("the public incident form routes over HTTP", () => {
      * becomes the very object a JSON body gives.
      */
     app.use(express.urlencoded({ extended: true }));
-    app.use("/api", new IncidentFormAPI().getRouter());
+    app.use("/api", new FormAPI().getRouter());
     app.use(expressErrorHandler);
 
     server = http.createServer(app);
@@ -479,12 +550,12 @@ describe("the public incident form routes over HTTP", () => {
     isConnectedMock.mockReturnValue(true);
 
     jest
-      .spyOn(IncidentFormService, "findOneBy")
+      .spyOn(FormService, "findOneBy")
       .mockImplementation((async (findBy: {
         query: { shareKey?: ObjectID };
-      }): Promise<IncidentForm | null> => {
+      }): Promise<Form | null> => {
         return (
-          FORMS.find((form: IncidentForm) => {
+          FORMS.find((form: Form) => {
             return (
               form.shareKey?.toString() === findBy.query.shareKey?.toString()
             );
@@ -495,16 +566,26 @@ describe("the public incident form routes over HTTP", () => {
     jest.spyOn(IncidentCustomFieldService, "findBy").mockResolvedValue([]);
     jest.spyOn(IncidentSeverityService, "findBy").mockResolvedValue([]);
 
+    // The form's severity is one of its project's.
+    jest
+      .spyOn(IncidentSeverityService, "findOneBy")
+      .mockImplementation((async (): Promise<IncidentSeverity> => {
+        const severity: IncidentSeverity = new IncidentSeverity();
+        severity._id = SEVERITY_ID;
+        severity.projectId = PROJECT_ID;
+        return severity;
+      }) as never);
+
     /*
      * The plan check reads the project's subscription, which this suite has
      * no database for. Left real, it would pass only where billing is off:
      * CI's Common job runs with BILLING_ENABLED=true, the read fails, the
      * check fails closed, and every form here would answer "not available".
-     * The check itself is pinned in IncidentFormPublicForm.test.ts; the
+     * The check itself is pinned in FormPublicForm.test.ts; the
      * off-plan test below turns it the other way.
      */
     onPlan = jest
-      .spyOn(IncidentFormService, "isProjectOnPlan")
+      .spyOn(FormService, "isProjectOnPlan")
       .mockResolvedValue(true as never) as unknown as MockedFn;
 
     // HOST is not configured in a unit run; the instance says it is this.
@@ -524,7 +605,7 @@ describe("the public incident form routes over HTTP", () => {
       }) as never) as unknown as MockedFn;
 
     jest
-      .spyOn(IncidentFormSubmissionService, "create")
+      .spyOn(FormSubmissionService, "create")
       .mockImplementation((async (createBy: { data: unknown }) => {
         return createBy.data;
       }) as never);
@@ -548,11 +629,11 @@ describe("the public incident form routes over HTTP", () => {
     jest.spyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
 
     getPublicForm = jest.spyOn(
-      IncidentFormService,
+      FormService,
       "getPublicForm",
     ) as unknown as MockedFn;
     submitPublicForm = jest.spyOn(
-      IncidentFormService,
+      FormService,
       "submitPublicForm",
     ) as unknown as MockedFn;
   });
@@ -632,7 +713,7 @@ describe("the public incident form routes over HTTP", () => {
         port,
         method: "POST",
         path: submitPath(SHARE_KEY),
-        body: { data: { title: " ", reporterEmail: "jane" } },
+        body: { data: { answers: { title: " ", email: "jane" } } },
       });
 
       expect(result.status).toBe(400);
@@ -656,7 +737,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(400);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
+        FORM_SUBMISSION_BODY_MESSAGE,
       );
       expect(submitPublicForm).not.toHaveBeenCalled();
     });
@@ -719,7 +800,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(403);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
+        FORM_NETWORK_NOT_ALLOWED_MESSAGE,
       );
     });
 
@@ -734,7 +815,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(403);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_NETWORK_NOT_ALLOWED_MESSAGE,
+        FORM_NETWORK_NOT_ALLOWED_MESSAGE,
       );
       expect(incidentCreate).not.toHaveBeenCalled();
     });
@@ -779,7 +860,7 @@ describe("the public incident form routes over HTTP", () => {
   describe("a request another site's page had a browser send", () => {
     // What a plain HTML form on another site posts.
     const FORGED_FORM: string =
-      "data%5Btitle%5D=Forged+outage&data%5BreporterName%5D=CEO&data%5BreporterEmail%5D=ceo%40corp.example";
+      "data%5Banswers%5D%5Btitle%5D=Forged+outage&data%5Banswers%5D%5Bname%5D=CEO&data%5Banswers%5D%5Bemail%5D=ceo%40corp.example";
 
     const OWN_PAGE: http.OutgoingHttpHeaders = {
       origin: INSTANCE_ORIGIN,
@@ -801,7 +882,7 @@ describe("the public incident form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(403);
-      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(errorMessageOf(result)).toBe(FORM_FOREIGN_PAGE_MESSAGE);
       expect(submitPublicForm).not.toHaveBeenCalled();
       expect(incidentCreate).not.toHaveBeenCalled();
       expect(client.counters.size).toBe(0);
@@ -819,7 +900,7 @@ describe("the public incident form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(403);
-      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(errorMessageOf(result)).toBe(FORM_FOREIGN_PAGE_MESSAGE);
       expect(incidentCreate).not.toHaveBeenCalled();
       expect(client.counters.size).toBe(0);
     });
@@ -851,7 +932,7 @@ describe("the public incident form routes over HTTP", () => {
         });
 
         expect(result.status).toBe(403);
-        expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+        expect(errorMessageOf(result)).toBe(FORM_FOREIGN_PAGE_MESSAGE);
         expect(getPublicForm).not.toHaveBeenCalled();
         expect(client.counters.size).toBe(0);
       },
@@ -942,7 +1023,7 @@ describe("the public incident form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(403);
-      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(errorMessageOf(result)).toBe(FORM_FOREIGN_PAGE_MESSAGE);
       expect(result.headers["cache-control"]).toBe(
         "no-store, no-cache, must-revalidate",
       );
@@ -1029,7 +1110,7 @@ describe("the public incident form routes over HTTP", () => {
       });
 
       expect(result.status).toBe(403);
-      expect(errorMessageOf(result)).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+      expect(errorMessageOf(result)).toBe(FORM_FOREIGN_PAGE_MESSAGE);
       expect(client.counters.size).toBe(0);
     });
 
@@ -1086,7 +1167,7 @@ describe("the public incident form routes over HTTP", () => {
 
           expect(result.status).toBe(400);
           expect(errorMessageOf(result)).toBe(
-            INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
+            FORM_SUBMISSION_BODY_MESSAGE,
           );
         }
 
@@ -1120,7 +1201,7 @@ describe("the public incident form routes over HTTP", () => {
         for (const result of [read, submitted]) {
           expect(result.status).toBe(404);
           expect(errorMessageOf(result)).toBe(
-            INCIDENT_FORM_NOT_AVAILABLE_MESSAGE,
+            FORM_NOT_AVAILABLE_MESSAGE,
           );
         }
 
@@ -1130,7 +1211,7 @@ describe("the public incident form routes over HTTP", () => {
 
     it("answers a project off plan exactly as a link no form holds", async () => {
       jest
-        .spyOn(IncidentFormService, "isProjectOnPlan")
+        .spyOn(FormService, "isProjectOnPlan")
         .mockResolvedValue(false as never);
 
       const offPlan: HttpResult = await send({
@@ -1161,7 +1242,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(429);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE,
+        FORM_READ_RATE_LIMIT_MESSAGE,
       );
       expect(Number(result.headers["retry-after"])).toBeGreaterThan(0);
       expect(getPublicForm).not.toHaveBeenCalled();
@@ -1190,7 +1271,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(429);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE,
+        FORM_SUBMIT_RATE_LIMIT_MESSAGE,
       );
       expect(Number(result.headers["retry-after"])).toBeGreaterThan(0);
       expect(incidentCreate).toHaveBeenCalledTimes(10);
@@ -1291,7 +1372,7 @@ describe("the public incident form routes over HTTP", () => {
           await sendFromSixAddresses({
             firstOctet: 14,
             shareKey: SHARE_KEY,
-            body: { data: { reporterName: "No title" } },
+            body: { data: { answers: { name: "No title" } } },
           }),
         ),
       ).toEqual(new Set([400]));
@@ -1338,7 +1419,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(refused.status).toBe(429);
       expect(errorMessageOf(refused)).toBe(
-        INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
+        FORM_TOTAL_RATE_LIMIT_MESSAGE,
       );
       expect(Number(refused.headers["retry-after"])).toBeGreaterThan(0);
       expect(Number(refused.headers["retry-after"])).toBeLessThanOrEqual(
@@ -1359,7 +1440,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(503);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       );
       expect(incidentCreate).not.toHaveBeenCalled();
     });
@@ -1378,7 +1459,7 @@ describe("the public incident form routes over HTTP", () => {
 
       expect(result.status).toBe(503);
       expect(errorMessageOf(result)).toBe(
-        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       );
       expect(submitPublicForm).not.toHaveBeenCalled();
       expect(incidentCreate).not.toHaveBeenCalled();
@@ -1527,10 +1608,10 @@ describe("the public incident form routes over HTTP", () => {
      */
     it("still answers the signed-in CRUD routes beside them with a 401", async () => {
       for (const [method, path] of [
-        ["POST", "/api/incident-form/get-list"],
+        ["POST", "/api/form/get-list"],
         [
           "POST",
-          `/api/incident-form/${ObjectID.generate().toString()}/get-item`,
+          `/api/form/${ObjectID.generate().toString()}/get-item`,
         ],
       ] as Array<["GET" | "POST", string]>) {
         const result: HttpResult = await send({
@@ -1550,7 +1631,7 @@ describe("the public incident form routes over HTTP", () => {
 
 /*
  * Route matching, read from the router itself. The public routes sit beside
- * the model's CRUD routes under /incident-form; neither may ever catch the
+ * the model's CRUD routes under /form; neither may ever catch the
  * other's requests. Express matches in registration order, and BaseAPI
  * registers the CRUD routes first.
  */
@@ -1566,7 +1647,7 @@ describe("the public routes and the CRUD routes never collide", () => {
     match: (path: string) => boolean;
   }
 
-  const router: ExpressRouter = new IncidentFormAPI().getRouter();
+  const router: ExpressRouter = new FormAPI().getRouter();
   const layers: Array<RouterLayer> = (
     router as unknown as { stack: Array<RouterLayer> }
   ).stack.filter((layer: RouterLayer) => {
@@ -1604,25 +1685,25 @@ describe("the public routes and the CRUD routes never collide", () => {
   const id: string = ObjectID.generate().toString();
 
   it("sends a form link only to the public routes", () => {
-    expect(routesFor("GET", `/incident-form/public/${shareKey}`)).toEqual([
-      "GET /incident-form/public/:shareKey",
+    expect(routesFor("GET", `/form/public/${shareKey}`)).toEqual([
+      "GET /form/public/:shareKey",
     ]);
     expect(
-      routesFor("POST", `/incident-form/public/${shareKey}/submit`),
-    ).toEqual(["POST /incident-form/public/:shareKey/submit"]);
+      routesFor("POST", `/form/public/${shareKey}/submit`),
+    ).toEqual(["POST /form/public/:shareKey/submit"]);
   });
 
   it.each([
-    ["POST", "/incident-form"],
-    ["POST", "/incident-form/get-list"],
-    ["GET", "/incident-form/get-list"],
-    ["POST", "/incident-form/count"],
-    ["POST", `/incident-form/${id}/get-item`],
-    ["GET", `/incident-form/${id}/get-item`],
-    ["PUT", `/incident-form/${id}`],
-    ["POST", `/incident-form/${id}/update-item`],
-    ["DELETE", `/incident-form/${id}`],
-    ["POST", `/incident-form/${id}/delete-item`],
+    ["POST", "/form"],
+    ["POST", "/form/get-list"],
+    ["GET", "/form/get-list"],
+    ["POST", "/form/count"],
+    ["POST", `/form/${id}/get-item`],
+    ["GET", `/form/${id}/get-item`],
+    ["PUT", `/form/${id}`],
+    ["POST", `/form/${id}/update-item`],
+    ["DELETE", `/form/${id}`],
+    ["POST", `/form/${id}/delete-item`],
   ])(
     "sends %s %s only to its CRUD route, behind the signed-in user middleware",
     (method: string, path: string) => {
@@ -1642,11 +1723,11 @@ describe("the public routes and the CRUD routes never collide", () => {
    * its authentication: never the other way round.
    */
   it("lets the CRUD route win the one path both could match", () => {
-    expect(routesFor("GET", "/incident-form/public/get-item")).toEqual([
-      "GET /incident-form/:id/get-item",
-      "GET /incident-form/public/:shareKey",
+    expect(routesFor("GET", "/form/public/get-item")).toEqual([
+      "GET /form/:id/get-item",
+      "GET /form/public/:shareKey",
     ]);
-    expect(firstMiddlewareFor("GET", "/incident-form/public/get-item")).toBe(
+    expect(firstMiddlewareFor("GET", "/form/public/get-item")).toBe(
       UserMiddleware.getUserMiddleware,
     );
   });

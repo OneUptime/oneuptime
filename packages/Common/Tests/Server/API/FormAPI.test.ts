@@ -9,7 +9,7 @@ import {
 } from "@jest/globals";
 
 /*
- * Wiring for IncidentFormAPI, the router behind every incident form link.
+ * Wiring for FormAPI, the router behind every form's link.
  *
  * The limiter, the service and the real HTTP behaviour each have suites of
  * their own. What this file protects is the part that silently rots:
@@ -85,23 +85,23 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
-import IncidentFormAPI, {
-  INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH,
-  INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE,
-  INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE,
-  INCIDENT_FORM_FOREIGN_PAGE_MESSAGE,
-  INCIDENT_FORM_SUBMISSION_BODY_MESSAGE,
-} from "../../../Server/API/IncidentFormAPI";
+import FormAPI, {
+  FORM_CAPTCHA_TOKEN_MAX_LENGTH,
+  FORM_CAPTCHA_TOKEN_MESSAGE,
+  FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE,
+  FORM_FOREIGN_PAGE_MESSAGE,
+  FORM_SUBMISSION_BODY_MESSAGE,
+} from "../../../Server/API/FormAPI";
 import BaseAPI from "../../../Server/API/BaseAPI";
-import IncidentForm from "../../../Models/DatabaseModels/IncidentForm";
+import Form from "../../../Models/DatabaseModels/Form";
 import Redis from "../../../Server/Infrastructure/Redis";
 import {
-  INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-  INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE,
-  IncidentFormCeilingException,
-} from "../../../Server/Middleware/IncidentFormRateLimit";
+  FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+  FORM_TOTAL_RATE_LIMIT_MESSAGE,
+  FormCeilingException,
+} from "../../../Server/Middleware/FormRateLimit";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
-import IncidentFormService from "../../../Server/Services/IncidentFormService";
+import FormService from "../../../Server/Services/FormService";
 import Response from "../../../Server/Utils/Response";
 import SameOriginRequest from "../../../Server/Utils/SameOriginRequest";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -110,12 +110,12 @@ import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import {
-  INCIDENT_FORM_PAGE_HEADER,
-  INCIDENT_FORM_PAGE_HEADER_VALUE,
-  IncidentFormFieldSetting,
-  PublicIncidentForm,
-  PublicIncidentFormSubmissionResult,
-} from "../../../Types/Incident/IncidentFormPublic";
+  FORM_PAGE_HEADER,
+  FORM_PAGE_HEADER_VALUE,
+  PublicForm,
+  PublicFormFieldType,
+  PublicFormSubmissionResult,
+} from "../../../Types/Form/FormPublic";
 import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import {
@@ -148,28 +148,36 @@ const sendJsonObjectResponseMock: MockedFn =
 const setNoCacheHeadersMock: MockedFn =
   Response.setNoCacheHeaders as unknown as MockedFn;
 
-const READ_URI: string = "/incident-form/public/:shareKey";
-const SUBMIT_URI: string = "/incident-form/public/:shareKey/submit";
+const READ_URI: string = "/form/public/:shareKey";
+const SUBMIT_URI: string = "/form/public/:shareKey/submit";
 const SHARE_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const TRUSTED_IP: string = "203.0.113.7";
 
-const PUBLIC_FORM: PublicIncidentForm = {
+const PUBLIC_FORM: PublicForm = {
   name: "Report a Problem",
-  descriptionSetting: IncidentFormFieldSetting.Optional,
-  isReporterDetailsRequired: true,
-  customFields: [],
+  fields: [
+    {
+      id: "title",
+      label: "What is wrong?",
+      type: PublicFormFieldType.Text,
+      isRequired: true,
+      maxLength: 500,
+    },
+  ],
   isCaptchaRequired: false,
 };
 
-const SUBMISSION_RESULT: PublicIncidentFormSubmissionResult = {
-  incidentNumber: "INC-42",
+const SUBMISSION_RESULT: PublicFormSubmissionResult = {
+  reference: "INC-42",
   successMessage: "Thanks",
 };
 
 const answersForToken: Record<string, unknown> = {
-  title: "Checkout is down",
-  reporterName: "Jane",
-  reporterEmail: "jane@example.com",
+  answers: {
+    title: "Checkout is down",
+    name: "Jane",
+    email: "jane@example.com",
+  },
 };
 
 // Same counting fake as the limiter's own tests use.
@@ -260,7 +268,7 @@ function nextError(next: MockedFn): Exception {
   return next.mock.calls[0]![0] as Exception;
 }
 
-describe("IncidentFormAPI", () => {
+describe("FormAPI", () => {
   let getPublicForm: MockedFn;
   let submitPublicForm: MockedFn;
   let client: FakeRedisClient;
@@ -269,17 +277,17 @@ describe("IncidentFormAPI", () => {
     mockRouter.routes.length = 0;
     jest.clearAllMocks();
 
-    new IncidentFormAPI();
+    new FormAPI();
 
     client = new FakeRedisClient();
     getClientMock.mockReturnValue(client);
     isConnectedMock.mockReturnValue(true);
 
     getPublicForm = jest
-      .spyOn(IncidentFormService, "getPublicForm")
+      .spyOn(FormService, "getPublicForm")
       .mockResolvedValue(PUBLIC_FORM as never) as unknown as MockedFn;
     submitPublicForm = jest
-      .spyOn(IncidentFormService, "submitPublicForm")
+      .spyOn(FormService, "submitPublicForm")
       .mockResolvedValue(SUBMISSION_RESULT as never) as unknown as MockedFn;
   });
 
@@ -289,7 +297,7 @@ describe("IncidentFormAPI", () => {
 
   describe("registration", () => {
     /*
-     * IncidentFormAPI inherits the model's authenticated CRUD routes from
+     * FormAPI inherits the model's authenticated CRUD routes from
      * BaseAPI. They are derived by registering a plain BaseAPI for the same
      * model and subtracting, rather than listed here, so the check cannot
      * drift from BaseAPI.
@@ -303,7 +311,7 @@ describe("IncidentFormAPI", () => {
       ];
 
       mockRouter.routes.length = 0;
-      new BaseAPI(IncidentForm, IncidentFormService);
+      new BaseAPI(Form, FormService);
 
       const inheritedKeys: Set<string> = new Set(
         (mockRouter.routes as unknown as Array<RegisteredRoute>).map(
@@ -351,16 +359,16 @@ describe("IncidentFormAPI", () => {
         "GET",
         READ_URI,
         [
-          IncidentFormAPI.refuseForeignPageRequests,
-          IncidentFormAPI.requireFormPageHeader,
+          FormAPI.refuseForeignPageRequests,
+          FormAPI.requireFormPageHeader,
         ],
       ],
       [
         "POST",
         SUBMIT_URI,
         [
-          IncidentFormAPI.refuseForeignPageRequests,
-          IncidentFormAPI.requireJsonBody,
+          FormAPI.refuseForeignPageRequests,
+          FormAPI.requireJsonBody,
         ],
       ],
     ])(
@@ -440,14 +448,14 @@ describe("IncidentFormAPI", () => {
       "refuses %j with a 403, before anything is counted",
       async (headers: Record<string, string>) => {
         expect(
-          await runCheck(IncidentFormAPI.refuseForeignPageRequests, headers),
+          await runCheck(FormAPI.refuseForeignPageRequests, headers),
         ).toBe(false);
 
         const error: Exception = sendErrorResponseMock.mock
           .calls[0]![2] as Exception;
 
         expect(error).toBeInstanceOf(ForbiddenException);
-        expect(error.message).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+        expect(error.message).toBe(FORM_FOREIGN_PAGE_MESSAGE);
         expect(setNoCacheHeadersMock).toHaveBeenCalled();
         expect(client.counters.size).toBe(0);
       },
@@ -460,7 +468,7 @@ describe("IncidentFormAPI", () => {
       [{}],
     ])("passes %j on", async (headers: Record<string, string>) => {
       expect(
-        await runCheck(IncidentFormAPI.refuseForeignPageRequests, headers),
+        await runCheck(FormAPI.refuseForeignPageRequests, headers),
       ).toBe(true);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
     });
@@ -473,20 +481,20 @@ describe("IncidentFormAPI", () => {
     it.each([
       ["no header, as an <img> or a link sends", {}],
       ["an address-bar visit's headers alone", { "sec-fetch-site": "none" }],
-      ["another value", { [INCIDENT_FORM_PAGE_HEADER]: "true" }],
-      ["an empty header", { [INCIDENT_FORM_PAGE_HEADER]: "" }],
+      ["another value", { [FORM_PAGE_HEADER]: "true" }],
+      ["an empty header", { [FORM_PAGE_HEADER]: "" }],
     ])(
       "refuses a read with %s, with the same 403, before anything is counted",
       async (_label: string, headers: Record<string, string>) => {
         expect(
-          await runCheck(IncidentFormAPI.requireFormPageHeader, headers),
+          await runCheck(FormAPI.requireFormPageHeader, headers),
         ).toBe(false);
 
         const error: Exception = sendErrorResponseMock.mock
           .calls[0]![2] as Exception;
 
         expect(error).toBeInstanceOf(ForbiddenException);
-        expect(error.message).toBe(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE);
+        expect(error.message).toBe(FORM_FOREIGN_PAGE_MESSAGE);
         expect(setNoCacheHeadersMock).toHaveBeenCalled();
         expect(client.counters.size).toBe(0);
       },
@@ -494,13 +502,13 @@ describe("IncidentFormAPI", () => {
 
     it("passes the read the form's page sends: its header, and nothing else", async () => {
       expect(
-        await runCheck(IncidentFormAPI.requireFormPageHeader, {
-          [INCIDENT_FORM_PAGE_HEADER]: INCIDENT_FORM_PAGE_HEADER_VALUE,
+        await runCheck(FormAPI.requireFormPageHeader, {
+          [FORM_PAGE_HEADER]: FORM_PAGE_HEADER_VALUE,
         }),
       ).toBe(true);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
-      expect(INCIDENT_FORM_PAGE_HEADER).toBe("x-oneuptime-incident-form");
-      expect(INCIDENT_FORM_PAGE_HEADER_VALUE).toBe("1");
+      expect(FORM_PAGE_HEADER).toBe("x-oneuptime-form");
+      expect(FORM_PAGE_HEADER_VALUE).toBe("1");
     });
 
     it.each([
@@ -511,7 +519,7 @@ describe("IncidentFormAPI", () => {
       "refuses a submission sent as %s with a 400",
       async (contentType: string) => {
         expect(
-          await runCheck(IncidentFormAPI.requireJsonBody, {
+          await runCheck(FormAPI.requireJsonBody, {
             "content-type": contentType,
           }),
         ).toBe(false);
@@ -520,14 +528,14 @@ describe("IncidentFormAPI", () => {
           .calls[0]![2] as Exception;
 
         expect(error).toBeInstanceOf(BadDataException);
-        expect(error.message).toBe(INCIDENT_FORM_SUBMISSION_BODY_MESSAGE);
+        expect(error.message).toBe(FORM_SUBMISSION_BODY_MESSAGE);
         expect(client.counters.size).toBe(0);
       },
     );
 
     it("passes the JSON the form's page sends", async () => {
       expect(
-        await runCheck(IncidentFormAPI.requireJsonBody, {
+        await runCheck(FormAPI.requireJsonBody, {
           "content-type": "application/json;charset=UTF-8",
         }),
       ).toBe(true);
@@ -561,10 +569,10 @@ describe("IncidentFormAPI", () => {
 
       expect(Array.from(client.counters.keys()).sort()).toEqual([
         expect.stringMatching(
-          new RegExp(`^iform:rl:read:fi:k:${SHARE_KEY}:${TRUSTED_IP}:\\d+$`),
+          new RegExp(`^form:rl:read:fi:k:${SHARE_KEY}:${TRUSTED_IP}:\\d+$`),
         ),
         expect.stringMatching(
-          new RegExp(`^iform:rl:read:i:${TRUSTED_IP}:\\d+$`),
+          new RegExp(`^form:rl:read:i:${TRUSTED_IP}:\\d+$`),
         ),
       ]);
     });
@@ -579,10 +587,10 @@ describe("IncidentFormAPI", () => {
 
       expect(Array.from(client.counters.keys()).sort()).toEqual([
         expect.stringMatching(
-          new RegExp(`^iform:rl:submit:fi:k:${SHARE_KEY}:${TRUSTED_IP}:\\d+$`),
+          new RegExp(`^form:rl:submit:fi:k:${SHARE_KEY}:${TRUSTED_IP}:\\d+$`),
         ),
         expect.stringMatching(
-          new RegExp(`^iform:rl:submit:i:${TRUSTED_IP}:\\d+$`),
+          new RegExp(`^form:rl:submit:i:${TRUSTED_IP}:\\d+$`),
         ),
       ]);
     });
@@ -614,11 +622,11 @@ describe("IncidentFormAPI", () => {
         .calls[0]![2] as Exception;
 
       expect(error.code).toBe(503);
-      expect(error.message).toBe(INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
+      expect(error.message).toBe(FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
     });
   });
 
-  describe("GET /incident-form/public/:shareKey", () => {
+  describe("GET /form/public/:shareKey", () => {
     it("answers with the service's public form, uncached", async () => {
       const request: ExpressRequest = buildRequest({});
       const { next, response } = await runHandler("GET", READ_URI, request);
@@ -692,14 +700,16 @@ describe("IncidentFormAPI", () => {
     });
   });
 
-  describe("POST /incident-form/public/:shareKey/submit", () => {
+  describe("POST /form/public/:shareKey/submit", () => {
     const answers: Record<string, unknown> = {
-      title: "Checkout is down",
-      reporterName: "Jane",
-      reporterEmail: "jane@example.com",
+      answers: {
+        title: "Checkout is down",
+        name: "Jane",
+        email: "jane@example.com",
+      },
     };
 
-    it("declares through the service and answers with its result, uncached", async () => {
+    it("submits through the service and answers with its result, uncached", async () => {
       const request: ExpressRequest = buildRequest({
         body: { data: answers, captchaToken: "captcha" },
       });
@@ -796,7 +806,7 @@ describe("IncidentFormAPI", () => {
 
         expect(error).toBeInstanceOf(BadDataException);
         expect(error.code).toBe(400);
-        expect(error.message).toBe(INCIDENT_FORM_SUBMISSION_BODY_MESSAGE);
+        expect(error.message).toBe(FORM_SUBMISSION_BODY_MESSAGE);
         expect(submitPublicForm).not.toHaveBeenCalled();
         expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
       },
@@ -819,7 +829,7 @@ describe("IncidentFormAPI", () => {
         const error: Exception = nextError(next);
 
         expect(error).toBeInstanceOf(BadDataException);
-        expect(error.message).toBe(INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE);
+        expect(error.message).toBe(FORM_CAPTCHA_TOKEN_MESSAGE);
         expect(submitPublicForm).not.toHaveBeenCalled();
       },
     );
@@ -844,8 +854,8 @@ describe("IncidentFormAPI", () => {
     });
 
     it("says when to come back when the form's own ceiling refused", async () => {
-      const refusal: IncidentFormCeilingException =
-        new IncidentFormCeilingException(1234);
+      const refusal: FormCeilingException =
+        new FormCeilingException(1234);
       submitPublicForm.mockRejectedValue(refusal);
 
       const { next, response } = await runHandler(
@@ -856,7 +866,7 @@ describe("IncidentFormAPI", () => {
 
       expect(nextError(next)).toBe(refusal);
       expect(refusal.code).toBe(429);
-      expect(refusal.message).toBe(INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE);
+      expect(refusal.message).toBe(FORM_TOTAL_RATE_LIMIT_MESSAGE);
       expect(response.setHeader).toHaveBeenCalledWith("Retry-After", "1234");
     });
 
@@ -887,12 +897,12 @@ describe("IncidentFormAPI", () => {
     it("returns the answers object itself, unread", () => {
       const data: Record<string, unknown> = { title: 1, anything: ["goes"] };
 
-      expect(IncidentFormAPI.readSubmissionRequest({ data }).data).toBe(data);
+      expect(FormAPI.readSubmissionRequest({ data }).data).toBe(data);
     });
 
     it("keeps an empty captcha token for the captcha check to refuse", () => {
       expect(
-        IncidentFormAPI.readSubmissionRequest({ data: {}, captchaToken: "" }),
+        FormAPI.readSubmissionRequest({ data: {}, captchaToken: "" }),
       ).toEqual({ data: {}, captchaToken: "" });
     });
 
@@ -902,25 +912,25 @@ describe("IncidentFormAPI", () => {
      */
     it("takes a token as long as the cap, and refuses one character more", () => {
       const longest: string = "t".repeat(
-        INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH,
+        FORM_CAPTCHA_TOKEN_MAX_LENGTH,
       );
 
       expect(
-        IncidentFormAPI.readSubmissionRequest({
+        FormAPI.readSubmissionRequest({
           data: {},
           captchaToken: longest,
         }).captchaToken,
       ).toBe(longest);
 
       expect(() => {
-        IncidentFormAPI.readSubmissionRequest({
+        FormAPI.readSubmissionRequest({
           data: {},
           captchaToken: `${longest}t`,
         });
       }).toThrow(
-        new BadDataException(INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE),
+        new BadDataException(FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE),
       );
-      expect(INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH).toBe(16384);
+      expect(FORM_CAPTCHA_TOKEN_MAX_LENGTH).toBe(16384);
     });
 
     it("refuses a megabyte token before the service or hCaptcha sees it", async () => {
@@ -935,7 +945,7 @@ describe("IncidentFormAPI", () => {
       const error: Exception = nextError(next);
 
       expect(error).toBeInstanceOf(BadDataException);
-      expect(error.message).toBe(INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE);
+      expect(error.message).toBe(FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE);
       expect(submitPublicForm).not.toHaveBeenCalled();
     });
   });
