@@ -117,6 +117,12 @@ export default class ListOrderMaintainer {
     return undefined;
   }
 
+  /*
+   * Scope columns are id columns (Tests/Models/ListOrderColumnModels pins
+   * that), so an id that arrives as a plain string - a relation object's
+   * `_id`, a deserialized payload - is read as the ObjectID the foreign key
+   * would hold, and both spellings query the list the same way.
+   */
   private static toScopeValue(value: unknown): unknown {
     if (value === null) {
       return null;
@@ -124,6 +130,10 @@ export default class ListOrderMaintainer {
 
     if (value instanceof ObjectID) {
       return value;
+    }
+
+    if (typeof value === "string") {
+      return new ObjectID(value);
     }
 
     if (typeof value === "object" && value !== null) {
