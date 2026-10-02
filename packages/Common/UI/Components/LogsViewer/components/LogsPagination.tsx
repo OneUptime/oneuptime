@@ -9,6 +9,14 @@ export interface LogsPaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   isDisabled?: boolean;
+  /*
+   * Set when `totalItems` is not a total but the lower bound the logs list
+   * endpoint answers with: the footer then pages forward while more logs
+   * follow, and prints no "of N" and no page numbers it cannot know.
+   */
+  hasMore?: boolean | undefined;
+  // Logs this page rendered, so the printed range never runs past them.
+  itemsOnCurrentPage?: number | undefined;
 }
 
 /**
@@ -28,6 +36,8 @@ const LogsPagination: FunctionComponent<LogsPaginationProps> = (
       totalItemsCount={props.totalItems}
       itemsOnPage={props.pageSize}
       itemsOnPageOptions={props.pageSizeOptions}
+      hasMore={props.hasMore}
+      itemsOnCurrentPage={props.itemsOnCurrentPage}
       isCompact={true}
       className="bg-gray-50/50"
       isLoading={false}

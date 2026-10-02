@@ -15,12 +15,23 @@ import {
   LogsViewMode,
 } from "../types";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
+import { ResultTotal } from "../../../Utils/Telemetry/ResultTotal";
+import TelemetryResultTotal from "../../TelemetryViewer/components/TelemetryResultTotal";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
+  /*
+   * The size of the result set when the list cannot say (see
+   * UseResultTotal): shown instead of `resultCount` — "1,234,567 logs",
+   * "Counting logs…", "50+ logs". Without it `resultCount` is the total.
+   */
+  resultTotal?: ResultTotal | undefined;
+  // Logs shown up to the end of this page: all an uncounted total vouches for.
+  rowsThroughPage?: number | undefined;
   currentPage?: number;
-  totalPages?: number;
+  // Undefined while the total is not known, and then the page has no "of N".
+  totalPages?: number | undefined;
   className?: string;
   liveOptions?: LiveLogsOptions;
   timeRange?: RangeStartAndEndDateTime;
@@ -68,8 +79,9 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
 ): ReactElement => {
   const { currentPage, totalPages } = props;
   const hasPaginationSummary: boolean = Boolean(
-    currentPage && totalPages && totalPages > 0,
+    currentPage && ((totalPages && totalPages > 0) || props.resultTotal),
   );
+  const hasPageCount: boolean = Boolean(totalPages && totalPages > 0);
 
   const {
     ref: exportDropdownRef,
@@ -207,13 +219,23 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
 
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span className="font-medium text-gray-700">
-            {props.resultCount.toLocaleString()} result
-            {props.resultCount === 1 ? "" : "s"}
-          </span>
+          {props.resultTotal ? (
+            <TelemetryResultTotal
+              total={props.resultTotal}
+              rowsThroughPage={props.rowsThroughPage ?? props.resultCount}
+              itemLabel="logs"
+            />
+          ) : (
+            <span className="font-medium text-gray-700">
+              {props.resultCount.toLocaleString()} result
+              {props.resultCount === 1 ? "" : "s"}
+            </span>
+          )}
           {hasPaginationSummary && (
-            <span className="text-gray-400">
-              Page {currentPage} of {totalPages}
+            <span className="whitespace-nowrap text-gray-400">
+              {hasPageCount
+                ? `Page ${currentPage?.toLocaleString()} of ${totalPages?.toLocaleString()}`
+                : `Page ${currentPage?.toLocaleString()}`}
             </span>
           )}
         </div>

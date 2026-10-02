@@ -98,6 +98,42 @@ export default class ResultTotalUtil {
   }
 
   /*
+   * The total a pager may number its pages by and print as "of N", or
+   * undefined while there is none — the pager then pages forward on
+   * `hasMore` instead. A caller tracking the result total has one once it is
+   * exact. One that only says whether more rows follow has one exactly when
+   * its page ends the list. One that says neither passes an exact count (a
+   * Postgres-backed list), as every explorer used to.
+   */
+  public static getPagingTotal(input: {
+    resultTotal?: ResultTotal | undefined;
+    hasMore?: boolean | undefined;
+    // The list's own count: exact, or a lower bound when `hasMore` is set.
+    totalCount: number;
+    // The rows this page holds, and the rows before it.
+    rowCount: number;
+    skip: number;
+  }): number | undefined {
+    if (input.resultTotal) {
+      return input.resultTotal.status === ResultTotalStatus.Exact
+        ? input.resultTotal.count || 0
+        : undefined;
+    }
+
+    if (input.hasMore === undefined) {
+      return input.totalCount;
+    }
+
+    return (
+      ResultTotalUtil.getTotalProvenByPage({
+        rowCount: input.rowCount,
+        skip: input.skip,
+        hasMore: input.hasMore,
+      }) ?? undefined
+    );
+  }
+
+  /*
    * The count, if there is one. A count lower than what the page itself
    * proves is stale — rows arrived or expired between the two requests — and
    * is raised to the proof rather than printing "50 of 40".

@@ -20,9 +20,8 @@ import { TelemetrySignal } from "../../../Utils/Telemetry/LockedFilterSearch";
 import TelemetryHistogram from "./components/TelemetryHistogram";
 import TelemetryPagination from "./components/TelemetryPagination";
 import TelemetryResultTotal from "./components/TelemetryResultTotal";
-import {
+import ResultTotalUtil, {
   ResultTotal,
-  ResultTotalStatus,
 } from "../../Utils/Telemetry/ResultTotal";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -230,22 +229,17 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showFacetToggle: boolean = showFacets && !props.mainContentOverride;
 
-  /*
-   * The total the footer may number its pages by. A caller tracking the
-   * result total supplies it once exact; one that only says "more follow"
-   * has none; one that says neither passes an exact count (a Postgres-backed
-   * list), as every explorer used to.
-   */
-  const exactTotalCount: number | undefined = props.resultTotal
-    ? props.resultTotal.status === ResultTotalStatus.Exact
-      ? props.resultTotal.count || 0
-      : undefined
-    : props.hasMore === undefined
-      ? props.totalCount
-      : undefined;
+  const rowsBeforePage: number = (Math.max(props.page, 1) - 1) * props.pageSize;
+  const rowsThroughPage: number = rowsBeforePage + props.items.length;
 
-  const rowsThroughPage: number =
-    (Math.max(props.page, 1) - 1) * props.pageSize + props.items.length;
+  // The total the footer may number its pages by (see getPagingTotal).
+  const exactTotalCount: number | undefined = ResultTotalUtil.getPagingTotal({
+    resultTotal: props.resultTotal,
+    hasMore: props.hasMore,
+    totalCount: props.totalCount,
+    rowCount: props.items.length,
+    skip: rowsBeforePage,
+  });
 
   // Not over an empty list: its empty state already says there is nothing.
   const showResultTotal: boolean = Boolean(
