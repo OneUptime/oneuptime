@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   textToBeCopied: string;
@@ -25,7 +26,10 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
 
   const size: "xs" | "sm" | "md" = props.size || "xs";
   const variant: "ghost" | "soft" | "solid" = props.variant || "ghost";
-  const label: string = props.label || "Copy";
+  const { translateString } = useTranslateValue();
+  const label: string =
+    translateString(props.label || "Copy") || props.label || "Copy";
+  const title: string | undefined = translateString(props.title);
   const copiedLabel: string = props.copiedLabel || "Copied!";
 
   const handleCopy: MouseEventHandler<HTMLButtonElement> = async (
@@ -85,8 +89,8 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
           handleCopy(e as unknown as React.MouseEvent<HTMLButtonElement>);
         }
       }}
-      title={props.title || label}
-      aria-label={props.title || label}
+      title={title || label}
+      aria-label={title || label}
     >
       {/* Icon */}
       <span aria-hidden="true" className="flex items-center justify-center">

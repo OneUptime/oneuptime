@@ -6,6 +6,12 @@ import Tooltip from "../Tooltip/Tooltip";
 import Skeleton from "../Skeleton/Skeleton";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -40,6 +46,7 @@ type OrderedStatesListFunction = <T extends GenericObject>(
 const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * A refetch with states already on screen keeps them visible and dims
    * them; the skeleton stack is only for a load with nothing to show yet.
@@ -152,7 +159,11 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
             message={
               props.noItemsMessage
                 ? props.noItemsMessage
-                : `No ${props.singularLabel.toLocaleLowerCase()}`
+                : translator.translateTemplate("No {{itemName}}", {
+                    itemName: translatableTerm(props.singularLabel, {
+                      inSentence: true,
+                    }),
+                  })
             }
             onRefreshClick={props.onRefreshClick}
           />
@@ -160,7 +171,10 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
         {props.onCreateNewItem && (
           <div className="my-10">
             {renderAddNew(
-              `Add New ${props.singularLabel}`,
+              translateNamedAction(translator, {
+                template: "Add New {{itemName}}",
+                itemName: props.singularLabel,
+              }),
               1,
               "m-auto inline-flex items-center text-gray-400 border rounded-full border-gray-300 p-5",
               "flex items-center",

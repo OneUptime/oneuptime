@@ -59,6 +59,8 @@ import Permission, {
 } from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
 
@@ -166,6 +168,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const [error, setError] = useState<string>("");
   const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
 
   /*
    * Almost every caller writes its `fields` as an inline array literal in JSX,
@@ -411,9 +414,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
             model.getTableColumnMetadata(fieldName);
 
           setError(
-            `You don't have enough permissions to ${
-              props.formType === FormType.Create ? "create" : "edit"
-            } ${columnMetadata.title} on ${model.singularName}. You need one of the following permissions: ${fieldPermissions.join(", ")}`,
+            translator.translateTemplate(
+              props.formType === FormType.Create
+                ? "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}"
+                : "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
+              {
+                columnName: translatableTerm(columnMetadata.title || fieldName),
+                itemName: translatableTerm(model.singularName || ""),
+                permissions: fieldPermissions.join(", "),
+              },
+            ),
           );
         }
       }

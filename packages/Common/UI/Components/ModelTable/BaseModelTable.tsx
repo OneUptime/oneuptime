@@ -4,6 +4,14 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -514,15 +522,67 @@ const getDeleteLabel: GetDeleteLabelFunction = (
   return singularName?.trim() || modelSingularName?.trim() || "Item";
 };
 
+/*
+ * The header's create button for each verb a table uses, as a whole phrase
+ * a locale can reorder ("{{itemName}} erstellen"). A verb not listed here
+ * goes through the verb-and-noun template, which only reorders.
+ */
+const CREATE_BUTTON_TEMPLATES: Record<string, string> = {
+  Add: translationKey("Add {{itemName}}"),
+  Create: translationKey("Create {{itemName}}"),
+  Declare: translationKey("Declare {{itemName}}"),
+  Invite: translationKey("Invite {{itemName}}"),
+  Link: translationKey("Link {{itemName}}"),
+};
+
+export const BULK_DELETE_TITLE: PluralTemplate = {
+  one: "Delete {{count}} {{itemName}}",
+  other: "Delete {{count}} {{itemsName}}",
+};
+
+export const BULK_DELETE_QUESTION: PluralTemplate = {
+  one: "Are you sure you want to delete {{count}} {{itemName}}? This action cannot be undone.",
+  other:
+    "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.",
+};
+
+// A table that names its own verb ("Unlink") for the bulk action.
+export const BULK_ACTION_TITLE: PluralTemplate = {
+  one: "{{action}} {{count}} {{itemName}}",
+  other: "{{action}} {{count}} {{itemsName}}",
+};
+
+export const BULK_ACTION_QUESTION: PluralTemplate = {
+  one: "Are you sure you want to {{action}} {{count}} {{itemName}}?",
+  other: "Are you sure you want to {{action}} {{count}} {{itemsName}}?",
+};
+
+export const SEARCH_MATCH_COUNT: PluralTemplate = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
+
+export const SEARCH_RESULT_COUNT: PluralTemplate = {
+  one: "{{count}} result",
+  other: "{{count}} results",
+};
+
+export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
+  one: "{{count}} result on this page",
+  other: "{{count}} results on this page",
+};
+
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const { translateValue, translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
+
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -557,18 +617,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    */
   const getCreateButtonTitle: () => string = (): string => {
     const verb: string = props.createVerb || "Create";
-    const noun: string = props.singularName || model.singularName || "";
+    const noun: string = (
+      props.singularName ||
+      model.singularName ||
+      ""
+    ).trim();
 
-    if (noun) {
-      const phrase: string = `${verb} ${noun}`;
-      const translatedPhrase: string = tx(phrase);
-
-      if (translatedPhrase && translatedPhrase !== phrase) {
-        return translatedPhrase;
-      }
+    // A table that keeps its button down to the verb ("Invite").
+    if (!noun) {
+      return tx(verb);
     }
 
-    return `${tx(verb)} ${tx(noun)}`;
+    const template: string | undefined = CREATE_BUTTON_TEMPLATES[verb];
+
+    if (!template) {
+      return translator.translateTemplate("{{action}} {{itemName}}", {
+        action: translatableTerm(verb),
+        itemName: translatableTerm(noun),
+      });
+    }
+
+    return translateNamedAction(translator, {
+      template: template,
+      itemName: noun,
+    });
   };
 
   /*
@@ -2918,7 +2990,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         actionsSchema.push({
           title: props.viewButtonText
             ? tx(props.viewButtonText)
-            : `${tx("View")} ${tx(props.singularName || model.singularName || "")}`,
+            : translateNamedAction(translator, {
+                template: "View {{itemName}}",
+                itemName: props.singularName || model.singularName || "",
+              }),
           buttonStyleType: ButtonStyleType.NORMAL,
           /*
            * Opening the record is what a row is for, so View is the row's one
@@ -3126,14 +3201,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       const deleteVerb: string | undefined =
         props.bulkActions?.deleteVerb?.trim() || undefined;
 
-      type GetTypeLabelFunction = (items: Array<TBaseModel>) => string;
+      // The table's names for one and for several, translated with the sentence.
+      type GetNounValuesFunction = (
+        inSentence: boolean,
+      ) => Record<string, ReturnType<typeof translatableTerm>>;
 
-      const getTypeLabel: GetTypeLabelFunction = (
-        items: Array<TBaseModel>,
-      ): string => {
-        return items.length === 1
-          ? props.singularName || model.singularName || "item"
-          : props.pluralName || model.pluralName || "items";
+      const getNounValues: GetNounValuesFunction = (
+        inSentence: boolean,
+      ): Record<string, ReturnType<typeof translatableTerm>> => {
+        return {
+          itemName: translatableTerm(
+            props.singularName || model.singularName || "item",
+            { inSentence: inSentence },
+          ),
+          itemsName: translatableTerm(
+            props.pluralName || model.pluralName || "items",
+            { inSentence: inSentence },
+          ),
+        };
       };
 
       return {
@@ -3141,20 +3226,40 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.DANGER,
         icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          const itemLabel: string = getTypeLabel(items);
-
           const warning: string = props.bulkActions?.deleteConfirmationWarning
-            ? ` ${props.bulkActions.deleteConfirmationWarning}`
+            ? ` ${tx(props.bulkActions.deleteConfirmationWarning)}`
             : "";
 
           if (deleteVerb) {
-            return `Are you sure you want to ${deleteVerb.toLowerCase()} ${items.length} ${itemLabel.toLowerCase()}?${warning}`;
+            return `${translator.translatePlural(
+              BULK_ACTION_QUESTION,
+              items.length,
+              {
+                action: translatableTerm(deleteVerb, { inSentence: true }),
+                ...getNounValues(true),
+              },
+            )}${warning}`;
           }
 
-          return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.${warning}`;
+          return `${translator.translatePlural(
+            BULK_DELETE_QUESTION,
+            items.length,
+            getNounValues(false),
+          )}${warning}`;
         },
         confirmTitle: (items: Array<TBaseModel>) => {
-          return `${deleteVerb || "Delete"} ${items.length} ${getTypeLabel(items)}`;
+          if (deleteVerb) {
+            return translator.translatePlural(BULK_ACTION_TITLE, items.length, {
+              action: translatableTerm(deleteVerb),
+              ...getNounValues(false),
+            });
+          }
+
+          return translator.translatePlural(
+            BULK_DELETE_TITLE,
+            items.length,
+            getNounValues(false),
+          );
         },
         /*
          * "Are you sure you want to delete 12 monitors?" says how many, not
@@ -3285,6 +3390,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         pluralLabel: pluralLabel,
         isFiltered: true,
         translate: tx,
+        translator: translator,
       });
     }
 
@@ -3294,6 +3400,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         pluralLabel: pluralLabel,
         isFiltered: false,
         translate: tx,
+        translator: translator,
       })
     );
   };
@@ -3987,7 +4094,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               marginLeft: "5px",
             }}
           >
-            <Pill text={`${planName} Plan`} color={Yellow} />
+            <Pill
+              text={translator.translateTemplate("{{planName}} Plan", {
+                planName: planName,
+              })}
+              color={Yellow}
+            />
           </span>
         )}
       </span>
@@ -4071,18 +4183,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return <></>;
     }
 
-    const pluralLabel: string = (
-      props.pluralName ||
-      model.pluralName ||
-      "items"
-    ).toLowerCase();
+    const pluralTerm: ReturnType<typeof translatableTerm> = translatableTerm(
+      props.pluralName || model.pluralName || "items",
+      { inSentence: true },
+    );
 
     const hasLabelSupport: boolean = Boolean(labelFilterConfig);
 
     const defaultPlaceholder: string = hasLabelSupport
-      ? `Search ${pluralLabel}… (try @ for labels)`
-      : `Search ${pluralLabel} by name, description…`;
-    const placeholder: string = props.searchPlaceholder || defaultPlaceholder;
+      ? translator.translateTemplate(
+          "Search {{itemsName}}… (try @ for labels)",
+          {
+            itemsName: pluralTerm,
+          },
+        )
+      : translator.translateTemplate(
+          "Search {{itemsName}} by name, description…",
+          { itemsName: pluralTerm },
+        );
+    const placeholder: string = props.searchPlaceholder
+      ? tx(props.searchPlaceholder)
+      : defaultPlaceholder;
 
     /*
      * Effective search = input minus the trailing @<prefix> mention. The pill
@@ -4185,7 +4306,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     <span
                       key={label.id}
                       className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
-                      title={`Label: ${label.name}`}
+                      title={translator.translateTemplate("Label: {{name}}", {
+                        name: label.name,
+                      })}
                     >
                       <span
                         className="h-2 w-2 flex-none rounded-full"
@@ -4205,8 +4328,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         onClick={() => {
                           removeLabel(label.id);
                         }}
-                        title="Remove label"
-                        aria-label={`Remove ${label.name}`}
+                        title={tx("Remove label")}
+                        aria-label={translator.translateTemplate(
+                          "Remove {{name}}",
+                          { name: label.name },
+                        )}
                         className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
                       >
                         <Icon icon={IconProp.Close} className="h-3 w-3" />
@@ -4315,20 +4441,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             {showMatchPill && totalItemsCount >= 0 && hasMore === undefined && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT,
+                  totalItemsCount,
+                )}
               >
-                {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+                {translator.translatePlural(
+                  SEARCH_MATCH_COUNT,
+                  totalItemsCount,
+                )}
               </span>
             )}
             {showMatchPill && hasMore !== undefined && data.length > 0 && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={`${data.length}${hasMore ? "+" : ""} ${
-                  data.length === 1 ? "result" : "results"
-                } on this page`}
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT_ON_PAGE,
+                  data.length,
+                  {
+                    count: `${translator.formatNumber(data.length)}${
+                      hasMore ? "+" : ""
+                    }`,
+                  },
+                )}
               >
-                {data.length}
-                {hasMore ? "+" : ""} {data.length === 1 ? "match" : "matches"}
+                {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
+                  count: `${translator.formatNumber(data.length)}${
+                    hasMore ? "+" : ""
+                  }`,
+                })}
               </span>
             )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
@@ -4340,8 +4481,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 onClick={() => {
                   collapseSearch();
                 }}
-                title="Clear search (Esc Esc)"
-                aria-label="Clear search"
+                title={tx("Clear search (Esc Esc)")}
+                aria-label={tx("Clear search")}
                 className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
@@ -4382,8 +4523,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 {!isLabelsLoading && dropdownLabels.length === 0 && (
                   <div className="px-3 py-3 text-sm text-gray-500">
                     {availableLabels.length === 0
-                      ? "No labels available for this resource."
-                      : `No labels matching "${mention.prefix}"`}
+                      ? tx("No labels available for this resource.")
+                      : translator.translateTemplate(
+                          'No labels matching "{{prefix}}"',
+                          { prefix: mention.prefix },
+                        )}
                   </div>
                 )}
                 {dropdownLabels.map((label: SearchLabelOption, idx: number) => {
@@ -5104,7 +5248,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={
             deleteConfirmation?.title ||
-            `Delete ${getDeleteLabel(props.singularName, model.singularName)}`
+            translateNamedAction(translator, {
+              template: "Delete {{itemName}}",
+              itemName: getDeleteLabel(props.singularName, model.singularName),
+            })
           }
           description={
             deleteConfirmation?.description || (
@@ -5146,11 +5293,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       {showViewIdModal && (
         <ConfirmModal
-          title={`${props.singularName || model.singularName || ""} ID`}
+          title={translator.translateTemplate("{{itemName}} ID", {
+            itemName: translatableTerm(
+              props.singularName || model.singularName || "",
+            ),
+          })}
           description={
             <div>
               <span>
-                ID of this {props.singularName || model.singularName || ""}:
+                {translator.translateTemplate("ID of this {{itemName}}:", {
+                  itemName: translatableTerm(
+                    props.singularName || model.singularName || "",
+                  ),
+                })}
               </span>
               {/*
                * Handing over the id is the entire point of this dialog, and it
@@ -5165,15 +5320,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 <CopyTextButton
                   textToBeCopied={viewId || ""}
                   size="sm"
-                  title="Copy ID to clipboard"
+                  title={tx("Copy ID to clipboard")}
                 />
               </div>
               <br />
 
               <span>
-                You can use this ID to interact with{" "}
-                {props.singularName || model.singularName || ""} via the
-                OneUptime API. Click the button below to go to API Reference.
+                {translator.translateTemplate(
+                  "You can use this ID to interact with {{itemName}} via the OneUptime API. Click the button below to go to API Reference.",
+                  {
+                    itemName: translatableTerm(
+                      props.singularName || model.singularName || "",
+                    ),
+                  },
+                )}
               </span>
             </div>
           }

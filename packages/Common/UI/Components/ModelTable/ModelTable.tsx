@@ -34,7 +34,26 @@ import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
+
+/*
+ * The create and edit dialogs' titles. A table's own verb ("Add", "Invite")
+ * gets its own phrase, so a locale can word each one; an unlisted verb falls
+ * back to "Create".
+ */
+const CREATE_NEW_TEMPLATES: Record<string, string> = {
+  Add: translationKey("Add New {{itemName}}"),
+  Create: translationKey("Create New {{itemName}}"),
+  Declare: translationKey("Declare New {{itemName}}"),
+  Invite: translationKey("Invite New {{itemName}}"),
+  Link: translationKey("Link New {{itemName}}"),
+};
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
@@ -57,6 +76,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
 ): ReactElement => {
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
@@ -279,13 +299,14 @@ const ModelTable: <TBaseModel extends BaseModel>(
             return (
               <ModelFormModal<TBaseModel>
                 modelAPI={props.modelAPI}
-                title={
-                  modalType === ModalType.Create
-                    ? `${props.createVerb || "Create"} New ${
-                        props.singularName || model.singularName
-                      }`
-                    : `Edit ${props.singularName || model.singularName}`
-                }
+                title={translateNamedAction(translator, {
+                  template:
+                    modalType === ModalType.Create
+                      ? CREATE_NEW_TEMPLATES[props.createVerb || "Create"] ||
+                        "Create New {{itemName}}"
+                      : "Edit {{itemName}}",
+                  itemName: props.singularName || model.singularName || "",
+                })}
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={

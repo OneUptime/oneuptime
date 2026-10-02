@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   icon?: IconProp | undefined;
@@ -31,6 +32,7 @@ export interface ComponentProps {
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const isDisabled: boolean = Boolean(props.isDisabled);
   const isDestructive: boolean = Boolean(props.isDestructive);
   const reasonId: string = useId();
@@ -100,7 +102,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
         <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
       )}
       <div className="flex w-full justify-between items-center">
-        <div className="font-medium">{props.text}</div>
+        <div className="font-medium">
+          {translateString(props.text) ?? props.text}
+        </div>
         <div>{props.rightElement}</div>
       </div>
     </button>
@@ -122,7 +126,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           {menuItem}
         </Tooltip>
         <span id={reasonId} className="sr-only">
-          {props.tooltip}
+          {translateString(props.tooltip) ?? props.tooltip}
         </span>
       </>
     );

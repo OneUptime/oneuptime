@@ -9,6 +9,8 @@ import BulkUpdateForm, {
 } from "../BulkUpdate/BulkUpdateForm";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import { getEmptyTableMessage } from "./EmptyTableMessage";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
@@ -158,8 +160,13 @@ const Table: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedSingularLabel: string =
-    translateString(props.singularLabel) ?? props.singularLabel;
+  const translator: Translator = useTranslator();
+  /*
+   * The filter bar, the bulk-action bar and the pagination footer are handed
+   * the English labels: each puts them into whole translated sentences of its
+   * own ("Showing 1-10 of 240 monitors"), which needs the English noun to
+   * find the sentence and to know whether the noun is translated.
+   */
   const translatedPluralLabel: string =
     translateString(props.pluralLabel) ?? props.pluralLabel;
   const isBulkActionsEnabled: boolean | undefined =
@@ -296,6 +303,7 @@ const Table: TableFunction = <T extends GenericObject>(
               translate: (value: string): string => {
                 return translateString(value) ?? value;
               },
+              translator: translator,
             })
           }
           onRefreshClick={props.onRefreshClick}
@@ -442,8 +450,8 @@ const Table: TableFunction = <T extends GenericObject>(
         filters={props.filters || []}
         onFilterModalClose={props.onFilterModalClose}
         onFilterModalOpen={props.onFilterModalOpen}
-        singularLabel={translatedSingularLabel}
-        pluralLabel={translatedPluralLabel}
+        singularLabel={props.singularLabel}
+        pluralLabel={props.pluralLabel}
         filterData={props.filterData}
         onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
@@ -468,8 +476,8 @@ const Table: TableFunction = <T extends GenericObject>(
             }
           }}
           selectedItems={bulkSelectedItems}
-          singularLabel={translatedSingularLabel}
-          pluralLabel={translatedPluralLabel}
+          singularLabel={props.singularLabel}
+          pluralLabel={props.pluralLabel}
           isAllItemsSelected={isAllItemsSelected}
           errorMessage={props.bulkSelectionError}
           isSelectingAllItems={props.isBulkSelectAllLoading}
@@ -593,8 +601,8 @@ const Table: TableFunction = <T extends GenericObject>(
         <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
           {!props.disablePagination && (
             <Pagination
-              singularLabel={translatedSingularLabel}
-              pluralLabel={translatedPluralLabel}
+              singularLabel={props.singularLabel}
+              pluralLabel={props.pluralLabel}
               currentPageNumber={props.currentPageNumber}
               totalItemsCount={props.totalItemsCount}
               hasMore={props.hasMore}

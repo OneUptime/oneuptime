@@ -219,6 +219,13 @@ export const getPluralCategory: (language: string, count: number) => string = (
 
 const PLACEHOLDER: RegExp = /\{\{\s*([\w.]+)\s*\}\}/g;
 
+// Whether a template has words of its own besides its placeholders.
+const LETTER: RegExp = /\p{L}/u;
+
+const hasWords: (template: string) => boolean = (template: string): boolean => {
+  return LETTER.test(template.replace(PLACEHOLDER, ""));
+};
+
 // A value as the English sentence shows it.
 const englishValue: (value: TemplateValue) => string = (
   value: TemplateValue,
@@ -361,7 +368,9 @@ export const createTranslator: (
   /*
    * The sentence is translated when its stored wording differs from the
    * English one; then its terms are translated too. Otherwise the English
-   * sentence is filled with the English terms.
+   * sentence is filled with the English terms - except for a template with no
+   * words of its own ("{{action}} {{itemName}}"), which belongs to no
+   * language and always takes the reader's words.
    */
   const fill: (
     stored: string | undefined,
@@ -373,7 +382,9 @@ export const createTranslator: (
     values: TemplateValues,
   ): string => {
     if (stored === undefined || stored === english) {
-      return fillTemplate(english, values);
+      return hasWords(english)
+        ? fillTemplate(english, values)
+        : fillTemplate(english, translatedValues(values));
     }
 
     return fillTemplate(stored, translatedValues(values));
@@ -508,6 +519,132 @@ export const translatePlural: (
   values: TemplateValues = {},
 ): string => {
   return getGlobalTranslator().translatePlural(template, count, values);
+};
+
+/*
+ * An action on a named kind of thing - "Create Incident", "Edit Monitor",
+ * "Delete Status Page" - from a template with an {{itemName}} slot. The whole
+ * English phrase is looked up first, so a locale can word one model's button
+ * its own way (gender, case); otherwise the template is filled with the
+ * locale's word for the name.
+ */
+export const translateNamedAction: (
+  translator: Translator,
+  data: { template: string; itemName: string },
+) => string = (
+  translator: Translator,
+  data: { template: string; itemName: string },
+): string => {
+  // The slot is {{itemName}}, or {{itemsName}} for a plural name.
+  const phrase: string = fillTemplate(data.template, {
+    itemName: data.itemName.trim(),
+    itemsName: data.itemName.trim(),
+  });
+
+  if (translator.hasTranslation(phrase)) {
+    return translator.translateText(phrase) || phrase;
+  }
+
+  return translator.translateTemplate(data.template, {
+    itemName: translatableTerm(data.itemName),
+    itemsName: translatableTerm(data.itemName),
+  });
+};
+
+export type SentencePart =
+  | { kind: "text"; text: string }
+  | { kind: "slot"; slot: string };
+
+/*
+ * Slot markers are private-use characters, which no translation or name
+ * contains: "\uE000" + the slot's index + "\uE000".
+ */
+const SLOT_PATTERN: RegExp = /\uE000(\d+)\uE000/;
+
+/*
+ * A translated sentence in pieces, for a caller that draws some of its values
+ * itself - a field name in bold, a link - between the pieces of text.
+ * `slots` are the placeholders the caller draws; `values` fill the rest.
+ *
+ * A translation that lost one of the slots or repeated it cannot be drawn
+ * whole, so the English sentence is used instead.
+ */
+export const getSentenceParts: (data: {
+  translator: Translator;
+  template: string | PluralTemplate;
+  slots: ReadonlyArray<string>;
+  values?: TemplateValues | undefined;
+  count?: number | undefined;
+}) => Array<SentencePart> = (data: {
+  translator: Translator;
+  template: string | PluralTemplate;
+  slots: ReadonlyArray<string>;
+  values?: TemplateValues | undefined;
+  count?: number | undefined;
+}): Array<SentencePart> => {
+  const withMarkers: TemplateValues = { ...(data.values || {}) };
+
+  data.slots.forEach((slot: string, index: number): void => {
+    withMarkers[slot] = `\uE000${index}\uE000`;
+  });
+
+  const split: (sentence: string) => Array<SentencePart> | null = (
+    sentence: string,
+  ): Array<SentencePart> | null => {
+    const pieces: Array<string> = sentence.split(SLOT_PATTERN);
+    const parts: Array<SentencePart> = [];
+    const seen: Array<number> = [];
+
+    pieces.forEach((piece: string, index: number): void => {
+      if (index % 2 === 1) {
+        const slotIndex: number = Number(piece);
+
+        seen.push(slotIndex);
+        parts.push({ kind: "slot", slot: data.slots[slotIndex] as string });
+      } else if (piece) {
+        parts.push({ kind: "text", text: piece });
+      }
+    });
+
+    const isWhole: boolean =
+      seen.length === data.slots.length &&
+      data.slots.every((_slot: string, index: number): boolean => {
+        return seen.includes(index);
+      });
+
+    return isWhole ? parts : null;
+  };
+
+  const count: number = data.count ?? 0;
+  const isPlural: boolean = typeof data.template !== "string";
+  const englishTemplate: string =
+    typeof data.template === "string"
+      ? data.template
+      : count === 1
+        ? data.template.one
+        : data.template.other;
+
+  const translated: string =
+    typeof data.template === "string"
+      ? data.translator.translateTemplate(data.template, withMarkers)
+      : data.translator.translatePlural(data.template, count, withMarkers);
+
+  const englishValues: TemplateValues = isPlural
+    ? { count: data.translator.formatNumber(count), ...withMarkers }
+    : withMarkers;
+
+  return (
+    split(translated) ||
+    split(fillTemplate(englishTemplate, englishValues)) || [
+      {
+        kind: "text",
+        text: fillTemplate(englishTemplate, {
+          ...(isPlural ? { count: data.translator.formatNumber(count) } : {}),
+          ...(data.values || {}),
+        }),
+      },
+    ]
+  );
 };
 
 export interface TemplateAround {

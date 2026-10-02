@@ -1,6 +1,13 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Modal from "../Modal/Modal";
+import {
+  PluralTemplate,
+  TranslatableTerm,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import PaginationUtil, {
   DefaultItemsOnPageOptions,
   ItemRange,
@@ -55,9 +62,41 @@ export interface ComponentProps {
   isDisabled?: boolean | undefined;
 }
 
+/*
+ * The summary under a list, as whole sentences in the reader's language. The
+ * labels are the list's English nouns ("Monitor", "Monitors"); they are
+ * translated with the sentence and written the way a noun is written in the
+ * middle of one ("Showing 1-10 of 240 monitors"), and the total picks the
+ * language's plural form.
+ */
+export const PAGINATION_SUMMARY: PluralTemplate = {
+  one: "Showing {{range}} of {{total}} {{itemName}}",
+  other: "Showing {{range}} of {{total}} {{itemsName}}",
+};
+
+export const PAGINATION_SUMMARY_WITHOUT_TOTAL: string =
+  "Showing {{range}} {{itemsName}}";
+
+export const PAGINATION_SUMMARY_WITH_MORE: string =
+  "Showing {{range}}+ {{itemsName}}";
+
+export const PAGINATION_EMPTY: string = "No {{itemsName}}";
+
+export const GO_TO_PAGE_DESCRIPTION: PluralTemplate = {
+  one: "This list has {{count}} page. Enter the one you want to see.",
+  other: "This list has {{count}} pages. Enter the one you want to see.",
+};
+
 const Pagination: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const itemTerm: TranslatableTerm = translatableTerm(props.singularLabel, {
+    inSentence: true,
+  });
+  const itemsTerm: TranslatableTerm = translatableTerm(props.pluralLabel, {
+    inSentence: true,
+  });
   /*
    * Has-more mode: the count is a lower bound, so there is no last page to
    * link to and no "of N" to print. Prev/next and the page size are all the
@@ -153,17 +192,16 @@ const Pagination: FunctionComponent<ComponentProps> = (
   type GetSummaryFunction = () => string;
 
   const getSummary: GetSummaryFunction = (): string => {
-    const pluralLabel: string = props.pluralLabel.toLowerCase();
-    const singularLabel: string = props.singularLabel.toLowerCase();
-
     if (itemRange.isEmpty) {
-      return `No ${pluralLabel}`;
+      return translator.translateTemplate(PAGINATION_EMPTY, {
+        itemsName: itemsTerm,
+      });
     }
 
     const rangeText: string =
       itemRange.firstItemNumber === itemRange.lastItemNumber
-        ? itemRange.firstItemNumber.toLocaleString()
-        : `${itemRange.firstItemNumber.toLocaleString()}-${itemRange.lastItemNumber.toLocaleString()}`;
+        ? translator.formatNumber(itemRange.firstItemNumber)
+        : `${translator.formatNumber(itemRange.firstItemNumber)}-${translator.formatNumber(itemRange.lastItemNumber)}`;
 
     if (isHasMoreMode) {
       /*
@@ -171,12 +209,24 @@ const Pagination: FunctionComponent<ComponentProps> = (
        * includes the probe row the payload dropped. The trailing "+" is all
        * that can be said about what comes after this page.
        */
-      return `Showing ${rangeText}${props.hasMore ? "+" : ""} ${pluralLabel}`;
+      return translator.translateTemplate(
+        props.hasMore
+          ? PAGINATION_SUMMARY_WITH_MORE
+          : PAGINATION_SUMMARY_WITHOUT_TOTAL,
+        { range: rangeText, itemsName: itemsTerm },
+      );
     }
 
-    return `Showing ${rangeText} of ${props.totalItemsCount.toLocaleString()} ${
-      props.totalItemsCount === 1 ? singularLabel : pluralLabel
-    }`;
+    return translator.translatePlural(
+      PAGINATION_SUMMARY,
+      props.totalItemsCount,
+      {
+        range: rangeText,
+        total: translator.formatNumber(props.totalItemsCount),
+        itemName: itemTerm,
+        itemsName: itemsTerm,
+      },
+    );
   };
 
   /*
@@ -214,9 +264,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           data-testid={`pagination-page-${pageNumber}`}
-          aria-label={
-            isCurrentPage ? `Page ${pageNumber}` : `Go to page ${pageNumber}`
-          }
+          aria-label={translator.translateTemplate(
+            isCurrentPage ? "Page {{page}}" : "Go to page {{page}}",
+            { page: translator.formatNumber(pageNumber) },
+          )}
           aria-current={isCurrentPage ? "page" : undefined}
           disabled={isDisabled}
           onClick={() => {
@@ -234,7 +285,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               : "cursor-pointer"
           }`}
         >
-          {pageNumber.toLocaleString()}
+          {translator.formatNumber(pageNumber)}
         </button>
       </li>
     );
@@ -248,8 +299,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           data-testid={`pagination-${key}`}
-          aria-label="Go to a page in between"
-          title="Go to page"
+          aria-label={
+            translator.translateText("Go to a page in between") ||
+            "Go to a page in between"
+          }
+          title={translator.translateText("Go to page") || "Go to page"}
           disabled={isDisabled}
           onClick={() => {
             if (!isDisabled) {
@@ -275,14 +329,19 @@ const Pagination: FunctionComponent<ComponentProps> = (
           props.className || ""
         }`}
         data-testid={props.dataTestId}
-        aria-label={`Pagination for ${props.pluralLabel}`}
+        aria-label={translator.translateTemplate(
+          "Pagination for {{itemsName}}",
+          { itemsName: translatableTerm(props.pluralLabel) },
+        )}
       >
         <p
           className={`${textSizeClassName} shrink-0 whitespace-nowrap text-gray-500`}
           data-testid="pagination-summary"
           aria-live="polite"
         >
-          {props.isLoading ? "Loading…" : getSummary()}
+          {props.isLoading
+            ? translator.translateText("Loading…") || "Loading…"
+            : getSummary()}
         </p>
 
         <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-3 sm:justify-end">
@@ -291,7 +350,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               htmlFor={itemsOnPageSelectId}
               className={`${textSizeClassName} whitespace-nowrap text-gray-500`}
             >
-              Rows per page
+              {translator.translateText("Rows per page") || "Rows per page"}
             </label>
             <div className="relative">
               <select
@@ -341,7 +400,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 type="button"
                 data-testid="pagination-previous-button"
                 disabled={isPreviousDisabled}
-                aria-label="Go to previous page"
+                aria-label={
+                  translator.translateText("Go to previous page") ||
+                  "Go to previous page"
+                }
                 onClick={() => {
                   if (!isPreviousDisabled) {
                     navigateToPage(currentPageNumber - 1);
@@ -366,8 +428,16 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 className={`${pageButtonBaseClassName} bg-white text-gray-600`}
               >
                 {isHasMoreMode
-                  ? `Page ${currentPageNumber.toLocaleString()}`
-                  : `Page ${currentPageNumber.toLocaleString()} of ${totalPageCount.toLocaleString()}`}
+                  ? translator.translateTemplate("Page {{page}}", {
+                      page: translator.formatNumber(currentPageNumber),
+                    })
+                  : translator.translateTemplate(
+                      "Page {{page}} of {{pageCount}}",
+                      {
+                        page: translator.formatNumber(currentPageNumber),
+                        pageCount: translator.formatNumber(totalPageCount),
+                      },
+                    )}
               </span>
             </li>
 
@@ -378,7 +448,9 @@ const Pagination: FunctionComponent<ComponentProps> = (
                   aria-current="page"
                   className={`${pageButtonBaseClassName} z-10 border-indigo-500 bg-indigo-50 text-indigo-600`}
                 >
-                  {`Page ${currentPageNumber.toLocaleString()}`}
+                  {translator.translateTemplate("Page {{page}}", {
+                    page: translator.formatNumber(currentPageNumber),
+                  })}
                 </span>
               </li>
             )}
@@ -396,7 +468,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 type="button"
                 data-testid="pagination-next-button"
                 disabled={isNextDisabled}
-                aria-label="Go to next page"
+                aria-label={
+                  translator.translateText("Go to next page") ||
+                  "Go to next page"
+                }
                 onClick={() => {
                   if (!isNextDisabled) {
                     navigateToPage(currentPageNumber + 1);
@@ -416,7 +491,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
       {isGoToPageModalVisible && (
         <Modal
           title="Go to page"
-          description={`This list has ${totalPageCount.toLocaleString()} pages. Enter the one you want to see.`}
+          description={translator.translatePlural(
+            GO_TO_PAGE_DESCRIPTION,
+            totalPageCount,
+          )}
           submitButtonText="Go"
           closeButtonText="Cancel"
           disableSubmitButton={goToPageValue === ""}
@@ -431,7 +509,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               htmlFor={goToPageInputId}
               className="block text-sm font-medium text-gray-700"
             >
-              Page number
+              {translator.translateText("Page number") || "Page number"}
             </label>
             <input
               id={goToPageInputId}
