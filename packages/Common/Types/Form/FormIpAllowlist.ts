@@ -2,8 +2,8 @@ import IP from "../IP/IP";
 import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 
 /*
- * An incident form's IP allowlist: the networks its public page can be
- * opened and submitted from, one entry per line.
+ * A form's IP allowlist: the networks its public page can be opened and
+ * submitted from, one entry per line.
  *
  * The public routes check a visitor against it with IP.isInWhitelist, the
  * same matcher the dashboards' and status pages' allowlists use, and that
@@ -11,10 +11,10 @@ import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
  * IPv6 address (matched exactly), and an IPv4 range in CIDR notation. An
  * IPv6 range, a range of /0 (which it matches as the one address, not as
  * every network) or two addresses on one line never match anyone - and the
- * check fails closed, so such an entry would lock every reporter on that
- * network out without a word to the admin who saved it. Nor does an IPv4
- * address written as an IPv6 one ("::ffff:203.0.113.7", as a dual-stack
- * listener logs it): the routes see an IPv4 visitor as the IPv4 address
+ * check fails closed, so such an entry would lock everybody on that network
+ * out without a word to the admin who saved it. Nor does an IPv4 address
+ * written as an IPv6 one ("::ffff:203.0.113.7", as a dual-stack listener
+ * logs it): the routes see an IPv4 visitor as the IPv4 address
  * (resolveClientIp unwraps that spelling), never as the IPv6 one. So a list
  * is refused, naming each line, at the write that would store it: on create
  * and update, whoever writes it (the dashboard, the API, Terraform, a
@@ -26,11 +26,11 @@ import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
  */
 
 // Each line of the list, trimmed, blank lines left out.
-export type GetIncidentFormIpAllowlistEntriesFunction = (
+export type GetFormIpAllowlistEntriesFunction = (
   value: string | null | undefined,
 ) => Array<string>;
 
-export const getIncidentFormIpAllowlistEntries: GetIncidentFormIpAllowlistEntriesFunction =
+export const getFormIpAllowlistEntries: GetFormIpAllowlistEntriesFunction =
   (value: string | null | undefined): Array<string> => {
     return (value || "")
       .split(/\r?\n/)
@@ -157,7 +157,7 @@ const getEntryProblem: GetEntryProblemFunction = (
   return "is not an IP address or an IPv4 range";
 };
 
-export type ValidateIncidentFormIpAllowlistFunction = (
+export type ValidateFormIpAllowlistFunction = (
   value: unknown,
 ) => string | null;
 
@@ -166,7 +166,7 @@ export type ValidateIncidentFormIpAllowlistFunction = (
  * (or the list is empty, or not set); otherwise one message naming each
  * problem line, the first five of them.
  */
-export const validateIncidentFormIpAllowlist: ValidateIncidentFormIpAllowlistFunction =
+export const validateFormIpAllowlist: ValidateFormIpAllowlistFunction =
   (value: unknown): string | null => {
     if (value === null || value === undefined) {
       return null;

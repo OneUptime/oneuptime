@@ -1,5 +1,4 @@
 import DatabaseService from "./DatabaseService";
-import IncidentFormService from "./IncidentFormService";
 import IncidentService from "./IncidentService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import Model from "../../Models/DatabaseModels/IncidentCustomField";
@@ -10,12 +9,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
-import DeleteBy from "../Types/Database/DeleteBy";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import logger, { LogAttributes } from "../Utils/Logger";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import { backfillMappedCustomFieldValues } from "../Utils/CustomField/CustomFieldDefinitionMappingHooks";
 import {
   validateCustomFieldMappingOnCreate,
@@ -36,9 +33,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  *
  *   - its template key (variableKey), made from the name on create and never
  *     changed afterwards, so templates that use {{customFields.<key>}} keep
- *     working whatever the field is renamed to - and taken off every
- *     incident form's questions when the field is deleted (see
- *     onDeleteSuccess);
+ *     working whatever the field is renamed to;
  *   - its name, which is what incidents store its values under. Renaming a
  *     field moves those values, and the saved views that name it, to the new
  *     name (see onUpdateSuccess).
@@ -51,17 +46,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 type RenameCarryForward = Dictionary<{
   oldName: string;
   projectId: ObjectID;
-}> | null;
-
-/*
- * What onBeforeDelete hands to onDeleteSuccess: each field the delete may
- * remove, with the project and template key it is known by - read before
- * the rows are gone.
- */
-type DeleteCarryForward = Array<{
-  id: string;
-  projectId: ObjectID;
-  variableKey: string;
 }> | null;
 
 export class Service extends DatabaseService<Model> {
@@ -103,100 +87,6 @@ export class Service extends DatabaseService<Model> {
     const carryForward: RenameCarryForward = await this.prepareRename(updateBy);
 
     return { updateBy, carryForward: carryForward };
-  }
-
-  /*
-   * The fields this delete may remove, read while they still exist: once
-   * they are gone, nothing says which forms asked them. As root, and limited
-   * to the caller's project, as prepareRename reads - the delete's own
-   * permission check has not run yet; onDeleteSuccess only acts on the rows
-   * it actually removed.
-   */
-  @CaptureSpan()
-  protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>,
-  ): Promise<OnDelete<Model>> {
-    const query: Query<Model> =
-      !deleteBy.props.isRoot && deleteBy.props.tenantId
-        ? {
-            ...deleteBy.query,
-            projectId: deleteBy.props.tenantId,
-          }
-        : deleteBy.query;
-
-    const fields: Array<Model> = await this.findBy({
-      query: query,
-      select: {
-        _id: true,
-        projectId: true,
-        variableKey: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const carryForward: DeleteCarryForward = [];
-
-    for (const field of fields) {
-      if (field.id && field.projectId && field.variableKey) {
-        carryForward.push({
-          id: field.id.toString(),
-          projectId: field.projectId,
-          variableKey: field.variableKey,
-        });
-      }
-    }
-
-    return { deleteBy, carryForward: carryForward };
-  }
-
-  /*
-   * A deleted field is taken off every incident form of its project (see
-   * IncidentFormService.removeCustomFieldFromQuestions): otherwise a field
-   * created later under the same key would appear on those public forms at
-   * once. Incident templates keep their settings for it, on purpose.
-   *
-   * The field is already gone, so a failure here is logged rather than
-   * thrown: the delete stands either way.
-   */
-  @CaptureSpan()
-  protected override async onDeleteSuccess(
-    onDelete: OnDelete<Model>,
-    itemIdsBeforeDelete: Array<ObjectID>,
-  ): Promise<OnDelete<Model>> {
-    const deletedIds: Set<string> = new Set<string>(
-      itemIdsBeforeDelete.map((id: ObjectID): string => {
-        return id.toString();
-      }),
-    );
-
-    for (const field of (onDelete.carryForward as DeleteCarryForward) || []) {
-      if (!deletedIds.has(field.id)) {
-        continue;
-      }
-
-      try {
-        await IncidentFormService.removeCustomFieldFromQuestions({
-          projectId: field.projectId,
-          variableKey: field.variableKey,
-        });
-      } catch (err) {
-        logger.error(
-          `IncidentCustomFieldService: could not take the deleted incident custom field "${field.variableKey}" off the incident forms of project ${field.projectId.toString()}; a field created later with the same key would be asked on them.`,
-          {
-            projectId: field.projectId.toString(),
-          } as LogAttributes,
-        );
-        logger.error(err, {
-          projectId: field.projectId.toString(),
-        } as LogAttributes);
-      }
-    }
-
-    return onDelete;
   }
 
   @CaptureSpan()

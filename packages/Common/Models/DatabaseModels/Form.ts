@@ -1,5 +1,3 @@
-import IncidentSeverity from "./IncidentSeverity";
-import IncidentTemplate from "./IncidentTemplate";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -19,43 +17,45 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import FormTargetType, {
+  DEFAULT_FORM_TARGET_TYPE,
+} from "../../Types/Form/FormTargetType";
 import IconProp from "../../Types/Icon/IconProp";
-import {
-  DEFAULT_INCIDENT_FORM_DESCRIPTION_SETTING,
-  IncidentFormFieldSetting,
-} from "../../Types/Incident/IncidentFormPublic";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * An incident form: a page anyone with its link can open, without a
- * OneUptime account, to report something that is wrong. Each submission
- * declares an incident in the form's project (see IncidentFormSubmission for
- * the record it leaves) and the form decides what that incident starts with:
- * its severity, optionally an incident template, and which questions the
- * reporter is asked.
+ * A form (the Forms product): a page anyone with its link can open, without
+ * a OneUptime account, built question by question in the dashboard's form
+ * builder. Each submission creates something in the form's project - an
+ * incident or a scheduled maintenance event (targetType) - from the answers
+ * (fields) and the form's own settings (targetSettings), and leaves a
+ * FormSubmission behind.
  *
- * Because a form lets people outside the team page on-call, building one
- * takes the incident settings tier - project owners and admins and incident
- * admins, like severities and states - rather than the tier that may edit
- * incident templates. Everyone who can read incidents can read forms, and so
- * their links: the link is meant to be passed around the company.
+ * Forms replaced incident forms (Incidents > Settings > Forms); the
+ * migration that moved them kept each form's id and link key, so the old
+ * links still lead to it.
  *
- * The link is /accounts/incident-form/<shareKey>. shareKey is minted by
- * IncidentFormService on create - never taken from the request - and form
- * editors can replace it (the dashboard's Reset Link) to stop an old link
- * working. It is not a secret the way an API key is: it sits in an address
- * bar by design, and the form is protected by its enable switch, its IP
- * allowlist, rate limits and the instance captcha instead.
+ * Because a form lets people outside the team page on-call and schedule
+ * maintenance, building one takes the project's owners and admins, or the
+ * Form permissions given on purpose - not a domain's member tier. Everyone
+ * who can read incidents or scheduled maintenance can read forms, and so
+ * their links: a link is meant to be passed around.
+ *
+ * The link is /accounts/form/<shareKey>. shareKey is minted by FormService
+ * on create - never taken from the request - and form editors can replace it
+ * (the dashboard's Reset Link) to stop an old link working. It is not a
+ * secret the way an API key is: it sits in an address bar by design, and
+ * the form is protected by its switch, its IP allowlist, rate limits and the
+ * instance captcha instead.
  */
 
 const CREATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.IncidentAdmin,
-  Permission.CreateIncidentForm,
+  Permission.CreateForm,
 ];
 
 const READ_PERMISSIONS: Array<Permission> = [
@@ -66,21 +66,22 @@ const READ_PERMISSIONS: Array<Permission> = [
   Permission.IncidentAdmin,
   Permission.IncidentMember,
   Permission.IncidentViewer,
-  Permission.ReadIncidentForm,
+  Permission.ScheduledMaintenanceAdmin,
+  Permission.ScheduledMaintenanceMember,
+  Permission.ScheduledMaintenanceViewer,
+  Permission.ReadForm,
 ];
 
 const DELETE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.IncidentAdmin,
-  Permission.DeleteIncidentForm,
+  Permission.DeleteForm,
 ];
 
 const UPDATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.IncidentAdmin,
-  Permission.EditIncidentForm,
+  Permission.EditForm,
 ];
 
 @TableBillingAccessControl({
@@ -97,9 +98,9 @@ const UPDATE_PERMISSIONS: Array<Permission> = [
   delete: [...DELETE_PERMISSIONS],
   update: [...UPDATE_PERMISSIONS],
 })
-@CrudApiEndpoint(new Route("/incident-form"))
+@CrudApiEndpoint(new Route("/form"))
 @Entity({
-  name: "IncidentForm",
+  name: "Form",
 })
 @EnableWorkflow({
   create: true,
@@ -108,14 +109,14 @@ const UPDATE_PERMISSIONS: Array<Permission> = [
   read: true,
 })
 @TableMetadata({
-  tableName: "IncidentForm",
-  singularName: "Incident Form",
-  pluralName: "Incident Forms",
+  tableName: "Form",
+  singularName: "Form",
+  pluralName: "Forms",
   icon: IconProp.ClipboardDocumentList,
   tableDescription:
-    "Forms anyone with the link can fill in to report an incident, without a OneUptime account. Each submission declares an incident in this project.",
+    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a scheduled maintenance event in this project.",
 })
-export default class IncidentForm extends BaseModel {
+export default class Form extends BaseModel {
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
     read: [...READ_PERMISSIONS],
@@ -175,7 +176,7 @@ export default class IncidentForm extends BaseModel {
     title: "Name",
     description:
       "The form's name, shown as the heading of its public page. Unique within the project.",
-    example: "Report a Security Concern",
+    example: "Report a Problem",
   })
   @Column({
     nullable: false,
@@ -197,7 +198,7 @@ export default class IncidentForm extends BaseModel {
     description:
       "Shown at the top of the form's public page, above the questions: what the form is for and what happens after it is sent. Markdown.",
     example:
-      "Use this form to report anything that looks like a security problem. The security on-call team is paged as soon as you submit it.",
+      "Use this form to report anything that looks broken. The on-call team is told as soon as you submit it.",
   })
   @Column({
     nullable: true,
@@ -214,9 +215,9 @@ export default class IncidentForm extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
-    title: "Enabled",
+    title: "Accepting Submissions",
     description:
-      "Whether the form's link works. While the form is turned off, its public page shows a not-available message and nothing can be submitted.",
+      "Whether the form's link works. While it is off, the public page shows a not-available message and nothing can be submitted.",
     defaultValue: true,
     example: true,
   })
@@ -229,12 +230,11 @@ export default class IncidentForm extends BaseModel {
 
   /*
    * Computed: whatever a create sends is replaced by a fresh key (see
-   * IncidentFormService.onBeforeCreate), so nobody can choose the key a form
-   * starts with. Editors may replace it later - that is how the dashboard's
-   * Reset Link retires a link that went too far - and the service only
-   * accepts a UUID there. Unique across all projects, since a visit finds
-   * its form by this key alone; the constraint is also the index that
-   * lookup uses.
+   * FormService.onBeforeCreate), so nobody can choose the key a form starts
+   * with. Editors may replace it later - that is how the dashboard's Reset
+   * Link retires a link that went too far - and the service only accepts a
+   * UUID there. Unique across all projects, since a visit finds its form by
+   * this key alone; the constraint is also the index that lookup uses.
    */
   @ColumnAccessControl({
     create: [],
@@ -246,7 +246,7 @@ export default class IncidentForm extends BaseModel {
     computed: true,
     title: "Share Key",
     description:
-      "The key in the form's public link, /accounts/incident-form/<shareKey>. Generated when the form is created. Resetting the link in the dashboard replaces it, and the old link stops working.",
+      "The key in the form's public link, /accounts/form/<shareKey>. Generated when the form is created. Resetting the link in the dashboard replaces it, and the old link stops working.",
     example: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
   })
   @Column({
@@ -263,154 +263,28 @@ export default class IncidentForm extends BaseModel {
     update: [...UPDATE_PERMISSIONS],
   })
   @TableColumn({
-    manyToOneRelationColumn: "incidentSeverityId",
-    type: TableColumnType.Entity,
-    modelType: IncidentSeverity,
-    title: "Incident Severity",
-    description:
-      "The severity incidents declared through this form start with, unless the form lets the reporter choose one and they do.",
-  })
-  @ManyToOne(
-    () => {
-      return IncidentSeverity;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "incidentSeverityId" })
-  public incidentSeverity?: IncidentSeverity = undefined;
-
-  /*
-   * Required when a form is created, but nullable in the database: deleting
-   * the severity must not be blocked by a form, and must not delete the
-   * form either. A form left without one still works when its template or
-   * its reporter supplies a severity; otherwise a submission is refused with
-   * a message saying so, until an editor picks a new one.
-   */
-  @ColumnAccessControl({
-    create: [...CREATE_PERMISSIONS],
-    read: [...READ_PERMISSIONS],
-    update: [...UPDATE_PERMISSIONS],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: true,
-    title: "Incident Severity ID",
-    description:
-      "ID of the severity incidents declared through this form start with.",
-    example: "c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public incidentSeverityId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [...CREATE_PERMISSIONS],
-    read: [...READ_PERMISSIONS],
-    update: [...UPDATE_PERMISSIONS],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    required: true,
-    type: TableColumnType.Boolean,
-    title: "Let Reporter Choose Severity",
-    description:
-      "When on, the form asks the reporter to choose a severity from the project's incident severities, with the form's own severity chosen to begin with.",
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: false,
-  })
-  public allowReporterToChooseSeverity?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [...CREATE_PERMISSIONS],
-    read: [...READ_PERMISSIONS],
-    update: [...UPDATE_PERMISSIONS],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "incidentTemplateId",
-    type: TableColumnType.Entity,
-    modelType: IncidentTemplate,
-    title: "Incident Template",
-    description:
-      "An incident template to declare incidents from. Everything the template sets applies - its initial state, monitors, labels, on-call policies, owners, status pages and a monitor status change among them - and the reporter's answers are filled in over it.",
-  })
-  @ManyToOne(
-    () => {
-      return IncidentTemplate;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "incidentTemplateId" })
-  public incidentTemplate?: IncidentTemplate = undefined;
-
-  @ColumnAccessControl({
-    create: [...CREATE_PERMISSIONS],
-    read: [...READ_PERMISSIONS],
-    update: [...UPDATE_PERMISSIONS],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Incident Template ID",
-    description:
-      "ID of the incident template incidents declared through this form are declared from, if any.",
-    example: "d4e5f6a7-b8c9-4d0e-9f2a-3b4c5d6e7f8a",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public incidentTemplateId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [...CREATE_PERMISSIONS],
-    read: [...READ_PERMISSIONS],
-    update: [...UPDATE_PERMISSIONS],
-  })
-  @TableColumn({
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
-    title: "Description Question",
+    title: "Creates",
     description:
-      "Whether the form asks the reporter to describe the incident: Required, Optional or Hidden.",
-    defaultValue: DEFAULT_INCIDENT_FORM_DESCRIPTION_SETTING,
-    example: IncidentFormFieldSetting.Optional,
+      "What each submission creates: Incident, or ScheduledMaintenance (a scheduled maintenance event).",
+    defaultValue: DEFAULT_FORM_TARGET_TYPE,
+    example: FormTargetType.Incident,
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: false,
-    default: DEFAULT_INCIDENT_FORM_DESCRIPTION_SETTING,
+    default: DEFAULT_FORM_TARGET_TYPE,
   })
-  public descriptionSetting?: IncidentFormFieldSetting = undefined;
+  public targetType?: FormTargetType = undefined;
 
   /*
-   * The form's own questions, in the shape of IncidentTemplate's setting
-   * (Types/CustomField/CustomFieldCreateSettings) but read the form's way:
-   * only fields listed as Required or Optional are asked, whatever their
-   * project-wide switches say. A public page must never show a field an
-   * admin did not put on it. Checked on every write by IncidentFormService.
+   * The questions, in the order the public page asks them: a list of
+   * Types/Form/FormField. Checked on every write by FormService, against
+   * the form's target, so a public page never asks something no submission
+   * could be made from.
    */
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
@@ -420,41 +294,59 @@ export default class IncidentForm extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
-    title: "Custom Field Settings",
+    title: "Questions",
     description:
-      "The incident custom fields the form asks for, keyed by each field's template variable key (variableKey). Required means the reporter must answer it, Optional that they may leave it empty. Only the fields listed as Required or Optional are asked: a field that is not listed, or is Hidden or Default, is not on the form. The answers become the incident's custom field values.",
-    example: {
-      impact: "Required",
-      affected_location: "Optional",
-    },
+      "The questions the form asks, in order. Each has an id, a source (Question: one of the form's own, answered by type; TargetField: a built-in field of what the form creates, by targetField; TargetCustomField: one of its custom fields, by customFieldId; Submitter: the submitter's Name or Email), a label, optional help text and isRequired. A new form starts with a title, a description and the submitter's name and email.",
+    example: [
+      {
+        id: "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40",
+        source: "TargetField",
+        targetField: "title",
+        label: "What is wrong?",
+        isRequired: true,
+      },
+      {
+        id: "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a",
+        source: "Question",
+        type: "Dropdown",
+        label: "Which office are you in?",
+        dropdownOptions: '[{"value":"Berlin"},{"value":"London"}]',
+        isRequired: false,
+      },
+    ],
   })
   @Column({
     type: ColumnType.JSON,
     nullable: true,
   })
-  public customFieldSettings?: JSONObject = undefined;
+  public fields?: JSONArray = undefined;
 
+  /*
+   * What every submission starts with, beyond the answers - the On Submit
+   * page: Types/Form/FormTargetSettings, checked on every write, and every
+   * record it names checked against the form's own project.
+   */
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
     read: [...READ_PERMISSIONS],
     update: [...UPDATE_PERMISSIONS],
   })
   @TableColumn({
-    isDefaultValueColumn: true,
-    required: true,
-    type: TableColumnType.Boolean,
-    title: "Require Reporter Details",
+    required: false,
+    type: TableColumnType.JSON,
+    title: "On Submit Settings",
     description:
-      "When on, the reporter must give their name and email. When off, they may report anonymously.",
-    defaultValue: true,
-    example: true,
+      "What every submission starts with besides the answers. For incidents: defaultTitle, incidentSeverityId, incidentTemplateId, monitorIds, labelIds, onCallDutyPolicyIds, ownerUserIds and ownerTeamIds. For scheduled maintenance events: defaultTitle, monitorIds, statusPageIds, labelIds, ownerUserIds, ownerTeamIds, showOnStatusPages and notifySubscribers.",
+    example: {
+      incidentSeverityId: "c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f",
+      ownerTeamIds: ["e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b"],
+    },
   })
   @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    default: true,
+    type: ColumnType.JSON,
+    nullable: true,
   })
-  public isReporterDetailsRequired?: boolean = undefined;
+  public targetSettings?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
@@ -466,9 +358,9 @@ export default class IncidentForm extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Success Message",
     description:
-      "Shown to the reporter after they submit the form, together with the new incident's number. Markdown.",
+      "Shown after the form is submitted, together with the number of what the submission created. Markdown.",
     example:
-      "Thank you. The on-call team has been notified and will follow up if they need more details.",
+      "Thank you. The on-call team has been told and will follow up if they need more details.",
   })
   @Column({
     nullable: true,

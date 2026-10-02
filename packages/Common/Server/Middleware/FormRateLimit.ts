@@ -13,10 +13,10 @@ import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailabl
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 
 /*
- * Rate limiting for the public incident form routes:
+ * Rate limiting for the public form routes:
  *
- *   GET  /api/incident-form/public/:shareKey          (the form's questions)
- *   POST /api/incident-form/public/:shareKey/submit   (declare an incident)
+ *   GET  /api/form/public/:shareKey          (the form's questions)
+ *   POST /api/form/public/:shareKey/submit   (create from a submission)
  *
  * Both are anonymous: anyone holding a form's link can call them, from any
  * network, with no session and no API key. A sibling of
@@ -25,36 +25,41 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  *
  *  - reading a form is load control, like reading a public dashboard;
  *
- *  - submitting one declares an incident, and every incident pages on-call.
- *    The counter there is not protecting a database from load, it is the
- *    only thing standing between a leaked link and a night of pages. So the
- *    submit budget is sized for people rather than for load, adds a ceiling
- *    per form that no number of addresses gets around, and refuses to serve
- *    at all when it cannot count (see getMiddleware).
+ *  - submitting one creates an incident or a maintenance event, and an
+ *    incident pages on-call. The counter there is not protecting a database
+ *    from load, it is the only thing standing between a leaked link and a
+ *    night of pages. So the submit budget is sized for people rather than
+ *    for load, adds a ceiling per form that no number of addresses gets
+ *    around, and refuses to serve at all when it cannot count (see
+ *    getMiddleware).
  *
  * The per-address counters are middleware, so a flood is refused before it
  * costs a session lookup, a Postgres read or a captcha round trip. Only the
- * routes' own-page checks come before them (IncidentFormAPI): a request
- * another site's page had a browser send, a read without the header the
- * form's page sends, or a submission that is not JSON, is refused without
- * being counted, so such a page cannot use up the budget its visitors'
- * addresses share. The per-form ceiling is not middleware at all:
- * IncidentFormService spends it (reserveFormSubmission) only for a
- * submission that has passed every other check - the form, its plan, its
- * IP allowlist, the captcha, the answers, the severity - right before the
- * incident is declared. It bounds incidents, so only a submission about to
- * become one may count against it; were every attempt to count, anyone
- * holding the link - even from outside the allowlist, or without solving
- * the captcha - could use it up with requests that are refused, and lock the
- * form for everybody.
+ * routes' own-page checks come before them (FormAPI): a request another
+ * site's page had a browser send, a read without the header the form's page
+ * sends, or a submission that is not JSON, is refused without being
+ * counted, so such a page cannot use up the budget its visitors' addresses
+ * share. The per-form ceiling is not middleware at all: FormService spends
+ * it (reserveFormSubmission) only for a submission that has passed every
+ * other check - the form, its plan, its IP allowlist, the captcha, the
+ * answers - right before the record is created. It bounds what submissions
+ * create, so only a submission about to create something may count against
+ * it; were every attempt to count, anyone holding the link - even from
+ * outside the allowlist, or without solving the captcha - could use it up
+ * with requests that are refused, and lock the form for everybody.
+ *
+ * The limits are read from FORM_* environment variables. Each one still
+ * falls back to the INCIDENT_FORM_* variable of the same name that incident
+ * forms read before Forms replaced them, so an install tuned for those keeps
+ * its limits.
  */
 
 /*
  * Which counter rejected a request. Every request that reaches the
- * middleware consumes the first two; a submission about to declare an
- * incident consumes the third:
+ * middleware consumes the first two; a submission about to create its
+ * record consumes the third:
  *
- *  - FormAndIp, keyed on the form + client address: the budget one reporter
+ *  - FormAndIp, keyed on the form + client address: the budget one submitter
  *    (or one office behind one NAT) gets on one form.
  *
  *  - Ip, keyed on the client address alone. Without it the first counter is
@@ -71,21 +76,21 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * one it rejects, so a client that keeps hammering keeps its window pinned
  * rather than being handed a fresh allowance for free.
  */
-export enum IncidentFormRateLimitScope {
+export enum FormRateLimitScope {
   FormAndIp = "form-and-ip",
   Ip = "ip",
   Form = "form",
 }
 
-export enum IncidentFormRateLimitBucket {
-  // GET /incident-form/public/:shareKey. Fails open.
+export enum FormRateLimitBucket {
+  // GET /form/public/:shareKey. Fails open.
   Read = "read",
 
-  // POST /incident-form/public/:shareKey/submit. Fails closed.
+  // POST /form/public/:shareKey/submit. Fails closed.
   Submit = "submit",
 }
 
-export enum IncidentFormRateLimitOutcome {
+export enum FormRateLimitOutcome {
   Allowed = "allowed",
   RateLimited = "rate-limited",
 
@@ -93,12 +98,12 @@ export enum IncidentFormRateLimitOutcome {
   CounterUnavailable = "counter-unavailable",
 }
 
-export interface IncidentFormRateLimitDecision {
-  outcome: IncidentFormRateLimitOutcome;
+export interface FormRateLimitDecision {
+  outcome: FormRateLimitOutcome;
   retryAfterSeconds?: number | undefined;
 
   // Which counter rejected, for logs and the message. Unset unless rejected.
-  scope?: IncidentFormRateLimitScope | undefined;
+  scope?: FormRateLimitScope | undefined;
 
   /*
    * True only on the request that first crossed the line in this window.
@@ -110,18 +115,18 @@ export interface IncidentFormRateLimitDecision {
 }
 
 // The ceiling on one form across every address, per window.
-export interface IncidentFormRateLimitFormCeiling {
+export interface FormRateLimitFormCeiling {
   windowSeconds: number;
   limit: number;
 }
 
-export interface IncidentFormRateLimitBucketConfig {
+export interface FormRateLimitBucketConfig {
   windowSeconds: number;
   perFormAndIpLimit: number;
   perIpLimit: number;
 
   // Submit only. Its own window, since it bounds pages per hour.
-  perForm?: IncidentFormRateLimitFormCeiling | undefined;
+  perForm?: FormRateLimitFormCeiling | undefined;
 
   /*
    * Refuse with 503 when the counter is unavailable, rather than letting the
@@ -135,10 +140,10 @@ export interface IncidentFormRateLimitBucketConfig {
  * What a refused caller is told. None of them names a number: the limits are
  * for the operator to tune, not for a caller to pace itself against.
  */
-export const INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE: string =
+export const FORM_READ_RATE_LIMIT_MESSAGE: string =
   "Too many requests. Please try again later.";
 
-export const INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE: string =
+export const FORM_SUBMIT_RATE_LIMIT_MESSAGE: string =
   "Too many submissions from your network. Please wait a few minutes and try again.";
 
 /*
@@ -147,69 +152,81 @@ export const INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE: string =
  * network" sent too many would send them hunting for a problem they do not
  * have.
  */
-export const INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE: string =
-  "This form is receiving too many reports right now. Please try again later.";
+export const FORM_TOTAL_RATE_LIMIT_MESSAGE: string =
+  "This form is receiving too many submissions right now. Please try again later.";
 
-export const INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
-  "Reports cannot be accepted right now. Please try again in a few minutes.";
+export const FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE: string =
+  "Submissions cannot be accepted right now. Please try again in a few minutes.";
 
 /*
  * A submission the per-form ceiling refused. Thrown from inside
- * IncidentFormService (reserveFormSubmission), where there is no response to
+ * FormService (reserveFormSubmission), where there is no response to
  * write a header on, so it carries when to come back; the submit route
  * writes that as Retry-After (setRetryAfterFor) before the error handler
  * answers 429.
  */
-export class IncidentFormCeilingException extends TooManyRequestsException {
+export class FormCeilingException extends TooManyRequestsException {
   public readonly retryAfterSeconds: number;
 
   public constructor(retryAfterSeconds: number) {
-    super(INCIDENT_FORM_TOTAL_RATE_LIMIT_MESSAGE);
+    super(FORM_TOTAL_RATE_LIMIT_MESSAGE);
     this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
-const parsePositiveIntFromEnv: (envKey: string, fallback: number) => number = (
-  envKey: string,
-  fallback: number,
-): number => {
-  const rawValue: string | undefined = process.env[envKey];
-
+const parsePositiveInt: (rawValue: string | undefined) => number | null = (
+  rawValue: string | undefined,
+): number | null => {
   if (!rawValue) {
-    return fallback;
+    return null;
   }
 
   const parsedValue: number = parseInt(rawValue, 10);
 
   if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-    return fallback;
+    return null;
   }
 
   return parsedValue;
 };
 
 /*
+ * A limit from the environment: FORM_<name>, else the INCIDENT_FORM_<name>
+ * incident forms read (see the note at the top), else the default.
+ */
+const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
+  name: string,
+  fallback: number,
+): number => {
+  return (
+    parsePositiveInt(process.env[`FORM_${name}`]) ??
+    parsePositiveInt(process.env[`INCIDENT_FORM_${name}`]) ??
+    fallback
+  );
+};
+
+/*
  * Read budget: 120 per minute per form + address, 600 per minute per
  * address.
  *
- * The page asks for the form once when it opens, so a real reporter uses one
+ * The page asks for the form once when it opens, so a real submitter uses one
  * or two of these. The headroom is for a whole office behind one NAT opening
  * the same link during an outage - which is exactly when a form gets used -
  * and the per-address ceiling for that office opening several forms. What
  * matters is that "as fast as a loop runs" becomes a fixed ceiling at all;
  * operators who want it tighter have the environment variables.
  */
-const READ_BUCKET: IncidentFormRateLimitBucketConfig = {
+const READ_BUCKET: FormRateLimitBucketConfig = {
   windowSeconds: parsePositiveIntFromEnv(
-    "INCIDENT_FORM_RATE_LIMIT_WINDOW_SECONDS",
+    "RATE_LIMIT_WINDOW_SECONDS",
     60,
   ),
   perFormAndIpLimit: parsePositiveIntFromEnv(
-    "INCIDENT_FORM_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
+    "RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
     120,
   ),
   perIpLimit: parsePositiveIntFromEnv(
-    "INCIDENT_FORM_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "RATE_LIMIT_PER_IP_PER_WINDOW",
     600,
   ),
   failsClosed: false,
@@ -217,14 +234,15 @@ const READ_BUCKET: IncidentFormRateLimitBucketConfig = {
 
 /*
  * Submit budget: 10 per 15 minutes per form + address, 30 per 15 minutes
- * per address, and 60 incidents per hour per form across every address.
+ * per address, and 60 records created per hour per form across every
+ * address.
  *
- * Sized for people. Ten reports to one form from one network in a quarter
+ * Sized for people. Ten submissions to one form from one network in a quarter
  * of an hour already covers a team that all saw the same outage, plus a few
  * attempts that failed validation (those count against the address budgets
  * - the middleware runs before the form is checked). The per-form ceiling
- * is the one that bounds pages: only a submission about to declare an
- * incident counts against it, so an hour of it is sixty incidents, far past
+ * is the one that bounds pages: only a submission about to create its
+ * incident (or event) counts against it, so an hour of it is sixty, far past
  * the point where more reports add information, and no number of addresses
  * raises it.
  *
@@ -233,26 +251,26 @@ const READ_BUCKET: IncidentFormRateLimitBucketConfig = {
  * somewhere it should not have - also starts the new link with a fresh
  * allowance.
  */
-const SUBMIT_BUCKET: IncidentFormRateLimitBucketConfig = {
+const SUBMIT_BUCKET: FormRateLimitBucketConfig = {
   windowSeconds: parsePositiveIntFromEnv(
-    "INCIDENT_FORM_SUBMIT_RATE_LIMIT_WINDOW_SECONDS",
+    "SUBMIT_RATE_LIMIT_WINDOW_SECONDS",
     15 * 60,
   ),
   perFormAndIpLimit: parsePositiveIntFromEnv(
-    "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
+    "SUBMIT_RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
     10,
   ),
   perIpLimit: parsePositiveIntFromEnv(
-    "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "SUBMIT_RATE_LIMIT_PER_IP_PER_WINDOW",
     30,
   ),
   perForm: {
     windowSeconds: parsePositiveIntFromEnv(
-      "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS",
+      "SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS",
       60 * 60,
     ),
     limit: parsePositiveIntFromEnv(
-      "INCIDENT_FORM_SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW",
+      "SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW",
       60,
     ),
   },
@@ -260,10 +278,10 @@ const SUBMIT_BUCKET: IncidentFormRateLimitBucketConfig = {
 };
 
 /*
- * Redis namespace for every counter here, so a SCAN for incident form keys
+ * Redis namespace for every counter here, so a SCAN for form keys
  * never shows another surface's, and the two surfaces never share a count.
  */
-const KEY_PREFIX: string = "iform:rl:";
+const KEY_PREFIX: string = "form:rl:";
 
 /*
  * Counter keys outlive their window by one full window, so a request landing
@@ -277,13 +295,13 @@ const MAX_KEY_SEGMENT_LENGTH: number = 64;
 // How often the "counter unavailable" condition may be logged, per bucket.
 const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
 
-export default class IncidentFormRateLimit {
+export default class FormRateLimit {
   // The limits in force for a bucket, for tests and operators' diagnostics.
   public static getBucketConfig(
-    bucket: IncidentFormRateLimitBucket,
-  ): IncidentFormRateLimitBucketConfig {
-    const config: IncidentFormRateLimitBucketConfig =
-      IncidentFormRateLimit.getConfig(bucket);
+    bucket: FormRateLimitBucket,
+  ): FormRateLimitBucketConfig {
+    const config: FormRateLimitBucketConfig =
+      FormRateLimit.getConfig(bucket);
 
     return {
       ...config,
@@ -297,7 +315,7 @@ export default class IncidentFormRateLimit {
    * The shared ClientIp helper reads X-Forwarded-For from the trusted
    * (right-hand) end under the instance-wide TRUSTED_PROXY_HOPS setting -
    * never the leftmost entry, which any caller can set, and which would hand
-   * a caller a fresh bucket per request. It is also what IncidentFormService
+   * a caller a fresh bucket per request. It is also what FormService
    * checks the form's IP allowlist against, so the limiter and the allowlist
    * always agree on who is calling.
    */
@@ -307,7 +325,7 @@ export default class IncidentFormRateLimit {
     );
 
     if (clientIp) {
-      return IncidentFormRateLimit.sanitizeKeySegment(clientIp);
+      return FormRateLimit.sanitizeKeySegment(clientIp);
     }
 
     /*
@@ -328,16 +346,16 @@ export default class IncidentFormRateLimit {
    * not split a bucket, or varying them would be a way around the limit.
    *
    * The key is used as it is rather than hashed: a share key sits in an
-   * address bar and in access logs by design (see IncidentForm.shareKey), so
+   * address bar and in access logs by design (see Form.shareKey), so
    * it is a link identifier like a public dashboard id, not a secret.
    */
   public static resolveFormKey(req: ExpressRequest): string {
-    return IncidentFormRateLimit.getFormKey(req.params?.["shareKey"]);
+    return FormRateLimit.getFormKey(req.params?.["shareKey"]);
   }
 
   /*
    * The key segment for a share key, however it was read: from the path by
-   * the middleware, or handed over by IncidentFormService when it spends the
+   * the middleware, or handed over by FormService when it spends the
    * form's ceiling - so both always count the same form under one key.
    */
   public static getFormKey(shareKey: unknown): string {
@@ -367,9 +385,9 @@ export default class IncidentFormRateLimit {
   }
 
   private static getConfig(
-    bucket: IncidentFormRateLimitBucket,
-  ): IncidentFormRateLimitBucketConfig {
-    if (bucket === IncidentFormRateLimitBucket.Submit) {
+    bucket: FormRateLimitBucket,
+  ): FormRateLimitBucketConfig {
+    if (bucket === FormRateLimitBucket.Submit) {
       return SUBMIT_BUCKET;
     }
 
@@ -390,19 +408,19 @@ export default class IncidentFormRateLimit {
     formKey: string;
     // From resolveClientIp.
     clientIp: string;
-    bucket: IncidentFormRateLimitBucket;
-  }): Promise<IncidentFormRateLimitDecision> {
+    bucket: FormRateLimitBucket;
+  }): Promise<FormRateLimitDecision> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client || !Redis.isConnected()) {
-      return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+      return { outcome: FormRateLimitOutcome.CounterUnavailable };
     }
 
-    const config: IncidentFormRateLimitBucketConfig =
-      IncidentFormRateLimit.getConfig(data.bucket);
+    const config: FormRateLimitBucketConfig =
+      FormRateLimit.getConfig(data.bucket);
 
     const keyPrefix: string = `${KEY_PREFIX}${data.bucket}:`;
-    const windowIndex: number = IncidentFormRateLimit.getWindowIndex(
+    const windowIndex: number = FormRateLimit.getWindowIndex(
       config.windowSeconds,
     );
 
@@ -411,7 +429,7 @@ export default class IncidentFormRateLimit {
 
     try {
       const addressCounts: Array<number> =
-        await IncidentFormRateLimit.incrementCounters({
+        await FormRateLimit.incrementCounters({
           client,
           keys: [formAndIpCounterKey, ipCounterKey],
           windowSeconds: config.windowSeconds,
@@ -426,8 +444,8 @@ export default class IncidentFormRateLimit {
        * in a log line.
        */
       if (formAndIpCount > config.perFormAndIpLimit) {
-        return IncidentFormRateLimit.rejected({
-          scope: IncidentFormRateLimitScope.FormAndIp,
+        return FormRateLimit.rejected({
+          scope: FormRateLimitScope.FormAndIp,
           count: formAndIpCount,
           limit: config.perFormAndIpLimit,
           windowSeconds: config.windowSeconds,
@@ -435,62 +453,62 @@ export default class IncidentFormRateLimit {
       }
 
       if (ipCount > config.perIpLimit) {
-        return IncidentFormRateLimit.rejected({
-          scope: IncidentFormRateLimitScope.Ip,
+        return FormRateLimit.rejected({
+          scope: FormRateLimitScope.Ip,
           count: ipCount,
           limit: config.perIpLimit,
           windowSeconds: config.windowSeconds,
         });
       }
 
-      return { outcome: IncidentFormRateLimitOutcome.Allowed };
+      return { outcome: FormRateLimitOutcome.Allowed };
     } catch (err) {
       /*
        * Throttled for the same reason as the middleware's unavailable
        * branch: whatever broke Redis is unlikely to break it for one request
        * only, and a per-request log line buries the incident it reports.
        */
-      if (IncidentFormRateLimit.shouldLogCounterUnavailable(data.bucket)) {
+      if (FormRateLimit.shouldLogCounterUnavailable(data.bucket)) {
         logger.warn(
-          `IncidentFormRateLimit: counter failed for incident form ${data.formKey}`,
+          `FormRateLimit: counter failed for form ${data.formKey}`,
         );
         logger.warn(err);
       }
 
-      return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+      return { outcome: FormRateLimitOutcome.CounterUnavailable };
     }
   }
 
   /*
-   * Count one incident against the form's ceiling - across every address,
+   * Count one submission against the form's ceiling - across every address,
    * per clock hour - and decide. For a submission that has passed every
-   * other check and is about to declare its incident; see
+   * other check and is about to create its record; see
    * reserveFormSubmission, which is what the service calls.
    */
   public static async consumeFormCeiling(data: {
     // From getFormKey.
     formKey: string;
-  }): Promise<IncidentFormRateLimitDecision> {
+  }): Promise<FormRateLimitDecision> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client || !Redis.isConnected()) {
-      return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+      return { outcome: FormRateLimitOutcome.CounterUnavailable };
     }
 
-    const ceiling: IncidentFormRateLimitFormCeiling | undefined =
+    const ceiling: FormRateLimitFormCeiling | undefined =
       SUBMIT_BUCKET.perForm;
 
     if (!ceiling) {
-      return { outcome: IncidentFormRateLimitOutcome.Allowed };
+      return { outcome: FormRateLimitOutcome.Allowed };
     }
 
-    const formCounterKey: string = `${KEY_PREFIX}${IncidentFormRateLimitBucket.Submit}:f:${data.formKey}:${IncidentFormRateLimit.getWindowIndex(
+    const formCounterKey: string = `${KEY_PREFIX}${FormRateLimitBucket.Submit}:f:${data.formKey}:${FormRateLimit.getWindowIndex(
       ceiling.windowSeconds,
     )}`;
 
     try {
       const formCounts: Array<number> =
-        await IncidentFormRateLimit.incrementCounters({
+        await FormRateLimit.incrementCounters({
           client,
           keys: [formCounterKey],
           windowSeconds: ceiling.windowSeconds,
@@ -499,74 +517,74 @@ export default class IncidentFormRateLimit {
       const formCount: number = formCounts[0] ?? 0;
 
       if (formCount > ceiling.limit) {
-        return IncidentFormRateLimit.rejected({
-          scope: IncidentFormRateLimitScope.Form,
+        return FormRateLimit.rejected({
+          scope: FormRateLimitScope.Form,
           count: formCount,
           limit: ceiling.limit,
           windowSeconds: ceiling.windowSeconds,
         });
       }
 
-      return { outcome: IncidentFormRateLimitOutcome.Allowed };
+      return { outcome: FormRateLimitOutcome.Allowed };
     } catch (err) {
       if (
-        IncidentFormRateLimit.shouldLogCounterUnavailable(
-          IncidentFormRateLimitBucket.Submit,
+        FormRateLimit.shouldLogCounterUnavailable(
+          FormRateLimitBucket.Submit,
         )
       ) {
         logger.warn(
-          `IncidentFormRateLimit: form ceiling counter failed for incident form ${data.formKey}`,
+          `FormRateLimit: form ceiling counter failed for form ${data.formKey}`,
         );
         logger.warn(err);
       }
 
-      return { outcome: IncidentFormRateLimitOutcome.CounterUnavailable };
+      return { outcome: FormRateLimitOutcome.CounterUnavailable };
     }
   }
 
   /*
-   * Spend one of the form's hourly incidents, or refuse: 429
-   * (IncidentFormCeilingException, carrying when to come back) once the
+   * Spend one of the form's hourly submissions, or refuse: 429
+   * (FormCeilingException, carrying when to come back) once the
    * hour's allowance is used, and 503 when the counter cannot be reached -
    * the ceiling is what bounds the pages a link can cause, so without it the
    * submission fails closed, as the submit middleware does.
    *
-   * Called by IncidentFormService.submitPublicForm right before it declares
-   * the incident, once the form, its plan, its IP allowlist, the captcha,
-   * the answers and the severity have all been checked: a refused request
-   * never spends it.
+   * Called by FormService.submitPublicForm right before it creates the
+   * submission's record, once the form, its plan, its IP allowlist, the
+   * captcha and the answers have all been checked: a refused request never
+   * spends it.
    */
   public static async reserveFormSubmission(data: {
     shareKey: string | undefined;
   }): Promise<void> {
-    const formKey: string = IncidentFormRateLimit.getFormKey(data.shareKey);
+    const formKey: string = FormRateLimit.getFormKey(data.shareKey);
 
-    const decision: IncidentFormRateLimitDecision =
-      await IncidentFormRateLimit.consumeFormCeiling({ formKey });
+    const decision: FormRateLimitDecision =
+      await FormRateLimit.consumeFormCeiling({ formKey });
 
-    if (decision.outcome === IncidentFormRateLimitOutcome.RateLimited) {
+    if (decision.outcome === FormRateLimitOutcome.RateLimited) {
       if (decision.isFirstRejectionInWindow) {
         logger.warn(
-          `IncidentFormRateLimit: rejected a submission to incident form ${formKey} (${IncidentFormRateLimitScope.Form} limit)`,
+          `FormRateLimit: rejected a submission to form ${formKey} (${FormRateLimitScope.Form} limit)`,
         );
       }
 
-      throw new IncidentFormCeilingException(decision.retryAfterSeconds || 1);
+      throw new FormCeilingException(decision.retryAfterSeconds || 1);
     }
 
-    if (decision.outcome === IncidentFormRateLimitOutcome.CounterUnavailable) {
+    if (decision.outcome === FormRateLimitOutcome.CounterUnavailable) {
       if (
-        IncidentFormRateLimit.shouldLogCounterUnavailable(
-          IncidentFormRateLimitBucket.Submit,
+        FormRateLimit.shouldLogCounterUnavailable(
+          FormRateLimitBucket.Submit,
         )
       ) {
         logger.error(
-          `IncidentFormRateLimit: rate limit counter unavailable, refusing incident form submissions (incident form ${formKey})`,
+          `FormRateLimit: rate limit counter unavailable, refusing form submissions (form ${formKey})`,
         );
       }
 
       throw new ServiceUnavailableException(
-        INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
       );
     }
   }
@@ -577,8 +595,8 @@ export default class IncidentFormRateLimit {
    * own refusals. Anything else is left alone.
    */
   public static setRetryAfterFor(res: ExpressResponse, error: unknown): void {
-    if (error instanceof IncidentFormCeilingException) {
-      IncidentFormRateLimit.setRetryAfterHeader(res, error.retryAfterSeconds);
+    if (error instanceof FormCeilingException) {
+      FormRateLimit.setRetryAfterHeader(res, error.retryAfterSeconds);
     }
   }
 
@@ -610,7 +628,7 @@ export default class IncidentFormRateLimit {
 
     const counts: Array<number> = data.keys.map(
       (_key: string, index: number): number => {
-        return IncidentFormRateLimit.readCounterResult(pipelineResults[index]);
+        return FormRateLimit.readCounterResult(pipelineResults[index]);
       },
     );
 
@@ -635,14 +653,14 @@ export default class IncidentFormRateLimit {
   }
 
   private static rejected(data: {
-    scope: IncidentFormRateLimitScope;
+    scope: FormRateLimitScope;
     count: number;
     limit: number;
     windowSeconds: number;
-  }): IncidentFormRateLimitDecision {
+  }): FormRateLimitDecision {
     return {
-      outcome: IncidentFormRateLimitOutcome.RateLimited,
-      retryAfterSeconds: IncidentFormRateLimit.getSecondsUntilWindowEnd(
+      outcome: FormRateLimitOutcome.RateLimited,
+      retryAfterSeconds: FormRateLimit.getSecondsUntilWindowEnd(
         data.windowSeconds,
       ),
       scope: data.scope,
@@ -691,16 +709,16 @@ export default class IncidentFormRateLimit {
   /*
    * The middleware only ever refuses on the per-address counters, so a
    * refused submission is always about the caller's network. (The form's
-   * own ceiling has its own words: see IncidentFormCeilingException.)
+   * own ceiling has its own words: see FormCeilingException.)
    */
   private static getRateLimitedMessage(
-    bucket: IncidentFormRateLimitBucket,
+    bucket: FormRateLimitBucket,
   ): string {
-    if (bucket === IncidentFormRateLimitBucket.Read) {
-      return INCIDENT_FORM_READ_RATE_LIMIT_MESSAGE;
+    if (bucket === FormRateLimitBucket.Read) {
+      return FORM_READ_RATE_LIMIT_MESSAGE;
     }
 
-    return INCIDENT_FORM_SUBMIT_RATE_LIMIT_MESSAGE;
+    return FORM_SUBMIT_RATE_LIMIT_MESSAGE;
   }
 
   /*
@@ -710,7 +728,7 @@ export default class IncidentFormRateLimit {
    * a session lookup, let alone a Postgres read or a captcha check.
    */
   public static getMiddleware(
-    bucket: IncidentFormRateLimitBucket = IncidentFormRateLimitBucket.Read,
+    bucket: FormRateLimitBucket = FormRateLimitBucket.Read,
   ): (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -721,21 +739,21 @@ export default class IncidentFormRateLimit {
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      const config: IncidentFormRateLimitBucketConfig =
-        IncidentFormRateLimit.getConfig(bucket);
-      const formKey: string = IncidentFormRateLimit.resolveFormKey(req);
-      const clientIp: string = IncidentFormRateLimit.resolveClientIp(req);
+      const config: FormRateLimitBucketConfig =
+        FormRateLimit.getConfig(bucket);
+      const formKey: string = FormRateLimit.resolveFormKey(req);
+      const clientIp: string = FormRateLimit.resolveClientIp(req);
 
-      const decision: IncidentFormRateLimitDecision =
-        await IncidentFormRateLimit.consume({
+      const decision: FormRateLimitDecision =
+        await FormRateLimit.consume({
           formKey,
           clientIp,
           bucket,
         });
 
-      if (decision.outcome === IncidentFormRateLimitOutcome.RateLimited) {
+      if (decision.outcome === FormRateLimitOutcome.RateLimited) {
         if (decision.retryAfterSeconds) {
-          IncidentFormRateLimit.setRetryAfterHeader(
+          FormRateLimit.setRetryAfterHeader(
             res,
             decision.retryAfterSeconds,
           );
@@ -743,7 +761,7 @@ export default class IncidentFormRateLimit {
 
         if (decision.isFirstRejectionInWindow) {
           logger.warn(
-            `IncidentFormRateLimit: rejected ${bucket} request for incident form ${formKey} from ${clientIp} (${decision.scope} limit)`,
+            `FormRateLimit: rejected ${bucket} request for form ${formKey} from ${clientIp} (${decision.scope} limit)`,
           );
         }
 
@@ -751,13 +769,13 @@ export default class IncidentFormRateLimit {
           req,
           res,
           new TooManyRequestsException(
-            IncidentFormRateLimit.getRateLimitedMessage(bucket),
+            FormRateLimit.getRateLimitedMessage(bucket),
           ),
         );
       }
 
       if (
-        decision.outcome === IncidentFormRateLimitOutcome.CounterUnavailable
+        decision.outcome === FormRateLimitOutcome.CounterUnavailable
       ) {
         /*
          * The two buckets fail in opposite directions, on purpose.
@@ -774,9 +792,9 @@ export default class IncidentFormRateLimit {
          * 503 and can send the report when Redis is back.
          */
         if (config.failsClosed) {
-          if (IncidentFormRateLimit.shouldLogCounterUnavailable(bucket)) {
+          if (FormRateLimit.shouldLogCounterUnavailable(bucket)) {
             logger.error(
-              `IncidentFormRateLimit: rate limit counter unavailable, refusing incident form submissions (incident form ${formKey})`,
+              `FormRateLimit: rate limit counter unavailable, refusing form submissions (form ${formKey})`,
             );
           }
 
@@ -784,14 +802,14 @@ export default class IncidentFormRateLimit {
             req,
             res,
             new ServiceUnavailableException(
-              INCIDENT_FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
+              FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
             ),
           );
         }
 
-        if (IncidentFormRateLimit.shouldLogCounterUnavailable(bucket)) {
+        if (FormRateLimit.shouldLogCounterUnavailable(bucket)) {
           logger.warn(
-            "IncidentFormRateLimit: rate limit counter unavailable, serving incident forms unthrottled",
+            "FormRateLimit: rate limit counter unavailable, serving forms unthrottled",
           );
           logger.warn(getLogAttributesFromRequest(req as OneUptimeRequest));
         }
@@ -808,23 +826,23 @@ export default class IncidentFormRateLimit {
    * visible without burying everything else.
    */
   private static shouldLogCounterUnavailable(
-    bucket: IncidentFormRateLimitBucket,
+    bucket: FormRateLimitBucket,
   ): boolean {
     const now: number = Date.now();
     const lastLoggedAt: number =
-      IncidentFormRateLimit.counterUnavailableLastLoggedAt.get(bucket) || 0;
+      FormRateLimit.counterUnavailableLastLoggedAt.get(bucket) || 0;
 
     if (now - lastLoggedAt < COUNTER_UNAVAILABLE_LOG_INTERVAL_MS) {
       return false;
     }
 
-    IncidentFormRateLimit.counterUnavailableLastLoggedAt.set(bucket, now);
+    FormRateLimit.counterUnavailableLastLoggedAt.set(bucket, now);
 
     return true;
   }
 
   private static counterUnavailableLastLoggedAt: Map<
-    IncidentFormRateLimitBucket,
+    FormRateLimitBucket,
     number
   > = new Map();
 

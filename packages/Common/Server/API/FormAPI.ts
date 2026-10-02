@@ -1,10 +1,8 @@
-import IncidentFormRateLimit, {
-  IncidentFormRateLimitBucket,
-} from "../Middleware/IncidentFormRateLimit";
+import FormRateLimit, { FormRateLimitBucket } from "../Middleware/FormRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
-import IncidentFormService, {
-  Service as IncidentFormServiceType,
-} from "../Services/IncidentFormService";
+import FormService, {
+  Service as FormServiceType,
+} from "../Services/FormService";
 import { resolveClientIp } from "../Utils/ClientIp";
 import {
   ExpressRequest,
@@ -14,33 +12,33 @@ import {
 import Response from "../Utils/Response";
 import SameOriginRequest from "../Utils/SameOriginRequest";
 import BaseAPI from "./BaseAPI";
-import IncidentForm from "../../Models/DatabaseModels/IncidentForm";
+import Form from "../../Models/DatabaseModels/Form";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import {
-  INCIDENT_FORM_PAGE_HEADER,
-  INCIDENT_FORM_PAGE_HEADER_VALUE,
-  PublicIncidentForm,
-  PublicIncidentFormSubmissionData,
-  PublicIncidentFormSubmissionRequest,
-  PublicIncidentFormSubmissionResult,
-} from "../../Types/Incident/IncidentFormPublic";
+  FORM_PAGE_HEADER,
+  FORM_PAGE_HEADER_VALUE,
+  PublicForm,
+  PublicFormSubmissionData,
+  PublicFormSubmissionRequest,
+  PublicFormSubmissionResult,
+} from "../../Types/Form/FormPublic";
 import { JSONObject } from "../../Types/JSON";
 
 /*
- * The incident form's CRUD routes (inherited from BaseAPI, all behind the
- * signed-in user middleware) plus the two routes the public form page calls,
- * for anyone holding a form's link:
+ * The form's CRUD routes (inherited from BaseAPI, all behind the signed-in
+ * user middleware) plus the two routes the public form page calls, for
+ * anyone holding a form's link:
  *
- *   GET  /incident-form/public/:shareKey          the form's questions
- *   POST /incident-form/public/:shareKey/submit   declare an incident
+ *   GET  /form/public/:shareKey          the form's questions
+ *   POST /form/public/:shareKey/submit   create from the answers
  *
- * Neither can be mistaken for a CRUD route: those are /incident-form,
- * /incident-form/get-list, /incident-form/count and /incident-form/:id with
- * or without /get-item, /update-item or /delete-item, and a share key is a
- * UUID, never "get-item". The CRUD routes are registered first (in BaseAPI's
- * constructor), so even a key spelled like one of their suffixes lands on a
- * CRUD route and its authentication, never the other way round.
+ * Neither can be mistaken for a CRUD route: those are /form, /form/get-list,
+ * /form/count and /form/:id with or without /get-item, /update-item or
+ * /delete-item, and a share key is a UUID, never "get-item". The CRUD routes
+ * are registered first (in BaseAPI's constructor), so even a key spelled
+ * like one of their suffixes lands on a CRUD route and its authentication,
+ * never the other way round.
  *
  * Each public route runs, in order:
  *
@@ -49,23 +47,23 @@ import { JSONObject } from "../../Types/JSON";
  *     anything. These routes are anonymous and trust where a request comes
  *     from - the form's IP allowlist, the per-address counters - so without
  *     this any website could have its visitors' browsers read a form or
- *     declare incidents from inside an allowed network, or use up those
- *     visitors' shared budgets. It can only go by the two headers in which
- *     a browser says where a request came from, and a browser does not
- *     always send them, so each route then asks for something only the
- *     form's page sends. The read route requires the page's own header
+ *     submit it from inside an allowed network, or use up those visitors'
+ *     shared budgets. It can only go by the two headers in which a browser
+ *     says where a request came from, and a browser does not always send
+ *     them, so each route then asks for something only the form's page
+ *     sends. The read route requires the page's own header
  *     (requireFormPageHeader, the same 403): over plain HTTP another site's
  *     <img> or link sends its GET with neither header, and it cannot add
- *     one. The submit route requires a JSON body (requireJsonBody, 400):
- *     the one kind another site cannot have a browser send without a
- *     preflight, which carries the Origin the first check reads.
+ *     one. The submit route requires a JSON body (requireJsonBody, 400): the
+ *     one kind another site cannot have a browser send without a preflight,
+ *     which carries the Origin the first check reads.
  *
- *  2. IncidentFormRateLimit's per-address counters, before anything else
- *     costs anything. Reading a form is load control and fails open;
- *     submitting one declares an incident, so its counters fail closed. (The
- *     form's own hourly ceiling is spent later, by IncidentFormService, only
- *     for a submission that passed every check; its 429 carries a
- *     Retry-After this route writes.)
+ *  2. FormRateLimit's per-address counters, before anything else costs
+ *     anything. Reading a form is load control and fails open; submitting
+ *     one creates an incident or an event, so its counters fail closed. (The
+ *     form's own hourly ceiling is spent later, by FormService, only for a
+ *     submission that passed every check; its 429 carries a Retry-After this
+ *     route writes.)
  *
  *  3. UserMiddleware.getPublicRouteUserMiddleware, the anonymous variant: an
  *     access-token cookie that no longer decodes makes the request anonymous
@@ -78,7 +76,7 @@ import { JSONObject } from "../../Types/JSON";
  *
  *  4. The handler, which checks the body's shape and hands everything else -
  *     the link, the form's switch, the plan, the IP allowlist, the captcha,
- *     the answers - to IncidentFormService, where it is unit-testable.
+ *     the answers - to FormService, where it is unit-testable.
  *
  * What the page must handle: 200, 400 (bad answers or captcha, with a
  * message to show), 403 (network not allowed), 404 (one message for every
@@ -92,7 +90,7 @@ import { JSONObject } from "../../Types/JSON";
  * inside its IP allowlist. It cannot submit: see SameOriginRequest.
  */
 
-export const INCIDENT_FORM_SUBMISSION_BODY_MESSAGE: string =
+export const FORM_SUBMISSION_BODY_MESSAGE: string =
   'The request must be a JSON object holding the form\'s answers in "data".';
 
 /*
@@ -100,10 +98,10 @@ export const INCIDENT_FORM_SUBMISSION_BODY_MESSAGE: string =
  * form and whether it exists: the refusal comes before the link is looked
  * at, so it tells that page nothing.
  */
-export const INCIDENT_FORM_FOREIGN_PAGE_MESSAGE: string =
+export const FORM_FOREIGN_PAGE_MESSAGE: string =
   "This form can only be used from its own page.";
 
-export const INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE: string =
+export const FORM_CAPTCHA_TOKEN_MESSAGE: string =
   "captchaToken must be a string.";
 
 /*
@@ -111,9 +109,9 @@ export const INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE: string =
  * small enough that a stranger cannot have the server forward megabytes of
  * "token" to hCaptcha on the form's behalf.
  */
-export const INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH: number = 16384;
+export const FORM_CAPTCHA_TOKEN_MAX_LENGTH: number = 16384;
 
-export const INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE: string = `captchaToken cannot be more than ${INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH} characters.`;
+export const FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE: string = `captchaToken cannot be more than ${FORM_CAPTCHA_TOKEN_MAX_LENGTH} characters.`;
 
 type IsPlainObjectFunction = (
   value: unknown,
@@ -125,33 +123,30 @@ const isPlainObject: IsPlainObjectFunction = (
   return value !== null && typeof value === "object" && !Array.isArray(value);
 };
 
-export default class IncidentFormAPI extends BaseAPI<
-  IncidentForm,
-  IncidentFormServiceType
-> {
+export default class FormAPI extends BaseAPI<Form, FormServiceType> {
   public constructor() {
-    super(IncidentForm, IncidentFormService);
+    super(Form, FormService);
 
     const readRateLimit: (
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
-    ) => Promise<void> = IncidentFormRateLimit.getMiddleware(
-      IncidentFormRateLimitBucket.Read,
+    ) => Promise<void> = FormRateLimit.getMiddleware(
+      FormRateLimitBucket.Read,
     );
 
     const submitRateLimit: (
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
-    ) => Promise<void> = IncidentFormRateLimit.getMiddleware(
-      IncidentFormRateLimitBucket.Submit,
+    ) => Promise<void> = FormRateLimit.getMiddleware(
+      FormRateLimitBucket.Submit,
     );
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/public/:shareKey`,
-      IncidentFormAPI.refuseForeignPageRequests,
-      IncidentFormAPI.requireFormPageHeader,
+      FormAPI.refuseForeignPageRequests,
+      FormAPI.requireFormPageHeader,
       readRateLimit,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -162,8 +157,8 @@ export default class IncidentFormAPI extends BaseAPI<
            */
           Response.setNoCacheHeaders(res);
 
-          const form: PublicIncidentForm =
-            await IncidentFormService.getPublicForm({
+          const form: PublicForm =
+            await FormService.getPublicForm({
               shareKey: req.params["shareKey"],
               clientIp: resolveClientIp(req),
             });
@@ -183,16 +178,16 @@ export default class IncidentFormAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/public/:shareKey/submit`,
-      IncidentFormAPI.refuseForeignPageRequests,
-      IncidentFormAPI.requireJsonBody,
+      FormAPI.refuseForeignPageRequests,
+      FormAPI.requireJsonBody,
       submitRateLimit,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           Response.setNoCacheHeaders(res);
 
-          const request: PublicIncidentFormSubmissionRequest =
-            IncidentFormAPI.readSubmissionRequest(req.body);
+          const request: PublicFormSubmissionRequest =
+            FormAPI.readSubmissionRequest(req.body);
 
           /*
            * The trusted end of X-Forwarded-For, for the form's IP allowlist
@@ -200,8 +195,8 @@ export default class IncidentFormAPI extends BaseAPI<
            */
           const clientIp: string | undefined = resolveClientIp(req);
 
-          const result: PublicIncidentFormSubmissionResult =
-            await IncidentFormService.submitPublicForm({
+          const result: PublicFormSubmissionResult =
+            await FormService.submitPublicForm({
               shareKey: req.params["shareKey"],
               request: request,
               clientIp: clientIp,
@@ -215,7 +210,7 @@ export default class IncidentFormAPI extends BaseAPI<
           );
         } catch (err) {
           // The form's own ceiling refused: say when to come back.
-          IncidentFormRateLimit.setRetryAfterFor(res, err);
+          FormRateLimit.setRetryAfterFor(res, err);
           next(err);
         }
       },
@@ -248,7 +243,7 @@ export default class IncidentFormAPI extends BaseAPI<
       return Response.sendErrorResponse(
         req,
         res,
-        new ForbiddenException(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE),
+        new ForbiddenException(FORM_FOREIGN_PAGE_MESSAGE),
       );
     }
 
@@ -258,7 +253,7 @@ export default class IncidentFormAPI extends BaseAPI<
   /*
    * Second on the read route, still before the limiter: the request must
    * carry the header the form's page adds to every request it makes
-   * (INCIDENT_FORM_PAGE_HEADER). Over plain HTTP a browser sends another
+   * (FORM_PAGE_HEADER). Over plain HTTP a browser sends another
    * site's <img>, link or no-cors fetch with neither header the check above
    * reads, so without this such a page could have each of its visitors'
    * browsers send reads by the hundred - answered or not, every one counted
@@ -280,8 +275,8 @@ export default class IncidentFormAPI extends BaseAPI<
     if (
       !SameOriginRequest.hasPageScriptHeader({
         headers: req.headers,
-        name: INCIDENT_FORM_PAGE_HEADER,
-        value: INCIDENT_FORM_PAGE_HEADER_VALUE,
+        name: FORM_PAGE_HEADER,
+        value: FORM_PAGE_HEADER_VALUE,
       })
     ) {
       Response.setNoCacheHeaders(res);
@@ -289,7 +284,7 @@ export default class IncidentFormAPI extends BaseAPI<
       return Response.sendErrorResponse(
         req,
         res,
-        new ForbiddenException(INCIDENT_FORM_FOREIGN_PAGE_MESSAGE),
+        new ForbiddenException(FORM_FOREIGN_PAGE_MESSAGE),
       );
     }
 
@@ -316,7 +311,7 @@ export default class IncidentFormAPI extends BaseAPI<
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException(INCIDENT_FORM_SUBMISSION_BODY_MESSAGE),
+        new BadDataException(FORM_SUBMISSION_BODY_MESSAGE),
       );
     }
 
@@ -327,7 +322,7 @@ export default class IncidentFormAPI extends BaseAPI<
    * The shape of the submit body, checked before anything reaches the
    * service: an object with the answers in `data` and, optionally, the
    * captcha token as text of a sane length. What the answers themselves
-   * hold is the service's to judge (validateIncidentFormSubmission); every
+   * hold is the service's to judge (validateFormSubmission); every
    * other key in the body is left behind here, so it cannot reach anything.
    *
    * The body's size is not checked here. The app's JSON parser has read it
@@ -341,9 +336,9 @@ export default class IncidentFormAPI extends BaseAPI<
    */
   public static readSubmissionRequest(
     body: unknown,
-  ): PublicIncidentFormSubmissionRequest {
+  ): PublicFormSubmissionRequest {
     if (!isPlainObject(body) || !isPlainObject(body["data"])) {
-      throw new BadDataException(INCIDENT_FORM_SUBMISSION_BODY_MESSAGE);
+      throw new BadDataException(FORM_SUBMISSION_BODY_MESSAGE);
     }
 
     const captchaToken: unknown = body["captchaToken"];
@@ -353,18 +348,18 @@ export default class IncidentFormAPI extends BaseAPI<
       captchaToken !== null &&
       typeof captchaToken !== "string"
     ) {
-      throw new BadDataException(INCIDENT_FORM_CAPTCHA_TOKEN_MESSAGE);
+      throw new BadDataException(FORM_CAPTCHA_TOKEN_MESSAGE);
     }
 
     if (
       typeof captchaToken === "string" &&
-      captchaToken.length > INCIDENT_FORM_CAPTCHA_TOKEN_MAX_LENGTH
+      captchaToken.length > FORM_CAPTCHA_TOKEN_MAX_LENGTH
     ) {
-      throw new BadDataException(INCIDENT_FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE);
+      throw new BadDataException(FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE);
     }
 
-    const request: PublicIncidentFormSubmissionRequest = {
-      data: body["data"] as unknown as PublicIncidentFormSubmissionData,
+    const request: PublicFormSubmissionRequest = {
+      data: body["data"] as unknown as PublicFormSubmissionData,
     };
 
     if (typeof captchaToken === "string") {
