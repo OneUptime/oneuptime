@@ -12,7 +12,11 @@ const AlertsPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isResolvedState: false,
         },
       }}
-      noItemsMessage="Nice work! No Active Alerts so far."
+      emptyState={{
+        isAllClear: true,
+        title: "No active alerts",
+        description: "Nice work! Every alert is resolved.",
+      }}
       title="Active Alerts"
       description="Alerts that are not resolved yet: problems your team should look into before users notice. View an alert to acknowledge or resolve it."
     />

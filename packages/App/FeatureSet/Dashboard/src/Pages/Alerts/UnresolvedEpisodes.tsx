@@ -15,6 +15,7 @@ const UnresolvedEpisodesPage: FunctionComponent<
       title="Active Episodes"
       description="Episodes group related alerts so you can respond to them together. These are the episodes that are not resolved yet."
       noItemsMessage="No active episodes. All episodes are resolved."
+      emptyState={{ isAllClear: true }}
       saveFilterProps={{
         tableId: "unresolved-episodes-table",
       }}

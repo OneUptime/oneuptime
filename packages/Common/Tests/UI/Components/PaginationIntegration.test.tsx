@@ -157,12 +157,22 @@ describe("Pagination in a Table", () => {
     );
   });
 
-  it("says there is nothing to page through when the table is empty", () => {
+  /*
+   * An empty table's own empty state says there is nothing; a footer reading
+   * "No monitors" under "No monitors yet" said it twice, so the footer is
+   * left out of an empty first page.
+   */
+  it("leaves the footer out when the table is empty", () => {
     renderTable({ totalItemsCount: 0, rowCount: 0 });
 
-    expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
-      "No monitors",
-    );
+    expect(screen.queryByTestId("pagination-summary")).toBeNull();
+    expect(screen.queryByTestId("pagination-next-button")).toBeNull();
+  });
+
+  it("keeps the footer on an empty later page, with nothing to page forward to", () => {
+    renderTable({ currentPageNumber: 3, totalItemsCount: 20, rowCount: 0 });
+
+    expect(screen.getByTestId("pagination-summary")).toBeInTheDocument();
     expect(screen.getByTestId("pagination-next-button")).toBeDisabled();
   });
 

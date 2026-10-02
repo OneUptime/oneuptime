@@ -632,9 +632,14 @@ test.describe("SLOs", () => {
      * Nothing attached and no monitor rule yet: the empty state says how to
      * attach monitors, and the "managed by rules" notice is absent.
      */
+    /*
+     * The page's two sentences are the empty state's title and its
+     * description, two lines apart.
+     */
     await expect(
-      page.getByText("No monitors attached. Add monitors by hand").first(),
+      page.getByText("No monitors attached", { exact: true }).first(),
     ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText("Add monitors by hand").first()).toBeVisible();
     await expect(page.getByTestId("slo-monitors-managed-by-rules")).toHaveCount(
       0,
     );

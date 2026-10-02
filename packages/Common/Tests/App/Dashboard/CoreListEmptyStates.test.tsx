@@ -21,15 +21,16 @@ import {
  *
  * Every one of them used to say "No X found." with an underlined "Refresh?"
  * under it - which, on a project that simply has none yet, reads like a failed
- * load - and the only way on was a button in the card's header. The pages now
- * use the table's own "No X yet." sentence, and under it the table repeats its
- * header's "Create X" button (same label, handler and permission gate), drawn
- * the way the header's is rather than as a filled indigo one.
+ * load - and the only way on was a button in the card's header. Each now
+ * shows a real empty state: headed by the table's own "No X yet", saying what
+ * the list is for (the card's description, which leaves the header while the
+ * state shows it), and repeating its header's "Create X" button (same label,
+ * handler and permission gate), drawn the way the header's is rather than as
+ * a filled indigo one.
  *
  * The "slices" of a list - active incidents, monitors that are not
- * operational - word their own empty state ("Nice work! No Active Incidents so
- * far."), and a big Create button is the wrong answer there, so they keep
- * their sentence and the Refresh link.
+ * operational - are all clear when empty: a green check, the good news, and
+ * no Create button, which is the wrong answer there.
  *
  * The real pages are rendered, with an empty project behind ModelAPI and a
  * project admin's permissions.
@@ -256,9 +257,14 @@ function emptyStateButton(): HTMLElement | null {
   return screen.queryByTestId("empty-table-create-button");
 }
 
+// The sentence is drawn as the empty state's title: a heading, no stop.
+function titleOf(list: CoreList): string {
+  return list.emptySentence.replace(/\.$/, "");
+}
+
 async function renderEmpty(list: CoreList): Promise<void> {
   render(list.render());
-  await screen.findByText(list.emptySentence, {}, { timeout: 10000 });
+  await screen.findByText(titleOf(list), {}, { timeout: 10000 });
 }
 
 beforeEach(() => {
@@ -292,12 +298,30 @@ afterEach(() => {
 });
 
 describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
-  test("says the table's own 'No X yet.'", async () => {
+  test("is headed by the table's own 'No X yet'", async () => {
     await renderEmpty(list);
 
-    expect(screen.getByText(list.emptySentence)).toBeInTheDocument();
+    const title: HTMLElement = screen.getByText(titleOf(list));
+
+    expect(title.tagName).toBe("H3");
+    expect(title.closest("[data-empty-state-kind]")).toHaveAttribute(
+      "data-empty-state-kind",
+      "empty",
+    );
     expect(screen.queryByText(list.oldFoundSentence)).toBeNull();
     expect(document.body.textContent || "").not.toMatch(/ found\./);
+  });
+
+  test("says what the list is for, once, in the empty state", async () => {
+    await renderEmpty(list);
+
+    const description: HTMLElement = screen.getByTestId(
+      "table-empty-state-description",
+    );
+
+    expect((description.textContent || "").trim().length).toBeGreaterThan(20);
+    // Not said twice: the card's header leaves it out while the state shows it.
+    expect(screen.queryByTestId("card-description")).toBeNull();
   });
 
   test("offers the header's create action, as a plain button", async () => {
@@ -328,7 +352,7 @@ describe.each(CORE_LISTS)("$name, empty", (list: CoreList) => {
       expect(emptyStateButton()).not.toBeNull();
     });
 
-    const sentence: HTMLElement = screen.getByText(list.emptySentence);
+    const sentence: HTMLElement = screen.getByText(titleOf(list));
     const block: HTMLElement | null = sentence.closest(
       '[data-testid$="-no-items"]',
     );
@@ -411,36 +435,69 @@ describe("the empty-state button is gated like the header's", () => {
     expect(navigateCalls).toEqual([]);
   });
 
+  test("a viewer is told why, in words a phone can show", async () => {
+    permissionsForTest = [Permission.Viewer];
+    await renderEmpty(CORE_LISTS[0]!);
+    await waitFor(() => {
+      expect(emptyStateButton()).not.toBeNull();
+    });
+
+    expect(screen.getByTestId("table-empty-state-note")).toHaveTextContent(
+      "You don't have permission to create these. Ask a project admin for access.",
+    );
+  });
+
   test("while permissions have not loaded, there is no button to offer", async () => {
     permissionsForTest = [];
     await renderEmpty(CORE_LISTS[0]!);
 
     expect(emptyStateButton()).toBeNull();
-    // With nothing to do instead, the Refresh link stays.
-    expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+    // And no Refresh? link in its place: a reload shows the same nothing.
+    expect(screen.queryByTestId("refresh-button")).toBeNull();
   });
 });
 
-describe("slices of a list keep their own empty state", () => {
-  test("Active Incidents says its own sentence, with no Create button", async () => {
+describe("slices of a list are all clear when empty", () => {
+  test("Active Incidents leads with the fact, then the good news, and offers no Create button", async () => {
     render(<ActiveIncidentsPage {...pageProps} />);
 
-    await screen.findByText(
-      "Nice work! No Active Incidents so far.",
+    const title: HTMLElement = await screen.findByText(
+      "No active incidents",
       {},
       { timeout: 10000 },
     );
+
+    expect(title.closest("[data-empty-state-kind]")).toHaveAttribute(
+      "data-empty-state-kind",
+      "all-clear",
+    );
+    expect(
+      screen.getByText("Nice work! Every incident is resolved."),
+    ).toBeInTheDocument();
+    // Settle the header's create button, then look for its copy.
+    await waitFor(() => {
+      expect(screen.getAllByTestId("card-button").length).toBeGreaterThan(0);
+    });
     expect(emptyStateButton()).toBeNull();
-    expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+    expect(screen.queryByTestId("refresh-button")).toBeNull();
+    // The list's description stays in its header.
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Incidents that are not resolved yet",
+    );
   });
 
   test("Not Operational Monitors says none is reporting a problem, with no Create button", async () => {
     render(<NotOperationalMonitorsPage {...pageProps} />);
 
-    await screen.findByText(
-      "No monitors are reporting a problem.",
+    const title: HTMLElement = await screen.findByText(
+      "No monitors are reporting a problem",
       {},
       { timeout: 10000 },
+    );
+
+    expect(title.closest("[data-empty-state-kind]")).toHaveAttribute(
+      "data-empty-state-kind",
+      "all-clear",
     );
     expect(emptyStateButton()).toBeNull();
     expect(screen.queryByText("All monitors in operational state.")).toBeNull();

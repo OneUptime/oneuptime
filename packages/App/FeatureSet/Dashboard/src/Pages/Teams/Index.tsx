@@ -70,6 +70,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -96,6 +97,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         userPreferencesKey="teams-table"
         customFieldsModelType={TeamCustomField}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         cardProps={{

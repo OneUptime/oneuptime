@@ -86,9 +86,6 @@ const MonitorSecrets: FunctionComponent<
             "Monitor secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with monitors.",
         }}
         documentationLink={Route.fromString("/docs/monitor/monitor-secrets")}
-        noItemsMessage={
-          'No monitor secret found. Click on the "Create" button to add a new monitor secret.'
-        }
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Secret", id: "secret" },

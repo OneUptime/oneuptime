@@ -34,6 +34,7 @@ const MonitorGroupPage: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -54,6 +55,7 @@ const MonitorGroupPage: FunctionComponent<
         id="monitors-group-table"
         userPreferencesKey="monitor-groups-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}

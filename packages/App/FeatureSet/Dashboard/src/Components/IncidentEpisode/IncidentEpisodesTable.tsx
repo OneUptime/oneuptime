@@ -8,6 +8,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -59,6 +60,8 @@ import {
 export interface ComponentProps {
   query?: Query<IncidentEpisode> | undefined;
   noItemsMessage?: string | undefined;
+  // The page's own words for the empty state. See EmptyStateOptions.
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -305,6 +308,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             "Here is a list of incident episodes for this project.",
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
+        emptyState={props.emptyState}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
