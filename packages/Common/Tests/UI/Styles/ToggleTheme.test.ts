@@ -796,6 +796,47 @@ describe("the switch's colour classes in the dark theme", () => {
     expect(replayTokens).not.toContain("border-indigo-600");
   });
 
+  /*
+   * Windows High Contrast (forced colours) is a theme of its own: it paints
+   * every fill the page colour and drops shadows, so the grey, the indigo
+   * and the white knob all vanish. What it does draw is a border, a
+   * transparent one included, in the text colour. Each switch keeps one on
+   * its track and one on its knob, so the knob's side - the state - shows
+   * in that mode too; a border with a colour of its own is the outlined
+   * look again on every other screen.
+   */
+  test("both switches keep a clear border on track and knob, for forced colours", () => {
+    const TOGGLE_PARTS: Array<string> = [
+      TOGGLE_TRACK_BASE_CLASS,
+      TOGGLE_KNOB_BASE_CLASS,
+    ];
+
+    for (const classList of TOGGLE_PARTS) {
+      expect(tokens(classList)).toEqual(
+        expect.arrayContaining(["border-transparent"]),
+      );
+      expect(
+        tokens(classList).some((token: string): boolean => {
+          return token === "border" || token === "border-2";
+        }),
+      ).toBe(true);
+    }
+
+    // The replay's track and knob: both spans carry one.
+    const replayCode: string = switchCode(REPLAY_UI_FILE);
+
+    expect(replayCode.split("border border-transparent").length - 1).toBe(2);
+
+    // And no border on either switch has a colour of its own.
+    const borderColours: Array<string> = FILES.flatMap(colourTokens).filter(
+      (token: string): boolean => {
+        return BORDER_CLASS.test(utilityOf(token));
+      },
+    );
+
+    expect(borderColours).toEqual([]);
+  });
+
   test("every colour class the switch uses is re-coloured for the dark theme", () => {
     const toggleTokens: Array<string> = colourTokens(TOGGLE_FILE);
 

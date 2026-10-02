@@ -508,6 +508,30 @@ describe("Toggle - how each state looks", () => {
     }
   });
 
+  /*
+   * Windows High Contrast (forced colours) paints every fill the page
+   * colour and drops shadows. A transparent border is what it draws
+   * instead, in the text colour: the track keeps its outline and the knob a
+   * ring, so which side the knob is on - the state - still shows. Without
+   * the knob's border, on and off looked the same in that mode.
+   */
+  test("the track and the knob keep an edge for Windows High Contrast", () => {
+    for (const value of [false, true]) {
+      for (const disabled of [false, true]) {
+        render(
+          <Toggle onChange={() => {}} value={value} disabled={disabled} />,
+        );
+
+        const toggle: HTMLElement = screen.getByRole("switch");
+
+        expect(toggle).toHaveClass("border-2", "border-transparent");
+        expect(knobOf(toggle)).toHaveClass("border", "border-transparent");
+
+        cleanup();
+      }
+    }
+  });
+
   // The first design all but disappeared on a white form.
   test("the pale gray-200 pill is not back either", () => {
     render(<Toggle onChange={() => {}} value={false} />);

@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import { describe, expect, it, jest } from "@jest/globals";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -724,7 +730,7 @@ describe("ReplaySwitch", () => {
       "bg-white",
       "shadow",
       "rounded-full",
-      "translate-x-0.5",
+      "translate-x-px",
     );
 
     rerender(
@@ -738,17 +744,60 @@ describe("ReplaySwitch", () => {
 
     expect(track()).toHaveClass(TOGGLE_TRACK_ON_CLASS);
     expect(track()).not.toHaveClass(TOGGLE_TRACK_OFF_CLASS);
-    expect(knob()).toHaveClass("bg-white", "shadow", "translate-x-3.5");
-    expect(knob()).not.toHaveClass("translate-x-0.5");
+    expect(knob()).toHaveClass("bg-white", "shadow", "translate-x-[13px]");
+    expect(knob()).not.toHaveClass("translate-x-px");
 
-    // Nothing of the outlined design: no outline, no dark dot.
-    expect(track().className).not.toContain("border-");
+    // Nothing of the outlined design: no outline colour, no dark dot.
+    for (const part of [track(), knob()]) {
+      expect(
+        Array.from(part.classList).filter((className: string): boolean => {
+          return (
+            className.startsWith("border-") &&
+            className !== "border-transparent"
+          );
+        }),
+      ).toEqual([]);
+    }
     expect(knob()).not.toHaveClass("bg-gray-500");
   });
 
   /*
-   * A 28 x 16 track and a 12px knob: 2px in from the left when off, and
-   * 28 - 12 - 2 = 14px across when on, 2px in from the right.
+   * Windows High Contrast paints every fill the page colour and drops the
+   * shadow, so without an edge of its own the knob - and with it, which
+   * side the switch is on - disappears. A transparent border is the edge
+   * that mode draws, in the text colour; on any other screen it shows
+   * nothing.
+   */
+  it("keeps an edge on its track and its knob for Windows High Contrast", () => {
+    for (const isChecked of [false, true]) {
+      render(
+        <ReplaySwitch
+          dataTestId="skip-idle"
+          label="Skip idle"
+          isChecked={isChecked}
+          onChange={noop}
+        />,
+      );
+
+      const track: HTMLElement = screen
+        .getByTestId("skip-idle")
+        .querySelector("[data-ou-toggle-track]") as HTMLElement;
+      const knob: HTMLElement = track.querySelector(
+        "[data-ou-toggle-knob]",
+      ) as HTMLElement;
+
+      expect(track).toHaveClass("border", "border-transparent");
+      expect(knob).toHaveClass("border", "border-transparent");
+
+      cleanup();
+    }
+  });
+
+  /*
+   * A 28 x 16 track with a 1px clear border, and a 12px knob 1px further
+   * in: 2px from the left end when off, and 1 + 13 = 14px across when on,
+   * which leaves 28 - 14 - 12 = 2px at the right end. Top and bottom, the
+   * 2px is (16 - 12) / 2.
    */
   it("slides its knob from one end of the track to the other", () => {
     render(
@@ -765,8 +814,9 @@ describe("ReplaySwitch", () => {
       "h-4": 16,
       "w-3": 12,
       "h-3": 12,
-      "translate-x-0.5": 2,
-      "translate-x-3.5": 14,
+      border: 1,
+      "translate-x-px": 1,
+      "translate-x-[13px]": 13,
     };
     const track: HTMLElement = screen
       .getByTestId("skip-idle")
@@ -775,13 +825,16 @@ describe("ReplaySwitch", () => {
       "[data-ou-toggle-knob]",
     ) as HTMLElement;
 
-    expect(track).toHaveClass("w-7", "h-4", "items-center");
-    expect(knob).toHaveClass("w-3", "h-3");
+    expect(track).toHaveClass("w-7", "h-4", "items-center", "border");
+    expect(knob).toHaveClass("w-3", "h-3", "translate-x-px");
 
-    const inset: number = PX["translate-x-0.5"]!;
+    const leftInset: number = PX["border"]! + PX["translate-x-px"]!;
+    const rightInset: number =
+      PX["w-7"]! - (PX["border"]! + PX["translate-x-[13px]"]! + PX["w-3"]!);
 
-    expect(PX["translate-x-3.5"]! + PX["w-3"]! + inset).toBe(PX["w-7"]);
-    expect(PX["h-4"]! - PX["h-3"]!).toBe(2 * inset);
+    expect(leftInset).toBe(2);
+    expect(rightInset).toBe(leftInset);
+    expect((PX["h-4"]! - PX["h-3"]!) / 2).toBe(leftInset);
   });
 });
 

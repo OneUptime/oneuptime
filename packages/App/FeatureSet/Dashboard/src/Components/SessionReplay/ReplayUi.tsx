@@ -503,20 +503,23 @@ export const ReplaySwitch: FunctionComponent<ReplaySwitchProps> = (
        *
        * Drawn the way Common/UI's Toggle is, at this scale: a gray-300
        * track when off and the brand indigo when on, with the same white
-       * knob sliding across it, 2px in from either end. The data attributes
-       * give it the Toggle's dark-theme colours (Common/UI/Styles/Theme.css).
+       * knob sliding across it, 2px in from either end (1px of clear border
+       * and 1px of track). The clear borders are what Windows High Contrast
+       * draws when it paints the fills away, as on the Toggle. The data
+       * attributes give it the Toggle's dark-theme colours
+       * (Common/UI/Styles/Theme.css).
        */}
       <span
         aria-hidden="true"
         data-ou-toggle-track=""
-        className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-150 motion-reduce:transition-none ${
+        className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-transparent transition-colors duration-150 motion-reduce:transition-none ${
           props.isChecked ? "bg-indigo-600" : "bg-gray-300"
         }`}
       >
         <span
           data-ou-toggle-knob=""
-          className={`h-3 w-3 rounded-full bg-white shadow transition-transform duration-150 motion-reduce:transition-none ${
-            props.isChecked ? "translate-x-3.5" : "translate-x-0.5"
+          className={`h-3 w-3 rounded-full border border-transparent bg-white shadow transition-transform duration-150 motion-reduce:transition-none ${
+            props.isChecked ? "translate-x-[13px]" : "translate-x-px"
           }`}
         />
       </span>

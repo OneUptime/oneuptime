@@ -103,9 +103,17 @@ export const TOGGLE_TRACK_ENABLED_CLASS: string = "cursor-pointer";
 export const TOGGLE_TRACK_DISABLED_CLASS: string =
   "cursor-not-allowed opacity-50";
 
-// 20px, filling the track's height inside its 2px clear border.
+/*
+ * 20px, filling the track's height inside its 2px clear border.
+ *
+ * Both clear borders are for Windows High Contrast (forced colours), which
+ * paints every background the page colour and drops shadows, but draws a
+ * transparent border in the text colour: the track keeps its outline there
+ * and the knob a ring of its own, so which side it is on still shows. With
+ * no border on the knob, on and off looked the same in that mode.
+ */
 export const TOGGLE_KNOB_BASE_CLASS: string =
-  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition duration-200 ease-in-out motion-reduce:transition-none";
+  "pointer-events-none inline-block h-5 w-5 rounded-full border border-transparent bg-white shadow transition duration-200 ease-in-out motion-reduce:transition-none";
 
 export const TOGGLE_KNOB_OFF_CLASS: string = "translate-x-0";
 
