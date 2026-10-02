@@ -117,9 +117,6 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           description: ThreatIntelGuide.guideDescription,
           markdown: guideToMarkdown(ThreatIntelGuide),
         }}
-        noItemsMessage={
-          'No threat intel feeds found. Click on the "Create" button to subscribe a TAXII collection.'
-        }
         createInitialValues={{
           /*
            * Mirror the DB defaults (ThreatIntelFeed.ts): without these

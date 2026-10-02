@@ -252,9 +252,6 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
             "Understanding Grok Parser, Severity Remapper, Attribute Remapper, and Category Processor",
           markdown: processorsDocMarkdown,
         }}
-        noItemsMessage={
-          "No processors configured. Click 'Add Processor' above to add your first processor."
-        }
         showRefreshButton={true}
         refreshToggle={refreshProcessorToggle}
         filters={[

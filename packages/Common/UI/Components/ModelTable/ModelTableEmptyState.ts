@@ -4,6 +4,7 @@ import {
   EmptyMessageParts,
   TranslateFunction,
   getEmptyTableTitle,
+  toHeadline,
 } from "../Table/EmptyTableMessage";
 import {
   TableEmptyStateAction,
@@ -202,8 +203,12 @@ export const buildModelTableEmptyState: (
     translate: input.translate,
   });
 
+  /*
+   * A title may be given as the sentence a locale already translates
+   * ("Nothing here yet."): it is headed without the full stop all the same.
+   */
   const title: string = options.title
-    ? input.translate(options.title) || options.title
+    ? toHeadline(input.translate(options.title) || options.title)
     : messageParts.title;
 
   const ownDescription: string | ReactElement | undefined =
@@ -258,6 +263,10 @@ export const buildModelTableEmptyState: (
         ? CREATE_NOT_ALLOWED_NOTE
         : createButton.tooltip;
     }
+  }
+
+  for (const action of options.actions || []) {
+    actions.push(action);
   }
 
   const readMoreAction: TableEmptyStateAction | undefined =

@@ -62,7 +62,8 @@ const ActiveEpisodes: FunctionComponent<
               }),
             ),
           }}
-          noItemsMessage="Nice work! No Active Episodes so far."
+          noItemsMessage="No active episodes. All episodes are resolved."
+    emptyState={{ isAllClear: true }}
           title="Active Episodes"
           description="Episodes group related alerts so you can respond to them together. These are the episodes that are not resolved yet."
         />

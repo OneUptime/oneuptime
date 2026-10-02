@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import { TableEmptyStateAction } from "../Table/TableEmptyState";
 import { ReactElement } from "react";
 
 /*
@@ -30,6 +31,11 @@ export default interface EmptyStateOptions {
   isAllClear?: boolean | undefined;
   // Never repeat the card's create button under the empty state.
   hideCreateButton?: boolean | undefined;
+  /*
+   * More ways forward, after the create button: "Read the setup guide",
+   * "Connect a product". A Link-styled action reads as the quieter one.
+   */
+  actions?: Array<TableEmptyStateAction> | undefined;
   /*
    * Filters the page applies itself - facet chips above the table - hide
    * every row. The table then says nothing matches, as it does for its own

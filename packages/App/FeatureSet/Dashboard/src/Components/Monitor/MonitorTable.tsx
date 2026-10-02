@@ -20,6 +20,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import Column from "Common/UI/Components/ModelTable/Column";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
@@ -84,6 +85,11 @@ import ProbeUtil from "../../Utils/Probe";
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -385,6 +391,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -856,6 +863,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         refreshToggle={props.refreshToggle}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(scopedQuery)}

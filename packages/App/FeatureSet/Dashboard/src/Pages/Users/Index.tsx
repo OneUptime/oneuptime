@@ -176,10 +176,10 @@ const Users: FunctionComponent<PageComponentProps> = (
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
-    hasActiveFilters,
   } = useResourceOwners<TeamMember>({
     persistKey: "settings-users-table",
     showOwnerFacet: false,
@@ -254,6 +254,7 @@ const Users: FunctionComponent<PageComponentProps> = (
         isCreateable={false}
         isViewable={true}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         onBeforeDelete={async (item: TeamMember): Promise<TeamMember> => {
@@ -300,11 +301,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             },
           ],
         }}
-        noItemsMessage={
-          hasActiveFilters
-            ? "No users found"
-            : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
-        }
+        noItemsMessage="Please wait, we are refreshing the list of users for this project. Please try again in sometime."
         query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
         } as Query<TeamMember>)}
