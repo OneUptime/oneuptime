@@ -136,7 +136,7 @@ Endpoints relacionados são `/api/incident-state`, `/api/incident-severity` e `/
 
 Todo incidente recebe um número sequencial de um contador por projeto, atribuído pelo servidor no momento da criação. Duas colunas o guardam: `incidentNumber` (o inteiro puro) e `incidentNumberWithPrefix` (o que você de fato vê). Sem prefixo configurado, o valor exibido é `#42`.
 
-Para mudar isso, vá a **Incidentes → Configurações → Mais configurações**. O cartão **Prefixo do número** tem um campo **Prefixo de número de incidente** (até 20 caracteres, placeholder `INC-`) — defina-o e o mesmo incidente passa a aparecer como `INC-42`. Deixe vazio para manter o `#` padrão. O cartão também traz **Prefixo de número de episódio de incidente** para a numeração de episódios.
+Para mudar isso, vá a **Incidentes → Configurações → Prefixo do número** e clique em **Atualizar**. O campo **Prefixo de número de incidente** mostra o número enquanto você digita: com `INC-`, ele vira `INC-42`. Deixe vazio para manter o `#` padrão. Um prefixo novo vale para incidentes declarados depois de salvar; os incidentes existentes mantêm seus números. A mesma caixa de diálogo traz **Prefixo de número de episódio de incidente** para a numeração de episódios.
 
 O número aparece como a primeira coluna da lista de incidentes, é um link para o incidente, e aparece como **Número do incidente** na **Visão geral** do incidente.
 

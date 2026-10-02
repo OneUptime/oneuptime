@@ -81,6 +81,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
+import NumberPrefixUtil, {
+  NUMBER_PREFIX_COLUMNS,
+  NumberPrefixColumn,
+} from "../../Utils/Project/NumberPrefix";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
@@ -345,6 +349,32 @@ export class ProjectService extends DatabaseService<Model> {
     data.dataResidency = dataResidency;
   }
 
+  /*
+   * Runs on every create and update, before the write, for each number
+   * prefix the data carries: the prefix is stored trimmed, a blank one as
+   * null (numbers then start with "#"), and one that breaks the rules in
+   * NumberPrefixUtil - too long, a space or a character Markdown, Slack or
+   * HTML would read, a digit at the end that runs into the number - is
+   * refused. A prefix the data does not carry is left alone, so an update
+   * of anything else never touches the prefixes.
+   */
+  public applyNumberPrefixRules(
+    data: Partial<Record<NumberPrefixColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      if (values[info.column] === undefined) {
+        continue;
+      }
+
+      values[info.column] = NumberPrefixUtil.normalize(
+        values[info.column],
+        info.title,
+      );
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -354,6 +384,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     this.applyDataResidencyRules(data.data);
+    this.applyNumberPrefixRules(data.data);
 
     if (data.props.userId) {
       data.data.createdByUserId = data.props.userId;
@@ -561,25 +592,19 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.clickIds = user.clickIds!;
     data.data.firstTouchAttribution = user.firstTouchAttribution!;
 
-    // Set default number prefixes.
-    if (!data.data.incidentNumberPrefix) {
-      data.data.incidentNumberPrefix = "INC-";
-    }
+    /*
+     * A new project starts with a prefix for each kind of number (INC-, IE-,
+     * ALT-, AE-, SM-) unless the create request set one itself.
+     */
+    const newProject: Record<string, unknown> = data.data as unknown as Record<
+      string,
+      unknown
+    >;
 
-    if (!data.data.alertNumberPrefix) {
-      data.data.alertNumberPrefix = "ALT-";
-    }
-
-    if (!data.data.scheduledMaintenanceNumberPrefix) {
-      data.data.scheduledMaintenanceNumberPrefix = "SM-";
-    }
-
-    if (!data.data.incidentEpisodeNumberPrefix) {
-      data.data.incidentEpisodeNumberPrefix = "IE-";
-    }
-
-    if (!data.data.alertEpisodeNumberPrefix) {
-      data.data.alertEpisodeNumberPrefix = "AE-";
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      if (!newProject[info.column]) {
+        newProject[info.column] = info.defaultForNewProjects;
+      }
     }
 
     this.applyNewProjectAiDefaults(data.data);
@@ -725,6 +750,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     this.applyDataResidencyRules(updateBy.data);
+    this.applyNumberPrefixRules(updateBy.data);
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,

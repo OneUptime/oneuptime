@@ -136,7 +136,7 @@ Verwandte Endpunkte sind `/api/incident-state`, `/api/incident-severity` und `/a
 
 Jeder Vorfall erhält eine fortlaufende Nummer aus einem Zähler pro Projekt, die der Server beim Anlegen vergibt. Zwei Spalten halten sie: `incidentNumber` (die reine Ganzzahl) und `incidentNumberWithPrefix` (das, was Sie tatsächlich sehen). Ohne konfiguriertes Präfix lautet der Anzeigewert `#42`.
 
-Um das zu ändern, gehen Sie zu **Vorfälle → Einstellungen → Weitere Einstellungen**. Die Karte **Nummernpräfix** enthält ein Feld **Vorfallnummern-Präfix** (bis zu 20 Zeichen, Platzhalter `INC-`) – setzen Sie es, und derselbe Vorfall erscheint als `INC-42`. Lassen Sie es leer, bleibt es beim voreingestellten `#`. Die Karte trägt außerdem **Nummernpräfix der Vorfall-Episode** für die Nummerierung von Episoden.
+Um das zu ändern, gehen Sie zu **Vorfälle → Einstellungen → Nummernpräfix** und klicken Sie auf **Aktualisieren**. Das Feld **Vorfallnummern-Präfix** zeigt beim Tippen eine Vorschau der Nummer: Mit `INC-` wird daraus `INC-42`. Lassen Sie es leer, bleibt es beim voreingestellten `#`. Ein neues Präfix gilt für Vorfälle, die danach gemeldet werden; bestehende Vorfälle behalten ihre Nummer. Im selben Dialog steht **Nummernpräfix der Vorfall-Episode** für die Nummerierung von Episoden.
 
 Die Nummer erscheint als erste Spalte der Vorfallliste, verlinkt auf den Vorfall und taucht als **Vorfallnummer** auf der **Übersicht** des Vorfalls auf.
 

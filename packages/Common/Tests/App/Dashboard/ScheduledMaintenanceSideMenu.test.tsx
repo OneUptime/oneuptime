@@ -45,6 +45,7 @@ import {
   MOBILE_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
   goTo,
   hrefsInMenu,
   iconCountIn,
@@ -237,11 +238,48 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
           ),
         },
+        /*
+         * The number prefix, on a page named for it. It replaced More
+         * Settings, which held nothing else.
+         */
         {
-          title: "More Settings",
-          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE),
+          title: "Number Prefix",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
+          ),
         },
       ]);
+    });
+
+    test("lists Number Prefix last, at settings/number-prefix", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      const settings: Array<MenuLink> = linksIn("Settings");
+
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Number Prefix",
+        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/number-prefix`,
+      });
+    });
+
+    test("has no More Settings entry, and nothing points at the old address", async () => {
+      await renderScheduledMaintenanceMenu();
+
+      expect(titlesInMenu()).not.toContain("More Settings");
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/more`,
+      );
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Number Prefix page, and marks it", async () => {
+      goTo(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/number-prefix`,
+      );
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
     });
 
     test("no longer holds any rule page", async () => {
@@ -269,7 +307,8 @@ describe("Scheduled maintenance side menu", () => {
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES,
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
-      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE,
+      // More Settings, renamed for the one thing it held.
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {

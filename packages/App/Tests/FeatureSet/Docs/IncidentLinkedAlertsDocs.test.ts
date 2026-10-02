@@ -1857,8 +1857,10 @@ describe("Incident Linked Alerts docs", () => {
     });
 
     /*
-     * They used to sit on More Settings. Number prefixes may still live
-     * there, so only what the docs say about the switches is checked.
+     * They used to sit on More Settings, which is gone: the number prefixes
+     * it kept have a Number Prefix page of their own (NumberPrefixDocs.test.ts
+     * holds the docs to that). Only what the docs say about the switches is
+     * checked here.
      */
     it("are never looked for on More Settings any more, in every language", () => {
       const switchesHeading: number = proseHeadings(

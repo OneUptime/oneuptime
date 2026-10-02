@@ -20,7 +20,7 @@ Denne siden er oppslagsverket for den konfigurasjonen — hva hver side innehold
 | **Postmortem-maler**     | Gjenbrukbare strukturer for etteranalyser.                                                             |
 | **Egendefinerte felt**   | Definer ekstra felt som vises på hver hendelse.                                                        |
 | **Hendelsesroller**      | Definer rollene du tildeler respondenter, som Incident Commander.                                      |
-| **Flere innstillinger**  | Nummerprefiksene for hendelser og hendelsesepisoder.                                                   |
+| **Nummerprefiks**  | Nummerprefiksene for hendelser og hendelsesepisoder.                                                   |
 
 **Hendelsesstatus** og **Hendelsesalvor** er dekket i dybden i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden tar over fra **Hendelsesmaler**.
 
@@ -105,12 +105,14 @@ Roller er kun definisjoner. Du tildeler folk til dem per hendelse — erklæring
 
 Hver hendelse får et nummer. Som standard vises det som `#42`. Sier teamet ditt «INC-42» høyt, la produktet si det samme.
 
-Gå til **Hendelser → Innstillinger → Flere innstillinger** (`/dashboard/{projectId}/incidents/settings/more`). Kortet heter **Tallprefiks** og rommer to felt på prosjektet:
+Gå til **Hendelser → Innstillinger → Nummerprefiks** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Kortet **Nummerprefiks** viser for hendelser og for hendelsesepisoder prefikset og et eksempel på nummeret det gir: `INC-` med **Eksempel:** `INC-42`; uten prefiks står det **Ingen prefiks** og `#42`. **Oppdater** åpner **Rediger nummerprefiks** med to felt:
 
-- **Nummerprefiks for hendelse** — opptil 20 tegn, plassholder `INC-`. Sett det, og hendelse `#42` vises som `INC-42`.
-- **Nummerprefiks for hendelsesepisode** — samme idé for nummer på hendelsesepisoder, plassholder `IE-`.
+- **Nummerprefiks for hendelse** — plassholder `INC-`.
+- **Nummerprefiks for hendelsesepisode** — plassholder `IE-`.
 
-La ett av dem stå tomt for å beholde standardprefikset `#`; feltet som ikke er satt, vises som `# (default)`. Lagre med **Oppdater**. Verdien med prefiks lagres på hendelsen som `incidentNumberWithPrefix`, og det er den hendelseslisten og hendelsestoppen viser.
+Under hvert felt viser **Forhåndsvisning:** nummeret mens du skriver. La et felt stå tomt for å gå tilbake til `#`. Et prefiks har høyst 20 tegn, består av bokstaver, tall og `-` `_` `.` `/` `:` `#` (ingen mellomrom) og slutter ikke på et siffer, som ellers flyter sammen med nummeret: `SEV1` ville gi `SEV142`. Dialogen sier hva som er galt før du lagrer, og API-et avviser de samme prefiksene.
+
+Et nytt prefiks gjelder bare hendelser og episoder som opprettes etterpå. Eksisterende beholder numrene sine, og telleren fortsetter. Verdien med prefiks lagres på hendelsen som `incidentNumberWithPrefix`, og det er den hendelseslisten og hendelsestoppen viser. Varsler og planlagt vedlikehold har samme side: **Varsler → Innstillinger → Nummerprefiks** og **Planlagt vedlikehold → Innstillinger → Nummerprefiks**. Den gamle adressen til **Flere innstillinger** (`…/settings/more`) fører fortsatt dit.
 
 ## Regler som kjører når en hendelse opprettes
 

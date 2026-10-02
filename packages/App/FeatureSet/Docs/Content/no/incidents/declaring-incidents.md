@@ -136,7 +136,7 @@ Beslektede endepunkter er `/api/incident-state`, `/api/incident-severity` og `/a
 
 Hver hendelse får et løpenummer fra en teller per prosjekt, tildelt av serveren ved opprettelse. To kolonner holder det: `incidentNumber` (heltallet) og `incidentNumberWithPrefix` (det du faktisk ser). Uten et konfigurert prefiks er visningsverdien `#42`.
 
-For å endre det går du til **Hendelser → Innstillinger → Flere innstillinger**. Kortet **Tallprefiks** har et felt **Nummerprefiks for hendelse** (inntil 20 tegn, plassholder `INC-`) — sett det, så vises den samme hendelsen som `INC-42`. La det stå tomt for å beholde standarden `#`. Kortet bærer også **Nummerprefiks for hendelsesepisode** for episodenummerering.
+For å endre det går du til **Hendelser → Innstillinger → Nummerprefiks** og klikker **Oppdater**. Feltet **Nummerprefiks for hendelse** viser nummeret mens du skriver: `INC-` gir `INC-42`. La det stå tomt for å beholde standarden `#`. Et nytt prefiks gjelder hendelser som erklæres etter at du har lagret; eksisterende hendelser beholder numrene sine. Den samme dialogen har også **Nummerprefiks for hendelsesepisode** for episodenummerering.
 
 Nummeret vises som den første kolonnen i hendelseslisten, lenker til hendelsen, og dukker opp som **Hendelsesnummer** på hendelsens **Oversikt**.
 

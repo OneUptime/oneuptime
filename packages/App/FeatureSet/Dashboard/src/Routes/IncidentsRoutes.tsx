@@ -98,7 +98,9 @@ import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMe
 
 import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
 
-import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
+import IncidentSettingsNumberPrefix from "../Pages/Incidents/Settings/IncidentNumberPrefix";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
 
 // Incident Episode Pages
@@ -165,6 +167,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Number prefixes were on More Settings. Its old URL forwards to the
+       * Number Prefix page - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX}
+          />
+        }
+      />
+
       <PageRoute
         path="/"
         element={<Layout {...props} hideSideMenu={hideSideMenu} />}
@@ -647,11 +663,15 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE] || ""}
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] || ""
+          }
           element={
-            <IncidentSettingsMore
+            <IncidentSettingsNumberPrefix
               {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route
+              }
             />
           }
         />

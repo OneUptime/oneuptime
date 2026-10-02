@@ -326,14 +326,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Link,
         },
+        /*
+         * The text in front of incident and episode numbers (INC-42). A
+         * page of its own, named for what it holds: it was the only thing
+         * left on the More Settings page it replaced.
+         */
         {
           link: {
-            title: "More Settings",
+            title: "Number Prefix",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route,
+              RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route,
             ),
           },
-          icon: IconProp.Settings,
+          icon: IconProp.Hashtag,
         },
       ],
     },

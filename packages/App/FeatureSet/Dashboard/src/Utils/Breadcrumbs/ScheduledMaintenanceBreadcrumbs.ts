@@ -147,8 +147,8 @@ export function getScheduleMaintenanceBreadcrumbs(
 
     // Scheduled Maintenance Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(
-      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE,
-      ["Project", "Scheduled Maintenance", "Settings", "More Settings"],
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
+      ["Project", "Scheduled Maintenance", "Settings", "Number Prefix"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,

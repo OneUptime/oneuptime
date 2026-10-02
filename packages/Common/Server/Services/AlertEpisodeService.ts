@@ -15,6 +15,7 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AlertEpisodeStateTimeline from "../../Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -195,9 +196,10 @@ export class Service extends DatabaseService<Model> {
     } = await ProjectService.incrementAndGetAlertEpisodeCounter(projectId);
 
     createBy.data.episodeNumber = episodeCounterResult.counter;
-    createBy.data.episodeNumberWithPrefix = episodeCounterResult.prefix
-      ? `${episodeCounterResult.prefix}${episodeCounterResult.counter}`
-      : `#${episodeCounterResult.counter}`;
+    createBy.data.episodeNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      episodeCounterResult.prefix,
+      episodeCounterResult.counter,
+    );
 
     // Set initial lastAlertAddedAt
     if (!createBy.data.lastAlertAddedAt) {

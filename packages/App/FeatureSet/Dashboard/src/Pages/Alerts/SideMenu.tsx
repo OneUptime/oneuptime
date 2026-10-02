@@ -260,14 +260,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        // The text in front of alert and episode numbers (ALT-42).
         {
           link: {
-            title: "More Settings",
+            title: "Number Prefix",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route,
+              RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route,
             ),
           },
-          icon: IconProp.Settings,
+          icon: IconProp.Hashtag,
         },
       ],
     },

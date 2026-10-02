@@ -136,7 +136,7 @@ Besläktade slutpunkter är `/api/incident-state`, `/api/incident-severity` och 
 
 Varje incident får ett löpande nummer från en räknare per projekt, tilldelat av servern när den skapas. Två kolumner håller det: `incidentNumber` (heltalet) och `incidentNumberWithPrefix` (det du faktiskt ser). Utan konfigurerat prefix är visningsvärdet `#42`.
 
-För att ändra det, gå till **Incidenter → Inställningar → Fler inställningar**. Kortet **Nummerprefix** har ett fält **Prefix för incidentnummer** (upp till 20 tecken, platshållare `INC-`) — sätt det så renderas samma incident som `INC-42`. Lämna det tomt för att behålla standarden `#`. Kortet bär också **Nummerprefix för incidentepisoder** för episodnumrering.
+För att ändra det, gå till **Incidenter → Inställningar → Nummerprefix** och klicka på **Uppdatera**. Fältet **Prefix för incidentnummer** visar numret medan du skriver: `INC-` ger `INC-42`. Lämna det tomt för att behålla standarden `#`. Ett nytt prefix gäller incidenter som deklareras efter att du sparat; befintliga incidenter behåller sina nummer. Samma dialog har också **Nummerprefix för incidentepisoder** för episodnumrering.
 
 Numret visas som första kolumnen i incidentlistan, länkar till incidenten och dyker upp som **Incidentnummer** på incidentens **Översikt**.
 
