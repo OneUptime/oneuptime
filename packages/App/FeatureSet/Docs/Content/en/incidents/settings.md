@@ -20,9 +20,10 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
-| **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
-| **More Settings**        | The incident and incident episode number prefixes, and the linked alert switches.            |
+| **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
+| **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
+| **More Settings**        | The incident and incident episode number prefixes.                                           |
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. **Forms** have a page of their own: [Incident Forms](/docs/incidents/forms).
 
@@ -324,12 +325,12 @@ Leave either empty to keep the default `#` prefix; the unset field displays `# (
 
 ## Linked alert switches
 
-Linking alerts to an incident never changes their state on its own. Two project switches, on the **Linked Alerts** card of **Incidents → Settings → More Settings**, let the incident move its linked alerts along with it:
+Linking alerts to an incident never changes their state on its own. Two project switches, on the **Linked Alerts** card of **Incidents → Settings → Linked Alerts** (`/dashboard/{projectId}/incidents/settings/linked-alerts`), let the incident move its linked alerts along with it:
 
 - **Acknowledge Linked Alerts When Incident Is Acknowledged** — acknowledging the incident acknowledges every linked alert that is not acknowledged yet, which stops those alerts' on-call escalations.
 - **Resolve Linked Alerts When Incident Is Resolved** — resolving the incident resolves every linked alert that is not resolved yet, except an alert that is still linked to another incident that is not resolved.
 
-Both are off by default, and only Project Owners and Project Admins can change them, with the card's **Update** button. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
+Both are on for new projects; a project created before they were on by default keeps the setting it had. Only Project Owners and Project Admins can change them, with the card's **Update** button. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. Turning a switch on hands the linked alerts' states to the incident: whoever can change an incident's state, or link an alert to an incident that is already acknowledged or resolved, moves the alerts too, without needing permission to edit alerts. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
 
 ## Rules that run when an incident is created
 

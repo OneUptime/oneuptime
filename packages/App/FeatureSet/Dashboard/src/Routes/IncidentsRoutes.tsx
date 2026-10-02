@@ -96,6 +96,8 @@ import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
 import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMeasurements";
 
+import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
+
 import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
 
@@ -625,6 +627,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_MEASUREMENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] || ""
+          }
+          element={
+            <IncidentSettingsLinkedAlerts
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
               }
             />
           }
