@@ -94,6 +94,7 @@ import BaseModelTable, {
 } from "../../../UI/Components/ModelTable/BaseModelTable";
 import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import IconProp from "../../../Types/Icon/IconProp";
 
 type DownloadedCsvFile = {
   csv: string;
@@ -302,6 +303,7 @@ describe("the custom field settings table, rendered", () => {
               buttons: [
                 {
                   title: "Archive",
+                  icon: IconProp.Archive,
                   buttonStyleType: ButtonStyleType.NORMAL,
                   onClick: async (): Promise<void> => {
                     return Promise.resolve();

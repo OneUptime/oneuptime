@@ -6,6 +6,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -64,6 +65,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         actionButtons={[
           {
             title: "View Status Message",
+            icon: IconProp.Error,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: UserOnCallLogTimeline,

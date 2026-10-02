@@ -25,7 +25,15 @@ export enum ActionButtonPlacement {
 
 interface ActionButtonSchema<T extends GenericObject> {
   title: string;
-  icon?: undefined | IconProp;
+  /*
+   * Required. Whichever action a row does not show as its button goes in
+   * the ⋯ menu, and every item there has an icon, so a menu never mixes
+   * items with icons and items without ("Show ID" sat as a bare label above
+   * a red "Delete" with its bin). Which actions end up in the menu is only
+   * decided per row, so every action carries one. The row's own button is a
+   * label (see RowActions).
+   */
+  icon: IconProp;
   buttonStyleType: ButtonStyleType;
   isLoading?: boolean | undefined;
   isVisible?: (item: T) => boolean | undefined;

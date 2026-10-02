@@ -406,6 +406,7 @@ describe("the shared components, from the shipped locales", () => {
         buttons={[
           {
             title: "Archive",
+            icon: IconProp.Archive,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: (): Promise<void> => {
               return Promise.resolve();

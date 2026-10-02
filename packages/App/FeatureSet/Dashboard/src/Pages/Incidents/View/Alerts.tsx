@@ -181,6 +181,7 @@ const IncidentViewAlerts: FunctionComponent<
         actionButtons={[
           {
             title: "View Alert",
+            icon: IconProp.Eye,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: (item: IncidentAlert, onCompleteAction: () => void) => {
               if (item.alert?._id) {

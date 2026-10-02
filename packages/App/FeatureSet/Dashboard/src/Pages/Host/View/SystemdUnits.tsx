@@ -406,6 +406,7 @@ const HostSystemdUnits: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<SystemdUnitRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (row: SystemdUnitRow): boolean => {
         return unitViewRouteFor(row) !== null;

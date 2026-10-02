@@ -97,9 +97,11 @@ import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import Permission from "../../../../Types/Permission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 const ARCHIVE_ACTION: unknown = {
   title: "Archive",
+  icon: IconProp.Archive,
   buttonStyleType: ButtonStyleType.NORMAL,
   onClick: async (): Promise<void> => {
     return Promise.resolve();
