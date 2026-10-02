@@ -135,7 +135,7 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
-  # Eighteen browser suites that each bundle real Dashboard or Status Page
+  # Nineteen browser suites that each bundle real Dashboard or Status Page
   # sources with esbuild and serve them against fixture data: no database or
   # Docker stack. They used to run one after another in a single 41-minute
   # job, the longest of every pull request's checks. They are independent -
@@ -176,6 +176,7 @@ jobs:
               test-exception-detail-ui
               test-alerts-ui
               test-pencil-button-ui
+              test-navigation-search-ui
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -282,6 +283,7 @@ jobs:
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/status-page-search/test-results
+            output/playwright/navigation-search/test-results
             output/playwright/pencil-button/test-results
             output/playwright/code-editor-ui/*.png
             output/playwright/code-editor-ui/test-results
