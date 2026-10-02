@@ -21,6 +21,17 @@ permissions:
   contents: write
   packages: write
 
+# Every job checks out the commit that triggered the run (actions/checkout's
+# default), never the branch. `ref: ${{ github.ref }}` fetches the tip of
+# `release` as of the moment each job starts, and a run's jobs start hours
+# apart (they queue behind the organization's concurrent-job limit): after a
+# push to `release` mid-run, every job that started later built the newer
+# commit, still tagged with this run's version and GIT_SHA=${{ github.sha }},
+# so one release could publish images of two commits. A re-run of a failed
+# job did the same with whatever `release` was by then. No job needs the
+# tip: none pushes to this repository - helm-chart-deploy pushes to
+# OneUptime/helm-chart, from a clone of its own. Tests/Ops/ReleaseE2ePipeline.test.js
+# holds every checkout to this.
 jobs:
   generate-build-number:
     runs-on: ubuntu-latest
@@ -47,8 +58,6 @@ jobs:
       patch: ${{ steps.determine.outputs.patch }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - name: Check version and verify not already released
         id: determine
         env:
@@ -172,8 +181,6 @@ jobs:
         run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Lint and render the Helm charts
         working-directory: ./HelmChart/Public
@@ -208,8 +215,6 @@ jobs:
         run: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name:  Build and Package Helm chart
         run: |
@@ -272,8 +277,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -313,8 +316,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -358,8 +359,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -399,8 +398,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -444,8 +441,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       # The home image is the biggest one (the blog repository's full
       # history is in it), so this asks for room - and frees it only on a
@@ -491,8 +486,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -536,8 +529,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -577,8 +568,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -622,8 +611,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -663,8 +650,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -708,8 +693,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -749,8 +732,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -794,8 +775,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -835,8 +814,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -880,8 +857,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -923,8 +898,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -968,8 +941,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1011,8 +982,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1056,8 +1025,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1099,8 +1066,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1144,8 +1109,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1187,8 +1150,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1239,8 +1200,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1280,8 +1239,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1334,8 +1291,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1375,8 +1330,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1420,8 +1373,6 @@ jobs:
       CI_PIPELINE_ID: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1461,8 +1412,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1687,8 +1636,6 @@ jobs:
       # Needed for ./Scripts/GHA/docker_login.sh below — without a checkout the
       # login step fails with "No such file or directory" (exit 127).
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -2328,8 +2275,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
       - name: "Build Changelog"
         id: build_changelog
@@ -2488,8 +2433,6 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       # syft reads the manifest over the registry API using the credentials in
       # ~/.docker/config.json — no image pull, so this job stays small and fast.
@@ -2538,8 +2481,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
       - name: Free disk space if the runner is short of it
         uses: ./.github/actions/free-disk-space
 
@@ -2595,8 +2536,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2653,8 +2592,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -2876,8 +2813,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2946,8 +2881,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - uses: actions/setup-node@v4
         with:
