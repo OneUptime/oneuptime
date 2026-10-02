@@ -1,0 +1,75 @@
+name: CodeQL Advanced
+
+# CodeQL's advanced setup, to replace the default setup configured in the
+# repository's settings. It analyses the same languages, with the same build
+# modes, query suite (default) and threat model (remote), under the same
+# categories - so the alerts default setup raised carry over - but not on
+# every push to master. Default setup scanned each of those as well as each
+# pull request: on 2 October 2026 its master scans took ~800 runner-minutes
+# in five and a half hours, about 12% of what the organisation's 20 concurrent
+# runners could do, while every other workflow queued for them. Every change
+# reaching master was scanned on its pull request; master itself is scanned
+# nightly here, and on demand.
+#
+# It runs nothing until the default setup is switched off - GitHub refuses an
+# advanced setup's results while default setup is on, and only after the
+# analysis has spent its runner time. To switch over, in this order:
+#
+#   1. Settings > Code security > Code scanning > CodeQL analysis: turn the
+#      default setup off (disable it, rather than switching it to advanced,
+#      which would offer to commit a second workflow).
+#   2. Settings > Secrets and variables > Actions > Variables: set the
+#      repository variable CODEQL_ADVANCED_SETUP to true.
+#
+# Until then the default setup keeps scanning as it does now.
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  schedule:
+    # Nightly, for master's alerts.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    if: vars.CODEQL_ADVANCED_SETUP == 'true'
+    runs-on: ubuntu-latest
+    # The JavaScript/TypeScript analysis is the long one, at about 50 minutes.
+    timeout-minutes: 120
+    permissions:
+      # actions: read is what the CodeQL action reads its own run with.
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: go
+            build-mode: autobuild
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      # The category default setup used for this language, so its alerts
+      # stay attached to the same analysis.
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
