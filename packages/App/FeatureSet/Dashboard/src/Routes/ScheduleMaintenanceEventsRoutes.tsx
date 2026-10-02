@@ -18,6 +18,7 @@ import ScheduledMaintenanceEventView from "../Pages/ScheduledMaintenanceEvents/V
 import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEvents/View/Delete";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import ScheduledMaintenanceEventViewOwner from "../Pages/ScheduledMaintenanceEvents/View/Owners";
 import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenanceEvents/View/Runbooks";
@@ -170,6 +171,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                   PageMap
                     .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS
+            ] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+              }
+              microsoftTeamsPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               }
             />
           }

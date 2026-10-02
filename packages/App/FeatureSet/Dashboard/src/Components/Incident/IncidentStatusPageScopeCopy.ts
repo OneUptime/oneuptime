@@ -19,7 +19,6 @@ export const IncidentStatusPageScopeCopy: {
   pickerDescription: string;
   pickerPlaceholder: string;
   templatePickerDescription: string;
-  pickerNoAccessHint: string;
   noScopeSummary: string;
 
   // Warnings next to the picker and the fields it interacts with.
@@ -84,8 +83,6 @@ export const IncidentStatusPageScopeCopy: {
   pickerPlaceholder: "Every status page that lists the monitors",
   templatePickerDescription:
     "Optional. Incidents declared from this template are limited to these status pages: they show on, and notify the subscribers of, only these pages among the status pages that list their monitors.",
-  pickerNoAccessHint:
-    "No status pages to pick from. If this project has status pages, you need a role that can read them, such as Status Page Viewer (it can be limited to pages with certain labels). Ask a project admin.",
   noScopeSummary:
     "Not limited: shown on, and notifies, every status page that lists its monitors.",
 

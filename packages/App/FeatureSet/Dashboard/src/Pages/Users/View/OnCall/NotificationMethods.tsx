@@ -1,12 +1,4 @@
-import UserCall from "../../../../Components/NotificationMethods/Call";
-import UserEmailMethods from "../../../../Components/NotificationMethods/Email";
-import UserPush from "../../../../Components/NotificationMethods/Push";
-import UserSMS from "../../../../Components/NotificationMethods/SMS";
-import UserTelegram from "../../../../Components/NotificationMethods/Telegram";
-import UserSlackMethods from "../../../../Components/NotificationMethods/Slack";
-import UserMicrosoftTeamsMethods from "../../../../Components/NotificationMethods/MicrosoftTeams";
-import UserWebhook from "../../../../Components/NotificationMethods/Webhook";
-import UserWhatsApp from "../../../../Components/NotificationMethods/WhatsApp";
+import NotificationMethodTabs from "../../../../Components/NotificationMethods/NotificationMethodTabs";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -28,7 +20,6 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -311,40 +302,7 @@ const UserViewNotificationMethods: FunctionComponent<
   if (isSelf) {
     return (
       <Fragment>
-        <Tabs
-          tabs={[
-            {
-              name: "Direct Contact",
-              children: (
-                <div className="space-y-4">
-                  <UserEmailMethods />
-                  <UserSMS />
-                  <UserCall />
-                  <UserWhatsApp />
-                  <UserTelegram />
-                </div>
-              ),
-            },
-            {
-              name: "Workspace Apps",
-              children: (
-                <div className="space-y-4">
-                  <UserSlackMethods />
-                  <UserMicrosoftTeamsMethods />
-                </div>
-              ),
-            },
-            {
-              name: "Push Notifications",
-              children: <UserPush />,
-            },
-            {
-              name: "Webhooks",
-              children: <UserWebhook />,
-            },
-          ]}
-          onTabChange={() => {}}
-        />
+        <NotificationMethodTabs />
       </Fragment>
     );
   }

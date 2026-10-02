@@ -13,41 +13,34 @@ import {
 import useSubscriberAudience, {
   SubscriberAudienceState,
 } from "./useSubscriberAudience";
-import { StatusPagePickerAccess } from "./useStatusPagePickerAccess";
 
 /*
  * The notices shown next to the status page picker and the fields it
  * interacts with (see IncidentStatusPageScopeCopy for what each one says).
  * They sit under a form field through its footer, so each renders nothing at
  * all when it has nothing to say.
+ *
+ * Every one of them is a warning. The picker does not explain an empty list:
+ * someone who cannot read any status page (incident roles do not) simply
+ * finds nothing to pick in it.
  */
 
 export interface ScopeNoticeProps {
   // Already translated and filled in.
   text: string;
-  tone?: "warning" | "info" | undefined;
   dataTestId?: string | undefined;
 }
 
 export const ScopeNotice: FunctionComponent<ScopeNoticeProps> = (
   props: ScopeNoticeProps,
 ): ReactElement => {
-  const isInfo: boolean = props.tone === "info";
-
   return (
     <p
       role="note"
       data-testid={props.dataTestId}
-      className={`mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${
-        isInfo
-          ? "border-gray-200 bg-gray-50 text-gray-700"
-          : "border-amber-200 bg-amber-50 text-amber-900"
-      }`}
+      className="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
     >
-      <Icon
-        icon={isInfo ? IconProp.Info : IconProp.Alert}
-        className="mt-0.5 h-4 w-4 shrink-0"
-      />
+      <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
       <span>{props.text}</span>
     </p>
   );
@@ -57,12 +50,10 @@ export const ScopeNotice: FunctionComponent<ScopeNoticeProps> = (
 export const TranslatedScopeNotice: FunctionComponent<{
   text: string;
   values?: Record<string, string | number> | undefined;
-  tone?: "warning" | "info" | undefined;
   dataTestId?: string | undefined;
 }> = (props: {
   text: string;
   values?: Record<string, string | number> | undefined;
-  tone?: "warning" | "info" | undefined;
   dataTestId?: string | undefined;
 }): ReactElement => {
   const { translateString } = useTranslateValue();
@@ -73,7 +64,6 @@ export const TranslatedScopeNotice: FunctionComponent<{
         translateString(props.text) || props.text,
         props.values || {},
       )}
-      tone={props.tone}
       dataTestId={props.dataTestId}
     />
   );
@@ -95,26 +85,6 @@ export const TranslatedScopeText: FunctionComponent<{
     <p className={props.className} data-testid={props.dataTestId}>
       {translateString(props.text) || props.text}
     </p>
-  );
-};
-
-/*
- * Why the picker is empty, when it is: the person cannot read any status page
- * (see useStatusPagePickerAccess).
- */
-export const StatusPagePickerAccessHint: FunctionComponent<{
-  access: StatusPagePickerAccess;
-}> = (props: { access: StatusPagePickerAccess }): ReactElement => {
-  if (props.access !== StatusPagePickerAccess.None) {
-    return <></>;
-  }
-
-  return (
-    <TranslatedScopeNotice
-      text={IncidentStatusPageScopeCopy.pickerNoAccessHint}
-      tone="info"
-      dataTestId="status-page-picker-no-access"
-    />
   );
 };
 

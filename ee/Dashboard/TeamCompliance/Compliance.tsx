@@ -8,6 +8,7 @@ import useTeamComplianceStatus, {
   TeamComplianceStatusState,
 } from "./useTeamComplianceStatus";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import { useWorkspaceConnections } from "@oneuptime/dashboard/Utils/Workspace/ConnectedWorkspaces";
 import ObjectID from "Common/Types/ObjectID";
 import type { TeamComplianceRuleJSON } from "Common/Types/Team/TeamComplianceStatus";
 import Card from "Common/UI/Components/Card/Card";
@@ -46,6 +47,13 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
   const teamId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const compliance: TeamComplianceStatusState = useTeamComplianceStatus(teamId);
+
+  /*
+   * Asked now, so the rule form opens already knowing whether to offer
+   * Slack and Microsoft Teams (only once the project has connected them),
+   * rather than offering them and taking them away a moment later.
+   */
+  useWorkspaceConnections();
 
   const access: ComplianceAccess = getComplianceAccess();
 
