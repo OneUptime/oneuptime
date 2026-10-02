@@ -32,7 +32,7 @@ const AlertEpisodeDocs: FunctionComponent<
     {
       title: "Grouping Rules Evaluated",
       description:
-        "Alert is matched against enabled grouping rules in priority order",
+        "Alert is matched against enabled grouping rules, from the top of the list down",
       icon: IconProp.Filter,
       iconColor: new Color("#3b82f6"), // blue-500
     },
@@ -143,9 +143,9 @@ const AlertEpisodeDocs: FunctionComponent<
       iconColor: new Color("#f59e0b"), // amber-500
     },
     {
-      title: "Priority Order",
+      title: "Rule Order",
       description:
-        "Rules are evaluated in priority order (lower number = higher priority). The first matching rule wins and groups the alert.",
+        "Rules are evaluated from the top of the list down. The first matching rule wins and groups the alert - drag a rule to change its place.",
       icon: IconProp.BarsArrowDown,
       iconColor: new Color("#8b5cf6"), // violet-500
     },
@@ -428,9 +428,9 @@ const AlertEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <ul className="list-disc list-inside space-y-2 text-gray-600">
               <li>
-                <strong>Start with high-priority rules</strong> - Create
-                specific rules for critical services first, then add broader
-                catch-all rules with lower priority.
+                <strong>Put specific rules first</strong> - Drag rules for
+                critical services to the top of the list, and keep broader
+                catch-all rules below them.
               </li>
               <li>
                 <strong>Use appropriate time windows</strong> - High-frequency

@@ -117,8 +117,13 @@ const IncidentMeasurementsPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /*
+         * Drag the rows into the order the measurements are listed in; a new
+         * one goes to the end. There is no order to type in.
+         */
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
         }}
         filters={[
@@ -438,18 +443,6 @@ const IncidentMeasurementsPage: FunctionComponent<
             required: false,
             description:
               "Disable to stop computing and recording this measurement without deleting its history.",
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            stepId: "reporting",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "1",
-            description:
-              "Order in which this measurement is displayed. Lowest first.",
           },
         ]}
         showRefreshButton={true}

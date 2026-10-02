@@ -136,9 +136,7 @@ const LogDropFilters: FunctionComponent<
         action: LogDropFilterAction.Drop,
       }}
       onBeforeCreate={async (item: LogDropFilter) => {
-        if (!item.sortOrder) {
-          item.sortOrder = 1;
-        }
+        // No sortOrder: the server puts a new filter at the end of the list.
         if (!item.action) {
           item.action = LogDropFilterAction.Drop;
         }

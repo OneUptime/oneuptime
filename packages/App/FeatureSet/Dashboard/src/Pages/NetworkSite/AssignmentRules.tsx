@@ -39,12 +39,19 @@ const NetworkSiteAssignmentRules: FunctionComponent<
         isViewable={false}
         showRefreshButton={true}
         name="Network Site Assignment Rules"
+        /*
+         * Highest priority number first: the rule at the top wins when
+         * several match. Drag a rule to change its place; a new rule goes to
+         * the end, below the others.
+         */
         sortBy="priority"
         sortOrder={SortOrder.Descending}
+        enableDragAndDrop={true}
+        dragDropIndexField="priority"
         cardProps={{
           title: "Assignment Rules",
           description:
-            "Automatically assign discovered devices to a site by subnet CIDR or hostname pattern. The higher priority number wins; ties are broken by the older rule. Rules are evaluated when a device is created, when its hostname / name / SNMP system name / DNS name changes, and on the next poll of any device that has no site yet. A device you assigned to a site by hand is never moved unless its identity changes. Use Run Now on a rule to apply it to devices that already exist.",
+            "Automatically assign discovered devices to a site by subnet CIDR or hostname pattern. When several rules match a device, the one highest in the list wins - drag a rule to change its place. Rules are evaluated when a device is created, when its hostname / name / SNMP system name / DNS name changes, and on the next poll of any device that has no site yet. A device you assigned to a site by hand is never moved unless its identity changes. Use Run Now on a rule to apply it to devices that already exist.",
         }}
         noItemsMessage="No assignment rules yet. Add one to route newly discovered devices into the right site automatically."
         actionButtons={[
@@ -142,18 +149,6 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             required: false,
             placeholder: "unit-1042-*",
           },
-          {
-            field: {
-              priority: true,
-            },
-            title: "Priority",
-            stepId: "basic-info",
-            description:
-              "Higher priority number wins when several rules match; ties are broken by the older rule.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "0",
-          },
         ]}
         columns={[
           {
@@ -200,13 +195,6 @@ const NetworkSiteAssignmentRules: FunctionComponent<
                 </span>
               );
             },
-          },
-          {
-            field: {
-              priority: true,
-            },
-            title: "Priority",
-            type: FieldType.Number,
           },
         ]}
       />

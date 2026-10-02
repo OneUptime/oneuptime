@@ -139,10 +139,6 @@ const LogPipelines: FunctionComponent<
       createInitialValues={{
         isEnabled: true,
       }}
-      onBeforeCreate={async (item: LogPipeline) => {
-        item.sortOrder = 1;
-        return item;
-      }}
       formFields={[
         {
           field: {
