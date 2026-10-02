@@ -34,6 +34,9 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Ceph cluster log page (WI-16) — the Kubernetes View/Events.tsx analog.
@@ -109,6 +112,7 @@ const parseCephLogLine: (body: string, fallbackTime: string) => CephLogRow = (
 const CephClusterClusterLog: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [rows, setRows] = useState<Array<CephLogRow>>([]);
@@ -395,23 +399,29 @@ const CephClusterClusterLog: FunctionComponent<
           </div>
           <div>
             <p className="text-sm font-medium text-blue-800">
-              Cluster Log Shipping Is Optional
+              {translator.translateText("Cluster Log Shipping Is Optional")}
             </p>
             <p className="mt-1 text-sm text-blue-600">
-              No ceph.log lines arrived in the last 24 hours. To populate this
-              page, uncomment the{" "}
-              <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                filelog
-              </code>{" "}
-              receiver and the logs pipeline in the Ceph agent&apos;s{" "}
-              <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                otel-collector-config.yaml
-              </code>{" "}
-              (the agent host must be able to read{" "}
-              <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-                /var/log/ceph/ceph.log
-              </code>
-              ).
+              <TranslatedSentence
+                template="No ceph.log lines arrived in the last 24 hours. To populate this page, uncomment the {{receiver}} receiver and the logs pipeline in the Ceph agent's {{configFile}} (the agent host must be able to read {{logFile}})."
+                slots={{
+                  receiver: (
+                    <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                      filelog
+                    </code>
+                  ),
+                  configFile: (
+                    <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                      otel-collector-config.yaml
+                    </code>
+                  ),
+                  logFile: (
+                    <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                      /var/log/ceph/ceph.log
+                    </code>
+                  ),
+                }}
+              />
             </p>
           </div>
         </div>

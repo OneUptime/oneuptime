@@ -16,10 +16,15 @@ import NumberedSteps, {
 import ConceptCards, {
   ConceptCard,
 } from "Common/UI/Components/Diagram/ConceptCards";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const AlertEpisodeDocs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   // How Alert Grouping Works Flow Steps
   const flowSteps: Array<FlowStep> = [
     {
@@ -256,15 +261,21 @@ const AlertEpisodeDocs: FunctionComponent<
       >
         <div className="p-6">
           <p className="text-gray-600 mb-4">
-            Alert Grouping helps reduce alert fatigue by automatically combining
-            related alerts into <strong>Episodes</strong>. Instead of seeing 50
-            individual &quot;connection timeout&quot; alerts, operators see one
-            episode: &quot;Database Connectivity Issues (50 alerts)&quot;.
+            <TranslatedSentence
+              template={
+                'Alert Grouping helps reduce alert fatigue by automatically combining related alerts into {{episodes}}. Instead of seeing 50 individual "connection timeout" alerts, operators see one episode: "Database Connectivity Issues (50 alerts)".'
+              }
+              slots={{
+                episodes: (
+                  <strong>{translator.translateText("Episodes")}</strong>
+                ),
+              }}
+            />
           </p>
           <p className="text-gray-600">
-            Episodes follow the same state lifecycle as alerts (Active,
-            Acknowledged, Resolved) and can have their own on-call policies,
-            owners, and root cause documentation.
+            {translator.translateText(
+              "Episodes follow the same state lifecycle as alerts (Active, Acknowledged, Resolved) and can have their own on-call policies, owners, and root cause documentation.",
+            )}
           </p>
         </div>
       </Card>
@@ -295,8 +306,10 @@ const AlertEpisodeDocs: FunctionComponent<
             />
             <div className="mt-4 text-sm text-gray-500">
               <p>
-                <strong>State Cascade:</strong> Acknowledging or resolving an
-                episode will acknowledge or resolve all member alerts.
+                <strong>{translator.translateText("State Cascade:")}</strong>{" "}
+                {translator.translateText(
+                  "Acknowledging or resolving an episode will acknowledge or resolve all member alerts.",
+                )}
               </p>
             </div>
           </div>
@@ -347,10 +360,17 @@ const AlertEpisodeDocs: FunctionComponent<
         >
           <div className="p-6">
             <p className="text-gray-600 mb-4">
-              On-call policies can be configured at two levels: on individual{" "}
-              <strong>alerts</strong> (via monitors or manual configuration) and
-              on <strong>grouping rules</strong> (for episodes). Understanding
-              how these interact is important for managing notification volume.
+              <TranslatedSentence
+                template="On-call policies can be configured at two levels: on individual {{alerts}} (via monitors or manual configuration) and on {{groupingRules}} (for episodes). Understanding how these interact is important for managing notification volume."
+                slots={{
+                  alerts: <strong>{translator.translateText("alerts")}</strong>,
+                  groupingRules: (
+                    <strong>
+                      {translator.translateText("grouping rules")}
+                    </strong>
+                  ),
+                }}
+              />
             </p>
             <VerticalFlowSteps steps={onCallFlowSteps} />
           </div>
@@ -367,15 +387,21 @@ const AlertEpisodeDocs: FunctionComponent<
             <ConceptCards cards={onCallScenarioCards} columns={2} />
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h4 className="font-semibold text-blue-800 mb-2">
-                Recommendation
+                {translator.translateText("Recommendation")}
               </h4>
               <p className="text-blue-700 text-sm">
-                To avoid duplicate notifications, consider using{" "}
-                <strong>only episode-level on-call policies</strong> for grouped
-                alerts. Configure on-call policies on your grouping rules and
-                leave individual alert on-call policies empty. This way,
-                responders are notified once per episode rather than for every
-                individual alert.
+                <TranslatedSentence
+                  template="To avoid duplicate notifications, consider using {{policies}} for grouped alerts. Configure on-call policies on your grouping rules and leave individual alert on-call policies empty. This way, responders are notified once per episode rather than for every individual alert."
+                  slots={{
+                    policies: (
+                      <strong>
+                        {translator.translateText(
+                          "only episode-level on-call policies",
+                        )}
+                      </strong>
+                    ),
+                  }}
+                />
               </p>
             </div>
           </div>
@@ -391,28 +417,36 @@ const AlertEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <ul className="list-disc list-inside space-y-3 text-gray-600">
               <li>
-                <strong>Grouping Rule On-Call Policy:</strong> When creating or
-                editing a grouping rule, you can assign one or more on-call duty
-                policies. These policies execute when a NEW episode is created
-                by the rule.
+                <strong>
+                  {translator.translateText("Grouping Rule On-Call Policy:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "When creating or editing a grouping rule, you can assign one or more on-call duty policies. These policies execute when a NEW episode is created by the rule.",
+                )}
               </li>
               <li>
-                <strong>Default Team/User Assignment:</strong> Grouping rules
-                can also specify default team or user ownership for episodes.
-                This determines who is responsible for the episode even if
-                on-call policies aren&apos;t configured.
+                <strong>
+                  {translator.translateText("Default Team/User Assignment:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "Grouping rules can also specify default team or user ownership for episodes. This determines who is responsible for the episode even if on-call policies aren't configured.",
+                )}
               </li>
               <li>
-                <strong>Alert-Level Policies:</strong> Individual alerts can
-                still have their own on-call policies (configured on monitors).
-                These execute regardless of whether the alert is grouped into an
-                episode.
+                <strong>
+                  {translator.translateText("Alert-Level Policies:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "Individual alerts can still have their own on-call policies (configured on monitors). These execute regardless of whether the alert is grouped into an episode.",
+                )}
               </li>
               <li>
-                <strong>State Change Notifications:</strong> When an episode
-                state changes (e.g., acknowledged or resolved), owners are
-                notified based on the episode&apos;s configured notification
-                settings.
+                <strong>
+                  {translator.translateText("State Change Notifications:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "When an episode state changes (e.g., acknowledged or resolved), owners are notified based on the episode's configured notification settings.",
+                )}
               </li>
             </ul>
           </div>
@@ -428,33 +462,58 @@ const AlertEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <ul className="list-disc list-inside space-y-2 text-gray-600">
               <li>
-                <strong>Put specific rules first</strong> - Drag rules for
-                critical services to the top of the list, and keep broader
-                catch-all rules below them.
+                <strong>
+                  {translator.translateText("Put specific rules first")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Drag rules for critical services to the top of the list, and keep broader catch-all rules below them.",
+                )}
               </li>
               <li>
-                <strong>Use appropriate time windows</strong> - High-frequency
-                metric alerts may need shorter windows (5-15 min), while
-                standard monitoring can use longer windows (30-60 min).
+                <strong>
+                  {translator.translateText("Use appropriate time windows")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "High-frequency metric alerts may need shorter windows (5-15 min), while standard monitoring can use longer windows (30-60 min).",
+                )}
               </li>
               <li>
-                <strong>Group by service or component</strong> - Configure rules
-                to group alerts from the same monitor or service together for
-                easier triage.
+                <strong>
+                  {translator.translateText("Group by service or component")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Configure rules to group alerts from the same monitor or service together for easier triage.",
+                )}
               </li>
               <li>
-                <strong>Set meaningful episode titles</strong> - Use title
-                templates to create descriptive episode names that help
-                operators understand the issue at a glance.
+                <strong>
+                  {translator.translateText("Set meaningful episode titles")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Use title templates to create descriptive episode names that help operators understand the issue at a glance.",
+                )}
               </li>
               <li>
-                <strong>Configure on-call policies</strong> - Assign on-call
-                policies to grouping rules so the right team is notified when
-                episodes are created.
+                <strong>
+                  {translator.translateText("Configure on-call policies")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Assign on-call policies to grouping rules so the right team is notified when episodes are created.",
+                )}
               </li>
               <li>
-                <strong>Document root causes</strong> - Use the root cause field
-                on episodes to document findings for future reference.
+                <strong>
+                  {translator.translateText("Document root causes")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Use the root cause field on episodes to document findings for future reference.",
+                )}
               </li>
             </ul>
           </div>

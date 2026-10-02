@@ -28,10 +28,14 @@ import RepositoryConnectionStatus from "../../Components/CodeRepository/Reposito
 import Card from "Common/UI/Components/Card/Card";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showGitHubConnectedBanner, setShowGitHubConnectedBanner] =
     useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
@@ -145,14 +149,16 @@ const CodeRepositoryPage: FunctionComponent<
         title="Connect Repositories"
         description={
           <span>
-            Install the GitHub App and all repositories in the installation are
-            imported automatically — no need to pick them one at a time. They
-            stay in sync as repositories are added to or removed from the
-            installation. Connected repositories are what the{" "}
-            <Link to={aiAgentsRoute} className="underline">
-              AI agent
-            </Link>{" "}
-            opens fix pull requests against.
+            <TranslatedSentence
+              template="Install the GitHub App and all repositories in the installation are imported automatically — no need to pick them one at a time. They stay in sync as repositories are added to or removed from the installation. Connected repositories are what the {{aiAgent}} opens fix pull requests against."
+              slots={{
+                aiAgent: (
+                  <Link to={aiAgentsRoute} className="underline">
+                    {translator.translateText("AI agent")}
+                  </Link>
+                ),
+              }}
+            />
           </span>
         }
       >
@@ -183,16 +189,16 @@ const CodeRepositoryPage: FunctionComponent<
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-semibold text-gray-900 group-hover:text-indigo-600">
-                    Connect with GitHub App
+                    {translator.translateText("Connect with GitHub App")}
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Recommended for GitHub repositories. Installing the app
-                    imports all of its repositories automatically and keeps them
-                    in sync.
+                    {translator.translateText(
+                      "Recommended for GitHub repositories. Installing the app imports all of its repositories automatically and keeps them in sync.",
+                    )}
                   </p>
                   <div className="mt-3">
                     <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                      Recommended
+                      {translator.translateText("Recommended")}
                     </span>
                   </div>
                 </div>
@@ -202,21 +208,31 @@ const CodeRepositoryPage: FunctionComponent<
         ) : (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
             <h3 className="text-base font-semibold text-gray-900">
-              GitHub App is not configured on this server
+              {translator.translateText(
+                "GitHub App is not configured on this server",
+              )}
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Connecting a repository requires the GitHub App environment
-              variables (like <code>GITHUB_APP_NAME</code> and{" "}
-              <code>GITHUB_APP_ID</code>) to be configured on your OneUptime
-              server. See the{" "}
-              <Link
-                to={Route.fromString("/docs/self-hosted/github-integration")}
-                openInNewTab={true}
-                className="underline"
-              >
-                GitHub Integration documentation
-              </Link>{" "}
-              for setup instructions.
+              <TranslatedSentence
+                template="Connecting a repository requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+                slots={{
+                  appName: <code>GITHUB_APP_NAME</code>,
+                  appId: <code>GITHUB_APP_ID</code>,
+                  documentation: (
+                    <Link
+                      to={Route.fromString(
+                        "/docs/self-hosted/github-integration",
+                      )}
+                      openInNewTab={true}
+                      className="underline"
+                    >
+                      {translator.translateText(
+                        "GitHub Integration documentation",
+                      )}
+                    </Link>
+                  ),
+                }}
+              />
             </p>
           </div>
         )}
