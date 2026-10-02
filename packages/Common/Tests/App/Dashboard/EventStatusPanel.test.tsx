@@ -1789,3 +1789,90 @@ describe("EventStatusPanel secondary actions", () => {
     expect(rendered.actionClicks).toEqual([]);
   });
 });
+
+/*
+ * "Can you please add colours to incident state as well?" The header's
+ * "Change state to" menu is where a state is picked on an incident, alert,
+ * episode or scheduled maintenance event, so it shows each state's colour
+ * the way the state dropdowns do.
+ */
+describe("EventStatusPanel state menu colours", () => {
+  type MenuDotColorFunction = (choice: HTMLElement) => string | undefined;
+
+  // jsdom reports inline colours as rgb(); the states are written in hex.
+  const menuDotColor: MenuDotColorFunction = (
+    choice: HTMLElement,
+  ): string | undefined => {
+    const dot: HTMLElement | null = choice.querySelector<HTMLElement>(
+      '[data-testid="more-menu-item-color"] span[style]',
+    );
+
+    if (!dot) {
+      return undefined;
+    }
+
+    const match: RegExpMatchArray | null = dot.style.backgroundColor.match(
+      /rgb\((\d+),\s*(\d+),\s*(\d+)\)/,
+    );
+
+    if (!match) {
+      return dot.style.backgroundColor;
+    }
+
+    return (
+      "#" +
+      [match[1], match[2], match[3]]
+        .map((part: string | undefined): string => {
+          return Number(part).toString(16).padStart(2, "0");
+        })
+        .join("")
+    );
+  };
+
+  test("each state in the menu shows its own colour", () => {
+    renderPanel({ actions: [] });
+
+    const menu: HTMLElement = openMenu();
+
+    expect(
+      getMenuChoices(menu).map((choice: HTMLElement) => {
+        return [choice.textContent?.trim(), menuDotColor(choice)];
+      }),
+    ).toEqual([
+      ["Acknowledged", ACKNOWLEDGED_COLOR.toString()],
+      ["Investigating", INVESTIGATING_COLOR.toString()],
+      ["Resolved", RESOLVED_COLOR.toString()],
+    ]);
+  });
+
+  test("the dot does not change what a state is called or what picking it does", () => {
+    const rendered: RenderedPanel = renderPanel();
+
+    const menu: HTMLElement = openMenu();
+    const investigating: HTMLElement = getMenuChoice(menu, "Investigating");
+
+    expect(investigating).toHaveAccessibleName("Investigating");
+
+    fireEvent.click(investigating);
+
+    expect(rendered.stateSelections).toEqual(["investigating"]);
+  });
+
+  test("a state without a colour gets no dot, rather than an empty one", () => {
+    renderPanel({
+      actions: [],
+      states: [
+        makeState("created", "Created"),
+        {
+          id: "triaged",
+          name: "Triaged",
+          color: undefined as unknown as Color,
+        },
+      ],
+    });
+
+    const choice: HTMLElement = getMenuChoice(openMenu(), "Triaged");
+
+    expect(menuDotColor(choice)).toBeUndefined();
+  });
+});

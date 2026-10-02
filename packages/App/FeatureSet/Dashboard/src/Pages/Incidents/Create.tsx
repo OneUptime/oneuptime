@@ -56,8 +56,6 @@ import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchInci
 import FetchIncidentState from "../../Components/IncidentState/FetchIncidentState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IncidentRoleFormField, {
   RoleAssignment,
 } from "../../Components/Incident/IncidentRoleFormField";
@@ -1428,51 +1426,12 @@ const IncidentCreate: FunctionComponent<
                     type: IncidentState,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
                   },
                   required: false,
                   placeholder: "Select Initial State",
-                  fetchDropdownOptions: async () => {
-                    const projectId: ObjectID | null =
-                      ProjectUtil.getCurrentProjectId();
-                    if (!projectId) {
-                      return [];
-                    }
-
-                    try {
-                      const incidentStates: ListResult<IncidentState> =
-                        await ModelAPI.getList<IncidentState>({
-                          modelType: IncidentState,
-                          query: {
-                            projectId: projectId,
-                          },
-                          limit: LIMIT_PER_PROJECT,
-                          skip: 0,
-                          select: {
-                            _id: true,
-                            name: true,
-                            color: true,
-                          },
-                          sort: {
-                            order: SortOrder.Ascending,
-                          },
-                        });
-
-                      return incidentStates.data.map(
-                        (state: IncidentState): DropdownOption => {
-                          const option: DropdownOption = {
-                            label: state.name || "",
-                            value: state._id?.toString() || "",
-                            color: state.color as Color,
-                          };
-
-                          return option;
-                        },
-                      );
-                    } catch {
-                      // Silently fail and return empty array
-                      return [];
-                    }
-                  },
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.currentIncidentState) {
                       return <p>Will use first available state by priority</p>;
