@@ -6587,7 +6587,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "在狀態頁面訂閱者收到的事件相關訊息（電子郵件、Slack、Microsoft Teams 和 Webhook）中顯示此欄位及其值。預設簡訊保持簡短，不包含此欄位。訂閱者通常是團隊以外的人，因此只對可以安全分享給他們的欄位開啟此選項。",
   "In Subscriber Notifications": "在訂閱者通知中",
   "Template Variable": "範本變數",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "在自訂訂閱者通知範本中使用它來顯示欄位的值。它在欄位建立時依欄位名稱產生，欄位重新命名時不會改變。",
   "{{field}} must be checked.": "必須勾選 {{field}}。",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "從此範本宣告的事件一開始具有的自訂欄位值。在「詳細資料」步驟中要求填寫的欄位，在宣告事件時仍可變更。",
   "Affected Status Pages": "受影響的狀態頁面",

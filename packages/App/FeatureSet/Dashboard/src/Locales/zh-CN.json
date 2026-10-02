@@ -6587,7 +6587,6 @@
   "Show this field and its value in the messages status page subscribers get about an incident: email, Slack, Microsoft Teams and webhooks. The default SMS is kept short and leaves it out. Subscribers are usually people outside your team, so only turn this on for fields that are safe to share with them.": "在状态页订阅者收到的事件相关消息（电子邮件、Slack、Microsoft Teams 和 Webhook）中显示此字段及其值。默认短信保持简短，不包含此字段。订阅者通常是团队以外的人，因此只对可以安全共享给他们的字段开启此选项。",
   "In Subscriber Notifications": "在订阅者通知中",
   "Template Variable": "模板变量",
-  "Use this in a custom subscriber notification template to show the field's value. It is made from the field's name when the field is created and does not change when the field is renamed.": "在自定义订阅者通知模板中使用它来显示字段的值。它在字段创建时根据字段名称生成，字段重命名时不会改变。",
   "{{field}} must be checked.": "必须勾选 {{field}}。",
   "The custom field values an incident declared from this template starts with. Fields asked for in the Details step can still be changed when the incident is declared.": "从此模板声明的事件一开始具有的自定义字段值。在“详情”步骤中要求填写的字段，在声明事件时仍可更改。",
   "Affected Status Pages": "受影响的状态页面",

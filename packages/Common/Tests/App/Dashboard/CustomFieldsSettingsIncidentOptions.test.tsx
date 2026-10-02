@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
@@ -18,10 +18,12 @@ import React, { ReactElement } from "react";
  * the order they are listed in, which is set by dragging the rows, never
  * typed in. What must hold:
  *
- *   - the incident settings page offers the three inputs, and the columns,
- *     and is dragged into order with no Order input or column at all;
- *   - no other resource's page does, because its definition table has none
- *     of those columns and the table's select would fail;
+ *   - the incident settings page offers the three inputs on its form, and
+ *     is dragged into order with no Order input or column at all;
+ *   - none of them is a column: every settings table lists a field's name
+ *     and type only (CustomFieldTablesTwoColumns.test.tsx covers all nine);
+ *   - no other resource's page offers them, because its definition table
+ *     has none of those columns and the form would fail;
  *   - every settings page, the team member one included, offers the Long
  *     text and Rich text types with readable labels.
  *
@@ -73,7 +75,6 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "../../../UI/Components/Types/FieldType";
 
 interface RecordedField {
   field?: Record<string, unknown>;
@@ -88,9 +89,6 @@ interface RecordedField {
 interface RecordedColumn {
   field?: Record<string, unknown>;
   title?: string;
-  type?: FieldType;
-  isHiddenByDefault?: boolean;
-  getElement?: (item: BaseModel) => ReactElement;
 }
 
 const INCIDENT_SETTINGS: Array<string> = [
@@ -240,46 +238,24 @@ describe("incident custom field settings", () => {
     );
   });
 
-  test("lists the settings and the template variable as columns", () => {
+  /*
+   * "Too many columns on the table. I think we just need to show field name
+   * and field type here, and that's basically it." The settings are on the
+   * form above; an incident field's template variable is listed by the
+   * note and subscriber template editors, where it is used.
+   */
+  test("lists none of the settings, nor the template variable, as a column", () => {
     renderSettingsPage(IncidentCustomField);
 
-    expect(column("showOnCreate")).toMatchObject({ type: FieldType.Boolean });
-    expect(column("isRequiredOnCreate")).toMatchObject({
-      type: FieldType.Boolean,
-      isHiddenByDefault: true,
-    });
-    expect(column("includeInSubscriberNotifications")).toMatchObject({
-      type: FieldType.Boolean,
-      title:
-        IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsColumnTitle,
-    });
-    expect(column("variableKey")).toMatchObject({
-      title: IncidentCustomFieldSettingsCopy.variableKeyColumnTitle,
-      type: FieldType.Element,
-    });
-  });
+    for (const key of [...INCIDENT_SETTINGS, "variableKey"]) {
+      expect(column(key)).toBeUndefined();
+    }
 
-  test("shows the template variable as the placeholder to paste", () => {
-    renderSettingsPage(IncidentCustomField);
-
-    const field: IncidentCustomField = new IncidentCustomField();
-    field.variableKey = "expected_resolution";
-
-    render(column("variableKey")!.getElement!(field));
-
-    // Named after the incident, as note and subscriber templates use it.
     expect(
-      screen.getByText("{{incident.customFields.expected_resolution}}"),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("{{customFields.expected_resolution}}"),
-    ).not.toBeInTheDocument();
-
-    cleanup();
-
-    render(column("variableKey")!.getElement!(new IncidentCustomField()));
-
-    expect(screen.getByText("-")).toBeInTheDocument();
+      columns().map((candidate: RecordedColumn) => {
+        return candidate.title;
+      }),
+    ).toEqual(["Field Name", "Field Type"]);
   });
 
   test("lists the fields in their order", () => {
