@@ -19,6 +19,13 @@ export interface CriteriaSeedIds {
   offlineMonitorStatusId: ObjectID;
   defaultIncidentSeverityId: ObjectID;
   defaultAlertSeverityId: ObjectID;
+  /*
+   * The alert severity of the "expires soon" warning SSL Certificate and
+   * Domain monitors start with. It has to be the one the form seeded with,
+   * or their untouched defaults no longer read as untouched and are
+   * repaired filter by filter, instead of re-seeded, after a type change.
+   */
+  warningAlertSeverityId?: ObjectID | undefined;
 }
 
 export interface CriteriaSeedOptions extends CriteriaSeedIds {
@@ -320,7 +327,8 @@ export default class MonitorCriteriaAlignmentUtil {
     /*
      * A criteria is the "monitor is down" one if it raises something or
      * if it parks the monitor on the offline status. Both seeded offline
-     * criteria and hand-written ones follow that shape.
+     * criteria and hand-written ones follow that shape. A seeded "expires
+     * soon" warning raises an alert, so it counts as one too.
      */
     const isOfflineCriteria: boolean =
       Boolean(monitorCriteriaInstance.data?.createIncidents) ||
