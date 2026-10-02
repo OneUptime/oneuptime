@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "Defina cómo los valores de origen se asignan a los nuevos nombres de tramos.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Defina criterios de coincidencia (monitores, gravedad, etiquetas, patrones de título) para identificar qué alertas deben agruparse.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Defina criterios de coincidencia (monitores, gravedad, etiquetas, patrones de título) para identificar qué incidentes deben agruparse.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Defina los roles que se pueden asignar a los usuarios durante la respuesta a incidentes (ej.: Comandante de Incidente, Respondedor).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Defina reglas para ejecutar automáticamente las políticas de guardia cuando se creen alertas coincidentes.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Defina reglas para ejecutar automáticamente las políticas de guardia cuando se creen incidentes coincidentes.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Defina el orden en que se contacta a los usuarios, equipos o programaciones de guardia. Si uno no responde, la llamada pasa a la siguiente regla.",
@@ -3525,7 +3524,6 @@
   "Mounts": "Montajes",
   "MSI installer, registered as a Windows service.": "Instalador MSI, registrado como un servicio de Windows.",
   "mTLS Certificates Issued": "Certificados mTLS emitidos",
-  "Multiple Users": "Múltiples usuarios",
   "My Backend API": "Mi API de backend",
   "My Custom Template": "Mi plantilla personalizada",
   "My internal alerts": "Mis alertas internas",
@@ -4159,7 +4157,6 @@
   "Pressure": "Presión",
   "Preview of the logs that match the filter of this monitor.": "Vista previa de los registros que coinciden con el filtro de este monitor.",
   "Preview of the metrics that match this monitor criteria": "Vista previa de las métricas que coinciden con los criterios de este monitor",
-  "Primary decision maker during an incident.": "Responsable principal de la toma de decisiones durante un incidente.",
   "Primary On-Call": "Guardia principal",
   "Primary Twilio Phone Number": "Número de teléfono principal de Twilio",
   "Priority": "Prioridad",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack y Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "Envía notificaciones a la herramienta de chat que tu equipo ya usa. Conéctala una vez para todo el proyecto y aparecerá en este menú, donde eliges qué notificaciones se publican en qué canales.",
   "Not connected": "No conectado",
-  "Set up notifications": "Configurar notificaciones"
+  "Set up notifications": "Configurar notificaciones",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Los roles que asumen las personas durante un incidente, como Incident Commander. Agregue más si su equipo los necesita.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Todo incidente necesita a alguien al mando, así que este rol se puede renombrar, pero no eliminar.",
+  "Does the hands-on work to resolve the incident.": "Hace el trabajo práctico para resolver el incidente."
 }

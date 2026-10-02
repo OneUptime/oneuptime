@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "定义源值如何映射到新的跨度名称。",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "定义匹配条件（监视器、严重性、标签、标题模式）以确定哪些警报应被分组在一起。",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "定义匹配条件（监视器、严重性、标签、标题模式）以确定哪些事件应被分组在一起。",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "定义在事件响应期间可分配给用户的角色（例如，事件指挥官、响应者）。",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "定义规则，以在创建匹配的警报时自动执行值班策略。",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "定义规则，以在创建匹配的事件时自动执行值班策略。",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "定义联系值班用户、团队或计划的顺序。如果某个未应答，呼叫将转到下一条规则。",
@@ -3525,7 +3524,6 @@
   "Mounts": "挂载点",
   "MSI installer, registered as a Windows service.": "MSI 安装程序，注册为 Windows 服务。",
   "mTLS Certificates Issued": "已签发的 mTLS 证书",
-  "Multiple Users": "多个用户",
   "My Backend API": "我的后端 API",
   "My Custom Template": "我的自定义模板",
   "My internal alerts": "我的内部警报",
@@ -4159,7 +4157,6 @@
   "Pressure": "压力",
   "Preview of the logs that match the filter of this monitor.": "符合此监视器过滤条件的日志预览。",
   "Preview of the metrics that match this monitor criteria": "符合此监视器条件的指标预览",
-  "Primary decision maker during an incident.": "事件期间的主要决策者。",
   "Primary On-Call": "主值班人员",
   "Primary Twilio Phone Number": "主 Twilio 电话号码",
   "Priority": "优先级",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack 和 Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "将通知发送到你的团队已在使用的聊天工具。为整个项目连接一次后，它就会出现在此菜单中，你可以在那里选择将哪些通知发布到哪些频道。",
   "Not connected": "未连接",
-  "Set up notifications": "设置通知"
+  "Set up notifications": "设置通知",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "事件期间人员承担的角色，例如 Incident Commander。如果团队需要，可以添加更多角色。",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "每个事件都需要有人负责，因此此角色可以重命名，但不能删除。",
+  "Does the hands-on work to resolve the incident.": "负责解决事件的实际工作。"
 }

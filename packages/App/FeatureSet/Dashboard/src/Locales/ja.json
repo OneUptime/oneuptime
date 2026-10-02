@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "ソース値が新しいスパン名にどのようにマッピングされるかを定義します。",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "どのアラートをグループ化するかを識別するための一致条件（モニター、重大度、ラベル、タイトルパターン）を定義します。",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "どのインシデントをグループ化するかを識別するための一致条件（モニター、重大度、ラベル、タイトルパターン）を定義します。",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "インシデント対応中にユーザーに割り当てられるロール（例: インシデントコマンダー、対応者）を定義します。",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "一致するアラートが作成されたときにオンコールポリシーを自動的に実行するルールを定義します。",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "一致するインシデントが作成されたときにオンコールポリシーを自動的に実行するルールを定義します。",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "オンコールユーザー、チーム、またはスケジュールに連絡する順序を定義します。応答がない場合、通話は次のルールに移ります。",
@@ -3525,7 +3524,6 @@
   "Mounts": "マウント",
   "MSI installer, registered as a Windows service.": "MSIインストーラー。Windowsサービスとして登録されます。",
   "mTLS Certificates Issued": "発行された mTLS 証明書",
-  "Multiple Users": "複数のユーザー",
   "My Backend API": "My Backend API",
   "My Custom Template": "My Custom Template",
   "My internal alerts": "社内アラート",
@@ -4159,7 +4157,6 @@
   "Pressure": "圧力",
   "Preview of the logs that match the filter of this monitor.": "このモニターのフィルターに一致するログのプレビュー。",
   "Preview of the metrics that match this monitor criteria": "このモニターの条件に一致するメトリクスのプレビュー",
-  "Primary decision maker during an incident.": "インシデント発生時の主要な意思決定者。",
   "Primary On-Call": "プライマリオンコール",
   "Primary Twilio Phone Number": "プライマリTwilio電話番号",
   "Priority": "優先度",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack と Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "チームがすでに使っているチャットツールに通知を送信します。プロジェクト全体で一度接続すると、このメニューに表示され、どの通知をどのチャンネルに投稿するかを選択できます。",
   "Not connected": "未接続",
-  "Set up notifications": "通知を設定"
+  "Set up notifications": "通知を設定",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "インシデントの際にメンバーが担うロールです（例: Incident Commander）。チームに必要であれば、ほかのロールを追加してください。",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "どのインシデントにも指揮を執る人が必要なため、このロールは名前を変更できますが、削除はできません。",
+  "Does the hands-on work to resolve the incident.": "インシデントを解決するための実作業を担当します。"
 }

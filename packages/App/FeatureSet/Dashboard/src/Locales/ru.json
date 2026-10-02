@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "Определите, как исходные значения сопоставляются с новыми именами спанов.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Определите критерии совпадения (мониторы, серьёзность, метки, шаблоны заголовков), чтобы определить, какие оповещения следует группировать вместе.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Определите критерии совпадения (мониторы, серьёзность, метки, шаблоны заголовков), чтобы определить, какие инциденты следует группировать вместе.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Определите роли, которые можно назначать пользователям во время реагирования на инцидент (например, Руководитель инцидента, Реагирующий).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Определите правила для автоматического выполнения политик дежурства при создании подходящих оповещений.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Определите правила для автоматического выполнения политик дежурства при создании подходящих инцидентов.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Определите порядок, в котором происходит обращение к дежурным пользователям, командам или расписаниям. Если кто-то не отвечает, вызов переходит к следующему правилу.",
@@ -3525,7 +3524,6 @@
   "Mounts": "Точки монтирования",
   "MSI installer, registered as a Windows service.": "Установщик MSI, зарегистрированный как служба Windows.",
   "mTLS Certificates Issued": "Выпущено сертификатов mTLS",
-  "Multiple Users": "Несколько пользователей",
   "My Backend API": "Мой бэкенд API",
   "My Custom Template": "Мой пользовательский шаблон",
   "My internal alerts": "Мои внутренние оповещения",
@@ -4159,7 +4157,6 @@
   "Pressure": "Давление",
   "Preview of the logs that match the filter of this monitor.": "Предпросмотр логов, соответствующих фильтру этого монитора.",
   "Preview of the metrics that match this monitor criteria": "Предпросмотр метрик, соответствующих критериям этого монитора",
-  "Primary decision maker during an incident.": "Основное лицо, принимающее решения во время инцидента.",
   "Primary On-Call": "Основной дежурный",
   "Primary Twilio Phone Number": "Основной номер телефона Twilio",
   "Priority": "Приоритет",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack и Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "Отправляйте уведомления в чат, которым ваша команда уже пользуется. Подключите его один раз для всего проекта — после этого он появится в этом меню, где вы выбираете, какие уведомления публикуются в какие каналы.",
   "Not connected": "Не подключено",
-  "Set up notifications": "Настроить уведомления"
+  "Set up notifications": "Настроить уведомления",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Роли, которые люди берут на себя во время инцидента, например Incident Commander. Добавьте другие, если они нужны вашей команде.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "У каждого инцидента должен быть ответственный, поэтому эту роль можно переименовать, но нельзя удалить.",
+  "Does the hands-on work to resolve the incident.": "Выполняет практическую работу по устранению инцидента."
 }

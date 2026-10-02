@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "تعریف کنید مقادیر مبدأ چگونه به نام‌های جدید اسپن نگاشت شوند.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "معیارهای تطبیق (مانیتورها، شدت، برچسب‌ها، الگوهای عنوان) را تعریف کنید تا مشخص شود کدام هشدارها باید گروه‌بندی شوند.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "معیارهای تطبیق (مانیتورها، شدت، برچسب‌ها، الگوهای عنوان) را تعریف کنید تا مشخص شود کدام حوادث باید گروه‌بندی شوند.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "نقش‌هایی را تعریف کنید که هنگام پاسخ به حادثه می‌توان به کاربران تخصیص داد (برای نمونه فرمانده حادثه، پاسخ‌دهنده).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "قواعدی تعریف کنید تا هنگام ساخت هشدارهای منطبق، سیاست‌های کشیک آنکال به‌صورت خودکار اجرا شوند.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "قواعدی تعریف کنید تا هنگام ساخت حوادث منطبق، سیاست‌های کشیک آنکال به‌صورت خودکار اجرا شوند.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "ترتیبی را تعریف کنید که کاربران، تیم‌ها یا زمان‌بندی‌های آنکال بر اساس آن تماس گرفته می‌شوند. اگر یکی پاسخ ندهد، تماس به قاعده بعدی می‌رود.",
@@ -3525,7 +3524,6 @@
   "Mounts": "اتصال‌ها",
   "MSI installer, registered as a Windows service.": "نصب‌کننده MSI که به‌عنوان یک سرویس Windows ثبت می‌شود.",
   "mTLS Certificates Issued": "گواهی‌های mTLS صادرشده",
-  "Multiple Users": "چند کاربر",
   "My Backend API": "API بک‌اند من",
   "My Custom Template": "قالب سفارشی من",
   "My internal alerts": "هشدارهای داخلی من",
@@ -4159,7 +4157,6 @@
   "Pressure": "فشار",
   "Preview of the logs that match the filter of this monitor.": "پیش‌نمایش لاگ‌هایی که با فیلتر این مانیتور مطابقت دارند.",
   "Preview of the metrics that match this monitor criteria": "پیش‌نمایش متریک‌هایی که با معیار این مانیتور مطابقت دارند",
-  "Primary decision maker during an incident.": "تصمیم‌گیرنده اصلی در جریان یک حادثه.",
   "Primary On-Call": "آنکال اصلی",
   "Primary Twilio Phone Number": "شماره تلفن اصلی Twilio",
   "Priority": "اولویت",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack و Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "اعلان‌ها را به ابزار گفتگویی بفرستید که تیم شما همین حالا از آن استفاده می‌کند. آن را یک بار برای کل پروژه متصل کنید تا در این منو نمایش داده شود؛ آنجا انتخاب می‌کنید کدام اعلان‌ها در کدام کانال‌ها ارسال شوند.",
   "Not connected": "متصل نیست",
-  "Set up notifications": "تنظیم اعلان‌ها"
+  "Set up notifications": "تنظیم اعلان‌ها",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "نقش‌هایی که افراد در طول یک حادثه بر عهده می‌گیرند، مانند Incident Commander. اگر تیمتان نیاز دارد، نقش‌های بیشتری اضافه کنید.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "هر حادثه به کسی نیاز دارد که مسئولیتش را بر عهده بگیرد، پس نام این نقش را می‌توان تغییر داد، اما نمی‌توان آن را حذف کرد.",
+  "Does the hands-on work to resolve the incident.": "کار عملی برای رفع حادثه را انجام می‌دهد."
 }

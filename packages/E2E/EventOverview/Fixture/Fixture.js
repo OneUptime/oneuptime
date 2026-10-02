@@ -756,6 +756,10 @@ const alertSeverities = {
   }),
 };
 
+/*
+ * A new project starts with Incident Commander alone; this workspace has
+ * added two roles of its own, so the role cards show more than one role.
+ */
 const roles = {
   commander: insert(IncidentRole, {
     _id: ID.role(1),

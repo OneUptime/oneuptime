@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "Definieer hoe bronwaarden worden toegewezen aan nieuwe span-namen.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Definieer overeenkomstcriteria (monitoren, ernst, labels, titelpatronen) om te bepalen welke waarschuwingen samen moeten worden gegroepeerd.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Definieer overeenkomstcriteria (monitoren, ernst, labels, titelpatronen) om te bepalen welke incidenten samen moeten worden gegroepeerd.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Definieer rollen die tijdens incidentrespons aan gebruikers kunnen worden toegewezen (bijv. Incident Commander, Responder).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Definieer regels om automatisch bereikbaarheidsdienstbeleid uit te voeren wanneer overeenkomende waarschuwingen worden aangemaakt.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Definieer regels om automatisch bereikbaarheidsdienstbeleid uit te voeren wanneer overeenkomende incidenten worden aangemaakt.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Definieer de volgorde waarin bereikbare gebruikers, teams of schema's worden gecontacteerd. Als iemand niet opneemt, gaat de oproep naar de volgende regel.",
@@ -3525,7 +3524,6 @@
   "Mounts": "Koppelpunten",
   "MSI installer, registered as a Windows service.": "MSI-installatieprogramma, geregistreerd als een Windows-service.",
   "mTLS Certificates Issued": "mTLS-certificaten uitgegeven",
-  "Multiple Users": "Meerdere gebruikers",
   "My Backend API": "Mijn backend-API",
   "My Custom Template": "Mijn aangepaste sjabloon",
   "My internal alerts": "Mijn interne waarschuwingen",
@@ -4159,7 +4157,6 @@
   "Pressure": "Druk",
   "Preview of the logs that match the filter of this monitor.": "Voorbeeld van de logboeken die overeenkomen met het filter van deze monitor.",
   "Preview of the metrics that match this monitor criteria": "Voorbeeld van de metrieken die overeenkomen met de criteria van deze monitor",
-  "Primary decision maker during an incident.": "Primaire besluitvormer tijdens een incident.",
   "Primary On-Call": "Primaire bereikbaarheidsdienst",
   "Primary Twilio Phone Number": "Primair Twilio-telefoonnummer",
   "Priority": "Prioriteit",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack en Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "Stuur meldingen naar de chattool die je team al gebruikt. Koppel die één keer voor het hele project; daarna verschijnt hij in dit menu, waar je kiest welke meldingen in welke kanalen worden geplaatst.",
   "Not connected": "Niet verbonden",
-  "Set up notifications": "Meldingen instellen"
+  "Set up notifications": "Meldingen instellen",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "De rollen die mensen tijdens een incident op zich nemen, zoals Incident Commander. Voeg er meer toe als uw team ze nodig heeft.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Elk incident heeft iemand nodig die de leiding heeft, dus deze rol kan worden hernoemd, maar niet verwijderd.",
+  "Does the hands-on work to resolve the incident.": "Doet het praktische werk om het incident op te lossen."
 }

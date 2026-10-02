@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "소스 값이 새 스팬 이름에 어떻게 매핑되는지 정의하세요.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "어떤 경고를 함께 그룹화할지 식별하기 위한 일치 기준(모니터, 심각도, 레이블, 제목 패턴)을 정의하세요.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "어떤 인시던트를 함께 그룹화할지 식별하기 위한 일치 기준(모니터, 심각도, 레이블, 제목 패턴)을 정의하세요.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "인시던트 대응 중에 사용자에게 할당할 수 있는 역할(예: 인시던트 지휘관, 대응자)을 정의하세요.",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "일치하는 경고가 생성될 때 온콜 듀티 정책을 자동으로 실행하도록 규칙을 정의하세요.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "일치하는 인시던트가 생성될 때 온콜 듀티 정책을 자동으로 실행하도록 규칙을 정의하세요.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "온콜 사용자, 팀 또는 일정에 연락하는 순서를 정의하세요. 한 곳에서 응답하지 않으면 통화가 다음 규칙으로 넘어갑니다.",
@@ -3525,7 +3524,6 @@
   "Mounts": "마운트",
   "MSI installer, registered as a Windows service.": "Windows 서비스로 등록된 MSI 설치 프로그램입니다.",
   "mTLS Certificates Issued": "발급된 mTLS 인증서",
-  "Multiple Users": "여러 사용자",
   "My Backend API": "내 백엔드 API",
   "My Custom Template": "내 사용자 지정 템플릿",
   "My internal alerts": "내 내부 경고",
@@ -4159,7 +4157,6 @@
   "Pressure": "압력",
   "Preview of the logs that match the filter of this monitor.": "이 모니터의 필터와 일치하는 로그 미리보기입니다.",
   "Preview of the metrics that match this monitor criteria": "이 모니터 기준과 일치하는 메트릭 미리보기",
-  "Primary decision maker during an incident.": "인시던트 중 주 의사 결정자입니다.",
   "Primary On-Call": "주 온콜 담당자",
   "Primary Twilio Phone Number": "주 Twilio 전화번호",
   "Priority": "우선순위",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack 및 Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "팀이 이미 사용하는 채팅 도구로 알림을 보내세요. 프로젝트 전체에 한 번만 연결하면 이 메뉴에 표시되며, 여기에서 어떤 알림을 어떤 채널에 게시할지 선택할 수 있습니다.",
   "Not connected": "연결 안 됨",
-  "Set up notifications": "알림 설정"
+  "Set up notifications": "알림 설정",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "인시던트 중에 사람들이 맡는 역할입니다(예: Incident Commander). 팀에 필요하면 역할을 더 추가하세요.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "모든 인시던트에는 책임자가 필요하므로 이 역할은 이름을 바꿀 수 있지만 삭제할 수는 없습니다.",
+  "Does the hands-on work to resolve the incident.": "인시던트를 해결하기 위한 실무 작업을 수행합니다."
 }

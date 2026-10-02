@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "Define how source values map to new span names.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Define rules to automatically execute on-call duty policies when matching alerts are created.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Define rules to automatically execute on-call duty policies when matching incidents are created.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.",
@@ -3525,7 +3524,6 @@
   "Mounts": "Mounts",
   "MSI installer, registered as a Windows service.": "MSI installer, registered as a Windows service.",
   "mTLS Certificates Issued": "mTLS Certificates Issued",
-  "Multiple Users": "Multiple Users",
   "My Backend API": "My Backend API",
   "My Custom Template": "My Custom Template",
   "My internal alerts": "My internal alerts",
@@ -4159,7 +4157,6 @@
   "Pressure": "Pressure",
   "Preview of the logs that match the filter of this monitor.": "Preview of the logs that match the filter of this monitor.",
   "Preview of the metrics that match this monitor criteria": "Preview of the metrics that match this monitor criteria",
-  "Primary decision maker during an incident.": "Primary decision maker during an incident.",
   "Primary On-Call": "Primary On-Call",
   "Primary Twilio Phone Number": "Primary Twilio Phone Number",
   "Priority": "Priority",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack and Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.",
   "Not connected": "Not connected",
-  "Set up notifications": "Set up notifications"
+  "Set up notifications": "Set up notifications",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Every incident needs someone in charge, so this role can be renamed, but not deleted.",
+  "Does the hands-on work to resolve the incident.": "Does the hands-on work to resolve the incident."
 }

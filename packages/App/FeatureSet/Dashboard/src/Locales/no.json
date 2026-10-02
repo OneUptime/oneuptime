@@ -2165,7 +2165,6 @@
   "Define how source values map to new span names.": "Definer hvordan kildeverdier tilordnes nye span-navn.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which alerts should be grouped together.": "Definer treffkriterier (overvåkere, alvorlighetsgrad, etiketter, tittelmønstre) for å identifisere hvilke varsler som skal grupperes sammen.",
   "Define match criteria (monitors, severity, labels, title patterns) to identify which incidents should be grouped together.": "Definer treffkriterier (overvåkere, alvorlighetsgrad, etiketter, tittelmønstre) for å identifisere hvilke hendelser som skal grupperes sammen.",
-  "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).": "Definer roller som kan tildeles brukere under hendelseshåndtering (f.eks. Hendelsesleder, Responder).",
   "Define rules to automatically execute on-call duty policies when matching alerts are created.": "Definer regler for automatisk å utføre retningslinjer for vakttjeneste når samsvarende varsler opprettes.",
   "Define rules to automatically execute on-call duty policies when matching incidents are created.": "Definer regler for automatisk å utføre retningslinjer for vakttjeneste når samsvarende hendelser opprettes.",
   "Define the order in which on-call users, teams, or schedules are contacted. If one doesn't answer, the call moves to the next rule.": "Definer rekkefølgen som vaktbrukere, team eller tidsplaner kontaktes i. Hvis én ikke svarer, går anropet videre til neste regel.",
@@ -3525,7 +3524,6 @@
   "Mounts": "Monteringer",
   "MSI installer, registered as a Windows service.": "MSI-installasjonsprogram, registrert som en Windows-tjeneste.",
   "mTLS Certificates Issued": "mTLS-sertifikater utstedt",
-  "Multiple Users": "Flere brukere",
   "My Backend API": "Min backend-API",
   "My Custom Template": "Min egendefinerte mal",
   "My internal alerts": "Mine interne varsler",
@@ -4159,7 +4157,6 @@
   "Pressure": "Trykk",
   "Preview of the logs that match the filter of this monitor.": "Forhåndsvisning av loggene som samsvarer med filteret til denne overvåkingen.",
   "Preview of the metrics that match this monitor criteria": "Forhåndsvisning av målingene som samsvarer med kriteriene for denne overvåkingen",
-  "Primary decision maker during an incident.": "Primær beslutningstaker under en hendelse.",
   "Primary On-Call": "Primær vakttjeneste",
   "Primary Twilio Phone Number": "Primært Twilio-telefonnummer",
   "Priority": "Prioritet",
@@ -7484,5 +7481,8 @@
   "Slack and Microsoft Teams": "Slack og Microsoft Teams",
   "Send notifications to the chat tool your team already uses. Connect it once for the whole project and it appears in this menu, where you choose which notifications are posted to which channels.": "Send varsler til chatteverktøyet teamet ditt allerede bruker. Koble det til én gang for hele prosjektet, så vises det i denne menyen, der du velger hvilke varsler som publiseres i hvilke kanaler.",
   "Not connected": "Ikke tilkoblet",
-  "Set up notifications": "Konfigurer varsler"
+  "Set up notifications": "Konfigurer varsler",
+  "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.": "Rollene folk tar på seg under en hendelse, for eksempel Incident Commander. Legg til flere hvis teamet ditt trenger dem.",
+  "Every incident needs someone in charge, so this role can be renamed, but not deleted.": "Hver hendelse trenger noen som har ansvaret, så denne rollen kan gis nytt navn, men ikke slettes.",
+  "Does the hands-on work to resolve the incident.": "Gjør det praktiske arbeidet for å løse hendelsen."
 }
