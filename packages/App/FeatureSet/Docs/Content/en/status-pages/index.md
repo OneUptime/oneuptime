@@ -51,16 +51,16 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | Section               | What's in it                                                                                                                                   |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Basic**             | **Overview**, **Announcements**, **Owners**.                                                                                                   |
-| **Resources**         | A single **Resources** screen — groups on the left, the selected group's monitors on the right.                                                |
+| **Resources**         | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**.                       |
 | **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers.                                                                                          |
-| **Audit**             | **Audit Logs**.                                                                                                                                |
 | **Branding**          | **Essential Branding**, **HTML, CSS & JavaScript**, **Custom Domains**, **Header**, **Footer**, **Overview Page**, **Languages**.              |
 | **Security**          | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**.                                                                   |
 | **AI**                | **MCP**.                                                                                                                                       |
-| **Advanced**          | **Monitor Rules**, **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Delete Status Page**.                         |
+| **Developer**         | **Terraform**, **API**, **AI Assistants** — the page as code.                                                                                  |
+| **Advanced**          | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**.                            |
 
-**Advanced** starts collapsed, like the **Advanced** section of every menu in OneUptime: click it to show its pages. It opens by itself whenever you are on one of them, such as **Advanced Settings**.
+Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Advanced Settings** or **Email Subscribers**.
 
 Two naming quirks worth knowing before you go looking:
 

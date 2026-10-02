@@ -129,6 +129,8 @@ Open an SLO from the SLO list to see its pages in the side menu:
 | **Audit Logs**      | Who changed the SLO, its burn rate rules, monitor rules and owners, and when.                                                                                                       |
 | **Delete SLO**      | Deletes the SLO permanently. Its open burn rate alerts and incidents are resolved first. To stop measuring an SLO but keep it, archive it instead.                                  |
 
+In the side menu, the configuration pages (**Monitors**, **Monitor Rules**, **Burn Rate Rules**) sit in a **Configuration** section and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. Both start collapsed, so the menu opens on the SLO's health and activity: click a section's title to show its pages. Each opens by itself whenever you are on one of its pages.
+
 Links to the old **Charts** page still work and show the same history charts as **Metrics** → **Error Budget History**.
 
 When something stops an SLO from measuring — it is archived or disabled, has no monitors, cannot be evaluated, or every monitor is paused — a banner at the top of its pages says what is wrong and links to the page that fixes it.
