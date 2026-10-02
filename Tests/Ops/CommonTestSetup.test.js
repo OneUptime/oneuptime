@@ -48,6 +48,8 @@ const COPIED_FILES = [
   SCRIPT,
   "Scripts/Install/SyncPackageVersions.js",
   "Scripts/Install/MergeEnvTemplate.js",
+  // retry_registry_read, which the image pull goes through.
+  "Scripts/GHA/retry.sh",
   // The root is ESM; Scripts/package.json is what keeps Scripts/ CommonJS.
   "package.json",
   "Scripts/package.json",
@@ -66,8 +68,14 @@ const FORBIDDEN_COMMANDS = [
   "apt-get",
 ];
 
+const COMPOSE_PULL =
+  /^compose --project-directory \. -f Scripts\/Dev\/docker-compose\.dev\.yml pull postgres valkey$/;
 const COMPOSE_UP =
   /^compose --project-directory \. -f Scripts\/Dev\/docker-compose\.dev\.yml up -d --wait --wait-timeout (\d+) postgres valkey$/;
+
+// What Docker Hub said when it dropped a shard's pull on 2026-10-02.
+const CONNECTION_RESET =
+  'Error response from daemon: Head "https://registry-1.docker.io/v2/valkey/valkey/manifests/9.1-alpine": Get "https://auth.docker.io/token?account=githubactions&scope=repository%3Avalkey%2Fvalkey%3Apull&service=registry.docker.io": read tcp 10.1.1.149:55204->104.18.43.178:443: read: connection reset by peer';
 
 const workspaces = [];
 
@@ -129,13 +137,26 @@ function makeTree(options) {
   /*
    * One line per call: the directory it ran in, its arguments, and the
    * DATABASE_PASSWORD it saw (compose interpolates postgres's from it).
-   * `up` exits FAKE_DOCKER_UP_STATUS, standing in for --wait's verdict.
+   * `up` exits FAKE_DOCKER_UP_STATUS, standing in for --wait's verdict. The
+   * first FAKE_DOCKER_PULL_FAILURES pulls print FAKE_DOCKER_PULL_ERROR and
+   * fail, as a registry that drops or refuses the pull does.
    */
+  const pullCount = path.join(workspace, "pull.count");
   writeExecutable(
     path.join(bin, "docker"),
     [
       `printf '%s\\t%s\\t%s\\n' "$PWD" "$*" "\${DATABASE_PASSWORD-<unset>}" >> ${JSON.stringify(dockerLog)}`,
-      'case " $* " in *" up "*) exit "${FAKE_DOCKER_UP_STATUS:-0}" ;; esac',
+      'case " $* " in',
+      '  *" pull "*)',
+      `    pulls=$(( $(cat ${JSON.stringify(pullCount)} 2>/dev/null || echo 0) + 1 ))`,
+      `    echo "$pulls" > ${JSON.stringify(pullCount)}`,
+      '    if [ "$pulls" -le "${FAKE_DOCKER_PULL_FAILURES:-0}" ]; then',
+      '      echo "$FAKE_DOCKER_PULL_ERROR" >&2',
+      "      exit 1",
+      "    fi",
+      "    exit 0 ;;",
+      '  *" up "*) exit "${FAKE_DOCKER_UP_STATUS:-0}" ;;',
+      "esac",
       "exit 0",
       "",
     ].join("\n"),
@@ -256,17 +277,25 @@ describe("test-setup.sh, run for real with docker stubbed", () => {
     expect(pkg.version).toBe(VERSION);
   });
 
-  test("starts postgres and valkey once, from the repository root, waiting for them to be healthy", () => {
-    expect(run.dockerCalls).toHaveLength(1);
-    const [call] = run.dockerCalls;
-    expect(call.args).toMatch(COMPOSE_UP);
-    expect(fs.realpathSync(call.cwd)).toBe(fs.realpathSync(tree.root));
+  test("pulls the images, then starts postgres and valkey once, from the repository root, waiting for them to be healthy", () => {
+    expect(
+      run.dockerCalls.map((call) => {
+        return call.args;
+      }),
+    ).toEqual([
+      expect.stringMatching(COMPOSE_PULL),
+      expect.stringMatching(COMPOSE_UP),
+    ]);
+    for (const call of run.dockerCalls) {
+      expect(fs.realpathSync(call.cwd)).toBe(fs.realpathSync(tree.root));
+    }
   });
 
   test("exports config.env first, so compose initialises postgres with its password", () => {
-    expect(run.dockerCalls[0].databasePassword).toBe(
-      TEMPLATE.DATABASE_PASSWORD,
-    );
+    const up = run.dockerCalls.find((call) => {
+      return COMPOSE_UP.test(call.args);
+    });
+    expect(up.databasePassword).toBe(TEMPLATE.DATABASE_PASSWORD);
   });
 
   test("never runs npm, configure.sh or a download", () => {
@@ -285,10 +314,10 @@ describe("test-setup.sh does not depend on the directory it is run from", () => 
 
     expect(run.status).toBe(0);
     expect(run.config.DATABASE_PASSWORD).toBe(TEMPLATE.DATABASE_PASSWORD);
-    expect(run.dockerCalls).toHaveLength(1);
-    expect(fs.realpathSync(run.dockerCalls[0].cwd)).toBe(
-      fs.realpathSync(tree.root),
-    );
+    expect(run.dockerCalls).toHaveLength(2);
+    for (const call of run.dockerCalls) {
+      expect(fs.realpathSync(call.cwd)).toBe(fs.realpathSync(tree.root));
+    }
   });
 });
 
@@ -375,11 +404,84 @@ describe("test-setup.sh fails when a step fails", () => {
     const args = run.dockerCalls.map((call) => {
       return call.args;
     });
-    expect(args[0]).toMatch(COMPOSE_UP);
-    expect(args.slice(1)).toEqual([
+    expect(args[0]).toMatch(COMPOSE_PULL);
+    expect(args[1]).toMatch(COMPOSE_UP);
+    expect(args.slice(2)).toEqual([
       expect.stringMatching(/ ps --all postgres valkey$/),
       expect.stringMatching(/ logs --no-color --tail \d+ postgres valkey$/),
     ]);
+  });
+});
+
+/*
+ * The pull goes through Scripts/GHA/retry.sh's retry_registry_read, which
+ * tries again only while the registry's answer is one a later attempt can
+ * clear. RETRY_REGISTRY_READ_DELAYS keeps these cases from sleeping.
+ */
+describe("test-setup.sh pulls the images, and tries again only when the registry dropped the pull", () => {
+  const argsOf = (run) => {
+    return run.dockerCalls.map((call) => {
+      return call.args;
+    });
+  };
+
+  test("a pull the registry dropped is tried again, and the setup goes on", () => {
+    const run = runSetup(makeTree(), {
+      env: {
+        FAKE_DOCKER_PULL_FAILURES: "2",
+        FAKE_DOCKER_PULL_ERROR: CONNECTION_RESET,
+        RETRY_REGISTRY_READ_DELAYS: "0 0 0",
+      },
+    });
+
+    expect(run.status).toBe(0);
+    expect(argsOf(run)).toEqual([
+      expect.stringMatching(COMPOSE_PULL),
+      expect.stringMatching(COMPOSE_PULL),
+      expect.stringMatching(COMPOSE_PULL),
+      expect.stringMatching(COMPOSE_UP),
+    ]);
+    expect(run.stdout).toContain("succeeded on attempt 3/4");
+  });
+
+  test("a pull that is dropped every time fails the setup after the last attempt, and starts nothing", () => {
+    const run = runSetup(makeTree(), {
+      env: {
+        GITHUB_ACTIONS: "true",
+        FAKE_DOCKER_PULL_FAILURES: "99",
+        FAKE_DOCKER_PULL_ERROR: CONNECTION_RESET,
+        RETRY_REGISTRY_READ_DELAYS: "0 0",
+      },
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(argsOf(run)).toEqual([
+      expect.stringMatching(COMPOSE_PULL),
+      expect.stringMatching(COMPOSE_PULL),
+      expect.stringMatching(COMPOSE_PULL),
+    ]);
+    expect(run.stderr).toContain("connection reset by peer");
+    expect(run.stderr).toContain(
+      "::error title=Test setup failed::Could not pull the postgres and valkey images.",
+    );
+  });
+
+  test("a pull that cannot succeed fails at once, without trying again, and starts nothing", () => {
+    const run = runSetup(makeTree(), {
+      env: {
+        FAKE_DOCKER_PULL_FAILURES: "99",
+        FAKE_DOCKER_PULL_ERROR:
+          "Error response from daemon: manifest for valkey/valkey:9.1-alpine not found: manifest unknown: manifest unknown",
+        RETRY_REGISTRY_READ_DELAYS: "0 0 0",
+      },
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(argsOf(run)).toEqual([expect.stringMatching(COMPOSE_PULL)]);
+    expect(run.stderr).toContain("manifest unknown");
+    expect(run.stderr).toContain(
+      "Could not pull the postgres and valkey images.",
+    );
   });
 });
 
