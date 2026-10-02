@@ -1870,7 +1870,11 @@ jobs:
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, so check it is the Enterprise Edition before booting it: ee/
       # in the image and in its UI bundles, and the loader actually loading it.
@@ -2009,7 +2013,11 @@ jobs:
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to release once this job
       # passes, so check it is the Community Edition before booting it: no ee/
       # anywhere in the image or its UI bundles, and the loader finding none.
@@ -2164,7 +2172,11 @@ jobs:
           set -euo pipefail
           export $(grep -v '^#' config.env | xargs)
           export APP_TAG=enterprise-${{needs.read-version.outputs.major_minor}}
-          docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
+          # Retried only for what a later attempt can clear - a rate limit, a
+          # 5xx, a dropped connection; a tag that was never pushed fails at once.
+          source ./Scripts/GHA/retry.sh
+          retry_registry_read "Pulling the stack's images and the e2e image" \
+            docker compose -f docker-compose.yml -f packages/E2E/docker-compose.e2e-clickhouse.yml -f packages/E2E/docker-compose.e2e.yml pull
       # push-release-tags promotes this App tag to enterprise-release once this
       # job passes, and the whole job is meaningless if the tag is not really the
       # Enterprise Edition: a Community image answers 404 to every SCIM route
