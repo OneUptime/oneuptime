@@ -97,15 +97,26 @@ export function derivePhase(
   }
 }
 
-/* A stretch the viewer can skip: no input, or the tab was hidden. */
+/*
+ * A stretch the viewer can skip: no input, the tab was hidden, or nothing
+ * was recorded at all because the recorder paused.
+ */
 export interface ReplayIdleBand {
   startMs: number;
   endMs: number;
   /*
    * "idle" = no user input for >= SESSION_REPLAY_IDLE_THRESHOLD_MS;
-   * "background-tab" = oneuptime.visibility hidden span, drawn differently.
+   * "background-tab" = oneuptime.visibility hidden span, drawn differently;
+   * "paused" = the recorder stopped capturing because nobody touched the
+   * page (SESSION_REPLAY_IDLE_PAUSE_MS) and started again on the next
+   * input: drawn from the oneuptime.idle-resumed marker, always "exact".
+   * Idle and background-tab are footage of a page nobody was using, and
+   * skipping them is the viewer's choice; a paused band is footage that
+   * does not exist, so playback always skips it (shouldAutoSkipBand).
+   * The kinds never overlap: idle bands are cut around the other two, and
+   * background-tab bands around paused ones.
    */
-  kind: "idle" | "background-tab";
+  kind: "idle" | "background-tab" | "paused";
   /*
    * Coarse bands come from manifest eventCount alone and may be refined
    * once the chunk is decoded; exact bands come from decoded events.
@@ -169,7 +180,7 @@ export interface ReplayEngineSnapshot {
   bufferingSinceMs: number | null;
   /* The hole most recently crossed, for the interstitial toast. */
   lastGap: SessionReplayGap | null;
-  /* The idle band most recently skipped, for the toast. */
+  /* The band most recently skipped (any kind), for the toast. */
   lastIdleSkip: ReplayIdleBand | null;
   error: ReplayEngineError | null;
   /* Target of an in-flight seek, so the clock reports where it is going. */
@@ -186,9 +197,10 @@ export interface ReplayEngineSnapshot {
   /* The most recent non-fatal notice, cleared by the next seek. */
   notice?: ReplayEngineNotice | null;
   /*
-   * Idle and background-tab bands on the session clock, coarse from the
-   * manifest at t=0 and refined as chunks decode. New array identity only
-   * when a chunk refines them, so a timeline can memoise on it.
+   * Idle, background-tab and paused bands on the session clock, coarse
+   * from the manifest at t=0 and refined as chunks decode. New array
+   * identity only when a chunk refines them, so a timeline can memoise on
+   * it.
    */
   idleBands?: Array<ReplayIdleBand>;
   /* Feed-ahead in force, max(30000, 20000 * speed). */
@@ -242,7 +254,11 @@ export type ReplayEngineEvent =
   /* Live sessions: manifest entries appended, bands recomputed, no rebuild. */
   | { type: "APPEND_ENTRIES"; entries: Array<SessionReplayChunkManifestEntry> }
   | { type: "DISPOSE" }
-  /* The playhead entered an idle band with skipInactive on. */
+  /*
+   * Jump past a band: the playhead entered an idle or background-tab band
+   * with skipInactive on, entered a paused band (skipped whatever the
+   * toggle says), or the viewer asked for the skip.
+   */
   | { type: "IDLE_SKIP"; band: ReplayIdleBand };
 
 export type ReplayEngineEventType = ReplayEngineEvent["type"];

@@ -97,15 +97,23 @@ export type ReplayTrackBandKind =
   | "available"
   | "gap"
   | "idle"
-  | "background-tab";
+  | "background-tab"
+  /* The recorder paused capture because nobody touched the page. */
+  | "paused";
 
 export interface ReplayTrackBand {
   kind: ReplayTrackBandKind;
   startMs: number;
   endMs: number;
-  /* Accessible name and inline label: "18s missing", "42s idle". */
+  /*
+   * Accessible name and inline label: "18s missing", "42s idle",
+   * "23m paused".
+   */
   label: string;
-  /* Idle bands only: coarse (from counters) or exact (from decoded events). */
+  /*
+   * Idle, background-tab and paused bands only: coarse (from counters) or
+   * exact (from decoded events). Paused bands are always exact.
+   */
   fidelity?: "coarse" | "exact" | undefined;
 }
 
@@ -230,18 +238,39 @@ export function buildTrackBands(
     const lengthLabel: string = formatReplayDuration(endMs - startMs);
 
     bands.push({
-      kind: band.kind === "background-tab" ? "background-tab" : "idle",
+      kind: band.kind,
       startMs: startMs,
       endMs: endMs,
-      label:
-        band.kind === "background-tab"
-          ? `tab in background ${lengthLabel}`
-          : `${lengthLabel} idle`,
+      label: describeInactivityBand(band.kind, lengthLabel),
       fidelity: band.fidelity,
     });
   }
 
   return bands;
+}
+
+/*
+ * The inline label for an engine band, by kind. A paused stretch is
+ * named for what it is - capture stopped - rather than as idle: there is
+ * nothing in it to watch, and playback jumps it.
+ */
+function describeInactivityBand(
+  kind: ReplayIdleBand["kind"],
+  lengthLabel: string,
+): string {
+  switch (kind) {
+    case "background-tab":
+      return `tab in background ${lengthLabel}`;
+    case "paused":
+      return `${lengthLabel} paused`;
+    case "idle":
+      return `${lengthLabel} idle`;
+    default: {
+      /* Exhaustiveness: a new band kind needs its own words. */
+      const unreachable: never = kind;
+      return unreachable;
+    }
+  }
 }
 
 /* ---- Activity heat. ---- */
