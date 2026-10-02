@@ -3,32 +3,32 @@ import SortOrder from "../Types/BaseDatabase/SortOrder";
 /*
  * The arithmetic of a list people put in order by dragging rows - custom
  * fields, reminder rules, pipelines, status page links - with no database and
- * no React in it, so the server that stores the order and the table that
- * shows it agree on what every number means.
+ * no React in it, so the server that keeps the numbers and the table that
+ * shows them agree on what every number means.
  *
  * The contract, for every such list:
  *
- *   - A row's number IS its place: 1 for the row at the top, 2 for the next,
- *     and so on (a list whose top is its HIGHEST number - site assignment
- *     rules, where the higher priority wins - counts the other way: n at the
- *     top, 1 at the bottom). Nobody types these numbers any more; the server
- *     keeps them.
- *   - A new row goes to the end of its list.
- *   - Setting a row's number moves it to where the row holding that number is
- *     now, and the rows in between shift by one to make room. That is the
- *     whole drag-and-drop protocol: the table sends the number of the row the
- *     dragged one was dropped onto. It is also what an API caller who sets
- *     `order: 3` means - "make this the third one".
- *   - Every change renumbers the whole list 1..n again, so a list that came
- *     out of older versions with gaps, duplicates or no numbers at all heals
- *     the first time anything in it changes.
+ *   - Lower numbers come first: 1 is the top (a list whose top is its HIGHEST
+ *     number - site assignment rules, where the higher priority wins - counts
+ *     the other way).
+ *   - A new row without a number goes to the end of its list.
+ *   - A number is kept as it was written. When a row is given a number that
+ *     another row of its list already holds, that row moves one step to make
+ *     room - down the list for a row moving up, up the list for a row moving
+ *     down - and so on along any run of neighbours, until the step lands on a
+ *     free number. In a list numbered 1..n that is exactly "take the place of
+ *     the row holding that number, and shift the ones in between", which is
+ *     what a drop in a reorderable table sends: the number of the row it was
+ *     dropped onto. Numbers nobody collides with are never rewritten, so an
+ *     API or Terraform caller that writes 10, 20, 30 reads 10, 20, 30 back.
+ *   - So no two rows of a list share a number, and the order is total.
  */
 
 export interface ListOrderItem {
   id: string;
   // The number stored on the row. Anything but a finite number is "unset".
   value?: number | string | null | undefined;
-  // Breaks ties between rows with the same (or no) number: the older first.
+  // Breaks ties between rows with no number: the older first.
   createdAt?: Date | string | null | undefined;
 }
 
@@ -59,13 +59,21 @@ export const toListOrderNumber: (value: unknown) => number | null = (
 
 /*
  * Closeness to the top of the list: smaller is nearer the top, whichever way
- * the list counts. Lets the placement below be written once for both.
+ * the list counts. Lets everything below be written once for both.
  */
 const toRank: (value: number, sortOrder: SortOrder) => number = (
   value: number,
   sortOrder: SortOrder,
 ): number => {
-  return sortOrder === SortOrder.Descending ? -value : value;
+  // `0 - x`, not `-x`: never a negative zero.
+  return sortOrder === SortOrder.Descending ? 0 - value : value;
+};
+
+const fromRank: (rank: number, sortOrder: SortOrder) => number = (
+  rank: number,
+  sortOrder: SortOrder,
+): number => {
+  return sortOrder === SortOrder.Descending ? 0 - rank : rank;
 };
 
 const toTime: (value: Date | string | null | undefined) => number | null = (
@@ -146,93 +154,139 @@ export const sortListOrderItems: <T extends ListOrderItem>(
 };
 
 /**
- * The list with one row put where it was asked to go.
- *
- * `siblings` are the OTHER rows of the list, in any order and with the
- * numbers they hold now. `previousValue` is where the row was (null for a
- * row that is new to this list) and `requestedValue` where it is going (null
- * for "the end").
- *
- * A row moving up goes in front of the first row whose number is at or past
- * the requested one; a row moving down goes after the last one whose number
- * is at or before it. For a list numbered 1..n that is exactly "take the
- * place of the row holding that number, and shift the ones in between" -
- * which is what a drop onto that row means. It also does something sensible
- * with a list that has gaps in its numbers. A row asked to go where it
- * already is stays put.
+ * The number a new row gets so that it is the last of its list: one past the
+ * last row's (one below it for a list that counts down), or 1 for the first
+ * row of a list.
  */
-export const placeListOrderItem: <T extends ListOrderItem>(data: {
-  siblings: Array<T>;
-  item: T;
-  previousValue: unknown;
-  requestedValue: unknown;
+export const getListOrderAppendValue: (data: {
+  siblings: Array<ListOrderItem>;
   sortOrder: SortOrder;
-}) => Array<T> = <T extends ListOrderItem>(data: {
-  siblings: Array<T>;
-  item: T;
-  previousValue: unknown;
-  requestedValue: unknown;
+}) => number = (data: {
+  siblings: Array<ListOrderItem>;
   sortOrder: SortOrder;
-}): Array<T> => {
-  const ordered: Array<T> = sortListOrderItems(
-    data.siblings.filter((sibling: T) => {
-      return sibling.id !== data.item.id;
-    }),
-    data.sortOrder,
-  );
+}): number => {
+  let lastRank: number | null = null;
 
+  for (const sibling of data.siblings) {
+    const value: number | null = toListOrderNumber(sibling.value);
+
+    if (value === null) {
+      continue;
+    }
+
+    const rank: number = toRank(value, data.sortOrder);
+
+    if (lastRank === null || rank > lastRank) {
+      lastRank = rank;
+    }
+  }
+
+  if (lastRank === null) {
+    return 1;
+  }
+
+  /*
+   * Whole numbers only: a list typed as 1.5, 2.5 still gets a new row at a
+   * whole number past its last one.
+   */
+  return fromRank(Math.floor(lastRank) + 1, data.sortOrder);
+};
+
+/**
+ * The other rows that have to move when one row is given `requestedValue`.
+ *
+ * `siblings` are the rows of the list as they are now (the row being placed
+ * may be among them; it is ignored). `previousValue` is the number the row
+ * had (null for a row that is new to this list).
+ *
+ * Nothing moves when no sibling holds the requested number. Otherwise the
+ * one that does takes one step away - down the list when the row is moving
+ * up (or is new), up the list when it is moving down - and if that step
+ * lands on another row's number, that row steps along too, until a step
+ * lands on a free number. The row's own old number counts as free: the run
+ * of rows between where it was and where it is going closes up behind it.
+ */
+export const getListOrderCollisionChanges: (data: {
+  siblings: Array<ListOrderItem>;
+  itemId: string;
+  previousValue: unknown;
+  requestedValue: unknown;
+  sortOrder: SortOrder;
+}) => Array<ListOrderChange> = (data: {
+  siblings: Array<ListOrderItem>;
+  itemId: string;
+  previousValue: unknown;
+  requestedValue: unknown;
+  sortOrder: SortOrder;
+}): Array<ListOrderChange> => {
   const requested: number | null = toListOrderNumber(data.requestedValue);
-  const previous: number | null = toListOrderNumber(data.previousValue);
 
   if (requested === null) {
-    return [...ordered, data.item];
+    return [];
   }
 
+  const previous: number | null = toListOrderNumber(data.previousValue);
   const requestedRank: number = toRank(requested, data.sortOrder);
+  const previousRank: number | null =
+    previous === null ? null : toRank(previous, data.sortOrder);
 
-  if (previous !== null && toRank(previous, data.sortOrder) === requestedRank) {
-    // Not a move: the row keeps the place its number gives it.
-    return sortListOrderItems(
-      [...ordered, { ...data.item, value: previous }],
-      data.sortOrder,
-    ).map((row: T) => {
-      return row.id === data.item.id ? data.item : row;
-    });
+  if (previousRank !== null && previousRank === requestedRank) {
+    return [];
   }
 
-  const isMovingUp: boolean =
-    previous === null || requestedRank < toRank(previous, data.sortOrder);
+  // Rows by the rank their number gives them; the row being placed is not one.
+  const rowsByRank: Map<number, Array<ListOrderItem>> = new Map();
 
-  let index: number;
-
-  if (isMovingUp) {
-    index = ordered.findIndex((sibling: T) => {
-      const value: number | null = toListOrderNumber(sibling.value);
-      // Rows with no number are below every numbered one.
-      return value === null || toRank(value, data.sortOrder) >= requestedRank;
-    });
-
-    if (index === -1) {
-      index = ordered.length;
+  for (const sibling of data.siblings) {
+    if (sibling.id === data.itemId) {
+      continue;
     }
-  } else {
-    index = 0;
 
-    ordered.forEach((sibling: T, position: number) => {
-      const value: number | null = toListOrderNumber(sibling.value);
+    const value: number | null = toListOrderNumber(sibling.value);
 
-      if (value !== null && toRank(value, data.sortOrder) <= requestedRank) {
-        index = position + 1;
-      }
-    });
+    if (value === null) {
+      continue;
+    }
+
+    const rank: number = toRank(value, data.sortOrder);
+    const rows: Array<ListOrderItem> = rowsByRank.get(rank) || [];
+    rows.push(sibling);
+    rowsByRank.set(rank, rows);
   }
 
-  return [...ordered.slice(0, index), data.item, ...ordered.slice(index)];
+  // Moving up (or arriving): the rows in the way step down, and vice versa.
+  const step: number =
+    previousRank === null || requestedRank < previousRank ? 1 : -1;
+
+  const changes: Array<ListOrderChange> = [];
+  let rank: number = requestedRank;
+  let movingRows: Array<ListOrderItem> = rowsByRank.get(rank) || [];
+
+  while (movingRows.length > 0) {
+    const nextRank: number = rank + step;
+
+    for (const row of movingRows) {
+      changes.push({
+        id: row.id,
+        value: fromRank(nextRank, data.sortOrder),
+      });
+    }
+
+    rank = nextRank;
+    /*
+     * The run ends on a free number. The row's own old number is free - it
+     * is moving away from it - unless another row shares it, in which case
+     * that row steps along as well.
+     */
+    movingRows = rowsByRank.get(rank) || [];
+  }
+
+  return changes;
 };
 
 /**
  * The number the row at `position` (1 = the top) holds in a list of `count`
- * rows.
+ * rows numbered from scratch.
  */
 export const getListOrderValue: (data: {
   position: number;
@@ -249,8 +303,9 @@ export const getListOrderValue: (data: {
 };
 
 /**
- * Renumbers a list that is already in its new order and says which rows end
- * up with a number different from the one they hold. Those - and only those -
+ * Renumbers a list that is already in the order it should keep - 1..n from
+ * the top (n..1 for a list that counts down) - and says which rows end up
+ * with a number different from the one they hold. Those, and only those,
  * have to be written.
  */
 export const getListOrderChanges: (data: {
@@ -278,22 +333,27 @@ export const getListOrderChanges: (data: {
 };
 
 /**
- * Whether a list already holds exactly the numbers its rows' places give
- * them - 1..n top-down (n..1 for a list whose top is its highest number).
+ * Whether a list has rows without a number or two rows with the same one -
+ * the lists saved before the server kept the numbers, where a drop onto a row
+ * could not say where it meant. A list with unique numbers, gaps or not, is
+ * fine as it is.
  */
-export const isListOrderNormalized: (data: {
-  items: Array<ListOrderItem>;
-  sortOrder: SortOrder;
-}) => boolean = (data: {
-  items: Array<ListOrderItem>;
-  sortOrder: SortOrder;
-}): boolean => {
-  return (
-    getListOrderChanges({
-      orderedItems: sortListOrderItems(data.items, data.sortOrder),
-      sortOrder: data.sortOrder,
-    }).length === 0
-  );
+export const needsListOrderNormalization: (
+  items: Array<ListOrderItem>,
+) => boolean = (items: Array<ListOrderItem>): boolean => {
+  const seen: Set<number> = new Set();
+
+  for (const item of items) {
+    const value: number | null = toListOrderNumber(item.value);
+
+    if (value === null || seen.has(value)) {
+      return true;
+    }
+
+    seen.add(value);
+  }
+
+  return false;
 };
 
 /**

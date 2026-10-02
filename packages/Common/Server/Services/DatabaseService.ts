@@ -1967,10 +1967,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *
    * A model marked with @ListOrderColumn is a list people put in order by
    * dragging its rows, and its number column is kept here for every caller:
-   * a new row goes to the end, a number that is set moves the row to that
-   * place, a delete closes the gap. The arithmetic is Common/Utils/ListOrder,
-   * the database work ListOrderMaintainer. None of it runs for any other
-   * model.
+   * a new row without a number goes to the end of its list, and a row given a
+   * number another row of its list holds takes that place while the rows in
+   * the way step aside. Numbers nobody collides with are kept as written. The
+   * arithmetic is Common/Utils/ListOrder, the database work
+   * ListOrderMaintainer. None of it runs for any other model.
    */
   private async planListOrderForCreate(
     data: TBaseModel,
@@ -1998,9 +1999,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The new row is saved; now the rows after it make room. Never fails the
-   * create that already happened: a list left with a duplicated number still
-   * shows every row, and the next change to it renumbers it.
+   * The new row is saved; now the rows in its way step aside. Never fails the
+   * create that already happened: a list left with a shared number still
+   * shows every row, and the next move in it sorts the pair out.
    */
   private async applyListOrderCreatePlan(
     plan: ListOrderCreatePlan | null,
@@ -2069,7 +2070,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     settings: ListOrderSettings,
   ): void {
     select[settings.column] = true;
-    select["createdAt"] = true;
 
     for (const column of settings.scopeColumns) {
       select[column] = true;
@@ -2077,10 +2077,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * After an update wrote a row's number (or moved it to another list): put
-   * each updated row where its new number says and renumber the list - or,
-   * for a row that changed lists, close the gap it left and take it in at
-   * the end of the new one (or at the number it was given).
+   * After an update wrote a row's number: the rows of its list that held that
+   * number step aside. A row that moved to another list takes the number it
+   * was given there (with the same stepping aside), or the end of that list
+   * when it was given none.
    *
    * Like the create, it never fails the update that already happened.
    */
@@ -2127,22 +2127,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         const id: ObjectID = new ObjectID(rowBeforeUpdate._id.toString());
-        const previousValue: unknown = before[settings.column];
+        const isNewToList: boolean = Boolean(
+          previousScope && previousScope.key !== nextScope.key,
+        );
 
-        if (previousScope && previousScope.key !== nextScope.key) {
-          await ListOrderMaintainer.renumber({
-            service: this,
-            settings: settings,
-            scope: previousScope,
-          });
-
-          await ListOrderMaintainer.placeRow({
+        if (isNewToList && !writesNumber) {
+          await ListOrderMaintainer.appendRow({
             service: this,
             settings: settings,
             scope: nextScope,
             id: id,
-            previousValue: null,
-            requestedValue: writesNumber ? dataRecord[settings.column] : null,
           });
 
           continue;
@@ -2152,18 +2146,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
+        const previousValue: unknown = isNewToList
+          ? null
+          : before[settings.column];
+
         const requestedValue: unknown = dataRecord[settings.column];
 
-        if (
-          toListOrderNumber(requestedValue) !== null &&
-          toListOrderNumber(requestedValue) ===
-            toListOrderNumber(previousValue)
-        ) {
-          // Saved where it already was - not a move.
+        if (toListOrderNumber(requestedValue) === null) {
+          /*
+           * The number was cleared: the row goes to the end of its list, as
+           * a row created without one does.
+           */
+          await ListOrderMaintainer.appendRow({
+            service: this,
+            settings: settings,
+            scope: nextScope,
+            id: id,
+          });
+
           continue;
         }
 
-        await ListOrderMaintainer.placeRow({
+        await ListOrderMaintainer.makeRoomForRow({
           service: this,
           settings: settings,
           scope: nextScope,
@@ -2179,48 +2183,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
-  // After a delete: renumber every list that lost a row, closing its gap.
-  private async closeListOrderGaps(input: {
-    settings: ListOrderSettings;
-    deletedRows: Array<TBaseModel>;
-  }): Promise<void> {
-    const scopes: Map<string, ListOrderScope<TBaseModel>> = new Map();
-
-    for (const row of input.deletedRows) {
-      const scope: ListOrderScope<TBaseModel> | null =
-        ListOrderMaintainer.getScope({
-          model: this.getModel(),
-          settings: input.settings,
-          row: row as unknown as Record<string, unknown>,
-        });
-
-      if (scope) {
-        scopes.set(scope.key, scope);
-      }
-    }
-
-    for (const scope of scopes.values()) {
-      try {
-        await ListOrderMaintainer.renumber({
-          service: this,
-          settings: input.settings,
-          scope: scope,
-        });
-      } catch (err) {
-        logger.error(
-          `Could not close the gap in the ${this.getModel().tableName || "list"} order after a delete: ${(err as Error)?.message || err}`,
-        );
-      }
-    }
-  }
-
   /*
-   * Renumbers every list of this model 1..n in the order it is shown in
-   * today. Does nothing for a model that is not a drag-ordered list. Used by
-   * the NormalizeListOrder data migration.
+   * Numbers every list of this model that has rows without a number, or two
+   * rows sharing one, 1..n in the order it is shown in today; lists whose
+   * numbers are unique are left alone. Does nothing for a model that is not
+   * a drag-ordered list. Used by the NormalizeListOrder data migration.
    */
   @CaptureSpan()
-  public async renumberEveryListOrder(): Promise<{
+  public async normalizeListOrders(): Promise<{
     lists: number;
     rowsChanged: number;
   }> {
@@ -2232,7 +2202,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return { lists: 0, rowsChanged: 0 };
     }
 
-    return await ListOrderMaintainer.renumberEveryList({
+    return await ListOrderMaintainer.normalizeEveryList({
       service: this,
       settings: settings,
     });
@@ -2928,17 +2898,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as any)[this.getModel().getTenantColumn() as string] = true;
       }
 
-      // Which lists lose a row, so their gaps can be closed afterwards.
-      const listOrderSettings: ListOrderSettings | null =
-        ListOrderMaintainer.getSettings(this.getModel());
-
-      if (listOrderSettings) {
-        this.addListOrderColumnsToSelect(
-          select as Dictionary<unknown>,
-          listOrderSettings,
-        );
-      }
-
       /*
        * If audit logging on delete is enabled, fetch all scalar columns so we
        * can record a full snapshot of the record before it is deleted.
@@ -3022,13 +2981,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             }
           }
         }
-      }
-
-      if (listOrderSettings && numberOfDocsAffected > 0) {
-        await this.closeListOrderGaps({
-          settings: listOrderSettings,
-          deletedRows: items,
-        });
       }
 
       if (!deleteBy.props.ignoreHooks) {

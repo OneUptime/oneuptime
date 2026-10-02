@@ -353,7 +353,7 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
     type: TableColumnType.Number,
     title: "Order",
     description:
-      "Where this rule sits in the escalation: 1 is called first, then 2, and so on. A new rule is added to the end of the list. Setting a number moves it to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this rule sits in the escalation, lowest number first. A new rule is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
     canReadOnRelationQuery: true,
   })
   @Column({

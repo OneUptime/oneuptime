@@ -28,27 +28,28 @@ import TraceScrubRuleService from "Common/Server/Services/TraceScrubRuleService"
 import logger from "Common/Server/Utils/Logger";
 
 /*
- * Numbers every drag-ordered list 1..n (n..1 for a list whose top is its
- * highest number), in the order each one is shown in today.
+ * Numbers the drag-ordered lists that need it 1..n (n..1 for a list whose top
+ * is its highest number), in the order each one is shown in today.
  *
  * The lists these services own are now reordered by dragging rows, and a drop
- * sends the number of the row it landed on. That only means "this place" when
- * the numbers ARE the places - and lists saved before the server kept them
- * are not like that: the dashboard saved every log pipeline, drop filter and
- * scrub rule with 1, incident custom fields and device roles could have no
- * number at all, and typed orders left gaps and ties. Dropping a row on
- * another that shares its number would do nothing.
+ * sends the number of the row it landed on - which only says where it landed
+ * when no two rows of the list share a number. Lists saved before the server
+ * kept the numbers are often not like that: the dashboard saved every log
+ * pipeline, drop filter and scrub rule with 1, and incident custom fields and
+ * device roles could have no number at all. A drop onto a row that shares its
+ * number with the dragged one would do nothing.
  *
- * Every later create, move and delete keeps the numbers right on its own
- * (DatabaseService, @ListOrderColumn); this heals what was saved before. The
- * order a list is shown in is kept: by number, rows without one last, ties
- * broken by the older row first.
+ * Only a list with a row without a number, or two rows with the same one, is
+ * renumbered. A list whose numbers are already unique - gaps and all, as an
+ * API or Terraform caller may have written them - is left exactly as it is.
+ * Every later create and move keeps the numbers unique on its own
+ * (DatabaseService, @ListOrderColumn). The order a list is shown in is kept:
+ * by number, rows without one last, ties broken by the older row first.
  *
- * Idempotent, and safe to run twice at once: a list that is already numbered
- * is not written to, and two runs compute the same numbers. A table that
- * fails is logged and skipped - a list that keeps its old numbers still
- * shows every row, and heals the first time anything in it changes - so it
- * never halts the migrations after it.
+ * Idempotent, and safe to run twice at once: a list it has fixed needs no
+ * fixing the second time, and two runs compute the same numbers. A table that
+ * fails is logged and skipped - a list that keeps its old numbers still shows
+ * every row - so it never halts the migrations after it.
  */
 export default class NormalizeListOrder extends DataMigrationBase {
   public constructor() {
@@ -93,7 +94,7 @@ export default class NormalizeListOrder extends DataMigrationBase {
 
       try {
         const result: { lists: number; rowsChanged: number } =
-          await service.renumberEveryListOrder();
+          await service.normalizeListOrders();
 
         logger.info(
           `NormalizeListOrder: ${tableName}: renumbered ${result.rowsChanged} row(s) in ${result.lists} list(s).`,

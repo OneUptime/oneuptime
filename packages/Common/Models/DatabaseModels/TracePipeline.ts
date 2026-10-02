@@ -316,7 +316,7 @@ export default class TracePipeline extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description:
-      "Where this pipeline runs among the project's trace pipelines: 1 runs first. A new pipeline is added to the end of the list. Setting a number moves it to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
+      "Where this pipeline runs among the project's trace pipelines, lowest number first. A new pipeline is added to the end of the list. Setting a number another one already has puts it in that place, and the ones in the way move one place along to make room. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,

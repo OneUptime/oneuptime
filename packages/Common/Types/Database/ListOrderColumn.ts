@@ -11,12 +11,13 @@ import GenericFunction from "../GenericFunction";
  * the API, workflows and seed data alike:
  *
  *   - a row created without a number goes to the end of its list;
- *   - a row created or updated WITH a number goes to that place, and the rows
- *     after it shift down by one (this is what a drop in a reorderable table
- *     sends: the number of the row it was dropped onto);
- *   - deleting a row closes the gap;
- *   - every change renumbers the list 1..n, so older lists with gaps,
- *     duplicates or no numbers at all heal the first time anything changes.
+ *   - a row created or updated WITH a number keeps it, and if another row of
+ *     its list held that number, that row steps one place aside to make room
+ *     (and the next one, along a run of neighbours) - so a drop in a
+ *     reorderable table, which sends the number of the row it was dropped
+ *     onto, takes that row's place;
+ *   - numbers nobody collides with are never rewritten, so an API or
+ *     Terraform caller reads back exactly what it wrote.
  *
  * The arithmetic lives in Common/Utils/ListOrder.ts, shared with the table, so
  * the two cannot disagree. Nothing in a form should ask for this number: the

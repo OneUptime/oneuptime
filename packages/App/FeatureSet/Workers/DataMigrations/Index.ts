@@ -575,11 +575,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddIncomingCallMissedNotificationSettingsForUsers(),
   /*
-   * Numbers every drag-ordered list (custom fields, rules, pipelines, status
-   * page links...) 1..n in the order it is shown in today, so the first drop
-   * on a list saved before the server kept its numbers lands where it was
-   * dropped. Postgres-only, idempotent, and never halts the chain: a table
-   * it cannot renumber is logged and heals on its next change.
+   * Numbers the drag-ordered lists (custom fields, rules, pipelines, status
+   * page links...) that have rows without a number or rows sharing one, 1..n
+   * in the order each is shown in today, so a drop on them lands where it
+   * was dropped. Lists with unique numbers are left alone. Postgres-only,
+   * idempotent, and never halts the chain: a table it cannot renumber is
+   * logged and skipped.
    */
   new NormalizeListOrder(),
   /*

@@ -12,22 +12,25 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   ListOrderChange,
   ListOrderItem,
+  getListOrderAppendValue,
   getListOrderChanges,
-  placeListOrderItem,
+  getListOrderCollisionChanges,
+  needsListOrderNormalization,
   sortListOrderItems,
+  toListOrderNumber,
 } from "../../../Utils/ListOrder";
 
 /*
  * Keeps the number column of a drag-ordered list (a model with
  * @ListOrderColumn) true for every caller. DatabaseService calls into this
- * around its create, update and delete; the arithmetic itself is
+ * around its create and update; the arithmetic itself is
  * Common/Utils/ListOrder.ts, which the dashboard's tables use as well.
  *
- * Writes made here go through updateColumnsByIdWithoutHooks: renumbering the
- * rows around a moved one is bookkeeping, not an edit of those rows, so it
- * must not fire their workflows, audit entries or service hooks one by one.
- * The row the caller actually created or moved goes through the normal path
- * and fires all of those as usual.
+ * Writes made here go through updateColumnsByIdWithoutHooks: stepping the
+ * rows around a moved one aside is bookkeeping, not an edit of those rows, so
+ * it must not fire their workflows, audit entries or service hooks one by
+ * one. The row the caller actually created or moved goes through the normal
+ * path and fires all of those as usual.
  */
 
 export interface ListOrderScope<TBaseModel extends BaseModel> {
@@ -39,7 +42,7 @@ export interface ListOrderScope<TBaseModel extends BaseModel> {
 export interface ListOrderCreatePlan {
   // The number the new row is saved with.
   value: number;
-  // The rows that move to make room for it. Written once it is saved.
+  // The rows that step aside to make room for it. Written once it is saved.
   siblingChanges: Array<ListOrderChange>;
 }
 
@@ -243,9 +246,9 @@ export default class ListOrderMaintainer {
   }
 
   /*
-   * Where a row about to be created goes: to the end of its list, or - when
-   * the caller asked for a number - to that place, with the rows from there
-   * on shifting down. Null when the row does not say which list it is in.
+   * Where a row about to be created goes: to the end of its list when it has
+   * no number, or to the number it was given - with the rows in the way
+   * stepping aside. Null when the row does not say which list it is in.
    */
   public static async planCreate<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
@@ -276,42 +279,38 @@ export default class ListOrderMaintainer {
       },
     );
 
-    const requestedValue: unknown = record[data.settings.column];
-
-    const ordered: Array<ListOrderItem> = placeListOrderItem({
-      siblings: siblings,
-      item: { id: NEW_ROW_ID, value: null, createdAt: null },
-      previousValue: null,
-      requestedValue: requestedValue,
-      sortOrder: data.settings.sortOrder,
-    });
-
-    const changes: Array<ListOrderChange> = getListOrderChanges({
-      orderedItems: ordered,
-      sortOrder: data.settings.sortOrder,
-    });
-
-    const ownChange: ListOrderChange | undefined = changes.find(
-      (change: ListOrderChange) => {
-        return change.id === NEW_ROW_ID;
-      },
+    const requested: number | null = toListOrderNumber(
+      record[data.settings.column],
     );
 
+    if (requested === null) {
+      return {
+        value: getListOrderAppendValue({
+          siblings: siblings,
+          sortOrder: data.settings.sortOrder,
+        }),
+        siblingChanges: [],
+      };
+    }
+
     return {
-      value: ownChange!.value,
-      siblingChanges: changes.filter((change: ListOrderChange) => {
-        return change.id !== NEW_ROW_ID;
+      value: requested,
+      siblingChanges: getListOrderCollisionChanges({
+        siblings: siblings,
+        itemId: NEW_ROW_ID,
+        previousValue: null,
+        requestedValue: requested,
+        sortOrder: data.settings.sortOrder,
       }),
     };
   }
 
   /*
-   * After a row's number was written: put it where that number says, among
-   * the other rows of its list, and renumber the list. `previousValue` is
-   * where it was (null for a row that just arrived in this list),
-   * `requestedValue` where it was asked to go (null for "the end").
+   * After a row's number was written: the rows of its list that held that
+   * number step aside. `previousValue` is the number the row had (null for a
+   * row that just arrived in this list).
    */
-  public static async placeRow<TBaseModel extends BaseModel>(data: {
+  public static async makeRoomForRow<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
     settings: ListOrderSettings;
     scope: ListOrderScope<TBaseModel>;
@@ -325,71 +324,63 @@ export default class ListOrderMaintainer {
       scope: data.scope,
     });
 
-    const id: string = data.id.toString();
-
-    const row: ListOrderItem | undefined = rows.find((item: ListOrderItem) => {
-      return item.id === id;
-    });
-
-    if (!row) {
-      // Gone, or no longer in this list: nothing to place.
-      return;
-    }
-
-    const ordered: Array<ListOrderItem> = placeListOrderItem({
-      siblings: rows,
-      item: row,
-      previousValue: data.previousValue,
-      requestedValue: data.requestedValue,
-      sortOrder: data.settings.sortOrder,
-    });
-
     await ListOrderMaintainer.writeChanges({
       service: data.service,
       settings: data.settings,
-      changes: getListOrderChanges({
-        orderedItems: ordered,
+      changes: getListOrderCollisionChanges({
+        siblings: rows,
+        itemId: data.id.toString(),
+        previousValue: data.previousValue,
+        requestedValue: data.requestedValue,
         sortOrder: data.settings.sortOrder,
       }),
     });
   }
 
   /*
-   * Renumbers one list in the order it is in now - after a delete, to close
-   * the gap. Returns how many rows changed.
+   * A row that moved to another list without a number of its own for it:
+   * it goes to the end there.
    */
-  public static async renumber<TBaseModel extends BaseModel>(data: {
+  public static async appendRow<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
     settings: ListOrderSettings;
     scope: ListOrderScope<TBaseModel>;
-  }): Promise<number> {
+    id: ObjectID;
+  }): Promise<void> {
     const rows: Array<ListOrderItem> = await ListOrderMaintainer.loadList({
       service: data.service,
       settings: data.settings,
       scope: data.scope,
     });
 
-    const changes: Array<ListOrderChange> = getListOrderChanges({
-      orderedItems: sortListOrderItems(rows, data.settings.sortOrder),
-      sortOrder: data.settings.sortOrder,
-    });
+    const id: string = data.id.toString();
 
     await ListOrderMaintainer.writeChanges({
       service: data.service,
       settings: data.settings,
-      changes: changes,
+      changes: [
+        {
+          id: id,
+          value: getListOrderAppendValue({
+            siblings: rows.filter((row: ListOrderItem) => {
+              return row.id !== id;
+            }),
+            sortOrder: data.settings.sortOrder,
+          }),
+        },
+      ],
     });
-
-    return changes.length;
   }
 
   /*
-   * Renumbers every list of a model, in the order each one is shown in today.
-   * For the one-off data migration that heals lists saved before the server
-   * kept their numbers (every log pipeline saved as 1, custom fields with no
-   * order at all), so that the first drop on them lands where it was dropped.
+   * Numbers every list of a model that has rows without a number, or two rows
+   * with the same one, 1..n in the order it is shown in today. Lists whose
+   * numbers are already unique are left exactly as they are. For the one-off
+   * data migration that heals lists saved before the server kept the numbers
+   * (every log pipeline saved as 1, custom fields with no order at all), so
+   * that the first drop on them lands where it was dropped.
    */
-  public static async renumberEveryList<TBaseModel extends BaseModel>(data: {
+  public static async normalizeEveryList<TBaseModel extends BaseModel>(data: {
     service: ServiceOf<TBaseModel>;
     settings: ListOrderSettings;
   }): Promise<{ lists: number; rowsChanged: number }> {
@@ -438,9 +429,14 @@ export default class ListOrderMaintainer {
       lists.set(scope.key, list);
     }
 
+    let listsChanged: number = 0;
     let rowsChanged: number = 0;
 
     for (const list of lists.values()) {
+      if (!needsListOrderNormalization(list)) {
+        continue;
+      }
+
       const changes: Array<ListOrderChange> = getListOrderChanges({
         orderedItems: sortListOrderItems(list, data.settings.sortOrder),
         sortOrder: data.settings.sortOrder,
@@ -452,9 +448,10 @@ export default class ListOrderMaintainer {
         changes: changes,
       });
 
+      listsChanged++;
       rowsChanged += changes.length;
     }
 
-    return { lists: lists.size, rowsChanged: rowsChanged };
+    return { lists: listsChanged, rowsChanged: rowsChanged };
   }
 }
