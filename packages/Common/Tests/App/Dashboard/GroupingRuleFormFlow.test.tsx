@@ -953,4 +953,114 @@ describe("editing an existing grouping rule", () => {
       }),
     );
   });
+
+  test("a rule saved by the old form with switches on and no minutes opens as the engines read it, and saves untouched", async () => {
+    /*
+     * The old form saved 0 when a switch was ticked and its minutes left
+     * empty. The engines group such a time window within their fallback
+     * hour, and do nothing for a reopen window, resolve delay or inactivity
+     * timeout of 0 - so that is what the form shows, and it saves the rule
+     * back exactly as it was rather than refusing it.
+     */
+    await openIncidentEditForm(
+      existingRule({
+        groupByMonitor: true,
+        enableTimeWindow: true,
+        timeWindowMinutes: 0,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 0,
+        enableResolveDelay: true,
+        resolveDelayMinutes: 0,
+        enableInactivityTimeout: true,
+        inactivityTimeoutMinutes: 0,
+      }),
+    );
+
+    expect(
+      switchNamed("Only group incidents that arrive close together"),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(minutesInput("time-window-setting")).toHaveValue(60);
+    // Nothing the engines act on lives behind the switch.
+    expect(switchNamed("Show advanced settings")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Show advanced settings"));
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(
+          within(dialog()).getByRole("navigation", { name: "Progress" }),
+        ).getByText("Episode Lifecycle"),
+      );
+    });
+    await waitFor(() => {
+      expect(activeStep()).toBe("Episode Lifecycle");
+    });
+
+    for (const name of [
+      "Reopen recently resolved episodes",
+      "Wait before resolving an episode",
+      "Resolve quiet episodes",
+    ]) {
+      expect(switchNamed(name)).toHaveAttribute("aria-checked", "false");
+    }
+
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableTimeWindow: true,
+        timeWindowMinutes: 0,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 0,
+        enableResolveDelay: true,
+        resolveDelayMinutes: 0,
+        enableInactivityTimeout: true,
+        inactivityTimeoutMinutes: 0,
+      }),
+    );
+  });
+
+  test("turning on a lifecycle setting that was saved with 0 minutes starts it from its default", async () => {
+    await openIncidentEditForm(
+      existingRule({
+        groupByMonitor: true,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 0,
+      }),
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Show advanced settings"));
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(
+          within(dialog()).getByRole("navigation", { name: "Progress" }),
+        ).getByText("Episode Lifecycle"),
+      );
+    });
+    await waitFor(() => {
+      expect(activeStep()).toBe("Episode Lifecycle");
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Reopen recently resolved episodes"));
+    });
+    expect(minutesInput("reopen-window-setting")).toHaveValue(30);
+
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableReopenWindow: true,
+        reopenWindowMinutes: 30,
+      }),
+    );
+  });
 });

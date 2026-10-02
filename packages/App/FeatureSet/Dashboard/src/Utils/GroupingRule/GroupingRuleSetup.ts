@@ -791,8 +791,25 @@ export const parseMinutes: (value: unknown) => number | null = (
 };
 
 /*
+ * Whether minutes came from the rule as it is stored, rather than being typed
+ * into the box: the box hands over text that is not a whole number as typed,
+ * so a number, or nothing, was loaded.
+ */
+const isStoredMinutes: (minutes: unknown) => boolean = (
+  minutes: unknown,
+): boolean => {
+  return typeof minutes !== "string";
+};
+
+/*
  * The minutes of a switched-on setting must be a usable number. A switched-off
  * setting is not checked: the engines do not read its minutes.
+ *
+ * Neither is a value a rule was saved with that the engines fall back on - a
+ * window switched on with no minutes, or 0 (the old form saved 0 when its
+ * switch was ticked and its box left empty). Refusing those would stop
+ * somebody renaming a rule that has worked the same way for years; the form
+ * shows what the engines do with them instead (getMinutesSettingDisplay).
  */
 export const getMinutesValidationError: (data: {
   enabled: unknown;
@@ -807,6 +824,18 @@ export const getMinutesValidationError: (data: {
     return null;
   }
 
+  if (isStoredMinutes(data.minutes)) {
+    const stored: unknown = data.minutes;
+
+    if (
+      stored === undefined ||
+      stored === null ||
+      (typeof stored === "number" && Number.isInteger(stored))
+    ) {
+      return null;
+    }
+  }
+
   if (parseMinutes(data.minutes) === null) {
     return data.translate(MINUTES_VALIDATION_MESSAGE, {
       max: MAX_SETTING_MINUTES,
@@ -814,6 +843,45 @@ export const getMinutesValidationError: (data: {
   }
 
   return null;
+};
+
+/*
+ * What a minutes setting shows: what the engines do with it. A switch that is
+ * on with no usable minutes saved is, to the engines, either the time
+ * window's fallback hour (fallbackMinutes) or not on at all - reopening,
+ * waiting to resolve and resolving when quiet all need minutes above 0 - so
+ * that is what the switch and the box show. Nothing is written until the
+ * person changes the setting, so a rule opened and saved keeps what it had.
+ */
+export const getMinutesSettingDisplay: (data: {
+  enabled: unknown;
+  minutes: unknown;
+  fallbackMinutes: number | null;
+}) => { enabled: boolean; minutes: unknown } = (data: {
+  enabled: unknown;
+  minutes: unknown;
+  fallbackMinutes: number | null;
+}): { enabled: boolean; minutes: unknown } => {
+  if (data.enabled !== true) {
+    return { enabled: false, minutes: data.minutes };
+  }
+
+  if (!isStoredMinutes(data.minutes) || parseMinutes(data.minutes) !== null) {
+    return { enabled: true, minutes: data.minutes };
+  }
+
+  const stored: number = Number(data.minutes);
+
+  if (Number.isInteger(stored) && stored > 0) {
+    // Saved before the box had a ceiling: the engines use it as it is.
+    return { enabled: true, minutes: stored };
+  }
+
+  if (data.fallbackMinutes !== null) {
+    return { enabled: true, minutes: data.fallbackMinutes };
+  }
+
+  return { enabled: false, minutes: data.minutes };
 };
 
 /*
@@ -1145,10 +1213,20 @@ const hasValue: HasValueFunction = (value: unknown): boolean => {
 export const hasAdvancedSettings: (values: GroupingRuleValues) => boolean = (
   values: GroupingRuleValues,
 ): boolean => {
+  /*
+   * A lifecycle switch counts only while the engines act on it - on, with
+   * minutes above 0 - which is also when the form shows it on.
+   */
   return (
-    isOn(values, "enableReopenWindow") ||
-    isOn(values, "enableResolveDelay") ||
-    isOn(values, "enableInactivityTimeout") ||
+    getActiveMinutes(values, "enableReopenWindow", "reopenWindowMinutes") !==
+      null ||
+    getActiveMinutes(values, "enableResolveDelay", "resolveDelayMinutes") !==
+      null ||
+    getActiveMinutes(
+      values,
+      "enableInactivityTimeout",
+      "inactivityTimeoutMinutes",
+    ) !== null ||
     isOn(values, "showEpisodeOnStatusPage") ||
     [
       "description",

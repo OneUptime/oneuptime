@@ -3,6 +3,7 @@ import {
   DEFAULT_REOPEN_WINDOW_MINUTES,
   DEFAULT_RESOLVE_DELAY_MINUTES,
   DEFAULT_TIME_WINDOW_MINUTES,
+  ENGINE_FALLBACK_TIME_WINDOW_MINUTES,
   GROUPING_MODE_FIELD_KEY,
   GROUPING_RULE_COPY,
   GroupingMode,
@@ -14,6 +15,7 @@ import {
   SHOW_ADVANCED_SETTINGS_FIELD_KEY,
   TIME_WINDOW_SETTING_FIELD_KEY,
   getGroupingMode,
+  getMinutesSettingDisplay,
   getMinutesValidationError,
   getSelectedGroupingMode,
   getValuesForGroupingModeChange,
@@ -74,30 +76,39 @@ interface MinutesSetting {
   enabledField: string;
   minutesField: string;
   defaultMinutes: number;
+  /*
+   * What the engines use when the switch is on with no usable minutes saved:
+   * the time window falls back to an hour; the other three do nothing.
+   */
+  fallbackMinutes: number | null;
 }
 
 const TIME_WINDOW: MinutesSetting = {
   enabledField: "enableTimeWindow",
   minutesField: "timeWindowMinutes",
   defaultMinutes: DEFAULT_TIME_WINDOW_MINUTES,
+  fallbackMinutes: ENGINE_FALLBACK_TIME_WINDOW_MINUTES,
 };
 
 const REOPEN_WINDOW: MinutesSetting = {
   enabledField: "enableReopenWindow",
   minutesField: "reopenWindowMinutes",
   defaultMinutes: DEFAULT_REOPEN_WINDOW_MINUTES,
+  fallbackMinutes: null,
 };
 
 const RESOLVE_DELAY: MinutesSetting = {
   enabledField: "enableResolveDelay",
   minutesField: "resolveDelayMinutes",
   defaultMinutes: DEFAULT_RESOLVE_DELAY_MINUTES,
+  fallbackMinutes: null,
 };
 
 const INACTIVITY_TIMEOUT: MinutesSetting = {
   enabledField: "enableInactivityTimeout",
   minutesField: "inactivityTimeoutMinutes",
   defaultMinutes: DEFAULT_INACTIVITY_TIMEOUT_MINUTES,
+  fallbackMinutes: null,
 };
 
 type MinutesSettingValidationFunction = <TModel extends BaseModel>(
@@ -174,14 +185,21 @@ const renderMinutesSetting: RenderMinutesSettingFunction = <
   values: FormValues<TModel>,
   props: CustomElementProps,
 ): ReactElement => {
+  const display: { enabled: boolean; minutes: unknown } =
+    getMinutesSettingDisplay({
+      enabled: asValues(values)[copy.setting.enabledField],
+      minutes: asValues(values)[copy.setting.minutesField],
+      fallbackMinutes: copy.setting.fallbackMinutes,
+    });
+
   return (
     <MinutesSettingField
       title={copy.title}
       description={copy.description}
       sentence={copy.sentence}
       minutesLabel={copy.minutesLabel}
-      enabled={asValues(values)[copy.setting.enabledField] === true}
-      minutes={asValues(values)[copy.setting.minutesField]}
+      enabled={display.enabled}
+      minutes={display.minutes}
       defaultMinutes={copy.setting.defaultMinutes}
       error={props.error}
       dataTestId={copy.dataTestId}

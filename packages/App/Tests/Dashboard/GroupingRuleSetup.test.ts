@@ -29,6 +29,7 @@ import {
   getGroupingRuleSummaryText,
   getGroupingRuleTemplate,
   getGroupingRuleUiStrings,
+  getMinutesSettingDisplay,
   getMinutesSettingValues,
   getMinutesValidationError,
   getNewGroupingRuleValues,
@@ -782,7 +783,7 @@ describe("getMinutesValidationError", () => {
     }
   });
 
-  test("a switched-on setting needs whole minutes in range", () => {
+  test("a switched-on setting needs whole minutes in range in its box", () => {
     expect(
       getMinutesValidationError({
         enabled: true,
@@ -798,7 +799,15 @@ describe("getMinutesValidationError", () => {
       }),
     ).toBeNull();
 
-    for (const minutes of [undefined, "", 0, "1.5", MAX_SETTING_MINUTES + 1]) {
+    // Typed into the box: the box hands over anything but a whole number as text.
+    for (const minutes of [
+      "",
+      "0",
+      "-5",
+      "1.5",
+      "abc",
+      String(MAX_SETTING_MINUTES + 1),
+    ]) {
       expect(
         getMinutesValidationError({
           enabled: true,
@@ -811,16 +820,115 @@ describe("getMinutesValidationError", () => {
     }
   });
 
+  test("a value a rule was saved with is never refused - the engines fall back on it", () => {
+    /*
+     * The old form saved 0 when a switch was ticked and its box left empty,
+     * and the API takes any whole number. Refusing those would stop somebody
+     * renaming a rule that has worked the same way for years.
+     */
+    for (const minutes of [undefined, null, 0, -3, MAX_SETTING_MINUTES + 1]) {
+      expect(
+        getMinutesValidationError({
+          enabled: true,
+          minutes,
+          translate: english,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("a stored value that is not a whole number is refused", () => {
+    expect(
+      getMinutesValidationError({
+        enabled: true,
+        minutes: 1.5,
+        translate: english,
+      }),
+    ).not.toBeNull();
+  });
+
   test("the message is translated whole, with the limit filled in", () => {
     expect(
       getMinutesValidationError({
         enabled: true,
-        minutes: 0,
+        minutes: "",
         translate: marked,
       }),
     ).toBe(
       `«${english(MINUTES_VALIDATION_MESSAGE, { max: MAX_SETTING_MINUTES })}»`,
     );
+  });
+});
+
+describe("getMinutesSettingDisplay", () => {
+  test("shows a switched-off setting off, with its saved minutes", () => {
+    expect(
+      getMinutesSettingDisplay({
+        enabled: false,
+        minutes: 45,
+        fallbackMinutes: 60,
+      }),
+    ).toEqual({ enabled: false, minutes: 45 });
+    expect(
+      getMinutesSettingDisplay({
+        enabled: undefined,
+        minutes: undefined,
+        fallbackMinutes: null,
+      }),
+    ).toEqual({ enabled: false, minutes: undefined });
+  });
+
+  test("shows a switched-on setting with usable minutes as it is", () => {
+    expect(
+      getMinutesSettingDisplay({
+        enabled: true,
+        minutes: 15,
+        fallbackMinutes: null,
+      }),
+    ).toEqual({ enabled: true, minutes: 15 });
+    expect(
+      getMinutesSettingDisplay({
+        enabled: true,
+        minutes: MAX_SETTING_MINUTES + 1,
+        fallbackMinutes: null,
+      }),
+    ).toEqual({ enabled: true, minutes: MAX_SETTING_MINUTES + 1 });
+  });
+
+  test("shows whatever is being typed, so the box never jumps under the cursor", () => {
+    for (const minutes of ["", "0", "4", "abc"]) {
+      expect(
+        getMinutesSettingDisplay({
+          enabled: true,
+          minutes,
+          fallbackMinutes: 60,
+        }),
+      ).toEqual({ enabled: true, minutes });
+    }
+  });
+
+  test("a time window saved on with no minutes shows the engines' hour", () => {
+    for (const minutes of [undefined, null, 0, -1]) {
+      expect(
+        getMinutesSettingDisplay({
+          enabled: true,
+          minutes,
+          fallbackMinutes: ENGINE_FALLBACK_TIME_WINDOW_MINUTES,
+        }),
+      ).toEqual({ enabled: true, minutes: 60 });
+    }
+  });
+
+  test("a lifecycle switch saved on with no minutes shows off, as the engines treat it", () => {
+    for (const minutes of [undefined, null, 0, -1]) {
+      expect(
+        getMinutesSettingDisplay({
+          enabled: true,
+          minutes,
+          fallbackMinutes: null,
+        }),
+      ).toEqual({ enabled: false, minutes });
+    }
   });
 });
 
@@ -1212,9 +1320,6 @@ describe("hasAdvancedSettings", () => {
   });
 
   test.each([
-    ["enableReopenWindow", true],
-    ["enableResolveDelay", true],
-    ["enableInactivityTimeout", true],
     ["showEpisodeOnStatusPage", true],
     ["description", "Groups production storms"],
     ["episodeTitleTemplate", "{{monitorName}} storm"],
@@ -1231,6 +1336,9 @@ describe("hasAdvancedSettings", () => {
   });
 
   test.each([
+    ["enableReopenWindow", true],
+    ["enableResolveDelay", true],
+    ["enableInactivityTimeout", true],
     ["enableReopenWindow", false],
     ["showEpisodeOnStatusPage", false],
     ["description", "   "],
@@ -1243,6 +1351,25 @@ describe("hasAdvancedSettings", () => {
   ])("%s set to %j does not", (key: string, value: unknown) => {
     expect(hasAdvancedSettings({ [key]: value })).toBe(false);
   });
+
+  test.each([
+    ["enableReopenWindow", "reopenWindowMinutes"],
+    ["enableResolveDelay", "resolveDelayMinutes"],
+    ["enableInactivityTimeout", "inactivityTimeoutMinutes"],
+  ])(
+    "%s counts while the engines act on it - on, with minutes above 0",
+    (enabledField: string, minutesField: string) => {
+      expect(
+        hasAdvancedSettings({ [enabledField]: true, [minutesField]: 30 }),
+      ).toBe(true);
+      expect(
+        hasAdvancedSettings({ [enabledField]: true, [minutesField]: 0 }),
+      ).toBe(false);
+      expect(
+        hasAdvancedSettings({ [enabledField]: false, [minutesField]: 30 }),
+      ).toBe(false);
+    },
+  );
 
   test("the show-advanced switch is a form key of its own, not a rule column", () => {
     expect(SHOW_ADVANCED_SETTINGS_FIELD_KEY).toBe("showAdvancedSettings");
