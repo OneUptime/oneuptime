@@ -18,12 +18,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * ModelList's empty state, and the opt-in hideEmptyState.
  *
- * An empty list shows noItemsMessage, and an EMPTY noItemsMessage falls back
- * to "No items found." - so a caller that explains an empty list itself (the
- * status page SSO sign-in says "single sign-on is not available") cannot
- * silence the list by passing "". hideEmptyState does that: an empty list
- * renders no message at all. It hides only the empty state: a search that
- * matches nothing and a failed load still say so.
+ * An empty list shows noItemsMessage - drawn like every table's empty state
+ * now, a smaller one: the model's icon, the message's first sentence as the
+ * title (without its stop) and the rest as the description - and an EMPTY
+ * noItemsMessage falls back to "No items found." - so a caller that explains
+ * an empty list itself (the status page SSO sign-in says "single sign-on is
+ * not available") cannot silence the list by passing "". hideEmptyState does
+ * that: an empty list renders no message at all. It hides only the empty
+ * state: a search that matches nothing and a failed load still say so.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -87,9 +89,11 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 
 const WAIT_TIMEOUT: number = 20000;
 
-const FALLBACK_MESSAGE: string = "No items found.";
+// Titles: the sentences the list is given, drawn as headings.
+const FALLBACK_MESSAGE: string = "No items found";
 const NO_MATCH_MESSAGE: string = "No items match your search";
-const NO_PROBES: string = "No probes yet.";
+const NO_PROBES_SENTENCE: string = "No probes yet.";
+const NO_PROBES: string = "No probes yet";
 
 const listOf: (names: Array<string>) => ListResult<Probe> = (
   names: Array<string>,
@@ -179,7 +183,7 @@ describe("ModelList empty state", () => {
   });
 
   it("an empty list shows noItemsMessage by default", async () => {
-    await waitForLoad(renderList({ noItemsMessage: NO_PROBES }));
+    await waitForLoad(renderList({ noItemsMessage: NO_PROBES_SENTENCE }));
 
     expect(screen.getByText(NO_PROBES)).toBeInTheDocument();
   });
@@ -192,7 +196,7 @@ describe("ModelList empty state", () => {
 
   it("hideEmptyState: an empty list shows no message at all", async () => {
     const onListLoaded: MockFunction = renderList({
-      noItemsMessage: NO_PROBES,
+      noItemsMessage: NO_PROBES_SENTENCE,
       hideEmptyState: true,
     });
     await waitForLoad(onListLoaded);
@@ -211,7 +215,7 @@ describe("ModelList empty state", () => {
 
   it("hideEmptyState=false behaves like the default", async () => {
     await waitForLoad(
-      renderList({ noItemsMessage: NO_PROBES, hideEmptyState: false }),
+      renderList({ noItemsMessage: NO_PROBES_SENTENCE, hideEmptyState: false }),
     );
 
     expect(screen.getByText(NO_PROBES)).toBeInTheDocument();
@@ -223,7 +227,7 @@ describe("ModelList empty state", () => {
     });
 
     await waitForLoad(
-      renderList({ noItemsMessage: NO_PROBES, hideEmptyState: true }),
+      renderList({ noItemsMessage: NO_PROBES_SENTENCE, hideEmptyState: true }),
     );
 
     expect(
@@ -240,7 +244,7 @@ describe("ModelList empty state", () => {
 
     await waitForLoad(
       renderList({
-        noItemsMessage: NO_PROBES,
+        noItemsMessage: NO_PROBES_SENTENCE,
         hideEmptyState: true,
         isSearchEnabled: true,
       }),
@@ -275,7 +279,7 @@ describe("ModelList empty state", () => {
       .spyOn(API, "getFriendlyMessage")
       .mockReturnValue("Could not load the probes.");
 
-    renderList({ noItemsMessage: NO_PROBES, hideEmptyState: true });
+    renderList({ noItemsMessage: NO_PROBES_SENTENCE, hideEmptyState: true });
 
     expect(
       await screen.findByText(
@@ -285,5 +289,94 @@ describe("ModelList empty state", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(NO_PROBES)).not.toBeInTheDocument();
+  });
+
+  it("is drawn as a compact empty state, with the model's icon", async () => {
+    await waitForLoad(renderList({ noItemsMessage: NO_PROBES_SENTENCE }));
+
+    const state: HTMLElement = screen.getByTestId("probe-list-no-items");
+
+    expect(state).toHaveAttribute("data-empty-state-kind", "empty");
+    expect(state.className).toContain("py-8");
+    expect(state.querySelector("[data-icon]")).toHaveAttribute(
+      "data-icon",
+      new Probe().icon as string,
+    );
+    expect(screen.getByTestId("probe-list-no-items-title").tagName).toBe("H3");
+  });
+
+  it("a message of two sentences is a title and a description", async () => {
+    await waitForLoad(
+      renderList({
+        noItemsMessage: "No dashboards found. Create a dashboard first.",
+      }),
+    );
+
+    expect(screen.getByTestId("probe-list-no-items-title")).toHaveTextContent(
+      /^No dashboards found$/,
+    );
+    expect(
+      screen.getByTestId("probe-list-no-items-description"),
+    ).toHaveTextContent("Create a dashboard first.");
+  });
+
+  it("a search that matches nothing is drawn as filtered", async () => {
+    getListMock.mockImplementation(() => {
+      return Promise.resolve(listOf(["wbhq"]));
+    });
+
+    await waitForLoad(
+      renderList({ noItemsMessage: NO_PROBES_SENTENCE, isSearchEnabled: true }),
+    );
+
+    fireEvent.change(
+      await screen.findByPlaceholderText(
+        "Search...",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+      { target: { value: "frankfurt" } },
+    );
+
+    expect(
+      await screen.findByTestId(
+        "probe-list-no-items",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveAttribute("data-empty-state-kind", "filtered");
+  });
+
+  it("a failed load says what failed, why, and tries again", async () => {
+    let failures: number = 1;
+
+    getListMock.mockImplementation(() => {
+      if (failures > 0) {
+        failures--;
+        return Promise.reject(new Error("boom"));
+      }
+      return Promise.resolve(listOf(["wbhq"]));
+    });
+    jest
+      .spyOn(API, "getFriendlyMessage")
+      .mockReturnValue("Could not load the probes.");
+
+    renderList({ noItemsMessage: NO_PROBES_SENTENCE });
+
+    const error: HTMLElement = await screen.findByTestId(
+      "probe-list-load-error",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(error).toHaveAttribute("data-empty-state-kind", "error");
+    expect(error).toHaveTextContent("Couldn't load probes");
+
+    fireEvent.click(screen.getByTestId("refresh-button"));
+
+    expect(
+      await screen.findByText("wbhq", {}, { timeout: WAIT_TIMEOUT }),
+    ).toBeInTheDocument();
+    expect(getListMock).toHaveBeenCalledTimes(2);
   });
 });

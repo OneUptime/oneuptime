@@ -5,10 +5,15 @@ import TableEmptyState, {
   TableEmptyStateKind,
   TableEmptyStateProps,
 } from "../Table/TableEmptyState";
-import { EmptyMessageParts } from "../Table/EmptyTableMessage";
 import {
+  EmptyMessageParts,
+  getEmptyTableTitle,
+} from "../Table/EmptyTableMessage";
+import {
+  getFilteredEmptyStateProps,
   getLoadErrorStateProps,
   getMessageEmptyStateParts,
+  hasFilterValues,
 } from "../Table/TableEmptyStateBuilders";
 import FilterViewer from "../Filters/FilterViewer";
 import FilterType from "../Filters/Types/Filter";
@@ -134,6 +139,34 @@ const List: ListFunction = <T extends GenericObject>(
           : undefined,
       translate: translate,
     });
+
+    // See Table: its own filter form hid every card.
+    if (
+      hasFilterValues(
+        props.filterData as { [key: string]: unknown } | undefined,
+      )
+    ) {
+      return (
+        <TableEmptyState
+          {...getFilteredEmptyStateProps({
+            title:
+              typeof props.noItemsMessage === "string" &&
+              props.noItemsMessage.trim()
+                ? parts.title
+                : getEmptyTableTitle({
+                    pluralLabel: props.pluralLabel,
+                    isFiltered: true,
+                    translate: translate,
+                  }),
+            onClear: props.onFilterChanged
+              ? (): void => {
+                  props.onFilterChanged?.({});
+                }
+              : undefined,
+          })}
+        />
+      );
+    }
 
     return (
       <TableEmptyState

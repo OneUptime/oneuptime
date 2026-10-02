@@ -308,7 +308,8 @@ describe("empty table message", () => {
     renderTable({ rows: [] });
 
     await waitFor(() => {
-      expect(screen.getByText("No monitors yet.")).toBeInTheDocument();
+      // A heading now: the title of the empty state, without its stop.
+      expect(screen.getByText("No monitors yet")).toBeInTheDocument();
     });
   });
 
@@ -316,9 +317,7 @@ describe("empty table message", () => {
     renderTable({ rows: [], noItemsMessage: "Connect your first monitor." });
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Connect your first monitor."),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Connect your first monitor")).toBeInTheDocument();
     });
   });
 
@@ -337,12 +336,12 @@ describe("empty table message", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("No monitors match your search or filters."),
+        screen.getByText("No monitors match your search or filters"),
       ).toBeInTheDocument();
     });
 
     expect(
-      screen.queryByText("Connect your first monitor."),
+      screen.queryByText("Connect your first monitor"),
     ).not.toBeInTheDocument();
   });
 });

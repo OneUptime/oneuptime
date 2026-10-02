@@ -69,8 +69,28 @@ export const getFilteredEmptyStateProps: (
 };
 
 /*
- * Whether filter-form values narrow the rows - the same test BaseModelTable
- * applies to its own filters: any key with a value.
+ * Whether one filter-form value narrows the rows. "No" on a yes/no filter is
+ * false and a count of nothing is 0, and both are sent to the server as
+ * filters, so they count; a cleared field (undefined, null, "" or an empty
+ * pick list) does not.
+ */
+export const isFilterValueSet: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  if (value === undefined || value === null || value === "") {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return true;
+};
+
+/*
+ * Whether filter-form values narrow the rows - the test BaseModelTable
+ * applies to its own filters too: any key with a value.
  */
 export const hasFilterValues: (
   filterData: { [key: string]: unknown } | undefined,
@@ -80,7 +100,7 @@ export const hasFilterValues: (
   }
 
   return Object.keys(filterData).some((key: string): boolean => {
-    return Boolean(filterData[key]);
+    return isFilterValueSet(filterData[key]);
   });
 };
 

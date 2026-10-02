@@ -189,6 +189,24 @@ const startsSentence: (text: string) => boolean = (text: string): boolean => {
 };
 
 /*
+ * Whether the word a stop ends is a one-letter abbreviation - "z. B.",
+ * "d. h.", "e. g." - rather than the end of a sentence.
+ */
+const endsOneLetterAbbreviation: (textBeforeStop: string) => boolean = (
+  textBeforeStop: string,
+): boolean => {
+  const lastSpace: number = Math.max(
+    textBeforeStop.lastIndexOf(" "),
+    textBeforeStop.lastIndexOf(" "),
+  );
+  const word: string = textBeforeStop.slice(lastSpace + 1);
+
+  return (
+    word.length === 1 && word.toLocaleLowerCase() !== word.toLocaleUpperCase()
+  );
+};
+
+/*
  * Past this a first sentence is a paragraph, not a heading: the whole
  * message is then said under the table's own title instead.
  */
@@ -212,7 +230,8 @@ export const splitEmptyMessage: (message: string) => EmptyMessageParts = (
     const isSentenceEnd: boolean =
       UNSPACED_SENTENCE_ENDS.includes(character) ||
       (SPACED_SENTENCE_ENDS.includes(character) &&
-        WHITESPACE.test(text.charAt(index + 1)));
+        WHITESPACE.test(text.charAt(index + 1)) &&
+        !endsOneLetterAbbreviation(text.slice(0, index)));
 
     if (!isSentenceEnd) {
       continue;

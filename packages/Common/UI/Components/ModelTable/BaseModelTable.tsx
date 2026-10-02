@@ -62,6 +62,7 @@ import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
 import TableEmptyState from "../Table/TableEmptyState";
+import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
 import EmptyStateOptions from "./EmptyStateOptions";
 import {
   ModelTableEmptyState,
@@ -3271,18 +3272,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * Lifted out of the onFilterChanged callback below, which is where this test
    * used to live inline. Two definitions of "a filter is applied" in one
-   * component is exactly the kind of thing that drifts apart.
+   * component is exactly the kind of thing that drifts apart - so it is the
+   * plain Table's own test (hasFilterValues). It used to be truthiness, which
+   * missed a yes/no filter set to "No" (false): the list was filtered, but
+   * the table called itself unfiltered, offered "No X yet" and a Create
+   * button under it, and let rows be dragged while some were hidden.
    */
   const hasFilterApplied: HasFilterAppliedFunction = (
     dataToCheck: FilterData<TBaseModel>,
   ): boolean => {
-    for (const key in dataToCheck) {
-      if (dataToCheck[key]) {
-        return true;
-      }
-    }
-
-    return false;
+    return hasFilterValues(
+      dataToCheck as unknown as { [key: string]: unknown } | undefined,
+    );
   };
 
   type GetMirroredCreateButtonFunction = () => CardButtonSchema | undefined;
