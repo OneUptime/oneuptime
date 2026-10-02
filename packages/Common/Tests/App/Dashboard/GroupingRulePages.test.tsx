@@ -16,7 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import Permission from "../../../Types/Permission";
 
@@ -171,7 +171,7 @@ const PAGE_PROPS: PageComponentProps = {
 interface PageCase {
   kind: GroupingRuleKind;
   label: string;
-  page: (props: PageComponentProps) => ReactElement;
+  page: FunctionComponent<PageComponentProps>;
   modelType: unknown;
   cardTitle: string;
   ruleNoun: string;
@@ -253,7 +253,7 @@ const PAGES: Array<PageCase> = [
 
 function renderPage(pageCase: PageCase): void {
   capturedTables = [];
-  const Page: (props: PageComponentProps) => ReactElement = pageCase.page;
+  const Page: FunctionComponent<PageComponentProps> = pageCase.page;
   render(<Page {...PAGE_PROPS} />);
 }
 
