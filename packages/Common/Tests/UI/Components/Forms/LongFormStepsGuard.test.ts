@@ -177,6 +177,29 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "Adding a cloud environment by hand: the three values ingest matches an environment on - its platform, account and region, joined into the key - and one folded Advanced header with the display name (it follows the three, as a discovered environment is named), the description and the labels. The three must match the telemetry together, so they stay side by side on one page; the Details step that held only the optional name went away.",
   },
+  /*
+   * Small wizards whose steps did not earn their place: each split a short
+   * form of things filled in together across a Next. One page now, with
+   * what is rarely changed folded under Advanced.
+   */
+  {
+    file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/CallSMS/Index.tsx",
+    form: "CardModelDetail: Call and SMS Settings",
+    reason:
+      "The installation's Twilio account: its account SID, auth token and the number calls and SMS go out from - three values the Twilio console shows together and that only work together - and one folded Advanced header with the extra numbers bought for other countries, which few installations have. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
+  },
+  {
+    file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
+    form: "ModelFormModal: Invite New User",
+    reason:
+      "Inviting someone to a project, one page as the Dashboard's Invite User is: the email, the name only when the address has no account yet, the team - its members team to start with, named in the team's description - and the master admin's auto-accept box, as on the Admin Dashboard's other add-to-project forms. Three rows for a known address. As two steps (User, Team) Invite could be pressed on the first without ever seeing which team the invitation was for.",
+  },
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/CalendarFeed/SharedCalendarFeedCard.tsx`,
+    form: "CardModelDetail: Shared Calendar Feed > Settings",
+    reason:
+      "The edit dialog of a shared calendar link's settings card, one page as the personal link's is: two switches and two day counts that the card lists, plus the minimum gap, which shows only while coverage gaps are switched on. Someone who opens Edit came to change one of them; as three steps (one of them a single switch) they first had to find which.",
+  },
 ];
 
 /*

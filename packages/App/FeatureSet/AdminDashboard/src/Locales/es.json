@@ -556,9 +556,7 @@
         "cardDescription": "Los proveedores LLM globales están disponibles para todos los proyectos para las funciones de IA. Configure OpenAI, Anthropic, Ollama u otros proveedores LLM.",
         "noItems": "No hay proveedores LLM configurados. Añada un proveedor LLM para habilitar las funciones de IA.",
         "stepBasicInfo": "Información básica",
-        "stepProviderSettings": "Ajustes del proveedor",
-        "stepAdvanced": "Avanzado",
-        "stepCostSettings": "Ajustes de costo"
+        "stepProviderSettings": "Ajustes del proveedor"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Crear nuevo proyecto",
   "Create Project": "Crear proyecto",
   "Created At": "Creado en",
-  "Credentials": "Credenciales",
   "Datastore capacity": "Capacidad del almacén de datos",
   "Disable Sign Up": "Deshabilitar registro",
   "Disk and memory utilization of the databases backing this instance.": "Utilización de disco y memoria de las bases de datos que respaldan esta instancia.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Gestiona todos los usuarios de la instancia.",
   "Master API Key": "Clave API maestra",
   "Message": "Mensaje",
-  "Meta App": "Aplicación de Meta",
   "Model": "Modelo",
   "Model Name": "Nombre del modelo",
   "Monitor Log Retention (Days)": "Retención de registros del monitor (días)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Obligatorio para la autenticación con nombre de usuario y contraseña. No se usa para OAuth.",
   "Sample Description": "Descripción de muestra",
   "Sample Title": "Título de muestra",
-  "Secondary Twilio Phone Number": "Número de teléfono secundario de Twilio",
   "Secondary Twilio Phone Numbers": "Números de teléfono secundarios de Twilio",
   "Secret token configured in Meta to validate webhook subscription requests.": "Token secreto configurado en Meta para validar las solicitudes de suscripción de webhook.",
   "Select a team": "Seleccione un equipo",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Eliminar {{name}} de forma permanente.",
   "This action cannot be undone.": "Esta acción no se puede deshacer.",
   "and {{remaining}} more": "y {{remaining}} más",
-  "Type {{name}} to confirm.": "Escriba {{name}} para confirmar."
+  "Type {{name}} to confirm.": "Escriba {{name}} para confirmar.",
+  "Configured": "Configurado"
 }

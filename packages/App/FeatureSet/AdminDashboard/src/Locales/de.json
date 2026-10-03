@@ -556,9 +556,7 @@
         "cardDescription": "Globale LLM-Anbieter sind für alle Projekte für KI-Funktionen verfügbar. Konfigurieren Sie OpenAI, Anthropic, Ollama oder andere LLM-Anbieter.",
         "noItems": "Keine LLM-Anbieter konfiguriert. Fügen Sie einen LLM-Anbieter hinzu, um KI-Funktionen zu aktivieren.",
         "stepBasicInfo": "Grundinformationen",
-        "stepProviderSettings": "Anbietereinstellungen",
-        "stepAdvanced": "Erweitert",
-        "stepCostSettings": "Kosteneinstellungen"
+        "stepProviderSettings": "Anbietereinstellungen"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Neues Projekt erstellen",
   "Create Project": "Projekt erstellen",
   "Created At": "Erstellt am",
-  "Credentials": "Anmeldedaten",
   "Datastore capacity": "Datenspeicherkapazität",
   "Disable Sign Up": "Registrierung deaktivieren",
   "Disk and memory utilization of the databases backing this instance.": "Festplatten- und Arbeitsspeicherauslastung der Datenbanken, die diese Instanz unterstützen.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Verwalten Sie alle Benutzer in der gesamten Instanz.",
   "Master API Key": "Master-API-Schlüssel",
   "Message": "Nachricht",
-  "Meta App": "Meta-App",
   "Model": "Modell",
   "Model Name": "Modellname",
   "Monitor Log Retention (Days)": "Aufbewahrung der Überwachungsprotokolle (Tage)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Erforderlich für die Authentifizierung mit Benutzername und Passwort. Wird nicht für OAuth verwendet.",
   "Sample Description": "Beispielbeschreibung",
   "Sample Title": "Beispieltitel",
-  "Secondary Twilio Phone Number": "Sekundäre Twilio-Telefonnummer",
   "Secondary Twilio Phone Numbers": "Sekundäre Twilio-Telefonnummern",
   "Secret token configured in Meta to validate webhook subscription requests.": "In Meta konfigurierter geheimer Token zur Validierung von Webhook-Abonnementanfragen.",
   "Select a team": "Ein Team auswählen",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "{{name}} endgültig löschen.",
   "This action cannot be undone.": "Diese Aktion kann nicht rückgängig gemacht werden.",
   "and {{remaining}} more": "und {{remaining}} weitere",
-  "Type {{name}} to confirm.": "Geben Sie {{name}} zur Bestätigung ein."
+  "Type {{name}} to confirm.": "Geben Sie {{name}} zur Bestätigung ein.",
+  "Configured": "Konfiguriert"
 }

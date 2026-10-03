@@ -377,17 +377,20 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
               modelType: TeamMember,
               modelAPI: AdminModelAPI,
               id: "invite-user-form",
-              steps: [
-                { title: "User", id: "user" },
-                { title: "Team", id: "team" },
-              ],
+              /*
+               * One page, as the Dashboard's Invite User is: the email (and a
+               * name when the address has no account yet), the team - the
+               * members team to start with, named in its description - and
+               * the master admin's auto-accept box. It was two steps (User,
+               * Team), whose Invite could be pressed on the first one without
+               * ever seeing which team the invitation was for.
+               */
               fields: [
                 {
                   field: {
                     user: true,
                   },
                   title: "Email",
-                  stepId: "user",
                   description:
                     "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
                   fieldType: FormFieldSchemaType.Email,
@@ -403,7 +406,6 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     user: true,
                   },
                   title: "Name",
-                  stepId: "user",
                   description:
                     "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
                   fieldType: FormFieldSchemaType.Text,
@@ -422,11 +424,9 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     team: true,
                   },
                   title: "Team",
-                  stepId: "team",
                   /*
-                   * Picked to start with (inviteInitialValues), which also
-                   * lets Invite be pressed on the first step: every step
-                   * after it already holds an answer.
+                   * Picked to start with (inviteInitialValues), so Invite
+                   * needs only the email.
                    */
                   description: defaultInviteTeam
                     ? t("pages.projectUsers.inviteTeamDescriptionWithDefault", {
@@ -464,7 +464,6 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     hasAcceptedInvitation: true,
                   },
                   title: "Accept the invitation automatically",
-                  stepId: "team",
                   description:
                     "Add this user as a member right away instead of leaving them as invited until they accept. Only a master admin can do this - use it when you are setting a project up on someone's behalf.",
                   fieldType: FormFieldSchemaType.Checkbox,

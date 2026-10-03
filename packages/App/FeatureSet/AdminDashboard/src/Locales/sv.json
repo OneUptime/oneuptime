@@ -556,9 +556,7 @@
         "cardDescription": "Globala LLM-leverantörer är tillgängliga för alla projekt för AI-funktioner. Konfigurera OpenAI, Anthropic, Ollama eller andra LLM-leverantörer.",
         "noItems": "Inga LLM-leverantörer konfigurerade. Lägg till en LLM-leverantör för att aktivera AI-funktioner.",
         "stepBasicInfo": "Grundläggande information",
-        "stepProviderSettings": "Leverantörsinställningar",
-        "stepAdvanced": "Avancerad",
-        "stepCostSettings": "Kostnadsinställningar"
+        "stepProviderSettings": "Leverantörsinställningar"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Skapa nytt projekt",
   "Create Project": "Skapa projekt",
   "Created At": "Skapad den",
-  "Credentials": "Autentiseringsuppgifter",
   "Datastore capacity": "Datalagrets kapacitet",
   "Disable Sign Up": "Inaktivera registrering",
   "Disk and memory utilization of the databases backing this instance.": "Disk- och minnesanvändning för databaserna som ligger bakom denna instans.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Hantera alla användare i instansen.",
   "Master API Key": "Master-API-nyckel",
   "Message": "Meddelande",
-  "Meta App": "Meta-app",
   "Model": "Modell",
   "Model Name": "Modellnamn",
   "Monitor Log Retention (Days)": "Lagringstid för övervakningsloggar (dagar)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Krävs för autentisering med användarnamn och lösenord. Används inte för OAuth.",
   "Sample Description": "Exempelbeskrivning",
   "Sample Title": "Exempeltitel",
-  "Secondary Twilio Phone Number": "Sekundärt Twilio-telefonnummer",
   "Secondary Twilio Phone Numbers": "Sekundära Twilio-telefonnummer",
   "Secret token configured in Meta to validate webhook subscription requests.": "Hemlig token konfigurerad i Meta för att validera prenumerationsförfrågningar för webhook.",
   "Select a team": "Välj ett team",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Ta bort {{name}} permanent.",
   "This action cannot be undone.": "Denna åtgärd kan inte ångras.",
   "and {{remaining}} more": "och {{remaining}} till",
-  "Type {{name}} to confirm.": "Skriv {{name}} för att bekräfta."
+  "Type {{name}} to confirm.": "Skriv {{name}} för att bekräfta.",
+  "Configured": "Konfigurerat"
 }

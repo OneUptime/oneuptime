@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import ts from "typescript";
 import { RULE_ENABLED_COLUMN } from "../../UI/Components/RuleRun/RuleEnabledField";
+import { LocaleLookup, loadLocaleFor } from "../DialogActionRules";
 
 /*
  * The detector behind the "long forms walk steps" guard
@@ -234,7 +235,20 @@ export interface FormFieldFacts {
 export interface FormStepFacts {
   // The step's id when written as a string.
   id: string | null;
+  // The title written as a string, else its source text (`t("...")`).
   title: string;
+  /*
+   * Every text the title can be on screen, in English (readTitleTexts): a
+   * string, each branch of a condition, a constant it names, or a
+   * translation call's key looked up in the English locale of the front end
+   * the form is in - the Admin Dashboard's t("pages.x.stepAdvanced") and the
+   * status page's translate("subscribe.steps.details") read their nested
+   * keys there, while the Dashboard's translationKey("Advanced") and
+   * translateString("Advanced") key a text by its English. Null when the
+   * title cannot be read: computed some other way, or a key its locale does
+   * not have. Empty without a title.
+   */
+  titleTexts: Array<string> | null;
   isConditional: boolean;
 }
 
@@ -321,6 +335,13 @@ interface ParsedFile {
   // Every named declaration, first one wins: `const x = ...`, `function x`.
   declarations: Map<string, ts.Node>;
   imports: Map<string, { file: string; exported: string }>;
+  /*
+   * Names the file passes on from another (`export { X } from "./Copy"`),
+   * and the files it passes everything on from (`export * from "./Copy"`).
+   * Only a step's title is followed through them (readTitleTexts).
+   */
+  reexports: Map<string, { file: string; exported: string }>;
+  reexportedFiles: Array<string>;
   // Arguments of `<name>.push(...)` anywhere in the file.
   pushes: Map<string, Array<{ argument: ts.Expression; inLoop: boolean }>>;
   // Values of `<name> = ...` anywhere in the file.
@@ -406,6 +427,34 @@ function writtenStringsOf(expression: ts.Node): Array<string> | null {
   return null;
 }
 
+/*
+ * The calls a front end translates a string with, by the name they are
+ * called by (`t(...)`, `data.translate(...)`, `translator.translateText(...)`).
+ * The Admin Dashboard's t() and the status page's translate() look a key up
+ * in their own locale; translationKey() marks an English text for the
+ * Dashboard's extractor and translateString / translateText / translateValue
+ * / translateTerm / translateTemplate look it up, so their key - the first
+ * argument - is the English itself (a template's with its {{placeholders}}).
+ */
+export const TRANSLATION_CALLS: ReadonlySet<string> = new Set<string>([
+  "t",
+  "tx",
+  "translate",
+  "translationKey",
+  "translateString",
+  "translateText",
+  "translateValue",
+  "translateTerm",
+  "translateTemplate",
+]);
+
+/*
+ * A translation key that is a path into a nested locale ("pages.x.stepBasic",
+ * "subscribe.steps.details") rather than English text: dotted words, no
+ * spaces. One its locale does not have is drawn as the path itself.
+ */
+const NESTED_LOCALE_KEY: RegExp = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)+$/;
+
 function isInsideLoop(node: ts.Node): boolean {
   let current: ts.Node | undefined = node.parent;
 
@@ -436,6 +485,12 @@ export class FormStepsScanner {
   private readonly parsedFiles: Map<string, ParsedFile | null> = new Map<
     string,
     ParsedFile | null
+  >();
+
+  // The English locale of each front end, read once (see readTitleTexts).
+  private readonly locales: Map<string, LocaleLookup> = new Map<
+    string,
+    LocaleLookup
   >();
 
   public constructor(
@@ -507,6 +562,8 @@ export class FormStepsScanner {
       sourceFile,
       declarations: new Map<string, ts.Node>(),
       imports: new Map<string, { file: string; exported: string }>(),
+      reexports: new Map<string, { file: string; exported: string }>(),
+      reexportedFiles: [],
       pushes: new Map<
         string,
         Array<{ argument: ts.Expression; inLoop: boolean }>
@@ -595,6 +652,34 @@ export class FormStepsScanner {
                 exported: (element.propertyName || element.name).text,
               });
             }
+          }
+        }
+      }
+
+      if (
+        ts.isExportDeclaration(node) &&
+        node.moduleSpecifier &&
+        ts.isStringLiteral(node.moduleSpecifier)
+      ) {
+        const target: string | null = this.resolveModule(
+          filePath,
+          node.moduleSpecifier.text,
+        );
+
+        if (target && !node.exportClause) {
+          parsed.reexportedFiles.push(target);
+        }
+
+        if (
+          target &&
+          node.exportClause &&
+          ts.isNamedExports(node.exportClause)
+        ) {
+          for (const element of node.exportClause.elements) {
+            parsed.reexports.set(element.name.text, {
+              file: target,
+              exported: (element.propertyName || element.name).text,
+            });
           }
         }
       }
@@ -2035,6 +2120,7 @@ export class FormStepsScanner {
   ): FormStepFacts {
     let id: string | null = null;
     let title: string = "";
+    let titleTexts: Array<string> | null = [];
     let isConditional: boolean = false;
 
     for (const property of node.properties) {
@@ -2053,6 +2139,7 @@ export class FormStepsScanner {
         title = ts.isStringLiteralLike(value)
           ? value.text
           : value.getText(parsed.sourceFile);
+        titleTexts = this.readTitleTexts(parsed, value, 0);
       }
 
       if (name === "showIf") {
@@ -2060,8 +2147,288 @@ export class FormStepsScanner {
       }
     }
 
-    return { id, title, isConditional };
+    return { id, title, titleTexts, isConditional };
   }
+
+  /*
+   * The English texts a step's title can be on screen (FormStepFacts
+   * .titleTexts): a string; each branch of a condition; the value of a
+   * constant it names, in this file or imported (re-exports included), or
+   * of a property of a constant object of copy (`FormsCopy.stepDefaults`;
+   * every value, for `COPY.title[kind]`); or a translation call
+   * (TRANSLATION_CALLS) whose key is one of those, looked up in the English
+   * locale of the front end the form is in. A key that locale does not have
+   * is shown as itself - English text keys a Dashboard string - unless it is
+   * a nested path, which would be drawn as the path: that title cannot be
+   * read. Null for anything else.
+   */
+  private readTitleTexts(
+    parsed: ParsedFile,
+    expression: ts.Node,
+    depth: number,
+  ): Array<string> | null {
+    if (depth > MAX_DEPTH) {
+      return null;
+    }
+
+    const node: ts.Node = unwrap(expression);
+
+    if (ts.isStringLiteralLike(node)) {
+      return [node.text];
+    }
+
+    if (ts.isConditionalExpression(node)) {
+      const whenTrue: Array<string> | null = this.readTitleTexts(
+        parsed,
+        node.whenTrue,
+        depth + 1,
+      );
+      const whenFalse: Array<string> | null = this.readTitleTexts(
+        parsed,
+        node.whenFalse,
+        depth + 1,
+      );
+
+      return whenTrue && whenFalse ? [...whenTrue, ...whenFalse] : null;
+    }
+
+    if (ts.isIdentifier(node)) {
+      const declared: { parsed: ParsedFile; node: ts.Node } | null =
+        this.lookupValue(parsed, node.text, depth + 1);
+
+      return declared && ts.isExpression(declared.node)
+        ? this.readTitleTexts(declared.parsed, declared.node, depth + 1)
+        : null;
+    }
+
+    if (ts.isPropertyAccessExpression(node)) {
+      const owner: {
+        parsed: ParsedFile;
+        node: ts.ObjectLiteralExpression;
+      } | null = this.readObjectLiteral(parsed, node.expression, depth + 1);
+      const value: ts.Expression | null = owner
+        ? propertyValueOf(owner.node, node.name.text)
+        : null;
+
+      return owner && value
+        ? this.readTitleTexts(owner.parsed, value, depth + 1)
+        : null;
+    }
+
+    if (ts.isElementAccessExpression(node)) {
+      const owner: {
+        parsed: ParsedFile;
+        node: ts.ObjectLiteralExpression;
+      } | null = this.readObjectLiteral(parsed, node.expression, depth + 1);
+
+      if (!owner) {
+        return null;
+      }
+
+      const index: ts.Node = unwrap(node.argumentExpression);
+
+      if (ts.isStringLiteralLike(index)) {
+        const value: ts.Expression | null = propertyValueOf(
+          owner.node,
+          index.text,
+        );
+
+        return value
+          ? this.readTitleTexts(owner.parsed, value, depth + 1)
+          : null;
+      }
+
+      // Indexed at runtime: it can be any of the object's values.
+      const texts: Array<string> = [];
+
+      for (const property of owner.node.properties) {
+        if (!ts.isPropertyAssignment(property)) {
+          return null;
+        }
+
+        const read: Array<string> | null = this.readTitleTexts(
+          owner.parsed,
+          property.initializer,
+          depth + 1,
+        );
+
+        if (!read) {
+          return null;
+        }
+
+        texts.push(...read);
+      }
+
+      return texts.length > 0 ? texts : null;
+    }
+
+    if (ts.isCallExpression(node) && node.arguments[0]) {
+      const callee: ts.Expression = node.expression;
+      const calleeName: string | null = ts.isIdentifier(callee)
+        ? callee.text
+        : ts.isPropertyAccessExpression(callee)
+          ? callee.name.text
+          : null;
+
+      if (!calleeName || !TRANSLATION_CALLS.has(calleeName)) {
+        return null;
+      }
+
+      const keys: Array<string> | null = this.readTitleTexts(
+        parsed,
+        node.arguments[0],
+        depth + 1,
+      );
+
+      if (!keys) {
+        return null;
+      }
+
+      const locale: LocaleLookup = loadLocaleFor(
+        this.repositoryRoot,
+        toRepositoryPath(this.repositoryRoot, parsed.file),
+        this.locales,
+        (filePath: string): string | null => {
+          return this.fileSystem.readFile(filePath);
+        },
+      );
+      const texts: Array<string> = [];
+
+      for (const key of keys) {
+        const text: string | null = locale(key);
+
+        if (text === null && NESTED_LOCALE_KEY.test(key)) {
+          return null;
+        }
+
+        texts.push(text ?? key);
+      }
+
+      return texts;
+    }
+
+    return null;
+  }
+
+  /*
+   * What a name stands for, as lookup() finds it, and also through a file
+   * that only passes the name on (`export { X } from "./Copy"`, `export *
+   * from "./Copy"`), which the field lists never need.
+   */
+  private lookupValue(
+    parsed: ParsedFile,
+    name: string,
+    depth: number,
+  ): { parsed: ParsedFile; node: ts.Node } | null {
+    if (depth > MAX_DEPTH) {
+      return null;
+    }
+
+    const found: { parsed: ParsedFile; node: ts.Node } | null = this.lookup(
+      parsed,
+      name,
+      depth,
+    );
+
+    if (found) {
+      return found;
+    }
+
+    const passedOn: { file: string; exported: string } | undefined =
+      parsed.imports.get(name) || parsed.reexports.get(name);
+
+    if (passedOn) {
+      const target: ParsedFile | null = this.parse(passedOn.file);
+
+      return target && passedOn.exported !== "default"
+        ? this.lookupValue(target, passedOn.exported, depth + 1)
+        : null;
+    }
+
+    for (const file of parsed.reexportedFiles) {
+      const target: ParsedFile | null = this.parse(file);
+      const fromTarget: { parsed: ParsedFile; node: ts.Node } | null = target
+        ? this.lookupValue(target, name, depth + 1)
+        : null;
+
+      if (fromTarget) {
+        return fromTarget;
+      }
+    }
+
+    return null;
+  }
+
+  // The object literal an expression names: a constant, or a property of one.
+  private readObjectLiteral(
+    parsed: ParsedFile,
+    expression: ts.Node,
+    depth: number,
+  ): { parsed: ParsedFile; node: ts.ObjectLiteralExpression } | null {
+    if (depth > MAX_DEPTH) {
+      return null;
+    }
+
+    const node: ts.Node = unwrap(expression);
+
+    if (ts.isObjectLiteralExpression(node)) {
+      return { parsed, node };
+    }
+
+    if (ts.isIdentifier(node)) {
+      const declared: { parsed: ParsedFile; node: ts.Node } | null =
+        this.lookupValue(parsed, node.text, depth + 1);
+
+      return declared
+        ? this.readObjectLiteral(declared.parsed, declared.node, depth + 1)
+        : null;
+    }
+
+    if (ts.isPropertyAccessExpression(node)) {
+      const owner: {
+        parsed: ParsedFile;
+        node: ts.ObjectLiteralExpression;
+      } | null = this.readObjectLiteral(parsed, node.expression, depth + 1);
+      const value: ts.Expression | null = owner
+        ? propertyValueOf(owner.node, node.name.text)
+        : null;
+
+      return owner && value
+        ? this.readObjectLiteral(owner.parsed, value, depth + 1)
+        : null;
+    }
+
+    return null;
+  }
+}
+
+/*
+ * The value an object literal gives a property it names plainly (`name:`,
+ * `"name":`, or `name` alone, for a variable of that name). Null when it has
+ * none, or only under a computed name.
+ */
+function propertyValueOf(
+  object: ts.ObjectLiteralExpression,
+  name: string,
+): ts.Expression | null {
+  for (const property of object.properties) {
+    if (
+      ts.isPropertyAssignment(property) &&
+      (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
+      property.name.text === name
+    ) {
+      return property.initializer;
+    }
+
+    if (
+      ts.isShorthandPropertyAssignment(property) &&
+      property.name.text === name
+    ) {
+      return property.name;
+    }
+  }
+
+  return null;
 }
 
 // The hosts that draw a Create and an Edit form from one field list.
