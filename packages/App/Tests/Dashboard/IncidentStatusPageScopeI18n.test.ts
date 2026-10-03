@@ -273,22 +273,28 @@ describe("the dashboard renders the shared strings", () => {
     expect(source).toContain("buildStatusPageScopeFacet(),");
   });
 
+  /*
+   * The switch is on Advanced Settings, in the incidents row of the "What
+   * your status page shows" card, which reads its rows from this module.
+   */
   test("a status page can show only the incidents scoped to it", () => {
     const source: string = readSource(
-      "Pages",
-      "StatusPages",
-      "View",
-      "StatusPageSettings.tsx",
+      "Components",
+      "StatusPage",
+      "StatusPageDisplaySettingsCopy.ts",
     );
 
-    expect(source).toContain("onlyShowScopedIncidents: true,");
+    expect(source).toContain('column: "onlyShowScopedIncidents",');
     expect(source).toContain(
       "title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,",
+    );
+    expect(source).toContain(
+      "IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,",
     );
     expect(
       source.split("IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle")
         .length - 1,
-    ).toBe(2);
+    ).toBe(1);
   });
 
   test("the incident public note composer shows the audience", () => {

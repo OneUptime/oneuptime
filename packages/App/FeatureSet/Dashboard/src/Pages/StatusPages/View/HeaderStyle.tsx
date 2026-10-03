@@ -21,8 +21,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     <Fragment>
       {/*
        * The logo and the cover image. The favicon is on Essential Branding,
-       * with the page's title and description; this card's old title
-       * ("Logo, Cover and Favicon") sent people looking for it here.
+       * with the page's title and description; this card's old title named
+       * the favicon too, and sent people looking for it here.
        */}
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Header Style"
