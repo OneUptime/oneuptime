@@ -1,4 +1,5 @@
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import NetworkSiteTypeHierarchyUtil, {
   NetworkSiteTypeHierarchyIndex,
@@ -305,7 +306,9 @@ export default class SiteTypeHierarchyFormUtil {
     const groups: Array<DropdownOptionGroup> = [
       {
         label: preferredTypeName
-          ? `Suggested — ${preferredTypeName}`
+          ? translateTemplate("Suggested — {{siteType}}", {
+              siteType: preferredTypeName,
+            })
           : "Suggested",
         options: preferred,
       },

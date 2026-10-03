@@ -5,6 +5,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 
@@ -22,20 +23,25 @@ export function sslStatusLabel(sslResponse: SslMonitorResponse): string {
   const isValid: boolean | undefined = sslResponse.isValidCertificate;
 
   if (isValid === true) {
-    return "Valid";
+    return translateTemplate("Valid");
   }
 
   if (isValid === false) {
     if (sslResponse.isSelfSigned) {
-      return "Not Valid - Self Signed";
+      return translateTemplate("Not Valid - Self Signed");
     }
 
+    // The error code is the TLS library's own identifier, kept as it is.
     return sslResponse.certificateValidationErrorCode
-      ? `Not Valid - ${sslResponse.certificateValidationErrorCode}`
-      : "Not Valid";
+      ? translateTemplate("Not Valid - {{code}}", {
+          code: sslResponse.certificateValidationErrorCode,
+        })
+      : translateTemplate("Not Valid");
   }
 
-  return sslResponse.isSelfSigned ? "Self Signed" : "Signed by a CA";
+  return sslResponse.isSelfSigned
+    ? translateTemplate("Self Signed")
+    : translateTemplate("Signed by a CA");
 }
 
 const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (

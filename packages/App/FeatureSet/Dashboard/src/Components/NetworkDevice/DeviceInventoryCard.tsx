@@ -7,6 +7,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -32,6 +34,7 @@ export interface InventoryUptimeValueProps {
 export const InventoryUptimeValue: FunctionComponent<
   InventoryUptimeValueProps
 > = (props: InventoryUptimeValueProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const humanizedUptime: string =
     OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
       props.lastRebootedAt,
@@ -41,9 +44,9 @@ export const InventoryUptimeValue: FunctionComponent<
   return (
     <span className="inline-flex items-center gap-1">
       <Tooltip
-        text={`Booted at ${OneUptimeDate.getDateAsFormattedString(
-          props.lastRebootedAt,
-        )}`}
+        text={translator.translateTemplate("Booted at {{date}}", {
+          date: OneUptimeDate.getDateAsFormattedString(props.lastRebootedAt),
+        })}
       >
         <span className="text-sm text-gray-900">{humanizedUptime}</span>
       </Tooltip>

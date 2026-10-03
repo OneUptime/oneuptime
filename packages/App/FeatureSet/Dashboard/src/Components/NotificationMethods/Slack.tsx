@@ -23,6 +23,7 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Unlike phone-style methods there is nothing to type and nothing to verify
@@ -96,7 +97,9 @@ const Slack: () => JSX.Element = (): ReactElement => {
         const data: JSONObject = response.data as JSONObject;
         setTestResult(
           (data["statusMessage"] as string) ||
-            "Test message sent. Check your Slack direct messages.",
+            translateTemplate(
+              "Test message sent. Check your Slack direct messages.",
+            ),
         );
       }
     } catch (err) {

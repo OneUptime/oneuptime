@@ -19,6 +19,8 @@ import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/O
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
@@ -27,6 +29,7 @@ export interface ComponentProps {
 const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -155,7 +158,9 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                   />
                 );
               }
-              return <p>No escalation rule found.</p>;
+              return (
+                <p>{translator.translateText("No escalation rule found.")}</p>
+              );
             },
           },
           {
@@ -197,7 +202,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 return (
                   <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
                     <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                    No one was on call
+                    {translator.translateText("No one was on call")}
                   </span>
                 );
               }

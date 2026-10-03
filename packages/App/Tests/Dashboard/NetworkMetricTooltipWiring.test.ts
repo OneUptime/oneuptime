@@ -193,8 +193,9 @@ describe("the site Overview hero", () => {
 
   test.each([
     ['title="Health"', "health"],
-    ["title={`Uptime (${DAILY_UPTIME_WINDOW_DAYS * 24}h)`}", "uptime24h"],
-    ["title={`Uptime (${UPTIME_WINDOW_DAYS}d)`}", "uptime30d"],
+    // The uptime titles are translated sentences with the window filled in.
+    ['title={translator.translateTemplate("Uptime ({{hours}}h)"', "uptime24h"],
+    ['title={translator.translateTemplate("Uptime ({{days}}d)"', "uptime30d"],
     ['title="Devices"', "devices"],
     ['title="Child Sites"', "childSites"],
     ['title="Endpoints"', "endpoints"],
@@ -210,13 +211,16 @@ describe("the site Overview hero", () => {
   test("the two uptime tiles each get their own window's text", () => {
     const daily: string = element(
       code,
-      "<SiteHeroTileTitle title={`Uptime (${DAILY_UPTIME_WINDOW_DAYS * 24}h)`}",
+      '<SiteHeroTileTitle title={translator.translateTemplate("Uptime ({{hours}}h)"',
     );
     const monthly: string = element(
       code,
-      "<SiteHeroTileTitle title={`Uptime (${UPTIME_WINDOW_DAYS}d)`}",
+      '<SiteHeroTileTitle title={translator.translateTemplate("Uptime ({{days}}d)"',
     );
 
+    // Each title fills in its own window.
+    expect(daily).toContain("hours: DAILY_UPTIME_WINDOW_DAYS * 24");
+    expect(monthly).toContain("days: UPTIME_WINDOW_DAYS");
     expect(daily).not.toContain(siteRef("uptime30d"));
     expect(monthly).not.toContain(siteRef("uptime24h"));
   });

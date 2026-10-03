@@ -36,6 +36,12 @@ import {
   getVerifiedMethods,
 } from "./ReadinessTypes";
 import useOnCallReadiness, { OnCallReadinessState } from "./useOnCallReadiness";
+import {
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * "Can this policy actually page the people on it?", answered on the page an
@@ -136,18 +142,25 @@ const getMailToHref: (params: {
   fix: ReadinessFix;
   delivery: ReadinessDeliveryContext;
 }): string => {
-  const subject: string = "Your OneUptime on-call notifications need setup";
+  // Written in the admin's language: it is their draft, sent from their mail client.
+  const subject: string = translateTemplate(
+    "Your OneUptime on-call notifications need setup",
+  );
   const body: string = [
-    `Hi ${getFirstName(params.user)},`,
+    translateTemplate("Hi {{name}},", { name: getFirstName(params.user) }),
     "",
-    `You are a responder on a OneUptime on-call policy, but ${getSelfAddressedConsequence(
-      params.user,
-      params.delivery,
-    )}`,
+    translateTemplate(
+      "You are a responder on a OneUptime on-call policy, but {{consequence}}",
+      {
+        consequence: getSelfAddressedConsequence(params.user, params.delivery),
+      },
+    ),
     "",
-    `You can fix it here: ${getAbsoluteRouteUrl(params.fix.page)}`,
+    translateTemplate("You can fix it here: {{link}}", {
+      link: getAbsoluteRouteUrl(params.fix.page),
+    }),
     "",
-    "Thank you!",
+    translateTemplate("Thank you!"),
   ].join("\n");
 
   return `mailto:${encodeURIComponent(
@@ -168,6 +181,7 @@ const MAX_GAP_CHIPS: number = 6;
 const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const readiness: OnCallReadinessState = useOnCallReadiness({
     onCallDutyPolicyId: props.onCallDutyPolicyId,
   });
@@ -231,7 +245,9 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-gray-500">No rule for</span>
+        <span className="text-xs text-gray-500">
+          {translator.translateText("No rule for")}
+        </span>
         {shown.map(
           (cell: ReadinessCoverageCellWire, index: number): ReactElement => {
             return (
@@ -245,7 +261,11 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
           },
         )}
         {remaining > 0 ? (
-          <span className="text-xs text-gray-500">and {remaining} more</span>
+          <span className="text-xs text-gray-500">
+            {translator.translateTemplate("and {{count}} more", {
+              count: remaining,
+            })}
+          </span>
         ) : (
           <></>
         )}
@@ -262,7 +282,9 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-gray-500">Reachable on</span>
+        <span className="text-xs text-gray-500">
+          {translator.translateText("Reachable on")}
+        </span>
         {methods.map(
           (method: ReadinessMethodWire, index: number): ReactElement => {
             return (
@@ -270,7 +292,7 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
                 key={`method-${index}`}
                 className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
               >
-                {method.methodType}
+                {translator.translateTerm(method.methodType)}
                 <span className="font-normal text-gray-500">
                   {method.maskedIdentifier}
                 </span>
@@ -364,13 +386,13 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
 
         {user.reachedVia.length > 0 ? (
           <p className="mt-2 text-xs text-gray-500">
-            On this policy via{" "}
-            {user.reachedVia
-              .map((source: ResponderSourceValue): string => {
-                return getResponderSourceLabel(source);
-              })
-              .join(", ")}
-            .
+            {translator.translateTemplate("On this policy via {{sources}}.", {
+              sources: user.reachedVia
+                .map((source: ResponderSourceValue): string => {
+                  return getResponderSourceLabel(source);
+                })
+                .join(", "),
+            })}
           </p>
         ) : (
           <></>
@@ -400,11 +422,15 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
                 className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
               >
                 <Icon icon={IconProp.Email} className="h-3.5 w-3.5" />
-                Email {getFirstName(user)} the fix
+                {translator.translateTemplate("Email {{name}} the fix", {
+                  name: getFirstName(user),
+                })}
               </a>
               <span className="text-xs leading-relaxed text-gray-500">
-                Only {getFirstName(user)} can change their own notification
-                setup, so the fix is a nudge with the link already in it.
+                {translator.translateTemplate(
+                  "Only {{name}} can change their own notification setup, so the fix is a nudge with the link already in it.",
+                  { name: getFirstName(user) },
+                )}
               </span>
             </>
           )}
@@ -454,10 +480,16 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
       return (
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-8 text-center">
           <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
-            No one is on this policy yet, so there is nobody to check. Add
-            on-call schedules, teams or users on the{" "}
-            <span className="font-semibold text-gray-900">Escalation</span> tab
-            and their readiness shows up here.
+            <TranslatedSentence
+              template="No one is on this policy yet, so there is nobody to check. Add on-call schedules, teams or users on the {{tab}} tab and their readiness shows up here."
+              slots={{
+                tab: (
+                  <span className="font-semibold text-gray-900">
+                    {translator.translateText("Escalation")}
+                  </span>
+                ),
+              }}
+            />
           </p>
         </div>
       );
@@ -533,8 +565,16 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
             />
             <p className="text-sm leading-relaxed text-gray-700">
               {summary.isTruncated
-                ? "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here."
-                : `This policy has ${readiness.totalCount} responders, more than this card reads at once. The counts and the list below cover the ${summary.users.length} most-affected of them; anyone missing sorts behind everyone already shown.`}
+                ? translator.translateText(
+                    "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here.",
+                  )
+                : translator.translateTemplate(
+                    "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.",
+                    {
+                      total: readiness.totalCount,
+                      shown: summary.users.length,
+                    },
+                  )}
             </p>
           </div>
         ) : (
@@ -556,10 +596,9 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
             />
             <p className="text-sm leading-relaxed text-amber-800">
-              On-call notification fallback is switched off for this project, so
-              a missing notification rule is not a late page — it is no page at
-              all. Every gap listed below is dropped rather than delivered on
-              another channel.
+              {translator.translateText(
+                "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap listed below is dropped rather than delivered on another channel.",
+              )}
             </p>
           </div>
         )}
@@ -582,13 +621,17 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
               />
               <div>
                 <p className="text-sm font-semibold text-emerald-800">
-                  Every responder can be paged
+                  {translator.translateText("Every responder can be paged")}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-emerald-700">
-                  All {summary.users.length}{" "}
-                  {summary.users.length === 1 ? "responder" : "responders"} on
-                  this policy have a verified notification method, and a rule
-                  for every severity and rule type they can be paged for.
+                  {translator.translatePlural(
+                    {
+                      one: "All {{count}} responder on this policy have a verified notification method, and a rule for every severity and rule type they can be paged for.",
+                      other:
+                        "All {{count}} responders on this policy have a verified notification method, and a rule for every severity and rule type they can be paged for.",
+                    },
+                    summary.users.length,
+                  )}
                 </p>
               </div>
             </div>
@@ -597,10 +640,13 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
           <div>
             <div className="mb-3 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                Needs attention
+                {translator.translateText("Needs attention")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">
-                {needsAttention.length} of {summary.users.length}
+                {translator.translateTemplate("{{count}} of {{total}}", {
+                  count: needsAttention.length,
+                  total: summary.users.length,
+                })}
               </span>
             </div>
             <div className="space-y-3">
@@ -619,12 +665,12 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
       <div className="flex flex-col gap-3 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
-            Responder readiness
+            {translator.translateText("Responder readiness")}
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-            Whether everyone this policy can page is actually reachable right
-            now — including people it reaches through a team, a schedule or an
-            override.
+            {translator.translateText(
+              "Whether everyone this policy can page is actually reachable right now — including people it reaches through a team, a schedule or an override.",
+            )}
           </p>
         </div>
         <div className="flex-shrink-0">

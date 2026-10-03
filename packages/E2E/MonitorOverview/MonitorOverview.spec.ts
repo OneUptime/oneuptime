@@ -730,13 +730,29 @@ test.describe("probe checks", () => {
       card(page, "Probes").getByTestId("monitor-probe-health"),
     ).toHaveText(["Down", "Down", "Down"]);
 
-    // The ongoing Offline row heads the recent changes.
+    /*
+     * The ongoing Offline row heads the recent changes, marked Currently
+     * Active beside its status as on the full status timeline, with a live
+     * duration (the pinned clock holds it at 12 minutes). Only that row is
+     * marked: the closed rows below it are not in effect.
+     */
+    const statusChanges: Locator = page.getByTestId(
+      "monitor-status-change-row",
+    );
+    const ongoing: Locator = statusChanges.first();
+    await expect(ongoing).toContainText("Offline");
     await expect(
-      page.getByTestId("monitor-status-change-row").first(),
-    ).toContainText("Offline");
+      ongoing.getByTestId("currently-active-indicator"),
+    ).toBeVisible();
+    await expect(ongoing.getByTestId("currently-active-indicator")).toHaveText(
+      "Currently Active",
+    );
+    await expect(ongoing).toContainText(
+      "for 12 minutes · started 12 minutes ago",
+    );
     await expect(
-      page.getByTestId("monitor-status-change-row").first(),
-    ).toContainText("ongoing, 12 minutes");
+      statusChanges.getByTestId("currently-active-indicator"),
+    ).toHaveCount(1);
     await screenshot(page, "monitor-overview-offline");
   });
 

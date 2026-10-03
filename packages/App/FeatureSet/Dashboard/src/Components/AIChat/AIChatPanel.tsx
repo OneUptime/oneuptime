@@ -9,6 +9,11 @@ import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import { usePageScrollLock } from "Common/UI/Utils/PageScrollLock";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -38,6 +43,7 @@ import { ChatMessageFeedback, useAiChat, UseAiChat } from "./useAiChat";
  * full-page workspace.
  */
 const AIChatPanel: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
@@ -224,9 +230,16 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
 
   const composerPlaceholder: string | undefined =
     chat.pageContext && chat.isPageContextAttached && !chat.isWorking
-      ? chat.pageContext.isEntity
-        ? `Ask about this ${chat.pageContext.noun}…`
-        : `Ask about your ${chat.pageContext.noun}…`
+      ? translator.translateTemplate(
+          chat.pageContext.isEntity
+            ? "Ask about this {{noun}}…"
+            : "Ask about your {{noun}}…",
+          {
+            noun: translatableTerm(chat.pageContext.noun, {
+              inSentence: true,
+            }),
+          },
+        )
       : undefined;
 
   return (
@@ -251,7 +264,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             {chat.activeConversationId && (
               <button
                 type="button"
-                title="All conversations"
+                title={translator.translateText("All conversations")}
                 onClick={() => {
                   chat.newConversation();
                 }}
@@ -268,7 +281,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                 <div className="truncate text-sm font-semibold text-gray-900">
                   {chat.isConversationView
                     ? chat.activeConversationTitle
-                    : "Ask AI"}
+                    : translator.translateText("Ask AI")}
                 </div>
                 {/* Teach the toggle where it is used, in the platform's own keys. */}
                 {!chat.isConversationView && (
@@ -281,14 +294,26 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               </div>
               <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
-                  ? "Investigating your data…"
+                  ? translator.translateText("Investigating your data…")
                   : chat.pageContext && chat.isPageContextAttached
                     ? chat.pageContext.entityTitle
-                      ? `Asking about: ${chat.pageContext.entityTitle}`
-                      : `Asking about ${
-                          chat.pageContext.isEntity ? "this " : ""
-                        }${chat.pageContext.noun}`
-                    : "Your observability assistant"}
+                      ? translator.translateTemplate(
+                          "Asking about: {{title}}",
+                          {
+                            title: chat.pageContext.entityTitle,
+                          },
+                        )
+                      : translator.translateTemplate(
+                          chat.pageContext.isEntity
+                            ? "Asking about this {{noun}}"
+                            : "Asking about {{noun}}",
+                          {
+                            noun: translatableTerm(chat.pageContext.noun, {
+                              inSentence: true,
+                            }),
+                          },
+                        )
+                    : translator.translateText("Your observability assistant")}
               </div>
             </div>
           </div>
@@ -303,7 +328,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             )}
             <button
               type="button"
-              title="Open in full page"
+              title={translator.translateText("Open in full page")}
               onClick={openFullCopilot}
               className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >
@@ -312,7 +337,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             {chat.activeConversationId && (
               <button
                 type="button"
-                title="New conversation"
+                title={translator.translateText("New conversation")}
                 onClick={() => {
                   chat.newConversation();
                 }}
@@ -323,7 +348,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             )}
             <button
               type="button"
-              title="Close (Esc)"
+              title={translator.translateText("Close (Esc)")}
               onClick={() => {
                 setIsOpen(false);
               }}
@@ -346,7 +371,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             </div>
             <button
               type="button"
-              title="Dismiss"
+              title={translator.translateText("Dismiss")}
               onClick={() => {
                 chat.setError("");
               }}

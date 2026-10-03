@@ -15,6 +15,7 @@ import {
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
   AiRemediationPlanExecutionStatus,
+  AiRemediationRollbackStatus,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -36,6 +37,13 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import React, {
@@ -100,17 +108,19 @@ function StatusPill({
   status: AutoRemediationSuggestionStatus;
   isCommandPlan?: boolean | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const v: StatusVisual =
     STATUS_VISUAL[status] ||
     STATUS_VISUAL[AutoRemediationSuggestionStatus.Planning]!;
   // A command plan is composed, not picked from runbooks.
-  const label: string =
+  const label: string = translator.translateText(
     isCommandPlan && status === AutoRemediationSuggestionStatus.Planning
       ? "AI is composing a fix…"
       : isCommandPlan &&
           status === AutoRemediationSuggestionStatus.NoneApplicable
         ? "No safe fix found"
-        : v.label;
+        : v.label,
+  ) as string;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
@@ -155,6 +165,7 @@ const TIER_VISUAL: Record<KubectlCommandTier, TierVisual> = {
 };
 
 function KubectlTierPill({ tier }: { tier: KubectlCommandTier }): ReactElement {
+  const translator: Translator = useTranslator();
   const v: TierVisual =
     TIER_VISUAL[tier] || TIER_VISUAL[KubectlCommandTier.RiskyWrite]!;
   return (
@@ -162,7 +173,7 @@ function KubectlTierPill({ tier }: { tier: KubectlCommandTier }): ReactElement {
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
     >
       <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {v.label}
+      {translator.translateText(v.label)}
     </span>
   );
 }
@@ -218,17 +229,25 @@ export function getCommandTargetLabel(
     | "resourceNameSnapshot"
     | "runnerNameSnapshot"
   >,
+  translator: Translator = getGlobalTranslator(),
 ): string {
+  const unknownName: string = translator.translateText("(unknown)") as string;
+
   if (command.stepType === RunbookStepType.Kubectl) {
-    return `cluster ${command.kubernetesClusterNameSnapshot || "(unknown)"}`;
+    return translator.translateTemplate("cluster {{name}}", {
+      name: command.kubernetesClusterNameSnapshot || unknownName,
+    });
   }
 
   if (command.stepType === RunbookStepType.ResourceCommand) {
-    return `${
+    // The kind of resource, then its name: "Docker host web-1".
+    const kind: string = translator.translateText(
       isAiResourceType(command.resourceType)
         ? AI_RESOURCE_TYPE_INFO[command.resourceType].displayName
-        : "resource"
-    } ${command.resourceNameSnapshot || "(unknown)"}`;
+        : "resource",
+    ) as string;
+
+    return `${kind} ${command.resourceNameSnapshot || unknownName}`;
   }
 
   return command.runnerNameSnapshot;
@@ -259,11 +278,14 @@ export function getCommandStepLabel(
  * host, ...) are named only when the card shows such a fix, so every other
  * card — kubectl, Runner and runbook fixes — reads exactly as before.
  */
-export const REMEDIATION_CARD_DESCRIPTION: string =
-  "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.";
+export const REMEDIATION_CARD_DESCRIPTION: string = translationKey(
+  "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.",
+);
 
 export const REMEDIATION_CARD_DESCRIPTION_WITH_RESOURCE_FIXES: string =
-  "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands through a resource's AI agent, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.";
+  translationKey(
+    "Fixes OneUptime AI proposed or applied for this signal — kubectl on a cluster, commands through a resource's AI agent, commands on a Runner, or a runbook. Approving runs exactly what is shown, under your name.",
+  );
 
 export function getRemediationCardDescription(
   suggestions: Array<
@@ -343,6 +365,7 @@ function VerificationPill({
 }: {
   status: AutoRemediationVerificationStatus;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const v: VerificationVisual =
     VERIFICATION_VISUAL[status] ||
     VERIFICATION_VISUAL[AutoRemediationVerificationStatus.Pending]!;
@@ -351,7 +374,7 @@ function VerificationPill({
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
     >
       <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {v.label}
+      {translator.translateText(v.label)}
     </span>
   );
 }
@@ -434,6 +457,7 @@ function CommandApprovalPill({
 }: {
   kind: CommandApprovalPillKind;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const v: ApprovalVisual =
     APPROVAL_VISUAL[kind] ||
     APPROVAL_VISUAL[CommandApprovalPillKind.NeedsApproval]!;
@@ -442,7 +466,7 @@ function CommandApprovalPill({
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
     >
       <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {v.label}
+      {translator.translateText(v.label)}
     </span>
   );
 }
@@ -489,6 +513,7 @@ function CommandExecutionPill({
 }: {
   status: AiRemediationCommandExecutionStatus;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const v: CommandExecutionVisual =
     COMMAND_EXECUTION_VISUAL[status] ||
     COMMAND_EXECUTION_VISUAL[AiRemediationCommandExecutionStatus.Pending]!;
@@ -497,10 +522,27 @@ function CommandExecutionPill({
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
     >
       <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
-      {v.label}
+      {translator.translateText(v.label)}
     </span>
   );
 }
+
+// How a plan's execution and rollback statuses read: English keys.
+const PLAN_EXECUTION_LABELS: Record<AiRemediationPlanExecutionStatus, string> =
+  {
+    [AiRemediationPlanExecutionStatus.NotStarted]:
+      translationKey("Not started"),
+    [AiRemediationPlanExecutionStatus.Running]: translationKey("Running"),
+    [AiRemediationPlanExecutionStatus.Completed]: translationKey("Completed"),
+    [AiRemediationPlanExecutionStatus.Failed]: translationKey("Failed"),
+  };
+
+const ROLLBACK_STATUS_LABELS: Record<AiRemediationRollbackStatus, string> = {
+  [AiRemediationRollbackStatus.NotAttempted]: translationKey("Not attempted"),
+  [AiRemediationRollbackStatus.Completed]: translationKey("Completed"),
+  [AiRemediationRollbackStatus.Failed]: translationKey("Failed"),
+  [AiRemediationRollbackStatus.NotApplicable]: translationKey("Not applicable"),
+};
 
 /*
  * What one execution record says beyond its status pill: the exit code,
@@ -512,11 +554,15 @@ function CommandExecutionDetails(props: {
   isOutputExpanded: boolean;
   onToggleOutput: () => void;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mt-2">
       {typeof props.execution.exitCode === "number" ? (
         <div className="text-xs text-gray-500">
-          Exit code: {props.execution.exitCode}
+          {translator.translateTemplate("Exit code: {{code}}", {
+            code: props.execution.exitCode,
+          })}
         </div>
       ) : (
         <></>
@@ -535,7 +581,9 @@ function CommandExecutionDetails(props: {
             className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
             onClick={props.onToggleOutput}
           >
-            {props.isOutputExpanded ? "Hide output" : "Show output"}
+            {translator.translateText(
+              props.isOutputExpanded ? "Hide output" : "Show output",
+            )}
           </button>
           {props.isOutputExpanded ? (
             <pre className="mt-1 max-h-64 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
@@ -581,27 +629,39 @@ export function getActionErrorTitle(
   action: RemediationSuggestionAction | null,
   statusAfterReload?: AutoRemediationSuggestionStatus | undefined,
 ): string {
+  // English keys: the alert that shows the headline translates it.
   if (action === "approve") {
     if (statusAfterReload === AutoRemediationSuggestionStatus.Approved) {
-      return "Your approval was not recorded: this fix had already been approved, and it has started — see its commands below";
+      return translationKey(
+        "Your approval was not recorded: this fix had already been approved, and it has started — see its commands below",
+      );
     }
     if (statusAfterReload === AutoRemediationSuggestionStatus.AutoExecuted) {
-      return "Your approval was not recorded: this fix already ran without approval — see its commands below";
+      return translationKey(
+        "Your approval was not recorded: this fix already ran without approval — see its commands below",
+      );
     }
-    return "Could not save your action: the fix was not approved and nothing ran";
+    return translationKey(
+      "Could not save your action: the fix was not approved and nothing ran",
+    );
   }
   if (action === "dismiss") {
     if (isAlreadyStarted(statusAfterReload)) {
-      return "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below";
+      return translationKey(
+        "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below",
+      );
     }
-    return "Could not save your action: the suggestion was not dismissed";
+    return translationKey(
+      "Could not save your action: the suggestion was not dismissed",
+    );
   }
-  return "Could not save your action";
+  return translationKey("Could not save your action");
 }
 
 const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [suggestions, setSuggestions] = useState<
     Array<AutoRemediationSuggestion>
   >([]);
@@ -880,9 +940,11 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
               : null;
             const runbookTitle: string =
               suggestion.runbookNameSnapshot ||
-              (status === AutoRemediationSuggestionStatus.Planning
-                ? "Picking the best runbook…"
-                : "No runbook");
+              (translator.translateText(
+                status === AutoRemediationSuggestionStatus.Planning
+                  ? "Picking the best runbook…"
+                  : "No runbook",
+              ) as string);
             const isClusterFix: boolean = Boolean(
               suggestion.kubernetesClusterId ||
                 plan?.commands.some((command: AiRemediationCommand) => {
@@ -899,17 +961,34 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                   }),
               );
             const title: string = isCommandPlan
-              ? isClusterFix
-                ? "AI kubectl fix"
-                : isResourceFix
-                  ? "AI infrastructure fix"
-                  : "AI Command Plan"
+              ? (translator.translateText(
+                  isClusterFix
+                    ? "AI kubectl fix"
+                    : isResourceFix
+                      ? "AI infrastructure fix"
+                      : "AI Command Plan",
+                ) as string)
               : runbookTitle;
-            const sourceLabel: string = suggestion.kubernetesClusterId
-              ? suggestion.ruleNameSnapshot || "AI remediation for cluster"
-              : suggestion.resourceId
-                ? suggestion.ruleNameSnapshot || "AI remediation"
-                : `Rule: ${suggestion.ruleNameSnapshot || "Unknown"}`;
+            let sourceLabel: string = translator.translateTemplate(
+              "Rule: {{name}}",
+              {
+                name:
+                  suggestion.ruleNameSnapshot ||
+                  (translator.translateText("Unknown") as string),
+              },
+            );
+
+            if (suggestion.kubernetesClusterId) {
+              sourceLabel =
+                suggestion.ruleNameSnapshot ||
+                (translator.translateText(
+                  "AI remediation for cluster",
+                ) as string);
+            } else if (suggestion.resourceId) {
+              sourceLabel =
+                suggestion.ruleNameSnapshot ||
+                (translator.translateText("AI remediation") as string);
+            }
 
             return (
               <div
@@ -954,7 +1033,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                         toggleExpanded(suggestionId);
                       }}
                     >
-                      {isExpanded ? "Hide reasoning" : "Show reasoning"}
+                      {translator.translateText(
+                        isExpanded ? "Hide reasoning" : "Show reasoning",
+                      )}
                     </button>
                     {isExpanded ? (
                       <div className="mt-2 text-sm text-gray-700">
@@ -992,7 +1073,7 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                   {command.sequence}.
                                 </span>
                                 <span className="text-xs font-medium text-gray-900">
-                                  {getCommandTargetLabel(command)}
+                                  {getCommandTargetLabel(command, translator)}
                                 </span>
                                 <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
                                   {getCommandStepLabel(command)}
@@ -1032,15 +1113,24 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                 {command.rationale}
                               </div>
                               <div className="mt-1 text-xs text-gray-500">
-                                Expected effect: {command.expectedEffect}
+                                {translator.translateTemplate(
+                                  "Expected effect: {{effect}}",
+                                  { effect: command.expectedEffect },
+                                )}
                               </div>
 
                               {command.rollbackCommand ? (
                                 <div className="mt-1 text-xs text-gray-500">
-                                  Rollback:{" "}
-                                  <span className="font-mono text-gray-700">
-                                    {command.rollbackCommand}
-                                  </span>
+                                  <TranslatedSentence
+                                    template="Rollback: {{command}}"
+                                    slots={{
+                                      command: (
+                                        <span className="font-mono text-gray-700">
+                                          {command.rollbackCommand}
+                                        </span>
+                                      ),
+                                    }}
+                                  />
                                 </div>
                               ) : (
                                 <></>
@@ -1072,7 +1162,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                 >
                                   <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-xs font-medium text-gray-700">
-                                      Rollback result
+                                      {translator.translateText(
+                                        "Rollback result",
+                                      )}
                                     </span>
                                     <CommandExecutionPill
                                       status={command.rollbackExecution.status}
@@ -1082,8 +1174,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                     AiRemediationCommandExecutionStatus.Skipped &&
                                   !command.rollbackExecution.errorMessage ? (
                                     <div className="mt-1 text-xs text-gray-500">
-                                      The undo did not run — undo this change by
-                                      hand if it is still needed.
+                                      {translator.translateText(
+                                        "The undo did not run — undo this change by hand if it is still needed.",
+                                      )}
                                     </div>
                                   ) : (
                                     <></>
@@ -1108,14 +1201,30 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                     </ol>
                     {plan.executionStatus ? (
                       <div className="mt-2 text-xs text-gray-500">
-                        Plan execution: {plan.executionStatus}
+                        {translator.translateTemplate(
+                          "Plan execution: {{status}}",
+                          {
+                            status: translator.translateText(
+                              PLAN_EXECUTION_LABELS[plan.executionStatus] ||
+                                plan.executionStatus,
+                            ) as string,
+                          },
+                        )}
                       </div>
                     ) : (
                       <></>
                     )}
                     {plan.rollbackStatus ? (
                       <div className="mt-1 text-xs text-gray-500">
-                        Rollback status: {plan.rollbackStatus}
+                        {translator.translateTemplate(
+                          "Rollback status: {{status}}",
+                          {
+                            status: translator.translateText(
+                              ROLLBACK_STATUS_LABELS[plan.rollbackStatus] ||
+                                plan.rollbackStatus,
+                            ) as string,
+                          },
+                        )}
                       </div>
                     ) : (
                       <></>
@@ -1129,7 +1238,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                 !plan &&
                 status !== AutoRemediationSuggestionStatus.Planning ? (
                   <div className="mt-3 text-xs text-gray-500">
-                    The command plan could not be displayed.
+                    {translator.translateText(
+                      "The command plan could not be displayed.",
+                    )}
                   </div>
                 ) : (
                   <></>

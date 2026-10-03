@@ -17,6 +17,10 @@ import MonitorOverviewProbeUtil, {
 import MonitorStatusHistoryUtil from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
 import { OverviewSection } from "../../../Utils/OverviewSection";
 import { MonitorOverviewProbeData } from "./MonitorOverviewTypes";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Turns what the overview's data hook loaded into the input of
@@ -90,7 +94,7 @@ export function getCurrentStatusRef(
 
   return {
     id: getCurrentStatusId(monitor) || "",
-    name: status.name || "Unknown status",
+    name: status.name || translateTemplate("Unknown status"),
     color: MonitorStatusHistoryUtil.normalizeColor(status.color),
     isOperationalState: Boolean(status.isOperationalState),
     isOfflineState: Boolean(status.isOfflineState),
@@ -221,7 +225,9 @@ export function getTelemetryLastCheckedAt(data: {
 export function getTelemetryLastCheckedLabel(data: {
   evaluation: OverviewSection<MonitorEvaluationByProbe>;
 }): string {
-  return data.evaluation.value?.latestAt ? "Evaluated At" : "Scheduled At";
+  return data.evaluation.value?.latestAt
+    ? translationKey("Evaluated At")
+    : translationKey("Scheduled At");
 }
 
 /*

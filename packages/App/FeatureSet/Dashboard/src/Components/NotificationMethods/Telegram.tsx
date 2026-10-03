@@ -19,6 +19,9 @@ import User from "Common/UI/Utils/User";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
@@ -33,6 +36,7 @@ interface VerificationInfo {
 }
 
 const Telegram: () => JSX.Element = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showVerificationModal, setShowVerificationModal] =
     useState<boolean>(false);
   const [verificationInfo, setVerificationInfo] =
@@ -287,7 +291,7 @@ const Telegram: () => JSX.Element = (): ReactElement => {
           <div className="space-y-4">
             {isLoadingVerification && !verificationInfo ? (
               <p className="text-sm text-gray-600">
-                Loading verification details…
+                {translator.translateText("Loading verification details…")}
               </p>
             ) : null}
             {verificationError ? (
@@ -296,13 +300,14 @@ const Telegram: () => JSX.Element = (): ReactElement => {
             {verificationInfo ? (
               <>
                 <p className="text-sm text-gray-700">
-                  To verify, message our bot in Telegram. Pick whichever option
-                  is easiest:
+                  {translator.translateText(
+                    "To verify, message our bot in Telegram. Pick whichever option is easiest:",
+                  )}
                 </p>
                 <div className="flex flex-col items-center space-y-2">
                   <QRCodeElement text={verificationInfo.deepLinkUrl} />
                   <p className="text-xs text-gray-500">
-                    Scan on phone to open Telegram
+                    {translator.translateText("Scan on phone to open Telegram")}
                   </p>
                 </div>
                 <div className="flex flex-col space-y-2">
@@ -312,29 +317,44 @@ const Telegram: () => JSX.Element = (): ReactElement => {
                     rel="noopener noreferrer"
                     className="text-center inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
                   >
-                    Open in Telegram
+                    {translator.translateText("Open in Telegram")}
                   </a>
                   <p className="text-xs text-gray-500 text-center">
-                    Works on desktop if you have Telegram Desktop installed, or
-                    via web.telegram.org.
+                    {translator.translateText(
+                      "Works on desktop if you have Telegram Desktop installed, or via web.telegram.org.",
+                    )}
                   </p>
                 </div>
                 <div className="rounded border border-gray-200 bg-gray-50 p-3 text-sm">
                   <p className="font-medium text-gray-700">
-                    Can&apos;t use either? Open Telegram manually:
+                    {translator.translateText(
+                      "Can't use either? Open Telegram manually:",
+                    )}
                   </p>
                   <ol className="mt-2 list-decimal pl-5 text-gray-600">
                     <li>
-                      Search for{" "}
-                      <span className="font-mono">
-                        @{verificationInfo.telegramBotUsername}
-                      </span>
+                      <TranslatedSentence
+                        template="Search for {{botUsername}}"
+                        slots={{
+                          botUsername: (
+                            <span className="font-mono">
+                              @{verificationInfo.telegramBotUsername}
+                            </span>
+                          ),
+                        }}
+                      />
                     </li>
                     <li>
-                      Send{" "}
-                      <span className="font-mono">
-                        {verificationInfo.startCommand}
-                      </span>
+                      <TranslatedSentence
+                        template="Send {{command}}"
+                        slots={{
+                          command: (
+                            <span className="font-mono">
+                              {verificationInfo.startCommand}
+                            </span>
+                          ),
+                        }}
+                      />
                     </li>
                   </ol>
                 </div>

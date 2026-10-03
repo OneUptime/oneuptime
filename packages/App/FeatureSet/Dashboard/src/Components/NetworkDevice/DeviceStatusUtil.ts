@@ -7,6 +7,10 @@ import DeviceReachabilityUtil, {
 } from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The dashboard's view of Common/Utils/NetworkDevice/DeviceReachabilityUtil,
@@ -155,14 +159,17 @@ export default class DeviceStatusUtil {
  * is pinged and never walked, and telling its operator that an SNMP poll
  * reached it sends them looking for interfaces it never collected.
  */
-export const PROBE_POLLED_UP_TOOLTIP: string =
-  "The last poll reached this device (ping or SNMP).";
+export const PROBE_POLLED_UP_TOOLTIP: string = translationKey(
+  "The last poll reached this device (ping or SNMP).",
+);
 
-export const PROBE_POLLED_DOWN_TOOLTIP: string =
-  "The last poll could not reach this device — neither ping nor SNMP answered.";
+export const PROBE_POLLED_DOWN_TOOLTIP: string = translationKey(
+  "The last poll could not reach this device — neither ping nor SNMP answered.",
+);
 
-export const NEVER_POLLED_PENDING_TOOLTIP: string =
-  "This device has not been polled yet.";
+export const NEVER_POLLED_PENDING_TOOLTIP: string = translationKey(
+  "This device has not been polled yet.",
+);
 
 /**
  * The amber "Stale" pill's tooltip. Staleness annotates the verdict rather
@@ -170,7 +177,10 @@ export const NEVER_POLLED_PENDING_TOOLTIP: string =
  * what it is: nobody has asked lately, check the probe, not the device.
  */
 export function getStaleTooltip(staleWindowInMinutes: number): string {
-  return `No poll has been attempted in the last ${staleWindowInMinutes} minutes, so this verdict may be out of date — check that this device's probe is online and keeping up with its fleet.`;
+  return translateTemplate(
+    "No poll has been attempted in the last {{minutes}} minutes, so this verdict may be out of date — check that this device's probe is online and keeping up with its fleet.",
+    { minutes: staleWindowInMinutes },
+  );
 }
 
 /*
@@ -246,11 +256,13 @@ export const NO_SNMP_INTERFACES_LABEL: { text: string; tooltip: string } = {
  * The Pending tooltips for the two ways a monitor-backed device can have no
  * verdict. Split so neither sentence has to hedge with "or".
  */
-export const UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP: string =
-  "Nothing reports this device's health yet — no monitor is bound to it.";
+export const UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP: string = translationKey(
+  "Nothing reports this device's health yet — no monitor is bound to it.",
+);
 
-export const BOUND_MONITOR_PENDING_TOOLTIP: string =
-  "The monitor bound to this device has not reported a status yet.";
+export const BOUND_MONITOR_PENDING_TOOLTIP: string = translationKey(
+  "The monitor bound to this device has not reported a status yet.",
+);
 
 /**
  * True for a monitor-backed device with nothing bound — the one case the

@@ -48,7 +48,7 @@ describe("investigation drawer wiring", () => {
       "setInvestigationWindow(effectiveStartAndEndDate)",
     );
     expect(widget).toContain(
-      'aria-label="Investigate this time window in a side panel"',
+      'aria-label={translator.translateText( "Investigate this time window in a side panel", )}',
     );
 
     const explorer: string = readSquashed(

@@ -20,6 +20,8 @@ import FetchUsers from "../User/FetchUsers";
 import { RoleAssignment } from "../Incident/IncidentRoleFormField";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   assignments: Array<RoleAssignment>;
@@ -47,6 +49,7 @@ interface RolesAnswer {
 const FetchIncidentRoleAssignments: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // One lookup covers every role on screen; a different set asks again.
   const roleIdsKey: string = Array.from(
     new Set(
@@ -154,7 +157,11 @@ const FetchIncidentRoleAssignments: FunctionComponent<ComponentProps> = (
                 text={role.name || "Unnamed Role"}
               />
             ) : (
-              <p>The selected role could not be found.</p>
+              <p>
+                {translator.translateText(
+                  "The selected role could not be found.",
+                )}
+              </p>
             )}
             {/*
              * FetchUsers looks its users up once, when it mounts, so a

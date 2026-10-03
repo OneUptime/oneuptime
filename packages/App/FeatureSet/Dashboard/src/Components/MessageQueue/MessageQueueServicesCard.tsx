@@ -11,6 +11,12 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import {
+  Translator,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -46,6 +52,10 @@ export interface ComponentProps {
   description: string;
 }
 
+/*
+ * English translation keys: the card translates each one where it draws it,
+ * and the footer is filled in the reader's language.
+ */
 interface SideCopy {
   title: string;
   countHeader: string;
@@ -56,28 +66,40 @@ interface SideCopy {
   emptyWithSpans: string;
   // "publishing services", for the footer.
   noun: string;
+  // The footer's whole sentence, with the counts as placeholders.
+  footer: string;
 }
 
 const SIDE_COPY: Record<MessageQueueServicesSide, SideCopy> = {
   producers: {
     title: "Producers",
-    countHeader: "Published",
-    durationHeader: "p95 publish",
-    empty:
+    countHeader: translationKey("Published"),
+    durationHeader: translationKey("p95 publish"),
+    empty: translationKey(
       "No instrumented application published to this queue in the selected range.",
-    emptyWithSpans:
+    ),
+    emptyWithSpans: translationKey(
       "None of this queue's spans in the selected range records a publish: no producer spans, and no client spans that record a send. The Traces tab lists the spans it has.",
+    ),
     noun: "publishing services",
+    footer: translationKey(
+      "Showing the {{shown}} busiest of {{total}} publishing services.",
+    ),
   },
   consumers: {
     title: "Consumers",
-    countHeader: "Consumed",
-    durationHeader: "p95 processing",
-    empty:
+    countHeader: translationKey("Consumed"),
+    durationHeader: translationKey("p95 processing"),
+    empty: translationKey(
       "No instrumented application consumed from this queue in the selected range.",
-    emptyWithSpans:
+    ),
+    emptyWithSpans: translationKey(
       "None of this queue's spans in the selected range records a message being handled: no consumer spans, leaving out receives that returned nothing and SQS receive calls. The Traces tab lists the spans it has.",
+    ),
     noun: "consuming services",
+    footer: translationKey(
+      "Showing the {{shown}} busiest of {{total}} consuming services.",
+    ),
   },
 };
 
@@ -114,14 +136,16 @@ export function getMessageQueueServicesFooter(
   if (typeof total !== "number" || !Number.isFinite(total) || total <= shown) {
     return "";
   }
-  return `Showing the ${shown} busiest of ${formatMessageQueueCount(
-    total,
-  )} ${SIDE_COPY[side].noun}.`;
+  return translateTemplate(SIDE_COPY[side].footer, {
+    shown: shown,
+    total: formatMessageQueueCount(total),
+  });
 }
 
 const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const copy: SideCopy = SIDE_COPY[props.side];
   const footer: string = getMessageQueueServicesFooter(
     props.side,
@@ -138,7 +162,9 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
           data-testid={`message-queue-${props.side}-empty`}
           className="text-sm text-gray-500"
         >
-          {getMessageQueueServicesEmptyText(props.side, props.queueHasSpans)}
+          {translator.translateText(
+            getMessageQueueServicesEmptyText(props.side, props.queueHasSpans),
+          )}
         </div>
       ) : (
         <div
@@ -146,10 +172,18 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
           className="-m-6 -mt-2 border-t border-gray-200"
         >
           <div className="grid grid-cols-12 gap-4 bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-            <div className="col-span-5">Service</div>
-            <div className="col-span-3 text-right">{copy.countHeader}</div>
-            <div className="col-span-2 text-right">Errors</div>
-            <div className="col-span-2 text-right">{copy.durationHeader}</div>
+            <div className="col-span-5">
+              {translator.translateText("Service")}
+            </div>
+            <div className="col-span-3 text-right">
+              {translator.translateText(copy.countHeader)}
+            </div>
+            <div className="col-span-2 text-right">
+              {translator.translateText("Errors")}
+            </div>
+            <div className="col-span-2 text-right">
+              {translator.translateText(copy.durationHeader)}
+            </div>
           </div>
           <div className="divide-y divide-gray-100">
             {props.services.map(

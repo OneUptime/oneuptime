@@ -23,6 +23,7 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Same shape as the Slack method component: adding Microsoft Teams is
@@ -99,7 +100,9 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         const data: JSONObject = response.data as JSONObject;
         setTestResult(
           (data["statusMessage"] as string) ||
-            "Test message sent. Check your Microsoft Teams chats.",
+            translateTemplate(
+              "Test message sent. Check your Microsoft Teams chats.",
+            ),
         );
       }
     } catch (err) {

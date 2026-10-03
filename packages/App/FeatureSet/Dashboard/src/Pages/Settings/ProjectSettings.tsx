@@ -47,6 +47,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Project ID",
               fieldType: FieldType.ObjectID,
+              /*
+               * A card whose point is the ID: people come here to copy the
+               * project ID - for the CLI's resource files, API requests,
+               * support. Other cards put their record's ID on the small line
+               * at their foot.
+               */
+              showIdAsField: true,
             },
             {
               field: {

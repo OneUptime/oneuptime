@@ -7,6 +7,8 @@
  * an average of per-interval p95s. Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type RumMetric =
   | "pageLoads"
   | "pageLoadTime"
@@ -26,38 +28,54 @@ export type RumMetric =
   | "inpByRoute";
 
 export const RUM_METRIC_DESCRIPTIONS: Record<RumMetric, string> = {
-  pageLoads:
+  pageLoads: translationKey(
     "Full page loads in the selected range, counted from the documentLoad span the OpenTelemetry browser SDK records each time a page is opened or reloaded. Route changes inside a single-page app are not page loads.",
-  pageLoadTime:
+  ),
+  pageLoadTime: translationKey(
     "How long full page loads took, from the start of navigation to the browser's load event. p95 means the 95th percentile: 95% of page loads in the selected range were faster than this and the slowest 5% took longer. The median below is the typical load - half were faster.",
-  events:
+  ),
+  events: translationKey(
     "Every span your app reported in the selected range: page loads, the files and API requests they make, and clicks and other interactions. One page view usually produces several, so this is higher than the number of pages viewed.",
-  errorRate:
+  ),
+  errorRate: translationKey(
     "The share of events in the selected range that were marked as errors, such as a failed page load or network request; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
-  eventDuration:
+  ),
+  eventDuration: translationKey(
     "p95 means the 95th percentile: 95% of events (page loads, requests and interactions) finished faster than this, and the slowest 5% took longer. Worked out for each interval on the chart, then averaged over the selected range, so quiet and busy intervals count equally.",
-  exceptions:
+  ),
+  exceptions: translationKey(
     "Errors your app reported as exceptions in the selected range, such as uncaught JavaScript errors. The browser SDK does not send these on its own - they appear once your app records them (see Documentation).",
-  clients:
+  ),
+  clients: translationKey(
     "Distinct platforms this app has been used on so far, such as a browser's operating system or a mobile device model. Not limited to the selected range, and not a count of users or devices.",
-  sessionsRecorded:
+  ),
+  sessionsRecorded: translationKey(
     'Visitor sessions with a Session Replay recording in the selected range. Counting stops at 50, so "50+" means there are more - open Session Replay to see them all.',
-  pageLoadsChart:
+  ),
+  pageLoadsChart: translationKey(
     "Full page loads (documentLoad spans) in each interval of the selected range, with failed loads as a second line.",
-  pageLoadTimeChart:
+  ),
+  pageLoadTimeChart: translationKey(
     "The 95th percentile page load time in each interval: 95% of the page loads in that interval finished faster than the line. A spike means some visitors waited much longer than usual.",
-  eventsChart:
+  ),
+  eventsChart: translationKey(
     "Events (spans) reported in each interval, with the ones marked as errors as a second line. Page loads, requests and interactions all count.",
-  eventDurationChart:
+  ),
+  eventDurationChart: translationKey(
     "The 95th percentile event duration in each interval: 95% of the page loads, requests and interactions in that interval finished faster than the line.",
-  exceptionsChart:
+  ),
+  exceptionsChart: translationKey(
     "Exceptions your app reported in each interval of the selected range.",
-  logsChart:
+  ),
+  logsChart: translationKey(
     "Log records your app sent in each interval, with Error and Fatal ones as a second line. Browser apps only send logs once the optional OpenTelemetry logs setup is added.",
-  webVitals:
+  ),
+  webVitals: translationKey(
     "Standard measures of how fast and stable your pages feel to real visitors. Each value is an average over the selected range; Google's own report uses the 75th percentile, so its rating can differ.",
-  inpByRoute:
+  ),
+  inpByRoute: translationKey(
     "Interaction to Next Paint for each route, averaged over the selected range, slowest first. In a single-page app this is the only place a slow view shows up on its own: the app-wide number mixes every route together. Routes come from the app.route (or url.template) attribute on web_vital.inp.",
+  ),
 };
 
 /*
@@ -75,8 +93,9 @@ export const RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS: Record<
   RumReplayAccessMetric,
   string
 > = {
-  watched:
+  watched: translationKey(
     "How much of the recording this person actually played in this viewing. Paused time and jumps along the timeline do not count, and at 2x speed a minute of watching counts as two. Rounded down to 15-second steps, so less than that shows as < 15s.",
+  ),
 };
 
 /*
@@ -160,62 +179,90 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
   RumUserFlowMetric,
   string
 > = {
-  sessionsAnalysed:
+  sessionsAnalysed: translationKey(
     "Session Replay recordings that started in the selected range and match the Sessions and Device filters; one whose pages are all hidden drops out. At most the newest 5,000 recordings are read, so on a busy range the line below says how many there were in total.",
-  pagesPerSession:
+  ),
+  pagesPerSession: translationKey(
     "The average number of pages in a session's journey, with the median below: half of the sessions saw that many pages or fewer. Going back to an earlier page counts again, but a reload counts once, a return within one recording chunk (about 15 seconds) is missed, and hidden pages are left out.",
-  singlePageSessions:
+  ),
+  singlePageSessions: translationKey(
     "The share of analysed sessions that saw only one page: they never moved to another page before the recording ended. Reloading the page does not count as moving on, and hidden pages are ignored. The line below is how many sessions that is.",
-  topLandingPage:
+  ),
+  topLandingPage: translationKey(
     "The page the most analysed sessions started on, with their share of all analysed sessions below. Pages are compared by path without the query string; with Group IDs in URLs on, /orders/1 and /orders/2 are one page, /orders/:id.",
-  topExitPage:
+  ),
+  topExitPage: translationKey(
     "The page the most analysed sessions ended on - the last page recorded before the visitor left or the recording stopped - with their share below. A high share can simply be where journeys are meant to end, such as an order confirmation.",
-  pathSessions:
+  ),
+  pathSessions: translationKey(
     "How many analysed sessions followed exactly this journey from their first page to their last; the bar and percentage are their share of all analysed sessions. The 25 most common journeys are listed, and ones longer than 8 pages are compared on their first 8 and end in an ellipsis.",
-  pathAvgDuration:
+  ),
+  pathAvgDuration: translationKey(
     "The average recorded length of the sessions on this path, from the start of their first recording chunk to the end of their last, idle time included. It covers the whole session, including any pages past the 8 shown.",
-  pathWithErrors:
+  ),
+  pathWithErrors: translationKey(
     "The share of sessions on this path that hit at least one error anywhere in the session: an uncaught JavaScript error, an unhandled promise rejection or a file that failed to load, as the replay recorder captured them.",
-  pageSessions:
+  ),
+  pageSessions: translationKey(
     "Analysed sessions that visited this page at least once. A session that came back to it later still counts once here.",
-  pageVisits:
+  ),
+  pageVisits: translationKey(
     "How many times the page was visited, counting returns after another page. A reload or two views in a row count once, and a return within the same recording chunk (about 15 seconds) is missed.",
-  pageLanded:
+  ),
+  pageLanded: translationKey(
     "Analysed sessions whose first recorded page was this one: they arrived on the application here.",
-  pageLeft:
+  ),
+  pageLeft: translationKey(
     "Analysed sessions whose last recorded page was this one: the visitor left, or the recording stopped, while on it.",
-  pageExitRate:
+  ),
+  pageExitRate: translationKey(
     "Left divided by Sessions: the share of the sessions that visited this page and ended on it. Sessions that saw only this page are included, and it is per session, not per visit.",
-  pageErrors:
+  ),
+  pageErrors: translationKey(
     "Sessions that recorded an error while on this page: an uncaught JavaScript error, an unhandled promise rejection or a file that failed to load. An error is placed on the page the visitor was on when its recording chunk was sent, so one just before moving on can land on the next page.",
-  pageFrustrated:
+  ),
+  pageFrustrated: translationKey(
     "Sessions with a frustration signal on this page: a rage click (3 or more clicks within a second in one spot), a dead click (something that looks clickable did nothing for 3 seconds), an error within a second of a click, or the same page loaded 3 or more times in a minute. Placed on pages the same way as Errors.",
-  loopSessions:
+  ),
+  loopSessions: translationKey(
     "Sessions that left one of these pages for the other and came straight back, counted once per session however often they went round; the bar and percentage are their share of all analysed sessions. The 10 most common pairs are listed.",
-  detailTransitionSessions:
+  ),
+  detailTransitionSessions: translationKey(
     "Sessions that went straight from the first page to the second at these two steps of the map. The same move made at another step is counted on that step's band instead, and a band touching Other pages covers several pages folded together.",
-  detailShareOfSource:
+  ),
+  detailShareOfSource: translationKey(
     "This band's sessions as a share of every session on the page it starts from, at that step of the map: of the people there, how many went this way next.",
-  detailShareOfTarget:
+  ),
+  detailShareOfTarget: translationKey(
     "This band's sessions as a share of every session on the page it leads to, at that step of the map: of the people there, how many came this way.",
-  detailReturning:
+  ),
+  detailReturning: translationKey(
     "The share of this band's sessions for which the page they moved to was one they had already visited earlier in the session, even before the part the map shows, such as going back to a list. Amber from 50%.",
-  detailStepSessions:
+  ),
+  detailStepSessions: translationKey(
     "Sessions that were on this page at this step of the map, each counted once. The line below is their share of every session with a page at this step, whichever page it was.",
-  detailOfAllSessions:
+  ),
+  detailOfAllSessions: translationKey(
     "This step's sessions on this page as a share of every session the map is drawn from: all analysed sessions, or with After a page or Before a page, only those that visited the chosen page.",
-  detailLeftHere:
+  ),
+  detailLeftHere: translationKey(
     "Sessions whose last recorded page was this one, at this step: the visitor left, or the recording stopped, here. The line below is their share of this step's sessions on the page, red from 50%. On the map's last step, sessions that went on further are not counted.",
-  detailStartedHere:
+  ),
+  detailStartedHere: translationKey(
     "Sessions whose first recorded page was this one, at this step before the chosen page: they arrived on the application here. The line below is their share of this step's sessions on the page. On the map's last step, sessions that came from further back are not counted.",
-  detailErrorsHere:
+  ),
+  detailErrorsHere: translationKey(
     "Sessions at this step with an error recorded on this page, on this visit or another: an uncaught JavaScript error, an unhandled promise rejection or a failed file load. The line below counts frustration signals (rage, dead and error clicks, repeated reloads) the same way. Both are placed on pages as in the Pages table.",
-  detailCameFrom:
+  ),
+  detailCameFrom: translationKey(
     "Pages visited just before this one, across every analysed session that visited it, not only this step of the map. A session counts once per page, and the percentage is of all sessions that visited this page, so landings add nothing. The 6 most common are listed.",
-  detailWentNext:
+  ),
+  detailWentNext: translationKey(
     "Pages visited just after this one, across every analysed session that visited it, not only this step of the map. A session counts once per page, and the percentage is of all sessions that visited this page, so sessions that left from here add nothing. The 6 most common are listed.",
-  detailFoldedPages:
+  ),
+  detailFoldedPages: translationKey(
     "The less visited pages this step folds into Other pages, each with the sessions that were on it at this step and their share of the sessions in Other pages. The busiest pages keep their own place, as many as Pages per step allows; at most 50 are listed here.",
+  ),
 };
 
 /*
@@ -245,13 +292,18 @@ export const RUM_REPLAY_USERS_METRIC_DESCRIPTIONS: Record<
   RumReplayUsersMetric,
   string
 > = {
-  sessions:
+  sessions: translationKey(
     "Recorded sessions from this person that started in the selected range. The line below shows how many are still live (not yet closed off, which can take a few minutes after the visitor leaves), or else when their earliest session in the range started - not necessarily their first visit ever.",
-  lastSeen:
+  ),
+  lastSeen: translationKey(
     "When this person's newest session in the selected range started, not when they were last active: someone still browsing in a session that began an hour ago shows an hour ago.",
-  time: "Recorded time across these sessions, added up. Each runs from its start to its last recorded moment, idle time included; one still recording counts what it has so far. The line below counts page changes made inside the app without a full reload; a page opened by a full load is not counted.",
-  signals:
+  ),
+  time: translationKey(
+    "Recorded time across these sessions, added up. Each runs from its start to its last recorded moment, idle time included; one still recording counts what it has so far. The line below counts page changes made inside the app without a full reload; a page opened by a full load is not counted.",
+  ),
+  signals: translationKey(
     "Errors and frustration signals in these sessions, added up. Errors: uncaught JavaScript errors, unhandled promise rejections and failed file loads; an error that keeps repeating adds at most one every 5 seconds. Frustration: rage, dead and error clicks and repeated reloads. A live session can show fewer until it is closed off.",
+  ),
 };
 
 /*
@@ -288,20 +340,28 @@ export const RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS: Record<
   RumRecordingHealthMetric,
   string
 > = {
-  recorderLoaded:
+  recorderLoaded: translationKey(
     "The last time this application contacted OneUptime, written at most once a minute. A page fetching the Session Replay policy counts, but so does a replay upload or any other telemetry the app sends, so it can be recent even where the recorder is missing. Amber after 24 hours with nothing.",
-  recordingAllowed:
+  ),
+  recordingAllowed: translationKey(
     "Whether the replay policy lets recorders run, and the share of sessions recorded from their first moment. Sessions are picked by their id, so one is recorded throughout or not at all. With On error or frustration, a session outside that share still uploads once it hits an error or a frustration signal.",
-  chunksReceived:
+  ),
+  chunksReceived: translationKey(
     "The last time a recording chunk (about 15 seconds of footage) from this application was stored, written at most once a minute; amber after 6 hours without one. When one refusal reason has 5 or more below, this shows how many uploads were refused instead.",
-  sessionsLast24h:
+  ),
+  sessionsLast24h: translationKey(
     "Recorded sessions that started in the past 24 hours; the server can reuse its answer for up to 30 seconds. Playable is every session except those closed with no footage or whose recording was lost, so sessions still recording count as playable. The newest start can be older than 24 hours.",
-  refusedAtGate:
+  ),
+  refusedAtGate: translationKey(
     "Upload requests the server turned away, by reason. Each request counts once even when it carried several chunks. The counts are kept per UTC day and this adds today to all of yesterday, so it covers between 24 and 48 hours, not exactly the last 24.",
-  droppedAfterAcceptance:
+  ),
+  droppedAfterAcceptance: translationKey(
     "Chunks the server accepted with a 202 and then did not store, by reason; the recorder was never told. The counts are kept per UTC day and this adds today to all of yesterday, so it covers between 24 and 48 hours, not exactly the last 24.",
-  projectBytesToday:
+  ),
+  projectBytesToday: translationKey(
     "Replay upload bytes let through since 00:00 UTC for the whole project, all applications together, as the recorders sent them (usually compressed). The percentage is of this deployment's daily limit: amber from 80%, and at 100% recorders are told to stop until the next UTC day.",
-  applicationBytesThisMonth:
+  ),
+  applicationBytesThisMonth: translationKey(
     "Replay upload bytes this application sent since the 1st of the month (UTC), against its own monthly budget: amber from 80%, stopped at 100%. Only counted while a budget is set, so with none it reads 0, and bytes sent before a budget was set are not included.",
+  ),
 };

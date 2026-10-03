@@ -16,6 +16,16 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    # The suite runs transpile-only: packages/Runner/jest.config.json sets
+    # ts-jest's isolatedModules, as App's and Common's do. ts-jest used to
+    # type-check each test file together with everything it imports, one file
+    # after another (--detectOpenHandles keeps jest in band), and that was most
+    # of this job: Tests/Jobs/HeartbeatWriteLimitsServerParity.test.ts, which
+    # loads Common's server services, took 409 of jest's 503 seconds.
+    #
+    # Nothing goes unchecked: Runner's tsconfig.json includes ./**/*.ts, so the
+    # compile-runner job in the Compile workflow type-checks every test file as
+    # part of one tsc program. A type error in a test fails there.
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:

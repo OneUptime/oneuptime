@@ -37,6 +37,8 @@ import useTimeRangeZoom, {
 } from "Common/UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import { EmbeddedMetricCardRefreshContext } from "./EmbeddedMetricCardRefresh";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The one card shell for every embedded (read-only) metric chart in the
@@ -131,6 +133,7 @@ const headerIconButtonClassName: string =
 const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isControlledTimeRange: boolean = props.timeRange !== undefined;
 
   const [internalTimeRange, setInternalTimeRange] =
@@ -312,7 +315,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
       <Tooltip text="Refresh">
         <button
           type="button"
-          aria-label="Refresh"
+          aria-label={translator.translateText("Refresh")}
           className={headerIconButtonClassName}
           onClick={handleRefresh}
         >
@@ -323,7 +326,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
         <Tooltip text="Open in Metric Explorer">
           <button
             type="button"
-            aria-label="Open in Metric Explorer"
+            aria-label={translator.translateText("Open in Metric Explorer")}
             className={headerIconButtonClassName}
             onClick={handleOpenInExplorer}
           >

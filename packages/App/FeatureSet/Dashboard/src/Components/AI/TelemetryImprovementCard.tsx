@@ -11,9 +11,12 @@ import ActionCard from "Common/UI/Components/ActionCard/ActionCard";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -32,6 +35,7 @@ export interface ComponentProps {
 const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isCreating, setIsCreating] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
   const [aiRunId, setAiRunId] = React.useState<string | null>(null);
@@ -78,19 +82,26 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
         }
         title={
           <span>
-            AI will audit this service&apos;s{" "}
-            {isLogging ? "logging" : "tracing"} and open a pull request with the
-            improvements, ready for review.{" "}
-            <Link
-              className="underline"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                { modelId: aiRunId },
-              )}
-            >
-              View task progress
-            </Link>
-            .
+            <TranslatedSentence
+              template={
+                isLogging
+                  ? "AI will audit this service's logging and open a pull request with the improvements, ready for review. {{taskLink}}."
+                  : "AI will audit this service's tracing and open a pull request with the improvements, ready for review. {{taskLink}}."
+              }
+              slots={{
+                taskLink: (
+                  <Link
+                    className="underline"
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                      { modelId: aiRunId },
+                    )}
+                  >
+                    {translator.translateText("View task progress")}
+                  </Link>
+                ),
+              }}
+            />
           </span>
         }
       />
@@ -124,7 +135,10 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
         }
         actions={[
           {
-            actionName: isLogging ? "Improve Logging" : "Improve Tracing",
+            // The card's button translates it.
+            actionName: isLogging
+              ? translationKey("Improve Logging")
+              : translationKey("Improve Tracing"),
             actionIcon: isLogging ? IconProp.Logs : IconProp.Activity,
             actionButtonStyle: ButtonStyleType.PRIMARY,
             isLoading: isCreating,

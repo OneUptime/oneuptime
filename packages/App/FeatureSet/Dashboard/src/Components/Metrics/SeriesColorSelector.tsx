@@ -6,6 +6,8 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   // Current color as a hex string (e.g. "#6366f1"); undefined = Auto.
@@ -84,6 +86,7 @@ const expandHex: (hex: string) => string = (hex: string): string => {
 const SeriesColorSelector: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const normalizedValue: string | undefined = normalizeHex(props.value);
   const isAuto: boolean = !normalizedValue;
   const matchesSwatch: boolean = SERIES_COLOR_SWATCHES.some(
@@ -122,7 +125,7 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
       {!props.hideAuto && (
         <button
           type="button"
-          title="Auto — use the theme palette"
+          title={translator.translateText("Auto — use the theme palette")}
           aria-pressed={isAuto}
           onClick={() => {
             setHexText("");
@@ -135,7 +138,7 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
           }`}
         >
           {isAuto && <Icon icon={IconProp.Check} className="h-3 w-3" />}
-          Auto
+          {translator.translateText("Auto")}
         </button>
       )}
 
@@ -172,7 +175,7 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
 
       {/* Custom color — native picker */}
       <label
-        title="Custom color"
+        title={translator.translateText("Custom color")}
         className={`relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-full border transition ${
           isCustom
             ? "border-white ring-2 ring-offset-1 ring-gray-400"
@@ -189,7 +192,7 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
       >
         <input
           type="color"
-          aria-label="Custom color"
+          aria-label={translator.translateText("Custom color")}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           value={expandHex(normalizedValue || "#6366f1")}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,11 +240,13 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <label className="block text-xs font-medium text-gray-500 mb-1">
-        {props.label || "Series Color"}
+        {translator.translateText(props.label || "Series Color")}
       </label>
       <p className="text-xs text-gray-400 mb-2">
-        {props.description ||
-          "Pick a color for this series, or leave on Auto to use the theme palette."}
+        {translator.translateText(
+          props.description ||
+            "Pick a color for this series, or leave on Auto to use the theme palette.",
+        )}
       </p>
       {controlsRow}
     </div>

@@ -8,6 +8,8 @@ import { AIChatToolAction, AIChatWidget } from "Common/Types/AI/AIChatTypes";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import CitationChips from "./CitationChips";
 import SafeChatMarkdown from "./SafeChatMarkdown";
@@ -33,6 +35,7 @@ export interface ComponentProps {
 const ChatMessageList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [copiedMessageId, setCopiedMessageId] = useState<string>("");
 
   const lastCompletedAssistantId: string | undefined = [...props.messages]
@@ -87,8 +90,11 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
           </div>
         ) : isWaiting ? (
           <div className="text-sm leading-relaxed text-gray-500">
-            I&rsquo;d like to take the action{toolActions.length > 1 ? "s" : ""}{" "}
-            below. Review and approve to continue.
+            {translator.translateText(
+              toolActions.length > 1
+                ? "I’d like to take the actions below. Review and approve to continue."
+                : "I’d like to take the action below. Review and approve to continue.",
+            )}
           </div>
         ) : null}
 
@@ -172,7 +178,10 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
               {message.status === AIChatMessageStatus.Cancelled && (
                 <div className="flex items-center gap-2 text-sm text-gray-400">
                   <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
-                  <span>{message.contentInMarkdown || "Stopped by user."}</span>
+                  <span>
+                    {message.contentInMarkdown ||
+                      translator.translateText("Stopped by user.")}
+                  </span>
                 </div>
               )}
 
@@ -186,10 +195,12 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                     <div>
                       <div className="text-sm text-rose-700">
                         {message.errorMessage ||
-                          "Something went wrong generating this response."}
+                          translator.translateText(
+                            "Something went wrong generating this response.",
+                          )}
                       </div>
                       <div className="mt-1 text-xs text-rose-500">
-                        Try asking again.
+                        {translator.translateText("Try asking again.")}
                       </div>
                     </div>
                   </div>
@@ -209,24 +220,40 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                       {props.latestRun &&
                         messageId === lastCompletedAssistantId && (
                           <span className="truncate">
-                            {props.latestRun.totalCostInUSDCents
-                              ? `· $${(props.latestRun.totalCostInUSDCents / 100).toFixed(4)} `
-                              : ""}
-                            {props.latestRun.totalTokens
-                              ? `· ${props.latestRun.totalTokens.toLocaleString()} tokens `
-                              : ""}
-                            · {props.latestRun.toolCallCount || 0}{" "}
-                            {(props.latestRun.toolCallCount || 0) === 1
-                              ? "query"
-                              : "queries"}
-                            {props.latestRun.egressManifest?.modelName
-                              ? ` · ${props.latestRun.egressManifest.modelName}`
-                              : ""}
+                            {[
+                              props.latestRun.totalCostInUSDCents
+                                ? `$${(props.latestRun.totalCostInUSDCents / 100).toFixed(4)}`
+                                : "",
+                              props.latestRun.totalTokens
+                                ? translator.translatePlural(
+                                    {
+                                      one: "{{count}} token",
+                                      other: "{{count}} tokens",
+                                    },
+                                    props.latestRun.totalTokens,
+                                  )
+                                : "",
+                              translator.translatePlural(
+                                {
+                                  one: "{{count}} query",
+                                  other: "{{count}} queries",
+                                },
+                                props.latestRun.toolCallCount || 0,
+                              ),
+                              props.latestRun.egressManifest?.modelName || "",
+                            ]
+                              .filter((item: string): boolean => {
+                                return item.length > 0;
+                              })
+                              .map((item: string): string => {
+                                return `· ${item}`;
+                              })
+                              .join(" ")}
                           </span>
                         )}
                       <button
                         type="button"
-                        title="Copy answer"
+                        title={translator.translateText("Copy answer")}
                         onClick={() => {
                           copyMessage(message);
                         }}
@@ -238,12 +265,14 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                               icon={IconProp.Check}
                               className="h-3 w-3 text-emerald-500"
                             />
-                            <span className="text-emerald-500">Copied</span>
+                            <span className="text-emerald-500">
+                              {translator.translateText("Copied")}
+                            </span>
                           </>
                         ) : (
                           <>
                             <Icon icon={IconProp.Copy} className="h-3 w-3" />
-                            <span>Copy</span>
+                            <span>{translator.translateText("Copy")}</span>
                           </>
                         )}
                       </button>
@@ -251,7 +280,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                         <span className="flex items-center gap-0.5">
                           <button
                             type="button"
-                            title="Good answer"
+                            title={translator.translateText("Good answer")}
                             onClick={() => {
                               props.onFeedback?.(
                                 messageId,
@@ -275,7 +304,7 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                           </button>
                           <button
                             type="button"
-                            title="Poor answer"
+                            title={translator.translateText("Poor answer")}
                             onClick={() => {
                               props.onFeedback?.(
                                 messageId,

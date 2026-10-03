@@ -1,10 +1,13 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export interface ComponentProps {
   // A small mark in front of the sentence: an icon or a spinner.
   indicator: ReactElement;
+  // English, translated here like a shared component's title.
   title: string;
   children?: ReactNode | undefined;
   /*
@@ -49,6 +52,8 @@ export const noticeDoneIcon: ReactElement = (
 const InvestigationNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       role={props.role}
@@ -61,7 +66,7 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
       </div>
       <div className="min-w-0 flex-1">
         <p className="break-words text-sm font-medium text-gray-900">
-          {props.title}
+          {translator.translateText(props.title)}
         </p>
         {props.children ? (
           <p className="mt-1 break-words text-sm leading-6 text-gray-600">
@@ -74,8 +79,8 @@ const InvestigationNotice: FunctionComponent<ComponentProps> = (
       {props.onDismiss ? (
         <button
           type="button"
-          aria-label="Dismiss"
-          title="Dismiss"
+          aria-label={translator.translateText("Dismiss")}
+          title={translator.translateText("Dismiss")}
           onClick={props.onDismiss}
           className="-my-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >

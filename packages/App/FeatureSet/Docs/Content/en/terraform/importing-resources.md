@@ -6,8 +6,9 @@ Import works for **every OneUptime resource type that has a read endpoint**, whi
 
 ## Finding a resource's ID
 
-The import ID is the resource's ID, a UUID. Two places to find it:
+The import ID is the resource's ID, a UUID. Three places to find it:
 
+- **The resource's page.** Its details card ends with a small **ID** line that shows the start of the ID. Click the ID, or the copy button beside it, to copy the whole ID.
 - **Dashboard URL.** Open the resource; the ID is the last path segment, e.g. `https://oneuptime.com/dashboard/<project-id>/monitors/68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01` → the monitor ID is `68a1b2c3-d4e5-4f6a-8b9c-0d1e2f3a4b01`.
 - **API.** List resources with your project API key; every item carries `_id`.
 

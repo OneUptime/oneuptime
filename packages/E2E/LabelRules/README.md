@@ -37,3 +37,10 @@ cases intercept browser requests.
 The live suite must run behind the normal OneUptime ingress routes. When using a
 standalone App container directly, the ingress must map `/identity/*` to
 `/api/identity/*` as the development ingress does.
+
+CI runs it in `test-release.yaml`'s `test-e2e-test-self-hosted` job, once per
+run: shard 1 runs it after its own share of the default suite, against the
+self-hosted stack it booted (billing off), from the e2e image with
+`docker compose ... run --rm e2e npm run test-label-rule-transfer`. Failure
+traces go to `packages/E2E/test-results/label-rule-transfer/`, inside the
+directory the e2e container mounts, so the job's failure artifact carries them.

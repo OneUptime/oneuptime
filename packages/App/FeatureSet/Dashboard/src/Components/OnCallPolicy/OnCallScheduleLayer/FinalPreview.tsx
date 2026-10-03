@@ -15,6 +15,8 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -25,6 +27,7 @@ export interface ComponentProps {
 const Layers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const [layers, setLayers] = React.useState<
@@ -170,13 +173,17 @@ const Layers: FunctionComponent<ComponentProps> = (
 
       {layers.length > 0 && (
         <Card
-          title={`Final Schedule`}
+          title="Final Schedule"
           description={
             scheduleTimezone
-              ? "Here is the final schedule of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
-                scheduleTimezone
-              : "Here is the final schedule of who is on call and when. This is based on your local timezone - " +
-                OneUptimeDate.getCurrentTimezoneString()
+              ? translator.translateTemplate(
+                  "Here is the final schedule of who is on call and when. Restriction windows are resolved in this schedule's timezone - {{timezone}}",
+                  { timezone: scheduleTimezone },
+                )
+              : translator.translateTemplate(
+                  "Here is the final schedule of who is on call and when. This is based on your local timezone - {{timezone}}",
+                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
+                )
           }
         >
           <LayersPreview

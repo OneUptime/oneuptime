@@ -13,6 +13,7 @@ import React, {
 } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -222,6 +223,8 @@ const IncomingCallPolicyView: FunctionComponent<
                 _id: true,
               },
               title: "Incoming Call Policy ID",
+              // The card's ID line, not a field of raw text.
+              fieldType: FieldType.ObjectID,
             },
             {
               field: {

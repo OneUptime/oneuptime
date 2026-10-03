@@ -13,6 +13,11 @@ import {
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { AIInvestigationStage } from "../AIInvestigationStatus";
 
 /*
@@ -267,22 +272,11 @@ export function isViewer(
 export function describeAuthor(
   author: ThreadAuthor,
   viewerUserId: string | null,
+  translator: Translator = getGlobalTranslator(),
 ): string {
-  return isViewer(author, viewerUserId) ? "You" : author.name;
-}
-
-// Possessive for the "working on …'s question" line.
-export function describeAuthorPossessive(
-  author: ThreadAuthor,
-  viewerUserId: string | null,
-): string {
-  if (isViewer(author, viewerUserId)) {
-    return "your";
-  }
-
-  const name: string = author.name.trim() || "a responder";
-
-  return name.endsWith("s") ? `${name}'` : `${name}'s`;
+  return isViewer(author, viewerUserId)
+    ? (translator.translateText("You") as string)
+    : author.name;
 }
 
 export function getInitials(name: string): string {
@@ -343,25 +337,54 @@ export function isThreadBusy(view: ThreadView): boolean {
 
 /*
  * One sentence on what the AI is doing right now, naming whose question it
- * is on — or null when it is idle.
+ * is on — or null when it is idle. Each way of naming the asker (the viewer,
+ * someone by name, a responder with no name) is a sentence of its own, so a
+ * language words the possessive its own way.
  */
-export function describeThreadActivity(view: ThreadView): string | null {
+export function describeThreadActivity(
+  view: ThreadView,
+  translator: Translator = getGlobalTranslator(),
+): string | null {
   const active: ThreadMessage | undefined = findActiveAssistantMessage(view);
 
   if (!active) {
     return null;
   }
 
-  const whose: string = describeAuthorPossessive(
-    active.author,
-    view.viewerUserId,
-  );
+  const name: string = active.author.name.trim();
+  const isAskedByViewer: boolean = isViewer(active.author, view.viewerUserId);
 
   if (active.status === AIChatMessageStatus.WaitingForApproval) {
-    return `${AI_DISPLAY_NAME} is waiting for someone to approve an action on ${whose} request.`;
+    if (isAskedByViewer) {
+      return translator.translateText(
+        "OneUptime AI is waiting for someone to approve an action on your request.",
+      ) as string;
+    }
+
+    return name
+      ? translator.translateTemplate(
+          "OneUptime AI is waiting for someone to approve an action on {{name}}'s request.",
+          { name: name },
+        )
+      : (translator.translateText(
+          "OneUptime AI is waiting for someone to approve an action on a responder's request.",
+        ) as string);
   }
 
-  return `${AI_DISPLAY_NAME} is working on ${whose} question…`;
+  if (isAskedByViewer) {
+    return translator.translateText(
+      "OneUptime AI is working on your question…",
+    ) as string;
+  }
+
+  return name
+    ? translator.translateTemplate(
+        "OneUptime AI is working on {{name}}'s question…",
+        { name: name },
+      )
+    : (translator.translateText(
+        "OneUptime AI is working on a responder's question…",
+      ) as string);
 }
 
 export function hasPendingApproval(message: ThreadMessage): boolean {
@@ -401,7 +424,9 @@ export function getSendBlocker(data: {
 
 /*
  * Starting points for an empty thread: the questions responders actually
- * ask in the first minutes, and the requests that save them clicks.
+ * ask in the first minutes, and the requests that save them clicks. The
+ * labels are English keys, translated where the chips are drawn; the
+ * prompts are sent to the model as they are.
  *
  * When the card above has no report to read (nothing ran, the run stopped,
  * or it finished without one) the first thing to ask is the question the
@@ -430,7 +455,10 @@ export function getSuggestedPrompts(
       prompt: `Draft a short, customer-facing status update for this ${subjectType}. Don't post it yet.`,
     },
     {
-      label: `Acknowledge this ${subjectType}`,
+      label:
+        subjectType === "incident"
+          ? "Acknowledge this incident"
+          : "Acknowledge this alert",
       prompt: `Acknowledge this ${subjectType}.`,
       isAction: true,
     },
@@ -453,13 +481,27 @@ export function getSuggestedPrompts(
 export function describeConversation(
   subjectType: InvestigationConversationSubjectType,
   stage?: AIInvestigationStage | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string {
-  const ask: string =
-    stage === "reported"
-      ? "Ask a follow-up question, or ask it to act."
-      : `Ask a question about this ${subjectType}, or ask it to act.`;
+  const isIncident: boolean = subjectType === "incident";
+  let ask: string = translationKey(
+    "Ask a question about this alert, or ask it to act.",
+  );
 
-  return `${ask} Everyone on this ${subjectType} sees this conversation.`;
+  if (stage === "reported") {
+    ask = translationKey("Ask a follow-up question, or ask it to act.");
+  } else if (isIncident) {
+    ask = translationKey(
+      "Ask a question about this incident, or ask it to act.",
+    );
+  }
+
+  const shared: string = isIncident
+    ? translationKey("Everyone on this incident sees this conversation.")
+    : translationKey("Everyone on this alert sees this conversation.");
+
+  // Two whole sentences, each in the reader's language.
+  return `${translator.translateText(ask)} ${translator.translateText(shared)}`;
 }
 
 export interface ThreadTail {
@@ -572,13 +614,18 @@ export function parseStoredPermissionMode(
  * the picker's row in the two-thirds column of a 1280px page.
  */
 export function describePermissionMode(mode: AIChatPermissionMode): string {
+  // English keys; the composer translates the one it shows.
   switch (mode) {
     case AIChatPermissionMode.AutoRun:
-      return "Acts on clear requests right away, within your permissions.";
+      return translationKey(
+        "Acts on clear requests right away, within your permissions.",
+      );
     case AIChatPermissionMode.AskForApproval:
-      return "Asks for approval before it changes anything.";
+      return translationKey("Asks for approval before it changes anything.");
     case AIChatPermissionMode.ReadOnly:
-      return "Only reads and answers. It never changes anything.";
+      return translationKey(
+        "Only reads and answers. It never changes anything.",
+      );
     default:
       return "";
   }

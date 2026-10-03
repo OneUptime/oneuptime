@@ -18,6 +18,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 import MonitorCriteriaAlerts from "./MonitorCriteriaAlerts";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -35,6 +41,7 @@ export interface ComponentProps {
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mb-4">
       {props.monitorCriteriaInstance.data?.description && (
@@ -48,10 +55,20 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Filter} className="h-5 w-5 text-gray-900" />
           <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
             <span className="font-medium text-gray-900">
-              Filters ({props.monitorCriteriaInstance.data?.filterCondition})
+              {translator.translateTemplate("Filters ({{condition}})", {
+                condition: translatableTerm(
+                  props.monitorCriteriaInstance.data?.filterCondition || "",
+                ),
+              })}
             </span>{" "}
-            {props.monitorCriteriaInstance.data?.filterCondition} of these can
-            match for this criteria to be met:
+            {translator.translateTemplate(
+              "{{condition}} of these can match for this criteria to be met:",
+              {
+                condition: translatableTerm(
+                  props.monitorCriteriaInstance.data?.filterCondition || "",
+                ),
+              },
+            )}
           </div>
         </div>
 
@@ -69,10 +86,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           <div className="flex">
             <Icon icon={IconProp.AltGlobe} className="h-5 w-5 text-gray-900" />
             <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-              <span className="font-medium text-gray-900">
-                Change Monitor Status
-              </span>{" "}
-              when this criteria is met. Change monitor status to:
+              <TranslatedSentence
+                template="{{action}} when this criteria is met. Change monitor status to:"
+                slots={{
+                  action: (
+                    <span className="font-medium text-gray-900">
+                      {translator.translateText("Change Monitor Status")}
+                    </span>
+                  ),
+                }}
+              />
               <div className="mt-3">
                 <Statusbubble
                   color={
@@ -109,10 +132,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <div className="flex">
               <Icon icon={IconProp.Alert} className="h-5 w-5 text-gray-900" />
               <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                <span className="font-medium text-gray-900">
-                  Create incident
-                </span>{" "}
-                when this criteria is met. These are the incident details:{" "}
+                <TranslatedSentence
+                  template="{{action}} when this criteria is met. These are the incident details:"
+                  slots={{
+                    action: (
+                      <span className="font-medium text-gray-900">
+                        {translator.translateText("Create incident")}
+                      </span>
+                    ),
+                  }}
+                />{" "}
               </div>
             </div>
             <MonitorCriteriaIncidents
@@ -136,8 +165,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 className="h-5 w-5 text-gray-900"
               />
               <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-                <span className="font-medium text-gray-900">Create alert</span>{" "}
-                when this criteria is met. These are the alert details:{" "}
+                <TranslatedSentence
+                  template="{{action}} when this criteria is met. These are the alert details:"
+                  slots={{
+                    action: (
+                      <span className="font-medium text-gray-900">
+                        {translator.translateText("Create alert")}
+                      </span>
+                    ),
+                  }}
+                />{" "}
               </div>
             </div>
             <MonitorCriteriaAlerts

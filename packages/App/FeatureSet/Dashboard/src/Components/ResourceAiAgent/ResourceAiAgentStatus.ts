@@ -21,6 +21,12 @@ import {
   parseResourceAiRemediationMode,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import {
+  TemplateValues,
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What a resource's AI agent page (ResourceAiAgentPage) and AI Insights
@@ -79,27 +85,43 @@ export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
 
 // The page's heading, matching the AI Insights page's title and subtitle.
-export const RESOURCE_AI_AGENT_PAGE_TITLE: string = "AI agent";
+export const RESOURCE_AI_AGENT_PAGE_TITLE: string = translationKey("AI agent");
 
-export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string =
-  "Ask a project owner or admin.";
+export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string = translationKey(
+  "Ask a project owner or admin.",
+);
 
 export function getResourceAiAgentPageSubtitle(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Whether OneUptime AI can reach this ${descriptor.noun}, and what it may do there.`;
+  return translateTemplate(
+    "Whether OneUptime AI can reach this {{noun}}, and what it may do there.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 export function getResourceAiAgentReadyText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Ready — AI will inspect this ${descriptor.noun} with ${descriptor.readOnlyCommandsPhrase} when it investigates an incident or alert here.`;
+  return translateTemplate(
+    "Ready — AI will inspect this {{noun}} with {{commands}} when it investigates an incident or alert here.",
+    {
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+      commands: translatableTerm(descriptor.readOnlyCommandsPhrase),
+    },
+  );
 }
 
 export function getResourceAiAgentNotInstalledText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Install the ${descriptor.agentName} — it runs next to this ${descriptor.noun}, read-only by default, with the key its telemetry agent already uses. This page updates within a minute.`;
+  return translateTemplate(
+    "Install the {{agent}} — it runs next to this {{noun}}, read-only by default, with the key its telemetry agent already uses. This page updates within a minute.",
+    {
+      agent: translatableTerm(descriptor.agentName),
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+    },
+  );
 }
 
 /*
@@ -110,19 +132,31 @@ export function getResourceAiAgentNotInstalledText(
 export function getResourceAiAgentSignedOffText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `The ${descriptor.agentName} signed off or was reset. It reconnects on its own within a few minutes. If it does not, check its logs:`;
+  return translateTemplate(
+    "The {{agent}} signed off or was reset. It reconnects on its own within a few minutes. If it does not, check its logs:",
+    { agent: translatableTerm(descriptor.agentName) },
+  );
 }
 
 export function getResourceAiAgentGoneText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `The ${descriptor.agentName} disconnected and has not come back. Check its logs:`;
+  return translateTemplate(
+    "The {{agent}} disconnected and has not come back. Check its logs:",
+    { agent: translatableTerm(descriptor.agentName) },
+  );
 }
 
 export function getResourceAiAgentSilentText(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `The ${descriptor.agentName} has not checked in for over ${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes. Check its logs:`;
+  return translateTemplate(
+    "The {{agent}} has not checked in for over {{minutes}} minutes. Check its logs:",
+    {
+      agent: translatableTerm(descriptor.agentName),
+      minutes: RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+    },
+  );
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -344,7 +378,7 @@ export function describeResourceAiAgentWriteAccess(
   }
 
   if (posture.allowWrites !== true) {
-    return "Read-only";
+    return translateTemplate("Read-only");
   }
 
   const targets: Array<string> = Array.isArray(posture.writeTargets)
@@ -354,8 +388,10 @@ export function describeResourceAiAgentWriteAccess(
     : [];
 
   return targets.length === 0
-    ? "Can change any target"
-    : `Can change: ${targets.join(", ")}`;
+    ? translateTemplate("Can change any target")
+    : translateTemplate("Can change: {{targets}}", {
+        targets: targets.join(", "),
+      });
 }
 
 const VERSION_PREFIX_REGEX: RegExp = /^v/i;
@@ -417,7 +453,11 @@ export function getResourceAiAgentMetaParts(
 
   if (agent.lastAliveAt) {
     parts.push(
-      `last seen ${OneUptimeDate.fromNow(OneUptimeDate.fromString(agent.lastAliveAt))}`,
+      translateTemplate("last seen {{time}}", {
+        time: OneUptimeDate.fromNow(
+          OneUptimeDate.fromString(agent.lastAliveAt),
+        ),
+      }),
     );
   }
 
@@ -425,7 +465,11 @@ export function getResourceAiAgentMetaParts(
     agent.agentVersion || agent.posture?.agentVersion;
 
   if (agentVersion) {
-    parts.push(`agent ${withVersionPrefix(agentVersion)}`);
+    parts.push(
+      translateTemplate("agent {{version}}", {
+        version: withVersionPrefix(agentVersion),
+      }),
+    );
   }
 
   const toolVersion: string | null = formatResourceToolVersion(
@@ -486,9 +530,14 @@ export function getResourceAiRefusedRegistrationWarning(
   const identityVariables: string =
     AI_RESOURCE_TYPE_INFO[descriptor.resourceType].identityEnvVars.join(" / ");
 
-  return `Another agent tried to register for this ${descriptor.noun} at ${OneUptimeDate.getDateAsFormattedString(
-    refusedAt,
-  )} while this one was online. If two agents use the same ${identityVariables}, remove one or give each ${descriptor.noun} its own.`;
+  return translateTemplate(
+    "Another agent tried to register for this {{noun}} at {{time}} while this one was online. If two agents use the same {{variables}}, remove one or give each {{noun}} its own.",
+    {
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+      time: OneUptimeDate.getDateAsFormattedString(refusedAt),
+      variables: identityVariables,
+    },
+  );
 }
 
 /*
@@ -572,21 +621,35 @@ export function getResourceAiAttentionTitle(
   const areFixesOn: boolean =
     parseResourceAiRemediationMode(status.aiRemediationMode) !==
     ResourceAiRemediationMode.Disabled;
-  const noun: string = descriptor.noun;
+  const values: TemplateValues = {
+    noun: translatableTerm(descriptor.noun, { inSentence: true }),
+  };
 
   if (blocksInvestigation && blocksFixes && areFixesOn) {
-    return `OneUptime AI can't investigate this ${noun} or run fixes on it`;
+    return translateTemplate(
+      "OneUptime AI can't investigate this {{noun}} or run fixes on it",
+      values,
+    );
   }
 
   if (blocksInvestigation) {
-    return `OneUptime AI can't investigate this ${noun}`;
+    return translateTemplate(
+      "OneUptime AI can't investigate this {{noun}}",
+      values,
+    );
   }
 
   if (blocksFixes) {
-    return `OneUptime AI can't run fixes on this ${noun}`;
+    return translateTemplate(
+      "OneUptime AI can't run fixes on this {{noun}}",
+      values,
+    );
   }
 
-  return `OneUptime AI can't do all of its job on this ${noun}`;
+  return translateTemplate(
+    "OneUptime AI can't do all of its job on this {{noun}}",
+    values,
+  );
 }
 
 /*
@@ -709,7 +772,10 @@ export function getResourceAiAgentPageHint(
   }
 
   if (!status.isInvestigationReady) {
-    return `OneUptime AI can't run commands on this ${descriptor.noun} right now.`;
+    return translateTemplate(
+      "OneUptime AI can't run commands on this {{noun}} right now.",
+      { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+    );
   }
 
   return null;

@@ -15,6 +15,8 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 interface ComponentProps {
@@ -53,18 +55,21 @@ export function getInvestigationNotStartedStatus(data: {
 }
 
 export interface SettingsAction {
+  // An English key, translated where it is drawn.
   label: string;
   page: PageMap;
   permissions: Array<Permission>;
   /*
    * Shown instead of the link to people who lack `permissions`, so it must
    * name who can act — a Project Admin cannot turn AI on or add credits.
+   * An English key, translated where it is drawn.
    */
   whoCanAct: string;
 }
 
-const PROJECT_ADMIN_CAN_ACT: string =
-  "A project administrator can review these settings.";
+const PROJECT_ADMIN_CAN_ACT: string = translationKey(
+  "A project administrator can review these settings.",
+);
 
 const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "ai_disabled",
@@ -134,8 +139,9 @@ export function getSettingsAction(
       label: "Go to Project Settings → AI Features",
       page: PageMap.SETTINGS_AI_FEATURES,
       permissions: getEnableAiUpdatePermissions(),
-      whoCanAct:
+      whoCanAct: translationKey(
         "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
+      ),
     };
   }
 
@@ -149,8 +155,9 @@ export function getSettingsAction(
       label: "Add AI credits",
       page: PageMap.SETTINGS_AI_CREDITS,
       permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-      whoCanAct:
+      whoCanAct: translationKey(
         "A project owner or someone with Manage Billing can add AI credits.",
+      ),
     };
   }
 
@@ -179,7 +186,10 @@ export function getSettingsAction(
   }
 
   return {
-    label: `Review ${subjectType} AI settings`,
+    label:
+      subjectType === "alert"
+        ? "Review alert AI settings"
+        : "Review incident AI settings",
     page:
       subjectType === "alert"
         ? PageMap.ALERTS_SETTINGS_AI
@@ -202,23 +212,49 @@ export function getSettingsAction(
 const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { subjectType, isLoading, hasError, hasSuccessfulResponse } = props;
   const isUnavailable: boolean = hasError && !hasSuccessfulResponse;
+  const isIncident: boolean = subjectType === "incident";
   const reason: InvestigationNotStartedReason | null = props.reason;
+  // The reason's own copy is written by the server; the rest is ours.
   const title: string = isLoading
-    ? "Checking investigation status…"
+    ? (translator.translateText("Checking investigation status…") as string)
     : isUnavailable
-      ? "Investigation status is unavailable"
-      : reason?.title || "No investigation has been recorded";
-  const description: string = isLoading
-    ? `Checking whether OneUptime AI has investigated this ${subjectType}.`
-    : isUnavailable
-      ? "We could not load the investigation status. This does not mean AI is disabled or that the investigation was skipped."
-      : reason?.description ||
-        `There is no AI investigation linked to this ${subjectType}, and no recorded explanation is available. It may have been created before automatic investigation was enabled, or before reasons were recorded.`;
+      ? (translator.translateText(
+          "Investigation status is unavailable",
+        ) as string)
+      : reason?.title ||
+        (translator.translateText(
+          "No investigation has been recorded",
+        ) as string);
+  let description: string = "";
+
+  if (isLoading) {
+    description = translator.translateText(
+      isIncident
+        ? "Checking whether OneUptime AI has investigated this incident."
+        : "Checking whether OneUptime AI has investigated this alert.",
+    ) as string;
+  } else if (isUnavailable) {
+    description = translator.translateText(
+      "We could not load the investigation status. This does not mean AI is disabled or that the investigation was skipped.",
+    ) as string;
+  } else {
+    description =
+      reason?.description ||
+      (translator.translateText(
+        isIncident
+          ? "There is no AI investigation linked to this incident, and no recorded explanation is available. It may have been created before automatic investigation was enabled, or before reasons were recorded."
+          : "There is no AI investigation linked to this alert, and no recorded explanation is available. It may have been created before automatic investigation was enabled, or before reasons were recorded.",
+      ) as string);
+  }
+
   const nextStep: string =
     reason?.nextStep ||
-    "Review the investigation settings and AI logs. Enabling automatic investigation applies to new events; it does not automatically investigate older ones.";
+    (translator.translateText(
+      "Review the investigation settings and AI logs. Enabling automatic investigation applies to new events; it does not automatically investigate older ones.",
+    ) as string);
   const action: SettingsAction | null =
     !isLoading && !isUnavailable
       ? getSettingsAction(reason?.code || "no_run_recorded", subjectType)
@@ -230,12 +266,13 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
         PermissionUtil.getAllPermissions(),
       ),
   );
-  const sourceLabel: string =
+  const sourceLabel: string = translator.translateText(
     reason?.source === "recorded"
       ? "Decision recorded at creation"
       : reason?.source === "current_configuration"
         ? "Based on current settings"
-        : "No recorded decision";
+        : "No recorded decision",
+  ) as string;
   const checkedAt: string | null = reason
     ? new Date(reason.evaluatedAt).toLocaleString(undefined, {
         month: "short",
@@ -271,8 +308,11 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
         !isLoading &&
         !isUnavailable ? (
           <p className="mt-1 text-xs leading-relaxed text-gray-500">
-            Settings may have changed since this {subjectType} was created; this
-            is not a recorded decision from that time.
+            {translator.translateText(
+              isIncident
+                ? "Settings may have changed since this incident was created; this is not a recorded decision from that time."
+                : "Settings may have changed since this alert was created; this is not a recorded decision from that time.",
+            )}
           </p>
         ) : null}
       </div>
@@ -280,7 +320,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
       {!isLoading && !isUnavailable ? (
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
-            What you can do
+            {translator.translateText("What you can do")}
           </h3>
           <p className="mt-1 text-sm leading-6 text-gray-600">{nextStep}</p>
           {action && canReviewSettings ? (
@@ -288,12 +328,12 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
               to={RouteUtil.populateRouteParams(RouteMap[action.page] as Route)}
               className="mt-2 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              <span>{action.label}</span>
+              <span>{translator.translateText(action.label)}</span>
               <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
             </Link>
           ) : action ? (
             <p className="mt-2 text-xs leading-relaxed text-gray-500">
-              {action.whoCanAct}
+              {translator.translateText(action.whoCanAct)}
             </p>
           ) : null}
         </div>
@@ -309,13 +349,17 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
             />
             <p>
               {hasSuccessfulResponse
-                ? "Could not refresh this status. Showing the last successful check."
-                : "Try again to check this investigation."}
+                ? translator.translateText(
+                    "Could not refresh this status. Showing the last successful check.",
+                  )
+                : translator.translateText(
+                    "Try again to check this investigation.",
+                  )}
             </p>
           </div>
           <Button
             title="Retry"
-            ariaLabel="Retry investigation status"
+            ariaLabel={translator.translateText("Retry investigation status")}
             icon={IconProp.Refresh}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}

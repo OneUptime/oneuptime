@@ -27,6 +27,12 @@ import {
   EpisodeMemberRow,
 } from "./EpisodeMembers";
 import RelativeTime from "./RelativeTime";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps<TMember extends BaseModel> {
   // Incident or Alert.
@@ -59,6 +65,7 @@ interface LoadedMembers {
 type PillFunction = (
   pill: EpisodeMemberPill,
   testId: string,
+  // The pill's whole tooltip, e.g. "State: Investigating".
   tooltip: string,
 ) => ReactElement;
 
@@ -70,7 +77,7 @@ const getStatusPill: PillFunction = (
   return (
     <span
       data-testid={testId}
-      title={`${tooltip}: ${pill.name}`}
+      title={tooltip}
       className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
     >
       <span
@@ -94,6 +101,7 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
 ) => ReactElement = <TMember extends BaseModel>(
   props: ComponentProps<TMember>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const episodeIdString: string = props.episodeId.toString();
   const limit: number = props.limit || EPISODE_MEMBERS_PREVIEW_LIMIT;
 
@@ -183,10 +191,23 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
     });
   };
 
+  /*
+   * The member nouns ("incident", "incidents") go into whole sentences as
+   * terms, in the casing the reader's language uses mid-sentence.
+   */
+  const itemName: TranslatableTerm = translatableTerm(props.singularNoun, {
+    inSentence: true,
+  });
+  const itemsName: TranslatableTerm = translatableTerm(props.pluralNoun, {
+    inSentence: true,
+  });
+
   const countLabel: string | undefined = current
-    ? `${current.totalCount} ${
-        current.totalCount === 1 ? props.singularNoun : props.pluralNoun
-      }`
+    ? translator.translatePlural(
+        { one: "{{count}} {{itemName}}", other: "{{count}} {{itemsName}}" },
+        current.totalCount,
+        { itemName, itemsName },
+      )
     : undefined;
 
   const title: ReactElement = (
@@ -208,7 +229,9 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
       to={props.viewAllRoute}
       className="inline-flex items-center gap-1 whitespace-nowrap rounded-sm text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
     >
-      <span>View all {props.pluralNoun}</span>
+      <span>
+        {translator.translateTemplate("View all {{itemsName}}", { itemsName })}
+      </span>
       <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
     </Link>
   );
@@ -221,7 +244,11 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
     if (!current) {
       return (
         <div role="status" aria-live="polite">
-          <span className="sr-only">Loading {props.pluralNoun}</span>
+          <span className="sr-only">
+            {translator.translateTemplate("Loading {{itemsName}}", {
+              itemsName,
+            })}
+          </span>
           <ul
             aria-hidden="true"
             data-testid="episode-members-skeleton"
@@ -249,10 +276,16 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
         >
           <Icon icon={IconProp.Layers} className="h-6 w-6 text-gray-400" />
           <div className="mt-2 text-sm font-medium text-gray-900">
-            No {props.pluralNoun} in this episode yet
+            {translator.translateTemplate(
+              "No {{itemsName}} in this episode yet",
+              { itemsName },
+            )}
           </div>
           <div className="mt-1 text-xs leading-5 text-gray-500">
-            {`Matching ${props.pluralNoun} show up here as they are grouped into this episode.`}
+            {translator.translateTemplate(
+              "Matching {{itemsName}} show up here as they are grouped into this episode.",
+              { itemsName },
+            )}
           </div>
         </div>
       );
@@ -267,7 +300,10 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
             role="alert"
             className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
           >
-            {`Couldn't refresh ${props.pluralNoun}: ${error}`}
+            {translator.translateTemplate(
+              "Couldn't refresh {{itemsName}}: {{error}}",
+              { itemsName, error },
+            )}
           </div>
         )}
         <ul
@@ -306,12 +342,20 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0 sm:justify-end">
                   {row.state &&
-                    getStatusPill(row.state, "episode-member-state", "State")}
+                    getStatusPill(
+                      row.state,
+                      "episode-member-state",
+                      translator.translateTemplate("State: {{name}}", {
+                        name: row.state.name,
+                      }),
+                    )}
                   {row.severity &&
                     getStatusPill(
                       row.severity,
                       "episode-member-severity",
-                      "Severity",
+                      translator.translateTemplate("Severity: {{name}}", {
+                        name: row.severity.name,
+                      }),
                     )}
                   {row.occurredAt && (
                     <RelativeTime
@@ -326,7 +370,19 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
         </ul>
         {hiddenCount > 0 && (
           <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
-            {`Showing the newest ${current.rows.length} of ${current.totalCount} ${props.pluralNoun}.`}
+            {translator.translatePlural(
+              {
+                one: "Showing the newest {{shown}} of {{count}} {{itemName}}.",
+                other:
+                  "Showing the newest {{shown}} of {{count}} {{itemsName}}.",
+              },
+              current.totalCount,
+              {
+                shown: translator.formatNumber(current.rows.length),
+                itemName,
+                itemsName,
+              },
+            )}
           </div>
         )}
       </div>
@@ -338,7 +394,10 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
       title={title}
       description={
         props.description ||
-        `The newest ${props.pluralNoun} grouped into this episode, with their current state and severity.`
+        translator.translateTemplate(
+          "The newest {{itemsName}} grouped into this episode, with their current state and severity.",
+          { itemsName },
+        )
       }
       rightElement={viewAllLink}
     >

@@ -14,6 +14,8 @@ import TimePicker from "Common/UI/Components/TimePicker/Index";
 import BasicRadioButtons from "Common/UI/Components/RadioButtons/BasicRadioButtons";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -68,6 +70,7 @@ const copyRestrictionTimes: CopyRestrictionTimesFunction = (
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [restrictionTimes, setRestrictionTimes] = useState<
     RestrictionTimes | undefined
   >(props.value ? copyRestrictionTimes(props.value) : undefined);
@@ -547,8 +550,14 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         restrictionTimes.restictionType !== RestrictionType.None && (
           <p className="mt-2 text-xs text-gray-400">
             {props.timezone
-              ? `These times are in the schedule's timezone: ${props.timezone}.`
-              : `These times are in your local timezone: ${OneUptimeDate.getCurrentTimezoneString()}.`}
+              ? translator.translateTemplate(
+                  "These times are in the schedule's timezone: {{timezone}}.",
+                  { timezone: props.timezone },
+                )
+              : translator.translateTemplate(
+                  "These times are in your local timezone: {{timezone}}.",
+                  { timezone: OneUptimeDate.getCurrentTimezoneString() },
+                )}
           </p>
         )}
 

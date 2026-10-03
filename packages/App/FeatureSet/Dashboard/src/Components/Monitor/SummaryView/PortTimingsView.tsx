@@ -1,5 +1,7 @@
 import PortMonitorTimings from "Common/Types/Monitor/PortMonitor/PortMonitorTimings";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   portTimings: PortMonitorTimings;
@@ -25,6 +27,7 @@ const formatDurationInMs: (durationInMs: number) => string = (
 const PortTimingsView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const timings: PortMonitorTimings = props.portTimings;
 
   const phases: Array<ConnectionPhase> = [
@@ -61,10 +64,12 @@ const PortTimingsView: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-md border-2 border-gray-100 p-4">
       <div className="text-sm font-medium text-gray-900 mb-1">
-        Connection Phase Breakdown
+        {translator.translateText("Connection Phase Breakdown")}
       </div>
       <div className="text-xs text-gray-500 mb-3">
-        Time spent resolving the target and establishing the TCP connection.
+        {translator.translateText(
+          "Time spent resolving the target and establishing the TCP connection.",
+        )}
       </div>
       <div className="space-y-2">
         {phases.map((phase: ConnectionPhase) => {

@@ -82,6 +82,8 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -100,6 +102,7 @@ export interface ComponentProps {
 const IncidentsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [incidentTemplates, setIncidentTemplates] = useState<
     Array<IncidentTemplate>
   >([]);
@@ -759,11 +762,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   {numberContent}
                   {item.isPrivate === true && (
                     <span
-                      title="Private incident — visible only to its owners, project admins, and project owners"
+                      title={translator.translateText(
+                        "Private incident — visible only to its owners, project admins, and project owners",
+                      )}
                       className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
                     >
                       <Icon icon={IconProp.Lock} className="w-3 h-3" />
-                      Private
+                      {translator.translateText("Private")}
                     </span>
                   )}
                 </span>

@@ -20,6 +20,13 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import React, { FunctionComponent, ReactElement } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface FilterGroup {
   message: string;
@@ -78,6 +85,7 @@ export interface ComponentProps {
 const EvaluationLogList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const evaluationSummary: MonitorEvaluationSummary | undefined =
     props.evaluationSummary;
 
@@ -99,7 +107,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const getSummaryTitle: string = props.title || "Evaluation Logs";
+  const getSummaryTitle: string =
+    translator.translateText(props.title || "Evaluation Logs") ||
+    "Evaluation Logs";
 
   const renderCriteriaResult: (
     criteria: MonitorEvaluationCriteriaResult,
@@ -110,13 +120,16 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const isSkipped: boolean = Boolean(criteria.skipped);
     const criteriaName: string =
-      criteria.criteriaName || `Criteria ${index + 1}`;
+      criteria.criteriaName ||
+      translator.translateTemplate("Criteria {{number}}", {
+        number: index + 1,
+      });
 
     if (isSkipped) {
       const skipReason: string =
         criteria.skipReason ||
         criteria.message ||
-        "This criterion was not evaluated.";
+        translationKey("This criterion was not evaluated.");
       const isDisabled: boolean =
         criteria.skipCause === "disabled" ||
         (!criteria.skipCause && disabledCriteriaReasonPattern.test(skipReason));
@@ -139,19 +152,27 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
           if (previousCriteria?.met && !previousCriteria.skipped) {
             previousMatchingCriteriaName =
-              previousCriteria.criteriaName || `Criteria ${previousIndex + 1}`;
+              previousCriteria.criteriaName ||
+              translator.translateTemplate("Criteria {{number}}", {
+                number: previousIndex + 1,
+              });
             break;
           }
         }
       }
 
-      const skippedStatus: string = isDisabled ? "Disabled" : "Not evaluated";
+      const skippedStatus: string = isDisabled
+        ? translationKey("Disabled")
+        : translationKey("Not evaluated");
 
       return (
         <div
           key={`criteria-${criteria.criteriaId || index}`}
           role="group"
-          aria-label={`${criteriaName}: ${skippedStatus}`}
+          aria-label={translator.translateTemplate("{{name}}: {{status}}", {
+            name: criteriaName,
+            status: translatableTerm(skippedStatus),
+          })}
           className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-3"
         >
           <div className="flex items-start gap-3">
@@ -176,26 +197,32 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <div className="mt-0.5 text-xs text-gray-500">
-                Condition: {criteria.filterCondition}
+                {translator.translateTemplate("Condition: {{condition}}", {
+                  condition: translatableTerm(criteria.filterCondition || ""),
+                })}
               </div>
               <div className="mt-3 border-t border-gray-200 pt-3">
                 <div className="text-sm text-gray-600">
                   {previousMatchingCriteriaName ? (
-                    <>
-                      Not evaluated because{" "}
-                      <span className="font-medium text-gray-800">
-                        “{previousMatchingCriteriaName}”
-                      </span>{" "}
-                      matched first.
-                    </>
+                    <TranslatedSentence
+                      template="Not evaluated because {{criteria}} matched first."
+                      slots={{
+                        criteria: (
+                          <span className="font-medium text-gray-800">
+                            “{previousMatchingCriteriaName}”
+                          </span>
+                        ),
+                      }}
+                    />
                   ) : (
-                    skipReason
+                    translator.translateText(skipReason)
                   )}
                 </div>
                 {previousMatchingCriteriaName && (
                   <div className="mt-1 text-xs text-gray-500">
-                    Criteria are evaluated in order; this monitor stops after
-                    the first match.
+                    {translator.translateText(
+                      "Criteria are evaluated in order; this monitor stops after the first match.",
+                    )}
                   </div>
                 )}
               </div>
@@ -209,7 +236,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
       <div
         key={`criteria-${criteria.criteriaId || index}`}
         role="group"
-        aria-label={`${criteriaName}: ${criteria.met ? "Met" : "Not Met"}`}
+        aria-label={translator.translateTemplate(
+          criteria.met ? "{{name}}: Met" : "{{name}}: Not Met",
+          { name: criteriaName },
+        )}
         className="rounded-md border border-gray-200 bg-white p-4 shadow-sm"
       >
         <div className="flex items-start justify-between">
@@ -218,7 +248,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               {criteriaName}
             </div>
             <div className="text-xs text-gray-500">
-              Condition: {criteria.filterCondition}
+              {translator.translateTemplate("Condition: {{condition}}", {
+                condition: translatableTerm(criteria.filterCondition || ""),
+              })}
             </div>
           </div>
           <span
@@ -226,7 +258,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
               criteria.met ? "text-green-600" : "text-gray-500"
             }`}
           >
-            {criteria.met ? "Met" : "Not Met"}
+            {translator.translateText(criteria.met ? "Met" : "Not Met")}
           </span>
         </div>
 
@@ -246,7 +278,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                   },
                 );
 
-                let statusText: string = "Partial";
+                let statusText: string = translationKey("Partial");
                 let statusClassName: string = "text-yellow-700 bg-yellow-100";
 
                 if (allMet) {
@@ -313,33 +345,62 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
                 const metadataParts: Array<string> = [];
 
+                // Each value is a check or condition name the reader's language may word.
+                const listTerms: (values: Array<string>) => string = (
+                  values: Array<string>,
+                ): string => {
+                  return values
+                    .map((value: string): string => {
+                      return translator.translateTerm(value);
+                    })
+                    .join(", ");
+                };
+
                 if (uniqueCheckOnLabels.length > 0) {
                   metadataParts.push(
-                    uniqueCheckOnLabels.length === 1
-                      ? `Check: ${uniqueCheckOnLabels[0]}`
-                      : `Checks: ${uniqueCheckOnLabels.join(", ")}`,
+                    translator.translatePlural(
+                      { one: "Check: {{checks}}", other: "Checks: {{checks}}" },
+                      uniqueCheckOnLabels.length,
+                      { checks: listTerms(uniqueCheckOnLabels) },
+                    ),
                   );
                 }
 
                 if (uniqueFilterTypes.length > 0) {
                   metadataParts.push(
-                    uniqueFilterTypes.length === 1
-                      ? `Condition: ${uniqueFilterTypes[0]}`
-                      : `Conditions: ${uniqueFilterTypes.join(", ")}`,
+                    translator.translatePlural(
+                      {
+                        one: "Condition: {{conditions}}",
+                        other: "Conditions: {{conditions}}",
+                      },
+                      uniqueFilterTypes.length,
+                      { conditions: listTerms(uniqueFilterTypes) },
+                    ),
                   );
                 }
 
                 if (thresholdValues.length > 0) {
                   metadataParts.push(
-                    thresholdValues.length === 1
-                      ? `Threshold: ${thresholdValues[0]}`
-                      : `Thresholds: ${thresholdValues.join(", ")}`,
+                    translator.translatePlural(
+                      {
+                        one: "Threshold: {{thresholds}}",
+                        other: "Thresholds: {{thresholds}}",
+                      },
+                      thresholdValues.length,
+                      { thresholds: thresholdValues.join(", ") },
+                    ),
                   );
                 }
 
                 if (filterGroup.occurrences.length > 1) {
                   metadataParts.push(
-                    `${filterGroup.occurrences.length} matching checks`,
+                    translator.translatePlural(
+                      {
+                        one: "{{count}} matching check",
+                        other: "{{count}} matching checks",
+                      },
+                      filterGroup.occurrences.length,
+                    ),
                   );
                 }
 
@@ -351,7 +412,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                     <span
                       className={`text-xs font-semibold flex-shrink-0 px-2 py-1 rounded ${statusClassName}`}
                     >
-                      {statusText}
+                      {translator.translateText(statusText)}
                     </span>
                     <div className="space-y-1">
                       <div className="text-sm text-gray-700">
@@ -444,57 +505,85 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         ? event.relatedIncidentCreatedAt
         : undefined;
 
-    let eventTimeLabel: string = "Action at";
+    // A whole sentence per kind of event, with the time as {{time}}.
+    let eventTimeLabel: string = translationKey("Action at {{time}}");
 
     switch (event.type) {
       case "alert-created":
       case "incident-created":
-        eventTimeLabel = "Created at";
+        eventTimeLabel = translationKey("Created at {{time}}");
         break;
       case "alert-resolved":
       case "incident-resolved":
-        eventTimeLabel = "Resolved at";
+        eventTimeLabel = translationKey("Resolved at {{time}}");
         break;
       case "alert-skipped":
       case "incident-skipped":
         eventTimeLabel =
-          isExistingAlert || isExistingIncident ? "Checked at" : "Skipped at";
+          isExistingAlert || isExistingIncident
+            ? translationKey("Checked at {{time}}")
+            : translationKey("Skipped at {{time}}");
         break;
     }
 
-    const eventNumberLabel: string | null = (() => {
+    /*
+     * The incident or alert this event is about. `englishLabel` is how the
+     * server's (English) event text names it, used only to avoid naming it
+     * twice; the reader sees `template`, a whole sentence in their language.
+     */
+    const eventNumber: {
+      englishLabel: string;
+      number: string;
+      template: string;
+    } | null = (() => {
       if (
         event.relatedIncidentNumber !== undefined &&
         event.relatedIncidentNumber !== null
       ) {
-        return `Incident ${event.relatedIncidentNumberWithPrefix || "#" + event.relatedIncidentNumber}`;
+        const number: string =
+          event.relatedIncidentNumberWithPrefix ||
+          "#" + event.relatedIncidentNumber;
+
+        return {
+          englishLabel: "Incident " + number,
+          number: number,
+          template: translationKey("{{text}} (Incident {{number}})"),
+        };
       }
 
       if (
         event.relatedAlertNumber !== undefined &&
         event.relatedAlertNumber !== null
       ) {
-        return `Alert ${event.relatedAlertNumberWithPrefix || "#" + event.relatedAlertNumber}`;
+        const number: string =
+          event.relatedAlertNumberWithPrefix || "#" + event.relatedAlertNumber;
+
+        return {
+          englishLabel: "Alert " + number,
+          number: number,
+          template: translationKey("{{text}} (Alert {{number}})"),
+        };
       }
 
       return null;
     })();
 
-    let decoratedTitle: string = event.title;
+    const decorate: (text: string) => string = (text: string): string => {
+      if (!eventNumber || text.includes(eventNumber.englishLabel)) {
+        return text;
+      }
 
-    if (eventNumberLabel && !decoratedTitle.includes(eventNumberLabel)) {
-      decoratedTitle = `${decoratedTitle} (${eventNumberLabel})`;
-    }
+      return translator.translateTemplate(eventNumber.template, {
+        text: text,
+        number: eventNumber.number,
+      });
+    };
 
-    let decoratedMessage: string | undefined = event.message;
+    const decoratedTitle: string = decorate(event.title);
 
-    if (
-      decoratedMessage &&
-      eventNumberLabel &&
-      !decoratedMessage.includes(eventNumberLabel)
-    ) {
-      decoratedMessage = `${decoratedMessage} (${eventNumberLabel})`;
-    }
+    const decoratedMessage: string | undefined = event.message
+      ? decorate(event.message)
+      : event.message;
 
     return (
       <div
@@ -516,18 +605,25 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
           )}
           {relatedCreatedAt && (
             <div className="text-xs text-gray-400">
-              {isExistingAlert ? "Alert" : "Incident"} created at{" "}
-              {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                relatedCreatedAt,
+              {translator.translateTemplate(
+                isExistingAlert
+                  ? "Alert created at {{time}}"
+                  : "Incident created at {{time}}",
+                {
+                  time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                    relatedCreatedAt,
+                  ),
+                },
               )}
             </div>
           )}
           {event.at && (
             <div className="text-xs text-gray-400">
-              {eventTimeLabel}{" "}
-              {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                event.at,
-              )}
+              {translator.translateTemplate(eventTimeLabel, {
+                time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  event.at,
+                ),
+              })}
             </div>
           )}
           {actionButton && <div className="mt-3 -ml-3">{actionButton}</div>}
@@ -543,10 +639,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
       </div>
       {evaluationSummary.evaluatedAt && (
         <div className="text-xs text-gray-500">
-          Evaluated at{" "}
-          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            evaluationSummary.evaluatedAt,
-          )}
+          {translator.translateTemplate("Evaluated at {{time}}", {
+            time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              evaluationSummary.evaluatedAt,
+            ),
+          })}
         </div>
       )}
 
@@ -558,7 +655,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
       {actionEvents.length > 0 && (
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-gray-900">Actions</div>
+          <div className="text-sm font-semibold text-gray-900">
+            {translator.translateText("Actions")}
+          </div>
           <div className="space-y-2">
             {actionEvents.map(
               (event: MonitorEvaluationEvent, index: number) => {

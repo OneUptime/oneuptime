@@ -29,6 +29,8 @@ import useTimeRangeZoom, {
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomUtil";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The settings a widget is titled by, by kind of widget: most call it
@@ -85,6 +87,7 @@ export interface ComponentProps {
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const component: DashboardBaseComponent =
     props.dashboardViewConfig.components.find(
       (component: DashboardBaseComponent) => {
@@ -201,11 +204,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       rightElement={
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 capitalize">
-            {component.componentType}
+            {translator.translateText(component.componentType)}
           </span>
           <span className="text-xs text-gray-400">
-            {component.widthInDashboardUnits} x{" "}
-            {component.heightInDashboardUnits} units
+            {translator.translateTemplate("{{width}} x {{height}} units", {
+              width: component.widthInDashboardUnits,
+              height: component.heightInDashboardUnits,
+            })}
           </span>
         </div>
       }
@@ -244,7 +249,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                   className="text-gray-500"
                 />
                 <h4 className="text-sm font-semibold text-gray-800">
-                  Live Preview
+                  {translator.translateText("Live Preview")}
                 </h4>
               </div>
               <div className="flex items-center gap-2">
@@ -257,7 +262,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  Updates as you edit
+                  {translator.translateText("Updates as you edit")}
                 </div>
               </div>
             </div>
@@ -318,7 +323,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
           <section>
             <h4 className="text-sm font-semibold text-gray-800 mb-3">
-              Settings
+              {translator.translateText("Settings")}
             </h4>
             <ArgumentsForm
               variables={props.variables}

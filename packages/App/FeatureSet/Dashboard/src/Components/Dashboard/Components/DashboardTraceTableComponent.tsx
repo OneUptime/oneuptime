@@ -28,6 +28,8 @@ import {
   displayGroupValue,
   formatDurationMs,
 } from "./TraceTableData";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceTableComponent;
@@ -39,6 +41,7 @@ const HEADER_CELL: string =
 const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rows, setRows] = useState<Array<TraceTableRow>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -159,15 +162,33 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                   </th>
                 );
               })}
-              <th className={`text-right ${HEADER_CELL}`}>Requests</th>
-              <th className={`text-right ${HEADER_CELL}`}>Errors</th>
-              <th className={`text-right ${HEADER_CELL}`}>Avg</th>
-              <th className={`text-right ${HEADER_CELL}`}>P50</th>
-              <th className={`text-right ${HEADER_CELL}`}>P90</th>
-              <th className={`text-right ${HEADER_CELL}`}>P95</th>
-              <th className={`text-right ${HEADER_CELL}`}>P99</th>
-              <th className={`text-right ${HEADER_CELL}`}>Min</th>
-              <th className={`text-right ${HEADER_CELL}`}>Max</th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("Requests")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("Errors")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("Avg")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("P50")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("P90")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("P95")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("P99")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("Min")}
+              </th>
+              <th className={`text-right ${HEADER_CELL}`}>
+                {translator.translateText("Max")}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -248,13 +269,14 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
         {!isLoading && error && <ErrorMessage message={error} />}
         {!isLoading && !error && !groupByAttribute && (
           <div className="flex h-full items-center justify-center px-4 text-center text-xs text-gray-400">
-            Choose a &ldquo;Group rows by&rdquo; dimension in the widget
-            settings to populate this table.
+            {translator.translateText(
+              "Choose a “Group rows by” dimension in the widget settings to populate this table.",
+            )}
           </div>
         )}
         {!isLoading && !error && groupByAttribute && rows.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            No data for the selected time range
+            {translator.translateText("No data for the selected time range")}
           </div>
         )}
         {!isLoading && !error && groupByAttribute && rows.length > 0 && (

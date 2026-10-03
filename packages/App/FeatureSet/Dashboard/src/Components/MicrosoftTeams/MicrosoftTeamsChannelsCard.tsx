@@ -25,6 +25,8 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface TeamItem {
   id: string;
@@ -37,6 +39,7 @@ interface ChannelItem {
 }
 
 const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [teams, setTeams] = useState<Array<TeamItem>>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [channels, setChannels] = useState<Array<ChannelItem>>([]);
@@ -253,11 +256,12 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
               />
             </div>
             <h3 className="mt-4 text-sm font-semibold text-gray-900">
-              No teams found
+              {translator.translateText("No teams found")}
             </h3>
             <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-              Grant admin consent and make sure your Microsoft Teams tenant has
-              at least one team, then refresh.
+              {translator.translateText(
+                "Grant admin consent and make sure your Microsoft Teams tenant has at least one team, then refresh.",
+              )}
             </p>
           </div>
         )}
@@ -266,7 +270,7 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
           <div className="space-y-4">
             <div className="max-w-md">
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Team
+                {translator.translateText("Team")}
               </label>
               <Dropdown
                 options={teamOptions}
@@ -289,14 +293,16 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
 
             {!isLoadingChannels && channels.length === 0 && selectedTeamId && (
               <div className="rounded-lg border border-dashed border-gray-300 px-6 py-8 text-center text-sm text-gray-500">
-                No channels found in this team.
+                {translator.translateText("No channels found in this team.")}
               </div>
             )}
 
             {!isLoadingChannels && channels.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm text-gray-600">
-                  Channels ({channels.length})
+                  {translator.translateTemplate("Channels ({{count}})", {
+                    count: translator.formatNumber(channels.length),
+                  })}
                 </div>
                 <div className="max-h-96 overflow-y-auto pr-1">
                   <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
@@ -365,13 +371,9 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
                  * manifest built for this deployment.
                  */}
                 <p className="text-xs text-gray-500">
-                  Every channel in your tenant is listed here, but notifications
-                  only reach teams the OneUptime app has been added to — add it
-                  from the team&apos;s &quot;...&quot; menu &gt; Manage team
-                  &gt; Apps. Use the app manifest downloaded from this page;
-                  another OneUptime package, such as the one in the Teams store,
-                  will not accept messages from this instance. Private channels
-                  also need the OneUptime bot added to the channel itself.
+                  {translator.translateText(
+                    'Every channel in your tenant is listed here, but notifications only reach teams the OneUptime app has been added to — add it from the team\'s "..." menu > Manage team > Apps. Use the app manifest downloaded from this page; another OneUptime package, such as the one in the Teams store, will not accept messages from this instance. Private channels also need the OneUptime bot added to the channel itself.',
+                  )}
                 </p>
               </div>
             )}

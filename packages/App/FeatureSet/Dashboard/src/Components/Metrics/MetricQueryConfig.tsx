@@ -31,6 +31,8 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
@@ -105,6 +107,7 @@ function getBadgeTintStyle(
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [showDisplaySettings, setShowDisplaySettings] =
     useState<boolean>(false);
@@ -213,7 +216,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
   const metricName: string =
     props.data?.metricQueryData?.filterData?.metricName?.toString() ||
-    "No metric selected";
+    translator.translateTemplate("No metric selected");
 
   /*
    * Look up the currently selected metric's native unit so MetricAlias
@@ -323,13 +326,17 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                   <Icon icon={IconProp.Filter} className="h-3 w-3" />
                   {activeAttributeCount}{" "}
-                  {activeAttributeCount === 1 ? "filter" : "filters"}
+                  {translator.translateText(
+                    activeAttributeCount === 1 ? "filter" : "filters",
+                  )}
                 </span>
               )}
               {!isExpanded && groupByKeys.length > 0 && (
                 <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                   {groupByKeys.length}{" "}
-                  {groupByKeys.length === 1 ? "group-by" : "group-bys"}
+                  {translator.translateText(
+                    groupByKeys.length === 1 ? "group-by" : "group-bys",
+                  )}
                 </span>
               )}
             </div>
@@ -346,13 +353,15 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-1 ml-3">
           <button
             type="button"
-            aria-label={isExpanded ? "Collapse query" : "Expand query"}
+            aria-label={translator.translateText(
+              isExpanded ? "Collapse query" : "Expand query",
+            )}
             aria-expanded={isExpanded}
             className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             onClick={() => {
               setIsExpanded(!isExpanded);
             }}
-            title={isExpanded ? "Collapse" : "Expand"}
+            title={translator.translateText(isExpanded ? "Collapse" : "Expand")}
           >
             <Icon
               icon={isExpanded ? IconProp.ChevronUp : IconProp.ChevronDown}
@@ -362,14 +371,14 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           {props.onRemove && (
             <button
               type="button"
-              aria-label="Remove query"
+              aria-label={translator.translateText("Remove query")}
               className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               onClick={() => {
                 props.onBlur?.();
                 props.onFocus?.();
                 return props.onRemove?.();
               }}
-              title="Remove query"
+              title={translator.translateText("Remove query")}
             >
               <Icon icon={IconProp.Trash} className="h-4 w-4" />
             </button>
@@ -388,7 +397,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
       return (
         <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
           <span className="text-xs text-gray-400 font-medium mr-1">
-            Filtered by:
+            {translator.translateText("Filtered by:")}
           </span>
           {Object.entries(attributes).map(
             ([key, value]: [string, DictionaryEntryValue]) => {
@@ -415,12 +424,17 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   {!option.hidesValueInput && <span>{valueSegment}</span>}
                   <button
                     type="button"
-                    aria-label={`Remove filter ${chipText}`}
+                    aria-label={translator.translateTemplate(
+                      "Remove filter {{filter}}",
+                      { filter: chipText },
+                    )}
                     className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     onClick={() => {
                       handleRemoveAttribute(key);
                     }}
-                    title={`Remove ${chipText}`}
+                    title={translator.translateTemplate("Remove {{filter}}", {
+                      filter: chipText,
+                    })}
                   >
                     <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
                   </button>
@@ -434,7 +448,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               onClick={handleClearAllAttributes}
             >
-              Clear all
+              {translator.translateText("Clear all")}
             </button>
           )}
         </div>
@@ -544,7 +558,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   }
                   className="h-3 w-3"
                 />
-                <span>Display Settings</span>
+                <span>{translator.translateText("Display Settings")}</span>
                 {(props.data?.metricAliasData?.title ||
                   props.data?.color ||
                   props.data?.chartType ||
@@ -581,7 +595,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   {/* Chart type (Area is the render default when unset) */}
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Chart type
+                      {translator.translateText("Chart type")}
                     </label>
                     <Dropdown
                       options={CHART_TYPE_OPTIONS}
@@ -706,7 +720,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   {/* Thresholds */}
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Warning Threshold
+                      {translator.translateText("Warning Threshold")}
                     </label>
                     <Input
                       value={props.data?.warningThreshold?.toString() || ""}
@@ -726,7 +740,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Critical Threshold
+                      {translator.translateText("Critical Threshold")}
                     </label>
                     <Input
                       value={props.data?.criticalThreshold?.toString() || ""}

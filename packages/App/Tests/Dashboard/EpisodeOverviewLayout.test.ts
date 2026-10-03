@@ -394,7 +394,9 @@ describe("episode header", () => {
       expect(source).toContain(
         'episode?.episodeNumberWithPrefix || (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)',
       );
-      expect(source).toContain('title={episode?.title || "Untitled episode"}');
+      expect(source).toContain(
+        'title={episode?.title || translator.translateText("Untitled episode")}',
+      );
       expect(source).toContain("isPrivate={episode?.isPrivate === true}");
       expect(source).toContain(
         "durationStartsAt={timing.durationStartsAt} durationEndsAt={timing.durationEndsAt}",
@@ -405,15 +407,17 @@ describe("episode header", () => {
        * contradict itself.
        */
       expect(source).toContain(
-        'durationPrefix={ timing.durationStartsAt ? timing.isResolved ? "Lasted" : "Ongoing for" : undefined }',
+        'durationPrefix={ timing.durationStartsAt ? timing.isResolved ? translationKey("Lasted") : translationKey("Ongoing for") : undefined }',
       );
       expect(source).not.toContain("${timing.resolvedStateName} in");
       expect(source).toContain(page.startedAt);
-      expect(source).toContain("facts={getEpisodeHeaderFacts({");
+      expect(source).toContain("facts={getEpisodeHeaderFacts( {");
       expect(source).toContain(
         `memberNoun: "${page.memberModel.toLowerCase()}"`,
       );
-      expect(source).toContain('moreMenuTitle="Move episode to"');
+      expect(source).toContain(
+        'moreMenuTitle={translationKey("Move episode to")}',
+      );
     },
   );
 });

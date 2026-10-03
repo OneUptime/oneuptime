@@ -16,6 +16,10 @@ import {
   isInfrastructureResultUnknownMessage,
   isInfrastructureToolName,
 } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the investigation panel words the AI tools that reach a Kubernetes
@@ -27,7 +31,9 @@ import {
  * list_cluster_access's rowCount is the number of clusters it listed.
  *
  * Pure (no RouteMap, no window at load) so any component and test can
- * import it.
+ * import it. The wording is in the reader's language: a component passes its
+ * translator, and everything else gets the global one (English until the
+ * Dashboard's i18next is set up).
  */
 
 export const CLUSTER_TOOL_NAMES: ReadonlyArray<string> = [
@@ -105,27 +111,49 @@ function toCount(value: number | null | undefined): number {
 export function describeClusterToolOutcome(
   toolName: string | null | undefined,
   rowCount: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): ClusterToolOutcome | null {
+  const outcome: (data: {
+    label: string;
+    detail: string;
+    isError: boolean;
+  }) => ClusterToolOutcome = (data: {
+    label: string;
+    detail: string;
+    isError: boolean;
+  }): ClusterToolOutcome => {
+    return {
+      label: translator.translateText(data.label) as string,
+      detail: translator.translateText(data.detail) as string,
+      isError: data.isError,
+    };
+  };
+
   if (toolName === RUN_KUBECTL_TOOL_NAME) {
     return toCount(rowCount) > 0
-      ? { label: "Succeeded", detail: "succeeded", isError: false }
-      : {
+      ? outcome({ label: "Succeeded", detail: "succeeded", isError: false })
+      : outcome({
           label: "kubectl returned an error",
           detail: "kubectl returned an error",
           isError: true,
-        };
+        });
   }
 
   if (toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
     const count: number = toCount(rowCount);
 
     if (count === 0) {
-      return { label: "No clusters", detail: "no clusters", isError: false };
+      return outcome({
+        label: "No clusters",
+        detail: "no clusters",
+        isError: false,
+      });
     }
 
-    const text: string = `${count.toLocaleString()} ${
-      count === 1 ? "cluster" : "clusters"
-    }`;
+    const text: string = translator.translatePlural(
+      { one: "{{count}} cluster", other: "{{count}} clusters" },
+      count,
+    );
 
     return { label: text, detail: text, isError: false };
   }
@@ -137,24 +165,29 @@ export function describeClusterToolOutcome(
    */
   if (toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
     return toCount(rowCount) > 0
-      ? { label: "Succeeded", detail: "succeeded", isError: false }
-      : {
+      ? outcome({ label: "Succeeded", detail: "succeeded", isError: false })
+      : outcome({
           label: "The command returned an error",
           detail: "the command returned an error",
           isError: true,
-        };
+        });
   }
 
   if (toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
     const count: number = toCount(rowCount);
 
     if (count === 0) {
-      return { label: "No resources", detail: "no resources", isError: false };
+      return outcome({
+        label: "No resources",
+        detail: "no resources",
+        isError: false,
+      });
     }
 
-    const text: string = `${count.toLocaleString()} ${
-      count === 1 ? "resource" : "resources"
-    }`;
+    const text: string = translator.translatePlural(
+      { one: "{{count}} resource", other: "{{count}} resources" },
+      count,
+    );
 
     return { label: text, detail: text, isError: false };
   }
@@ -166,9 +199,10 @@ export function describeClusterToolOutcome(
 export function formatEvidenceOutcome(
   toolName: string | null | undefined,
   rowCount: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   return (
-    describeClusterToolOutcome(toolName, rowCount)?.label ??
+    describeClusterToolOutcome(toolName, rowCount, translator)?.label ??
     formatRowCount(rowCount)
   );
 }
@@ -194,21 +228,30 @@ export function describeClusterEvidenceTool(
  */
 export function getClusterEvidenceNote(
   toolName: string | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | null {
   if (toolName === RUN_KUBECTL_TOOL_NAME) {
-    return "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Insights page (AI → Insights) lists every kubectl command OneUptime AI ran there.";
+    return translator.translateText(
+      "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Insights page (AI → Insights) lists every kubectl command OneUptime AI ran there.",
+    ) as string;
   }
 
   if (toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
-    return "This listed the clusters OneUptime AI could inspect with kubectl during the investigation; it has no rows to load.";
+    return translator.translateText(
+      "This listed the clusters OneUptime AI could inspect with kubectl during the investigation; it has no rows to load.",
+    ) as string;
   }
 
   if (toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
-    return "Infrastructure commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the resource's AI Insights page (AI → Insights) lists every command OneUptime AI ran there.";
+    return translator.translateText(
+      "Infrastructure commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the resource's AI Insights page (AI → Insights) lists every command OneUptime AI ran there.",
+    ) as string;
   }
 
   if (toolName === LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME) {
-    return "This listed the infrastructure resources OneUptime AI could inspect through their AI agents during the investigation; it has no rows to load.";
+    return translator.translateText(
+      "This listed the infrastructure resources OneUptime AI could inspect through their AI agents during the investigation; it has no rows to load.",
+    ) as string;
   }
 
   return null;
