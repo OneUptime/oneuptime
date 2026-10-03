@@ -123,6 +123,7 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/StatusPage/MasterPassword";
+import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
@@ -1111,6 +1112,8 @@ export default class StatusPageAPI extends BaseAPI<
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             enableMasterPassword: true,
+            // Only to tell whether one is set; never sent (see below).
+            masterPassword: true,
             allowSubscribersToChooseResources: true,
             allowSubscribersToChooseEventTypes: true,
             requireSsoForLogin: true,
@@ -1177,6 +1180,25 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Not part of what the page renders.
           delete item.isArchived;
+
+          /*
+           * Whether the page asks visitors for the master password, by the
+           * rule the server enforces (Types/StatusPage/StatusPageAccess): not
+           * public, the switch on and a password set. The switch alone said
+           * yes on a private page with no password set, and the app sent
+           * every visitor - private users included - to a password prompt
+           * that could never let anyone in, while the server treated the
+           * page as a sign-in page.
+           */
+          item.enableMasterPassword = isStatusPageMasterPasswordRequired({
+            isPublicStatusPage: Boolean(item.isPublicStatusPage),
+            enableMasterPassword: item.enableMasterPassword,
+            hasMasterPassword: Boolean(item.masterPassword),
+          });
+
+          // The password's hash and salt never leave the server.
+          delete item.masterPassword;
+          delete item.masterPasswordSalt;
 
           if (!allowStatusPageCustomizations) {
             /*
