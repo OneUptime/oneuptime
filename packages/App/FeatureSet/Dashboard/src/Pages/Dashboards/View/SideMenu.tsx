@@ -42,6 +42,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+
+        {/*
+         * Who can view the dashboard: one choice, also opened from the
+         * dashboard's own ⋯ menu (Share). At the old Authentication page's
+         * address, so links and bookmarks still land on it.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Sharing",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Share}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Owners">
@@ -88,17 +104,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
-        <SideMenuItem
-          link={{
-            title: "Authentication",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-
         <SideMenuItem
           link={{
             title: "Settings",

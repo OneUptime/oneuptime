@@ -2,7 +2,6 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
-import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -29,6 +28,7 @@ import React, {
 } from "react";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -123,8 +123,10 @@ export interface EntityDropdownProps {
    * Every list the dropdown asks the server for to offer entries (the
    * search, and the Labels tab's entries for a label) is narrowed by it.
    * Looking up the label of an entry that is already picked is not, so a
-   * saved value never shows as a raw id. A condition on labelField itself
-   * is replaced by the reader's search text while they type.
+   * saved value never shows as a raw id. The reader's search and label pick
+   * are added to it, never in place of it: a condition on labelField or on
+   * labels stays (EntityDropdownQuery). The Labels tab is left out when the
+   * query has a condition on labels that a label pick cannot be added to.
    */
   query?: Record<string, unknown> | undefined;
   /*
@@ -357,7 +359,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     (props.enableLabelsTab !== undefined
       ? props.enableLabelsTab
       : hasLabelsAutoDetected) &&
-    Boolean(modelType);
+    Boolean(modelType) &&
+    canPickByLabel(props.query || {});
 
   /*
    * optionsCache is the single source of truth for which DropdownOption goes
@@ -739,14 +742,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     debounceRef.current = window.setTimeout(
       async () => {
         try {
-          const query: Query<BaseModel> = {
-            ...baseQueryRef.current,
-          } as Query<BaseModel>;
-          if (trimmed.length > 0) {
-            (query as Record<string, unknown>)[labelField] = new Search(
-              trimmed,
-            );
-          }
+          const query: Query<BaseModel> = withSearch(
+            baseQueryRef.current,
+            labelField,
+            trimmed,
+          ) as Query<BaseModel>;
           const baseSelect: Record<string, true> = {
             _id: true,
             [labelField]: true,
@@ -1075,7 +1075,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * since this is an intentional bulk action, not a typeahead.
    */
   const applyLabelSelection: () => Promise<void> = async (): Promise<void> => {
-    if (!modelType || selectedLabelIds.length === 0) {
+    const labelQuery: Record<string, unknown> | null = withLabels(
+      baseQueryRef.current,
+      selectedLabelIds,
+    );
+    if (!modelType || selectedLabelIds.length === 0 || !labelQuery) {
       return;
     }
     setIsApplyingLabels(true);
@@ -1090,10 +1094,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: modelType,
-        query: {
-          ...baseQueryRef.current,
-          labels: new Includes(selectedLabelIds),
-        } as Query<BaseModel>,
+        query: labelQuery as Query<BaseModel>,
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: baseSelect as never,
@@ -1165,7 +1166,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const fetchLabelPreview: (labelId: string) => Promise<void> = async (
     labelId: string,
   ): Promise<void> => {
-    if (!modelType) {
+    const labelQuery: Record<string, unknown> | null = withLabels(
+      baseQueryRef.current,
+      [labelId],
+    );
+    if (!modelType || !labelQuery) {
       return;
     }
     setLoadingLabelIds((prev: Set<string>): Set<string> => {
@@ -1190,10 +1195,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: modelType,
-        query: {
-          ...baseQueryRef.current,
-          labels: new Includes([labelId]),
-        } as Query<BaseModel>,
+        query: labelQuery as Query<BaseModel>,
         limit: LABEL_PREVIEW_LIMIT,
         skip: 0,
         select: baseSelect as never,

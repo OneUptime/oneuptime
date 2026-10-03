@@ -27,9 +27,13 @@ import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/St
 import {
   DNS_SETUP_TEST_IDS,
   STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
+  STATUS_TEST_IDS,
   StatusPageCustomDomainCopy,
   StatusPageCustomDomainState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
+import API from "../../../UI/Utils/API/API";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import Domain from "../../../Models/DatabaseModels/Domain";
 import Route from "../../../Types/API/Route";
@@ -185,7 +189,7 @@ function setCnameRecord(value: string): void {
   (globalThis as unknown as { __cnameRecord: string }).__cnameRecord = value;
 }
 
-function renderPage(): void {
+function renderPage(moreRows: Array<StatusPageDomain> = []): void {
   mockRows = [
     domain(UNVERIFIED, {}),
     domain(VERIFIED, { isCnameVerified: true }),
@@ -196,6 +200,7 @@ function renderPage(): void {
       isSslProvisioned: true,
     }),
     domain(UPLOADED, { isCnameVerified: true, isCustomCertificate: true }),
+    ...moreRows,
   ];
 
   render(
@@ -233,6 +238,53 @@ function fieldOf(key: string): ModelField<StatusPageDomain> {
   return field!;
 }
 
+const STATUS_PAGE_ID: ObjectID = ObjectID.generate();
+
+const ORDER_ERROR: string =
+  "Unable to order certificate for failing.acme.com. Please contact support at support@oneuptime.com for more information.";
+
+/*
+ * The certificates route answers; the table has loaded its rows, which is
+ * when the page reads them.
+ */
+async function loadCertificates(
+  certificates: Array<JSONObject>,
+): Promise<jest.SpyInstance<any, any>> {
+  const get: jest.SpyInstance<any, any> = getJestSpyOn(
+    API,
+    "get",
+  ).mockResolvedValue(
+    new HTTPResponse(200, { domains: certificates }, {}) as never,
+  );
+
+  await act(async (): Promise<void> => {
+    tableProps().onFetchSuccess!(mockRows, mockRows.length);
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  });
+
+  return get;
+}
+
+function rowNamed(fullDomain: string): StatusPageDomain {
+  const row: StatusPageDomain | undefined = mockRows.find(
+    (candidate: StatusPageDomain) => {
+      return candidate.fullDomain === fullDomain;
+    },
+  );
+
+  expect(row).toBeDefined();
+  return row!;
+}
+
+function errorOf(fullDomain: string): string | null {
+  return (
+    within(rowOf(fullDomain)).queryByTestId(STATUS_TEST_IDS.certificateError)
+      ?.textContent || null
+  );
+}
+
 describe("Status page Custom Domains page", () => {
   beforeEach(() => {
     setCnameRecord("statuspage.oneuptime.com");
@@ -240,7 +292,7 @@ describe("Status page Custom Domains page", () => {
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     jest
       .spyOn(Navigation, "getLastParamAsObjectID")
-      .mockReturnValue(ObjectID.generate());
+      .mockReturnValue(STATUS_PAGE_ID);
     jest
       .spyOn(Navigation, "getCurrentRoute")
       .mockReturnValue(new Route("/dashboard/status-pages"));
@@ -285,6 +337,169 @@ describe("Status page Custom Domains page", () => {
       expect(page).not.toContain("1 hour");
       expect(page).not.toContain("30 minutes");
       expect(page).not.toContain("3 hours");
+    });
+  });
+
+  /*
+   * What the rows cannot say: an order that keeps failing, a certificate
+   * that expired, a renewal that failed. The Status column used to say
+   * "Issuing a free certificate, usually within 15 minutes." for a domain
+   * whose order had been failing for days, and the reason was only in the
+   * worker's log.
+   */
+  describe("the Status column, with each domain's certificate", () => {
+    const FAILING: string = "failing.acme.com";
+    const EXPIRED: string = "expired.acme.com";
+    const RENEWAL_FAILED: string = "renewal-failed.acme.com";
+
+    function renderWithCertificateTrouble(): void {
+      renderPage([
+        domain(FAILING, { isCnameVerified: true }),
+        domain(EXPIRED, {
+          isCnameVerified: true,
+          isSslOrdered: true,
+          isSslProvisioned: true,
+        }),
+        domain(RENEWAL_FAILED, {
+          isCnameVerified: true,
+          isSslOrdered: true,
+          isSslProvisioned: true,
+        }),
+      ]);
+    }
+
+    function certificatesOfTheTroubledRows(): Array<JSONObject> {
+      return [
+        {
+          domainId: rowNamed(FAILING)._id as string,
+          lastOrderError: ORDER_ERROR,
+          lastOrderFailedAt: "2026-10-03T11:00:00.000Z",
+        },
+        {
+          domainId: rowNamed(EXPIRED)._id as string,
+          expiresAt: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          domainId: rowNamed(RENEWAL_FAILED)._id as string,
+          expiresAt: "2099-01-01T00:00:00.000Z",
+          lastOrderError: "Unable to renew.",
+          lastOrderFailedAt: "2026-10-03T11:00:00.000Z",
+        },
+        {
+          domainId: rowNamed(PROVISIONED)._id as string,
+          expiresAt: "2099-01-01T00:00:00.000Z",
+        },
+      ];
+    }
+
+    test("reads this status page's certificates whenever the table loads its rows", async () => {
+      renderPage();
+
+      const get: jest.SpyInstance<any, any> = await loadCertificates([]);
+
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(String(get.mock.calls[0]![0].url)).toContain(
+        `/status-page-domain/certificates/${STATUS_PAGE_ID.toString()}`,
+      );
+    });
+
+    test("a domain whose order keeps failing says so, and why", async () => {
+      renderWithCertificateTrouble();
+      await loadCertificates(certificatesOfTheTroubledRows());
+
+      expect(statusOf(FAILING)).toContain(
+        "Could not issue a free certificate yet. We keep trying.",
+      );
+      expect(statusOf(FAILING)).not.toContain("usually within 15 minutes");
+      expect(errorOf(FAILING)).toBe(ORDER_ERROR);
+    });
+
+    test("a domain whose certificate has expired says so", async () => {
+      renderWithCertificateTrouble();
+      await loadCertificates(certificatesOfTheTroubledRows());
+
+      expect(statusOf(EXPIRED)).toBe(
+        "Certificate expired. We keep trying to renew it.",
+      );
+      expect(statusOf(EXPIRED)).not.toContain("Certificate issued");
+    });
+
+    test("a served domain whose renewal failed says so, and why", async () => {
+      renderWithCertificateTrouble();
+      await loadCertificates(certificatesOfTheTroubledRows());
+
+      expect(statusOf(RENEWAL_FAILED)).toContain(
+        "Certificate issued, but renewing it failed. We keep trying.",
+      );
+      expect(errorOf(RENEWAL_FAILED)).toBe("Unable to renew.");
+    });
+
+    test("the rest read as before, with no error line", async () => {
+      renderWithCertificateTrouble();
+      await loadCertificates(certificatesOfTheTroubledRows());
+
+      expect(statusOf(PROVISIONED)).toBe(
+        "Certificate issued, renews automatically.",
+      );
+      expect(statusOf(VERIFIED)).toBe(
+        "Issuing a free certificate, usually within 15 minutes.",
+      );
+      expect(errorOf(PROVISIONED)).toBeNull();
+      expect(errorOf(VERIFIED)).toBeNull();
+    });
+
+    test("a failing order and an expired certificate offer DNS Setup, whose Check now tries again", async () => {
+      renderWithCertificateTrouble();
+      await loadCertificates(certificatesOfTheTroubledRows());
+
+      for (const fullDomain of [FAILING, EXPIRED]) {
+        expect(
+          within(rowOf(fullDomain)).getByRole("button", { name: "DNS Setup" }),
+        ).toBeInTheDocument();
+      }
+
+      // A served certificate renews again on its own.
+      expect(
+        within(rowOf(RENEWAL_FAILED)).queryByRole("button", {
+          name: "DNS Setup",
+        }),
+      ).toBeNull();
+    });
+
+    test("DNS Setup on an expired certificate's domain says it has expired", async () => {
+      renderWithCertificateTrouble();
+      await loadCertificates(certificatesOfTheTroubledRows());
+
+      fireEvent.click(
+        within(rowOf(EXPIRED)).getByRole("button", { name: "DNS Setup" }),
+      );
+
+      expect(
+        within(screen.getByTestId("modal")).getByTestId(
+          DNS_SETUP_TEST_IDS.whatHappensNext,
+        ),
+      ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupVerifiedExpired);
+    });
+
+    test("when the certificates cannot be read, each row shows what its own flags say", async () => {
+      renderWithCertificateTrouble();
+
+      getJestSpyOn(API, "get").mockRejectedValue(new Error("offline") as never);
+
+      await act(async (): Promise<void> => {
+        tableProps().onFetchSuccess!(mockRows, mockRows.length);
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      expect(statusOf(FAILING)).toBe(
+        "Issuing a free certificate, usually within 15 minutes.",
+      );
+      expect(statusOf(EXPIRED)).toBe(
+        "Certificate issued, renews automatically.",
+      );
+      expect(errorOf(FAILING)).toBeNull();
     });
   });
 

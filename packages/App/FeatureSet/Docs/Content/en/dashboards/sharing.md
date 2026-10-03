@@ -1,55 +1,57 @@
 # Sharing & Public Dashboards
 
-By default, dashboards are private to your project — only logged-in team members can see them. But OneUptime also lets you share a dashboard publicly, protect it with a password, restrict it to certain IPs, and host it on your own domain. This page covers all four.
+By default, a dashboard is private to your project: only people who sign in to your project can see it. You can also share it through a public link, protect that link with a password, limit it to certain IP addresses, and host it on your own domain. This page covers all four.
 
-## Private dashboards (the default)
+## Who can view a dashboard
 
-A dashboard is reachable only to logged-in members of your project. The URL looks like `https://oneuptime.com/dashboards/<id>/view` and requires a login.
+Open the dashboard and pick **⋯ → Share**, or open **Sharing** in the dashboard's side menu. The **Who can view this dashboard** card is one choice:
 
-Within the project, owners and labels control who sees what — see [Configuration & Permissions](/docs/dashboards/configuration).
+- **Only people in this project** (the default): members see the dashboard when they sign in to OneUptime. It has no public link.
+- **Anyone with the link**: the dashboard is public. Anyone who has its link can see it, without signing in.
+- **Anyone with the link and a password**: visitors open the link, then enter one password that you share with them. Nobody needs an account.
+
+Picking a choice asks you to confirm, saying what changes for visitors, then applies at once. Picking **Anyone with the link and a password** asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it. While the dashboard is public, its **Public link** sits under the choice, with a button that copies it.
+
+Within the project, owners and labels control who sees what — see [Configuration & Permissions](/docs/dashboards/configuration). Someone who can see the dashboard but not edit it sees the choice, and can copy the public link, but can't change it.
+
+On OneUptime Cloud, sharing a dashboard, or making it private again, needs the **Growth** plan: on a lower plan those choices show the plan they need. Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan.
+
+The choice is stored in three columns, which the API and Terraform read and write as before: `isPublicDashboard`, `enableMasterPassword` and `masterPassword`. Only a public dashboard has a public link, and its visitors are asked for the password whenever `enableMasterPassword` is on. A public dashboard with `enableMasterPassword` on but no password set lets nobody in through its public link: the **Sharing** page shows it as **Anyone with the link and a password**, says that nobody can open the link yet, and offers **Set Password**. Picking **Only people in this project** also turns `enableMasterPassword` off, and keeps the password, so sharing with a password again can reuse it.
 
 ## Public dashboards
-
-Under **Dashboard → Settings**, flip **Public Dashboard** on. The dashboard now has a second URL that doesn't need a login. Share it with vendors, partners, customers, or paste it in a public README.
 
 A public dashboard:
 
 - Always opens in **View** mode. Public visitors can't edit or see the widget palette.
 - Includes the variables you've added. Visitors pick from the same dropdowns your team uses.
-- Uses the **branding** you set in Settings — page title, description, logo, favicon.
+- Uses the **branding** you set on the dashboard's **Branding** page — page title, description, logo, favicon.
 
-Treat enabling a public dashboard like publishing a webpage. Every widget on it becomes world-readable. Look at what's on the canvas before you flip the switch.
+Treat sharing a dashboard like publishing a webpage. Every widget on it becomes readable by anyone with the link. Look at what's on the canvas before you share it.
 
 Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself.
 
-## Master password
+## Sharing with a password
 
-To put a password on a public dashboard:
+Pick **Anyone with the link and a password** and enter the password in the dialog. Visitors see a password prompt before the dashboard appears. The password is stored as a hash — nobody can read it back. A new password works at once; people who entered the old one can keep viewing the dashboard for up to 7 days.
 
-1. Turn on **Public Dashboard**.
-2. Turn on **Master Password**.
-3. Set the password.
-
-Visitors see a password prompt before the dashboard appears. The password is stored as a hash — we never see the actual password.
-
-Use a master password when:
+Use a password when:
 
 - You want to share with a partner or customer but don't want the URL to be useful if it leaks.
 - The dashboard is "semi-public" — open enough that you don't want to invite every viewer as a team member, but not open enough to put on the open internet.
 
-For stronger gating (separate accounts per viewer, an audit trail of who viewed what), keep the dashboard private and invite viewers as read-only team members instead.
+For stronger gating (separate accounts per viewer, an audit trail of who viewed what), keep the dashboard to **Only people in this project** and invite viewers as read-only team members instead.
 
 ## IP allowlist
 
-On the **Scale** plan, you can restrict a public dashboard to a list of IP addresses or ranges. Configure it under **Dashboard → Settings → IP Whitelist**.
+Under **Advanced** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud. While a list is in force, the folded **Advanced** section says **Configured**.
 
 Use this when:
 
 - The dashboard should only be reachable from your office or VPN.
 - A vendor portal should only be reachable from their known IPs.
-- You want extra protection on top of a master password.
+- You want extra protection on top of a password.
 
-Requests from any other IP are rejected.
+Requests from any other IP are rejected. A line that is not an IP address or an IPv4 range is refused when you save, because the server would skip it.
 
 ## Custom domains
 
@@ -76,7 +78,7 @@ You can attach more than one custom domain to a single dashboard if you serve th
 
 ## Branding
 
-Under **Dashboard → Settings**, you can configure:
+On the dashboard's **Branding** page, you can configure:
 
 - **Page title** — what shows in the browser tab and at the top of the page.
 - **Page description** — the description used by search engines and social previews.
@@ -98,7 +100,7 @@ You can embed a public dashboard in your own site with an iframe:
 ></iframe>
 ```
 
-If the dashboard has a master password, visitors will see the password prompt inside the iframe.
+If the dashboard is shared with a password, visitors will see the password prompt inside the iframe.
 
 ## Shareable URLs
 

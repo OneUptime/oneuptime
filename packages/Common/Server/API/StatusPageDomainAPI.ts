@@ -14,12 +14,18 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import CustomDomainVerification, {
   CustomDomainVerificationResult,
 } from "../../Types/StatusPage/CustomDomainVerification";
+import CustomDomainCertificates, {
+  CustomDomainCertificate,
+} from "../../Types/StatusPage/CustomDomainCertificates";
+import CertificateOrder from "../Utils/Greenlock/CertificateOrder";
 
 export default class StatusPageDomainAPI extends BaseAPI<
   StatusPageDomain,
@@ -90,6 +96,8 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 fullDomain: true,
                 isCustomCertificate: true,
                 isSslOrdered: true,
+                // Whose on-demand orders the order counts against.
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -141,11 +149,67 @@ export default class StatusPageDomainAPI extends BaseAPI<
     );
 
     /*
+     * Where the certificates of a status page's custom domains stand, for
+     * the Custom Domains page's Status column: each domain's certificate
+     * expiry, and why its last order failed while no order since has
+     * succeeded (CustomDomainCertificates). Neither is on the domain row, so
+     * without this an order that kept failing showed as "Issuing" for good.
+     *
+     * Reads only: the domains are looked up with the caller's own props, so
+     * a caller sees the domains they may read and nothing else.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/certificates/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const statusPageId: ObjectID = new ObjectID(
+            req.params["statusPageId"] as string,
+          );
+
+          const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+              query: {
+                statusPageId: statusPageId,
+              },
+              select: {
+                _id: true,
+                fullDomain: true,
+              },
+              limit: LIMIT_MAX,
+              skip: 0,
+              props: databaseProps,
+            });
+
+          const certificates: Array<CustomDomainCertificate> =
+            await StatusPageDomainService.getCertificates(domains);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            CustomDomainCertificates.toJSON(certificates),
+          );
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
+
+    /*
      * Order SSL. The dashboard no longer has a button for this: a domain's
      * certificate is ordered as soon as its CNAME is verified. It stays for
      * API callers, and orders the way everything else does, through
      * orderCertIfMissing: a domain that has its certificate already, or has
      * one being ordered right now, is not ordered twice.
+     *
+     * It shares Check now's window: one order on demand per domain per 15
+     * minutes, whichever of the two placed it. An order that fails leaves the
+     * domain unordered, so without it a script calling this in a loop placed
+     * an order on every call - against the account the whole installation
+     * shares, and Let's Encrypt's five failed validations per name per hour.
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/order-ssl/:id`,
@@ -202,6 +266,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 isCnameVerified: true,
                 isSslProvisioned: true,
                 isCustomCertificate: true,
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -263,8 +328,23 @@ export default class StatusPageDomainAPI extends BaseAPI<
 
           logger.debug("Ordering SSL", getLogAttributesFromRequest(req as any));
 
-          // provision SSL
-          await StatusPageDomainService.orderCertIfMissing(domain);
+          try {
+            await CertificateOrder.orderOnDemand({
+              domain: domain.fullDomain,
+              order: () => {
+                return StatusPageDomainService.orderCertIfMissing(domain, {
+                  onDemand: true,
+                });
+              },
+            });
+          } catch (err) {
+            // Too soon, or nothing ordered: the order's own failures go on.
+            if (err instanceof TooManyRequestsException) {
+              return Response.sendErrorResponse(req, res, err);
+            }
+
+            throw err;
+          }
 
           logger.debug(
             "SSL Provisioned for domain - " + domain.fullDomain,

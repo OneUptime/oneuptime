@@ -2,7 +2,13 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Label from "../../../Models/DatabaseModels/Label";
 import Domain from "../../../Models/DatabaseModels/Domain";
 import EntityDropdown from "../../../UI/Components/EntityDropdown/EntityDropdown";
+import { ENTITY_DROPDOWN_SEARCH_KEY } from "../../../UI/Components/EntityDropdown/EntityDropdownQuery";
 import Search from "../../../Types/BaseDatabase/Search";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
+import EndsWith from "../../../Types/BaseDatabase/EndsWith";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 import {
   afterEach,
@@ -133,6 +139,51 @@ describe("EntityDropdown query", () => {
 
     expect(last.query["isVerified"]).toBe(true);
     expect(last.query["domain"]).toBeInstanceOf(Search);
+  });
+
+  /*
+   * Regression (review finding 9): the typed search was written over the
+   * query's own condition on the label field, so once the reader typed, the
+   * menu offered rows the caller meant to leave out.
+   */
+  test("a typed search keeps the query's own condition on the label field, and adds the text beside it", async () => {
+    const callersCondition: EndsWith<string> = new EndsWith(".com");
+
+    render(
+      <EntityDropdown
+        ariaLabel="Domain"
+        modelType={Domain}
+        labelField="domain"
+        valueField="_id"
+        query={{ isVerified: true, domain: callersCondition }}
+      />,
+    );
+
+    const input: HTMLElement = screen.getByRole("combobox", { name: "Domain" });
+    fireEvent.focus(input);
+    await flush();
+
+    fireEvent.change(input, { target: { value: "acme" } });
+
+    await waitFor(
+      () => {
+        expect(requests().length).toBeGreaterThan(1);
+      },
+      { timeout: 2000 },
+    );
+
+    const last: ListRequest = requests()[requests().length - 1]!;
+
+    expect(last.query["isVerified"]).toBe(true);
+    expect(last.query["domain"]).toBe(callersCondition);
+
+    const search: MultiSearch = last.query[
+      ENTITY_DROPDOWN_SEARCH_KEY
+    ] as MultiSearch;
+
+    expect(search).toBeInstanceOf(MultiSearch);
+    expect(search.fields).toEqual(["domain"]);
+    expect(search.value).toBe("acme");
   });
 
   test("the label of a value already picked is looked up without the query", async () => {
@@ -283,5 +334,78 @@ describe("EntityDropdown query", () => {
     for (const request of byLabel) {
       expect(request.query["disableActiveMonitoring"]).toBe(false);
     }
+  });
+
+  test("the Labels tab keeps the query's own condition on labels: a picked label is one more group", async () => {
+    const callersLabel: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const pickedLabel: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+
+    getListMock.mockImplementation((request: any) => {
+      if (request?.modelType === Label) {
+        return Promise.resolve({
+          data: [{ _id: pickedLabel, name: "Prod" }],
+          count: 1,
+        });
+      }
+
+      return Promise.resolve({ data: [], count: 0 });
+    });
+
+    render(
+      <EntityDropdown
+        isMultiSelect={true}
+        ariaLabel="Monitors"
+        modelType={Monitor}
+        labelField="name"
+        valueField="_id"
+        enableLabelsTab={true}
+        query={{ labels: new Includes([callersLabel]) }}
+      />,
+    );
+
+    fireEvent.focus(screen.getByRole("combobox", { name: "Monitors" }));
+    fireEvent.click(screen.getByRole("tab", { name: /Labels/ }));
+
+    fireEvent.click(await screen.findByRole("option", { name: /^Prod$/ }));
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: /Add entries from/ }));
+    await flush();
+
+    const byLabel: Array<ListRequest> = requests().filter(
+      (request: ListRequest) => {
+        return (
+          request.modelType === Monitor &&
+          request.query["labels"] instanceof IncludesAnyOfGroups
+        );
+      },
+    );
+
+    expect(byLabel.length).toBeGreaterThan(0);
+
+    for (const request of byLabel) {
+      expect((request.query["labels"] as IncludesAnyOfGroups).groups).toEqual([
+        [callersLabel],
+        [pickedLabel],
+      ]);
+    }
+  });
+
+  test("with a condition on labels a label pick cannot be added to, there is no Labels tab", async () => {
+    render(
+      <EntityDropdown
+        isMultiSelect={true}
+        ariaLabel="Monitors"
+        modelType={Monitor}
+        labelField="name"
+        valueField="_id"
+        enableLabelsTab={true}
+        query={{ labels: new NotNull() }}
+      />,
+    );
+
+    fireEvent.focus(screen.getByRole("combobox", { name: "Monitors" }));
+    await flush();
+
+    expect(screen.queryByRole("tab", { name: /Labels/ })).toBeNull();
   });
 });

@@ -42,13 +42,13 @@ Assign these on team permissions under **Products → Teams →** your team **�
 
 ## Access for public dashboards
 
-When you make a dashboard public (see [Sharing & Public Dashboards](/docs/dashboards/sharing)), three settings control who can see it:
+Who can view a dashboard outside the project is one choice on its **Sharing** page (also **⋯ → Share** on the dashboard itself; see [Sharing & Public Dashboards](/docs/dashboards/sharing)):
 
-1. **Public Dashboard** switch — if off, the public URL returns a 404.
-2. **Master Password** — if set, visitors enter a password before the dashboard appears.
-3. **IP Whitelist** (Scale plan) — if set, requests from other IPs are rejected.
+1. **Only people in this project** (the default) — the dashboard has no public link; its public address shows a not-found page.
+2. **Anyone with the link** — anyone who has the public link can see it, without signing in.
+3. **Anyone with the link and a password** — visitors enter a password before the dashboard appears.
 
-You can combine any of these. The most locked-down combination is "Public on, password set, IP allowlist active" — useful for partner portals where you want all three layers.
+Under **Advanced** on the same page, the **IP Allowlist** (Scale plan) rejects requests to the public link from any IP address that is not on it. The most locked-down public setup is **Anyone with the link and a password** with an IP allowlist — useful for partner portals where you want both layers.
 
 ## Data retention
 

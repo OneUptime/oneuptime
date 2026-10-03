@@ -26,10 +26,19 @@
  */
 
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
+import { CertificateOrderOutcome } from "../../../../Server/Utils/Greenlock/CertificateOrderOutcome";
 import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateService";
 import AcmeCertificate from "../../../../Models/DatabaseModels/AcmeCertificate";
 import OneUptimeDate from "../../../../Types/Date";
-import { afterEach, describe, expect, test, jest } from "@jest/globals";
+import { useInMemoryRedis } from "./InMemoryRedis";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  jest,
+} from "@jest/globals";
 
 function certificateExpiringInDays(
   domain: string,
@@ -65,9 +74,12 @@ async function domainsRenewedFor(
 
   jest
     .spyOn(GreenlockUtil, "orderCert")
-    .mockImplementation(async (data: { domain: string }): Promise<void> => {
-      ordered.push(data.domain);
-    });
+    .mockImplementation(
+      async (data: { domain: string }): Promise<CertificateOrderOutcome> => {
+        ordered.push(data.domain);
+        return CertificateOrderOutcome.Ordered;
+      },
+    );
 
   await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
     getOwnedDomains: ownsEveryDomain,
@@ -139,6 +151,11 @@ describe("Certificate renewal lead time", () => {
 });
 
 describe("Certificate renewal run", () => {
+  beforeEach(() => {
+    // Each renewal takes its name's order lock.
+    useInMemoryRedis();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -237,12 +254,15 @@ describe("Certificate renewal run", () => {
 
     jest
       .spyOn(GreenlockUtil, "orderCert")
-      .mockImplementation(async (data: { domain: string }): Promise<void> => {
-        if (data.domain === "broken.example.com") {
-          throw new Error("CA refused the order");
-        }
-        ordered.push(data.domain);
-      });
+      .mockImplementation(
+        async (data: { domain: string }): Promise<CertificateOrderOutcome> => {
+          if (data.domain === "broken.example.com") {
+            throw new Error("CA refused the order");
+          }
+          ordered.push(data.domain);
+          return CertificateOrderOutcome.Ordered;
+        },
+      );
 
     await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
       getOwnedDomains: ownsEveryDomain,

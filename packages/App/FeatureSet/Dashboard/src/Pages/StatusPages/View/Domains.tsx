@@ -1,10 +1,15 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
   getStatusPageCustomDomainState,
-  STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
+  isStatusPageCustomDomainDnsSetupAvailable,
   StatusPageCustomDomainCopy,
+  StatusPageCustomDomainState,
 } from "../../../Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
 import StatusPageDomainDnsSetupModal from "../../../Components/StatusPage/CustomDomain/StatusPageDomainDnsSetupModal";
+import StatusPageCustomDomainStatus from "../../../Components/StatusPage/CustomDomain/StatusPageCustomDomainStatus";
+import CustomDomainCertificates, {
+  CustomDomainCertificate,
+} from "Common/Types/StatusPage/CustomDomainCertificates";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -35,6 +40,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
@@ -79,6 +85,51 @@ const StatusPageDomains: FunctionComponent<PageComponentProps> = (
     useState<StatusPageDomain | null>(null);
 
   const [error, setError] = useState<string>("");
+
+  /*
+   * Each listed domain's certificate - its expiry, and why its last order
+   * failed - by domain id. Read whenever the table loads its rows, so the
+   * Status column is never older than the rows. Until it is read, or when
+   * reading it fails, each row shows what its own flags say.
+   */
+  const [certificates, setCertificates] = useState<
+    Map<string, CustomDomainCertificate>
+  >(new Map<string, CustomDomainCertificate>());
+
+  const certificatesRequest: React.MutableRefObject<number> = useRef<number>(0);
+
+  const loadCertificates: () => Promise<void> = async (): Promise<void> => {
+    const request: number = ++certificatesRequest.current;
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/${new StatusPageDomain().crudApiPath}/certificates/${modelId.toString()}`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response.isFailure() || request !== certificatesRequest.current) {
+        return;
+      }
+
+      setCertificates(
+        CustomDomainCertificates.fromJSON(response.data as JSONObject),
+      );
+    } catch {
+      // The Status column falls back to each row's own flags.
+    }
+  };
+
+  const certificateOf: (
+    domain: StatusPageDomain,
+  ) => CustomDomainCertificate | undefined = (
+    domain: StatusPageDomain,
+  ): CustomDomainCertificate | undefined => {
+    return domain.id ? certificates.get(domain.id.toString()) : undefined;
+  };
 
   const [showReissueSSLModal, setShowReissueSSLModal] =
     useState<boolean>(false);
@@ -168,6 +219,9 @@ const StatusPageDomains: FunctionComponent<PageComponentProps> = (
               : StatusPageCustomDomainCopy.cardDescriptionNotEnabled,
           }}
           refreshToggle={refreshToggle}
+          onFetchSuccess={() => {
+            void loadCertificates();
+          }}
           onBeforeCreate={(
             item: StatusPageDomain,
           ): Promise<StatusPageDomain> => {
@@ -195,14 +249,15 @@ const StatusPageDomains: FunctionComponent<PageComponentProps> = (
               icon: IconProp.Globe,
               /*
                * Until the record is verified, and on a verified domain
-               * whose free certificate is not ordered yet: an order that
-               * keeps failing (a CAA record, a server Let's Encrypt cannot
-               * reach) is shown, and retried, by Check now.
+               * whose free certificate is not in place: not ordered yet, an
+               * order that keeps failing (a CAA record, a server Let's
+               * Encrypt cannot reach), or a certificate that has expired.
+               * Check now orders it again and says why it failed.
                */
               isVisible: (item: StatusPageDomain): boolean => {
-                return (
-                  !item.isCnameVerified ||
-                  (!item.isCustomCertificate && !item.isSslOrdered)
+                return isStatusPageCustomDomainDnsSetupAvailable(
+                  item,
+                  certificateOf(item),
                 );
               },
               onClick: async (
@@ -407,13 +462,10 @@ const StatusPageDomains: FunctionComponent<PageComponentProps> = (
 
               getElement: (item: StatusPageDomain): ReactElement => {
                 return (
-                  <span>
-                    {translator.translateText(
-                      STATUS_PAGE_CUSTOM_DOMAIN_STATUS[
-                        getStatusPageCustomDomainState(item)
-                      ],
-                    )}
-                  </span>
+                  <StatusPageCustomDomainStatus
+                    domain={item}
+                    certificate={certificateOf(item)}
+                  />
                 );
               },
             },
@@ -423,6 +475,12 @@ const StatusPageDomains: FunctionComponent<PageComponentProps> = (
         {dnsSetupDomain ? (
           <StatusPageDomainDnsSetupModal
             domain={dnsSetupDomain}
+            hasExpiredCertificate={
+              getStatusPageCustomDomainState(
+                dnsSetupDomain,
+                certificateOf(dnsSetupDomain),
+              ) === StatusPageCustomDomainState.CertificateExpired
+            }
             onClose={() => {
               setDnsSetupDomain(null);
             }}
