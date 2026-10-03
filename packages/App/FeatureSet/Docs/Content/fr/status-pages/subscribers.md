@@ -8,19 +8,22 @@ Cette page couvre les deux : les cinq canaux d'abonnement et la façon dont les 
 
 ## Les canaux d'abonnement
 
-Une page de statut prend en charge cinq canaux, chacun avec sa propre bascule sur la page. Allez dans **Pages de statut → votre page → Abonnés → Paramètres des abonnés** :
+Une page de statut prend en charge cinq canaux. Eux et la page où les visiteurs s'inscrivent se règlent à un seul endroit : la carte **Canaux** dans **Pages de statut → votre page → Abonnés → Paramètres des abonnés**. Chaque bascule est enregistrée dès que vous la changez :
 
-- **Activer les abonnés par e-mail** (`enableEmailSubscribers`) — activé par défaut. Tout le reste est désactivé tant que vous ne l'activez pas.
-- **Activer les abonnés par SMS** (`enableSmsSubscribers`) — désactivé par défaut.
-- **Activer les abonnés Slack** (`enableSlackSubscribers`) — désactivé par défaut.
-- **Activer les abonnés Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — désactivé par défaut.
-- **Activer les abonnés Webhook** (`enableWebhookSubscribers`) — désactivé par défaut.
+- **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) — activé par défaut. Ajoute l'entrée **S'abonner** à la barre de navigation de la page de statut, où les visiteurs s'inscrivent via les canaux ci-dessous.
+- **E-mail** (`enableEmailSubscribers`) — activé par défaut. Tout le reste est désactivé tant que vous ne l'activez pas.
+- **SMS** (`enableSmsSubscribers`) — désactivé par défaut. Sur OneUptime Cloud, chaque SMS est payé sur le solde SMS et appels du projet, sauf si la page a sa propre **Configuration Twilio**. Pour l'activer, le projet doit aussi avoir **Activer les notifications par SMS** activé, dans **Paramètres du projet > Notifications > Paramètres de notification**.
+- **Slack** (`enableSlackSubscribers`) — désactivé par défaut.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — désactivé par défaut.
+- **Webhook** (`enableWebhookSubscribers`) — désactivé par défaut.
 
-Chaque canal reçoit aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés MS Teams** et **Abonnés au webhook**. C'est là que vous regardez qui est inscrit, que vous ajoutez quelqu'un à la main, ou que vous vous laissez une entrée **Notes** (`internalNote`) sur un abonné en particulier.
+Les bascules décident comment les visiteurs peuvent s'inscrire eux-mêmes : la page de statut refuse une inscription par un canal désactivé. Elles n'arrêtent pas les notifications : les abonnés que votre équipe ajoute depuis le tableau de bord, via l'API ou par un workflow reçoivent les mises à jour, quels que soient les canaux activés.
 
-**Une seule bascule ne suffit pas.** L'entrée **S'abonner** de la barre de navigation de la page de statut n'apparaît que si **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) est activé *et* qu'au moins un canal est activé. Si vous activez **Activer les abonnés par e-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
+Sur OneUptime Cloud, une bascule que votre forfait n'inclut pas affiche le nom du forfait à côté : **Growth** pour **SMS** et **Afficher la page des abonnés**, **Scale** pour **Slack**, **Microsoft Teams** et **Webhook**.
 
-Les cinq mêmes bascules apparaissent une seconde fois dans la carte **Paramètres des abonnés** des **Paramètres avancés**, aux côtés d'**Afficher la page des abonnés**. Ce sont les mêmes colonnes en dessous — choisissez un écran et tenez-vous-y, en privilégiant la page dédiée **Paramètres des abonnés**, puisque c'est là que vit le reste de la configuration des abonnés.
+Chaque canal reçoit aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés MS Teams** et **Abonnés au webhook**. C'est là que vous regardez qui est inscrit, que vous ajoutez quelqu'un à la main, ou que vous vous laissez une entrée **Notes** (`internalNote`) sur un abonné en particulier. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec la bascule du canal juste à côté : vous l'activez sans quitter la liste.
+
+**Une seule bascule ne suffit pas.** L'entrée **S'abonner** de la barre de navigation de la page de statut n'apparaît que si **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
 ## Ce que voit un visiteur sur la page S'abonner
 

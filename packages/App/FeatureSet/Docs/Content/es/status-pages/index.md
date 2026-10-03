@@ -123,9 +123,7 @@ Casi todos los interruptores de visualización están en el mismo sitio: **Pági
 
 - **Mostrar historial de tiempo de actividad (en días)** (`showUptimeHistoryInDays`) — la longitud de la barra de tiempo de actividad que hay junto a cada recurso. El valor predeterminado es 90 y tiene que estar entre 1 y 90. Cada opción **Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** de un recurso o un grupo lee este número.
 
-**Ajustes de Suscriptores**:
-
-- **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado de forma predeterminada, junto con los cinco interruptores de habilitación por canal. Esos mismos interruptores de canal aparecen también en la pantalla dedicada **Ajustes de Suscriptores**, bajo la sección **Suscriptores**; trata esa como el sitio canónico para tocarlos.
+Si la página muestra un elemento **Suscribirse** (**Mostrar página de suscriptores**, `showSubscriberPageOnStatusPage`, activado de forma predeterminada) y por qué canales pueden suscribirse los visitantes no se ajusta en esta pantalla: ambas cosas están en la tarjeta **Canales** de **Suscriptores → Ajustes de Suscriptores** (consulta [Suscriptores y anuncios](/docs/status-pages/subscribers)).
 
 **Marca "Powered By OneUptime"**:
 

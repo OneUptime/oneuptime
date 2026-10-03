@@ -8,19 +8,22 @@ Esta página cubre las dos cosas: los cinco canales de suscripción y cómo se a
 
 ## Canales de suscripción
 
-Una página de estado admite cinco canales, cada uno con su propio interruptor en la página de estado. Ve a **Páginas de Estado → tu página → Suscriptores → Ajustes de Suscriptores**:
+Una página de estado admite cinco canales. Ellos y la página en la que se suscriben los visitantes se activan en un solo lugar: la tarjeta **Canales** en **Páginas de Estado → tu página → Suscriptores → Ajustes de Suscriptores**. Cada interruptor se guarda en cuanto lo cambias:
 
-- **Habilitar suscriptores por correo electrónico** (`enableEmailSubscribers`) — activado por defecto. Todo lo demás está apagado hasta que tú lo enciendas.
-- **Habilitar suscriptores por SMS** (`enableSmsSubscribers`) — apagado por defecto.
-- **Habilitar suscriptores de Slack** (`enableSlackSubscribers`) — apagado por defecto.
-- **Habilitar suscriptores de Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — apagado por defecto.
-- **Habilitar suscriptores de webhook** (`enableWebhookSubscribers`) — apagado por defecto.
+- **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado por defecto. Pone el elemento **Suscribirse** en la barra de navegación de la página de estado, donde los visitantes se suscriben por los canales de abajo.
+- **Correo electrónico** (`enableEmailSubscribers`) — activado por defecto. Todo lo demás está apagado hasta que tú lo enciendas.
+- **SMS** (`enableSmsSubscribers`) — apagado por defecto. En OneUptime Cloud cada SMS se paga con el saldo de SMS y llamadas del proyecto, salvo que la página tenga su propia **Configuración de Twilio**. Para encenderlo, el proyecto también necesita **Habilitar notificaciones por SMS** activado, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
+- **Slack** (`enableSlackSubscribers`) — apagado por defecto.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — apagado por defecto.
+- **Webhook** (`enableWebhookSubscribers`) — apagado por defecto.
 
-Cada canal tiene además su propia lista en el menú lateral de la página de estado, bajo **Suscriptores**: **Suscriptores de Correo**, **Suscriptores SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams** y **Suscriptores de webhook**. Ahí es donde miras quién se ha apuntado, añades a alguien a mano o te dejas una entrada de **Notas** (`internalNote`) sobre un suscriptor concreto.
+Los interruptores deciden cómo pueden suscribirse los visitantes por su cuenta: la página de estado rechaza una suscripción por un canal apagado. No detienen las notificaciones: los suscriptores que tu equipo añade desde el panel, con la API o mediante un flujo de trabajo reciben las actualizaciones, estén encendidos los canales que estén.
 
-**Con un solo interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) está activado *y* hay al menos un canal habilitado. Si activas **Habilitar suscriptores por correo electrónico** pero dejas **Mostrar página de suscriptores** apagado, los visitantes no tienen forma de llegar al formulario.
+En OneUptime Cloud, junto a un interruptor que tu plan no incluye aparece el nombre del plan: **Growth** para **SMS** y **Mostrar página de suscriptores**, **Scale** para **Slack**, **Microsoft Teams** y **Webhook**.
 
-Esos mismos cinco interruptores aparecen una segunda vez dentro de la tarjeta **Ajustes de Suscriptores** de **Ajustes Avanzados**, junto a **Mostrar página de suscriptores**. Por debajo son las mismas columnas — elige una pantalla y quédate en ella, y mejor la página dedicada de **Ajustes de Suscriptores**, porque ahí es donde vive el resto de la configuración de suscriptores.
+Cada canal tiene además su propia lista en el menú lateral de la página de estado, bajo **Suscriptores**: **Suscriptores de Correo**, **Suscriptores SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams** y **Suscriptores de webhook**. Ahí es donde miras quién se ha apuntado, añades a alguien a mano o te dejas una entrada de **Notas** (`internalNote`) sobre un suscriptor concreto. Mientras un canal está apagado, la parte superior de su lista lo indica, con el interruptor del canal justo ahí, para que lo enciendas sin salir de la lista.
+
+**Con un solo interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado *y* hay al menos un canal encendido. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** apagado, los visitantes no tienen forma de llegar al formulario.
 
 ## Qué ve un visitante en la página Suscribirse
 

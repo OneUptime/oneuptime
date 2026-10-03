@@ -126,9 +126,7 @@ Most of the display switches live in one place: **Status Pages → your page →
 
 - **Show Uptime History (in days)** (`showUptimeHistoryInDays`) — the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number.
 
-**Subscriber Settings**:
-
-- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — on by default, plus the five per-channel enable toggles. The same channel toggles also appear on the dedicated **Subscriber Settings** screen under the **Subscribers** section; treat that one as the canonical place to set them.
+Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
 **Powered By OneUptime Branding**:
 

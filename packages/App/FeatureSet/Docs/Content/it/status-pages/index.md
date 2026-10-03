@@ -123,9 +123,7 @@ Quasi tutti gli interruttori di visualizzazione stanno nello stesso posto: **Pag
 
 - **Mostra cronologia uptime (in giorni)** (`showUptimeHistoryInDays`) — la lunghezza della barra di uptime accanto a ogni risorsa. Predefinito 90, e deve stare tra 1 e 90. Ogni opzione **Mostra % di uptime** e **Mostra grafico cronologia stato** su una risorsa o un gruppo legge questo numero.
 
-**Impostazioni iscritti**:
-
-- **Mostra pagina iscritti** (`showSubscriberPageOnStatusPage`) — attivo per impostazione predefinita, insieme ai cinque interruttori dei singoli canali. Gli stessi interruttori compaiono anche nella schermata dedicata **Impostazioni iscritti**, sotto la sezione **Iscritti**; considera quella il posto giusto dove impostarli.
+Se la pagina mostra la voce **Iscriviti** (**Mostra pagina iscritti**, `showSubscriberPageOnStatusPage`, attivo per impostazione predefinita) e con quali canali i visitatori possono iscriversi non si imposta in questa schermata: entrambe le cose sono nella scheda **Canali** in **Iscritti → Impostazioni iscritti** (vedi [Iscritti e annunci](/docs/status-pages/subscribers)).
 
 **Branding "Powered By OneUptime"**:
 

@@ -123,9 +123,7 @@ De meeste weergaveschakelaars zitten op één plek: **Statuspagina's → jouw pa
 
 - **Uptimegeschiedenis weergeven (in dagen)** (`showUptimeHistoryInDays`) — de lengte van de uptimebalk naast elke resource. Standaard 90, en moet tussen 1 en 90 liggen. Elke optie **Uptime % weergeven** en **Statusgeschiedenisgrafiek weergeven** op een resource of groep leest dit getal.
 
-**Abonneeinstellingen**:
-
-- **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) — standaard aan, plus de vijf schakelaars per kanaal. Diezelfde kanaalschakelaars staan ook op het aparte scherm **Abonneeinstellingen** onder de sectie **Abonnees**; behandel dat scherm als de canonieke plek om ze te zetten.
+Of de pagina een item **Abonneren** toont (**Abonneepagina weergeven**, `showSubscriberPageOnStatusPage`, standaard aan) en via welke kanalen bezoekers zich kunnen abonneren, stel je niet op dit scherm in: beide staan in de kaart **Kanalen** onder **Abonnees → Abonneeinstellingen** (zie [Abonnees en aankondigingen](/docs/status-pages/subscribers)).
 
 **Aangedreven door OneUptime-branding**:
 
