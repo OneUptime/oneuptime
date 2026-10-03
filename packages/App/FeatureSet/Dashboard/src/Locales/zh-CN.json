@@ -24201,5 +24201,6 @@
   "Edit Languages": "编辑语言",
   "History chart colors, languages, and whether search engines may list this page.": "历史图表颜色、语言，以及是否允许搜索引擎收录此页面。",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "显示在状态页概览的最上方，位于所有其他内容之前。支持 Markdown。",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "首次访问者看到的语言，以及他们可以在页脚中切换的语言。"
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "首次访问者看到的语言，以及他们可以在页脚中切换的语言。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "访问者在状态页上看到的名称。在您输入自己的名称之前，它会随您在上方的选择而变化。"
 }

@@ -24201,5 +24201,6 @@
   "Edit Languages": "Sprachen bearbeiten",
   "History chart colors, languages, and whether search engines may list this page.": "Farben des Verlaufsdiagramms, Sprachen und ob Suchmaschinen diese Seite aufführen dürfen.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Wird oben auf der Übersicht Ihrer Statusseite angezeigt, vor allem anderen. Markdown wird unterstützt.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "Die Sprache, die Erstbesucher sehen, und die Sprachen, zu denen sie in der Fußzeile wechseln können."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "Die Sprache, die Erstbesucher sehen, und die Sprachen, zu denen sie in der Fußzeile wechseln können.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Der Name, den Besucher auf der Statusseite sehen. Er folgt Ihrer Auswahl oben, bis Sie einen eigenen eingeben."
 }

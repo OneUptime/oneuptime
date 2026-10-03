@@ -24201,5 +24201,6 @@
   "Edit Languages": "Rediger språk",
   "History chart colors, languages, and whether search engines may list this page.": "Farger i historikkdiagrammet, språk og om søkemotorer kan vise denne siden.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Vises øverst i oversikten på statussiden din, før alt annet. Markdown støttes.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "Språket førstegangsbesøkende ser, og språkene de kan bytte til i bunnteksten."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "Språket førstegangsbesøkende ser, og språkene de kan bytte til i bunnteksten.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Navnet besøkende ser på statussiden. Det følger det du velger ovenfor til du skriver inn ditt eget."
 }

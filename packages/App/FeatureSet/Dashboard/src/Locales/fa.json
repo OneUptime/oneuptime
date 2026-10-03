@@ -24201,5 +24201,6 @@
   "Edit Languages": "ویرایش زبان‌ها",
   "History chart colors, languages, and whether search engines may list this page.": "رنگ‌های نمودار تاریخچه، زبان‌ها، و اینکه آیا موتورهای جستجو می‌توانند این صفحه را فهرست کنند.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "در بالای نمای کلی صفحه وضعیت شما، پیش از هر چیز دیگری نمایش داده می‌شود. از Markdown پشتیبانی می‌شود.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "زبانی که بازدیدکنندگان بار اول می‌بینند، و زبان‌هایی که می‌توانند در پاورقی به آن‌ها تغییر دهند."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "زبانی که بازدیدکنندگان بار اول می‌بینند، و زبان‌هایی که می‌توانند در پاورقی به آن‌ها تغییر دهند.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "نامی که بازدیدکنندگان در صفحه وضعیت می‌بینند. تا وقتی نام دلخواه خود را وارد نکنید، همراه آنچه بالا انتخاب می‌کنید تغییر می‌کند."
 }

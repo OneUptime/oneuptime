@@ -24201,5 +24201,6 @@
   "Edit Languages": "Modifica lingue",
   "History chart colors, languages, and whether search engines may list this page.": "Colori del grafico cronologico, lingue e se i motori di ricerca possono elencare questa pagina.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Mostrata in cima alla panoramica della tua pagina di stato, prima di tutto il resto. Markdown è supportato.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "La lingua che vedono i visitatori la prima volta e le lingue a cui possono passare dal piè di pagina."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "La lingua che vedono i visitatori la prima volta e le lingue a cui possono passare dal piè di pagina.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Il nome che i visitatori vedono sulla pagina di stato. Segue ciò che scegli qui sopra finché non digiti un nome tuo."
 }

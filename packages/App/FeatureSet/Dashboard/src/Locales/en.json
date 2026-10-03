@@ -24201,5 +24201,6 @@
   "Edit Languages": "Edit Languages",
   "History chart colors, languages, and whether search engines may list this page.": "History chart colors, languages, and whether search engines may list this page.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Shown at the top of your status page's overview, above everything else. Markdown is supported.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "The language first-time visitors see, and the languages they can switch to in the footer."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "The language first-time visitors see, and the languages they can switch to in the footer.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "The name visitors see on the status page. It follows what you pick above until you type a name of your own."
 }
