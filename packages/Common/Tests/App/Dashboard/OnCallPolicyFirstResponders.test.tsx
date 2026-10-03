@@ -145,6 +145,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import OnCallDutyPoliciesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicies";
+import { LABELS_FORM_FIELD_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/LabelsFormField";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -421,16 +422,16 @@ describe("the Create On-Call Policy form", () => {
     expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
 
     expect(within(modal).getByPlaceholderText("Description")).not.toBeVisible();
+    // The shared Labels field (getLabelsFormField), with its shared help.
     expect(
-      within(modal).getByText(
-        "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-      ),
+      within(modal).getByText(LABELS_FORM_FIELD_DESCRIPTION),
     ).not.toBeVisible();
 
     fireEvent.click(advancedHeader(modal));
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "true");
     expect(within(modal).getByPlaceholderText("Description")).toBeVisible();
+    expect(within(modal).getByText(LABELS_FORM_FIELD_DESCRIPTION)).toBeVisible();
   });
 
   test("the picker offers on-call schedules, teams and people", async () => {

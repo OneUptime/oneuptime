@@ -697,11 +697,16 @@ describe("the project's forms", () => {
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
     expect(forms.length).toBeGreaterThan(500);
+    /*
+     * About 230 since labels-not-a-step: some 25 forms walked a second step
+     * only for their Labels, and are one page now that the field folds
+     * under Advanced (LabelsFormFieldGuard).
+     */
     expect(
       forms.filter((form: FormFacts): boolean => {
         return form.hasSteps;
       }).length,
-    ).toBeGreaterThan(250);
+    ).toBeGreaterThan(200);
   });
 
   // The form the maintainer pointed at, found and stepped.

@@ -410,7 +410,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           getLabelsFormField<IncidentTemplate>({
             stepId: "incident-details",
             description:
-              "Incidents created from this template start with these labels.",
+              "Incidents declared from this template start with these labels.",
             collapsibleSection: advancedSection,
           }),
           {

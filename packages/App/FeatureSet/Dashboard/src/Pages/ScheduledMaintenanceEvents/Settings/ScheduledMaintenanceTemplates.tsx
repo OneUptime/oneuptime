@@ -145,7 +145,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       stepId: "event",
       collapsibleSection: advancedSection,
       description:
-        "Events created from this template start with these labels.",
+        "Events scheduled from this template start with these labels.",
     }),
   ]);
 

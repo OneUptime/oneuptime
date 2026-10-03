@@ -431,12 +431,14 @@ describe("the Settings tab", () => {
         } as Field<MessageQueue>;
       },
     );
+    // One page (the labels fold under Advanced), so no step to narrow to.
+    expect(detail["formSteps"]).toBeUndefined();
     function errorsFor(values: FormValues<MessageQueue>): Dictionary<string> {
       return Validation.validate<MessageQueue>({
         formFields,
         values,
         onValidate: undefined,
-        currentFormStepId: "queue-info",
+        currentFormStepId: null,
       });
     }
 

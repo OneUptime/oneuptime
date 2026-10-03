@@ -316,8 +316,11 @@ describe("episode overview layout", () => {
       // The title is the header's job now; the edit form still has it.
       expect(detailFields).not.toContain('title: "Episode Title", fieldType');
       expect(source).toContain(
-        'title: "Episode Title", stepId: "episode-details"',
+        'field: { title: true, }, title: "Episode Title", fieldType: FormFieldSchemaType.Text,',
       );
+      // One page: the labels fold under Advanced rather than walk a step.
+      expect(source).toContain("getLabelsFormField<");
+      expect(source).not.toContain('id: "labels"');
       // No more hand-rolled SVG chip for the number.
       expect(source).not.toContain("<svg");
     },

@@ -58,9 +58,9 @@ const RumApplications: FunctionComponent<
   }
 
   /*
-   * The create form asks for the two things an application is matched by - its name and the
-   * identifier its telemetry reports - and folds the rest under Advanced:
-   * the description and the labels. Three rows, so no steps.
+   * The create form asks for what an application cannot be created without: its
+   * name and the identifier its telemetry reports. The description and the
+   * labels fold under Advanced, so the form is three rows and has no steps.
    */
   const advancedSection: FormFieldCollapsibleSection<RumApplication> =
     getAdvancedFormSection<RumApplication>();

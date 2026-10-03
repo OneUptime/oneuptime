@@ -502,10 +502,9 @@ describe("the labels detector", () => {
   test("asks a resource whose labels decide access for the shared field, folded, last on its step", () => {
     const { forms, fileSystem } = scanPage(
       `${PAGE_IMPORTS}
-      const open = { id: "open", title: "Open" };
       const Page = () => <>
         <CardModelDetail name="Written" modelDetailProps={{ modelType: Thing }} formFields={[${field("name")}, ${handWrittenLabels()}]} />
-        <CardModelDetail name="Open" modelDetailProps={{ modelType: Thing }} formFields={[${field("name")}, getLabelsFormField({ collapsibleSection: undefined, ...nothing }), ${field("other")}]} />
+        <CardModelDetail name="Open" modelDetailProps={{ modelType: Thing }} formFields={[${field("name")}, getLabelsFormField({ collapsibleSection: undefined }), ${field("other")}]} />
         <CardModelDetail name="Shared" modelDetailProps={{ modelType: Thing }} formFields={[${field("name")}, getLabelsFormField()]} />
         <CardModelDetail name="Middle" modelDetailProps={{ modelType: Thing }} formFields={[${field("name")}, getLabelsFormField(), ${field("after")}]} />
         <CardModelDetail name="Own Card" modelDetailProps={{ modelType: Thing }} formFields={[${handWrittenLabels()}]} />
@@ -539,7 +538,12 @@ describe("the labels detector", () => {
       ),
     ).toEqual([
       "CardModelDetail: Written: the form writes its own Labels field",
-      "CardModelDetail: Open: the form shows fields after the Advanced section that holds Labels",
+      /*
+       * The Dashboard's helper cannot be handed an undefined section (its
+       * options type has no undefined), so this is only ever a helper
+       * that passes the section through.
+       */
+      "CardModelDetail: Open: the form shows Labels open",
       "CardModelDetail: Middle: the form shows fields after the Advanced section that holds Labels",
     ]);
   });
@@ -599,6 +603,11 @@ interface FormShape {
   // The step ids, in order (those written as strings); [] for one page.
   steps: Array<string>;
   rows: Record<string, RowsShape>;
+  /*
+   * Why the scan cannot follow every field of the form, when it cannot: its
+   * pinned rows are still checked.
+   */
+  uncountable?: string | undefined;
 }
 
 function onePage(
@@ -844,8 +853,13 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   {
     file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplates.tsx`,
     label: "ModelTable: Settings > Incident Templates",
-    // Custom field steps are spread in between, by the project's fields.
+    /*
+     * The Owners and Labels steps, one optional field each, fold under
+     * Advanced on Incident Details, as a maintenance template's do on Event.
+     */
     steps: ["template-info", "incident-details", "resources-affected", "on-call"],
+    uncountable:
+      "Its custom field steps are spread in between, from the project's custom fields at runtime.",
     rows: {
       "incident-details": {
         open: ["title", "description", "incidentSeverity", "initialIncidentState"],
@@ -989,7 +1003,12 @@ describe("labels on the project's forms", () => {
 
       const form: FormFacts = found[0]!;
 
-      expect(form.uncountableReasons).toEqual([]);
+      if (shape.uncountable) {
+        expect(form.uncountableReasons.length).toBeGreaterThan(0);
+      } else {
+        expect(form.uncountableReasons).toEqual([]);
+      }
+
       expect(form.hasSteps).toBe(shape.steps.length > 0);
       expect(
         (form.steps || [])
@@ -1002,17 +1021,19 @@ describe("labels on the project's forms", () => {
       ).toEqual(shape.steps);
 
       if (shape.steps.length === 0) {
+        expect(Object.keys(shape.rows)).toEqual([""]);
         expect(form.visibleFieldCount).toBeLessThanOrEqual(3);
       }
 
       const shown: Array<FormFieldFacts> = variantsOf(form)[0]!.fields;
 
       for (const [stepId, rows] of Object.entries(shape.rows)) {
-        const onStep: Array<FormFieldFacts> = shown.filter(
-          (field: FormFieldFacts): boolean => {
-            return stepId === "" ? field.stepId === undefined : field.stepId === stepId;
-          },
-        );
+        const onStep: Array<FormFieldFacts> =
+          stepId === ""
+            ? shown
+            : shown.filter((field: FormFieldFacts): boolean => {
+                return field.stepId === stepId;
+              });
         const open: Array<FormFieldFacts> = onStep.filter(
           (field: FormFieldFacts): boolean => {
             return !isFolded(field);

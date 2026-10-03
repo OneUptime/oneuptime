@@ -32,10 +32,10 @@ const OnCallDutyPage: FunctionComponent<
     useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
 
   /*
-   * Like Create On-Call Policy: the create form asks for the name and the
-   * timezone the schedule's hand-offs are read in (it cannot be changed
-   * later), and folds the description and the labels under Advanced. Three
-   * rows, so no steps.
+   * Like Create On-Call Policy, the create form asks for the name and folds
+   * the description and the labels under Advanced. The timezone stays in
+   * view: it decides when hand-offs happen, and it starts on the reader's
+   * own. Three rows, so no steps.
    */
   const advancedSection: FormFieldCollapsibleSection<OnCallDutySchedule> =
     getAdvancedFormSection<OnCallDutySchedule>();

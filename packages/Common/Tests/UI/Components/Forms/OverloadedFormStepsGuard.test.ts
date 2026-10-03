@@ -450,7 +450,8 @@ describe("the project's stepped forms", () => {
     [
       `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
       "CardModelDetail: Repository > Repository Details",
-      ["repository-info", "source", "labels"],
+      // Its labels fold under Advanced on Repository Info.
+      ["repository-info", "source"],
     ],
     [
       `${DASHBOARD}/Pages/NetworkDevice/View/Settings.tsx`,

@@ -21,6 +21,7 @@ import RunnerView from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/R
 import RunnersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners";
 import {
   NO_RUNNER_FORM_RESTRICTIONS,
+  RUNNER_FORM_STEPS,
   RunnerFormRestrictions,
   getKubernetesAgentRunnerFormNote,
   getReservedRunnerNameError,
@@ -38,6 +39,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
+import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -294,14 +296,23 @@ describe("the Runner form's fields", () => {
     }).map((field: Field<Runner>): string | undefined => {
       return field.stepId;
     });
+    /*
+     * Two steps: the labels fold under Advanced at the end of the Runner
+     * step (listed last, so the one-page form ends with Advanced too).
+     */
     expect(steps).toEqual([
       "runner",
       "runner",
       "capabilities",
       "capabilities",
       "capabilities",
-      "labels",
+      "runner",
     ]);
+    expect(
+      RUNNER_FORM_STEPS.map((step: FormStep<Runner>): string => {
+        return step.id;
+      }),
+    ).toEqual(["runner", "capabilities"]);
     // Without withSteps the fields carry no step.
     for (const field of getRunnerFormFields({
       withSteps: false,

@@ -505,7 +505,11 @@ describe("the Databases list", () => {
     );
     expect(name).toContain("required: false");
 
-    expect(formFields).toContain("field: { labels: true, }");
+    // The labels fold under Advanced at the end of Database Info.
+    expect(formFields).toContain(
+      'getLabelsFormField<DatabaseServer>({ stepId: "database-info", })',
+    );
+    expect(formFields).not.toContain("field: { labels: true, }");
     expect(formFields).not.toContain("databaseIdentifier");
     expect(formFields).not.toContain("discoverySource");
   });
@@ -724,10 +728,9 @@ describe("Settings, Delete and Documentation", () => {
     expect(formFields).toContain("fieldType: FormFieldSchemaType.Text");
     expect(formFields).toContain("field: { description: true, }");
     expect(formFields).toContain("fieldType: FormFieldSchemaType.LongText");
-    expect(formFields).toContain("field: { labels: true, }");
-    expect(formFields).toContain(
-      "fieldType: FormFieldSchemaType.MultiSelectDropdown",
-    );
+    // The labels fold under Advanced: one page, no steps.
+    expect(formFields).toContain("getLabelsFormField<DatabaseServer>()");
+    expect(card).not.toContain("formSteps");
     // The identity is never editable here.
     expect(formFields).not.toContain("serverAddress");
     expect(formFields).not.toContain("databaseIdentifier");
