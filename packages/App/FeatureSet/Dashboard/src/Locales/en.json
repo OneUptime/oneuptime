@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "Events scheduled from this template start with these labels.",
   "Incidents declared from this template start with these labels.": "Incidents declared from this template start with these labels.",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.",
-  "The key expires a year from today.": "The key expires a year from today."
+  "The key expires a year from today.": "The key expires a year from today.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "The name visitors see on the status page. It follows what you pick above until you type a name of your own."
 }

@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "このテンプレートからスケジュールされたイベントには、最初からこれらのラベルが付きます。",
   "Incidents declared from this template start with these labels.": "このテンプレートから宣言されたインシデントには、最初からこれらのラベルが付きます。",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "ラベルは関連するリソースをまとめ、ラベルで絞り込めるようにします。権限がラベルで制限されているチームには、そのチームのラベルのいずれかが付いたリソースだけが表示されます。",
-  "The key expires a year from today.": "キーは今日から 1 年後に期限切れになります。"
+  "The key expires a year from today.": "キーは今日から 1 年後に期限切れになります。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "訪問者がステータスページで目にする名前です。独自の名前を入力するまで、上で選んだものに合わせて変わります。"
 }

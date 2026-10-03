@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "Los eventos programados desde esta plantilla empiezan con estas etiquetas.",
   "Incidents declared from this template start with these labels.": "Los incidentes declarados desde esta plantilla empiezan con estas etiquetas.",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "Las etiquetas agrupan recursos relacionados para que puedas filtrar por ellas. Un equipo cuyos permisos están restringidos a etiquetas solo ve los recursos que llevan una de sus etiquetas.",
-  "The key expires a year from today.": "La clave caduca dentro de un año."
+  "The key expires a year from today.": "La clave caduca dentro de un año.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "El nombre que ven los visitantes en la página de estado. Sigue lo que elijas arriba hasta que escribas uno propio."
 }

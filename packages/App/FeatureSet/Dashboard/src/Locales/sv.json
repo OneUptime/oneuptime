@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "Händelser som schemaläggs från den här mallen börjar med dessa etiketter.",
   "Incidents declared from this template start with these labels.": "Incidenter som deklareras från den här mallen börjar med dessa etiketter.",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "Etiketter grupperar relaterade resurser så att du kan filtrera på dem. Ett team vars behörigheter är begränsade till etiketter ser bara resurser som har någon av teamets etiketter.",
-  "The key expires a year from today.": "Nyckeln går ut om ett år."
+  "The key expires a year from today.": "Nyckeln går ut om ett år.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Namnet som besökare ser på statussidan. Det följer det du väljer ovan tills du skriver ett eget."
 }

@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "Gebeurtenissen die vanuit deze sjabloon worden gepland, beginnen met deze labels.",
   "Incidents declared from this template start with these labels.": "Incidenten die vanuit deze sjabloon worden gemeld, beginnen met deze labels.",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "Labels groeperen gerelateerde resources, zodat u erop kunt filteren. Een team waarvan de rechten tot labels zijn beperkt, ziet alleen resources met een van zijn labels.",
-  "The key expires a year from today.": "De sleutel verloopt over een jaar."
+  "The key expires a year from today.": "De sleutel verloopt over een jaar.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "De naam die bezoekers op de statuspagina zien. De naam volgt wat u hierboven kiest totdat u zelf een naam typt."
 }

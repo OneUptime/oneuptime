@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "رویدادهایی که از این قالب زمان‌بندی می‌شوند با این برچسب‌ها آغاز می‌شوند.",
   "Incidents declared from this template start with these labels.": "حادثه‌هایی که از این قالب اعلام می‌شوند با این برچسب‌ها آغاز می‌شوند.",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "برچسب‌ها منابع مرتبط را گروه می‌کنند تا بتوانید بر پایه آن‌ها پالایش کنید. تیمی که مجوزهایش به برچسب‌ها محدود شده فقط منابعی را می‌بیند که یکی از برچسب‌هایش را دارند.",
-  "The key expires a year from today.": "کلید یک سال پس از امروز منقضی می‌شود."
+  "The key expires a year from today.": "کلید یک سال پس از امروز منقضی می‌شود.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "نامی که بازدیدکنندگان در صفحه وضعیت می‌بینند. تا وقتی نام دلخواه خود را وارد نکنید، همراه آنچه بالا انتخاب می‌کنید تغییر می‌کند."
 }

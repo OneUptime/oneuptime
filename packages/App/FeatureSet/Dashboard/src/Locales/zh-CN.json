@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "从此模板计划的事件创建时即带有这些标签。",
   "Incidents declared from this template start with these labels.": "从此模板宣布的事件创建时即带有这些标签。",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "标签将相关资源归为一组，便于您按标签筛选。权限被限制为特定标签的团队只能看到带有其某个标签的资源。",
-  "The key expires a year from today.": "密钥将在一年后过期。"
+  "The key expires a year from today.": "密钥将在一年后过期。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "访问者在状态页上看到的名称。在您输入自己的名称之前，它会随您在上方的选择而变化。"
 }

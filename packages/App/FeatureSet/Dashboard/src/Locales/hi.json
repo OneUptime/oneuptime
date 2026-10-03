@@ -24206,5 +24206,6 @@
   "Events scheduled from this template start with these labels.": "इस टेम्पलेट से शेड्यूल किए गए इवेंट इन्हीं लेबल के साथ शुरू होते हैं।",
   "Incidents declared from this template start with these labels.": "इस टेम्पलेट से घोषित घटनाएँ इन्हीं लेबल के साथ शुरू होती हैं।",
   "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.": "लेबल संबंधित संसाधनों को समूहित करते हैं ताकि आप उनके आधार पर फ़िल्टर कर सकें। जिस टीम की अनुमतियाँ लेबल तक सीमित हैं, वह केवल वे संसाधन देखती है जिन पर उसका कोई लेबल लगा हो।",
-  "The key expires a year from today.": "कुंजी आज से एक साल बाद समाप्त हो जाती है।"
+  "The key expires a year from today.": "कुंजी आज से एक साल बाद समाप्त हो जाती है।",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "वह नाम जो विज़िटर्स स्थिति पृष्ठ पर देखते हैं। जब तक आप अपना नाम नहीं लिखते, यह ऊपर आपके चुनाव के साथ बदलता रहता है।"
 }
