@@ -45,6 +45,12 @@ export function withoutFallbackEntries(
   fallback: RuntimeLocaleTree | undefined,
 ): RuntimeLocaleTree;
 
+// The flat "<key>_one" keys beside a "<key>": a plural's "one" forms.
+export function getPluralOneFormKeys(tree: RuntimeLocaleTree): Array<string>;
+
+// Whether the language's plural rules have a "one" form (Intl.PluralRules).
+export function usesPluralOneForm(language: string): boolean;
+
 export function getRuntimeLocale(
   options: RuntimeLocaleOptions,
 ): RuntimeLocaleTree;

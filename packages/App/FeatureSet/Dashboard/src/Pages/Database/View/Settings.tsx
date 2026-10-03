@@ -5,7 +5,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -62,22 +62,11 @@ const DatabaseServerSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Database"
-        formSteps={[
-          {
-            title: "Database Info",
-            id: "database-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
-            stepId: "database-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -91,29 +80,12 @@ const DatabaseServerSettings: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "database-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Primary PostgreSQL cluster for the checkout stack",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<DatabaseServer>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

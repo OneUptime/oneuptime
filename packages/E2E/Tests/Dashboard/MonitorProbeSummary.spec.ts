@@ -254,12 +254,15 @@ test.describe("Monitor summary probe picker", () => {
       .getByRole("option", { name: "Every 5 Minutes", exact: true })
       .click();
 
-    // Step 4: Labels is always the final step; leave it empty here.
-    await clickNext({ page });
+    /*
+     * Probes & Interval is the last step: the labels fold under Advanced on
+     * Monitor Info, so there is no Labels step to walk on to.
+     */
     await expect(
-      // "Labels (Optional)" is the rendered accessible name — match the prefix.
-      page.getByRole("combobox", { name: /^Labels\b/ }),
-    ).toBeVisible({ timeout: 30000 });
+      page
+        .locator(monitorCreateFormSelector)
+        .getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
     await page.getByTestId(submitButtonTestId).click();
 
     await page.waitForURL(

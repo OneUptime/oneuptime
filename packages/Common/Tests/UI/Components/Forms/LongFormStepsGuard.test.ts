@@ -258,6 +258,37 @@ describe("the long form detector", () => {
     expect(findLongFormsWithoutSteps([form])).toEqual([form]);
   });
 
+  test("reads every text a field's title can be, and none of a computed one", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[
+          { field: { a: true }, title: "Incident Title", fieldType: FormFieldSchemaType.Text },
+          { field: { b: true }, title: isIncident ? "Incident Labels" : ("Alert Labels"), fieldType: FormFieldSchemaType.Text },
+          { field: { c: true }, title: copy.descriptionTitle, fieldType: FormFieldSchemaType.Text },
+          { field: { d: true }, title: \`\${subject} Title\`, fieldType: FormFieldSchemaType.Text },
+          { field: { e: true }, title: isIncident ? "Incident Name" : copy.nameTitle, fieldType: FormFieldSchemaType.Text },
+          { field: { f: true }, fieldType: FormFieldSchemaType.Text },
+        ]} />;`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.title, candidate.titleTexts];
+      }),
+    ).toEqual([
+      ["a", "Incident Title", ["Incident Title"]],
+      [
+        "b",
+        'isIncident ? "Incident Labels" : ("Alert Labels")',
+        ["Incident Labels", "Alert Labels"],
+      ],
+      ["c", "copy.descriptionTitle", null],
+      ["d", "`${subject} Title`", null],
+      ["e", 'isIncident ? "Incident Name" : copy.nameTitle', null],
+      ["f", "", []],
+    ]);
+  });
+
   test(`leaves a form of ${LONG_FORM_FIELD_LIMIT} fields alone`, () => {
     const form: FormFacts = only({
       "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${fields(3)}]} />;`,
@@ -464,6 +495,7 @@ describe("the long form detector", () => {
       return {
         key: "k",
         title: "t",
+        titleTexts: ["t"],
         fieldType: "",
         stepId: undefined,
         isPlainLiteral: true,
@@ -697,11 +729,16 @@ describe("the project's forms", () => {
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
     expect(forms.length).toBeGreaterThan(500);
+    /*
+     * About 230 since labels-not-a-step: some 25 forms walked a second step
+     * only for their Labels, and are one page now that the field folds
+     * under Advanced (LabelsFormFieldGuard).
+     */
     expect(
       forms.filter((form: FormFacts): boolean => {
         return form.hasSteps;
       }).length,
-    ).toBeGreaterThan(250);
+    ).toBeGreaterThan(200);
   });
 
   // The form the maintainer pointed at, found and stepped.

@@ -15,7 +15,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -189,16 +189,6 @@ const IncomingCallPolicyView: FunctionComponent<
           title: "Incoming Call Policy Details",
           description: "Here are more details for this incoming call policy.",
         }}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         isEditable={true}
         formFields={[
           {
@@ -206,7 +196,6 @@ const IncomingCallPolicyView: FunctionComponent<
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Policy Name",
@@ -219,28 +208,11 @@ const IncomingCallPolicyView: FunctionComponent<
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<IncomingCallPolicy>(),
         ]}
         modelDetailProps={{
           modelType: IncomingCallPolicy,

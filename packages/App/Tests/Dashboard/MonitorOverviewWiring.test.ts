@@ -674,7 +674,10 @@ describe("Monitor overview side cards", () => {
       return match[1]!;
     });
 
-    expect(editable).toEqual(["name", "description", "labels"]);
+    expect(editable).toEqual(["name", "description"]);
+    // The labels too, folded under Advanced, on one page with no steps.
+    expect(formFields).toContain("getLabelsFormField<Monitor>()");
+    expect(code).not.toContain("formSteps");
   });
 });
 

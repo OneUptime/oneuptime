@@ -751,8 +751,8 @@ type DetailsTabName = "Evidence" | "Activity";
 
 /*
  * A tab of the details (or its panel, which the tab names) by the start of
- * its name: every tab name ends with its count, and phones shorten
- * "Evidence checked" to "Evidence".
+ * its name: every tab name ends with its count. Phones draw a shorter
+ * "Evidence" label, but the name stays "Evidence checked".
  */
 function detailsTab(page: Page, name: DetailsTabName): Locator {
   return investigationDetails(page).getByRole("tab", {
@@ -8015,12 +8015,34 @@ test.describe("responsive", () => {
     await expectNoHorizontalOverflow(page);
 
     /*
-     * Phones shorten "Evidence checked" to "Evidence" so both tabs share one
-     * row; the count still follows the name.
+     * Phones draw the short "Evidence" so both tabs share one row. Both
+     * labels are whole translated strings, never "Evidence" plus a hidden
+     * " checked", so the short one is drawn from an attribute and kept out
+     * of the name: a screen reader still hears the whole name, and the
+     * count still follows it.
      */
     const evidenceTab: Locator = detailsTab(page, "Evidence");
     const activityTab: Locator = detailsTab(page, "Activity");
-    await expect(evidenceTab).toHaveAccessibleName("Evidence 10");
+    await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
+    const shortLabel: Locator = evidenceTab.locator("[data-short-label]");
+    await expect(shortLabel).toHaveAttribute("aria-hidden", "true");
+    expect(
+      await shortLabel.evaluate((element: Element): string => {
+        return window.getComputedStyle(element, "::before").content;
+      }),
+      "the tab draws the short label",
+    ).toBe('"Evidence"');
+    const shortLabelBox: Box = await documentBox(shortLabel);
+    expect(shortLabelBox.width, "the short label takes room").toBeGreaterThan(
+      0,
+    );
+    const fullLabelBox: Box = await documentBox(
+      evidenceTab.getByText("Evidence checked", { exact: true }),
+    );
+    expect(
+      Math.max(fullLabelBox.width, fullLabelBox.height),
+      "the whole name is for screen readers only",
+    ).toBeLessThanOrEqual(1);
     const evidenceBox: Box = await documentBox(evidenceTab);
     const activityBox: Box = await documentBox(activityTab);
     expect(

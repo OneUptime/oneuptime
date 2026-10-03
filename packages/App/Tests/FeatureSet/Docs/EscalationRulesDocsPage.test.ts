@@ -49,6 +49,17 @@ const RULES_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules.tsx";
 const SIDE_MENU_FILE: string =
   "App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicy/SideMenu.tsx";
+const REPEAT_POLICY_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatPolicy.tsx";
+
+// The rule card's buttons: Add in its header, the rest on each rule.
+const RULE_BUTTONS: Array<string> = [
+  "Add Escalation Rule",
+  "Edit rule",
+  "Move up",
+  "Move down",
+  "Delete rule",
+];
 
 const DASHBOARD_LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -191,16 +202,17 @@ describe("the Escalation Rules docs page", () => {
     expect(form).toContain('translationKey("Add responder")');
     expect(PAGE).toContain("**Add responder**");
 
-    for (const button of [
-      "Add Escalation Rule",
-      "Edit rule",
-      "Move up",
-      "Move down",
-      "Delete rule",
-    ]) {
+    for (const button of RULE_BUTTONS) {
       expect(rules).toContain(`"${button}"`);
       expect(PAGE).toContain(`**${button}**`);
     }
+  });
+
+  it("names the Repeat Policy card below the rules as the dashboard titles it", () => {
+    expect(readRepoFile(REPEAT_POLICY_FILE)).toContain(
+      'translateText("Repeat Policy")',
+    );
+    expect(PAGE).toContain("its **Repeat Policy** (below the rules)");
   });
 
   it("states the wait the dialog starts with", () => {
@@ -246,8 +258,10 @@ describe("the Escalation Rules docs page", () => {
   /*
    * The on-call docs are mirrored in every docs language. Each translation
    * keeps the English page's shape, is titled as its nav link, and names the
-   * dialog's fields with the words that language's dashboard shows -
-   * the English ones where the dashboard still shows English.
+   * dialog's fields, the rule card's buttons and the Repeat Policy card with
+   * the words that language's dashboard shows - the English ones where the
+   * dashboard still shows English. A dashboard translation that renames one
+   * has to bring the page along.
    */
   describe("in every docs language", () => {
     const englishOutline: Array<number> = headingOutline(PAGE);
@@ -272,6 +286,8 @@ describe("the Escalation Rules docs page", () => {
           "Add responder",
           "Escalate after (in minutes)",
           "Advanced",
+          ...RULE_BUTTONS,
+          "Repeat Policy",
         ]) {
           expect({
             lang,

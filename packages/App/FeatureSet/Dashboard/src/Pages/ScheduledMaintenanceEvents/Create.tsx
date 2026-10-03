@@ -29,6 +29,7 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -382,23 +383,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     "Who owns this event. They are notified when its status changes.",
                   collapsibleSection: advancedSection,
                 }),
-                {
-                  field: {
-                    labels: true,
-                  },
-                  title: "Labels ",
+                getLabelsFormField<ScheduledMaintenance>({
                   stepId: "event",
-                  description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
                   collapsibleSection: advancedSection,
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Labels",
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
@@ -435,7 +422,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       </div>
                     );
                   },
-                },
+                }),
                 {
                   field: {
                     monitors: true,

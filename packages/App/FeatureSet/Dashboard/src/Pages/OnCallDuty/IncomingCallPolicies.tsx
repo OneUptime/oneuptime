@@ -6,7 +6,7 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
@@ -220,23 +220,12 @@ const IncomingCallPoliciesPage: FunctionComponent<
             "Configure incoming call routing policies for your on-call teams. Purchase phone numbers and set up escalation rules.",
         }}
         noItemsMessage={"No incoming call policy found."}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g., Production Support Hotline",
@@ -249,28 +238,11 @@ const IncomingCallPoliciesPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description of this incoming call policy",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<IncomingCallPolicy>(),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}

@@ -27,7 +27,7 @@ Die Kopfzeile von **Erweitert** zeigt **Konfiguriert**, wenn die Regel eine Besc
 
 ## Wie die Stufen Personen alarmieren
 
-Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** seine Empfänger sofort. Bestätigt niemand innerhalb der Wartezeit, wird **Level 2** alarmiert, und so weiter die Liste hinunter. Ist die Wartezeit der letzten Stufe ohne Bestätigung verstrichen, beginnt die Richtlinie wieder bei **Level 1**, wenn ihre **Repeat Policy** (unter den Regeln) eine Wiederholung vorsieht, so oft wie dort erlaubt, und hört sonst auf.
+Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** seine Empfänger sofort. Bestätigt niemand innerhalb der Wartezeit, wird **Level 2** alarmiert, und so weiter die Liste hinunter. Ist die Wartezeit der letzten Stufe ohne Bestätigung verstrichen, beginnt die Richtlinie wieder bei **Level 1**, wenn ihre **Wiederholungsrichtlinie** (unter den Regeln) eine Wiederholung vorsieht, so oft wie dort erlaubt, und hört sonst auf.
 
 Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: wann jede Stufe alarmiert wird, wen sie alarmiert und was nach der letzten passiert. Eine Stufe, deren Empfänger nicht alle alarmiert werden können, sagt das auf ihrer Karte; klicken Sie auf die Markierung, um zu sehen, wer betroffen ist und warum.
 

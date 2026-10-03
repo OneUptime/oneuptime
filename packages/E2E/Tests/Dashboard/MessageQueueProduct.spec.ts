@@ -784,23 +784,25 @@ test.describe.skip("Queues Product", () => {
       .fill(DESTINATION);
 
     /*
-     * Three steps - Messaging System, Queue Info, Labels - and only the first
-     * asks for anything: Create Queue is on offer from it, with a plain Next
-     * to the two optional ones.
+     * Two steps - Messaging System, then Queue Info (with the labels folded
+     * under Advanced at its end) - and only the first asks for anything:
+     * Create Queue is on offer from it, with a plain Next to the optional one.
      */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
     const next: Locator = modal.getByTestId("modal-footer-next-button");
     await expect(submit).toHaveText("Create Queue");
     await next.click();
 
-    // Queue Info. No name: the server names the queue after its destination.
+    /*
+     * Queue Info, the last step: nothing to walk on to. No name: the server
+     * names the queue after its destination.
+     */
     await expect(
       modal.getByPlaceholder("Order events", { exact: true }),
     ).toBeVisible({ timeout: 30000 });
-    await expect(submit).toHaveText("Create Queue");
-    await next.click();
-
-    // Labels, optional, and the last step: nothing to walk on to.
+    await expect(
+      modal.getByRole("button", { name: "Advanced", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
     await expect(next).toHaveCount(0);
     await expect(submit).toHaveText("Create Queue");
     await submit.click();

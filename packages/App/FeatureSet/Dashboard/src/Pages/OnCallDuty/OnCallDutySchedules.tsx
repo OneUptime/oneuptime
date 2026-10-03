@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -12,6 +14,7 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -27,6 +30,15 @@ const OnCallDutyPage: FunctionComponent<
   const translator: Translator = useTranslator();
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
+
+  /*
+   * Like Create On-Call Policy, the create form asks for the name and folds
+   * the description and the labels under Advanced. The timezone stays in
+   * view: it decides when hand-offs happen, and it starts on the reader's
+   * own. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<OnCallDutySchedule> =
+    getAdvancedFormSection<OnCallDutySchedule>();
 
   return (
     <Fragment>
@@ -76,17 +88,12 @@ const OnCallDutyPage: FunctionComponent<
             },
           ],
         }}
-        formSteps={[
-          { title: "On-Call Schedule Info", id: "on-call-Schedule-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Schedule Name",
@@ -96,20 +103,9 @@ const OnCallDutyPage: FunctionComponent<
           },
           {
             field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "on-call-Schedule-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
               timezone: true,
             },
             title: "Timezone",
-            stepId: "on-call-Schedule-info",
             description:
               "The timezone this schedule's active-hour restrictions and hand-off times are interpreted in. Defaults to your current timezone.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -120,21 +116,17 @@ const OnCallDutyPage: FunctionComponent<
           },
           {
             field: {
-              labels: true,
+              description: true,
             },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Labels",
+            placeholder: "Description",
+            collapsibleSection: advancedSection,
           },
+          getLabelsFormField<OnCallDutySchedule>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}

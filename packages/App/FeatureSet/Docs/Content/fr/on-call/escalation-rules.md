@@ -10,7 +10,7 @@ Lorsque vous créez une politique d'astreinte sur la page **Politiques d'astrein
 
 ## Ajouter une règle d'escalade
 
-Ouvrez la politique d'astreinte, choisissez **Règles d'escalade** dans son menu latéral et cliquez sur **Add Escalation Rule**. La boîte de dialogue est une seule page courte qui pose deux questions :
+Ouvrez la politique d'astreinte, choisissez **Règles d'escalade** dans son menu latéral et cliquez sur **Ajouter une règle d'escalade**. La boîte de dialogue est une seule page courte qui pose deux questions :
 
 - **Notifier** — qui est alerté à ce niveau. Un seul sélecteur couvre les plannings d'astreinte, les équipes et les personnes : cliquez sur **Ajouter un intervenant**, recherchez et choisissez autant d'entrées que nécessaire. Il en faut au moins une.
   - Un **planning d'astreinte** alerte la personne d'astreinte au moment où le niveau s'exécute, et non une personne fixe.
@@ -27,15 +27,15 @@ L'en-tête de **Avancé** indique **Configuré** lorsque la règle a une descrip
 
 ## Comment les niveaux alertent les personnes
 
-Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses intervenants immédiatement. Si personne n'accuse réception dans son délai, **Level 2** est alerté, et ainsi de suite. Une fois le délai du dernier niveau écoulé sans accusé de réception, la politique recommence à **Level 1** si sa **Repeat Policy** (sous les règles) prévoit une répétition, autant de fois qu'elle le permet, et s'arrête sinon.
+Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses intervenants immédiatement. Si personne n'accuse réception dans son délai, **Level 2** est alerté, et ainsi de suite. Une fois le délai du dernier niveau écoulé sans accusé de réception, la politique recommence à **Level 1** si sa **Politique de répétition** (sous les règles) prévoit une répétition, autant de fois qu'elle le permet, et s'arrête sinon.
 
 Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : quand chaque niveau est alerté, qui il alerte et ce qui se passe après le dernier. Un niveau dont tous les intervenants ne peuvent pas être alertés l'indique sur sa carte ; cliquez sur le libellé pour voir qui et pourquoi.
 
 ## Modifier, réordonner et supprimer des règles
 
-- **Edit rule** ouvre la même boîte de dialogue d'une page, remplie avec la règle telle qu'elle est : ses intervenants, son délai, ainsi que son nom et sa description sous **Avancé**. Ajoutez ou retirez des intervenants et enregistrez. Vider le nom redonne à la règle le nom de son niveau.
-- **Move up** et **Move down** dans le menu **⋯** d'une règle changent son niveau. Une règle qui porte le nom de son niveau garde un nom qui correspond à sa place : quand **Level 3** remonte au-dessus de **Level 2**, les deux échangent leurs noms. Un nom que vous avez choisi, comme **Managers**, reste le même où que la règle aille.
-- **Delete rule** demande d'abord confirmation et indique qui le niveau alerte. Supprimer un niveau fait remonter les niveaux en dessous, et les règles qui portent le nom de leur niveau sont renommées en conséquence.
+- **Modifier la règle** ouvre la même boîte de dialogue d'une page, remplie avec la règle telle qu'elle est : ses intervenants, son délai, ainsi que son nom et sa description sous **Avancé**. Ajoutez ou retirez des intervenants et enregistrez. Vider le nom redonne à la règle le nom de son niveau.
+- **Monter** et **Descendre** dans le menu **⋯** d'une règle changent son niveau. Une règle qui porte le nom de son niveau garde un nom qui correspond à sa place : quand **Level 3** remonte au-dessus de **Level 2**, les deux échangent leurs noms. Un nom que vous avez choisi, comme **Managers**, reste le même où que la règle aille.
+- **Supprimer la règle** demande d'abord confirmation et indique qui le niveau alerte. Supprimer un niveau fait remonter les niveaux en dessous, et les règles qui portent le nom de leur niveau sont renommées en conséquence.
 
 ## Créer des règles avec l'API ou Terraform
 

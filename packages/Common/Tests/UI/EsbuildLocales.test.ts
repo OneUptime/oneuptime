@@ -5,11 +5,13 @@ import os from "os";
 import path from "path";
 import {
   createRuntimeLocalesPlugin,
+  getPluralOneFormKeys,
   getRuntimeLocale,
   isLocaleTree,
   RUNTIME_LOCALES_PLUGIN_NAME,
   RuntimeLocalesPluginOptions,
   RuntimeLocaleTree,
+  usesPluralOneForm,
   withoutFallbackEntries,
   withoutIdentityEntries,
 } from "../../UI/esbuild-locales";
@@ -27,7 +29,9 @@ import {
  * The plugin ships en.json without the entries that map to themselves and
  * every other locale without the strings equal to the English, since the
  * lookup renders the same English without them (Tests/App/Dashboard/
- * DashboardRuntimeLocales proves that against i18next).
+ * DashboardRuntimeLocales proves that against i18next). A plural's English
+ * "_one" form ships with the languages that read one form, not with en.json:
+ * the code hands English readers that sentence itself.
  *
  * The transforms run here in-process. The plugin runs in a node SUBPROCESS,
  * the way the build loads it: esbuild refuses to load under Common's jsdom
@@ -464,6 +468,102 @@ describe("getRuntimeLocale", () => {
     ).toEqual({ Save: "Speichern" });
   });
 
+  /*
+   * A plural's "one" form ("<key>_one" beside "<key>"). The code hands it to
+   * the lookup itself, so a reader of the fallback never needs the entry; a
+   * language with a "one" form reads its own, or falls back to it.
+   */
+  const plurals: RuntimeLocaleTree = frozen({
+    "{{count}} rows": "{{count}} rows",
+    "{{count}} rows_one": "{{count}} row",
+    "{{count}} items": "{{count}} items",
+    "{{count}} items_one": "{{count}} item",
+    "{{count}} hosts": "{{count}} hosts",
+    "{{count}} hosts_one": "{{count}} host",
+    legacyTitle: "Legacy Title",
+  });
+
+  test("ships the fallback language without its plural _one forms", () => {
+    expect(
+      getRuntimeLocale({
+        language: "en",
+        fallbackLanguage: "en",
+        locale: plurals,
+      }),
+    ).toEqual({ legacyTitle: "Legacy Title" });
+  });
+
+  test("ships every _one form a language with a one form reads, translated or still English", () => {
+    const shipped: RuntimeLocaleTree = getRuntimeLocale({
+      language: "de",
+      fallbackLanguage: "en",
+      locale: frozen({
+        "{{count}} rows": "{{count}} Zeilen",
+        "{{count}} rows_one": "{{count}} row",
+        "{{count}} items": "{{count}} items",
+        "{{count}} items_one": "{{count}} Element",
+        legacyTitle: "Legacy Title",
+      }),
+      fallback: plurals,
+    });
+
+    // The locale's order first, then a "_one" form it lacks, in English.
+    expect(shipped).toEqual({
+      "{{count}} rows": "{{count}} Zeilen",
+      "{{count}} rows_one": "{{count}} row",
+      "{{count}} items_one": "{{count}} Element",
+      "{{count}} hosts_one": "{{count}} host",
+    });
+    expect(Object.keys(shipped)).toEqual([
+      "{{count}} rows",
+      "{{count}} rows_one",
+      "{{count}} items_one",
+      "{{count}} hosts_one",
+    ]);
+  });
+
+  test("ships a language without a one form only the _one forms it translated", () => {
+    // Japanese reads its general form for every count, 1 included.
+    expect(
+      getRuntimeLocale({
+        language: "ja",
+        fallbackLanguage: "en",
+        locale: frozen({
+          "{{count}} rows": "{{count}} 行",
+          "{{count}} rows_one": "{{count}} row",
+          "{{count}} items_one": "{{count}} 件",
+        }),
+        fallback: plurals,
+      }),
+    ).toEqual({
+      "{{count}} rows": "{{count}} 行",
+      "{{count}} items_one": "{{count}} 件",
+    });
+  });
+
+  test("knows a _one form by the key beside it, and a language by its plural rules", () => {
+    expect(
+      getPluralOneFormKeys(
+        frozen({
+          "{{count}} rows": "{{count}} rows",
+          "{{count}} rows_one": "{{count}} row",
+          Only_one: "Only one",
+          common: { "{{count}} rows_one": "{{count}} row" },
+          "{{count}} items": { nested: "x" },
+          "{{count}} items_one": "{{count}} item",
+        }),
+      ),
+    ).toEqual(["{{count}} rows_one"]);
+
+    for (const code of ["en", "de", "fr", "es", "ru", "hi", "fa", "no"]) {
+      expect([code, usesPluralOneForm(code)]).toEqual([code, true]);
+    }
+
+    for (const code of ["ja", "ko", "zh-CN", "zh-TW"]) {
+      expect([code, usesPluralOneForm(code)]).toEqual([code, false]);
+    }
+  });
+
   test("refuses to ship another language without the fallback to compare with", () => {
     expect(() => {
       return getRuntimeLocale({
@@ -807,23 +907,25 @@ describe("bundling a fixture for real", () => {
     production = buildFixture(makeFixture());
   }, BUILD_TIMEOUT_MS);
 
-  test("English ships without its identity entries", () => {
+  test("English ships without its identity entries or its _one forms", () => {
     expect([production.ok, production.error]).toEqual([true, ""]);
     expect(production.english).toEqual({
       common: { save: "Save", Cancel: "Cancel" },
       menu: { title: "Shared Menu Sentinel" },
-      "{{count}} monitors_one": "{{count}} monitor",
       legacyTitle: "Legacy Title Sentinel",
     });
   });
 
-  test("the lazy chunks ship only what differs from the English", () => {
+  test("the lazy chunks ship what differs from the English, and the _one forms they read", () => {
+    // German reads a "one" form, here still the English sentence.
     expect(production.lazy["de"]).toEqual({
       common: { save: "Speichern" },
       Save: "Speichern",
       "Delete {{itemName}}": "{{itemName}} löschen",
       "{{count}} monitors": "{{count}} Monitore",
+      "{{count}} monitors_one": "{{count}} monitor",
     });
+    // Japanese has no "one" form.
     expect(production.lazy["ja"]).toEqual({ Save: "保存" });
   });
 
@@ -848,6 +950,28 @@ describe("bundling a fixture for real", () => {
         false,
       ]);
     }
+
+    // A "_one" form is in German's chunk only: not what every load downloads.
+    const entryText: string = entryClosure(production.outputs, "Index.js")
+      .map((output: OutputSummary): string => {
+        return output.text;
+      })
+      .join("\n");
+
+    expect(entryText).not.toContain("{{count}} monitors_one");
+    expect(
+      ["de", "ja"].map((code: string): [string, boolean] => {
+        return [
+          code,
+          outputWithLocale(production.outputs, code).text.includes(
+            "{{count}} monitors_one",
+          ),
+        ];
+      }),
+    ).toEqual([
+      ["de", true],
+      ["ja", false],
+    ]);
   });
 
   test("other JSON, a Locales directory elsewhere included, is left to esbuild", () => {
@@ -1071,9 +1195,13 @@ describe("the Dashboard's own build", () => {
   }
 
   /*
-   * en.json's share of the entry bundle. It ships its nested keys and plural
-   * "_one" forms only - about 10 KB, against 1.8 MB for the whole file. A
-   * build that ships the identity entries again lands far above this.
+   * en.json's share of the entry bundle. It ships its nested keys only -
+   * about 10 KB, against 1.8 MB for the whole file - and not its plural
+   * "_one" forms, which ship with the languages that read them: there is
+   * one for every count-dependent sentence routed through translation (52 KB
+   * of them when they moved out), so in the entry they would outgrow any
+   * budget. A build that ships the identity entries, or the "_one" forms,
+   * again lands far above this.
    */
   const ENGLISH_ENTRY_BUDGET_BYTES: number = 32 * 1024;
 
@@ -1205,29 +1333,66 @@ describe("the Dashboard's own build", () => {
     const english: RuntimeLocaleTree = readSourceLocale(
       DEFAULT_DASHBOARD_LANGUAGE,
     );
+    const shipped: RuntimeLocaleTree = runtime[
+      DEFAULT_DASHBOARD_LANGUAGE
+    ] as RuntimeLocaleTree;
 
     expect(
       treeDifferences(
-        runtime[DEFAULT_DASHBOARD_LANGUAGE],
-        withoutIdentityEntries(english),
+        shipped,
+        getRuntimeLocale({
+          language: DEFAULT_DASHBOARD_LANGUAGE,
+          fallbackLanguage: DEFAULT_DASHBOARD_LANGUAGE,
+          locale: english,
+        }),
       ),
     ).toEqual([]);
     // The nested keys components read with t("a.b") are all there.
-    expect(Object.keys(runtime[DEFAULT_DASHBOARD_LANGUAGE] || {})).toEqual(
+    expect(Object.keys(shipped || {})).toEqual(
       expect.arrayContaining(["navbar", "commandPalette", "eventItem"]),
     );
+    // And none of the plural "_one" forms, of which en.json has hundreds.
+    expect(getPluralOneFormKeys(english).length).toBeGreaterThan(100);
+    expect(
+      getPluralOneFormKeys(english).filter((key: string): boolean => {
+        return Object.prototype.hasOwnProperty.call(shipped, key);
+      }),
+    ).toEqual([]);
   });
 
   test.each(LAZY_CODES)(
-    "%s ships its translations and nothing the English already says",
+    "%s ships its translations, and every _one form it reads",
     (code: string) => {
-      const expected: RuntimeLocaleTree = withoutFallbackEntries(
-        readSourceLocale(code),
-        readSourceLocale(DEFAULT_DASHBOARD_LANGUAGE),
+      const english: RuntimeLocaleTree = readSourceLocale(
+        DEFAULT_DASHBOARD_LANGUAGE,
+      );
+      const locale: RuntimeLocaleTree = readSourceLocale(code);
+      const shipped: RuntimeLocaleTree = runtime[code] as RuntimeLocaleTree;
+      const expected: RuntimeLocaleTree = getRuntimeLocale({
+        language: code,
+        fallbackLanguage: DEFAULT_DASHBOARD_LANGUAGE,
+        locale: locale,
+        fallback: english,
+      });
+
+      expect(treeDifferences(shipped, expected)).toEqual([]);
+      expect(Object.keys(expected).length).toBeGreaterThan(0);
+
+      /*
+       * A language with a "one" form ships every "_one" form, its own or the
+       * English the full files would fall back to. One without ships no
+       * English placeholder, as for any other string.
+       */
+      const misshipped: Array<string> = getPluralOneFormKeys(english).filter(
+        (key: string): boolean => {
+          return usesPluralOneForm(code)
+            ? shipped[key] !==
+                (typeof locale[key] === "string" ? locale[key] : english[key])
+            : shipped[key] === english[key];
+        },
       );
 
-      expect(treeDifferences(runtime[code], expected)).toEqual([]);
-      expect(Object.keys(expected).length).toBeGreaterThan(0);
+      expect([code, misshipped]).toEqual([code, []]);
     },
   );
 

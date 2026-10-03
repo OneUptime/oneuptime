@@ -44,13 +44,19 @@ a language, and the rules the guard test enforces.
   apart (`Common/UI/esbuild-locales.js`, wired in the Dashboard's
   `esbuild.config.js`). `en.json` ships without the entries that map to
   themselves: the lookup passes the English as its default, so a missing one
-  reads the same. Its nested keys and `_one` forms ship. Every other locale
-  ships without the strings that equal `en.json`'s, its English placeholders
-  and its same-as-English strings: i18next falls back to English, which the
-  entry chunk always holds. So `en.json` adds about 10 KB to the entry chunk
-  instead of 1.8 MB, and a locale's chunk holds its translations only. Read
-  strings through the lookups above only. `i18n.exists()` or
-  `getResourceBundle()` would see the shipped copy, not these files.
+  reads the same. It ships without its `_one` forms too: the code hands
+  `translatePlural` the English `one` sentence, so an English reader never
+  needs them. Its nested keys ship. Every other locale ships without the
+  strings that equal `en.json`'s, its English placeholders and its
+  same-as-English strings: i18next falls back to English, which the entry
+  chunk always holds. A language with a "one" form also ships every `_one`
+  form, translated or still English, since `en.json` no longer carries them;
+  Japanese, Korean and Chinese never read one. So `en.json` adds about 10 KB
+  to the entry chunk instead of 1.8 MB, however many plurals there are, and a
+  locale's chunk holds its translations and the `_one` forms it reads. Read
+  strings through the lookups above only, and a `_one` key only as the plural
+  it belongs to. `i18n.exists()` or `getResourceBundle()` would see the
+  shipped copy, not these files.
 
 Everything above lives in `Common/UI/Utils/TranslateTemplate.ts`, which has a
 `Translator` with `translateText`, `translateTemplate`, `translatePlural`,
@@ -253,11 +259,13 @@ same key parity and placeholders.
 What ships is tested apart from the files.
 `packages/Common/Tests/UI/EsbuildLocales.test.ts` builds the real locale files
 with the Dashboard's `esbuild.config.js`. It checks that each language ships
-exactly what the plugin keeps, that only English is in the entry chunk, and
-that `en.json`'s share of it stays under 32 KB.
+exactly what the plugin keeps, that only English is in the entry chunk, that
+the `_one` forms ship with the languages that read them and not with English,
+and that `en.json`'s share of the entry stays under 32 KB.
 `packages/Common/Tests/App/Dashboard/DashboardRuntimeLocales.test.tsx` checks
 that every string in all seventeen languages reads the same from the shipped
-copies as from these files.
+copies as from these files, every plural at counts that pick each form, and
+that no source looks a `_one` key up on its own.
 
 ## Merging and conflicts
 

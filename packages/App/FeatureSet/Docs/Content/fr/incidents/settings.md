@@ -24,7 +24,7 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir des **Modèles d'incident**.
 
-Dépliez **Règles** et vous obtenez neuf écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
+Dépliez **Règles** et vous obtenez neuf écrans de plus : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA** et **Reminder Rules**. Ils sont traités plus bas.
 
 ## Modèles d'incident
 
@@ -122,7 +122,7 @@ Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite.
 - **Règles d'astreinte** — exécuter des politiques d'astreinte pour les incidents correspondants. Détaillées plus bas.
 - **Règles de propriétaire** — attribuer des propriétaires automatiquement.
 - **Règles de runbook** — lancer un [runbook](/docs/runbooks/index) quand un incident correspond.
-- **Règles d'auto-remédiation** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
+- **Règles de remédiation automatique** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
 - **Règles de confidentialité** — décider si un incident correspondant est privé.
 - **Règles d'étiquettes** — appliquer des étiquettes automatiquement.
 - **Règles SLA** — suivre les délais de réponse et de résolution. Les règles sont évaluées dans l'ordre ; les numéros d'ordre les plus bas passent en premier.
@@ -130,11 +130,11 @@ Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite.
 
 **La sémantique de l'ordre n'est pas uniforme.** Les **Règles de regroupement**, les **Règles SLA** et les **Reminder Rules** sont évaluées dans l'ordre. Les **Règles d'astreinte**, non — chaque règle correspondante se déclenche. Ne supposez pas qu'un seul modèle vaut pour les neuf.
 
-Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Incident Rules** et un onglet **Episode Rules**, chacun avec sa propre table. Configurez l'onglet **Incident Rules**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles d'auto-remédiation**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
+Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Règles d'incident** et un onglet **Règles d'épisode**, chacun avec sa propre table. Configurez l'onglet **Règles d'incident**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
 
 ## Règles d'astreinte des incidents
 
-**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous rendez l'alerte automatique. La carte, **Règles d'astreinte d'incident**, décrit des règles qui exécutent automatiquement des politiques d'astreinte à la création d'incidents correspondants. L'écran a deux onglets : **Incident Rules** et **Episode Rules**.
+**Incidents → Règles → Règles d'astreinte** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) est l'endroit où vous rendez l'alerte automatique. La carte, **Règles d'astreinte d'incident**, décrit des règles qui exécutent automatiquement des politiques d'astreinte à la création d'incidents correspondants. L'écran a deux onglets : **Règles d'incident** et **Règles d'épisode**.
 
 Le formulaire de création comporte trois étapes :
 

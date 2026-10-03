@@ -20,10 +20,12 @@ import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
  *
  * What this import bundles is not the whole file: the build drops the keys
  * that map to themselves ("Save": "Save"), since every lookup passes the
- * English as its default, and keeps the nested keys and plural "_one" forms
+ * English as its default, and the plural "_one" forms, which translatePlural
+ * is handed by the code; it keeps the nested keys
  * (Common/UI/esbuild-locales.js). The lazy chunks likewise ship without the
  * strings English reads the same, which is why English must stay both the
- * fallback and in this bundle.
+ * fallback and in this bundle - and carry the "_one" forms their language
+ * reads, since this bundle does not.
  */
 import en from "../Locales/en.json";
 

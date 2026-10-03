@@ -157,7 +157,7 @@ flowchart LR
 Las reglas de escalada determinan cómo se enrutan las llamadas:
 
 1. Abre tu Política de llamadas entrantes
-2. Ve a la pestaña **Reglas de Escalación**
+2. Ve a la pestaña **Reglas de escalado**
 3. Haz clic en **Agregar regla de escalada**
 4. Configura la regla:
    - **Orden**: El orden de prioridad (los números menores se prueban primero)

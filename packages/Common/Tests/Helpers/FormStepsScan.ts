@@ -171,7 +171,16 @@ export interface CustomElementComponentFacts {
 export interface FormFieldFacts {
   // The column or override key the field writes, when it is written down.
   key: string;
+  // The title written as a string, else its source text ("copy.title").
   title: string;
+  /*
+   * Every text the title can be, when it is written down as strings: the
+   * string itself, or each branch of a condition (`isIncident ? "Incident
+   * Title" : "Alert Title"`). Null when the title is computed - a variable, a
+   * property of a copy object, a call, a template with values - so a check of
+   * the English never takes source code for a title. Empty without a title.
+   */
+  titleTexts: Array<string> | null;
   // The fieldType as written ("FormFieldSchemaType.PeoplePicker"), or "".
   fieldType: string;
   /*
@@ -204,6 +213,12 @@ export interface FormFieldFacts {
    * text are one folded section.
    */
   collapsibleSection: string | undefined;
+  /*
+   * The helper the field is the returned object of, as the form calls it
+   * (getLabelsFormField, getOwnersFormField): the outermost call when one
+   * helper returns another's field. Undefined for a field written out.
+   */
+  helper?: string | undefined;
   // customElementCanBeSkipped written true (Forms/Utils/FinishFromAnyStep).
   customElementCanBeSkipped: boolean;
   // What its getCustomElement draws; empty when it has none.
@@ -316,6 +331,8 @@ interface ResolvedItem {
    * whose properties (stepId, title, showIf...) the field carries.
    */
   call?: ts.ObjectLiteralExpression | undefined;
+  // For a field a helper returns: the helper's name, as the call writes it.
+  helper?: string | undefined;
 }
 
 interface Resolution {
@@ -361,6 +378,28 @@ function unwrap(expression: ts.Node): ts.Node {
   }
 
   return node;
+}
+
+/*
+ * The strings an expression can be, when each way it can go is written as
+ * one: a string literal, or a condition whose branches are (nested ones
+ * too). Null for anything computed.
+ */
+function writtenStringsOf(expression: ts.Node): Array<string> | null {
+  const node: ts.Node = unwrap(expression);
+
+  if (ts.isStringLiteralLike(node)) {
+    return [node.text];
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    const whenTrue: Array<string> | null = writtenStringsOf(node.whenTrue);
+    const whenFalse: Array<string> | null = writtenStringsOf(node.whenFalse);
+
+    return whenTrue && whenFalse ? [...whenTrue, ...whenFalse] : null;
+  }
+
+  return null;
 }
 
 function isInsideLoop(node: ts.Node): boolean {
@@ -1262,6 +1301,11 @@ export class FormStepsScanner {
               }
             }
 
+            // The outermost call names it: what the form itself calls.
+            for (const item of resolved.items) {
+              item.helper = callee.text;
+            }
+
             return resolved;
           }
         }
@@ -1318,6 +1362,10 @@ export class FormStepsScanner {
           fieldResolution.plain.has(item.node),
           item.call,
         );
+
+        if (item.helper) {
+          facts.helper = item.helper;
+        }
 
         /*
          * RuleTable (and LabelRuleTable, built on it) leaves a rule's
@@ -1818,6 +1866,7 @@ export class FormStepsScanner {
           ? title.text
           : title.getText(title.getSourceFile())
         : "",
+      titleTexts: title ? writtenStringsOf(title) : [],
       stepId: stepIdValue,
       isPlainLiteral,
       isNeverShown: Boolean(showIf && isConstantFalseFunction(showIf)),

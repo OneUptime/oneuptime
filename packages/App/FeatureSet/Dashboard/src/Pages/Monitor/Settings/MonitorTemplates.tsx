@@ -10,7 +10,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTypeUtil from "../../../Utils/MonitorType";
 import MonitorType, {
@@ -124,10 +124,6 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               );
             },
           },
-          {
-            title: "Labels",
-            id: "labels",
-          },
         ]}
         formFields={[
           {
@@ -204,6 +200,16 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               "Search monitor types - try ping, ssl, k8s, postgres",
             cardSelectCollapsibleGroups: true,
           },
+          /*
+           * Folded under Advanced at the end of Monitor Defaults, where
+           * Create Monitor folds a monitor's own labels, rather than walked
+           * as a last step of its own.
+           */
+          getLabelsFormField<MonitorTemplate>({
+            stepId: "monitor-defaults",
+            description:
+              "Default labels applied to monitors created from this template.",
+          }),
           {
             field: {
               monitorSteps: true,
@@ -273,23 +279,6 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               return Promise.resolve(interval);
             },
             placeholder: "Select Monitoring Interval",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Default labels applied to monitors created from this template.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         showRefreshButton={true}
