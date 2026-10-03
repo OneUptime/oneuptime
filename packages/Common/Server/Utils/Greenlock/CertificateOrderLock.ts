@@ -50,6 +50,14 @@ export default class CertificateOrderLock {
     SemaphoreMutex
   > = new WeakMap<CertificateOrderLockHandle, SemaphoreMutex>();
 
+  /*
+   * Handles whose lock Redis lost while they held it - a refresh that
+   * failed, an eviction. Another replica can take the name's lock from then
+   * on, so such a handle holds nothing any more.
+   */
+  private static readonly lost: WeakSet<CertificateOrderLockHandle> =
+    new WeakSet<CertificateOrderLockHandle>();
+
   public static normalizeDomain(domain: string): string {
     return domain.trim().toLowerCase();
   }
@@ -64,6 +72,10 @@ export default class CertificateOrderLock {
   ): Promise<CertificateOrderLockHandle | null> {
     const name: string = CertificateOrderLock.normalizeDomain(domain);
 
+    const handle: CertificateOrderLockHandle = Object.freeze({
+      domain: name,
+    });
+
     try {
       const mutex: SemaphoreMutex = await Semaphore.lock({
         key: name,
@@ -71,16 +83,16 @@ export default class CertificateOrderLock {
         lockTimeout: CertificateOrderLock.TIMEOUT_IN_MS,
         acquireAttemptsLimit: 1,
         onLockLost: (err: Error) => {
+          // From now on this handle holds nothing (isHeldFor says so).
+          CertificateOrderLock.held.delete(handle);
+          CertificateOrderLock.lost.add(handle);
+
           logger.error(
             `Lost the certificate order lock of ${name} while ordering`,
             { fullDomain: name } as LogAttributes,
           );
           logger.error(err, { fullDomain: name } as LogAttributes);
         },
-      });
-
-      const handle: CertificateOrderLockHandle = Object.freeze({
-        domain: name,
       });
 
       CertificateOrderLock.held.set(handle, mutex);
@@ -112,6 +124,21 @@ export default class CertificateOrderLock {
     return Boolean(
       lock &&
         CertificateOrderLock.held.has(lock) &&
+        lock.domain === CertificateOrderLock.normalizeDomain(domain),
+    );
+  }
+
+  /*
+   * Whether this handle did hold the name's lock, and Redis lost it while it
+   * was held: not a mistake of the caller's, just a lock that is gone.
+   */
+  public static wasLost(
+    lock: CertificateOrderLockHandle | undefined,
+    domain: string,
+  ): boolean {
+    return Boolean(
+      lock &&
+        CertificateOrderLock.lost.has(lock) &&
         lock.domain === CertificateOrderLock.normalizeDomain(domain),
     );
   }

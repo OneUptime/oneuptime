@@ -151,7 +151,7 @@ Every custom domain gets a free certificate from Let's Encrypt, issued and renew
 
 - **Check now** orders the certificate the moment the record is found. The dialog then says the certificate is usually live within 15 minutes.
 - When the 15-minute check verifies a domain, it orders the domain's certificate in the same check.
-- Renewal is automatic, well before the certificate expires. If your DNS does not answer for a moment while a certificate is being renewed, the certificate keeps serving and is renewed on a later attempt; a certificate is only removed once it has expired and its record no longer points to OneUptime.
+- Renewal is automatic, well before the certificate expires. If your DNS does not answer for a moment while a certificate is being renewed, the certificate keeps serving and is renewed on a later attempt. A failed DNS check never removes a certificate that is still valid.
 
 A new certificate is served within 15 minutes of being issued, because that is how often certificates are written out to the servers that answer for your domain. The Status column says _usually_ within 15 minutes: when many domains are waiting at once, they are worked through a few at a time.
 

@@ -30,6 +30,8 @@ import CertificateOrderLock, {
 import CertificateOrderFailures from "../../../../Server/Utils/Greenlock/CertificateOrderFailures";
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
 import { useInMemoryRedis } from "./InMemoryRedis";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import TooManyRequestsException from "../../../../Types/Exception/TooManyRequestsException";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Semaphore, {
   SemaphoreLockTimeoutError,
@@ -421,68 +423,72 @@ describe("CertificateOrder.orderIfMissing", () => {
   });
 });
 
-describe("CertificateOrder.orderIfMissing with a budget", () => {
+/*
+ * The share of orders an order draws from - a sweep's budget, a project's
+ * on-demand one - is asked by GreenlockUtil.orderCert once the CNAME check
+ * has passed (OrderCertGuards.test.ts), so a share is not spent on a domain
+ * whose record is gone. getOrderShare is what the services hand it.
+ */
+describe("CertificateOrder.getOrderShare", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("asks mayOrder only when an order is about to be placed, and orders when it says yes", async () => {
-    useInMemoryLocks();
-    useCertificates(new Map());
-    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
-    const mayOrder: Mock<() => Promise<boolean>> = jest.fn(async () => {
-      return true;
-    });
+  test("a sweep's share is its budget, maxPerWindow orders a window", async () => {
+    useInMemoryRedis();
 
-    const outcome: CertificateOrderOutcome =
-      await CertificateOrder.orderIfMissing({
-        domain: "status.acme.com",
-        order: order as never,
-        recordAsOrdered: jest.fn(async () => {}) as never,
-        mayOrder: mayOrder as never,
+    const share: (() => Promise<boolean>) | undefined =
+      CertificateOrder.getOrderShare({
+        sweep: { budget: "SomeSweeps", maxPerWindow: 2 },
       });
 
-    expect(outcome).toBe(CertificateOrderOutcome.Ordered);
-    expect(mayOrder).toHaveBeenCalledTimes(1);
-    expect(order).toHaveBeenCalledTimes(1);
+    expect(share).toBeDefined();
+    expect([await share!(), await share!(), await share!()]).toEqual([
+      true,
+      true,
+      false,
+    ]);
   });
 
-  test("a spent budget orders nothing, says so, and releases the lock", async () => {
-    const locks: Locks = useInMemoryLocks();
-    useCertificates(new Map());
-    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+  test("an order on demand draws from its project's share", async () => {
+    useInMemoryRedis();
 
-    const outcome: CertificateOrderOutcome =
-      await CertificateOrder.orderIfMissing({
-        domain: "status.acme.com",
-        order: order as never,
-        recordAsOrdered: jest.fn(async () => {}) as never,
-        mayOrder: (async (): Promise<boolean> => {
-          return false;
-        }) as never,
-      });
+    const share: (() => Promise<boolean>) | undefined =
+      CertificateOrder.getOrderShare({ onDemand: { projectId: "project-a" } });
 
-    expect(outcome).toBe(CertificateOrderOutcome.LimitReached);
-    expect(order).not.toHaveBeenCalled();
-    expect(locks.held.size).toBe(0);
+    const answers: Array<boolean> = [];
+
+    for (
+      let i: number = 0;
+      i <= CertificateOrder.ON_DEMAND_ORDERS_PER_PROJECT_PER_WINDOW;
+      i++
+    ) {
+      answers.push(await share!());
+    }
+
+    expect(answers.filter(Boolean)).toHaveLength(
+      CertificateOrder.ON_DEMAND_ORDERS_PER_PROJECT_PER_WINDOW,
+    );
   });
 
-  // Recording an existing certificate costs no order, so it takes no budget.
-  test("a name that has a certificate never asks the budget", async () => {
-    useInMemoryLocks();
+  test("an order with neither - a reissue - draws from no share of its own", () => {
+    expect(CertificateOrder.getOrderShare({})).toBeUndefined();
+  });
+
+  // Recording an existing certificate costs no order, so it takes no share.
+  test("a name that has a certificate never reaches the order, so never its share", async () => {
+    useInMemoryRedis();
     useCertificates(new Map([["status.acme.com", IN_SIXTY_DAYS]]));
-    const mayOrder: Mock<() => Promise<boolean>> = jest.fn(async () => {
-      return true;
-    });
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
 
-    await CertificateOrder.orderIfMissing({
-      domain: "status.acme.com",
-      order: jest.fn(async () => {}) as never,
-      recordAsOrdered: jest.fn(async () => {}) as never,
-      mayOrder: mayOrder as never,
-    });
-
-    expect(mayOrder).not.toHaveBeenCalled();
+    expect(
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        order: order as never,
+        recordAsOrdered: jest.fn(async () => {}) as never,
+      }),
+    ).toBe(CertificateOrderOutcome.AlreadyIssued);
+    expect(order).not.toHaveBeenCalled();
   });
 });
 
@@ -591,39 +597,168 @@ describe("CertificateOrder on-demand budget", () => {
 
   /*
    * Each domain has a window of its own for orders somebody asks for; this
-   * bounds them across every domain, so clicking through many failing
-   * domains cannot use up the new certificates of the whole installation.
+   * bounds a project's orders across all of its domains, so clicking through
+   * many failing domains cannot use up the new certificates of the whole
+   * installation - and, per project, cannot use up anybody else's share
+   * (review: one tenant could stop on-demand orders for everyone).
    */
-  test("gives out ON_DEMAND_ORDERS_PER_WINDOW orders on demand in a window, across every domain", async () => {
+  test("gives a project ON_DEMAND_ORDERS_PER_PROJECT_PER_WINDOW orders on demand in a window, across its domains", async () => {
     useInMemoryRedis();
 
     const now: Date = new Date("2026-10-03T12:00:00.000Z");
     const answers: Array<boolean> = [];
 
-    for (let i: number = 0; i < 10; i++) {
-      answers.push(await CertificateOrder.takeOnDemandOrderSlot(now));
+    for (let i: number = 0; i < 8; i++) {
+      answers.push(
+        await CertificateOrder.takeOnDemandOrderSlot({
+          now: now,
+          projectId: "project-a",
+        }),
+      );
     }
 
-    expect(CertificateOrder.ON_DEMAND_ORDERS_PER_WINDOW).toBe(6);
+    expect(CertificateOrder.ON_DEMAND_ORDERS_PER_PROJECT_PER_WINDOW).toBe(5);
     expect(answers).toEqual([
       true,
       true,
       true,
       true,
       true,
-      true,
-      false,
       false,
       false,
       false,
     ]);
 
+    // Another project still has its own.
+    expect(
+      await CertificateOrder.takeOnDemandOrderSlot({
+        now: now,
+        projectId: "project-b",
+      }),
+    ).toBe(true);
+
     // The next window has new ones.
     expect(
-      await CertificateOrder.takeOnDemandOrderSlot(
-        new Date(now.getTime() + 15 * 60 * 1000),
-      ),
+      await CertificateOrder.takeOnDemandOrderSlot({
+        now: new Date(now.getTime() + 15 * 60 * 1000),
+        projectId: "project-a",
+      }),
     ).toBe(true);
+  });
+});
+
+describe("CertificateOrder.orderOnDemand (the order APIs)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("orders once per domain per window, and answers what the order did", async () => {
+    useInMemoryRedis();
+
+    const order: Mock<() => Promise<CertificateOrderOutcome>> = jest.fn(
+      async () => {
+        return CertificateOrderOutcome.Ordered;
+      },
+    );
+
+    expect(
+      await CertificateOrder.orderOnDemand({
+        domain: "status.acme.com",
+        order: order as never,
+      }),
+    ).toBe(CertificateOrderOutcome.Ordered);
+
+    await expect(
+      CertificateOrder.orderOnDemand({
+        domain: "Status.Acme.com",
+        order: order as never,
+      }),
+    ).rejects.toThrow(/less than 15 minutes ago\. Please try again later/);
+
+    expect(order).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failed order is rethrown, and the window then reports it", async () => {
+    useInMemoryRedis();
+
+    await expect(
+      CertificateOrder.orderOnDemand({
+        domain: "status.acme.com",
+        order: async (): Promise<CertificateOrderOutcome> => {
+          throw new BadDataException("CAA record forbids letsencrypt.org.");
+        },
+      }),
+    ).rejects.toThrow("CAA record forbids letsencrypt.org.");
+
+    await expect(
+      CertificateOrder.orderOnDemand({
+        domain: "status.acme.com",
+        order: jest.fn() as never,
+      }),
+    ).rejects.toThrow(
+      /and the order failed: CAA record forbids letsencrypt\.org\./,
+    );
+  });
+
+  /*
+   * Review: the claim was kept when nothing was ordered, so "try again in a
+   * few minutes" met "ordered less than 15 minutes ago" on the retry.
+   */
+  test.each([
+    [CertificateOrderOutcome.NotOrderedNow, /being ordered right now/],
+    [CertificateOrderOutcome.LimitReached, /used up/],
+  ])(
+    "nothing ordered (%s) is a 429, and gives the window back for the next try",
+    async (outcome: CertificateOrderOutcome, message: RegExp) => {
+      useInMemoryRedis();
+
+      let refusal: unknown = null;
+
+      try {
+        await CertificateOrder.orderOnDemand({
+          domain: "status.acme.com",
+          order: async (): Promise<CertificateOrderOutcome> => {
+            return outcome;
+          },
+        });
+      } catch (err) {
+        refusal = err;
+      }
+
+      expect(refusal).toBeInstanceOf(TooManyRequestsException);
+      expect((refusal as Error).message).toMatch(message);
+
+      // The next try orders.
+      expect(
+        await CertificateOrder.orderOnDemand({
+          domain: "status.acme.com",
+          order: async (): Promise<CertificateOrderOutcome> => {
+            return CertificateOrderOutcome.Ordered;
+          },
+        }),
+      ).toBe(CertificateOrderOutcome.Ordered);
+    },
+  );
+
+  test("giving the window back never removes a recorded failure, and never throws", async () => {
+    const redis: ReturnType<typeof useInMemoryRedis> = useInMemoryRedis();
+
+    await CertificateOrder.claimOnDemandOrder("status.acme.com");
+    await CertificateOrder.recordOnDemandOrderFailure(
+      "status.acme.com",
+      "Unable to order.",
+    );
+    await CertificateOrder.releaseOnDemandOrder("status.acme.com");
+
+    expect(
+      (await CertificateOrder.claimOnDemandOrder("status.acme.com")).lastError,
+    ).toBe("Unable to order.");
+
+    redis.goDown();
+
+    await expect(
+      CertificateOrder.releaseOnDemandOrder("status.acme.com"),
+    ).resolves.toBeUndefined();
   });
 });
 

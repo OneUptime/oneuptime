@@ -4,7 +4,8 @@
  * the order budgets and the failed-order records.
  *
  * It behaves as Redis does for what these suites rely on: a held lock refuses
- * at once (one acquire attempt), SET NX writes only a missing key, and
+ * at once (one acquire attempt), SET NX writes only a missing key, a
+ * conditional delete removes a key only while it holds the given value, and
  * incrementIfBelow adds nothing once its limit is reached. Keys never expire
  * on their own; a test moves to a new window by changing the clock, or calls
  * clearCache. goDown makes every call fail, as a Redis that is down does.
@@ -135,6 +136,21 @@ export function useInMemoryRedis(): InMemoryRedis {
   ): Promise<void> => {
     failWhenDown();
     redis.cache.delete(fullKey(namespace, key));
+  }) as never);
+
+  jest.spyOn(GlobalCache, "deleteKeyIfValue").mockImplementation((async (
+    namespace: string,
+    key: string,
+    value: string,
+  ): Promise<boolean> => {
+    failWhenDown();
+
+    if (redis.cache.get(fullKey(namespace, key)) !== value) {
+      return false;
+    }
+
+    redis.cache.delete(fullKey(namespace, key));
+    return true;
   }) as never);
 
   jest.spyOn(GlobalCache, "incrementWithExpiry").mockImplementation((async (

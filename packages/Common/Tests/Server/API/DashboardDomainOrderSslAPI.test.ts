@@ -267,15 +267,17 @@ describe("dashboard order-ssl", () => {
     expect(sendEmptySuccessResponseMock).toHaveBeenCalledTimes(1);
   });
 
-  test("reads whether the domain serves an uploaded certificate", async () => {
+  test("reads whether the domain serves an uploaded certificate, and whose on-demand orders it counts against", async () => {
     const spies: Spies = setUp({});
 
     await callRoute();
 
-    expect(
-      (spies.findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> })
-        .select["isCustomCertificate"],
-    ).toBe(true);
+    const select: Record<string, unknown> = (
+      spies.findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["isCustomCertificate"]).toBe(true);
+    expect(select["projectId"]).toBe(true);
   });
 
   test("refuses a domain served with an uploaded certificate, and orders nothing", async () => {
@@ -343,7 +345,7 @@ describe("dashboard order-ssl", () => {
     [CertificateOrderOutcome.NotOrderedNow, "being ordered right now"],
     [CertificateOrderOutcome.LimitReached, "used up"],
   ])(
-    "nothing ordered (%s) is refused with a 429, not reported as a success",
+    "nothing ordered (%s) is refused with a 429, not reported as a success, and gives the window back",
     async (outcome: CertificateOrderOutcome, message: string) => {
       setUp({
         order: async (): Promise<CertificateOrderOutcome> => {
@@ -351,7 +353,13 @@ describe("dashboard order-ssl", () => {
         },
       });
 
+      const release: MockedFn = jest
+        .spyOn(CertificateOrder, "releaseOnDemandOrder")
+        .mockResolvedValue(undefined) as unknown as MockedFn;
+
       await callRoute();
+
+      expect(release).toHaveBeenCalledWith("dash.acme.com");
 
       expect(sendEmptySuccessResponseMock).not.toHaveBeenCalled();
 

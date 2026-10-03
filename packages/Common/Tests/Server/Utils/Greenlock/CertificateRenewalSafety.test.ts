@@ -21,7 +21,9 @@
 
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
 import CertificateOrderLock from "../../../../Server/Utils/Greenlock/CertificateOrderLock";
-import CertificateOrderFailures from "../../../../Server/Utils/Greenlock/CertificateOrderFailures";
+import CertificateOrderFailures, {
+  CertificateOrderFailure,
+} from "../../../../Server/Utils/Greenlock/CertificateOrderFailures";
 import { CertificateOrderReason } from "../../../../Server/Utils/Greenlock/CertificateOrderBudget";
 import { CertificateOrderOutcome } from "../../../../Server/Utils/Greenlock/CertificateOrderOutcome";
 import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateService";
@@ -193,7 +195,7 @@ describe("a renewal run", () => {
     expect(run.redis.heldLocks.size).toBe(0);
   });
 
-  test("a CNAME check that fails while the certificate is valid keeps it, and a later run renews it", async () => {
+  test("a CNAME check that fails while the certificate is valid keeps it, records why, and a later run renews it", async () => {
     const run: Run = setUpRun({ "status.acme.com": 3, "other.acme.com": 4 });
     run.brokenCnames.add("status.acme.com");
 
@@ -204,10 +206,77 @@ describe("a renewal run", () => {
     expect(orderedDomains(run)).toEqual(["other.acme.com"]);
     expect(run.table.get("status.acme.com")).toEqual(inDays(3));
 
+    // The Status column says why; the name waits before the next attempt.
+    const failure: CertificateOrderFailure | undefined = (
+      await CertificateOrderFailures.get(["status.acme.com"])
+    ).get("status.acme.com");
+
+    expect(failure?.error).toContain("CNAME record could not be verified");
+    expect(failure?.failures).toBe(1);
+
     run.brokenCnames.clear();
+
+    // Its first retry delay is up.
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(OneUptimeDate.addRemoveMinutes(NOW, 15));
+
     await renew(run);
 
     expect(orderedDomains(run)).toEqual(["other.acme.com", "status.acme.com"]);
+  });
+
+  /*
+   * Review: a valid certificate whose record really is gone was skipped
+   * without a trace, so - due, and first by expiry - it took a slot of every
+   * run until it expired, while the renewals behind it waited.
+   */
+  test("certificates whose CNAME keeps failing do not take the slots of the renewals behind them", async () => {
+    const domains: Record<string, number> = {};
+
+    // A full run of moved-away domains, closest to expiry...
+    for (let i: number = 0; i < GreenlockUtil.RENEW_MAX_PER_RUN; i++) {
+      domains[`moved${String(i).padStart(2, "0")}.acme.com`] = 1;
+    }
+
+    // ...and the renewals behind them.
+    for (let i: number = 0; i < 3; i++) {
+      domains[`renew${i}.acme.com`] = 10;
+    }
+
+    const run: Run = setUpRun(domains);
+
+    for (let i: number = 0; i < GreenlockUtil.RENEW_MAX_PER_RUN; i++) {
+      run.brokenCnames.add(`moved${String(i).padStart(2, "0")}.acme.com`);
+    }
+
+    // The first runs try the moved-away ones, and fill up on them...
+    await renew(run);
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(OneUptimeDate.addRemoveMinutes(NOW, 15));
+
+    await renew(run);
+
+    expect(run.orders).toEqual([]);
+
+    /*
+     * ...after a second failure in a row they wait 30 minutes, so the run in
+     * between is the renewals' - and with each failure they wait longer.
+     */
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(OneUptimeDate.addRemoveMinutes(NOW, 30));
+
+    await renew(run);
+
+    expect(orderedDomains(run)).toEqual([
+      "renew0.acme.com",
+      "renew1.acme.com",
+      "renew2.acme.com",
+    ]);
+    expect(run.removed).toEqual([]);
   });
 
   test("a CNAME check that fails on an expired certificate removes it, and tells its owner", async () => {

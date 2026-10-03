@@ -11,6 +11,8 @@ import CertificateOrderFailures, {
 import { CertificateOrderOutcome } from "./CertificateOrderOutcome";
 import AcmeCertificate from "../../../Models/DatabaseModels/AcmeCertificate";
 import OneUptimeDate from "../../../Types/Date";
+import Exception from "../../../Types/Exception/Exception";
+import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 
 export { CertificateOrderOutcome } from "./CertificateOrderOutcome";
 
@@ -89,17 +91,18 @@ export default class CertificateOrder {
   private static readonly ON_DEMAND_ORDERING: string = "ordering";
 
   /*
-   * How many orders people may place on demand - Check now and the order
-   * API, across every domain - in one 15-minute window. Each domain has its
-   * own window above; this bounds the sum, so somebody clicking through many
-   * domains whose orders fail cannot use up the new certificates of the
-   * whole installation (CertificateOrderBudget) and hold up everybody
-   * else's first certificates.
+   * How many orders one project may place on demand - Check now and the
+   * order API, across all of its domains - in one 15-minute window. Each
+   * domain has its own window above; this bounds a project's sum, so
+   * somebody clicking through many domains whose orders fail cannot use up
+   * the new certificates of the whole installation (CertificateOrderBudget)
+   * and hold up everybody else's. Per project, so one project using its
+   * share up leaves every other project its own.
    */
   public static readonly ON_DEMAND_ORDER_BUDGET: string =
     "CustomDomainOnDemandOrders";
 
-  public static readonly ON_DEMAND_ORDERS_PER_WINDOW: number = 6;
+  public static readonly ON_DEMAND_ORDERS_PER_PROJECT_PER_WINDOW: number = 5;
 
   /*
    * Claims this window's on-demand order for the domain. Exactly one caller
@@ -146,6 +149,26 @@ export default class CertificateOrder {
       logger.error(err, { fullDomain: key } as LogAttributes);
 
       return { mayOrder: false };
+    }
+  }
+
+  /*
+   * Gives the window's claim back: the claim was taken, but nothing was
+   * ordered - another order of the name was running, or the budget was used
+   * up - so the next click may try again rather than wait out a window for
+   * an order that never happened. Only a claim still marked as ordering is
+   * removed, never a recorded failure. Never throws.
+   */
+  @CaptureSpan()
+  public static async releaseOnDemandOrder(domain: string): Promise<void> {
+    try {
+      await GlobalCache.deleteKeyIfValue(
+        CertificateOrder.ON_DEMAND_ORDER_NAMESPACE,
+        CertificateOrder.normalizeDomain(domain),
+        CertificateOrder.ON_DEMAND_ORDERING,
+      );
+    } catch (err) {
+      logger.error(err, { fullDomain: domain } as LogAttributes);
     }
   }
 
@@ -232,14 +255,110 @@ export default class CertificateOrder {
     }
   }
 
-  // One order from the on-demand orders' budget of this window.
+  // One order from a project's on-demand budget of this window.
   @CaptureSpan()
-  public static async takeOnDemandOrderSlot(now: Date): Promise<boolean> {
+  public static async takeOnDemandOrderSlot(data: {
+    now: Date;
+    projectId?: string | undefined;
+  }): Promise<boolean> {
     return await CertificateOrder.takeOrderSlot({
-      budget: CertificateOrder.ON_DEMAND_ORDER_BUDGET,
-      maxPerWindow: CertificateOrder.ON_DEMAND_ORDERS_PER_WINDOW,
-      now: now,
+      budget: `${CertificateOrder.ON_DEMAND_ORDER_BUDGET}-${data.projectId || "unknown-project"}`,
+      maxPerWindow: CertificateOrder.ON_DEMAND_ORDERS_PER_PROJECT_PER_WINDOW,
+      now: data.now,
     });
+  }
+
+  /*
+   * The share of orders an order draws from besides the installation's
+   * budget: a sweep's shared budget, a project's on-demand one, or none (a
+   * reissue has a cooldown of its own). Asked by GreenlockUtil.orderCert
+   * once the CNAME check has passed.
+   */
+  public static getOrderShare(data: {
+    sweep?: { budget: string; maxPerWindow: number } | undefined;
+    onDemand?: { projectId?: string | undefined } | undefined;
+  }): (() => Promise<boolean>) | undefined {
+    if (data.sweep) {
+      const sweep: { budget: string; maxPerWindow: number } = data.sweep;
+
+      return async (): Promise<boolean> => {
+        return await CertificateOrder.takeOrderSlot({
+          budget: sweep.budget,
+          maxPerWindow: sweep.maxPerWindow,
+          now: OneUptimeDate.getCurrentDate(),
+        });
+      };
+    }
+
+    if (data.onDemand) {
+      const projectId: string | undefined = data.onDemand.projectId;
+
+      return async (): Promise<boolean> => {
+        return await CertificateOrder.takeOnDemandOrderSlot({
+          now: OneUptimeDate.getCurrentDate(),
+          projectId: projectId,
+        });
+      };
+    }
+
+    return undefined;
+  }
+
+  /*
+   * An order somebody asked for through an API (order-ssl), for status page
+   * and dashboard domains alike: at most one per domain per window, shared
+   * with Check now. Answers with what the order did. Throws a 429 for a
+   * click inside the window (with the last order's error, if it failed), for
+   * an order of the name already running and for a used-up budget - after
+   * giving the window back, as nothing was ordered - and rethrows a failed
+   * order once it is remembered for the window.
+   */
+  @CaptureSpan()
+  public static async orderOnDemand(data: {
+    domain: string;
+    order: () => Promise<CertificateOrderOutcome>;
+  }): Promise<CertificateOrderOutcome> {
+    const claim: OnDemandOrderClaim = await CertificateOrder.claimOnDemandOrder(
+      data.domain,
+    );
+
+    if (!claim.mayOrder) {
+      throw new TooManyRequestsException(
+        claim.lastError
+          ? `A certificate was ordered for this domain less than ${CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES} minutes ago, and the order failed: ${claim.lastError} Please try again later.`
+          : `A certificate was ordered for this domain less than ${CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES} minutes ago. Please try again later.`,
+      );
+    }
+
+    let outcome: CertificateOrderOutcome;
+
+    try {
+      outcome = await data.order();
+    } catch (err) {
+      await CertificateOrder.recordOnDemandOrderFailure(
+        data.domain,
+        err instanceof Exception && err.message
+          ? err.message
+          : "We could not order an SSL certificate for this domain.",
+      );
+
+      throw err;
+    }
+
+    if (
+      outcome === CertificateOrderOutcome.NotOrderedNow ||
+      outcome === CertificateOrderOutcome.LimitReached
+    ) {
+      await CertificateOrder.releaseOnDemandOrder(data.domain);
+
+      throw new TooManyRequestsException(
+        outcome === CertificateOrderOutcome.NotOrderedNow
+          ? "A certificate for this domain is being ordered right now. Please try again in a few minutes."
+          : "This installation has used up its new certificates from Let's Encrypt for the moment. Nothing was ordered: the certificate is ordered automatically shortly, or you can try again in 15 minutes.",
+      );
+    }
+
+    return outcome;
   }
 
   public static normalizeDomain(domain: string): string {
@@ -259,11 +378,6 @@ export default class CertificateOrder {
     order: (
       lock: CertificateOrderLockHandle,
     ) => Promise<CertificateOrderOutcome | void>;
-    /*
-     * Asked only when an order is about to be placed - a budget such as
-     * takeOrderSlot. False orders nothing (LimitReached).
-     */
-    mayOrder?: (() => Promise<boolean>) | undefined;
     /*
      * Order for a name whose certificate has expired too, rather than
      * leave it to the renewal run - for somebody who clicked Check now on
@@ -307,15 +421,6 @@ export default class CertificateOrder {
         await data.recordAsOrdered();
 
         return CertificateOrderOutcome.AlreadyIssued;
-      }
-
-      if (data.mayOrder && !(await data.mayOrder())) {
-        logger.debug(
-          `Not ordering a certificate for ${domain} now: this window's orders are used up`,
-          logAttributes,
-        );
-
-        return CertificateOrderOutcome.LimitReached;
       }
 
       return (await data.order(lock)) || CertificateOrderOutcome.Ordered;

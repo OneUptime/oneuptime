@@ -1,4 +1,5 @@
 import GlobalCache from "../../Infrastructure/GlobalCache";
+import CertificateOrderLock from "./CertificateOrderLock";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
@@ -250,8 +251,9 @@ export default class CertificateOrderFailures {
     });
   }
 
+  // The same name the order lock and the certificate table use.
   public static normalizeDomain(domain: string): string {
-    return (domain || "").trim().toLowerCase();
+    return CertificateOrderLock.normalizeDomain(domain || "");
   }
 
   private static parse(value: string | null): CertificateOrderFailure | null {

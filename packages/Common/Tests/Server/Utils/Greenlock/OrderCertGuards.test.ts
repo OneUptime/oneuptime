@@ -41,7 +41,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 // Names the CA was asked for, in order.
 const mockCaOrders: Array<string> = [];
@@ -258,6 +258,32 @@ describe("GreenlockUtil.orderCert", () => {
       expect(budgetTaken()).toBe(0);
     });
 
+    /*
+     * Review: a handle whose Redis lock was lost still passed as held, so its
+     * order could run beside the order of whoever took the lock next.
+     */
+    test("a lock Redis lost before the order is not now, not an error", async () => {
+      const lock: CertificateOrderLockHandle | null =
+        await CertificateOrderLock.tryLock(DOMAIN);
+
+      const request: { onLockLost?: (err: Error) => void } = redis
+        .lockRequests[0] as unknown as { onLockLost?: (err: Error) => void };
+
+      request.onLockLost!(new Error("refresh failed"));
+
+      expect(
+        await GreenlockUtil.orderCert({
+          domain: DOMAIN,
+          reason: CertificateOrderReason.Renewal,
+          validateCname: null,
+          lock: lock!,
+        }),
+      ).toBe(CertificateOrderOutcome.NotOrderedNow);
+
+      expect(mockCaOrders).toEqual([]);
+      expect(budgetTaken()).toBe(0);
+    });
+
     test("without Redis nothing is ordered", async () => {
       redis.goDown();
 
@@ -320,6 +346,66 @@ describe("GreenlockUtil.orderCert", () => {
       expect(await failureOf(DOMAIN)).toBeUndefined();
       expect(deleteSpy).not.toHaveBeenCalled();
       expect(redis.heldLocks.size).toBe(0);
+    });
+  });
+
+  /*
+   * Review: the sweep's or the click's own share was taken before the CNAME
+   * check, so a domain whose record was gone used up a share anyway. Now it
+   * is asked once the check has passed, before the installation's budget.
+   */
+  describe("the caller's own share of orders", () => {
+    test("is not asked when the CNAME check fails: a domain whose record is gone spends no share", async () => {
+      const share: Mock<() => Promise<boolean>> = jest.fn(async () => {
+        return true;
+      });
+
+      await expect(
+        GreenlockUtil.orderCert({
+          domain: DOMAIN,
+          reason: CertificateOrderReason.FirstCertificate,
+          validateCname: cnameCheck(false).check,
+          mayOrder: share as never,
+        }),
+      ).rejects.toThrow("Cname is not valid");
+
+      expect(share).not.toHaveBeenCalled();
+    });
+
+    test("one that says no orders nothing, and takes nothing from the installation's budget", async () => {
+      const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
+        domain: DOMAIN,
+        reason: CertificateOrderReason.FirstCertificate,
+        validateCname: cnameCheck(true).check,
+        mayOrder: (async (): Promise<boolean> => {
+          return false;
+        }) as never,
+      });
+
+      expect(outcome).toBe(CertificateOrderOutcome.LimitReached);
+      expect(mockCaOrders).toEqual([]);
+      expect(budgetTaken()).toBe(0);
+      expect(await failureOf(DOMAIN)).toBeUndefined();
+      expect(redis.heldLocks.size).toBe(0);
+    });
+
+    test("one that says yes is followed by the installation's budget, and the order", async () => {
+      const share: Mock<() => Promise<boolean>> = jest.fn(async () => {
+        return true;
+      });
+
+      expect(
+        await GreenlockUtil.orderCert({
+          domain: DOMAIN,
+          reason: CertificateOrderReason.FirstCertificate,
+          validateCname: null,
+          mayOrder: share as never,
+        }),
+      ).toBe(CertificateOrderOutcome.Ordered);
+
+      expect(share).toHaveBeenCalledTimes(1);
+      expect(budgetTaken()).toBe(1);
+      expect(mockCaOrders).toEqual([DOMAIN]);
     });
   });
 

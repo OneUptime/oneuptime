@@ -14,7 +14,6 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Exception from "../../Types/Exception/Exception";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -26,10 +25,7 @@ import CustomDomainVerification, {
 import CustomDomainCertificates, {
   CustomDomainCertificate,
 } from "../../Types/StatusPage/CustomDomainCertificates";
-import CertificateOrder, {
-  CertificateOrderOutcome,
-  OnDemandOrderClaim,
-} from "../Utils/Greenlock/CertificateOrder";
+import CertificateOrder from "../Utils/Greenlock/CertificateOrder";
 
 export default class StatusPageDomainAPI extends BaseAPI<
   StatusPageDomain,
@@ -100,6 +96,8 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 fullDomain: true,
                 isCustomCertificate: true,
                 isSslOrdered: true,
+                // Whose on-demand orders the order counts against.
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -268,6 +266,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 isCnameVerified: true,
                 isSslProvisioned: true,
                 isCustomCertificate: true,
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -327,53 +326,24 @@ export default class StatusPageDomainAPI extends BaseAPI<
             );
           }
 
-          const claim: OnDemandOrderClaim =
-            await CertificateOrder.claimOnDemandOrder(domain.fullDomain);
-
-          if (!claim.mayOrder) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new TooManyRequestsException(
-                claim.lastError
-                  ? `A certificate was ordered for this domain less than ${CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES} minutes ago, and the order failed: ${claim.lastError} Please try again later.`
-                  : `A certificate was ordered for this domain less than ${CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES} minutes ago. Please try again later.`,
-              ),
-            );
-          }
-
           logger.debug("Ordering SSL", getLogAttributesFromRequest(req as any));
 
-          let outcome: CertificateOrderOutcome;
-
           try {
-            outcome = await StatusPageDomainService.orderCertIfMissing(domain, {
-              onDemand: true,
+            await CertificateOrder.orderOnDemand({
+              domain: domain.fullDomain,
+              order: () => {
+                return StatusPageDomainService.orderCertIfMissing(domain, {
+                  onDemand: true,
+                });
+              },
             });
           } catch (err) {
-            await CertificateOrder.recordOnDemandOrderFailure(
-              domain.fullDomain,
-              err instanceof Exception && err.message
-                ? err.message
-                : "We could not order an SSL certificate for this domain.",
-            );
+            // Too soon, or nothing ordered: the order's own failures go on.
+            if (err instanceof TooManyRequestsException) {
+              return Response.sendErrorResponse(req, res, err);
+            }
 
             throw err;
-          }
-
-          if (
-            outcome === CertificateOrderOutcome.NotOrderedNow ||
-            outcome === CertificateOrderOutcome.LimitReached
-          ) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new TooManyRequestsException(
-                outcome === CertificateOrderOutcome.NotOrderedNow
-                  ? "A certificate for this domain is being ordered right now. Please try again in a few minutes."
-                  : "This installation has used up its new certificates from Let's Encrypt for the moment. Nothing was ordered: the certificate is ordered automatically shortly, or you can try again in 15 minutes.",
-              ),
-            );
           }
 
           logger.debug(

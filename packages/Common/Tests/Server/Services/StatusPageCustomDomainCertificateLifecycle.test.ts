@@ -1421,9 +1421,12 @@ describe("custom domain certificates, hardened: the review's findings end to end
 
   /*
    * Finding (h): renewal still deleted a certificate whose CNAME check
-   * failed, weeks before it expired.
+   * failed, weeks before it expired. And (review of this change) its CNAME
+   * check still marked the domain unverified, unordered and unprovisioned -
+   * "Waiting for DNS", Reissue SSL refused - while the certificate kept
+   * serving.
    */
-  test("a DNS blip during a renewal keeps the certificate, and a later run renews it", async () => {
+  test("a DNS blip during a renewal keeps the certificate and the domain as they are, says why, and a later run renews it", async () => {
     const domain: DomainRow = makeDomain("status.acme.com", {
       isCnameVerified: true,
       isSslOrdered: true,
@@ -1442,10 +1445,71 @@ describe("custom domain certificates, hardened: the review's findings end to end
     expect(world.certificates.get("status.acme.com")?.certificate).toBe(before);
     expect(mockCaOrders).toEqual([]);
 
+    // The row is untouched...
+    expect(domain.isCnameVerified).toBe(true);
+    expect(domain.isSslOrdered).toBe(true);
+    expect(domain.isSslProvisioned).toBe(true);
+
+    // ...and the Status column learns why the renewal did not happen.
+    const certificates: Array<CustomDomainCertificate> =
+      await StatusPageDomainService.getCertificates([domain as never]);
+
+    expect(certificates[0]!.lastOrderError).toContain(
+      "CNAME record could not be verified",
+    );
+
     world.dnsLive.add("status.acme.com");
+
+    // The name waits a little before the next try...
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(mockCaOrders).toEqual([]);
+
+    // ...and is renewed once its delay is up.
+    minutesLater(15);
     await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
 
     expect(mockCaOrders).toEqual(["status.acme.com"]);
     expect(world.deletedCertificates).toEqual([]);
+    expect(
+      (await StatusPageDomainService.getCertificates([domain as never]))[0]!
+        .lastOrderError,
+    ).toBeUndefined();
+  });
+
+  /*
+   * Review of this change: a Check now refused for the window's orders being
+   * used up kept the domain's window, so the next click within 15 minutes
+   * only said "Issuing" again although nothing had been ordered.
+   */
+  test("Check now that ordered nothing - the orders used up - leaves the window to the next click", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    // This window's new certificates are all spent.
+    world.cache.set(
+      `${CertificateOrderBudget.NAMESPACE}-window-${CertificateOrderBudget.getWindowIndex(new Date())}`,
+      String(CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW),
+    );
+
+    const refused: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(refused?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual([]);
+
+    // The next window: the next click orders straight away.
+    minutesLater(15);
+
+    const ordered: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(ordered?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
   });
 });

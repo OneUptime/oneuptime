@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import { EVERY_DAY, EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
+import { EVERY_FIFTEEN_MINUTE, EVERY_HOUR } from "Common/Utils/CronTime";
 import {
   Host,
   ProvisionSsl,
@@ -16,10 +16,18 @@ import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 
 const JOB_NAME: string = "CoreSSL:EnsurePrimaryHostCertificate";
 
+/*
+ * Every hour: a run does nothing but read the host's certificate while it
+ * has more than 30 days left. The order is placed like every other one -
+ * under the name's lock, within the installation's Let's Encrypt budget -
+ * and an order that is not placed now (another order of the host running,
+ * the window's orders used up, Redis away for a moment) is placed by the
+ * next run, an hour later rather than a day.
+ */
 RunCron(
   JOB_NAME,
   {
-    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_DAY,
+    schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_HOUR,
     runOnStartup: true,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },

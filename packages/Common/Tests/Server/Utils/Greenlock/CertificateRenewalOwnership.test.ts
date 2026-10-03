@@ -398,9 +398,16 @@ describe("a renewal run over the shared certificate table", () => {
     ]);
     expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
 
-    // The record answers again: the next run renews them.
+    /*
+     * The record answers again: the next run once the failure's retry delay
+     * is up renews them.
+     */
     world.brokenCnames.clear();
     world.ordered.length = 0;
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(OneUptimeDate.addRemoveMinutes(new Date(), 15));
 
     await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
     await DashboardDomainService.renewCertsWhichAreExpiringSoon();

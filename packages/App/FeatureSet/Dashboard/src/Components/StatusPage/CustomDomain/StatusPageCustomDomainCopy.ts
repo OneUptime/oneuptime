@@ -81,15 +81,22 @@ export const getStatusPageCustomDomainState: (
   if (certificate) {
     const expiresAt: Date | undefined = certificate.expiresAt;
 
-    if (expiresAt && expiresAt.getTime() <= (now || new Date()).getTime()) {
+    /*
+     * No certificate in the table: nothing is issued, whatever the
+     * provisioning flag last said - "Certificate issued" is only ever for a
+     * certificate that exists and has not expired.
+     */
+    if (!expiresAt) {
+      return certificate.lastOrderError
+        ? StatusPageCustomDomainState.CertificateFailed
+        : StatusPageCustomDomainState.IssuingCertificate;
+    }
+
+    if (expiresAt.getTime() <= (now || new Date()).getTime()) {
       return StatusPageCustomDomainState.CertificateExpired;
     }
 
-    if (!expiresAt && certificate.lastOrderError) {
-      return StatusPageCustomDomainState.CertificateFailed;
-    }
-
-    if (expiresAt && certificate.lastOrderError && domain.isSslProvisioned) {
+    if (certificate.lastOrderError && domain.isSslProvisioned) {
       return StatusPageCustomDomainState.RenewalFailed;
     }
   }
@@ -214,10 +221,10 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT: Record<
     "{{domain}} is served with the certificate you uploaded.",
   ),
   /*
-   * "We keep trying" rather than a timing: a domain whose orders keep
-   * failing is ordered less and less often (CertificateOrderFailures), so
-   * one order of a failing name does not cost the whole installation an
-   * order every 15 minutes.
+   * "We keep trying" rather than a timing: the order of a domain that keeps
+   * failing is retried less and less often (CertificateOrderFailures), so
+   * that one failing domain does not spend an order of the installation's
+   * shared Let's Encrypt account every 15 minutes.
    */
   [CustomDomainCertificateStatus.Failed]: translationKey(
     "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.",

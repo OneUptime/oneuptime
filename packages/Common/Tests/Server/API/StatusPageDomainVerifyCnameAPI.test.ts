@@ -648,7 +648,7 @@ describe("order-ssl (API callers)", () => {
     [CertificateOrderOutcome.NotOrderedNow, "being ordered right now"],
     [CertificateOrderOutcome.LimitReached, "used up"],
   ])(
-    "nothing ordered (%s) is not reported as a success",
+    "nothing ordered (%s) is not reported as a success, and gives the window back",
     async (outcome: CertificateOrderOutcome, message: string) => {
       setUp({
         domain: makeDomain({
@@ -660,6 +660,10 @@ describe("order-ssl (API callers)", () => {
         },
       });
 
+      const release: MockedFn = jest
+        .spyOn(CertificateOrder, "releaseOnDemandOrder")
+        .mockResolvedValue(undefined) as unknown as MockedFn;
+
       await callRoute(ORDER_ROUTE);
 
       expect(sendEmptySuccessResponseMock).not.toHaveBeenCalled();
@@ -669,8 +673,27 @@ describe("order-ssl (API callers)", () => {
 
       expect(error).toBeInstanceOf(TooManyRequestsException);
       expect(error.message).toContain(message);
+
+      // Review: the retry it asks for must not meet "ordered less than 15 minutes ago".
+      expect(release).toHaveBeenCalledWith("status.acme.com");
     },
   );
+
+  test("reads whose on-demand orders the order counts against", async () => {
+    const spies: Spies = setUp({
+      domain: makeDomain({
+        isCnameVerified: true,
+        cnameVerificationToken: "token",
+      }),
+    });
+
+    await callRoute(ORDER_ROUTE);
+
+    expect(
+      (spies.findOneBy.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select["projectId"],
+    ).toBe(true);
+  });
 
   test("refuses a domain on an uploaded certificate, which the sweeps never order for either", async () => {
     const spies: Spies = setUp({
@@ -940,6 +963,51 @@ describe("StatusPageDomainService.orderCertOnceCnameIsVerified", () => {
     expect(result.certificateStatus).toBe(
       CustomDomainCertificateStatus.Issuing,
     );
+  });
+
+  /*
+   * Review: an order that never happened - another order of the name
+   * running, the window's orders used up - kept the domain's window, so the
+   * next click within 15 minutes only said "Issuing" again.
+   */
+  test.each([
+    [CertificateOrderOutcome.NotOrderedNow],
+    [CertificateOrderOutcome.LimitReached],
+  ])(
+    "an order that was not placed (%s) answers Issuing, and gives the window back",
+    async (outcome: CertificateOrderOutcome) => {
+      const release: MockedFn = jest
+        .spyOn(CertificateOrder, "releaseOnDemandOrder")
+        .mockResolvedValue(undefined) as unknown as MockedFn;
+      jest
+        .spyOn(StatusPageDomainService, "orderCertIfMissing")
+        .mockResolvedValue(outcome as never);
+
+      const result: { certificateStatus: CustomDomainCertificateStatus } =
+        await StatusPageDomainService.orderCertOnceCnameIsVerified(
+          makeDomain() as never,
+        );
+
+      expect(result.certificateStatus).toBe(
+        CustomDomainCertificateStatus.Issuing,
+      );
+      expect(release).toHaveBeenCalledWith("status.acme.com");
+    },
+  );
+
+  test("an order that was placed keeps the window", async () => {
+    const release: MockedFn = jest
+      .spyOn(CertificateOrder, "releaseOnDemandOrder")
+      .mockResolvedValue(undefined) as unknown as MockedFn;
+    jest
+      .spyOn(StatusPageDomainService, "orderCertIfMissing")
+      .mockResolvedValue(CertificateOrderOutcome.Ordered as never);
+
+    await StatusPageDomainService.orderCertOnceCnameIsVerified(
+      makeDomain() as never,
+    );
+
+    expect(release).not.toHaveBeenCalled();
   });
 
   test("a failed order is remembered for the rest of the window", async () => {

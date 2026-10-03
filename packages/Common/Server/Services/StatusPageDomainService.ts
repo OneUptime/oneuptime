@@ -254,6 +254,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           _id: true,
           fullDomain: true,
           isCustomCertificate: true,
+          projectId: true,
         },
         props: {
           isRoot: true,
@@ -292,6 +293,11 @@ export class Service extends DatabaseService<StatusPageDomain> {
        * does not check it again (see GreenlockUtil.orderCert).
        */
       cnameVerifiedJustNow?: boolean | undefined;
+      /*
+       * The caller's share of orders (CertificateOrder.getOrderShare),
+       * asked once the CNAME check has passed.
+       */
+      mayOrder?: (() => Promise<boolean>) | undefined;
     },
   ): Promise<CertificateOrderOutcome> {
     return Telemetry.startActiveSpan<Promise<CertificateOrderOutcome>>({
@@ -322,6 +328,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
                     return await this.isCnameValid(fullDomain);
                   },
               lock: options?.lock,
+              mayOrder: options?.mayOrder,
             });
 
           if (outcome === CertificateOrderOutcome.Ordered) {
@@ -583,23 +590,19 @@ export class Service extends DatabaseService<StatusPageDomain> {
           reason: CertificateOrderReason.FirstCertificate,
           lock: lock,
           cnameVerifiedJustNow: options?.cnameVerifiedJustNow,
+          mayOrder: CertificateOrder.getOrderShare({
+            sweep: options?.fromSweep
+              ? {
+                  budget: Service.SWEEP_ORDER_BUDGET,
+                  maxPerWindow: Service.ORDER_MAX_PER_RUN,
+                }
+              : undefined,
+            onDemand: options?.onDemand
+              ? { projectId: domainToOrder.projectId?.toString() }
+              : undefined,
+          }),
         });
       },
-      mayOrder: options?.fromSweep
-        ? async (): Promise<boolean> => {
-            return await CertificateOrder.takeOrderSlot({
-              budget: Service.SWEEP_ORDER_BUDGET,
-              maxPerWindow: Service.ORDER_MAX_PER_RUN,
-              now: OneUptimeDate.getCurrentDate(),
-            });
-          }
-        : options?.onDemand
-          ? async (): Promise<boolean> => {
-              return await CertificateOrder.takeOnDemandOrderSlot(
-                OneUptimeDate.getCurrentDate(),
-              );
-            }
-          : undefined,
     });
   }
 
@@ -685,6 +688,19 @@ export class Service extends DatabaseService<StatusPageDomain> {
         renewIfExpired: true,
       }).then(
         (outcome: CertificateOrderOutcome): CustomDomainVerificationResult => {
+          /*
+           * Nothing was ordered - another order of the name is running, or
+           * this window's orders are used up - so the click does not keep
+           * the window: the next one may try again. The sweeps order it
+           * meanwhile.
+           */
+          if (
+            outcome === CertificateOrderOutcome.NotOrderedNow ||
+            outcome === CertificateOrderOutcome.LimitReached
+          ) {
+            void CertificateOrder.releaseOnDemandOrder(name);
+          }
+
           return {
             certificateStatus:
               outcome === CertificateOrderOutcome.AlreadyIssued
@@ -990,7 +1006,32 @@ export class Service extends DatabaseService<StatusPageDomain> {
   }
 
   @CaptureSpan()
-  public async isCnameValid(fullDomain: string): Promise<boolean> {
+  public async isCnameValid(
+    fullDomain: string,
+    options?: {
+      /*
+       * Whether the answer is written to the domain row: verified, or
+       * unverified, unordered and unprovisioned. The renewal run passes
+       * false - a DNS blip while it renews must not reset a domain whose
+       * certificate it keeps; the provisioning sweep still notices a
+       * record that is really gone.
+       */
+      recordResult?: boolean | undefined;
+    },
+  ): Promise<boolean> {
+    const recordResult: (cnameStatus: boolean) => Promise<void> = async (
+      cnameStatus: boolean,
+    ): Promise<void> => {
+      if (options?.recordResult === false) {
+        return;
+      }
+
+      await this.updateCnameStatusForStatusPageDomain({
+        domain: fullDomain,
+        cnameStatus: cnameStatus,
+      });
+    };
+
     try {
       // get the token from the domain.
 
@@ -1039,10 +1080,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         logger.debug(result, { fullDomain } as LogAttributes);
 
         if (result.isSuccess()) {
-          await this.updateCnameStatusForStatusPageDomain({
-            domain: fullDomain,
-            cnameStatus: true,
-          });
+          await recordResult(true);
 
           return true;
         }
@@ -1072,10 +1110,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         logger.debug(resultHttps, { fullDomain } as LogAttributes);
 
         if (resultHttps.isSuccess()) {
-          await this.updateCnameStatusForStatusPageDomain({
-            domain: fullDomain,
-            cnameStatus: true,
-          });
+          await recordResult(true);
 
           return true;
         }
@@ -1104,10 +1139,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
               `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
               { fullDomain } as LogAttributes,
             );
-            await this.updateCnameStatusForStatusPageDomain({
-              domain: fullDomain,
-              cnameStatus: false,
-            });
+            await recordResult(false);
             return false;
           }
 
@@ -1121,10 +1153,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
               { fullDomain } as LogAttributes,
             );
 
-            await this.updateCnameStatusForStatusPageDomain({
-              domain: fullDomain,
-              cnameStatus: true,
-            });
+            await recordResult(true);
 
             return true;
           }
@@ -1141,10 +1170,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         logger.debug(err, { fullDomain } as LogAttributes);
       }
 
-      await this.updateCnameStatusForStatusPageDomain({
-        domain: fullDomain,
-        cnameStatus: false,
-      });
+      await recordResult(false);
 
       return false;
     } catch (err) {
@@ -1153,10 +1179,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
       } as LogAttributes);
       logger.debug(err, { fullDomain } as LogAttributes);
 
-      await this.updateCnameStatusForStatusPageDomain({
-        domain: fullDomain,
-        cnameStatus: false,
-      });
+      await recordResult(false);
 
       return false;
     }
@@ -1402,8 +1425,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
       getOwnedDomains: async (domains: Array<string>) => {
         return await this.getOwnedDomains(domains);
       },
+      /*
+       * A check that writes nothing: a DNS blip while a certificate is
+       * renewed must not mark the domain unverified and unordered while its
+       * certificate keeps serving. The provisioning sweep still notices a
+       * record that is really gone.
+       */
       validateCname: async (fullDomain: string) => {
-        return await this.isCnameValid(fullDomain);
+        return await this.isCnameValid(fullDomain, { recordResult: false });
       },
       notifyDomainRemoved: async (domain: string) => {
         // mark the domain as not ordered.

@@ -610,10 +610,14 @@ export default class GreenlockUtil {
    * A CNAME check that fails never deletes a certificate that is still
    * valid. It used to, and a moment's DNS trouble during a renewal took a
    * domain off HTTPS with weeks left on its certificate. Now the renewal is
-   * skipped and tried again on a later run, while the certificate keeps
-   * serving. Only a certificate that has already expired - it serves nobody
-   * - is removed when the check fails, so the domain is ordered afresh once
-   * its record is back.
+   * skipped while the certificate keeps serving, and the failure is
+   * recorded (CertificateOrderFailures): the domain's Status column says so,
+   * and the name waits before the next attempt, longer after each failure
+   * in a row - without that, a domain whose record really is gone would take
+   * a slot of every run until its certificate expired, and keep the
+   * renewals behind it waiting. Only a certificate that has already expired
+   * - it serves nobody - is removed when the check fails, so the domain is
+   * ordered afresh once its record is back.
    */
   private static async renewCertForDomain(data: {
     domain: string;
@@ -678,6 +682,13 @@ export default class GreenlockUtil {
             `CNAME of ${domain} did not validate: keeping its certificate, valid until ${certificate.expiresAt?.toISOString()}, and renewing it on a later run.`,
             certLogAttributes,
           );
+
+          await CertificateOrderFailures.record({
+            domain: domain,
+            error: `We could not renew the certificate of ${lock.domain} because its CNAME record could not be verified. The certificate keeps serving until it expires; please check that the record still points to OneUptime.`,
+            now: now,
+          });
+
           return;
         }
 
@@ -776,10 +787,30 @@ export default class GreenlockUtil {
     validateCname: ((domain: string) => Promise<boolean>) | null;
     // The name's order lock, when the caller holds it already.
     lock?: CertificateOrderLockHandle | undefined;
+    /*
+     * The caller's own share of orders - a sweep's budget, the on-demand
+     * one - asked once the CNAME check has passed and before the
+     * installation's budget, so a share is not spent on a domain whose
+     * record is gone. False orders nothing (LimitReached).
+     */
+    mayOrder?: (() => Promise<boolean>) | undefined;
   }): Promise<CertificateOrderOutcome> {
     const domain: string = CertificateOrderLock.normalizeDomain(data.domain);
 
     if (data.lock && !CertificateOrderLock.isHeldFor(data.lock, domain)) {
+      /*
+       * Redis lost the lock while the caller held it: another order of the
+       * name may be running now. Not the caller's mistake - just not now.
+       */
+      if (CertificateOrderLock.wasLost(data.lock, domain)) {
+        logger.debug(
+          `Not ordering a certificate for ${domain}: the lock on the name was lost before the order`,
+          { domain: domain } as LogAttributes,
+        );
+
+        return CertificateOrderOutcome.NotOrderedNow;
+      }
+
       throw new BadDataException(
         `The certificate order lock handed in for ${domain} is not held.`,
       );
@@ -797,6 +828,7 @@ export default class GreenlockUtil {
         domain: domain,
         reason: data.reason,
         validateCname: data.validateCname,
+        mayOrder: data.mayOrder,
       });
     } finally {
       if (!data.lock) {
@@ -809,6 +841,7 @@ export default class GreenlockUtil {
     domain: string;
     reason: CertificateOrderReason;
     validateCname: ((domain: string) => Promise<boolean>) | null;
+    mayOrder?: (() => Promise<boolean>) | undefined;
   }): Promise<CertificateOrderOutcome> {
     const { domain } = data;
 
@@ -839,6 +872,15 @@ export default class GreenlockUtil {
       }
 
       logger.debug(`Cname is valid for domain: ${domain}`, orderLogAttributes);
+    }
+
+    if (data.mayOrder && !(await data.mayOrder())) {
+      logger.debug(
+        `Not ordering a certificate for ${domain} now: this window's orders of its kind are used up`,
+        orderLogAttributes,
+      );
+
+      return CertificateOrderOutcome.LimitReached;
     }
 
     try {

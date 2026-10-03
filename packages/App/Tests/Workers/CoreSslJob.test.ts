@@ -1,4 +1,5 @@
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { EVERY_HOUR } from "Common/Utils/CronTime";
 import { CertificateOrderReason } from "Common/Server/Utils/Greenlock/CertificateOrderBudget";
 import { CertificateOrderOutcome } from "Common/Server/Utils/Greenlock/CertificateOrderOutcome";
 /*
@@ -91,6 +92,12 @@ import "../../FeatureSet/Workers/Jobs/CoreSsl/ProvisionPrimaryDomain";
 
 const JOB_NAME: string = "CoreSSL:EnsurePrimaryHostCertificate";
 
+// Snapshotted at import time; registration happens exactly once.
+const registrationAddJobCalls: Array<Array<unknown>> =
+  mockAddJob.mock.calls.map((call: Array<unknown>) => {
+    return [...call];
+  });
+
 function inDays(days: number): Date {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 }
@@ -103,6 +110,21 @@ beforeEach(() => {
 });
 
 describe("CoreSSL:EnsurePrimaryHostCertificate", () => {
+  /*
+   * Hourly, not daily (review): an order refused for a moment - another
+   * order of the host running, the window's orders used up, Redis away - is
+   * placed by the next run an hour later, not the next day. A run reads the
+   * certificate and returns while it has more than 30 days left.
+   */
+  test("is scheduled every hour, and once on startup", () => {
+    expect(registrationAddJobCalls).toEqual(
+      expect.arrayContaining([
+        ["Worker", JOB_NAME, JOB_NAME, {}, { scheduleAt: EVERY_HOUR }],
+        ["Worker", JOB_NAME, JOB_NAME, {}, {}],
+      ]),
+    );
+  });
+
   test("orders the host's certificate as the primary host, with no CNAME to check", async () => {
     const job: PromiseVoidFunction = JobDictionary.getJobFunction(JOB_NAME);
 

@@ -273,6 +273,12 @@ describe("where a custom domain is, with its certificate", () => {
       StatusPageCustomDomainState.IssuingCertificate,
     ],
     [
+      "marked provisioned, but no certificate in the table: never issued",
+      SERVED,
+      certificate({}),
+      StatusPageCustomDomainState.IssuingCertificate,
+    ],
+    [
       "not verified, whatever its certificate",
       { isCnameVerified: false },
       certificate({ expiresAt: YESTERDAY, lastOrderError: ERROR }),

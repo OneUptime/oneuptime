@@ -101,6 +101,32 @@ describe("CertificateOrderLock", () => {
     );
   });
 
+  test("a lock Redis loses while it is held is held no more, and is known as lost", async () => {
+    const redis: InMemoryRedis = useInMemoryRedis();
+
+    const lock: CertificateOrderLockHandle | null =
+      await CertificateOrderLock.tryLock("status.acme.com");
+
+    expect(CertificateOrderLock.isHeldFor(lock!, "status.acme.com")).toBe(true);
+    expect(CertificateOrderLock.wasLost(lock!, "status.acme.com")).toBe(false);
+
+    (
+      redis.lockRequests[0] as unknown as {
+        onLockLost: (err: Error) => void;
+      }
+    ).onLockLost(new Error("refresh failed"));
+
+    expect(CertificateOrderLock.isHeldFor(lock!, "status.acme.com")).toBe(
+      false,
+    );
+    expect(CertificateOrderLock.wasLost(lock!, "status.acme.com")).toBe(true);
+    // Lost for its own name only.
+    expect(CertificateOrderLock.wasLost(lock!, "other.acme.com")).toBe(false);
+
+    // Releasing it afterwards never throws.
+    await expect(CertificateOrderLock.release(lock!)).resolves.toBeUndefined();
+  });
+
   test("without Redis no lock is taken, so nothing is ordered", async () => {
     const redis: InMemoryRedis = useInMemoryRedis();
     redis.goDown();
