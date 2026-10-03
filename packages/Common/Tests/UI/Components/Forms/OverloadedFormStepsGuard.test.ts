@@ -381,7 +381,12 @@ describe("the project's stepped forms", () => {
   // A broken walk must not pass by finding nothing.
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(stepCounts.length).toBeGreaterThan(600);
+    /*
+     * About 600 steps: forms keep losing the ones they do not need (labels
+     * folded under Advanced, forms of three rows made one page), so this is
+     * a floor a broken walk would fall through, not a count to keep.
+     */
+    expect(stepCounts.length).toBeGreaterThan(500);
     expect(
       forms.filter((form: FormFacts): boolean => {
         return form.isRuleModel;

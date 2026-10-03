@@ -5,14 +5,18 @@ import { RULE_ENABLED_COLUMN } from "../../UI/Components/RuleRun/RuleEnabledFiel
 
 /*
  * The detector behind the "long forms walk steps" guard
- * (Tests/UI/Components/Forms/LongFormStepsGuard.test.ts) and the "no step
+ * (Tests/UI/Components/Forms/LongFormStepsGuard.test.ts), its other side -
+ * "short forms fit on one page" (findShortFormsWithSteps) - and the "no step
  * packs too many options" guard (OverloadedFormStepsGuard.test.ts, see
  * findOverloadedSteps at the end).
  *
  * The rule, in the maintainer's words: "have formsteps ... for any long forms
  * in the project (anything > 3 fields)". A form of more than three fields the
  * user can see is split into steps (FormStep, a field's stepId), or carries
- * an entry in the guard's allowlist that says why not.
+ * an entry in the guard's allowlist that says why not. And the other way
+ * round: a form of three rows or fewer is one page, with no stepper, unless
+ * its allowlist entry says why it walks steps - a wizard step has to earn its
+ * place, and three rows fit on one screen.
  *
  * What it reads. Every JSX use of the form hosts - ModelTable (and the
  * RuleTable / LabelRuleTable wrappers around it), CardModelDetail,
@@ -2345,6 +2349,160 @@ export function scanFormFiles(data: {
 
 export function isLongForm(form: FormFacts): boolean {
   return form.visibleFieldCount > LONG_FORM_FIELD_LIMIT;
+}
+
+/*
+ * "Forms of three rows or fewer fit on one page." The other side of the long
+ * form rule: a form short enough to take in at a glance has no stepper - no
+ * step list, no "Step 1 of 2", no Next between a name and the one editor it
+ * names. Three rows are one screen of a dialog; a fourth is where the long
+ * form rule starts asking for steps, so the two rules meet with no gap.
+ */
+export const SHORT_FORM_ROW_LIMIT: number = LONG_FORM_FIELD_LIMIT;
+
+/*
+ * The rows a list of fields takes on screen: countFieldRows, with a rule
+ * model's Match Criteria step drawn as what ModelForm puts there - one
+ * criteria builder, in place of the fields listed on it
+ * (RuleCriteriaModelForm) - so one row.
+ */
+function countScreenRows(
+  form: FormFacts,
+  fields: Array<FormFieldFacts>,
+): number {
+  if (!form.isRuleModel) {
+    return countFieldRows(fields);
+  }
+
+  const rows: Array<FormFieldFacts> = [];
+  let hasCriteriaBuilder: boolean = false;
+
+  for (const field of fields) {
+    if (field.stepId === RULE_CRITERIA_STEP_ID) {
+      if (hasCriteriaBuilder) {
+        continue;
+      }
+
+      hasCriteriaBuilder = true;
+      // The builder is drawn open, whatever section a listed field names.
+      rows.push({ ...field, collapsibleSection: undefined });
+      continue;
+    }
+
+    rows.push(field);
+  }
+
+  return countFieldRows(rows);
+}
+
+/*
+ * The rows the form shows: those of the longer of the forms its host draws
+ * (a table's Create and Edit forms apart, by doNotShowWhenCreating /
+ * doNotShowWhenEditing, each only when the table offers it), a folded
+ * section counting once and a rule's criteria builder counting once. A
+ * field shown under a condition counts: the form can be that long.
+ *
+ * Null for a table that draws no form at all - neither offered to create
+ * nor to edit - whose fields nobody ever sees.
+ */
+export function countFormRows(form: FormFacts): number | null {
+  const shown: Array<FormFieldFacts> = form.fields.filter(
+    (field: FormFieldFacts): boolean => {
+      return !field.isNeverShown;
+    },
+  );
+
+  if (!TABLE_HOSTS.has(form.host)) {
+    return countScreenRows(form, shown);
+  }
+
+  const drawsCreateForm: boolean = form.hasCreateForm !== false;
+
+  if (!drawsCreateForm && !form.hasEditForm) {
+    return null;
+  }
+
+  const onCreate: number = drawsCreateForm
+    ? countScreenRows(
+        form,
+        shown.filter((field: FormFieldFacts): boolean => {
+          return !field.isEditOnly;
+        }),
+      )
+    : 0;
+  const onEdit: number = form.hasEditForm
+    ? countScreenRows(
+        form,
+        shown.filter((field: FormFieldFacts): boolean => {
+          return !field.isCreateOnly;
+        }),
+      )
+    : 0;
+
+  return Math.max(onCreate, onEdit);
+}
+
+export interface ShortFormWithSteps {
+  form: FormFacts;
+  // The rows the form shows (countFormRows).
+  rows: number;
+  // What is wrong, and what to do about it.
+  message: string;
+}
+
+/*
+ * Forms that walk steps - a steps list, or a Summary step turned on, which
+ * makes BasicForm walk a default step and then the summary - although they
+ * show three rows or fewer. Only forms whose every field is followed are
+ * judged: a pass-through (fields handed in by a caller) is its callers' to
+ * answer for, and an uncountable form could be longer than it reads.
+ */
+export function findShortFormsWithSteps(
+  forms: Array<FormFacts>,
+): Array<ShortFormWithSteps> {
+  const found: Array<ShortFormWithSteps> = [];
+
+  for (const form of forms) {
+    if (
+      !form.hasSteps ||
+      form.isPassThrough ||
+      form.uncountableReasons.length > 0
+    ) {
+      continue;
+    }
+
+    const rows: number | null = countFormRows(form);
+
+    if (rows === null || rows > SHORT_FORM_ROW_LIMIT) {
+      continue;
+    }
+
+    const steps: string = form.hasSummaryOnly
+      ? "a Summary step"
+      : (form.steps || [])
+          .map((step: FormStepFacts): string => {
+            return step.id || "?";
+          })
+          .join(", ") || "?";
+
+    found.push({
+      form,
+      rows,
+      message: `${rows} rows walk steps (${steps}). Three rows fit on one page: drop the steps.`,
+    });
+  }
+
+  return found;
+}
+
+export function describeShortFormWithSteps(found: ShortFormWithSteps): string {
+  const titles: Array<string> = found.form.fields
+    .filter((field: FormFieldFacts): boolean => {
+      return !field.isNeverShown;
+    })
+    .map(describeFieldTitle);
+
+  return `${found.form.file}:${found.form.line} ${found.form.label} - ${found.message} Fields: ${titles.join(", ")}`;
 }
 
 // Forms of more than three fields with no steps, that are counted for sure.

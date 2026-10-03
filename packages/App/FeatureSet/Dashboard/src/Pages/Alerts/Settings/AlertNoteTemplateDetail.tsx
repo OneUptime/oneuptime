@@ -23,7 +23,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Basic Details"
         cardProps={{
           title: "Basic Details",
-          description: "Here are more details for this alert template.",
+          description:
+            "The name people pick this template by, and what it is for.",
         }}
         isEditable={true}
         editButtonText="Edit Details"
@@ -89,7 +90,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         editButtonText="Edit Note Template"
         cardProps={{
           title: "Note Template",
-          description: "Here is the note template.",
+          description: NoteTemplateFormCopy.noteFieldDescription,
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
