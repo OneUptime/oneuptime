@@ -217,18 +217,12 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * operators who want it tighter have the environment variables.
  */
 const READ_BUCKET: FormRateLimitBucketConfig = {
-  windowSeconds: parsePositiveIntFromEnv(
-    "RATE_LIMIT_WINDOW_SECONDS",
-    60,
-  ),
+  windowSeconds: parsePositiveIntFromEnv("RATE_LIMIT_WINDOW_SECONDS", 60),
   perFormAndIpLimit: parsePositiveIntFromEnv(
     "RATE_LIMIT_PER_FORM_AND_IP_PER_WINDOW",
     120,
   ),
-  perIpLimit: parsePositiveIntFromEnv(
-    "RATE_LIMIT_PER_IP_PER_WINDOW",
-    600,
-  ),
+  perIpLimit: parsePositiveIntFromEnv("RATE_LIMIT_PER_IP_PER_WINDOW", 600),
   failsClosed: false,
 };
 
@@ -269,10 +263,7 @@ const SUBMIT_BUCKET: FormRateLimitBucketConfig = {
       "SUBMIT_RATE_LIMIT_PER_FORM_WINDOW_SECONDS",
       60 * 60,
     ),
-    limit: parsePositiveIntFromEnv(
-      "SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW",
-      60,
-    ),
+    limit: parsePositiveIntFromEnv("SUBMIT_RATE_LIMIT_PER_FORM_PER_WINDOW", 60),
   },
   failsClosed: true,
 };
@@ -300,8 +291,7 @@ export default class FormRateLimit {
   public static getBucketConfig(
     bucket: FormRateLimitBucket,
   ): FormRateLimitBucketConfig {
-    const config: FormRateLimitBucketConfig =
-      FormRateLimit.getConfig(bucket);
+    const config: FormRateLimitBucketConfig = FormRateLimit.getConfig(bucket);
 
     return {
       ...config,
@@ -416,8 +406,9 @@ export default class FormRateLimit {
       return { outcome: FormRateLimitOutcome.CounterUnavailable };
     }
 
-    const config: FormRateLimitBucketConfig =
-      FormRateLimit.getConfig(data.bucket);
+    const config: FormRateLimitBucketConfig = FormRateLimit.getConfig(
+      data.bucket,
+    );
 
     const keyPrefix: string = `${KEY_PREFIX}${data.bucket}:`;
     const windowIndex: number = FormRateLimit.getWindowIndex(
@@ -469,9 +460,7 @@ export default class FormRateLimit {
        * only, and a per-request log line buries the incident it reports.
        */
       if (FormRateLimit.shouldLogCounterUnavailable(data.bucket)) {
-        logger.warn(
-          `FormRateLimit: counter failed for form ${data.formKey}`,
-        );
+        logger.warn(`FormRateLimit: counter failed for form ${data.formKey}`);
         logger.warn(err);
       }
 
@@ -495,8 +484,7 @@ export default class FormRateLimit {
       return { outcome: FormRateLimitOutcome.CounterUnavailable };
     }
 
-    const ceiling: FormRateLimitFormCeiling | undefined =
-      SUBMIT_BUCKET.perForm;
+    const ceiling: FormRateLimitFormCeiling | undefined = SUBMIT_BUCKET.perForm;
 
     if (!ceiling) {
       return { outcome: FormRateLimitOutcome.Allowed };
@@ -507,12 +495,11 @@ export default class FormRateLimit {
     )}`;
 
     try {
-      const formCounts: Array<number> =
-        await FormRateLimit.incrementCounters({
-          client,
-          keys: [formCounterKey],
-          windowSeconds: ceiling.windowSeconds,
-        });
+      const formCounts: Array<number> = await FormRateLimit.incrementCounters({
+        client,
+        keys: [formCounterKey],
+        windowSeconds: ceiling.windowSeconds,
+      });
 
       const formCount: number = formCounts[0] ?? 0;
 
@@ -528,9 +515,7 @@ export default class FormRateLimit {
       return { outcome: FormRateLimitOutcome.Allowed };
     } catch (err) {
       if (
-        FormRateLimit.shouldLogCounterUnavailable(
-          FormRateLimitBucket.Submit,
-        )
+        FormRateLimit.shouldLogCounterUnavailable(FormRateLimitBucket.Submit)
       ) {
         logger.warn(
           `FormRateLimit: form ceiling counter failed for form ${data.formKey}`,
@@ -574,9 +559,7 @@ export default class FormRateLimit {
 
     if (decision.outcome === FormRateLimitOutcome.CounterUnavailable) {
       if (
-        FormRateLimit.shouldLogCounterUnavailable(
-          FormRateLimitBucket.Submit,
-        )
+        FormRateLimit.shouldLogCounterUnavailable(FormRateLimitBucket.Submit)
       ) {
         logger.error(
           `FormRateLimit: rate limit counter unavailable, refusing form submissions (form ${formKey})`,
@@ -711,9 +694,7 @@ export default class FormRateLimit {
    * refused submission is always about the caller's network. (The form's
    * own ceiling has its own words: see FormCeilingException.)
    */
-  private static getRateLimitedMessage(
-    bucket: FormRateLimitBucket,
-  ): string {
+  private static getRateLimitedMessage(bucket: FormRateLimitBucket): string {
     if (bucket === FormRateLimitBucket.Read) {
       return FORM_READ_RATE_LIMIT_MESSAGE;
     }
@@ -739,24 +720,19 @@ export default class FormRateLimit {
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      const config: FormRateLimitBucketConfig =
-        FormRateLimit.getConfig(bucket);
+      const config: FormRateLimitBucketConfig = FormRateLimit.getConfig(bucket);
       const formKey: string = FormRateLimit.resolveFormKey(req);
       const clientIp: string = FormRateLimit.resolveClientIp(req);
 
-      const decision: FormRateLimitDecision =
-        await FormRateLimit.consume({
-          formKey,
-          clientIp,
-          bucket,
-        });
+      const decision: FormRateLimitDecision = await FormRateLimit.consume({
+        formKey,
+        clientIp,
+        bucket,
+      });
 
       if (decision.outcome === FormRateLimitOutcome.RateLimited) {
         if (decision.retryAfterSeconds) {
-          FormRateLimit.setRetryAfterHeader(
-            res,
-            decision.retryAfterSeconds,
-          );
+          FormRateLimit.setRetryAfterHeader(res, decision.retryAfterSeconds);
         }
 
         if (decision.isFirstRejectionInWindow) {
@@ -774,9 +750,7 @@ export default class FormRateLimit {
         );
       }
 
-      if (
-        decision.outcome === FormRateLimitOutcome.CounterUnavailable
-      ) {
+      if (decision.outcome === FormRateLimitOutcome.CounterUnavailable) {
         /*
          * The two buckets fail in opposite directions, on purpose.
          *

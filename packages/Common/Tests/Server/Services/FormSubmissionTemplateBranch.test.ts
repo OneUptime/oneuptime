@@ -196,9 +196,7 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Form> => {
       return storedForm;
     }) as never);
-  jest
-    .spyOn(FormService, "isProjectOnPlan")
-    .mockResolvedValue(true as never);
+  jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true as never);
   // The form's own severity, when it still exists in its project.
   jest
     .spyOn(IncidentSeverityService, "findOneBy")

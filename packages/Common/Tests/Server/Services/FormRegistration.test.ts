@@ -55,11 +55,7 @@ describe("Form and FormSubmission registration", () => {
 
   test.each([
     [FormService, FormServiceClass, Form],
-    [
-      FormSubmissionService,
-      FormSubmissionServiceClass,
-      FormSubmission,
-    ],
+    [FormSubmissionService, FormSubmissionServiceClass, FormSubmission],
   ] as Array<[unknown, new () => unknown, new () => unknown]>)(
     "the service is registered exactly once, for its model",
     (
@@ -117,9 +113,7 @@ describe("Form and FormSubmission registration", () => {
     );
 
     expect(source).toMatch(mount);
-    expect(count(source.match(/new BaseAPI<\s*FormSubmission,/g))).toBe(
-      1,
-    );
+    expect(count(source.match(/new BaseAPI<\s*FormSubmission,/g))).toBe(1);
   });
 
   test("BaseAPI mounts Form's router under /api exactly once, as the FormAPI with the public routes", () => {
@@ -149,9 +143,7 @@ describe("Form and FormSubmission registration", () => {
   });
 
   test("the routers serve the models' own CRUD paths", () => {
-    expect(new Form().getCrudApiPath()?.toString()).toBe(
-      "/form",
-    );
+    expect(new Form().getCrudApiPath()?.toString()).toBe("/form");
     expect(new FormSubmission().getCrudApiPath()?.toString()).toBe(
       "/form-submission",
     );

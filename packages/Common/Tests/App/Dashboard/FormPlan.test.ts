@@ -48,9 +48,9 @@ afterEach(() => {
 describe("the plan an IP allowlist needs", () => {
   test("is the one Form.ipWhitelist's billing rule names for updates: Scale", () => {
     expect(getFormIpAllowlistPlan()).toBe(PlanType.Scale);
-    expect(
-      new Form().getColumnBillingAccessControl("ipWhitelist").update,
-    ).toBe(getFormIpAllowlistPlan());
+    expect(new Form().getColumnBillingAccessControl("ipWhitelist").update).toBe(
+      getFormIpAllowlistPlan(),
+    );
   });
 });
 

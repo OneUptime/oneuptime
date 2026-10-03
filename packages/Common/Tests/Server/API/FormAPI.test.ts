@@ -358,18 +358,12 @@ describe("FormAPI", () => {
       [
         "GET",
         READ_URI,
-        [
-          FormAPI.refuseForeignPageRequests,
-          FormAPI.requireFormPageHeader,
-        ],
+        [FormAPI.refuseForeignPageRequests, FormAPI.requireFormPageHeader],
       ],
       [
         "POST",
         SUBMIT_URI,
-        [
-          FormAPI.refuseForeignPageRequests,
-          FormAPI.requireJsonBody,
-        ],
+        [FormAPI.refuseForeignPageRequests, FormAPI.requireJsonBody],
       ],
     ])(
       "runs %s %s as own-page checks, limiter, anonymous user middleware, handler",
@@ -447,9 +441,9 @@ describe("FormAPI", () => {
     ])(
       "refuses %j with a 403, before anything is counted",
       async (headers: Record<string, string>) => {
-        expect(
-          await runCheck(FormAPI.refuseForeignPageRequests, headers),
-        ).toBe(false);
+        expect(await runCheck(FormAPI.refuseForeignPageRequests, headers)).toBe(
+          false,
+        );
 
         const error: Exception = sendErrorResponseMock.mock
           .calls[0]![2] as Exception;
@@ -467,9 +461,9 @@ describe("FormAPI", () => {
       // Curl - or, over plain HTTP, another site's <img>: the next check's.
       [{}],
     ])("passes %j on", async (headers: Record<string, string>) => {
-      expect(
-        await runCheck(FormAPI.refuseForeignPageRequests, headers),
-      ).toBe(true);
+      expect(await runCheck(FormAPI.refuseForeignPageRequests, headers)).toBe(
+        true,
+      );
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
     });
 
@@ -486,9 +480,9 @@ describe("FormAPI", () => {
     ])(
       "refuses a read with %s, with the same 403, before anything is counted",
       async (_label: string, headers: Record<string, string>) => {
-        expect(
-          await runCheck(FormAPI.requireFormPageHeader, headers),
-        ).toBe(false);
+        expect(await runCheck(FormAPI.requireFormPageHeader, headers)).toBe(
+          false,
+        );
 
         const error: Exception = sendErrorResponseMock.mock
           .calls[0]![2] as Exception;
@@ -854,8 +848,7 @@ describe("FormAPI", () => {
     });
 
     it("says when to come back when the form's own ceiling refused", async () => {
-      const refusal: FormCeilingException =
-        new FormCeilingException(1234);
+      const refusal: FormCeilingException = new FormCeilingException(1234);
       submitPublicForm.mockRejectedValue(refusal);
 
       const { next, response } = await runHandler(
@@ -911,9 +904,7 @@ describe("FormAPI", () => {
      * able to make the server send megabytes of it on the form's behalf.
      */
     it("takes a token as long as the cap, and refuses one character more", () => {
-      const longest: string = "t".repeat(
-        FORM_CAPTCHA_TOKEN_MAX_LENGTH,
-      );
+      const longest: string = "t".repeat(FORM_CAPTCHA_TOKEN_MAX_LENGTH);
 
       expect(
         FormAPI.readSubmissionRequest({
@@ -927,9 +918,7 @@ describe("FormAPI", () => {
           data: {},
           captchaToken: `${longest}t`,
         });
-      }).toThrow(
-        new BadDataException(FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE),
-      );
+      }).toThrow(new BadDataException(FORM_CAPTCHA_TOKEN_TOO_LONG_MESSAGE));
       expect(FORM_CAPTCHA_TOKEN_MAX_LENGTH).toBe(16384);
     });
 

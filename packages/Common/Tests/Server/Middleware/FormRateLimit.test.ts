@@ -306,8 +306,9 @@ describe("FormRateLimit", () => {
 
   describe("the budgets", () => {
     it("reads at 120 per minute per form and address, 600 per address, failing open", () => {
-      const read: FormRateLimitBucketConfig =
-        FormRateLimit.getBucketConfig(FormRateLimitBucket.Read);
+      const read: FormRateLimitBucketConfig = FormRateLimit.getBucketConfig(
+        FormRateLimitBucket.Read,
+      );
 
       expect(read).toEqual({
         windowSeconds: READ_WINDOW_SECONDS,
@@ -319,10 +320,9 @@ describe("FormRateLimit", () => {
     });
 
     it("submits at 10 per 15 minutes per form and address, 30 per address, 60 an hour per form, failing closed", () => {
-      const submit: FormRateLimitBucketConfig =
-        FormRateLimit.getBucketConfig(
-          FormRateLimitBucket.Submit,
-        );
+      const submit: FormRateLimitBucketConfig = FormRateLimit.getBucketConfig(
+        FormRateLimitBucket.Submit,
+      );
 
       expect(submit).toEqual({
         windowSeconds: SUBMIT_WINDOW_SECONDS,
@@ -344,10 +344,9 @@ describe("FormRateLimit", () => {
     });
 
     it("hands out copies, so a caller cannot loosen the limits in force", async () => {
-      const copy: FormRateLimitBucketConfig =
-        FormRateLimit.getBucketConfig(
-          FormRateLimitBucket.Submit,
-        );
+      const copy: FormRateLimitBucketConfig = FormRateLimit.getBucketConfig(
+        FormRateLimitBucket.Submit,
+      );
 
       copy.perFormAndIpLimit = 100000;
       copy.perForm!.limit = 100000;
@@ -360,9 +359,8 @@ describe("FormRateLimit", () => {
         FormRateLimitOutcome.RateLimited,
       );
       expect(
-        FormRateLimit.getBucketConfig(
-          FormRateLimitBucket.Submit,
-        ).perForm?.limit,
+        FormRateLimit.getBucketConfig(FormRateLimitBucket.Submit).perForm
+          ?.limit,
       ).toBe(SUBMIT_PER_FORM_LIMIT);
     });
   });
@@ -372,9 +370,7 @@ describe("FormRateLimit", () => {
       const shareKey: string = ObjectID.generate().toString();
 
       expect(
-        FormRateLimit.resolveFormKey(
-          buildRequest({ params: { shareKey } }),
-        ),
+        FormRateLimit.resolveFormKey(buildRequest({ params: { shareKey } })),
       ).toBe(`k:${shareKey.toLowerCase()}`);
     });
 
@@ -498,9 +494,7 @@ describe("FormRateLimit", () => {
     });
 
     it("puts callers with no address at all in one shared bucket", () => {
-      expect(FormRateLimit.resolveClientIp(buildRequest())).toBe(
-        "unknown",
-      );
+      expect(FormRateLimit.resolveClientIp(buildRequest())).toBe("unknown");
     });
 
     it("puts a trusted entry that is not an address in the shared bucket", () => {
@@ -590,9 +584,7 @@ describe("FormRateLimit", () => {
         await consumeRead();
       }
 
-      expect((await consumeRead()).scope).toBe(
-        FormRateLimitScope.FormAndIp,
-      );
+      expect((await consumeRead()).scope).toBe(FormRateLimitScope.FormAndIp);
     });
 
     it("never counts a read against a form's submission ceiling", async () => {
@@ -704,9 +696,7 @@ describe("FormRateLimit", () => {
         await consumeSubmit();
       }
 
-      expect((await consumeRead()).outcome).toBe(
-        FormRateLimitOutcome.Allowed,
-      );
+      expect((await consumeRead()).outcome).toBe(FormRateLimitOutcome.Allowed);
 
       for (let i: number = 0; i < 100; i++) {
         await consumeRead({ formKey: OTHER_FORM_KEY });
@@ -726,9 +716,7 @@ describe("FormRateLimit", () => {
   describe("consumeFormCeiling - the form's hourly ceiling", () => {
     const consumeCeiling: (
       formKey?: string,
-    ) => Promise<FormRateLimitDecision> = (
-      formKey: string = FORM_KEY,
-    ) => {
+    ) => Promise<FormRateLimitDecision> = (formKey: string = FORM_KEY) => {
       return FormRateLimit.consumeFormCeiling({ formKey });
     };
 
@@ -784,9 +772,7 @@ describe("FormRateLimit", () => {
         await consumeCeiling();
       }
 
-      expect((await consumeCeiling()).scope).toBe(
-        FormRateLimitScope.Form,
-      );
+      expect((await consumeCeiling()).scope).toBe(FormRateLimitScope.Form);
       expect((await consumeCeiling(OTHER_FORM_KEY)).outcome).toBe(
         FormRateLimitOutcome.Allowed,
       );
@@ -801,9 +787,7 @@ describe("FormRateLimit", () => {
         ),
       ]);
       expect(
-        FormRateLimit.getFormKey(
-          "  7C9E6679-7425-40DE-944B-E07FC1F90AE7 ",
-        ),
+        FormRateLimit.getFormKey("  7C9E6679-7425-40DE-944B-E07FC1F90AE7 "),
       ).toBe(FORM_KEY);
       expect(
         FormRateLimit.resolveFormKey(
@@ -890,15 +874,11 @@ describe("FormRateLimit", () => {
       expect(error).toBeInstanceOf(FormCeilingException);
       expect(error).toBeInstanceOf(TooManyRequestsException);
       expect((error as Exception).code).toBe(429);
-      expect((error as Exception).message).toBe(
-        FORM_TOTAL_RATE_LIMIT_MESSAGE,
+      expect((error as Exception).message).toBe(FORM_TOTAL_RATE_LIMIT_MESSAGE);
+      expect((error as FormCeilingException).retryAfterSeconds).toBe(45 * 60);
+      expect(client.keysMatching(`form:rl:submit:f:${FORM_KEY}:`)).toHaveLength(
+        1,
       );
-      expect((error as FormCeilingException).retryAfterSeconds).toBe(
-        45 * 60,
-      );
-      expect(
-        client.keysMatching(`form:rl:submit:f:${FORM_KEY}:`),
-      ).toHaveLength(1);
     });
 
     it("logs the first refusal of the hour, then stays quiet", async () => {
@@ -998,9 +978,7 @@ describe("FormRateLimit", () => {
 
       currentTime = HOUR_ALIGNED_TIME + READ_WINDOW_SECONDS * 1000;
 
-      expect((await consumeRead()).outcome).toBe(
-        FormRateLimitOutcome.Allowed,
-      );
+      expect((await consumeRead()).outcome).toBe(FormRateLimitOutcome.Allowed);
     });
 
     /*
@@ -1049,10 +1027,7 @@ describe("FormRateLimit", () => {
   });
 
   describe("consume - counter unavailable", () => {
-    it.each([
-      [FormRateLimitBucket.Read],
-      [FormRateLimitBucket.Submit],
-    ])(
+    it.each([[FormRateLimitBucket.Read], [FormRateLimitBucket.Submit]])(
       "reports unavailable for %s when Redis has no client",
       async (bucket: FormRateLimitBucket) => {
         getClientMock.mockReturnValue(null);
@@ -1279,8 +1254,7 @@ describe("FormRateLimit", () => {
       isConnectedMock.mockReturnValue(false);
 
       expect(
-        (await runMiddleware({ bucket: FormRateLimitBucket.Read }))
-          .nextCalled,
+        (await runMiddleware({ bucket: FormRateLimitBucket.Read })).nextCalled,
       ).toBe(true);
       expect(sendErrorResponseMock).not.toHaveBeenCalled();
     });
@@ -1289,8 +1263,7 @@ describe("FormRateLimit", () => {
       client.failNextExec = new Error("connection reset");
 
       expect(
-        (await runMiddleware({ bucket: FormRateLimitBucket.Read }))
-          .nextCalled,
+        (await runMiddleware({ bucket: FormRateLimitBucket.Read })).nextCalled,
       ).toBe(true);
     });
 
@@ -1308,9 +1281,7 @@ describe("FormRateLimit", () => {
       expect(result.nextCalled).toBe(false);
       expect(lastError().code).toBe(ExceptionCode.ServiceUnavailableException);
       expect(lastError().code).toBe(503);
-      expect(lastError().message).toBe(
-        FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE,
-      );
+      expect(lastError().message).toBe(FORM_RATE_LIMIT_UNAVAILABLE_MESSAGE);
     });
 
     it("refuses submissions when the counter errors", async () => {
@@ -1455,10 +1426,9 @@ describe("FormRateLimit configuration", () => {
       default: { getClient: MockedFn; isConnected: MockedFn };
     };
 
-    const limiterModule: { default: typeof FormRateLimit } =
-      (await import(
-        "../../../Server/Middleware/FormRateLimit"
-      )) as unknown as { default: typeof FormRateLimit };
+    const limiterModule: { default: typeof FormRateLimit } = (await import(
+      "../../../Server/Middleware/FormRateLimit"
+    )) as unknown as { default: typeof FormRateLimit };
 
     const client: FakeRedisClient = new FakeRedisClient();
 
@@ -1538,8 +1508,10 @@ describe("FormRateLimit configuration", () => {
       process.env[envKey] = "7";
       expect(read((await reload()).limiter.getBucketConfig(bucket))).toBe(7);
 
-      // The name incident forms read: an installation that tuned them keeps
-      // its limits.
+      /*
+       * The name incident forms read: an installation that tuned them keeps
+       * its limits.
+       */
       delete process.env[envKey];
       process.env[oldEnvKey] = "9";
       expect(read((await reload()).limiter.getBucketConfig(bucket))).toBe(9);
@@ -1567,12 +1539,10 @@ describe("FormRateLimit configuration", () => {
       const { limiter } = await reload();
 
       expect(
-        limiter.getBucketConfig(FormRateLimitBucket.Submit).perForm
-          ?.limit,
+        limiter.getBucketConfig(FormRateLimitBucket.Submit).perForm?.limit,
       ).toBe(SUBMIT_PER_FORM_LIMIT);
       expect(
-        limiter.getBucketConfig(FormRateLimitBucket.Read)
-          .perFormAndIpLimit,
+        limiter.getBucketConfig(FormRateLimitBucket.Read).perFormAndIpLimit,
       ).toBe(READ_PER_FORM_AND_IP_LIMIT);
     },
   );
@@ -1588,8 +1558,9 @@ describe("FormRateLimit configuration", () => {
       ).toBe(FormRateLimitOutcome.Allowed);
     }
 
-    const decision: FormRateLimitDecision =
-      await limiter.consumeFormCeiling({ formKey: FORM_KEY });
+    const decision: FormRateLimitDecision = await limiter.consumeFormCeiling({
+      formKey: FORM_KEY,
+    });
 
     expect(decision.outcome).toBe(FormRateLimitOutcome.RateLimited);
     expect(decision.scope).toBe(FormRateLimitScope.Form);

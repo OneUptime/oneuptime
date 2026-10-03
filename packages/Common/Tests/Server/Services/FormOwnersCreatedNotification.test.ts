@@ -199,12 +199,8 @@ beforeEach(() => {
   ownerRulesApplied = false;
 
   // What submitPublicForm reads and writes.
-  jest
-    .spyOn(FormService, "findOneBy")
-    .mockResolvedValue(buildForm() as never);
-  jest
-    .spyOn(FormService, "isProjectOnPlan")
-    .mockResolvedValue(true as never);
+  jest.spyOn(FormService, "findOneBy").mockResolvedValue(buildForm() as never);
+  jest.spyOn(FormService, "isProjectOnPlan").mockResolvedValue(true as never);
   // The form's severity exists in its project.
   jest
     .spyOn(IncidentSeverityService, "findOneBy")
