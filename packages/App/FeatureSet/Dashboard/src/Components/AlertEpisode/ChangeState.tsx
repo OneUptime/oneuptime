@@ -1,9 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
@@ -25,13 +23,13 @@ import { Black } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import EventStatusPanel, {
   EventStateAction,
   EventStateItem,
 } from "../EventView/EventStatusPanel";
 import useNoteTemplates from "../EventView/useNoteTemplates";
-import { BulkStateChangeNoteTemplate } from "../../Utils/BulkStateChange";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import { BulkStateChangeNoteType } from "../../Utils/BulkStateChange";
 import {
   EpisodeHeaderError,
   EpisodeHeaderRefreshError,
@@ -392,17 +390,23 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     { state: selectedStateName },
   );
 
+  /*
+   * What the change does, in a sentence or two; the optional note is the
+   * folded "Add a private note" line under it. Acknowledging stops the on-call
+   * escalation of the episode and - as it acknowledges its alerts too -
+   * of theirs, so the confirm says so.
+   */
   if (selectedAlertState?.isAcknowledgedState) {
     modalTitle = translationKey("Acknowledge Episode");
     modalSubmitButtonText = translationKey("Acknowledge");
     modalDescription = translationKey(
-      "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. You can add an optional private note.",
+      "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. Any on-call escalation for the episode and its alerts stops.",
     );
   } else if (selectedAlertState?.isResolvedState) {
     modalTitle = translationKey("Resolve Episode");
     modalSubmitButtonText = translationKey("Resolve");
     modalDescription = translationKey(
-      "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode. You can add an optional private note.",
+      "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.",
     );
   }
 
@@ -474,7 +478,6 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={AlertEpisodeStateTimeline}
           name={"create-episode-state-timeline"}
           title={modalTitle}
@@ -509,66 +512,18 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             name: "create-episode-state-timeline",
             modelType: AlertEpisodeStateTimeline,
             id: "create-episode-state-timeline",
-            fields: [
-              {
-                field: {
-                  privateNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<AlertNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<AlertEpisodeStateTimeline>,
-                  ) => void,
-                ) => {
-                  const selectedTemplate:
-                    | BulkStateChangeNoteTemplate
-                    | undefined = noteTemplates.find(
-                    (template: BulkStateChangeNoteTemplate) => {
-                      return template.id === value;
-                    },
-                  );
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      privateNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: noteTemplates.map(
-                  (template: BulkStateChangeNoteTemplate) => {
-                    return {
-                      value: template.id,
-                      label: template.templateName,
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return noteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "privateNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  privateNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description: "Post a private note about this state change.",
-                title: "Private Note",
-                required: false,
-                overrideFieldKey: "privateNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-            ],
+            /*
+             * Nothing else decides an episode's state change: just the
+             * private note, folded under "Add a private note"
+             * (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<AlertEpisodeStateTimeline>({
+              noteType: BulkStateChangeNoteType.Private,
+              noteDescription: translationKey(
+                "Post a private note about this state change.",
+              ),
+              noteTemplates: noteTemplates,
+            }),
             formType: FormType.Create,
           }}
         />

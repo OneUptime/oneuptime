@@ -97,7 +97,7 @@ Der alvorlighetsgrad gjør mer enn å beskrive: på **Hendelser → Regler → V
 
 Det finnes fire måter en hendelse endrer tilstand på:
 
-- **Knappene i toppen.** Åpne en hendelse. Er gjeldende tilstand før den bekreftede tilstanden, får du **Acknowledge** og **Løs**; er den mellom de to, får du **Løs**. Hver av dem åpner en bekreftelsesdialog — **Acknowledge Incident** eller **Resolve Incident** — som også tilbyr **Velg notatmal**, **Offentlig notat** og **Varsle statussideabonnenter**.
+- **Knappene i toppen.** Åpne en hendelse. Er gjeldende tilstand før den bekreftede tilstanden, får du **Bekreft** og **Løs**; er den mellom de to, får du **Løs**. Hver av dem åpner en kort bekreftelse — **Bekreft hendelse** eller **Løs hendelse** — med **Varsle statussideabonnenter** og, foldet sammen under **Legg til et offentlig notat**, det valgfrie feltet **Offentlig notat** og velgeren **Velg notatmal** (når prosjektet har notatmaler). Bekreftelsen stopper også all vakteskalering for hendelsen.
 - **Tilstandstidslinjen.** Legg til en rad for hånd fra hendelsens side **Tilstandstidslinje** med **Hendelsesstatus**, **Begynner den** og **Varsle statussideabonnenter**.
 - **Masseendring.** Hendelseslisten har masseoperasjonen **Endre tilstand** for å flytte flere hendelser om gangen.
 - **Automatisk.** Et overvåkingskriterium med **Løs hendelse automatisk** slått på løser hendelsen sin når kriteriet ikke lenger er oppfylt, og API-et kan oppdatere tilstanden gjennom `/api/incident-state-timeline`.
