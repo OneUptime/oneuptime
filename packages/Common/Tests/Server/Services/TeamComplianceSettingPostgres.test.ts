@@ -2744,7 +2744,15 @@ describePostgres(
         ).rejects.toThrow(DUPLICATE_COMPLIANCE_RULE_MESSAGE);
       });
 
-      test("a signed-in delete by a project admin pauses the rule too, and still re-ranks the severities that remain", async () => {
+      /*
+       * A severity's place in its list is kept by DatabaseService
+       * (@ListOrderColumn) for every caller, and a delete leaves the
+       * severities that remain where they are: their numbers - and so their
+       * ranks - are untouched, with a gap where the deleted one was. A
+       * number nobody collides with is never rewritten, so an API or
+       * Terraform caller reads back exactly what it wrote.
+       */
+      test("a signed-in delete by a project admin pauses the rule too, and leaves the severities that remain where they are", async () => {
         const admin: DatabaseCommonInteractionProps = memberProps(projectId, [
           Permission.ProjectAdmin,
         ]);
@@ -2768,8 +2776,8 @@ describePostgres(
         );
 
         expect(orders).toEqual([
-          { _id: major.toString(), order: 1 },
-          { _id: minor.toString(), order: 2 },
+          { _id: major.toString(), order: 2 },
+          { _id: minor.toString(), order: 3 },
         ]);
       });
 
