@@ -222,6 +222,13 @@ async function renderForm(data: {
       screen.getByRole("button", { name: submitText }),
     ).toBeInTheDocument();
   });
+
+  /*
+   * The footer draws before the fields: wait for the form's own rows, the
+   * name and the folded section, so nothing below races them under load.
+   */
+  await screen.findByPlaceholderText("Template Name");
+  await screen.findByRole("button", { name: ADVANCED_FORM_SECTION_TITLE });
 }
 
 function advancedHeader(): HTMLElement {
