@@ -24202,6 +24202,7 @@
   "History chart colors, languages, and whether search engines may list this page.": "履歴チャートの色、言語、検索エンジンにこのページの掲載を許可するかどうか。",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "ステータスページの概要の一番上、ほかのすべての上に表示されます。Markdown を使用できます。",
   "The language first-time visitors see, and the languages they can switch to in the footer.": "初めての訪問者に表示される言語と、フッターで切り替えられる言語。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "訪問者がステータスページで目にする名前です。独自の名前を入力するまで、上で選んだものに合わせて変わります。",
   "We check for this record every 15 minutes and verify your domain automatically once it is live. To check right away, click Verify CNAME.": "このレコードは 15 分ごとに確認され、有効になるとドメインが自動的に検証されます。すぐに確認するには、「CNAME を確認」をクリックしてください。",
   "No action is required. We will order a free SSL certificate for this domain automatically, usually within 15 minutes.": "対応は不要です。このドメインの無料 SSL 証明書は自動的に注文され、通常 15 分以内に完了します。",
   "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting, click the button below. The certificate is served within 15 minutes of being ordered.": "このドメインの無料 SSL 証明書は Let's Encrypt から自動的に注文されます。待たずに今すぐ注文するには、下のボタンをクリックしてください。証明書は注文から 15 分以内に提供されます。"

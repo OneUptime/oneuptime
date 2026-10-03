@@ -16,6 +16,7 @@ import {
   DropdownOptionLabel,
   DropdownValue,
 } from "../Dropdown/Dropdown";
+import { DropdownChange } from "../Dropdown/DropdownChange";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -83,8 +84,17 @@ export interface EntityDropdownProps {
   // Drop-in compatibility with `Dropdown`.
   initialValue?: EntityDropdownValue | undefined;
   value?: EntityDropdownValue | undefined;
+  /*
+   * The value as the form keeps it (raw ids), and what the pick changed as
+   * the list showed it: the options picked now and before, with their labels
+   * (DropdownChange). A server-searched entry is often in no list the caller
+   * holds, so this is the one place its label is known.
+   */
   onChange?:
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void)
+    | ((
+        value: DropdownValue | Array<DropdownValue> | null,
+        change: DropdownChange,
+      ) => void)
     | undefined;
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
@@ -958,19 +968,47 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     }
   }, [availableOptions, filteredLabels, highlightedIndex, activeTab]);
 
-  const notify: (next: Array<string>) => void = useCallback(
-    (next: Array<string>): void => {
-      if (!props.onChange) {
-        return;
+  /*
+   * The options behind some keys, as the list knows them. A key whose label
+   * has not been resolved yet is left out: its raw id is no name.
+   */
+  const getKnownOptions: (keys: Array<string>) => Array<DropdownOption> = (
+    keys: Array<string>,
+  ): Array<DropdownOption> => {
+    const known: Array<DropdownOption> = [];
+
+    for (const key of keys) {
+      const option: DropdownOption | undefined =
+        optionsCacheRef.current.get(key);
+
+      if (option) {
+        known.push(option);
       }
-      if (isMulti) {
-        props.onChange(next as Array<DropdownValue>);
-        return;
-      }
-      props.onChange(next.length > 0 ? next[0]! : null);
-    },
-    [isMulti, props.onChange],
-  );
+    }
+
+    return known;
+  };
+
+  const notify: (next: Array<string>, previous: Array<string>) => void =
+    useCallback(
+      (next: Array<string>, previous: Array<string>): void => {
+        if (!props.onChange) {
+          return;
+        }
+
+        const change: DropdownChange = {
+          selectedOptions: getKnownOptions(next),
+          previousOptions: getKnownOptions(previous),
+        };
+
+        if (isMulti) {
+          props.onChange(next as Array<DropdownValue>, change);
+          return;
+        }
+        props.onChange(next.length > 0 ? next[0]! : null, change);
+      },
+      [isMulti, props.onChange],
+    );
 
   const addOption: (opt: DropdownOption) => void = (
     opt: DropdownOption,
@@ -983,13 +1021,13 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const next: Array<string> = [...selectedKeys, key];
       setSelectedKeys(next);
-      notify(next);
+      notify(next, selectedKeys);
       setSearchQuery("");
       inputRef.current?.focus();
       return;
     }
     setSelectedKeys([key]);
-    notify([key]);
+    notify([key], selectedKeys);
     setSearchQuery("");
     setIsOpen(false);
   };
@@ -999,12 +1037,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       return k !== key;
     });
     setSelectedKeys(next);
-    notify(next);
+    notify(next, selectedKeys);
   };
 
   const clearAll: () => void = (): void => {
     setSelectedKeys([]);
-    notify([]);
+    notify([], selectedKeys);
   };
 
   /*
@@ -1076,7 +1114,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
       const next: Array<string> = [...selectedKeys, ...additions];
       setSelectedKeys(next);
-      notify(next);
+      notify(next, selectedKeys);
       setSelectedLabelIds([]);
       setSearchQuery("");
       setActiveTab("options");

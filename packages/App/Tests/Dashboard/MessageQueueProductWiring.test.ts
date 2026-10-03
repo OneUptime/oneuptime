@@ -918,9 +918,16 @@ describe("the pages follow the house idioms", () => {
     expect(code).toContain("RouteMap[PageMap.MESSAGE_QUEUES] as Route");
     expect(code).toContain("const { id } = useParams();");
     expect(code).not.toContain("TelemetryResourceRetentionSettings");
-    for (const field of ["name: true", "description: true", "labels: true"]) {
-      expect(code).toContain(field);
+    const formStart: number = code.indexOf("formFields={[");
+    const formEnd: number = code.indexOf("modelDetailProps={{", formStart);
+    expect(formStart).toBeGreaterThan(-1);
+    expect(formEnd).toBeGreaterThan(formStart);
+    const form: string = code.slice(formStart, formEnd);
+    for (const field of ["name: true", "description: true"]) {
+      expect(form).toContain(field);
     }
+    // The labels come through the one shared labels field (#4303).
+    expect(form).toContain("getLabelsFormField<MessageQueue>()");
     expect(code).toContain("refreshMessageQueueHeader();");
     /*
      * No length rule on the name: a queue is named after its destination,
