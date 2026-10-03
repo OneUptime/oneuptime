@@ -57,6 +57,8 @@ import LogChartQueryEditor from "./LogChartQueryEditor";
 import DataSourceQueryEditor from "./DataSourceQueryEditor";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
@@ -80,6 +82,7 @@ interface SectionGroup {
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const variables: Array<DashboardVariable> | undefined = props.variables;
   const formRefs: React.MutableRefObject<
     Record<string, FormProps<FormValues<JSONObject>> | null>
@@ -382,7 +385,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
           <div className="mb-2">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Query 1
+              {translator.translateTemplate("Query {{number}}", { number: 1 })}
             </span>
           </div>
           <MetricQueryConfig
@@ -447,7 +450,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       if (!entityFilterModelType) {
         return (
           <ErrorMessage
-            message={`No entity filter model type configured for "${arg.name}".`}
+            message={translator.translateTemplate(
+              'No entity filter model type configured for "{{name}}".',
+              { name: arg.name },
+            )}
           />
         );
       }
@@ -705,7 +711,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Query {index + 2}
+                      {translator.translateTemplate("Query {{number}}", {
+                        number: index + 2,
+                      })}
                     </span>
                     <Button
                       title="Remove"
@@ -863,10 +871,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Formula{" "}
-                      {formulaConfig.metricAliasData?.metricVariable
-                        ? `(${formulaConfig.metricAliasData.metricVariable})`
-                        : index + 1}
+                      {translator.translateTemplate("Formula {{name}}", {
+                        name: formulaConfig.metricAliasData?.metricVariable
+                          ? `(${formulaConfig.metricAliasData.metricVariable})`
+                          : index + 1,
+                      })}
                     </span>
                   </div>
                   <MetricFormulaConfig
@@ -1119,11 +1128,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               {hasTableGroupByArg && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700">
-                    {tableGroupByArg?.name || "Group By Attributes"}
+                    {translator.translateText(
+                      tableGroupByArg?.name || "Group By Attributes",
+                    )}
                   </label>
                   {tableGroupByArg?.description && (
                     <p className="mt-1 text-xs text-gray-500">
-                      {tableGroupByArg.description}
+                      {translator.translateText(tableGroupByArg.description)}
                     </p>
                   )}
                   <div className="mt-2">
@@ -1166,7 +1177,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   {groupByAttributes.length > 0 && (
                     <div className="mt-3 space-y-2">
                       <p className="text-xs font-medium text-gray-600">
-                        Column headers
+                        {translator.translateText("Column headers")}
                       </p>
                       {groupByAttributes.map(
                         (
@@ -1210,14 +1221,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               {hasTableColumnsArg && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700">
-                    Filter by Attributes
+                    {translator.translateText("Filter by Attributes")}
                   </label>
                   <p className="mt-1 text-xs text-gray-500">
-                    Optional. Only include data where these attributes match —
-                    applied to every metric column. For example, filter
-                    oneuptime.host.environment = production to show this table
-                    for one environment/product only. Leave empty to include
-                    everything.
+                    {translator.translateText(
+                      "Optional. Only include data where these attributes match — applied to every metric column. For example, filter oneuptime.host.environment = production to show this table for one environment/product only. Leave empty to include everything.",
+                    )}
                   </p>
                   <div className="mt-2">
                     <DictionaryForm
@@ -1258,11 +1267,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               {hasTableColumnsArg && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {tableColumnsArg?.name || "Columns"}
+                    {translator.translateText(
+                      tableColumnsArg?.name || "Columns",
+                    )}
                   </label>
                   {tableColumnsArg?.description && (
                     <p className="mt-1 text-xs text-gray-500">
-                      {tableColumnsArg.description}
+                      {translator.translateText(tableColumnsArg.description)}
                     </p>
                   )}
                   <TableColumnsEditor

@@ -35,6 +35,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
 
@@ -271,6 +273,7 @@ export interface EntityFilterDropdownProps {
 const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
   props: EntityFilterDropdownProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [options, setOptions] = useState<Array<DropdownOption>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -401,7 +404,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
   if (isLoading) {
     return (
       <div className="text-xs text-gray-500 py-2 px-3 border border-gray-200 rounded-md bg-gray-50">
-        Loading options...
+        {translator.translateText("Loading options...")}
       </div>
     );
   }

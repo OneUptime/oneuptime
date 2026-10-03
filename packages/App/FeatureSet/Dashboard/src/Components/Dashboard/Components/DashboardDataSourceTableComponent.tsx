@@ -26,6 +26,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { JSONValue } from "Common/Types/JSON";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceTableComponentType;
@@ -42,6 +44,7 @@ type SortDirection = "asc" | "desc";
 const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [result, setResult] = useState<DataSourceTableResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -240,10 +243,10 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-xs font-medium text-gray-500">
-          {title || "Data Source Table"}
+          {title || translator.translateText("Data Source Table")}
         </p>
         <p className="text-xs text-gray-400 text-center">
-          Click to configure a query
+          {translator.translateText("Click to configure a query")}
         </p>
       </div>
     );
@@ -302,15 +305,20 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
-          {visibleRows.length} {visibleRows.length === 1 ? "row" : "rows"}
+          {translator.translatePlural(
+            { one: "{{count}} row", other: "{{count}} rows" },
+            visibleRows.length,
+          )}
           {result?.truncated || visibleRows.length < sortedRows.length
-            ? " (truncated)"
+            ? ` ${translator.translateText("(truncated)")}`
             : ""}
         </span>
       </div>
       {columns.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-xs text-gray-400">No rows returned.</p>
+          <p className="text-xs text-gray-400">
+            {translator.translateText("No rows returned.")}
+          </p>
         </div>
       ) : (
         <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
@@ -329,7 +337,7 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
                       onClick={(): void => {
                         toggleSort(column.key);
                       }}
-                      title="Click to sort"
+                      title={translator.translateText("Click to sort")}
                     >
                       {column.title}
                       {sortKey === column.key

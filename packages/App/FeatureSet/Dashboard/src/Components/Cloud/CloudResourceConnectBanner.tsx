@@ -80,7 +80,11 @@ const CloudResourceConnectBanner: FunctionComponent<ComponentProps> = (
                 to={documentationRoute}
                 className="text-sm font-medium text-indigo-600 hover:underline"
               >
-                {translator.translateText("Open the connection guide →")}
+                {
+                  translator.translateText(
+                    "Open the connection guide →",
+                  ) as string
+                }
               </AppLink>
             </div>
           </div>

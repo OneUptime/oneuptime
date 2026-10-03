@@ -870,7 +870,7 @@ describe("the trace chart widget's editor (TraceChartQueryEditor)", () => {
    */
   test("REGRESSION: a status split explains its colors instead of offering a lead color it ignores", () => {
     expect(TRACE_CHART_EDITOR.source).toContain(
-      '{isStatusSplit ? ( <p className="text-xs text-gray-500" data-testid="trace-chart-status-split-colors" > A split by status keeps each status&apos;s own color: Unset green, Ok cyan, Error red. To change one, pin its stored value below: 0 for Unset, 1 for Ok, 2 for Error. </p> ) : ( <SeriesColorSelector ',
+      '{isStatusSplit ? ( <p className="text-xs text-gray-500" data-testid="trace-chart-status-split-colors" > {translator.translateText( "A split by status keeps each status\'s own color: Unset green, Ok cyan, Error red. To change one, pin its stored value below: 0 for Unset, 1 for Ok, 2 for Error.", )} </p> ) : ( <SeriesColorSelector ',
     );
     expect(count(TRACE_CHART_EDITOR.source, "<SeriesColorSelector")).toBe(1);
   });
