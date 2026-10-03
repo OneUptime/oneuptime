@@ -437,7 +437,13 @@ describe("episode feeds", () => {
       expect(source).toContain("<FeedActionsMenu");
       expect(source).not.toContain("<span>Actions</span>");
       expect(source).toContain('text="Execute On-Call Policy"');
-      expect(source).toContain('text="Add Private Note"');
+      /*
+       * "Add Private Note" (and, on incident episodes, "Add Public Note")
+       * come from useFeedNoteActions, which opens the episode's Notes page
+       * composer in a dialog.
+       */
+      expect(source).toContain("...noteActions.menuItems,");
+      expect(source).toContain("{noteActions.dialog}");
       /*
        * The flat card buttons are gone, and so is the icon-only Refresh:
        * Refresh, the sort order and the filter are in the feed's ⋯ menu.
@@ -455,42 +461,30 @@ describe("episode feeds", () => {
   test("the incident episode feed can add a public note", () => {
     const source: string = readSquashed(EPISODE_PAGES[0]!.feedPath);
 
-    expect(source).toContain('text="Add Public Note"');
-    expect(source).toContain("modelType={IncidentEpisodePublicNote}");
-    expect(source).toContain(
-      "model.incidentEpisodeId = props.incidentEpisodeId!;",
-    );
-
     /*
-     * "Notify Status Page Subscribers" starts from the episode's own setting
-     * instead of always ticked, and is seeded as a form value because the
-     * form drops a false default. IncidentEpisodeNoteNotifyDefaultWiring
-     * covers the rest.
+     * "Notify status page subscribers" starts from the episode's own setting
+     * instead of always ticked: the dialog's kind is built from it.
+     * IncidentEpisodeNoteNotifyDefaultWiring covers the rest.
      */
-    const publicNoteModal: string = source.slice(
-      indexOfOrFail(source, "{showPublicNoteModal && ("),
+    expect(source).toContain(
+      "publicNoteKind: getIncidentEpisodePublicNoteKind({ incidentEpisodeId: props.incidentEpisodeId, isNotifyingByDefault: notifySubscribersByDefault, }),",
     );
-    const publicNoteForm: string = publicNoteModal.slice(
-      0,
-      indexOfOrFail(publicNoteModal, "formType: FormType.Create,"),
+    expect(source).toContain(
+      "privateNoteKind: getIncidentEpisodePrivateNoteKind({ incidentEpisodeId: props.incidentEpisodeId, }),",
     );
-
-    expect(publicNoteForm).toContain(
-      "{ field: { shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true, }, fieldType: FormFieldSchemaType.Checkbox,",
+    expect(source).not.toContain(
+      "<ModelFormModal modalWidth={ModalWidth.Large}",
     );
-    expect(publicNoteForm).toContain(
-      "initialValues={{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifySubscribersByDefault, }}",
-    );
-    expect(publicNoteForm).toContain(
-      "defaultValue: notifySubscribersByDefault,",
-    );
-    expect(publicNoteForm).not.toContain("defaultValue: true");
   });
 
   test("alert episodes have no public notes, so their feed offers none", () => {
     const source: string = readSquashed(EPISODE_PAGES[1]!.feedPath);
 
     expect(source).not.toContain("Add Public Note");
+    expect(source).not.toContain("publicNoteKind");
+    expect(source).toContain(
+      "privateNoteKind: getAlertEpisodePrivateNoteKind({ alertEpisodeId: props.alertEpisodeId, }),",
+    );
   });
 });
 

@@ -90,7 +90,7 @@ export const EDITORS_OUTSIDE_FORM_DIALOGS: Array<ListedEditor> = [
   {
     file: `${DASHBOARD}/Components/EventNotes/NoteComposer.tsx`,
     reason:
-      "The notes feed's composer, on the incident, alert, scheduled maintenance and episode note pages themselves: as wide as the feed, which is the page's main column. Its toolbar fits itself to that width and puts the rest under More formatting.",
+      "The notes feed's composer, on the incident, alert, scheduled maintenance and episode note pages themselves: as wide as the feed, which is the page's main column. Its toolbar fits itself to that width and puts the rest under More formatting. The overview feeds' Add Public Note / Add Private Note draw the same composer inside a ModalWidth.Large dialog (EventNoteComposer).",
   },
   {
     file: `${DASHBOARD}/Components/Form/Monitor/MonitorCriteriaIncidentForm.tsx`,
