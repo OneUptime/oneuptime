@@ -6,11 +6,12 @@ import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
  *
  * A record's own ID is something people copy - into an API call, a support
  * ticket, a Terraform import - and almost never something they read. Yet some
- * thirty-five details cards led with it: a 36-character UUID in a bordered
- * pill, as the first field, above the record's name. So Detail no longer
- * draws the record's own ID as a field. It goes on one small line under the
- * fields - "ID", the first characters, a copy button - with the whole ID in
- * the tooltip, in the copy, and in the page's text for find-in-page.
+ * thirty-five details cards showed it as a field: a 36-character UUID in a
+ * bordered pill, usually the first one, above the record's name. So Detail
+ * no longer draws the record's own ID as a field. It goes on one small line
+ * under the fields - "ID", the first characters, a copy button - with the
+ * whole ID in the tooltip, in the copy, and in the page's text for
+ * find-in-page.
  *
  * "The record's own ID" is a FieldType.ObjectID field on `_id`. Other IDs
  * stay fields: a related record's (the project ID on an API key) or one the
