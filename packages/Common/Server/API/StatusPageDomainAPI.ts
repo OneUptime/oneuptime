@@ -21,10 +21,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import CustomDomainVerification, {
   CustomDomainVerificationResult,
-} from "../../Types/StatusPage/CustomDomainVerification";
+} from "../../Types/CustomDomain/CustomDomainVerification";
 import CustomDomainCertificates, {
   CustomDomainCertificate,
-} from "../../Types/StatusPage/CustomDomainCertificates";
+} from "../../Types/CustomDomain/CustomDomainCertificates";
 import CertificateOrder from "../Utils/Greenlock/CertificateOrder";
 
 export default class StatusPageDomainAPI extends BaseAPI<

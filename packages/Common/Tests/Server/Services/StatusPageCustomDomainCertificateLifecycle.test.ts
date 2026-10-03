@@ -57,8 +57,8 @@ import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsEx
 import {
   CustomDomainCertificateStatus,
   CustomDomainVerificationResult,
-} from "../../../Types/StatusPage/CustomDomainVerification";
-import { CustomDomainCertificate } from "../../../Types/StatusPage/CustomDomainCertificates";
+} from "../../../Types/CustomDomain/CustomDomainVerification";
+import { CustomDomainCertificate } from "../../../Types/CustomDomain/CustomDomainCertificates";
 import {
   InMemoryRedis,
   useInMemoryRedis,

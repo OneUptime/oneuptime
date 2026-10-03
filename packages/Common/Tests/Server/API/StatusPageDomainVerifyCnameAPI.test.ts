@@ -118,7 +118,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { CustomDomainCertificateStatus } from "../../../Types/StatusPage/CustomDomainVerification";
+import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
