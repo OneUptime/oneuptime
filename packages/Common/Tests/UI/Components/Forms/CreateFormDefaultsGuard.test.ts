@@ -72,6 +72,13 @@ interface ListedSwitch {
   reason: string;
 }
 
+/*
+ * Shared by both lists: the one rule that is created off, and so the one
+ * rule form, grouping rules aside, that still asks.
+ */
+const AUTO_IMPORT_RULES_REASON: string =
+  "Saving an enabled import rule imports the hosts discovered in the last day within a minute, and each one becomes a monitored device - so a new rule starts off, is tried with Dry Run (which works on a disabled rule) and is switched on after, the way the Network Device docs describe it.";
+
 const ADMIN_ADDED_SUBSCRIBER_MESSAGE_REASON: string =
   'Someone an admin adds to a status page is sent a "you have subscribed" message only when the admin asks for one. The column defaults to on for people who subscribe themselves on the status page.';
 
@@ -123,6 +130,12 @@ export const SWITCHES_OFF_THEIR_COLUMN_DEFAULT: Array<ListedSwitch> = [
     reason:
       "Adding a compliance rule from this dialog is asking for members to be checked, so it starts on. The column keeps the API's default of off.",
   },
+  {
+    file: `${DASHBOARD}/Pages/NetworkDevice/Settings/AutoImportRules.tsx`,
+    form: "ModelTable: Settings > Network Device Auto Import Rules",
+    key: "isEnabled",
+    reason: AUTO_IMPORT_RULES_REASON,
+  },
 ];
 
 interface ListedForm {
@@ -149,8 +162,7 @@ export const RULE_FORMS_ASKING_ENABLED: Array<ListedForm> = [
   {
     file: `${DASHBOARD}/Pages/NetworkDevice/Settings/AutoImportRules.tsx`,
     form: "ModelTable: Settings > Network Device Auto Import Rules",
-    reason:
-      "An import rule turns discovered hosts into monitored devices on the next scan. It starts on, but its create form keeps the switch so a rule can be added off and tried with Dry Run first.",
+    reason: AUTO_IMPORT_RULES_REASON,
   },
 ];
 
