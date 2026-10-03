@@ -327,7 +327,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     });
   }
 
-  test("Settings > SSO offers the Force SSO card, editable", async (): Promise<void> => {
+  test("Settings > SSO offers the Require SSO switch, unlocked", async (): Promise<void> => {
     const page: Page = shared.page;
 
     await page.goto(`${origin}/dashboard/${shared.projectId}/settings/sso`, {
@@ -335,17 +335,25 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     });
 
     /*
-     * "Require SSO for login" is core too, so its card is always there and
-     * always editable - it is never locked behind a licence.
+     * "Require SSO for login" is core too, so its switch is always there and
+     * can always be flipped - it is never locked behind a licence. (It saves
+     * when flipped and asks first; this only looks, so nothing is required.)
      */
     await expect(
       page.getByRole("heading", { name: "SSO Settings", exact: true }),
     ).toBeVisible({ timeout: 60000 });
 
+    const requireSso: Locator = page.getByRole("switch", {
+      name: "Require SSO for Login",
+      exact: true,
+    });
+
+    await expect(requireSso).toBeVisible({ timeout: 60000 });
+
     await expect(
-      page.getByRole("button", { name: "Edit Settings", exact: true }),
-      "The Force SSO card must offer its Edit Settings button to the project owner.",
-    ).toBeEnabled({ timeout: 60000 });
+      requireSso,
+      "The Require SSO switch must be unlocked for the project owner.",
+    ).not.toHaveAttribute("aria-disabled", "true", { timeout: 60000 });
   });
 
   test("the edition label reports the Enterprise Edition", async (): Promise<void> => {

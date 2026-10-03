@@ -39,7 +39,11 @@ import {
  * status page visibility and on/off switches save on flip, and no card
  * under those pages may be listed. So are the AI settings pages: every AI
  * behaviour there (Enable AI, investigating, drafting postmortems, opening
- * fix pull requests, AI Insights) is a switch that saves on flip.
+ * fix pull requests, AI Insights) is a switch that saves on flip. So are
+ * Project Settings and the admin dashboard: customer support access,
+ * monitor groups, requiring SSO, sign up, project creation and master
+ * admin save on flip, and nothing under the Dashboard's Pages/Settings may
+ * be listed, and nothing in the admin dashboard at all.
  *
  * Tables are not judged here: a table row's edit form with one switch (a
  * network interface's "Monitor this Interface") edits one row of many.
@@ -65,7 +69,6 @@ const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
  * the batch converts yet.
  */
 export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [
-  "project-admin-one-switch-cards",
   "dashboard-sharing-one-choice",
   "status-page-access-one-choice",
   "",
@@ -84,75 +87,10 @@ export interface OneSwitchCardLeft {
   reason: string;
 }
 
-const ADMIN_TASK: string = "project-admin-one-switch-cards";
 const STATUS_PAGE_ACCESS_TASK: string = "status-page-access-one-choice";
 const DASHBOARD_SHARING_TASK: string = "dashboard-sharing-one-choice";
 
 export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [
-  // Project settings and the admin dashboard.
-  {
-    file: `${DASHBOARD}/Pages/Settings/FeatureFlags.tsx`,
-    column: "isFeatureFlagMonitorGroupsEnabled",
-    card: "Feature Flags (Enable Monitor Groups)",
-    task: ADMIN_TASK,
-    reason: "A project setting, converted with the other project admin cards.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Settings/ProjectSettings.tsx`,
-    column: "letCustomerSupportAccessProject",
-    card: "Enable Customer Support Access",
-    task: ADMIN_TASK,
-    reason:
-      "Lets OneUptime support into the project: converted with the other project admin cards.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
-    column: "requireSsoForLogin",
-    card: "SSO Settings (Force SSO for Login)",
-    task: ADMIN_TASK,
-    reason:
-      "Requiring SSO locks out everyone who signs in with a password: as a switch it must ask before it turns on (ModelSwitchRow getConfirmation).",
-  },
-  {
-    file: `${ADMIN_DASHBOARD}/Pages/Projects/View/Support.tsx`,
-    column: "letCustomerSupportAccessProject",
-    card: "Customer Support Access",
-    task: ADMIN_TASK,
-    reason:
-      "The admin dashboard's view of a project's support access. It saves through AdminModelAPI: pass it as the row's modelAPI.",
-  },
-  {
-    file: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
-    column: "disableSignup",
-    card: "Authentication Settings (Disable Sign Up)",
-    task: ADMIN_TASK,
-    reason:
-      "An instance setting on the admin dashboard, inverted on disableSignup (a switch reads on = people can sign up).",
-  },
-  {
-    file: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
-    column: "requireSsoForLogin",
-    card: "SSO Settings (Require SSO for Login)",
-    task: ADMIN_TASK,
-    reason:
-      "Requiring SSO for the whole instance can lock people out: it must ask before it turns on.",
-  },
-  {
-    file: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
-    column: "disableUserProjectCreation",
-    card: "Project Creation Settings (Restrict Project Creation to Admins Only)",
-    task: ADMIN_TASK,
-    reason: "An instance setting on the admin dashboard.",
-  },
-  {
-    file: `${ADMIN_DASHBOARD}/Pages/Users/View/Settings.tsx`,
-    column: "isMasterAdmin",
-    card: "Master Admin",
-    task: ADMIN_TASK,
-    reason:
-      "Makes a user a master admin, or stops them being one: it must ask both ways.",
-  },
-
   // Who may see a dashboard.
   {
     file: `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
@@ -619,6 +557,129 @@ describe("one-switch cards in the frontends", () => {
           column,
         };
       }),
+    ];
+
+    for (const card of retired) {
+      const fieldsWritingIt: Array<FormFieldFacts> = forms
+        .filter((form: FormFacts): boolean => {
+          return form.file === card.file && isCard(form);
+        })
+        .flatMap((form: FormFacts): Array<FormFieldFacts> => {
+          return form.fields;
+        })
+        .filter((field: FormFieldFacts): boolean => {
+          return field.key === card.column;
+        });
+
+      expect([card.file, card.column, fieldsWritingIt.length]).toEqual([
+        card.file,
+        card.column,
+        0,
+      ]);
+    }
+  });
+
+  /*
+   * Project Settings and the admin dashboard: customer support access,
+   * monitor groups, requiring SSO (the project's and the whole server's),
+   * sign up, project creation, master admin and Enable AI are switches
+   * that save on flip, asking first where one can lock people out or
+   * stop every AI feature. No card under the Dashboard's Pages/Settings
+   * may be listed, the admin dashboard has none, and neither may an
+   * Enterprise admin screen.
+   */
+  test("Project Settings and the admin dashboard have no one-switch card", () => {
+    const areas: Array<{ directory: string; ownedBy: Array<string> }> = [
+      { directory: `${DASHBOARD}/Pages/Settings/`, ownedBy: [] },
+      { directory: `${ADMIN_DASHBOARD}/`, ownedBy: [] },
+      { directory: "ee/AdminDashboard/", ownedBy: [] },
+    ];
+
+    for (const area of areas) {
+      const unowned: Array<string> = cards
+        .filter((form: FormFacts): boolean => {
+          if (!form.file.startsWith(area.directory)) {
+            return false;
+          }
+
+          const entry: OneSwitchCardLeft | undefined =
+            ONE_SWITCH_CARDS_LEFT.find(
+              (candidate: OneSwitchCardLeft): boolean => {
+                return (
+                  candidate.file === form.file &&
+                  candidate.column === columnOf(form)
+                );
+              },
+            );
+
+          return !entry || !area.ownedBy.includes(entry.task);
+        })
+        .map(describeCard);
+
+      expect([area.directory, unowned]).toEqual([area.directory, []]);
+
+      const listed: Array<string> = ONE_SWITCH_CARDS_LEFT.filter(
+        (entry: OneSwitchCardLeft): boolean => {
+          return (
+            entry.file.startsWith(area.directory) &&
+            !area.ownedBy.includes(entry.task)
+          );
+        },
+      ).map((entry: OneSwitchCardLeft): string => {
+        return `${entry.file} (${entry.column})`;
+      });
+
+      expect([area.directory, listed]).toEqual([area.directory, []]);
+    }
+
+    // The walk really reads both dashboards' settings pages.
+    for (const directory of [
+      `${DASHBOARD}/Pages/Settings/`,
+      `${ADMIN_DASHBOARD}/Pages/`,
+    ]) {
+      expect([
+        directory,
+        forms.filter((form: FormFacts): boolean => {
+          return form.file.startsWith(directory) && isCard(form);
+        }).length > 0,
+      ]).toEqual([directory, true]);
+    }
+  });
+
+  test("the cards Project Settings and the admin dashboard converted stay converted", () => {
+    const retired: Array<{ file: string; column: string }> = [
+      {
+        file: `${DASHBOARD}/Pages/Settings/ProjectSettings.tsx`,
+        column: "letCustomerSupportAccessProject",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Settings/FeatureFlags.tsx`,
+        column: "isFeatureFlagMonitorGroupsEnabled",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
+        column: "requireSsoForLogin",
+      },
+      {
+        file: `${ADMIN_DASHBOARD}/Pages/Projects/View/Support.tsx`,
+        column: "letCustomerSupportAccessProject",
+      },
+      {
+        file: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
+        column: "disableSignup",
+      },
+      {
+        file: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
+        column: "requireSsoForLogin",
+      },
+      {
+        file: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
+        column: "disableUserProjectCreation",
+      },
+      {
+        file: `${ADMIN_DASHBOARD}/Pages/Users/View/Settings.tsx`,
+        column: "isMasterAdmin",
+      },
     ];
 
     for (const card of retired) {
