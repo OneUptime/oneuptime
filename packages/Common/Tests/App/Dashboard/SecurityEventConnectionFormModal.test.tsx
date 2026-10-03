@@ -1035,13 +1035,14 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
     expect(
       screen.getByRole("dialog", { name: "Update credentials: Acme Okta" }),
     ).toBeVisible();
+    /*
+     * Credentials is the one step left, so the dialog is that one page:
+     * no step list beside it saying "Credentials" on its own.
+     */
+    expect(await screen.findByLabelText(/^API token/)).toBeVisible();
     expect(
-      within(progress())
-        .getAllByRole("listitem")
-        .map((item: HTMLElement): string => {
-          return item.textContent || "";
-        }),
-    ).toEqual(["Credentials"]);
+      within(dialog()).queryByRole("navigation", { name: "Progress" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText(/^Okta organization URL/),
     ).not.toBeInTheDocument();
@@ -1673,14 +1674,11 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
         name: "Update credentials: Customer SecOps",
       }),
     ).toBeVisible();
-    expect(
-      within(progress())
-        .getAllByRole("listitem")
-        .map((item: HTMLElement): string => {
-          return item.textContent || "";
-        }),
-    ).toEqual(["Credentials"]);
     expect(serviceAccountEditor().tagName).toBe("TEXTAREA");
+    // The one step left is the page: no step list of one.
+    expect(
+      within(dialog()).queryByRole("navigation", { name: "Progress" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("group", { name: "Data to import" }),
     ).not.toBeInTheDocument();

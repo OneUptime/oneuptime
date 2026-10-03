@@ -512,7 +512,7 @@ const mockProbeRows: () => void = (): void => {
     return listOf([]);
   });
 
-  // The Global Probe Settings card under the tables reads the project.
+  // The "Global Probes on New Monitors" switch under the tables reads the project.
   getItemMock.mockResolvedValue(null as never);
 };
 

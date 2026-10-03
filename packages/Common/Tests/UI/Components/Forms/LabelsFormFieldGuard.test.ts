@@ -802,11 +802,15 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     ),
     longOnePageRows: 4,
   },
+  /*
+   * Name and "Who takes turns?" (OnCallScheduleCreateForm.ts); how long each
+   * turn lasts and the timezone fold with the description and the labels.
+   */
   onePage(
     `${DASHBOARD}/Pages/OnCallDuty/OnCallDutySchedules.tsx`,
     "ModelTable: On-Call > Schedules",
-    ["name", "timezone"],
-    ["description", "labels"],
+    ["name", "SCHEDULE_TAKES_TURNS_FIELD_KEY"],
+    ["SCHEDULE_TURN_LENGTH_FIELD_KEY", "timezone", "description", "labels"],
   ),
   onePage(
     `${DASHBOARD}/Pages/Runbook/Runbooks.tsx`,

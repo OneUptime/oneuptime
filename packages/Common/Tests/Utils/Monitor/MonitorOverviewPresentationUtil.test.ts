@@ -19,6 +19,7 @@ import MonitorOverviewFamilyUtil, {
   MonitorOverviewSetupKind,
 } from "../../../Utils/Monitor/MonitorOverviewFamily";
 import MonitorOverviewPresentationUtil, {
+  isMonitorOverviewActionCallToAction,
   MONITOR_LOG_MINIMUM_RETENTION_SECONDS,
   MonitorOverviewFact,
   MonitorOverviewPresentation,
@@ -887,10 +888,17 @@ describe("MonitorOverviewPresentationUtil hero", () => {
       "No checks run while monitoring is off, so the status stays at the last one recorded.",
     );
     expect(disabled.lastKnownStatus).toBe("Last recorded status: Operational");
+    /*
+     * Turned off by someone: the hero turns it back on in place, rather
+     * than sending the reader to Settings to look for the switch.
+     */
     expect(disabled.callToAction).toEqual({
-      text: "Open settings",
-      linkKey: "settings",
+      text: "Turn monitoring on",
+      actionKey: "turnMonitoringOn",
     });
+    expect(isMonitorOverviewActionCallToAction(disabled.callToAction!)).toBe(
+      true,
+    );
 
     const byIncident: MonitorOverviewPresentation = build(SCENARIOS[2]!.input);
 
@@ -903,6 +911,10 @@ describe("MonitorOverviewPresentationUtil hero", () => {
       text: "View incidents",
       linkKey: "incidents",
     });
+    // An incident's pause is not switched off: it ends with the incident.
+    expect(isMonitorOverviewActionCallToAction(byIncident.callToAction!)).toBe(
+      false,
+    );
 
     const maintenance: MonitorOverviewPresentation = build(SCENARIOS[3]!.input);
 

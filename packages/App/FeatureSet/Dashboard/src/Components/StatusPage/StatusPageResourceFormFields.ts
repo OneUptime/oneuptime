@@ -11,6 +11,7 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import type { ReactElement } from "react";
@@ -52,43 +53,22 @@ export type GetDisplayNameAfterPickFunction = (data: {
  * the name the form filled in, or the name of what was picked before (an
  * Edit form whose display name was never changed from its monitor's). Null
  * when it stays as it is: somebody typed a name of their own, the pick was
- * cleared, or the list could not say what was picked.
+ * cleared, or the list could not say what was picked. The rule is shared
+ * with every name a form fills in from a pick (Forms/Utils/FollowPickName).
  */
 export const getDisplayNameAfterPick: GetDisplayNameAfterPickFunction = (data: {
   displayName: unknown;
   filledInDisplayName: unknown;
   change: DropdownChange | undefined;
 }): string | null => {
-  const pickedName: string | null = getPickedLabel(
-    data.change?.selectedOptions,
-  );
-
-  if (pickedName === null) {
-    return null;
-  }
-
-  const displayName: string =
-    typeof data.displayName === "string" ? data.displayName : "";
-
-  const filledInDisplayName: string | null =
-    typeof data.filledInDisplayName === "string"
-      ? data.filledInDisplayName
-      : null;
-
-  const previousName: string | null = getPickedLabel(
-    data.change?.previousOptions,
-  );
-
-  const isTheFormsOwn: boolean =
-    displayName.trim().length === 0 ||
-    displayName === filledInDisplayName ||
-    displayName === previousName;
-
-  if (!isTheFormsOwn) {
-    return null;
-  }
-
-  return pickedName;
+  return getNameAfterPick({
+    name: data.displayName,
+    pickedName: getPickedLabel(data.change?.selectedOptions),
+    filledInNames: [
+      data.filledInDisplayName,
+      getPickedLabel(data.change?.previousOptions),
+    ],
+  });
 };
 
 type FollowPickFunction = (

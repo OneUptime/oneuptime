@@ -9,6 +9,7 @@ import React, {
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -39,6 +40,18 @@ export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
   onClose?: (() => void) | undefined;
 }
+
+/*
+ * What a key created from each guide is called until the reader renames
+ * it: the product the guide belongs to.
+ */
+const NEW_KEY_NAME_FOR_TYPE: Record<TelemetryType, string> = {
+  logs: translationKey("Logs key"),
+  metrics: translationKey("Metrics key"),
+  traces: translationKey("Traces key"),
+  exceptions: translationKey("Exceptions key"),
+  profiles: translationKey("Profiles key"),
+};
 
 type Language =
   | "node"
@@ -1380,12 +1393,16 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         /*
          * On a browser guide the picker is narrowed to Browser keys so a
          * server secret is never offered for pasting into a page. Every
-         * other guide passes undefined and keeps the picker exactly as it
-         * has always behaved.
+         * other guide runs on infrastructure the customer controls, which
+         * sends no Origin header - a Browser key would be refused there -
+         * so it lists and makes Server keys.
          */
         keyTypeFilter={
-          isBrowserSdkGuide ? TelemetryIngestionKeyType.Browser : undefined
+          isBrowserSdkGuide
+            ? TelemetryIngestionKeyType.Browser
+            : TelemetryIngestionKeyType.Server
         }
+        newKeyName={NEW_KEY_NAME_FOR_TYPE[telemetryType]}
         onSelectedKeyChange={setSelectedKey}
       />
     );

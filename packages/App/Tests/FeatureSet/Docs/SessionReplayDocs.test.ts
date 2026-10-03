@@ -244,7 +244,8 @@ describe("Session Replay docs page", (): void => {
     for (const relative of [
       "Common/Models/DatabaseModels/RumApplication.ts",
       "Common/Models/DatabaseModels/TelemetryIngestionKey.ts",
-      "App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeys.tsx",
+      // The create form Settings and every setup guide share.
+      "App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeyForm.ts",
       "App/FeatureSet/Dashboard/src/Pages/Settings/TelemetryIngestionKeyView.tsx",
       "App/FeatureSet/Dashboard/src/Components/Telemetry/IngestionKeySelector.tsx",
     ]) {

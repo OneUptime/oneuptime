@@ -30,18 +30,29 @@ import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngesti
 import { ComponentProps as CodeEditorProps } from "../../../UI/Components/CodeEditor/CodeEditor";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
+import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Exercise the production page's field and step configuration through the real
- * modal, ModelForm, BasicForm, validation and summary. The table is replaced by
- * its open-create-modal state, and only transport, permissions and Monaco's
- * browser-only editor are stubbed. This catches fields that are assigned to the
- * wrong step as well as values lost between steps or omitted from submission.
+ * Settings > Telemetry Ingestion Keys > Create, through the real modal,
+ * ModelForm, BasicForm and validation, with the page's own form
+ * (Components/Telemetry/IngestionKeyForm). The table is replaced by its
+ * open-create-modal state - which also reports a create the way the table
+ * does (onCreateSuccess) - and only transport, permissions and the code
+ * editor are stubbed.
+ *
+ * What the user gets: a Server key on a paid plan is one page and one
+ * click - the name already filled in, Server picked, the description folded
+ * under Advanced - and the new key opens on its own page, where its secret
+ * is. A Browser key walks on to its allowed origins; the Free plan to the
+ * pricing, which has to be shown before the key can be created.
  */
+
+const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
+const KEY_ID: string = "22222222-2222-4222-8222-222222222222";
 
 let isFreePlan: boolean = false;
 let capturedTableProps: ModelTableProps<TelemetryIngestionKey> | null = null;
@@ -63,7 +74,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           initialValues={props.createInitialValues}
           submitButtonText="Create Ingestion Key"
           onClose={closeMock}
-          onSuccess={successMock}
+          onSuccess={(item: TelemetryIngestionKey): void => {
+            successMock(item);
+            props.onCreateSuccess?.(item, ModalType.Create);
+          }}
           onBeforeCreate={props.onBeforeCreate}
           formProps={{
             id: "create-ingestion-key-form",
@@ -186,8 +200,6 @@ jest.mock("../../../UI/Components/CodeEditor/CodeEditor", () => {
   };
 });
 
-const NAME: string = "Storefront telemetry";
-const DESCRIPTION: string = "Production website and collector telemetry";
 const ORIGINS: string = '["https://app.example.com", "https://*.example.org"]';
 const SERVICE: string = "storefront-web";
 
@@ -195,15 +207,50 @@ function dialog(): HTMLElement {
   return screen.getByRole("dialog", { name: "Create New Ingestion Key" });
 }
 
-function progress(): HTMLElement {
-  return within(dialog()).getByRole("navigation", { name: "Progress" });
+function nameInput(): HTMLElement {
+  return within(dialog()).getByPlaceholderText("Ingestion Key Name");
+}
+
+function descriptionInput(): HTMLElement {
+  return within(dialog()).getByPlaceholderText("Ingestion Key Description");
+}
+
+function mainButton(): HTMLElement {
+  return within(dialog()).getByTestId("modal-footer-submit-button");
+}
+
+function progress(): HTMLElement | null {
+  return within(dialog()).queryByRole("navigation", { name: "Progress" });
 }
 
 function activeStep(): string {
-  return progress().querySelector('[aria-current="step"]')?.textContent || "";
+  return progress()?.querySelector('[aria-current="step"]')?.textContent || "";
 }
 
-async function renderWizard(): Promise<UserEvent> {
+function stepTitles(): Array<string> {
+  const list: HTMLElement | null = progress();
+
+  if (!list) {
+    return [];
+  }
+
+  return within(list)
+    .getAllByRole("listitem")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+// The Advanced header on the step on screen.
+function advancedHeader(): HTMLElement {
+  return within(dialog()).getByRole("button", { name: /^Advanced/ });
+}
+
+function card(keyType: TelemetryIngestionKeyType): HTMLElement {
+  return within(dialog()).getByTestId(`card-select-option-${keyType}`);
+}
+
+async function renderPage(): Promise<UserEvent> {
   await act(async (): Promise<void> => {
     render(
       <MemoryRouter>
@@ -217,519 +264,459 @@ async function renderWizard(): Promise<UserEvent> {
   });
   await screen.findByPlaceholderText("Ingestion Key Name");
   await waitFor(() => {
-    expect(dialog()).toBeVisible();
+    expect(nameInput()).toHaveValue("Server key");
+  });
+  /*
+   * An input shows its field's default before BasicForm has taken it into
+   * its values, and BasicForm never fills in a form someone has typed into:
+   * let it settle before typing.
+   */
+  await act(async (): Promise<void> => {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
   });
   return userEvent.setup({ delay: null });
 }
 
-async function next(user: UserEvent): Promise<void> {
-  await user.click(
-    await within(dialog()).findByRole("button", { name: "Next" }),
-  );
-}
-
-async function enterDetails(
-  user: UserEvent,
-  description?: string,
-): Promise<void> {
-  fireEvent.change(screen.getByPlaceholderText("Ingestion Key Name"), {
-    target: { value: NAME },
-  });
-  if (description) {
-    fireEvent.change(screen.getByPlaceholderText("Ingestion Key Description"), {
-      target: { value: description },
-    });
-  }
-  await next(user);
-  await screen.findByRole("radiogroup", { name: "Key Type" });
-}
-
-async function selectType(
+async function pickType(
   user: UserEvent,
   keyType: TelemetryIngestionKeyType,
 ): Promise<void> {
-  await user.click(screen.getByTestId(`card-select-option-${keyType}`));
+  await user.click(card(keyType));
   await waitFor(() => {
-    expect(screen.getByTestId(`card-select-option-${keyType}`)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    if (keyType === TelemetryIngestionKeyType.Browser) {
-      expect(within(progress()).getByText("Browser Settings")).toBeVisible();
-    } else {
-      expect(
-        within(progress()).queryByText("Browser Settings"),
-      ).not.toBeInTheDocument();
-    }
+    expect(card(keyType)).toHaveAttribute("aria-checked", "true");
   });
 }
 
-async function enterBrowserSettings(user: UserEvent): Promise<void> {
-  await selectType(user, TelemetryIngestionKeyType.Browser);
-  await next(user);
-  await screen.findByRole("textbox", { name: "Allowed Origins" });
-}
-
-async function goBackTo(user: UserEvent, title: string): Promise<void> {
-  await user.click(within(progress()).getByText(title));
+async function goToBrowserSettings(user: UserEvent): Promise<void> {
+  await pickType(user, TelemetryIngestionKeyType.Browser);
   await waitFor(() => {
-    expect(activeStep()).toBe(title);
+    expect(mainButton()).toHaveTextContent("Next");
+  });
+  await user.click(mainButton());
+  await within(dialog()).findByRole("textbox", { name: "Allowed Origins" });
+  await waitFor(() => {
+    expect(activeStep()).toBe("Browser Settings");
   });
 }
 
-async function expectSummary(): Promise<void> {
-  await waitFor(() => {
-    expect(activeStep()).toBe("Summary");
-  });
-  const createButton: HTMLElement = await within(dialog()).findByRole(
-    "button",
-    {
-      name: "Create Ingestion Key",
-    },
-  );
-  await waitFor(() => {
-    expect(createButton).toBeEnabled();
-  });
-  expect(createOrUpdateMock).not.toHaveBeenCalled();
+function originsInput(): HTMLElement {
+  return within(dialog()).getByRole("textbox", { name: "Allowed Origins" });
 }
 
-async function submit(user: UserEvent): Promise<TelemetryIngestionKey> {
-  await user.click(
-    await within(dialog()).findByRole("button", {
-      name: "Create Ingestion Key",
-    }),
-  );
+interface CreateRequest {
+  model: TelemetryIngestionKey;
+  miscDataProps: JSONObject;
+}
+
+async function create(user: UserEvent): Promise<CreateRequest> {
+  await waitFor(() => {
+    expect(mainButton()).toHaveTextContent("Create Ingestion Key");
+  });
+  await user.click(mainButton());
   await waitFor(() => {
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     expect(successMock).toHaveBeenCalledTimes(1);
   });
-  return (
-    createOrUpdateMock.mock.calls[0]?.[0] as {
-      model: TelemetryIngestionKey;
-    }
-  ).model;
+  return createOrUpdateMock.mock.calls[0]?.[0] as CreateRequest;
 }
 
-describe("Telemetry ingestion key creation wizard", () => {
+describe("Settings > Telemetry Ingestion Keys > Create", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     isFreePlan = false;
     capturedTableProps = null;
-    createOrUpdateMock.mockReset().mockResolvedValue({ data: {} });
+    createOrUpdateMock.mockReset().mockResolvedValue({
+      data: { _id: KEY_ID, name: "Server key" },
+    });
     closeMock.mockReset();
     successMock.mockReset();
     jest
       .spyOn(ProjectUtil, "getCurrentProjectId")
-      .mockReturnValue(new ObjectID("11111111-1111-4111-8111-111111111111"));
+      .mockReturnValue(new ObjectID(PROJECT_ID));
     jest
       .spyOn(Navigation, "getCurrentRoute")
       .mockReturnValue(new Route("/settings/telemetry-ingestion-keys"));
+    jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  test("opens with only name and description and cannot skip to an unfinished step", async () => {
-    const user: UserEvent = await renderWizard();
-    expect(screen.getByPlaceholderText("Ingestion Key Name")).toBeVisible();
-    expect(
-      screen.getByPlaceholderText("Ingestion Key Description"),
-    ).toBeVisible();
-    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("textbox", { name: "Allowed Origins" }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(progress()).queryByText("Browser Settings"),
-    ).not.toBeInTheDocument();
-    expect(within(progress()).queryByText("Billing")).not.toBeInTheDocument();
-    expect(
-      within(dialog()).queryByRole("button", { name: "Back" }),
-    ).not.toBeInTheDocument();
-    expect(capturedTableProps?.formSteps?.[0]?.id).toBe("details");
+  describe("a Server key on a paid plan", () => {
+    test("is one page: the name filled in, Server picked, the description folded, nothing to walk", async () => {
+      await renderPage();
 
-    await user.click(within(progress()).getByText("Key Type"));
-    await user.click(within(progress()).getByText("Summary"));
-
-    expect(screen.getByPlaceholderText("Ingestion Key Name")).toBeVisible();
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-  });
-
-  test.each(["", "A", "   "])(
-    "keeps invalid name %j on the details step with an inline error",
-    async (name: string) => {
-      const user: UserEvent = await renderWizard();
-      if (name) {
-        await user.type(
-          screen.getByPlaceholderText("Ingestion Key Name"),
-          name,
-        );
-      }
-      await next(user);
-
+      expect(nameInput()).toBeVisible();
+      expect(nameInput()).toHaveValue("Server key");
       expect(
-        await screen.findByText(
-          name ? /Name cannot be less than 2/ : "Name is required.",
-        ),
+        within(dialog()).getByRole("radiogroup", { name: "Key Type" }),
       ).toBeVisible();
-      expect(screen.getByPlaceholderText("Ingestion Key Name")).toBeVisible();
-      expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
-    },
-  );
-
-  test("keeps key type on its own step and defaults to a server key", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user, DESCRIPTION);
-
-    expect(
-      screen.queryByPlaceholderText("Ingestion Key Name"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByPlaceholderText("Ingestion Key Description"),
-    ).not.toBeInTheDocument();
-    expect(activeStep()).toBe("Key Type");
-    expect(screen.getByTestId("card-select-option-Server")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    expect(screen.getByTestId("card-select-option-Browser")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    expect(
-      screen.queryByRole("textbox", { name: "Allowed Origins" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(SERVICE)).not.toBeInTheDocument();
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-  });
-
-  test("reviews and submits a server key without requiring a description or browser settings", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await next(user);
-    await expectSummary();
-
-    expect(within(dialog()).getByText(NAME)).toBeVisible();
-    expect(
-      within(dialog()).queryByText("Allowed Origins"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(dialog()).queryByText("Pinned Service Name"),
-    ).not.toBeInTheDocument();
-    const model: TelemetryIngestionKey = await submit(user);
-    expect(model.name).toBe(NAME);
-    expect(model.description || "").toBe("");
-    expect(model.keyType).toBe(TelemetryIngestionKeyType.Server);
-    expect(model.allowedOrigins).toBeFalsy();
-    expect(model.pinnedServiceName).toBeFalsy();
-    expect(successMock).toHaveBeenCalledTimes(1);
-  });
-
-  test("selects a key type with the keyboard without submitting or advancing the wizard", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    const browser: HTMLElement = screen.getByTestId(
-      "card-select-option-Browser",
-    );
-    browser.focus();
-    await user.keyboard("{Enter}");
-
-    expect(browser).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByTestId("card-select-option-Server")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    expect(activeStep()).toBe("Key Type");
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(within(progress()).getByText("Browser Settings")).toBeVisible();
-    });
-    await next(user);
-    expect(activeStep()).toBe("Browser Settings");
-  });
-
-  test("preserves details when revisiting a completed step and submits the edited values", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user, DESCRIPTION);
-    expect(
-      within(dialog()).queryByRole("button", { name: "Back" }),
-    ).not.toBeInTheDocument();
-    await goBackTo(user, "Details");
-    expect(activeStep()).toBe("Details");
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("Ingestion Key Name")).toHaveValue(
-        NAME,
+      expect(card(TelemetryIngestionKeyType.Server)).toHaveAttribute(
+        "aria-checked",
+        "true",
       );
-      expect(
-        screen.getByPlaceholderText("Ingestion Key Description"),
-      ).toHaveValue(DESCRIPTION);
-    });
-    await user.type(screen.getByPlaceholderText("Ingestion Key Name"), " v2");
-    await next(user);
-    await next(user);
-    await expectSummary();
-
-    const model: TelemetryIngestionKey = await submit(user);
-    expect(model.name).toBe(`${NAME} v2`);
-    expect(model.description).toBe(DESCRIPTION);
-  });
-
-  test("reveals browser settings only after choosing a browser key and leaving the type step", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await selectType(user, TelemetryIngestionKeyType.Browser);
-
-    expect(within(progress()).getByText("Browser Settings")).toBeVisible();
-    expect(
-      screen.queryByRole("textbox", { name: "Allowed Origins" }),
-    ).not.toBeInTheDocument();
-    await next(user);
-
-    expect(
-      await screen.findByRole("textbox", { name: "Allowed Origins" }),
-    ).toBeVisible();
-    expect(screen.getByPlaceholderText(SERVICE)).toBeVisible();
-    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
-    expect(activeStep()).toBe("Browser Settings");
-  });
-
-  test("requires allowed origins on the browser step and rejects malformed JSON before review", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await enterBrowserSettings(user);
-    await next(user);
-    expect(
-      await screen.findByText("Allowed Origins is required."),
-    ).toBeVisible();
-    expect(activeStep()).toBe("Browser Settings");
-
-    for (const origins of [
-      '["https://app.example.com"',
-      "   ",
-      "{{origins}}",
-    ]) {
-      fireEvent.change(
-        screen.getByRole("textbox", { name: "Allowed Origins" }),
-        { target: { value: origins } },
+      expect(card(TelemetryIngestionKeyType.Browser)).toHaveAttribute(
+        "aria-checked",
+        "false",
       );
-      await next(user);
+
+      // Description is under a folded Advanced header.
+      expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
+      expect(descriptionInput()).not.toBeVisible();
+
+      // One page: no step list, no "Step 1 of 1", no Summary, no Back.
+      expect(progress()).not.toBeInTheDocument();
       expect(
-        await screen.findByText(/Allowed Origins is not valid JSON/),
-      ).toBeVisible();
-      expect(activeStep()).toBe("Browser Settings");
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
-    }
-  });
-
-  test.each([true, false])(
-    "reviews and submits a browser key with optional service pin populated=%s",
-    async (withService: boolean) => {
-      const user: UserEvent = await renderWizard();
-      await enterDetails(user, DESCRIPTION);
-      await enterBrowserSettings(user);
-      fireEvent.change(
-        screen.getByRole("textbox", { name: "Allowed Origins" }),
-        {
-          target: { value: ORIGINS },
-        },
-      );
-      if (withService) {
-        fireEvent.change(screen.getByPlaceholderText(SERVICE), {
-          target: { value: SERVICE },
-        });
-      }
-      await next(user);
-      await expectSummary();
-
-      expect(within(dialog()).getByText(NAME)).toBeVisible();
-      expect(within(dialog()).getByText("Allowed Origins")).toBeVisible();
-      const model: TelemetryIngestionKey = await submit(user);
-      expect(model.name).toBe(NAME);
-      expect(model.description).toBe(DESCRIPTION);
-      expect(model.keyType).toBe(TelemetryIngestionKeyType.Browser);
-      expect(model.allowedOrigins).toEqual(JSON.parse(ORIGINS));
-      expect(model.pinnedServiceName || "").toBe(withService ? SERVICE : "");
-    },
-  );
-
-  test("blocks empty lists, non-array JSON, non-text entries and origin URLs with paths", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await enterBrowserSettings(user);
-    for (const origins of [
-      "[]",
-      "{}",
-      '["https://app.example.com", 17]',
-      '["https://app.example.com/path"]',
-    ]) {
-      fireEvent.change(
-        screen.getByRole("textbox", { name: "Allowed Origins" }),
-        { target: { value: origins } },
-      );
-      await next(user);
-
-      expect(activeStep()).toBe("Browser Settings");
-      expect(within(dialog()).getByRole("alert")).toBeVisible();
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
-    }
-  });
-
-  test("retains browser settings on backward navigation and omits their step and summary after switching to server", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await enterBrowserSettings(user);
-    fireEvent.change(screen.getByRole("textbox", { name: "Allowed Origins" }), {
-      target: { value: ORIGINS },
-    });
-    fireEvent.change(screen.getByPlaceholderText(SERVICE), {
-      target: { value: SERVICE },
-    });
-    await goBackTo(user, "Key Type");
-    await next(user);
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: "Allowed Origins" }),
-      ).toHaveValue(ORIGINS);
-      expect(screen.getByPlaceholderText(SERVICE)).toHaveValue(SERVICE);
-    });
-    await goBackTo(user, "Key Type");
-    await selectType(user, TelemetryIngestionKeyType.Server);
-    expect(
-      within(progress()).queryByText("Browser Settings"),
-    ).not.toBeInTheDocument();
-    await next(user);
-    await expectSummary();
-
-    expect(
-      within(dialog()).queryByText("Allowed Origins"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(dialog()).queryByText("Pinned Service Name"),
-    ).not.toBeInTheDocument();
-    const model: TelemetryIngestionKey = await submit(user);
-    expect(model.keyType).toBe(TelemetryIngestionKeyType.Server);
-    expect(model.allowedOrigins).toBeFalsy();
-    expect(model.pinnedServiceName).toBeFalsy();
-  });
-
-  test("discards malformed browser drafts before submitting a server key", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await enterBrowserSettings(user);
-    fireEvent.change(screen.getByRole("textbox", { name: "Allowed Origins" }), {
-      target: { value: '["https://app.example.com"' },
-    });
-    fireEvent.change(screen.getByPlaceholderText(SERVICE), {
-      target: { value: SERVICE },
-    });
-    await next(user);
-    expect(
-      await screen.findByText(/Allowed Origins is not valid JSON/),
-    ).toBeVisible();
-    await goBackTo(user, "Key Type");
-    await selectType(user, TelemetryIngestionKeyType.Server);
-    await next(user);
-    await expectSummary();
-
-    const model: TelemetryIngestionKey = await submit(user);
-    expect(model.keyType).toBe(TelemetryIngestionKeyType.Server);
-    expect(model.allowedOrigins).toBeFalsy();
-    expect(model.pinnedServiceName).toBeFalsy();
-  });
-
-  test("requires fresh browser settings when switching back from a server key", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await enterBrowserSettings(user);
-    fireEvent.change(screen.getByRole("textbox", { name: "Allowed Origins" }), {
-      target: { value: ORIGINS },
-    });
-    fireEvent.change(screen.getByPlaceholderText(SERVICE), {
-      target: { value: SERVICE },
-    });
-    await goBackTo(user, "Key Type");
-    await selectType(user, TelemetryIngestionKeyType.Server);
-    await selectType(user, TelemetryIngestionKeyType.Browser);
-    await next(user);
-
-    expect(
-      screen.getByRole("textbox", { name: "Allowed Origins" }),
-    ).toHaveValue("");
-    expect(screen.getByPlaceholderText(SERVICE)).toHaveValue("");
-    await next(user);
-    expect(
-      await screen.findByText("Allowed Origins is required."),
-    ).toBeVisible();
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-  });
-
-  test.each([
-    TelemetryIngestionKeyType.Server,
-    TelemetryIngestionKeyType.Browser,
-  ])(
-    "shows Free plan pricing on a dedicated billing step before submitting a %s key",
-    async (keyType: TelemetryIngestionKeyType) => {
-      isFreePlan = true;
-      const user: UserEvent = await renderWizard();
-      expect(
-        within(dialog()).queryByRole("region", { name: "Telemetry pricing" }),
+        within(dialog()).queryByText(/Step \d+ of \d+/),
       ).not.toBeInTheDocument();
-      await enterDetails(user);
+      expect(within(dialog()).queryByText("Summary")).not.toBeInTheDocument();
       expect(
-        within(dialog()).queryByRole("region", { name: "Telemetry pricing" }),
+        within(dialog()).queryByRole("button", { name: "Back" }),
       ).not.toBeInTheDocument();
-      if (keyType === TelemetryIngestionKeyType.Browser) {
-        await enterBrowserSettings(user);
-        fireEvent.change(
-          screen.getByRole("textbox", { name: "Allowed Origins" }),
-          {
-            target: { value: ORIGINS },
-          },
-        );
-      }
-      await next(user);
-
-      const notice: HTMLElement = await within(dialog()).findByRole("region", {
-        name: "Telemetry pricing",
-      });
-      expect(notice).toHaveTextContent("Session replay");
-      expect(notice).toHaveTextContent("payment method");
-      expect(activeStep()).toBe("Billing");
-      expect(within(dialog()).queryByRole("checkbox")).not.toBeInTheDocument();
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
-      await next(user);
-      await expectSummary();
       expect(
-        within(dialog()).getByRole("region", { name: "Telemetry pricing" }),
-      ).toHaveTextContent("Session replay");
-      expect((await submit(user)).keyType).toBe(keyType);
+        within(dialog()).queryByTestId("modal-footer-next-button"),
+      ).not.toBeInTheDocument();
+      expect(mainButton()).toHaveTextContent("Create Ingestion Key");
 
-      const request: {
-        model: TelemetryIngestionKey;
-        miscDataProps: JSONObject;
-      } = createOrUpdateMock.mock.calls[0]?.[0] as {
-        model: TelemetryIngestionKey;
-        miscDataProps: JSONObject;
-      };
+      // Nothing of a Browser key is asked of a Server key.
+      expect(
+        within(dialog()).queryByRole("textbox", { name: "Allowed Origins" }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(dialog()).queryByPlaceholderText(SERVICE),
+      ).not.toBeInTheDocument();
+      expect(capturedTableProps?.formSummary).toBeUndefined();
+    });
+
+    test("is created with one click, as it was filled in", async () => {
+      const user: UserEvent = await renderPage();
+      const request: CreateRequest = await create(user);
+
+      expect(request.model.name).toBe("Server key");
+      expect(request.model.keyType).toBe(TelemetryIngestionKeyType.Server);
+      expect(request.model.description || "").toBe("");
+      expect(request.model.allowedOrigins).toBeFalsy();
+      expect(request.model.pinnedServiceName).toBeFalsy();
       expect(request.miscDataProps).not.toHaveProperty(
         "telemetryPayAsYouGoNotice",
       );
-      expect(JSON.stringify(request.model)).not.toContain(
-        "telemetryPayAsYouGoNotice",
+    });
+
+    test("then opens on its own page, where its secret is", async () => {
+      const user: UserEvent = await renderPage();
+      await create(user);
+
+      await waitFor(() => {
+        expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+      });
+      const route: Route = jest.mocked(Navigation.navigate).mock
+        .calls[0]?.[0] as Route;
+      expect(route.toString()).toBe(
+        `/dashboard/${PROJECT_ID}/settings/telemetry-ingestion-keys/${KEY_ID}`,
       );
-    },
-  );
+    });
 
-  test("cancels from a later step without creating a key", async () => {
-    const user: UserEvent = await renderWizard();
-    await enterDetails(user);
-    await user.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+    test("a name of one's own and a description are sent", async () => {
+      const user: UserEvent = await renderPage();
 
-    expect(closeMock).toHaveBeenCalledTimes(1);
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
+      fireEvent.change(nameInput(), {
+        target: { value: "Production collectors" },
+      });
+      await user.click(advancedHeader());
+      expect(descriptionInput()).toBeVisible();
+      fireEvent.change(descriptionInput(), {
+        target: { value: "The collectors in eu-west-1." },
+      });
+
+      const request: CreateRequest = await create(user);
+      expect(request.model.name).toBe("Production collectors");
+      expect(request.model.description).toBe("The collectors in eu-west-1.");
+      expect(request.model.keyType).toBe(TelemetryIngestionKeyType.Server);
+    });
+
+    test.each(["", "A", "   "])(
+      "the name %j is refused under the field, and nothing is created",
+      async (name: string) => {
+        const user: UserEvent = await renderPage();
+
+        fireEvent.change(nameInput(), { target: { value: name } });
+        await user.click(mainButton());
+
+        expect(
+          await within(dialog()).findByText(
+            name ? /Name cannot be less than 2/ : "Name is required.",
+          ),
+        ).toBeVisible();
+        expect(createOrUpdateMock).not.toHaveBeenCalled();
+        expect(Navigation.navigate).not.toHaveBeenCalled();
+      },
+    );
+
+    test("Cancel closes without creating a key", async () => {
+      const user: UserEvent = await renderPage();
+
+      await user.click(
+        within(dialog()).getByRole("button", { name: "Cancel" }),
+      );
+
+      expect(closeMock).toHaveBeenCalledTimes(1);
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the name follows the type", () => {
+    test("until a name of one's own is typed", async () => {
+      const user: UserEvent = await renderPage();
+
+      await pickType(user, TelemetryIngestionKeyType.Browser);
+      await waitFor(() => {
+        expect(nameInput()).toHaveValue("Browser key");
+      });
+
+      await pickType(user, TelemetryIngestionKeyType.Server);
+      await waitFor(() => {
+        expect(nameInput()).toHaveValue("Server key");
+      });
+
+      fireEvent.change(nameInput(), { target: { value: "Storefront" } });
+      await pickType(user, TelemetryIngestionKeyType.Browser);
+      expect(nameInput()).toHaveValue("Storefront");
+
+      await pickType(user, TelemetryIngestionKeyType.Server);
+      expect(nameInput()).toHaveValue("Storefront");
+    });
+
+    test("and picks it up again once the name is cleared", async () => {
+      const user: UserEvent = await renderPage();
+
+      fireEvent.change(nameInput(), { target: { value: "" } });
+      await pickType(user, TelemetryIngestionKeyType.Browser);
+
+      await waitFor(() => {
+        expect(nameInput()).toHaveValue("Browser key");
+      });
+    });
+
+    test("choosing the type with the keyboard neither submits nor walks on", async () => {
+      const user: UserEvent = await renderPage();
+      const browser: HTMLElement = card(TelemetryIngestionKeyType.Browser);
+
+      browser.focus();
+      await user.keyboard("{Enter}");
+
+      expect(browser).toHaveAttribute("aria-checked", "true");
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(nameInput()).toHaveValue("Browser key");
+      });
+      expect(nameInput()).toBeVisible();
+    });
+  });
+
+  describe("a Browser key", () => {
+    test("brings its Browser Settings step: the step list appears and the main button walks on", async () => {
+      const user: UserEvent = await renderPage();
+
+      await pickType(user, TelemetryIngestionKeyType.Browser);
+
+      await waitFor(() => {
+        expect(stepTitles()).toEqual(["Key", "Browser Settings"]);
+      });
+      expect(activeStep()).toBe("Key");
+      // Allowed Origins is still to fill in: the main button reads Next.
+      await waitFor(() => {
+        expect(mainButton()).toHaveTextContent("Next");
+      });
+      expect(
+        within(dialog()).queryByRole("textbox", { name: "Allowed Origins" }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("asks for the origins, with the pinned service name folded under Advanced", async () => {
+      const user: UserEvent = await renderPage();
+      await goToBrowserSettings(user);
+
+      expect(originsInput()).toBeVisible();
+      expect(within(dialog()).getByPlaceholderText(SERVICE)).not.toBeVisible();
+      expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
+      expect(
+        within(dialog()).queryByPlaceholderText("Ingestion Key Name"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(dialog()).queryByRole("radiogroup", { name: "Key Type" }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("refuses missing, malformed and unusable origins under the field", async () => {
+      const user: UserEvent = await renderPage();
+      await goToBrowserSettings(user);
+
+      await user.click(mainButton());
+      expect(
+        await within(dialog()).findByText("Allowed Origins is required."),
+      ).toBeVisible();
+
+      for (const [value, error] of [
+        ['["https://app.example.com"', /Allowed Origins is not valid JSON/],
+        ["[]", /at least one allowed origin/],
+        ['{"origin":"https://app.example.com"}', /at least one allowed origin/],
+        ['["https://app.example.com", 17]', /must be text/],
+        ['["https://app.example.com/path"]', /must not contain a path/],
+      ] as Array<[string, RegExp]>) {
+        fireEvent.change(originsInput(), { target: { value } });
+        await user.click(mainButton());
+
+        expect(await within(dialog()).findByText(error)).toBeVisible();
+        expect(activeStep()).toBe("Browser Settings");
+        expect(createOrUpdateMock).not.toHaveBeenCalled();
+      }
+    });
+
+    test.each([true, false])(
+      "is created with its origins, the pinned service name filled in: %s",
+      async (withService: boolean) => {
+        const user: UserEvent = await renderPage();
+        await goToBrowserSettings(user);
+
+        fireEvent.change(originsInput(), { target: { value: ORIGINS } });
+        if (withService) {
+          await user.click(advancedHeader());
+          fireEvent.change(within(dialog()).getByPlaceholderText(SERVICE), {
+            target: { value: SERVICE },
+          });
+        }
+
+        const request: CreateRequest = await create(user);
+        expect(request.model.name).toBe("Browser key");
+        expect(request.model.keyType).toBe(TelemetryIngestionKeyType.Browser);
+        expect(request.model.allowedOrigins).toEqual(JSON.parse(ORIGINS));
+        expect(request.model.pinnedServiceName || "").toBe(
+          withService ? SERVICE : "",
+        );
+      },
+    );
+
+    test("switching back to Server drops the step and the drafts, and the key is a Server key", async () => {
+      const user: UserEvent = await renderPage();
+      await goToBrowserSettings(user);
+
+      fireEvent.change(originsInput(), {
+        target: { value: '["https://app.example.com"' },
+      });
+      await user.click(advancedHeader());
+      fireEvent.change(within(dialog()).getByPlaceholderText(SERVICE), {
+        target: { value: SERVICE },
+      });
+
+      await user.click(within(progress() as HTMLElement).getByText("Key"));
+      await waitFor(() => {
+        expect(activeStep()).toBe("Key");
+      });
+      await pickType(user, TelemetryIngestionKeyType.Server);
+
+      // One step again: the page it started as.
+      await waitFor(() => {
+        expect(progress()).not.toBeInTheDocument();
+      });
+      expect(nameInput()).toHaveValue("Server key");
+
+      const request: CreateRequest = await create(user);
+      expect(request.model.keyType).toBe(TelemetryIngestionKeyType.Server);
+      expect(request.model.allowedOrigins).toBeFalsy();
+      expect(request.model.pinnedServiceName).toBeFalsy();
+    });
+
+    test("switching to Server and back asks for fresh origins", async () => {
+      const user: UserEvent = await renderPage();
+      await goToBrowserSettings(user);
+      fireEvent.change(originsInput(), { target: { value: ORIGINS } });
+
+      await user.click(within(progress() as HTMLElement).getByText("Key"));
+      await pickType(user, TelemetryIngestionKeyType.Server);
+      await pickType(user, TelemetryIngestionKeyType.Browser);
+      await waitFor(() => {
+        expect(mainButton()).toHaveTextContent("Next");
+      });
+      await user.click(mainButton());
+
+      expect(
+        await within(dialog()).findByRole("textbox", {
+          name: "Allowed Origins",
+        }),
+      ).toHaveValue("");
+      await user.click(mainButton());
+      expect(
+        await within(dialog()).findByText("Allowed Origins is required."),
+      ).toBeVisible();
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("on the Free plan", () => {
+    test.each([
+      TelemetryIngestionKeyType.Server,
+      TelemetryIngestionKeyType.Browser,
+    ])(
+      "a %s key is created only once the pricing on the Billing step has been shown",
+      async (keyType: TelemetryIngestionKeyType) => {
+        isFreePlan = true;
+        const user: UserEvent = await renderPage();
+
+        expect(
+          within(dialog()).queryByRole("region", {
+            name: "Telemetry pricing",
+          }),
+        ).not.toBeInTheDocument();
+
+        if (keyType === TelemetryIngestionKeyType.Browser) {
+          await goToBrowserSettings(user);
+          fireEvent.change(originsInput(), { target: { value: ORIGINS } });
+        }
+
+        // Every other step is valid, but the pricing has not been shown.
+        expect(mainButton()).toHaveTextContent("Next");
+        expect(
+          within(dialog()).queryByTestId("modal-footer-next-button"),
+        ).not.toBeInTheDocument();
+        await user.click(mainButton());
+
+        const notice: HTMLElement = await within(dialog()).findByRole(
+          "region",
+          { name: "Telemetry pricing" },
+        );
+        expect(notice).toHaveTextContent("Session replay");
+        expect(notice).toHaveTextContent("payment method");
+        expect(activeStep()).toBe("Billing");
+        expect(
+          within(dialog()).queryByRole("checkbox"),
+        ).not.toBeInTheDocument();
+        expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+        const request: CreateRequest = await create(user);
+        expect(request.model.keyType).toBe(keyType);
+        expect(request.miscDataProps).not.toHaveProperty(
+          "telemetryPayAsYouGoNotice",
+        );
+        expect(JSON.stringify(request.model)).not.toContain(
+          "telemetryPayAsYouGoNotice",
+        );
+      },
+    );
+
+    test("the step list shows Key and Billing, and Browser Settings between them for a Browser key", async () => {
+      isFreePlan = true;
+      const user: UserEvent = await renderPage();
+
+      await waitFor(() => {
+        expect(stepTitles()).toEqual(["Key", "Billing"]);
+      });
+      await pickType(user, TelemetryIngestionKeyType.Browser);
+      await waitFor(() => {
+        expect(stepTitles()).toEqual(["Key", "Browser Settings", "Billing"]);
+      });
+    });
   });
 });
