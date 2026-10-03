@@ -99,17 +99,22 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
       {/* DNS Records Section */}
       {dnsResponse?.records && dnsResponse.records.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-700">{translator.translateText("DNS Records")}</h3>
+          <h3 className="text-sm font-medium text-gray-700">
+            {translator.translateText("DNS Records")}
+          </h3>
           <div className="border rounded-md overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Type")}</th>
+                    {translator.translateText("Type")}
+                  </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Value")}</th>
+                    {translator.translateText("Value")}
+                  </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("TTL")}</th>
+                    {translator.translateText("TTL")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">

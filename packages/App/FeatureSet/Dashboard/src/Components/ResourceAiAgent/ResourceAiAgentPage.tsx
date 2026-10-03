@@ -1334,9 +1334,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                       error: status.aiAccessLastError,
                     },
                   )
-                : translator.translateTemplate("Last command error: {{error}}", {
-                    error: status.aiAccessLastError,
-                  })}
+                : translator.translateTemplate(
+                    "Last command error: {{error}}",
+                    {
+                      error: status.aiAccessLastError,
+                    },
+                  )}
             </p>
           ) : (
             <></>

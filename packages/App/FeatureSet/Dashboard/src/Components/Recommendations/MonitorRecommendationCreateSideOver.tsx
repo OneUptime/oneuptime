@@ -555,9 +555,14 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         </CollapsibleSection>
 
         <CollapsibleSection
-          title={translator.translateTemplate("Monitors to create ({{count}})", {
-            count: translator.formatNumber(props.selectedRecommendations.length),
-          })}
+          title={translator.translateTemplate(
+            "Monitors to create ({{count}})",
+            {
+              count: translator.formatNumber(
+                props.selectedRecommendations.length,
+              ),
+            },
+          )}
           variant="bordered"
           defaultCollapsed={true}
         >

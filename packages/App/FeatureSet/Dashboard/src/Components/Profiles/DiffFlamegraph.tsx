@@ -622,7 +622,9 @@ const DiffFlamegraph: FunctionComponent<DiffFlamegraphProps> = (
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-red-500" />
-          <span>{translator.translateText("Bigger share of total (worse)")}</span>
+          <span>
+            {translator.translateText("Bigger share of total (worse)")}
+          </span>
         </span>
         <span className="flex items-center space-x-1">
           <span className="inline-block w-3 h-3 rounded bg-green-500" />

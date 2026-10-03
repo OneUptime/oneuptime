@@ -19,6 +19,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The grid itself: a sticky header of days, a sticky column of schedule
@@ -105,6 +107,7 @@ export interface ComponentProps {
 const TimelineGrid: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const dayAreaRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const dayAreaWidth: number | null = useElementWidth(dayAreaRef);
 
@@ -236,7 +239,7 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
           </span>
           {group.isCurrentUserMember && (
             <span className="max-sm:hidden shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 sm:inline-flex">
-              Your team
+              {translator.translateText("Your team")}
             </span>
           )}
         </button>
@@ -262,7 +265,7 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
             style={{ width: LABEL_COLUMN_WIDTH }}
           >
             <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              Schedule
+              {translator.translateText("Schedule")}
             </span>
           </div>
           <div

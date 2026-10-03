@@ -54,42 +54,41 @@ interface RunbookRuleCopy {
   descriptionTitle: string;
 }
 
-const RUNBOOK_RULE_COPY: Record<RunbookRuleTriggerEntity, RunbookRuleCopy> =
-  {
-    [RunbookRuleTriggerEntity.Incident]: {
-      cardDescription: translationKey(
-        "Auto-attach runbooks when matching incidents are created.",
-      ),
-      helpDescription: translationKey(
-        "Match incidents and start runbooks automatically.",
-      ),
-      labelsTitle: translationKey("Incident Labels"),
-      titleTitle: translationKey("Incident Title"),
-      descriptionTitle: translationKey("Incident Description"),
-    },
-    [RunbookRuleTriggerEntity.Alert]: {
-      cardDescription: translationKey(
-        "Auto-attach runbooks when matching alerts are created.",
-      ),
-      helpDescription: translationKey(
-        "Match alerts and start runbooks automatically.",
-      ),
-      labelsTitle: translationKey("Alert Labels"),
-      titleTitle: translationKey("Alert Title"),
-      descriptionTitle: translationKey("Alert Description"),
-    },
-    [RunbookRuleTriggerEntity.ScheduledMaintenance]: {
-      cardDescription: translationKey(
-        "Auto-attach runbooks when matching scheduled maintenance events are created.",
-      ),
-      helpDescription: translationKey(
-        "Match scheduled maintenance events and start runbooks automatically.",
-      ),
-      labelsTitle: translationKey("Event Labels"),
-      titleTitle: translationKey("Event Title"),
-      descriptionTitle: translationKey("Event Description"),
-    },
-  };
+const RUNBOOK_RULE_COPY: Record<RunbookRuleTriggerEntity, RunbookRuleCopy> = {
+  [RunbookRuleTriggerEntity.Incident]: {
+    cardDescription: translationKey(
+      "Auto-attach runbooks when matching incidents are created.",
+    ),
+    helpDescription: translationKey(
+      "Match incidents and start runbooks automatically.",
+    ),
+    labelsTitle: translationKey("Incident Labels"),
+    titleTitle: translationKey("Incident Title"),
+    descriptionTitle: translationKey("Incident Description"),
+  },
+  [RunbookRuleTriggerEntity.Alert]: {
+    cardDescription: translationKey(
+      "Auto-attach runbooks when matching alerts are created.",
+    ),
+    helpDescription: translationKey(
+      "Match alerts and start runbooks automatically.",
+    ),
+    labelsTitle: translationKey("Alert Labels"),
+    titleTitle: translationKey("Alert Title"),
+    descriptionTitle: translationKey("Alert Description"),
+  },
+  [RunbookRuleTriggerEntity.ScheduledMaintenance]: {
+    cardDescription: translationKey(
+      "Auto-attach runbooks when matching scheduled maintenance events are created.",
+    ),
+    helpDescription: translationKey(
+      "Match scheduled maintenance events and start runbooks automatically.",
+    ),
+    labelsTitle: translationKey("Event Labels"),
+    titleTitle: translationKey("Event Title"),
+    descriptionTitle: translationKey("Event Description"),
+  },
+};
 
 export function getRunbookRuleCopy(
   triggerEntityType: RunbookRuleTriggerEntity,

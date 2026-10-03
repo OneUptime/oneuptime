@@ -13,10 +13,7 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import { MonitorOverviewSetupKind } from "Common/Utils/Monitor/MonitorOverviewFamily";
 import React, { FunctionComponent, ReactElement } from "react";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -116,7 +113,9 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="monitor-setup-heartbeat" className="space-y-4">
         <div>
-          <p className="text-xs font-medium text-gray-500">{translator.translateText("Heartbeat URL")}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translator.translateText("Heartbeat URL")}
+          </p>
           <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
             <span
               data-testid="monitor-setup-heartbeat-url"
@@ -128,7 +127,9 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">{translator.translateText("Example")}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translator.translateText("Example")}
+          </p>
           <div className="mt-1">
             <CodeBlock
               language="bash"
@@ -138,7 +139,10 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-sm text-gray-500">
-          {translator.translateText("GET and POST both work. Headers and body are available to your criteria.")}</p>
+          {translator.translateText(
+            "GET and POST both work. Headers and body are available to your criteria.",
+          )}
+        </p>
         <SloOverviewActionLink
           variant="text"
           title="Full setup instructions"

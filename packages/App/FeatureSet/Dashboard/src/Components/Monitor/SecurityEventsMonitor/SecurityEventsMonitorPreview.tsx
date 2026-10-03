@@ -115,9 +115,11 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
   if (count === null) {
     return (
       <div className="text-sm text-gray-500">
-        {translator.translateText(isOverview
-          ? "This monitor has no filters yet."
-          : "Configure the filters above to preview matching security events.")}
+        {translator.translateText(
+          isOverview
+            ? "This monitor has no filters yet."
+            : "Configure the filters above to preview matching security events.",
+        )}
       </div>
     );
   }

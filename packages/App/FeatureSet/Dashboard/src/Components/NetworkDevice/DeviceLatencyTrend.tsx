@@ -235,8 +235,8 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               "now {{latest}} · avg {{avg}} · max {{max}}",
               {
-              latest: formatMilliseconds(summary.latest),
-              avg: formatMilliseconds(summary.avg),
+                latest: formatMilliseconds(summary.latest),
+                avg: formatMilliseconds(summary.avg),
                 max: formatMilliseconds(summary.max),
               },
             )}

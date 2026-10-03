@@ -268,9 +268,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       );
     }
 
-    return (
-      <ErrorMessage message={notReportedMessage} />
-    );
+    return <ErrorMessage message={notReportedMessage} />;
   }
 
   /*

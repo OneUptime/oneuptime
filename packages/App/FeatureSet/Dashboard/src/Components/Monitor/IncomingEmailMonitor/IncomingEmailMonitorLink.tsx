@@ -74,7 +74,8 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
                 openInNewTab={true}
                 className="underline"
               >
-                {translator.translateText("View Setup Documentation")}</Link>
+                {translator.translateText("View Setup Documentation")}
+              </Link>
             </span>
           }
         />
@@ -89,7 +90,9 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="incoming-email-setup" className="space-y-4">
         <div>
-          <p className="text-xs font-medium text-gray-500">{translator.translateText("Email address")}</p>
+          <p className="text-xs font-medium text-gray-500">
+            {translator.translateText("Email address")}
+          </p>
           <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
             <span
               data-testid="incoming-email-address"
@@ -114,7 +117,8 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
             openInNewTab={true}
             className="underline"
           >
-            {translator.translateText("How to verify the address")}</Link>
+            {translator.translateText("How to verify the address")}
+          </Link>
         </p>
       </div>
     </Card>

@@ -129,20 +129,26 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
         cardProps={{
           title: "Call Logs",
           description: props.singularName
-            ? translator.translateTemplate("Calls made for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "Calls made for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Calls made for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No call logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No call logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No call logs."
         }
         showRefreshButton={true}

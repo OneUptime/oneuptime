@@ -658,7 +658,9 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   const headerBar: ReactElement = (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">{translator.translateText("Insights")}</h2>
+        <h2 className="text-base font-semibold text-gray-900">
+          {translator.translateText("Insights")}
+        </h2>
         <p className="text-xs text-gray-500">
           {isCustomRange
             ? translator.translateTemplate(
@@ -687,8 +689,12 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                 <button
                   type="button"
                   className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
-                  title={translator.translateText("Stop scoping by this saved view")}
-                  aria-label={translator.translateText("Stop scoping by this saved view")}
+                  title={translator.translateText(
+                    "Stop scoping by this saved view",
+                  )}
+                  aria-label={translator.translateText(
+                    "Stop scoping by this saved view",
+                  )}
                   onClick={() => {
                     applyServiceSelection([]);
                   }}
@@ -859,9 +865,12 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
               ? translator.translateTemplate(
                   "distinct names in the selected time range",
                 )
-              : translator.translateTemplate("distinct names in the {{range}}", {
-                  range: rangeTerm,
-                })
+              : translator.translateTemplate(
+                  "distinct names in the {{range}}",
+                  {
+                    range: rangeTerm,
+                  },
+                )
           }
           icon={IconProp.ChartBar}
           tone="indigo"
@@ -909,7 +918,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">
-                {translator.translateText("Metric categories")}</h3>
+                {translator.translateText("Metric categories")}
+              </h3>
               <p className="text-xs text-gray-500">
                 {translator.translatePlural(
                   {
@@ -964,7 +974,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
-            {translator.translateText("Services reporting metrics")}</h3>
+            {translator.translateText("Services reporting metrics")}
+          </h3>
           <p className="text-xs text-gray-500">
             {isCustomRange
               ? translator.translateTemplate(
@@ -1019,11 +1030,13 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                   <div className="flex flex-wrap items-center gap-1.5">
                     {summary.hasSystemMetrics && (
                       <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                        {translator.translateText("System")}</span>
+                        {translator.translateText("System")}
+                      </span>
                     )}
                     {summary.hasAppMetrics && (
                       <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                        {translator.translateText("App")}</span>
+                        {translator.translateText("App")}
+                      </span>
                     )}
                   </div>
                 </div>

@@ -45,10 +45,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -113,8 +110,9 @@ export const BROKER_HEALTH_SETUP_LINK_LABEL: string = translationKey(
  * Where a system's broker metrics can be read when they never reach this
  * queue: the project's Metrics explorer.
  */
-export const BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL: string =
-  translationKey("Open the Metrics explorer →");
+export const BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL: string = translationKey(
+  "Open the Metrics explorer →",
+);
 
 export const BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON: string = translationKey(
   "No series of this metric in the selected range carries this queue's attributes, so a monitor would watch nothing. Widen the range and try again.",
@@ -307,8 +305,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                 to={documentationRoute}
                 className="text-sm font-medium text-indigo-600 hover:underline"
               >
-                {translator.translateText(BROKER_HEALTH_SETUP_LINK_LABEL) ||
-                  ""}
+                {translator.translateText(BROKER_HEALTH_SETUP_LINK_LABEL) || ""}
               </AppLink>
             ) : guidance.sourceKind !== "none" ? (
               <AppLink

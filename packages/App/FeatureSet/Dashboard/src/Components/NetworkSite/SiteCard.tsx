@@ -68,10 +68,7 @@ const TONE_BAR_CLASS: Record<HealthTone, string> = {
 const describeDeviceAttention: (
   counts: DeviceHealthCounts,
   translator: Translator,
-) => string = (
-  counts: DeviceHealthCounts,
-  translator: Translator,
-): string => {
+) => string = (counts: DeviceHealthCounts, translator: Translator): string => {
   const values: { down: string; degraded: string } = {
     down: translator.formatNumber(counts.down),
     degraded: translator.formatNumber(counts.degraded),

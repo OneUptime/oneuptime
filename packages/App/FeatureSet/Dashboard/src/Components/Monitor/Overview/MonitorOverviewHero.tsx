@@ -208,7 +208,10 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
         {extraStepCount > 0 ? (
           <span>
             {translator.translatePlural(
-              { one: "(+{{count}} more step)", other: "(+{{count}} more steps)" },
+              {
+                one: "(+{{count}} more step)",
+                other: "(+{{count}} more steps)",
+              },
               extraStepCount,
             )}
           </span>
@@ -302,14 +305,17 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     if (!owners) {
       return (
         <span className="text-base font-semibold text-gray-400">
-          {translator.translateText("Unavailable")}</span>
+          {translator.translateText("Unavailable")}
+        </span>
       );
     }
 
     if (owners.length === 0) {
       return (
         <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
-          <span className="text-gray-500">{translator.translateText("No owners")}</span>
+          <span className="text-gray-500">
+            {translator.translateText("No owners")}
+          </span>
           <Link
             to={getMonitorOverviewRoute({
               key: "owners",
@@ -317,7 +323,8 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             })}
             className="font-medium text-indigo-600 hover:underline"
           >
-            {translator.translateText("Add owners")}</Link>
+            {translator.translateText("Add owners")}
+          </Link>
         </span>
       );
     }
@@ -336,7 +343,8 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             className="text-xs font-normal text-gray-500"
             title={props.owners.refreshError}
           >
-            {translator.translateText("List may be incomplete")}</span>
+            {translator.translateText("List may be incomplete")}
+          </span>
         </span>
       );
     }

@@ -17,10 +17,7 @@ import MonitorUptimeSummaryUtil, {
   UptimeWindowPresentation,
 } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -189,7 +186,11 @@ export const getOpenNowTileContent: (data: {
     !isAlertsStale
   ) {
     return {
-      value: <span className="text-emerald-700">{translator.translateText("Nothing open")}</span>,
+      value: (
+        <span className="text-emerald-700">
+          {translator.translateText("Nothing open")}
+        </span>
+      ),
       description: "No unresolved incidents or alerts",
     };
   }
@@ -200,9 +201,13 @@ export const getOpenNowTileContent: (data: {
   if (isIncidentsStale && isAlertsStale) {
     notes.push(translationKey("Couldn't refresh · showing earlier counts"));
   } else if (isIncidentsStale) {
-    notes.push(translationKey("Couldn't refresh incidents · showing the earlier count"));
+    notes.push(
+      translationKey("Couldn't refresh incidents · showing the earlier count"),
+    );
   } else if (isAlertsStale) {
-    notes.push(translationKey("Couldn't refresh alerts · showing the earlier count"));
+    notes.push(
+      translationKey("Couldn't refresh alerts · showing the earlier count"),
+    );
   }
 
   const isIncidentsForbidden: boolean =

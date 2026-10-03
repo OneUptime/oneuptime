@@ -1266,9 +1266,7 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
                       : "The top {{count}} functions account for {{share}} of the top sampled functions — those are your optimization targets."
                   }
                   slots={{
-                    count: (
-                      <span className="font-semibold">{topN.length}</span>
-                    ),
+                    count: <span className="font-semibold">{topN.length}</span>,
                     share: (
                       <span className="font-semibold">
                         {ProfileUtil.formatPercent(topShare)}

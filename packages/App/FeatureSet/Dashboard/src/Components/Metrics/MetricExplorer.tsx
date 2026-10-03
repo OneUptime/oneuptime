@@ -748,12 +748,16 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               />
               <div
                 className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
-                aria-label={translator.translateText("Related telemetry signals")}
+                aria-label={translator.translateText(
+                  "Related telemetry signals",
+                )}
               >
                 <Tooltip text="Open the logs explorer scoped to this time window and filters">
                   <button
                     type="button"
-                    aria-label={translator.translateText("View logs for this time window and filters")}
+                    aria-label={translator.translateText(
+                      "View logs for this time window and filters",
+                    )}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
                       void navigateToSignalWithCurrentWindow(PageMap.LOGS);
@@ -766,7 +770,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 <Tooltip text="Open the traces explorer scoped to this time window and filters">
                   <button
                     type="button"
-                    aria-label={translator.translateText("View traces for this time window and filters")}
+                    aria-label={translator.translateText(
+                      "View traces for this time window and filters",
+                    )}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
                       void navigateToSignalWithCurrentWindow(PageMap.TRACES);
@@ -779,7 +785,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 <Tooltip text="Investigate this window in a side panel — logs, traces, exceptions">
                   <button
                     type="button"
-                    aria-label={translator.translateText("Investigate this time window in a side panel")}
+                    aria-label={translator.translateText(
+                      "Investigate this time window in a side panel",
+                    )}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
                       const investigatedWindow: InBetween<Date> | null =
@@ -814,7 +822,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 >
                   <button
                     type="button"
-                    aria-label={translator.translateText("Toggle incident and alert markers")}
+                    aria-label={translator.translateText(
+                      "Toggle incident and alert markers",
+                    )}
                     aria-pressed={showEvents}
                     onClick={toggleShowEvents}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
@@ -841,7 +851,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 >
                   <button
                     type="button"
-                    aria-label={translator.translateText("Toggle compare with previous period")}
+                    aria-label={translator.translateText(
+                      "Toggle compare with previous period",
+                    )}
                     aria-pressed={showCompare}
                     onClick={toggleShowCompare}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${

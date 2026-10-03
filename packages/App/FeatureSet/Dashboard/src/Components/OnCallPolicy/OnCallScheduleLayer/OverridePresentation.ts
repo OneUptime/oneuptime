@@ -5,6 +5,11 @@ import {
   OverrideEventMeta,
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import {
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Every word the schedule screens use to describe a user override lives here.
@@ -45,15 +50,15 @@ export const OVERRIDE_EVENT_CLASS_NAME: string =
   "oneuptime-calendar-event--override";
 
 // Shown on the label/legend when a user has no name or email loaded.
-export const UNKNOWN_USER_LABEL: string = "Unknown user";
+export const UNKNOWN_USER_LABEL: string = translationKey("Unknown user");
 
 export function getUserDisplayName(
   info: OverrideUserDisplayInfo | undefined,
 ): string {
   if (!info) {
-    return UNKNOWN_USER_LABEL;
+    return translateTemplate(UNKNOWN_USER_LABEL);
   }
-  return info.name || info.email || UNKNOWN_USER_LABEL;
+  return info.name || info.email || translateTemplate(UNKNOWN_USER_LABEL);
 }
 
 // "Alice Scheduled (alice@example.com)" when both are known.
@@ -61,12 +66,12 @@ export function formatUserLabel(
   info: OverrideUserDisplayInfo | undefined,
 ): string {
   if (!info) {
-    return UNKNOWN_USER_LABEL;
+    return translateTemplate(UNKNOWN_USER_LABEL);
   }
   if (info.name && info.email) {
     return `${info.name} (${info.email})`;
   }
-  return info.name || info.email || UNKNOWN_USER_LABEL;
+  return info.name || info.email || translateTemplate(UNKNOWN_USER_LABEL);
 }
 
 /*
@@ -99,9 +104,10 @@ export function describeOverrideScope(data: {
   if (!data.onCallDutyPolicyId) {
     return {
       kind: OverrideScopeKind.Global,
-      label: "Global override",
-      detail:
+      label: translateTemplate("Global override"),
+      detail: translateTemplate(
         "This is a global override, so it applies to every on-call policy that escalates to this schedule.",
+      ),
     };
   }
 
@@ -115,16 +121,22 @@ export function describeOverrideScope(data: {
   if (!data.policyName) {
     return {
       kind: OverrideScopeKind.Policy,
-      label: "Policy override",
-      detail:
+      label: translateTemplate("Policy override"),
+      detail: translateTemplate(
         "This override is scoped to one on-call policy, so it only re-routes alerts escalating through that policy.",
+      ),
     };
   }
 
   return {
     kind: OverrideScopeKind.Policy,
-    label: `Only for ${data.policyName}`,
-    detail: `This override is scoped to the ${data.policyName} policy, so it only re-routes alerts escalating through ${data.policyName}.`,
+    label: translateTemplate("Only for {{policy}}", {
+      policy: data.policyName,
+    }),
+    detail: translateTemplate(
+      "This override is scoped to the {{policy}} policy, so it only re-routes alerts escalating through {{policy}}.",
+      { policy: data.policyName },
+    ),
   };
 }
 
@@ -138,7 +150,11 @@ export function formatOverrideEventTitle(data: {
   substituteName: string;
   originalName: string;
 }): string {
-  return `${OVERRIDE_TITLE_MARKER} ${data.substituteName} (covering ${data.originalName})`;
+  // The marker stays in front whatever the language, so it survives a narrow column.
+  return `${OVERRIDE_TITLE_MARKER} ${translateTemplate(
+    "{{substitute}} (covering {{original}})",
+    { substitute: data.substituteName, original: data.originalName },
+  )}`;
 }
 
 /*
@@ -155,12 +171,18 @@ export function buildOverrideEventTooltip(data: {
   timezone?: string | undefined;
 }): string {
   return [
-    `Override: ${data.originalName} → ${data.substituteName}`,
-    `Alerts that would page ${data.originalName} go to ${data.substituteName}.`,
-    `Override window: ${formatShiftInstant(
-      data.overrideStartsAt,
-      data.timezone,
-    )} → ${formatShiftInstant(data.overrideEndsAt, data.timezone)}`,
+    translateTemplate("Override: {{original}} → {{substitute}}", {
+      original: data.originalName,
+      substitute: data.substituteName,
+    }),
+    translateTemplate(
+      "Alerts that would page {{original}} go to {{substitute}}.",
+      { original: data.originalName, substitute: data.substituteName },
+    ),
+    translateTemplate("Override window: {{start}} → {{end}}", {
+      start: formatShiftInstant(data.overrideStartsAt, data.timezone),
+      end: formatShiftInstant(data.overrideEndsAt, data.timezone),
+    }),
     data.scope.detail,
   ].join("\n");
 }
@@ -173,7 +195,7 @@ export function buildPlainEventTooltip(data: {
   timezone?: string | undefined;
 }): string {
   return [
-    `On call: ${data.userLabel}`,
+    translateTemplate("On call: {{user}}", { user: data.userLabel }),
     `${formatShiftInstant(data.start, data.timezone)} → ${formatShiftInstant(
       data.end,
       data.timezone,
@@ -287,18 +309,28 @@ export function describeSubstituteCoverage(data: {
 
   if (names.length === 0) {
     // A substitute with no record behind them should not exist; say the least.
-    return "Covering";
+    return translateTemplate("Covering");
   }
 
   if (names.length === 1) {
-    return `Covering ${names[0]}`;
+    return translateTemplate("Covering {{name}}", { name: names[0]! });
   }
 
   if (names.length === 2) {
-    return `Covering ${names[0]} and ${names[1]}`;
+    return translateTemplate("Covering {{first}} and {{second}}", {
+      first: names[0]!,
+      second: names[1]!,
+    });
   }
 
-  return `Covering ${names[0]} and ${names.length - 1} others`;
+  return translatePlural(
+    {
+      one: "Covering {{name}} and {{count}} other",
+      other: "Covering {{name}} and {{count}} others",
+    },
+    names.length - 1,
+    { name: names[0]! },
+  );
 }
 
 /*
@@ -331,6 +363,8 @@ export function describeShiftOverride(data: {
   return {
     originalName,
     scope,
-    coveringLabel: `Covering for ${originalName}`,
+    coveringLabel: translateTemplate("Covering for {{name}}", {
+      name: originalName,
+    }),
   };
 }

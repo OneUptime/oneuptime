@@ -169,20 +169,26 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
         cardProps={{
           title: "WhatsApp Logs",
           description: props.singularName
-            ? translator.translateTemplate("WhatsApp messages sent for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "WhatsApp messages sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "WhatsApp messages sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No WhatsApp logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No WhatsApp logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No WhatsApp logs."
         }
         showRefreshButton={true}

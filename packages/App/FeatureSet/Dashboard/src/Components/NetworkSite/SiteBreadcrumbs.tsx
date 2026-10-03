@@ -36,7 +36,10 @@ const SiteBreadcrumbs: FunctionComponent<ComponentProps> = (
   const isAtRoot: boolean = props.breadcrumb.length === 0;
 
   return (
-    <nav className="flex" aria-label={translator.translateText("Site breadcrumb")}>
+    <nav
+      className="flex"
+      aria-label={translator.translateText("Site breadcrumb")}
+    >
       <ol role="list" className="flex flex-wrap items-center gap-x-0.5 gap-y-1">
         <li className="flex items-center">
           {isAtRoot ? (

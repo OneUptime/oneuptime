@@ -54,7 +54,9 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
 
           {availableVariables.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <span className="text-xs text-gray-500">{translator.translateText("Available:")}</span>
+              <span className="text-xs text-gray-500">
+                {translator.translateText("Available:")}
+              </span>
               {availableVariables.map((variable: string) => {
                 return (
                   <span
@@ -85,7 +87,10 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
             </div>
           ) : (
             <p className="mt-1 text-xs text-gray-400">
-              {translator.translateText("Tip: reference variables with or without a leading \"$\" (e.g. \"a + b\" or \"$A + $B\").")}</p>
+              {translator.translateText(
+                'Tip: reference variables with or without a leading "$" (e.g. "a + b" or "$A + $B").',
+              )}
+            </p>
           )}
         </div>
       </div>

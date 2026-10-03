@@ -279,7 +279,9 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
       list = (
         <div
           role="status"
-          aria-label={translator.translateText("Loading open incidents and alerts")}
+          aria-label={translator.translateText(
+            "Loading open incidents and alerts",
+          )}
           className="mt-4 space-y-2 animate-pulse"
         >
           <div className="h-4 w-5/6 rounded bg-gray-100"></div>

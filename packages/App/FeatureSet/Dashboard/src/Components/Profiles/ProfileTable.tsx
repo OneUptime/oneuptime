@@ -884,9 +884,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                   <Link
                     to={traceRoute}
                     className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                    title={translator.translateTemplate("Open trace {{traceId}}", {
-                      traceId: traceId,
-                    })}
+                    title={translator.translateTemplate(
+                      "Open trace {{traceId}}",
+                      {
+                        traceId: traceId,
+                      },
+                    )}
                   >
                     <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
                     <span className="font-mono">{shortId}</span>

@@ -84,7 +84,10 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
       if (props.statusRows.status === "forbidden") {
         return (
           <p className="text-sm text-gray-500">
-            {translator.translateText("Status history is hidden: you need permission to read the status timeline.")}</p>
+            {translator.translateText(
+              "Status history is hidden: you need permission to read the status timeline.",
+            )}
+          </p>
         );
       }
 
@@ -117,7 +120,9 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
     return (
       <div>
         {changeRows.length === 0 ? (
-          <p className="text-sm text-gray-500">{translator.translateText("No status recorded yet.")}</p>
+          <p className="text-sm text-gray-500">
+            {translator.translateText("No status recorded yet.")}
+          </p>
         ) : (
           <ul
             aria-label={translator.translateText("Recent status changes")}

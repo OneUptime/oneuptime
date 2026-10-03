@@ -2,6 +2,8 @@ import OnCallPolicyElement from "./OnCallPolicy";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onCallPolicies: Array<OnCallDutyPolicy>;
@@ -11,8 +13,9 @@ export interface ComponentProps {
 const OnCallDutyPoliciesView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (!props.onCallPolicies || props.onCallPolicies.length === 0) {
-    return <p>No on-call policies.</p>;
+    return <p>{translator.translateText("No on-call policies.")}</p>;
   }
 
   return (

@@ -36,7 +36,10 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
     <div>
       {filters.length === 0 && (
         <p className="text-sm text-gray-700 text-semibold">
-          {translator.translateText("If no filters are added, then this rule will apply to every metric data point.")}</p>
+          {translator.translateText(
+            "If no filters are added, then this rule will apply to every metric data point.",
+          )}
+        </p>
       )}
 
       {filters.map(

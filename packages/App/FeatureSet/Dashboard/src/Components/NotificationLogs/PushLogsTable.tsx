@@ -137,20 +137,26 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
         cardProps={{
           title: "Push Logs",
           description: props.singularName
-            ? translator.translateTemplate("Push notifications sent for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "Push notifications sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Push notifications sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No Push logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No Push logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No Push logs."
         }
         showRefreshButton={true}

@@ -146,9 +146,13 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
             {hadRetries && (
               <div className="rounded-md border-2 border-gray-100 p-4">
                 <div className="text-sm font-medium text-gray-900 mb-1">
-                  {translator.translateText("Retry Attempts")}</div>
+                  {translator.translateText("Retry Attempts")}
+                </div>
                 <div className="text-xs text-gray-500 mb-3">
-                  {translator.translateText("Each attempt made for this check, in order.")}</div>
+                  {translator.translateText(
+                    "Each attempt made for this check, in order.",
+                  )}
+                </div>
                 <ul className="space-y-2">
                   {retryAttempts.map((attempt: RetryAttempt) => {
                     const failed: boolean = Boolean(attempt.scriptError);
@@ -173,7 +177,9 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
                               failed ? "text-red-700" : "text-green-700"
                             }
                           >
-                            {translator.translateText(failed ? "Failed" : "Succeeded")}
+                            {translator.translateText(
+                              failed ? "Failed" : "Succeeded",
+                            )}
                           </span>
                           <span className="mx-2 text-gray-400">—</span>
                           <span>

@@ -194,20 +194,26 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         cardProps={{
           title: "Workspace Logs",
           description: props.singularName
-            ? translator.translateTemplate("Messages sent to Slack / Teams for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "Messages sent to Slack / Teams for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Messages sent to Slack / Teams.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No Workspace logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No Workspace logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No Workspace logs."
         }
         showRefreshButton={true}

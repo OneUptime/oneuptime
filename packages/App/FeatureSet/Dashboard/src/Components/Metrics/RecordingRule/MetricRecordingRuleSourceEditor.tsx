@@ -136,12 +136,14 @@ const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               return setShowFilter(true);
             }}
           >
-            {translator.translateText("+ Add attribute filter (optional)")}</button>
+            {translator.translateText("+ Add attribute filter (optional)")}
+          </button>
         ) : (
           <div className="rounded-md bg-gray-50 border border-gray-200 p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-                {translator.translateText("Attribute Filter")}</span>
+                {translator.translateText("Attribute Filter")}
+              </span>
               <button
                 type="button"
                 className="text-xs font-medium text-gray-500 hover:text-gray-700"
@@ -150,7 +152,8 @@ const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                   clearAttributeFilter();
                 }}
               >
-                {translator.translateText("Remove")}</button>
+                {translator.translateText("Remove")}
+              </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>

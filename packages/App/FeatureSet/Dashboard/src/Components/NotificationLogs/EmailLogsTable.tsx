@@ -129,20 +129,26 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
         cardProps={{
           title: "Email Logs",
           description: props.singularName
-            ? translator.translateTemplate("Emails sent for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "Emails sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Emails sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No email logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No email logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No email logs."
         }
         showRefreshButton={true}

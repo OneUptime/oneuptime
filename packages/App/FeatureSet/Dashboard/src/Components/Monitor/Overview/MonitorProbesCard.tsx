@@ -217,9 +217,9 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
       if (props.probes.status === "forbidden") {
         return (
           <p className="text-sm text-gray-500">
-            {
-              translator.translateText("Probes are hidden: you need permission to read this monitor's probes.")
-            }
+            {translator.translateText(
+              "Probes are hidden: you need permission to read this monitor's probes.",
+            )}
           </p>
         );
       }
@@ -271,7 +271,10 @@ const MonitorProbesCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        <ul aria-label={translator.translateText("Probes")} className="divide-y divide-gray-100">
+        <ul
+          aria-label={translator.translateText("Probes")}
+          className="divide-y divide-gray-100"
+        >
           {rows.map((row: MonitorOverviewProbeRow) => {
             return getRow(row, now);
           })}

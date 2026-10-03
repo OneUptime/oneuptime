@@ -152,20 +152,26 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
         cardProps={{
           title: "Webhook Logs",
           description: props.singularName
-            ? translator.translateTemplate("Outbound webhook requests sent for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "Outbound webhook requests sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Outbound webhook requests sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No webhook logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No webhook logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No webhook logs."
         }
         showRefreshButton={true}

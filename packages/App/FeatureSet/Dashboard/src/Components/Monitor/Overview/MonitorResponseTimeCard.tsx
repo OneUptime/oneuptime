@@ -155,7 +155,10 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
       <Card title={title}>
         <div data-testid="monitor-response-time-fallback">
           <p className="text-sm text-gray-600">
-            {translator.translateText("Response-time history needs permission to read telemetry.")}</p>
+            {translator.translateText(
+              "Response-time history needs permission to read telemetry.",
+            )}
+          </p>
           {responseTime ? (
             <p className="mt-2 text-sm text-gray-900">
               {getLatestResponseTimeText(responseTime, translator)}

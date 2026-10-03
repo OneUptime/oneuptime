@@ -240,7 +240,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }
 
   if (!props.monitorSteps) {
-    return <div>{translator.translateText("Monitor Criteria not defined for this resource.")}</div>;
+    return (
+      <div>
+        {translator.translateText(
+          "Monitor Criteria not defined for this resource.",
+        )}
+      </div>
+    );
   }
 
   if (error) {

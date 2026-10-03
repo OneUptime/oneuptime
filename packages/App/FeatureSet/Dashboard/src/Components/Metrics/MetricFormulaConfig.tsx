@@ -73,7 +73,8 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
                 {formulaTitle}
               </span>
               <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                {translator.translateText("Formula")}</span>
+                {translator.translateText("Formula")}
+              </span>
             </div>
           </div>
         </div>
@@ -150,7 +151,8 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
             />
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                {translator.translateText("Warning Threshold")}</label>
+                {translator.translateText("Warning Threshold")}
+              </label>
               <Input
                 value={props.data?.warningThreshold?.toString() || ""}
                 type={InputType.NUMBER}
@@ -165,7 +167,8 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                {translator.translateText("Critical Threshold")}</label>
+                {translator.translateText("Critical Threshold")}
+              </label>
               <Input
                 value={props.data?.criticalThreshold?.toString() || ""}
                 type={InputType.NUMBER}

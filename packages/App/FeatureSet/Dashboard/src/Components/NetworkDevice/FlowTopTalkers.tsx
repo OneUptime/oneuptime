@@ -174,7 +174,6 @@ const formatMbps: (mbps: number) => string = (mbps: number): string => {
   return mbps.toFixed(2);
 };
 
-
 const parseTopEntries: (value: unknown) => Array<TopEntry> = (
   value: unknown,
 ): Array<TopEntry> => {
@@ -511,26 +510,24 @@ export const BandwidthOverTimeChart: FunctionComponent<{
           { template: translationKey("Min {{value}}"), mbps: minMbps },
           { template: translationKey("Avg {{value}}"), mbps: avgMbps },
           { template: translationKey("Max {{value}}"), mbps: maxMbps },
-        ].map(
-          (stat: { template: string; mbps: number }): ReactElement => {
-            return (
-              <span key={stat.template}>
-                <TranslatedSentence
-                  template={stat.template}
-                  slots={{
-                    value: (
-                      <span className="font-medium text-gray-900">
-                        {translator.translateTemplate("{{value}} Mbps", {
-                          value: formatMbps(stat.mbps),
-                        })}
-                      </span>
-                    ),
-                  }}
-                />
-              </span>
-            );
-          },
-        )}
+        ].map((stat: { template: string; mbps: number }): ReactElement => {
+          return (
+            <span key={stat.template}>
+              <TranslatedSentence
+                template={stat.template}
+                slots={{
+                  value: (
+                    <span className="font-medium text-gray-900">
+                      {translator.translateTemplate("{{value}} Mbps", {
+                        value: formatMbps(stat.mbps),
+                      })}
+                    </span>
+                  ),
+                }}
+              />
+            </span>
+          );
+        })}
         <TimeRangeZoomHint revealOnHover={true} className="ml-auto" />
       </div>
       {hasAxis ? (

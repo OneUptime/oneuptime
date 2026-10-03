@@ -129,21 +129,26 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         externalStatusPageResponse.componentStatuses.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              {translator.translateText("Component Statuses")}</h3>
+              {translator.translateText("Component Statuses")}
+            </h3>
             <div className="border rounded-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Component")}</th>
+                      {translator.translateText("Component")}
+                    </th>
                     {hasComponentGroups && (
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {translator.translateText("Group")}</th>
+                        {translator.translateText("Group")}
+                      </th>
                     )}
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Status")}</th>
+                      {translator.translateText("Status")}
+                    </th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Description")}</th>
+                      {translator.translateText("Description")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">

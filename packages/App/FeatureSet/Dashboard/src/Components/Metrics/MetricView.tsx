@@ -950,7 +950,8 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
             <div className="-mt-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  {translator.translateText("Time Range")}</span>
+                  {translator.translateText("Time Range")}
+                </span>
               </div>
               <StartAndEndDate
                 type={StartAndEndDateType.DateTime}
@@ -1321,11 +1322,14 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 />
               </div>
               <p className="mt-4 text-sm font-medium text-gray-900">
-                {translator.translateText("Select a metric to get started")}</p>
+                {translator.translateText("Select a metric to get started")}
+              </p>
               <p className="mt-1 text-xs text-gray-500">
-                {translator.translateText(props.hideQueryElements
-                  ? "No metric is configured for this view."
-                  : "Pick a metric in the query editor above and its chart will appear here.")}
+                {translator.translateText(
+                  props.hideQueryElements
+                    ? "No metric is configured for this view."
+                    : "Pick a metric in the query editor above and its chart will appear here.",
+                )}
               </p>
               {!props.hideQueryElements && (
                 <div className="mt-4 flex justify-center">

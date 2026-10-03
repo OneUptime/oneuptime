@@ -226,10 +226,9 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                   changeOperator(e.target.value as FilterOperator);
                 }}
                 className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
-                aria-label={translator.translateTemplate(
-                  "{{label}} operator",
-                  { label: translatableTerm(props.label) },
-                )}
+                aria-label={translator.translateTemplate("{{label}} operator", {
+                  label: translatableTerm(props.label),
+                })}
               >
                 {supportedOperators.map((op: FilterOperator) => {
                   return (

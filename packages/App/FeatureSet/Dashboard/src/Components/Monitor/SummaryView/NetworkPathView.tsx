@@ -68,13 +68,19 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-md border-2 border-gray-100 p-4">
       <div className="text-sm font-medium text-gray-900 mb-1">
-        {translator.translateText("Network Path at Time of Failure")}</div>
+        {translator.translateText("Network Path at Time of Failure")}
+      </div>
       <div className="text-xs text-gray-500 mb-3">
-        {translator.translateText("Traceroute captured by the probe when this check failed.")}</div>
+        {translator.translateText(
+          "Traceroute captured by the probe when this check failed.",
+        )}
+      </div>
 
       {trace.dnsLookup && (
         <div className="mb-3 text-sm text-gray-700">
-          <span className="font-medium">{translator.translateText("DNS:")}</span>{" "}
+          <span className="font-medium">
+            {translator.translateText("DNS:")}
+          </span>{" "}
           {trace.dnsLookup.isSuccess ? (
             <span>
               <TranslatedSentence

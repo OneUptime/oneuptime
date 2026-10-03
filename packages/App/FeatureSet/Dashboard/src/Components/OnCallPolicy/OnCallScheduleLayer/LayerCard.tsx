@@ -26,6 +26,9 @@ import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDu
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -67,10 +70,11 @@ interface SummaryChipProps {
 const SummaryChip: FunctionComponent<SummaryChipProps> = (
   props: SummaryChipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
       <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
-      <span>{props.text}</span>
+      <span>{translator.translateText(props.text)}</span>
     </span>
   );
 };
@@ -78,6 +82,7 @@ const SummaryChip: FunctionComponent<SummaryChipProps> = (
 const LayerCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const layer: OnCallDutyPolicyScheduleLayer = props.layer;
   const isTopPriority: boolean = props.index === 0;
 
@@ -163,7 +168,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       nameById[id] =
         layerUser.user?.name?.toString() ||
         layerUser.user?.email?.toString() ||
-        "Unknown user";
+        translator.translateTemplate("Unknown user");
     }
   }
 
@@ -177,7 +182,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
     if (!info || nameById[userId]) {
       continue;
     }
-    nameById[userId] = info.name || info.email || "Unknown user";
+    nameById[userId] =
+      info.name || info.email || translator.translateTemplate("Unknown user");
   }
 
   /*
@@ -239,7 +245,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
         policyNameById: {},
       }).coveringLabel
     : isCurrentUserSubstitute
-      ? "Covering via override"
+      ? translator.translateTemplate("Covering via override")
       : null;
 
   const userCount: number = props.users.length;
@@ -286,7 +292,10 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           )}
         </span>
         <span className="text-xs font-medium text-gray-600">
-          {userCount === 1 ? "1 user" : `${userCount} users`}
+          {translator.translatePlural(
+            { one: "{{count}} user", other: "{{count}} users" },
+            userCount,
+          )}
         </span>
       </span>
     );
@@ -306,7 +315,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
     return (
       <button
         type="button"
-        aria-label={params.label}
+        aria-label={translator.translateText(params.label)}
         disabled={params.disabled || props.actionsDisabled}
         onClick={(e: React.MouseEvent) => {
           e.stopPropagation();
@@ -338,7 +347,9 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           text={
             isTopPriority
               ? "Highest priority layer"
-              : `Priority ${props.index + 1}`
+              : translator.translateTemplate("Priority {{number}}", {
+                  number: props.index + 1,
+                })
           }
         >
           <span
@@ -366,11 +377,14 @@ const LayerCard: FunctionComponent<ComponentProps> = (
         >
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="truncate text-base font-semibold text-gray-900">
-              {layer.name?.toString() || `Layer ${props.index + 1}`}
+              {layer.name?.toString() ||
+                translator.translateTemplate("Layer {{number}}", {
+                  number: props.index + 1,
+                })}
             </span>
             {isTopPriority && props.total > 1 && (
               <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200/70">
-                Highest priority
+                {translator.translateText("Highest priority")}
               </span>
             )}
           </div>
@@ -403,10 +417,17 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             />
             {currentAndNext.current ? (
               <span>
-                <span className="font-semibold text-gray-700">
-                  {nameById[currentAndNext.current.userId] || "Unknown user"}
-                </span>{" "}
-                on call now
+                <TranslatedSentence
+                  template="{{name}} on call now"
+                  slots={{
+                    name: (
+                      <span className="font-semibold text-gray-700">
+                        {nameById[currentAndNext.current.userId] ||
+                          translator.translateText("Unknown user")}
+                      </span>
+                    ),
+                  }}
+                />
                 {coveringLabel && (
                   <span
                     data-testid="layer-card-covering"
@@ -418,20 +439,34 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               </span>
             ) : (
               <span className="text-amber-700">
-                {userCount === 0
-                  ? "No users assigned - this layer never puts anyone on call"
-                  : "No one on call in this layer right now"}
+                {translator.translateText(
+                  userCount === 0
+                    ? "No users assigned - this layer never puts anyone on call"
+                    : "No one on call in this layer right now",
+                )}
               </span>
             )}
             {currentAndNext.next && (
               <>
                 <span className="text-gray-300">&middot;</span>
                 <span>
-                  Up next{" "}
-                  <span className="font-medium text-gray-700">
-                    {nameById[currentAndNext.next.userId] || "Unknown user"}
-                  </span>{" "}
-                  {formatRelativeStart(currentAndNext.next.start, preview.now)}
+                  <TranslatedSentence
+                    template="Up next {{name}} {{when}}"
+                    values={{
+                      when: formatRelativeStart(
+                        currentAndNext.next.start,
+                        preview.now,
+                      ),
+                    }}
+                    slots={{
+                      name: (
+                        <span className="font-medium text-gray-700">
+                          {nameById[currentAndNext.next.userId] ||
+                            translator.translateText("Unknown user")}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
               </>
             )}
@@ -459,7 +494,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           <Tooltip text="Delete layer">
             <button
               type="button"
-              aria-label="Delete layer"
+              aria-label={translator.translateText("Delete layer")}
               disabled={props.isDeleteButtonLoading || props.actionsDisabled}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
@@ -479,7 +514,9 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           </Tooltip>
           <button
             type="button"
-            aria-label={props.isExpanded ? "Collapse layer" : "Expand layer"}
+            aria-label={translator.translateText(
+              props.isExpanded ? "Collapse layer" : "Expand layer",
+            )}
             onClick={props.onToggleExpand}
             className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
@@ -521,20 +558,24 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
               />
               <span>
-                <span className="font-semibold">No users assigned.</span> This
-                layer produces no on-call coverage at all. Add at least one user
-                below, or this layer will never page anyone.
+                <span className="font-semibold">
+                  {translator.translateText("No users assigned.")}
+                </span>{" "}
+                {translator.translateText(
+                  "This layer produces no on-call coverage at all. Add at least one user below, or this layer will never page anyone.",
+                )}
               </span>
             </div>
           )}
 
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-900">
-              On-call users
+              {translator.translateText("On-call users")}
             </h4>
             <p className="mb-3 mt-0.5 text-sm text-gray-500">
-              On-call duty rotates through these users top to bottom. Drag the
-              handle to reorder.
+              {translator.translateText(
+                "On-call duty rotates through these users top to bottom. Drag the handle to reorder.",
+              )}
             </p>
             <LayerUser layer={layer} onUpdateUsers={props.onUsersChange} />
           </div>

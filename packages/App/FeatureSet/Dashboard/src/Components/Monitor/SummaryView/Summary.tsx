@@ -25,10 +25,7 @@ import MonitorTestForm from "../../Form/Monitor/MonitorTest";
 import { ButtonSize } from "Common/UI/Components/Button/Button";
 import ObjectID from "Common/Types/ObjectID";
 import Dictionary from "Common/Types/Dictionary";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {

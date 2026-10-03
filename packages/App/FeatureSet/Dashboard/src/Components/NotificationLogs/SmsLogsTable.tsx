@@ -165,11 +165,14 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No SMS logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No SMS logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No SMS logs."
         }
         showRefreshButton={true}

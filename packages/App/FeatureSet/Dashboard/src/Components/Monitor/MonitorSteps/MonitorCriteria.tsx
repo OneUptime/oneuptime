@@ -85,7 +85,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                   </span>{" "}
                   {isCriteriaDisabled && (
                     <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-                      {translator.translateText("Disabled")}</span>
+                      {translator.translateText("Disabled")}
+                    </span>
                   )}{" "}
                   {isCriteriaDisabled
                     ? translator.translateText(
@@ -95,7 +96,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       ? translator.translateTemplate(
                           "This criteria will be checked {{ordinal}}.",
                           {
-                            ordinal: translatableTerm(CRITERIA_ORDINALS[index]!),
+                            ordinal: translatableTerm(
+                              CRITERIA_ORDINALS[index]!,
+                            ),
                           },
                         )
                       : translator.translateTemplate(

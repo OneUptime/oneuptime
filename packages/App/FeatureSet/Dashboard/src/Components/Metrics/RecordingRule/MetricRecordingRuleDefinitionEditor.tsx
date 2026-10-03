@@ -104,7 +104,8 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
         <div className="flex items-center justify-between mb-1">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              {translator.translateText("Source Metrics")}</h3>
+              {translator.translateText("Source Metrics")}
+            </h3>
             <p className="text-xs text-gray-500">
               {translator.translateTemplate(
                 "Each source is a metric + aggregation, given an alias you can reference in the expression. Up to {{max}} sources.",
@@ -152,7 +153,9 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
 
       <section>
         <div className="mb-1">
-          <h3 className="text-sm font-semibold text-gray-900">{translator.translateText("Expression")}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translator.translateText("Expression")}
+          </h3>
           <p className="text-xs text-gray-500">
             <TranslatedSentence
               template="Arithmetic over the aliases above. Operators {{operators}}, parentheses, and numbers are allowed."
@@ -165,7 +168,9 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
 
         {aliasChips.length > 0 && (
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-            <span className="text-xs text-gray-500">{translator.translateText("Available:")}</span>
+            <span className="text-xs text-gray-500">
+              {translator.translateText("Available:")}
+            </span>
             {aliasChips.map((a: string) => {
               return (
                 <code
@@ -205,7 +210,10 @@ const MetricRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
             </span>
           </h3>
           <p className="text-xs text-gray-500">
-            {translator.translateText("Attribute to split the result by. One derived data point is produced per distinct value per evaluation bucket.")}</p>
+            {translator.translateText(
+              "Attribute to split the result by. One derived data point is produced per distinct value per evaluation bucket.",
+            )}
+          </p>
         </div>
         <FieldLabelElement title="Attribute Key" />
         <Input

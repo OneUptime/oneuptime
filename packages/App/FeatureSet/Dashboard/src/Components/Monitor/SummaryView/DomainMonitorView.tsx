@@ -132,13 +132,16 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
       {/* Name Servers Section */}
       {domainResponse?.nameServers && domainResponse.nameServers.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-700">{translator.translateText("Name Servers")}</h3>
+          <h3 className="text-sm font-medium text-gray-700">
+            {translator.translateText("Name Servers")}
+          </h3>
           <div className="border rounded-md overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {translator.translateText("Name Server")}</th>
+                    {translator.translateText("Name Server")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -162,13 +165,15 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
         domainResponse.domainStatus.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              {translator.translateText("Domain Status Codes")}</h3>
+              {translator.translateText("Domain Status Codes")}
+            </h3>
             <div className="border rounded-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Status")}</th>
+                      {translator.translateText("Status")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">

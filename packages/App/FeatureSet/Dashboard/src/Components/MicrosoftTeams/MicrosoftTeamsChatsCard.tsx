@@ -47,7 +47,8 @@ const PERMISSION_DENIED_ANNOUNCEMENT: PluralTemplate = {
 
 const NAME_FAILED_ANNOUNCEMENT: PluralTemplate = {
   one: "OneUptime could not read the name of {{count}} group chat just now.",
-  other: "OneUptime could not read the names of {{count}} group chats just now.",
+  other:
+    "OneUptime could not read the names of {{count}} group chats just now.",
 };
 
 type ReadIdsFunction = (value: unknown) => Array<string>;
@@ -451,7 +452,9 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                       }`}
                     >
                       {translator.translateText(
-                        chat.chatType === "personal" ? "1:1 chat" : "Group chat",
+                        chat.chatType === "personal"
+                          ? "1:1 chat"
+                          : "Group chat",
                       )}
                     </span>
                     <SendTestNotificationButton
@@ -463,8 +466,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                        * still needs something to say in its label and error.
                        */
                       destinationName={
-                        chat.name ||
-                        translator.translateTemplate("this chat")
+                        chat.name || translator.translateTemplate("this chat")
                       }
                       workspaceName="Microsoft Teams"
                       onSendingChange={onSendingTestChange}

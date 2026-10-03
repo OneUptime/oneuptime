@@ -84,77 +84,115 @@ export type HostMetric =
   | "unitListType";
 
 export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
-  cpu: translationKey("Share of CPU time across all cores spent running programs and the operating system, averaged over the last 5 minutes of the range. 100% means every core was busy; on ranges over 12 hours or with no recent data, it is usually the whole-range average."),
-  memory:
-    translationKey("Share of the host's physical memory (RAM) in use, not counting file cache the system can free, averaged over the last 5 minutes of the range. On ranges over 12 hours, or with no recent data, it is usually the whole-range average; below is the total RAM."),
-  filesystem:
-    translationKey("Used space on the host's largest filesystem, as a share of its total size with reserved space included. Averaged over the whole selected range, not the last 5 minutes; the Filesystems table lists every mount."),
-  loadAverage:
-    translationKey("The 1-minute load average from the newest interval: about how many processes were running or waiting for a CPU (Linux also counts ones waiting on disk). The % divides it by the number of cores, and over 100% means work is queuing."),
-  processes:
-    translationKey("Processes running or ready to run on a CPU in the newest interval; the total on the line below counts every state and is updated at most about once a minute. Where states are not reported, as on Windows, it counts every process seen in the last 5 minutes."),
-  availabilityChart:
-    translationKey("Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; the uptime badge is the share of intervals that were up. The newest interval is not judged until its data can arrive, and one missed minute between up ones counts as up."),
-  cpuChart:
-    translationKey("Share of CPU time spent running programs and the operating system (user plus system time), averaged across all cores, in each interval of the selected range. 100% means every core was busy for the whole interval."),
-  memoryChart:
-    translationKey("Share of the host's physical memory (RAM) in use in each interval of the selected range, not counting file cache the system can free."),
-  diskSpaceChart:
-    translationKey("Used share of the host's largest filesystem, the same mount as the Filesystem tile, in each interval of the selected range. Reserved space counts toward the total."),
-  networkChart:
-    translationKey("Bytes per second received (In) and sent (Out), added up across every network interface the host reports, including loopback when the collector sends it. Worked out from the change in each interface's byte counters between intervals."),
-  filesystemUsedTotal:
-    translationKey("Space used on this mount and its total size (used, free and reserved space added up), each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB."),
-  filesystemUtilization:
-    translationKey("Used space as a share of this mount's total size, reserved space included, averaged over the selected range. The bar turns amber at 75% and red at 90%."),
-  processCountCached:
-    translationKey("How many processes the host had in any state (running, sleeping, idle and so on), as last saved on the host record. It is refreshed from incoming metrics at most about once a minute."),
-  processCpu:
-    translationKey("This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use."),
-  processMemoryRss:
-    translationKey("Physical memory (RAM) this process holds, called resident set size or RSS, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data). The percentage below compares it with the host's total RAM."),
-  processVirtualMemory:
-    translationKey("All the address space this process has reserved, including parts not in RAM such as mapped files, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data). It is normally far larger than RSS."),
-  processThreads:
-    translationKey("This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on."),
-  processCpuChart:
-    translationKey("This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use."),
-  processMemoryRssChart:
-    translationKey("Physical memory (RSS) held by this process in each interval of the selected range."),
-  processDiskIoChart:
-    translationKey("How fast this process read from and wrote to disk, in bytes per second, in each interval of the selected range. Worked out from the change in its running totals of bytes read and written."),
-  serviceCurrentStatus:
-    translationKey("The service's state in the newest sample in the selected range: Running, Stopped, Paused, or a start, stop, pause or resume still in progress. The line below says how long ago that sample was taken."),
-  serviceAvailability:
-    translationKey("Share of status samples in the selected range in which the service was Running; samples usually arrive every 30 seconds. Only the newest 2,000 samples count, and the tile says capped when the range holds more."),
-  serviceStartupMode:
-    translationKey("How Windows starts this service, from its newest sample: Automatic (at boot), Manual (only when something asks for it), Disabled (cannot start), or Boot and System (loaded early in startup, usually drivers)."),
-  serviceStateChanges:
-    translationKey("How many times a status sample in the selected range differed from the one before it, such as Running to Stopped. A stop and restart that both happen between two samples is not seen."),
-  serviceStatusTimeline:
-    translationKey("The service's status across the selected range. Where one point on the chart covers several samples it shows the worst status among them, so a short stop stays visible."),
-  unitCurrentState:
-    translationKey("The unit's state in the newest sample in the selected range, as systemd reports it: Active, Inactive, Failed, Activating and so on. The line below says how long ago that sample was taken."),
-  unitAvailability:
-    translationKey("Share of samples in the selected range in which the unit was Active (a service running, a socket listening, a timer waiting to fire); Reloading counts as not active. Only the newest 2,000 samples count, and the tile says capped when there are more."),
-  unitType:
-    translationKey("The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on."),
-  unitStateChanges:
-    translationKey("How many times a sample in the selected range showed a different state from the one before it, such as Active to Failed. A failure and recovery that both happen between two samples is not seen."),
-  unitStateTimeline:
-    translationKey("The unit's state across the selected range. Where one point on the chart covers several samples it shows the worst state among them, so a brief failure stays visible."),
-  hostListResources:
-    translationKey("Logical CPU cores (each hyperthread counts as one) and total RAM, the sum of every memory state the collector reports; below, processes in any state. All three are the latest values saved on the host, updated at most about once a minute."),
-  processListCpu:
-    translationKey("This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low."),
-  processListMemory:
-    translationKey("Physical memory (RSS) this process held at its newest reading in the last 15 minutes, with its share of the host's total RAM. The bar turns amber at 10% and red at 20% of RAM."),
-  serviceListStatus:
-    translationKey("Each service's state at its newest sample from the last 15 minutes: Running, Stopped, Paused, or a start, stop, pause or resume still in progress."),
-  serviceListStartup:
-    translationKey("How Windows starts the service: Automatic (at boot), Manual (only when requested), Disabled (cannot be started), or Boot and System (loaded early, usually drivers)."),
-  unitListState:
-    translationKey("Each unit's state at its newest sample from the last 15 minutes. Active means running, listening or waiting to fire; Failed means it crashed or exited with an error; Unknown means no state was reported."),
-  unitListType:
-    translationKey("What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job."),
+  cpu: translationKey(
+    "Share of CPU time across all cores spent running programs and the operating system, averaged over the last 5 minutes of the range. 100% means every core was busy; on ranges over 12 hours or with no recent data, it is usually the whole-range average.",
+  ),
+  memory: translationKey(
+    "Share of the host's physical memory (RAM) in use, not counting file cache the system can free, averaged over the last 5 minutes of the range. On ranges over 12 hours, or with no recent data, it is usually the whole-range average; below is the total RAM.",
+  ),
+  filesystem: translationKey(
+    "Used space on the host's largest filesystem, as a share of its total size with reserved space included. Averaged over the whole selected range, not the last 5 minutes; the Filesystems table lists every mount.",
+  ),
+  loadAverage: translationKey(
+    "The 1-minute load average from the newest interval: about how many processes were running or waiting for a CPU (Linux also counts ones waiting on disk). The % divides it by the number of cores, and over 100% means work is queuing.",
+  ),
+  processes: translationKey(
+    "Processes running or ready to run on a CPU in the newest interval; the total on the line below counts every state and is updated at most about once a minute. Where states are not reported, as on Windows, it counts every process seen in the last 5 minutes.",
+  ),
+  availabilityChart: translationKey(
+    "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; the uptime badge is the share of intervals that were up. The newest interval is not judged until its data can arrive, and one missed minute between up ones counts as up.",
+  ),
+  cpuChart: translationKey(
+    "Share of CPU time spent running programs and the operating system (user plus system time), averaged across all cores, in each interval of the selected range. 100% means every core was busy for the whole interval.",
+  ),
+  memoryChart: translationKey(
+    "Share of the host's physical memory (RAM) in use in each interval of the selected range, not counting file cache the system can free.",
+  ),
+  diskSpaceChart: translationKey(
+    "Used share of the host's largest filesystem, the same mount as the Filesystem tile, in each interval of the selected range. Reserved space counts toward the total.",
+  ),
+  networkChart: translationKey(
+    "Bytes per second received (In) and sent (Out), added up across every network interface the host reports, including loopback when the collector sends it. Worked out from the change in each interface's byte counters between intervals.",
+  ),
+  filesystemUsedTotal: translationKey(
+    "Space used on this mount and its total size (used, free and reserved space added up), each averaged over the selected range. Sizes use 1024-based units, so 1 GiB is 1,024 MiB.",
+  ),
+  filesystemUtilization: translationKey(
+    "Used space as a share of this mount's total size, reserved space included, averaged over the selected range. The bar turns amber at 75% and red at 90%.",
+  ),
+  processCountCached: translationKey(
+    "How many processes the host had in any state (running, sleeping, idle and so on), as last saved on the host record. It is refreshed from incoming metrics at most about once a minute.",
+  ),
+  processCpu: translationKey(
+    "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.",
+  ),
+  processMemoryRss: translationKey(
+    "Physical memory (RAM) this process holds, called resident set size or RSS, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data). The percentage below compares it with the host's total RAM.",
+  ),
+  processVirtualMemory: translationKey(
+    "All the address space this process has reserved, including parts not in RAM such as mapped files, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data). It is normally far larger than RSS.",
+  ),
+  processThreads: translationKey(
+    "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.",
+  ),
+  processCpuChart: translationKey(
+    "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.",
+  ),
+  processMemoryRssChart: translationKey(
+    "Physical memory (RSS) held by this process in each interval of the selected range.",
+  ),
+  processDiskIoChart: translationKey(
+    "How fast this process read from and wrote to disk, in bytes per second, in each interval of the selected range. Worked out from the change in its running totals of bytes read and written.",
+  ),
+  serviceCurrentStatus: translationKey(
+    "The service's state in the newest sample in the selected range: Running, Stopped, Paused, or a start, stop, pause or resume still in progress. The line below says how long ago that sample was taken.",
+  ),
+  serviceAvailability: translationKey(
+    "Share of status samples in the selected range in which the service was Running; samples usually arrive every 30 seconds. Only the newest 2,000 samples count, and the tile says capped when the range holds more.",
+  ),
+  serviceStartupMode: translationKey(
+    "How Windows starts this service, from its newest sample: Automatic (at boot), Manual (only when something asks for it), Disabled (cannot start), or Boot and System (loaded early in startup, usually drivers).",
+  ),
+  serviceStateChanges: translationKey(
+    "How many times a status sample in the selected range differed from the one before it, such as Running to Stopped. A stop and restart that both happen between two samples is not seen.",
+  ),
+  serviceStatusTimeline: translationKey(
+    "The service's status across the selected range. Where one point on the chart covers several samples it shows the worst status among them, so a short stop stays visible.",
+  ),
+  unitCurrentState: translationKey(
+    "The unit's state in the newest sample in the selected range, as systemd reports it: Active, Inactive, Failed, Activating and so on. The line below says how long ago that sample was taken.",
+  ),
+  unitAvailability: translationKey(
+    "Share of samples in the selected range in which the unit was Active (a service running, a socket listening, a timer waiting to fire); Reloading counts as not active. Only the newest 2,000 samples count, and the tile says capped when there are more.",
+  ),
+  unitType: translationKey(
+    "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.",
+  ),
+  unitStateChanges: translationKey(
+    "How many times a sample in the selected range showed a different state from the one before it, such as Active to Failed. A failure and recovery that both happen between two samples is not seen.",
+  ),
+  unitStateTimeline: translationKey(
+    "The unit's state across the selected range. Where one point on the chart covers several samples it shows the worst state among them, so a brief failure stays visible.",
+  ),
+  hostListResources: translationKey(
+    "Logical CPU cores (each hyperthread counts as one) and total RAM, the sum of every memory state the collector reports; below, processes in any state. All three are the latest values saved on the host, updated at most about once a minute.",
+  ),
+  processListCpu: translationKey(
+    "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.",
+  ),
+  processListMemory: translationKey(
+    "Physical memory (RSS) this process held at its newest reading in the last 15 minutes, with its share of the host's total RAM. The bar turns amber at 10% and red at 20% of RAM.",
+  ),
+  serviceListStatus: translationKey(
+    "Each service's state at its newest sample from the last 15 minutes: Running, Stopped, Paused, or a start, stop, pause or resume still in progress.",
+  ),
+  serviceListStartup: translationKey(
+    "How Windows starts the service: Automatic (at boot), Manual (only when requested), Disabled (cannot be started), or Boot and System (loaded early, usually drivers).",
+  ),
+  unitListState: translationKey(
+    "Each unit's state at its newest sample from the last 15 minutes. Active means running, listening or waiting to fire; Failed means it crashed or exited with an error; Unknown means no state was reported.",
+  ),
+  unitListType: translationKey(
+    "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.",
+  ),
 };

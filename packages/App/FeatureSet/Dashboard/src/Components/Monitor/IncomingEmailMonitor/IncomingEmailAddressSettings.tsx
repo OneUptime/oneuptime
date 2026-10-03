@@ -276,13 +276,20 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
           {currentAddress ? (
             <>
               <p className="text-xs font-medium text-gray-500">
-                {translator.translateText(props.customLocalPart ? "Custom address" : "Generated address")}
+                {translator.translateText(
+                  props.customLocalPart
+                    ? "Custom address"
+                    : "Generated address",
+                )}
               </p>
               {getAddressRow(currentAddress, "incoming-email-current-address")}
             </>
           ) : (
             <p className="text-sm text-gray-500">
-              {translator.translateText("Only people who can edit monitors can see this, because it contains the monitor's secret key.")}</p>
+              {translator.translateText(
+                "Only people who can edit monitors can see this, because it contains the monitor's secret key.",
+              )}
+            </p>
           )}
         </div>
       </Card>

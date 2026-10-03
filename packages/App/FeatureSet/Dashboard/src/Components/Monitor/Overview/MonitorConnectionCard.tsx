@@ -13,10 +13,7 @@ import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleU
 import { MonitorOverviewSetupKind } from "Common/Utils/Monitor/MonitorOverviewFamily";
 import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -115,7 +112,10 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
       if (!address) {
         return (
           <p className="text-sm text-gray-500">
-            {translator.translateText("Inbound email is not configured on this server, so this monitor has no address yet.")}</p>
+            {translator.translateText(
+              "Inbound email is not configured on this server, so this monitor has no address yet.",
+            )}
+          </p>
         );
       }
 

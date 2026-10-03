@@ -326,13 +326,17 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                   <Icon icon={IconProp.Filter} className="h-3 w-3" />
                   {activeAttributeCount}{" "}
-                  {translator.translateText(activeAttributeCount === 1 ? "filter" : "filters")}
+                  {translator.translateText(
+                    activeAttributeCount === 1 ? "filter" : "filters",
+                  )}
                 </span>
               )}
               {!isExpanded && groupByKeys.length > 0 && (
                 <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                   {groupByKeys.length}{" "}
-                  {translator.translateText(groupByKeys.length === 1 ? "group-by" : "group-bys")}
+                  {translator.translateText(
+                    groupByKeys.length === 1 ? "group-by" : "group-bys",
+                  )}
                 </span>
               )}
             </div>
@@ -349,7 +353,9 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-1 ml-3">
           <button
             type="button"
-            aria-label={translator.translateText(isExpanded ? "Collapse query" : "Expand query")}
+            aria-label={translator.translateText(
+              isExpanded ? "Collapse query" : "Expand query",
+            )}
             aria-expanded={isExpanded}
             className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             onClick={() => {
@@ -391,7 +397,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
       return (
         <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
           <span className="text-xs text-gray-400 font-medium mr-1">
-            {translator.translateText("Filtered by:")}</span>
+            {translator.translateText("Filtered by:")}
+          </span>
           {Object.entries(attributes).map(
             ([key, value]: [string, DictionaryEntryValue]) => {
               const detected: {
@@ -441,7 +448,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               onClick={handleClearAllAttributes}
             >
-              {translator.translateText("Clear all")}</button>
+              {translator.translateText("Clear all")}
+            </button>
           )}
         </div>
       );
@@ -587,7 +595,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   {/* Chart type (Area is the render default when unset) */}
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      {translator.translateText("Chart type")}</label>
+                      {translator.translateText("Chart type")}
+                    </label>
                     <Dropdown
                       options={CHART_TYPE_OPTIONS}
                       value={
@@ -711,7 +720,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   {/* Thresholds */}
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      {translator.translateText("Warning Threshold")}</label>
+                      {translator.translateText("Warning Threshold")}
+                    </label>
                     <Input
                       value={props.data?.warningThreshold?.toString() || ""}
                       type={InputType.NUMBER}
@@ -730,7 +740,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">
-                      {translator.translateText("Critical Threshold")}</label>
+                      {translator.translateText("Critical Threshold")}
+                    </label>
                     <Input
                       value={props.data?.criticalThreshold?.toString() || ""}
                       type={InputType.NUMBER}

@@ -30,10 +30,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
@@ -68,8 +65,9 @@ type SetSnmpCredentialProfileFormData = {
   snmpCredentialProfileId: string;
 };
 
-export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  translationKey("Set SNMP Credential Profile");
+export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string = translationKey(
+  "Set SNMP Credential Profile",
+);
 
 export const CLEAR_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
   translationKey("Clear SNMP Credential Profile");
@@ -384,9 +382,8 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
               to={profilesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              {translator.translateText(
-                "Create an SNMP Credential Profile",
-              ) || ""}
+              {translator.translateText("Create an SNMP Credential Profile") ||
+                ""}
             </AppLink>
           </Modal>
         ) : (

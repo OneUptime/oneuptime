@@ -223,7 +223,8 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                     {translator.translateText("Callers & callees")}
                   </div>
                   <h2 className="break-all font-mono text-base font-semibold text-gray-900">
-                    {props.functionName || translator.translateText("(anonymous)")}
+                    {props.functionName ||
+                      translator.translateText("(anonymous)")}
                   </h2>
                   {props.fileName && (
                     <p className="mt-0.5 break-all font-mono text-[11px] text-gray-500">

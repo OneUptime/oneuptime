@@ -27,7 +27,11 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
     >
       <ul className="space-y-2 text-sm text-gray-700">
         <li>
-          <p>{translator.translateText("Change the status from the status timeline.")}</p>
+          <p>
+            {translator.translateText(
+              "Change the status from the status timeline.",
+            )}
+          </p>
           <SloOverviewActionLink
             variant="text"
             title="Open status timeline"
@@ -38,7 +42,11 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
           />
         </li>
         <li>
-          <p>{translator.translateText("Incidents and scheduled maintenance can change it too.")}</p>
+          <p>
+            {translator.translateText(
+              "Incidents and scheduled maintenance can change it too.",
+            )}
+          </p>
           <SloOverviewActionLink
             variant="text"
             title="View incidents"
@@ -49,7 +57,11 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
           />
         </li>
         <li>
-          <p>{translator.translateText("Uptime counts time spent in operational statuses.")}</p>
+          <p>
+            {translator.translateText(
+              "Uptime counts time spent in operational statuses.",
+            )}
+          </p>
         </li>
       </ul>
     </Card>

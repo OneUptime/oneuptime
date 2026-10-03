@@ -43,10 +43,7 @@ import TeamsAvailableModal from "./TeamsAvailableModal";
 import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
 import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {

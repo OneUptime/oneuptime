@@ -146,8 +146,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
             to={settingsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            {translator.translateText("Edit this device in Settings →") ||
-              ""}
+            {translator.translateText("Edit this device in Settings →") || ""}
           </AppLink>
         </div>
       </div>

@@ -55,22 +55,31 @@ export const MESSAGE_QUEUE_METRIC_DESCRIPTIONS: Record<
   MessageQueueMetric,
   string
 > = {
-  published:
-    translationKey("Messages your instrumented applications published to this queue in the selected range, from their producer spans: one per message, or per batch sent in one call. An application that records its sends only as client spans, as some AWS SDK instrumentations do, is counted from those. Publishers that are not instrumented are not counted."),
-  consumed:
-    translationKey("Messages your instrumented applications took from this queue in the selected range, from their consumer spans: one per message processed, or per batch. Receives that returned nothing are left out; an SQS receive call counts only when it reports the messages it returned, once per batch. Receives recorded as client spans are not counted."),
-  errors:
-    translationKey("Spans naming this queue that ended with an error status in the selected range: failed publishes, receives, message processing and settlements alike, with their share of all its spans. A failure the client library did not record as an error is not counted."),
-  p95Processing:
-    translationKey("p95 means the 95th percentile: 95% of this queue's consumer spans in the selected range finished faster than this. One percentile over the whole range: the time to handle a message or batch. Receives that returned nothing and SQS receive calls are left out, since their time is spent waiting for messages, not handling them."),
-  messagesChart:
-    translationKey("Messages published and consumed on this queue in each interval of the selected range, counted as the Published and Consumed tiles count them, with its spans of any kind that ended with an error. Only whole intervals are drawn, so the newest one, still filling, does not read as a drop."),
-  p95ProcessingChart:
-    translationKey("p95 means the 95th percentile: in each interval, 95% of this queue's consumer spans finished faster than the line, leaving out receives that returned nothing and SQS receive calls. A spike in one interval can come from a handful of slow messages."),
-  producers:
-    translationKey("The services that published to this queue in the selected range, busiest first: messages sent, the share of sends that failed and the p95 publish time (p95 means the 95th percentile: 95% finished faster). Failures and time come from a service's client send spans when it has them, as the Azure SDKs do, else its producer spans."),
-  consumers:
-    translationKey("The services that consumed from this queue in the selected range, busiest first: messages taken, the share that failed and the p95 processing time (p95 means the 95th percentile: 95% finished faster). Receives that returned nothing are left out; an SQS receive that returned messages counts once per batch, never in the time."),
-  brokerHealth:
-    translationKey("What the broker itself reports about this queue, such as its backlog, consumer lag, dead letters and message age, from the collector receiver or scrape for its messaging system. Levels show their latest value, counts per interval their newest whole interval, and running totals a rate per second."),
+  published: translationKey(
+    "Messages your instrumented applications published to this queue in the selected range, from their producer spans: one per message, or per batch sent in one call. An application that records its sends only as client spans, as some AWS SDK instrumentations do, is counted from those. Publishers that are not instrumented are not counted.",
+  ),
+  consumed: translationKey(
+    "Messages your instrumented applications took from this queue in the selected range, from their consumer spans: one per message processed, or per batch. Receives that returned nothing are left out; an SQS receive call counts only when it reports the messages it returned, once per batch. Receives recorded as client spans are not counted.",
+  ),
+  errors: translationKey(
+    "Spans naming this queue that ended with an error status in the selected range: failed publishes, receives, message processing and settlements alike, with their share of all its spans. A failure the client library did not record as an error is not counted.",
+  ),
+  p95Processing: translationKey(
+    "p95 means the 95th percentile: 95% of this queue's consumer spans in the selected range finished faster than this. One percentile over the whole range: the time to handle a message or batch. Receives that returned nothing and SQS receive calls are left out, since their time is spent waiting for messages, not handling them.",
+  ),
+  messagesChart: translationKey(
+    "Messages published and consumed on this queue in each interval of the selected range, counted as the Published and Consumed tiles count them, with its spans of any kind that ended with an error. Only whole intervals are drawn, so the newest one, still filling, does not read as a drop.",
+  ),
+  p95ProcessingChart: translationKey(
+    "p95 means the 95th percentile: in each interval, 95% of this queue's consumer spans finished faster than the line, leaving out receives that returned nothing and SQS receive calls. A spike in one interval can come from a handful of slow messages.",
+  ),
+  producers: translationKey(
+    "The services that published to this queue in the selected range, busiest first: messages sent, the share of sends that failed and the p95 publish time (p95 means the 95th percentile: 95% finished faster). Failures and time come from a service's client send spans when it has them, as the Azure SDKs do, else its producer spans.",
+  ),
+  consumers: translationKey(
+    "The services that consumed from this queue in the selected range, busiest first: messages taken, the share that failed and the p95 processing time (p95 means the 95th percentile: 95% finished faster). Receives that returned nothing are left out; an SQS receive that returned messages counts once per batch, never in the time.",
+  ),
+  brokerHealth: translationKey(
+    "What the broker itself reports about this queue, such as its backlog, consumer lag, dead letters and message age, from the collector receiver or scrape for its messaging system. Levels show their latest value, counts per interval their newest whole interval, and running totals a rate per second.",
+  ),
 };

@@ -338,9 +338,12 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                           "{{minutes}}-minute window around this capture",
                           { minutes: windowMinutes },
                         )
-                      : translator.translateTemplate("last {{minutes}} minutes", {
-                          minutes: windowMinutes,
-                        })}
+                      : translator.translateTemplate(
+                          "last {{minutes}} minutes",
+                          {
+                            minutes: windowMinutes,
+                          },
+                        )}
                   </span>
                 ),
                 question: (

@@ -1171,7 +1171,10 @@ function renderSeriesControls(input: {
         ) : null}
         {serverTruncatedWithoutTopK ? (
           <HintChip variant="amber">
-            {translator.translateText("Results truncated by server row limit — data may be incomplete.")}</HintChip>
+            {translator.translateText(
+              "Results truncated by server row limit — data may be incomplete.",
+            )}
+          </HintChip>
         ) : null}
         {warningElement || null}
       </div>
@@ -1182,9 +1185,13 @@ function renderSeriesControls(input: {
             <Icon icon={IconProp.EyeSlash} className="h-4 w-4 text-gray-400" />
           </div>
           <p className="mt-2 text-sm font-medium text-gray-900">
-            {translator.translateText("All series hidden")}</p>
+            {translator.translateText("All series hidden")}
+          </p>
           <p className="mt-0.5 text-xs text-gray-500">
-            {translator.translateText("Every series on this chart is hidden — click a series below to show it again.")}</p>
+            {translator.translateText(
+              "Every series on this chart is hidden — click a series below to show it again.",
+            )}
+          </p>
           <button
             type="button"
             className="mt-3 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
@@ -1192,7 +1199,8 @@ function renderSeriesControls(input: {
               updateControls(chartId, { hiddenSeries: new Set<string>() });
             }}
           >
-            {translator.translateText("Show all series")}</button>
+            {translator.translateText("Show all series")}
+          </button>
         </div>
       ) : null}
 
@@ -1227,7 +1235,8 @@ function renderSeriesControls(input: {
           </div>
           <div className="flex items-center gap-1.5">
             <label htmlFor={`series-sort-${chartId}`} className="sr-only">
-              {translator.translateText("Sort series by")}</label>
+              {translator.translateText("Sort series by")}
+            </label>
             <select
               id={`series-sort-${chartId}`}
               value={sortBy}
@@ -1255,11 +1264,14 @@ function renderSeriesControls(input: {
               effectiveTopN !== DEFAULT_TOP_N_SERIES) ? (
               <>
                 <label htmlFor={`series-top-n-${chartId}`} className="sr-only">
-                  {translator.translateText("Number of series to show")}</label>
+                  {translator.translateText("Number of series to show")}
+                </label>
                 <select
                   id={`series-top-n-${chartId}`}
                   value={topNSelectValue}
-                  title={translator.translateText("How many series to fetch and plot")}
+                  title={translator.translateText(
+                    "How many series to fetch and plot",
+                  )}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
                     if (e.target.value === "all") {
                       return;
@@ -1278,7 +1290,9 @@ function renderSeriesControls(input: {
                     );
                   })}
                   {topNSelectValue === "all" ? (
-                    <option value="all">{translator.translateText("All series")}</option>
+                    <option value="all">
+                      {translator.translateText("All series")}
+                    </option>
                   ) : null}
                 </select>
               </>
@@ -1330,9 +1344,7 @@ function renderSeriesControls(input: {
                 </span>
               ),
               total: (
-                <span className="font-medium text-gray-700">
-                  {totalSeries}
-                </span>
+                <span className="font-medium text-gray-700">{totalSeries}</span>
               ),
             }}
           />
@@ -1447,7 +1459,9 @@ function renderSeriesControls(input: {
                     )}
                     aria-haspopup="menu"
                     aria-expanded={investigatedSeriesName === series.seriesName}
-                    title={translator.translateText("Investigate this series — logs, traces, and more")}
+                    title={translator.translateText(
+                      "Investigate this series — logs, traces, and more",
+                    )}
                     onClick={(
                       event: React.MouseEvent<HTMLButtonElement>,
                     ): void => {
@@ -3542,7 +3556,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ref={seriesMenuRef}
               role="menu"
               aria-orientation="vertical"
-              aria-label={translator.translateText("Series investigation actions")}
+              aria-label={translator.translateText(
+                "Series investigation actions",
+              )}
               className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
               style={{
                 left: `${seriesMenu.position.x}px`,
@@ -3574,7 +3590,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                    * happened.
                    */
                   <p className="mt-0.5 truncate text-[11px] text-gray-500">
-                    {translator.translateText("Couldn't scope to this series — actions cover the whole chart")}</p>
+                    {translator.translateText(
+                      "Couldn't scope to this series — actions cover the whole chart",
+                    )}
+                  </p>
                 ) : null}
               </div>
               {exemplarWindow ? (
@@ -3753,7 +3772,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               <div className="max-h-52 space-y-0.5 overflow-y-auto px-3 py-2">
                 {bucketInspector.entries.length === 0 ? (
                   <p className="text-xs text-gray-400">
-                    {translator.translateText("No data points in this bucket.")}</p>
+                    {translator.translateText("No data points in this bucket.")}
+                  </p>
                 ) : (
                   bucketInspector.entries.map(
                     (entry: { name: string; value: number }, index: number) => {
@@ -3792,7 +3812,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                   onClick={closeBucketInspector}
                 >
-                  {translator.translateText("Close")}</button>
+                  {translator.translateText("Close")}
+                </button>
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"

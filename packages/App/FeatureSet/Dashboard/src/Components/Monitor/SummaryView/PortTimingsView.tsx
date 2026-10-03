@@ -64,9 +64,13 @@ const PortTimingsView: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-md border-2 border-gray-100 p-4">
       <div className="text-sm font-medium text-gray-900 mb-1">
-        {translator.translateText("Connection Phase Breakdown")}</div>
+        {translator.translateText("Connection Phase Breakdown")}
+      </div>
       <div className="text-xs text-gray-500 mb-3">
-        {translator.translateText("Time spent resolving the target and establishing the TCP connection.")}</div>
+        {translator.translateText(
+          "Time spent resolving the target and establishing the TCP connection.",
+        )}
+      </div>
       <div className="space-y-2">
         {phases.map((phase: ConnectionPhase) => {
           const percent: number =

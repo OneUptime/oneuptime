@@ -79,7 +79,9 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                 )
               )}
               <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                {translator.translateText(props.isFormula ? "Formula" : "Display Settings")}
+                {translator.translateText(
+                  props.isFormula ? "Formula" : "Display Settings",
+                )}
               </span>
             </div>
           )}
@@ -88,7 +90,8 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              {translator.translateText("Title")}</label>
+              {translator.translateText("Title")}
+            </label>
             <Input
               value={props.data.title}
               onChange={(value: string) => {
@@ -103,7 +106,8 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              {translator.translateText("Description")}</label>
+              {translator.translateText("Description")}
+            </label>
             <Input
               value={props.data.description}
               onChange={(value: string) => {
@@ -122,7 +126,8 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              {translator.translateText("Legend")}</label>
+              {translator.translateText("Legend")}
+            </label>
             <Input
               value={props.data.legend}
               onChange={(value: string) => {
@@ -137,7 +142,8 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              {translator.translateText("Unit")}</label>
+              {translator.translateText("Unit")}
+            </label>
             {hasUnitFamily && unitOptions.length > 0 ? (
               <Dropdown
                 value={selectedUnitOption}

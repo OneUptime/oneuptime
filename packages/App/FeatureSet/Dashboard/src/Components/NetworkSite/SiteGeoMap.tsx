@@ -2369,7 +2369,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             {props.unplacedSites.length > UNPLACED_NAMES_SHOWN
               ? translator.translateTemplate(
                   "Not on the map — no coordinates yet ({{count}}):",
-                  { count: translator.formatNumber(props.unplacedSites.length) },
+                  {
+                    count: translator.formatNumber(props.unplacedSites.length),
+                  },
                 )
               : translator.translateText(
                   "Not on the map — no coordinates yet:",

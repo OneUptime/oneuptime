@@ -42,7 +42,9 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
   if (props.interfaceWalkFailure) {
     return (
       <div className="rounded-md border-2 border-gray-100 p-4 text-sm text-gray-700">
-        <span className="font-medium">{translator.translateText("Interface walk failed:")}</span>{" "}
+        <span className="font-medium">
+          {translator.translateText("Interface walk failed:")}
+        </span>{" "}
         {props.interfaceWalkFailure}
       </div>
     );
@@ -60,18 +62,35 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
         })}
       </div>
       <div className="text-xs text-gray-500 mb-3">
-        {translator.translateText("Live interface inventory from the last check. Bandwidth and utilization are averaged between checks.")}</div>
+        {translator.translateText(
+          "Live interface inventory from the last check. Bandwidth and utilization are averaged between checks.",
+        )}
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm text-gray-700">
           <thead>
             <tr className="text-left text-xs text-gray-500">
-              <th className="pr-4 pb-2 font-medium">{translator.translateText("Interface")}</th>
-              <th className="pr-4 pb-2 font-medium">{translator.translateText("Status")}</th>
-              <th className="pr-4 pb-2 font-medium">{translator.translateText("Speed")}</th>
-              <th className="pr-4 pb-2 font-medium">{translator.translateText("In")}</th>
-              <th className="pr-4 pb-2 font-medium">{translator.translateText("Out")}</th>
-              <th className="pr-4 pb-2 font-medium">{translator.translateText("Utilization")}</th>
-              <th className="pb-2 font-medium">{translator.translateText("Errors/s")}</th>
+              <th className="pr-4 pb-2 font-medium">
+                {translator.translateText("Interface")}
+              </th>
+              <th className="pr-4 pb-2 font-medium">
+                {translator.translateText("Status")}
+              </th>
+              <th className="pr-4 pb-2 font-medium">
+                {translator.translateText("Speed")}
+              </th>
+              <th className="pr-4 pb-2 font-medium">
+                {translator.translateText("In")}
+              </th>
+              <th className="pr-4 pb-2 font-medium">
+                {translator.translateText("Out")}
+              </th>
+              <th className="pr-4 pb-2 font-medium">
+                {translator.translateText("Utilization")}
+              </th>
+              <th className="pb-2 font-medium">
+                {translator.translateText("Errors/s")}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -92,11 +111,17 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
                   </td>
                   <td className="pr-4 py-1">
                     {!snmpInterface.isAdministrativelyUp ? (
-                      <span className="text-gray-400">{translator.translateText("Disabled")}</span>
+                      <span className="text-gray-400">
+                        {translator.translateText("Disabled")}
+                      </span>
                     ) : isDown ? (
-                      <span className="font-medium text-red-700">{translator.translateText("Down")}</span>
+                      <span className="font-medium text-red-700">
+                        {translator.translateText("Down")}
+                      </span>
                     ) : (
-                      <span className="text-green-700">{translator.translateText("Up")}</span>
+                      <span className="text-green-700">
+                        {translator.translateText("Up")}
+                      </span>
                     )}
                   </td>
                   <td className="pr-4 py-1">

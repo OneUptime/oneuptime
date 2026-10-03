@@ -169,20 +169,26 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
         cardProps={{
           title: "Telegram Logs",
           description: props.singularName
-            ? translator.translateTemplate("Telegram messages sent for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "Telegram messages sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Telegram messages sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? translator.translateTemplate("No Telegram logs for this {{itemName}}.", {
-                itemName: translatableTerm(props.singularName, {
-                  inSentence: true,
-                }),
-              })
+            ? translator.translateTemplate(
+                "No Telegram logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No Telegram logs."
         }
         showRefreshButton={true}

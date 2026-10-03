@@ -603,9 +603,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
             data-testid="network-device-diagnostic-running"
           >
             <Loader loaderType={LoaderType.Beats} size={8} />
-            <span>
-              {translateString("Waiting for the probe…")}
-            </span>
+            <span>{translateString("Waiting for the probe…")}</span>
           </div>
         ) : (
           <></>

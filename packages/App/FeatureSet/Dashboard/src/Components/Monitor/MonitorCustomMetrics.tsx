@@ -107,9 +107,12 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
             metricAliasData: {
               metricVariable: metricName,
               title: displayName,
-              description: translator.translateTemplate("Custom metric: {{name}}", {
-                name: displayName,
-              }),
+              description: translator.translateTemplate(
+                "Custom metric: {{name}}",
+                {
+                  name: displayName,
+                },
+              ),
               legend: displayName,
               legendUnit: "",
             },

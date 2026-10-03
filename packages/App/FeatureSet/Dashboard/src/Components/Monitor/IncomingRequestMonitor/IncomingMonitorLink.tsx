@@ -40,7 +40,9 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
       description="Please send inbound heartbeat GET or POST requests to this URL."
     >
       <div data-testid="incoming-request-setup">
-        <p className="text-xs font-medium text-gray-500">{translator.translateText("Heartbeat URL")}</p>
+        <p className="text-xs font-medium text-gray-500">
+          {translator.translateText("Heartbeat URL")}
+        </p>
         <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <Link
             openInNewTab={true}

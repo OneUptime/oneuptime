@@ -102,7 +102,8 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
     <div className="space-y-3">
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">
-          {translator.translateText("Group colors")}</label>
+          {translator.translateText("Group colors")}
+        </label>
         <p className="text-xs text-gray-400">
           {translator.translateText(
             props.description ||
@@ -111,7 +112,10 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
         </p>
         {props.groupByKeys.length > 1 && (
           <p className="text-xs text-gray-400 mt-1">
-            {translator.translateText("A pin on one attribute value applies to every series containing it.")}</p>
+            {translator.translateText(
+              "A pin on one attribute value applies to every series containing it.",
+            )}
+          </p>
         )}
       </div>
 
@@ -142,7 +146,9 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 {key}
               </span>
               {isLoading && (
-                <span className="text-xs text-gray-400">{translator.translateText("loading values…")}</span>
+                <span className="text-xs text-gray-400">
+                  {translator.translateText("loading values…")}
+                </span>
               )}
             </div>
 
@@ -165,9 +171,12 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                       </div>
                       <button
                         type="button"
-                        title={translator.translateTemplate("Remove {{value}}", {
-                          value: val,
-                        })}
+                        title={translator.translateTemplate(
+                          "Remove {{value}}",
+                          {
+                            value: val,
+                          },
+                        )}
                         aria-label={translator.translateTemplate(
                           "Remove {{value}}",
                           { value: val },
@@ -185,7 +194,8 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
               </div>
             ) : (
               <p className="text-xs italic text-gray-400 mb-2">
-                {translator.translateText("No pinned values yet.")}</p>
+                {translator.translateText("No pinned values yet.")}
+              </p>
             )}
 
             <div className="flex items-center gap-2">
@@ -193,11 +203,11 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 type="text"
                 list={datalistId}
                 value={drafts[key] || ""}
-                placeholder={
-                  translator.translateText(suggestions.length > 0
+                placeholder={translator.translateText(
+                  suggestions.length > 0
                     ? "Pick or type a value…"
-                    : "Type a group value…")
-                }
+                    : "Type a group value…",
+                )}
                 spellCheck={false}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   const next: string = e.target.value;

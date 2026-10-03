@@ -17,7 +17,9 @@ const SummaryScreenshotGroup: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   return (
     <div>
-      <div className="mt-2 mb-2">{translator.translateText("Screenshots:")}</div>
+      <div className="mt-2 mb-2">
+        {translator.translateText("Screenshots:")}
+      </div>
       <div className="space-y-5">
         {!props.screenshots || Object.keys(props.screenshots).length === 0 ? (
           <ErrorMessage message="No screenshots available." />

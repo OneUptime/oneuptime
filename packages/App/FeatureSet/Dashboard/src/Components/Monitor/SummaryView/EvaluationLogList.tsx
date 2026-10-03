@@ -220,7 +220,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 </div>
                 {previousMatchingCriteriaName && (
                   <div className="mt-1 text-xs text-gray-500">
-                    {translator.translateText("Criteria are evaluated in order; this monitor stops after the first match.")}</div>
+                    {translator.translateText(
+                      "Criteria are evaluated in order; this monitor stops after the first match.",
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -652,7 +655,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
       {actionEvents.length > 0 && (
         <div className="space-y-2">
-          <div className="text-sm font-semibold text-gray-900">{translator.translateText("Actions")}</div>
+          <div className="text-sm font-semibold text-gray-900">
+            {translator.translateText("Actions")}
+          </div>
           <div className="space-y-2">
             {actionEvents.map(
               (event: MonitorEvaluationEvent, index: number) => {

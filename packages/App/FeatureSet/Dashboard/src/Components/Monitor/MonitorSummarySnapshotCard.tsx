@@ -163,12 +163,18 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
 
           {snapshot.areScreenshotsOmitted && (
             <div className="text-sm text-gray-500">
-              {translator.translateText("Screenshots from this check were not stored because the capture was too large. They are on the monitor page while the check is still retained.")}</div>
+              {translator.translateText(
+                "Screenshots from this check were not stored because the capture was too large. They are on the monitor page while the check is still retained.",
+              )}
+            </div>
           )}
 
           {snapshot.isResponseBodyTruncated && (
             <div className="text-sm text-gray-500">
-              {translator.translateText("The response body shown above was truncated because the capture was too large.")}</div>
+              {translator.translateText(
+                "The response body shown above was truncated because the capture was too large.",
+              )}
+            </div>
           )}
         </div>
       </Card>

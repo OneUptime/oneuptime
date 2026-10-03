@@ -311,7 +311,8 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
         data-testid="monitor-uptime-90d"
         className="text-sm font-medium text-gray-500"
       >
-        {translator.translateText("No data yet")}</p>
+        {translator.translateText("No data yet")}
+      </p>
     );
   } else if (presentation90) {
     /*
@@ -441,9 +442,9 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500"
         >
           <p>
-            {
-              translator.translateText("Downtime counts time in every status that isn't marked operational.")
-            }
+            {translator.translateText(
+              "Downtime counts time in every status that isn't marked operational.",
+            )}
           </p>
           {isYoungMonitor && monitorCreatedAt ? (
             <p className="mt-1">
@@ -456,7 +457,9 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             <></>
           )}
           {areIncidentMarkersUnavailable ? (
-            <p className="mt-1">{translator.translateText("Incident markers are unavailable.")}</p>
+            <p className="mt-1">
+              {translator.translateText("Incident markers are unavailable.")}
+            </p>
           ) : (
             <></>
           )}

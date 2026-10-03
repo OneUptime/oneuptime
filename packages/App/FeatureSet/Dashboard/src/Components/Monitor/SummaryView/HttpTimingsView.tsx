@@ -1,9 +1,6 @@
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import React, { FunctionComponent, ReactElement } from "react";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -67,9 +64,13 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-md border-2 border-gray-100 p-4">
       <div className="text-sm font-medium text-gray-900 mb-1">
-        {translator.translateText("Request Phase Breakdown")}</div>
+        {translator.translateText("Request Phase Breakdown")}
+      </div>
       <div className="text-xs text-gray-500 mb-3">
-        {translator.translateText("Where this check spent its time, from DNS lookup to the last byte.")}</div>
+        {translator.translateText(
+          "Where this check spent its time, from DNS lookup to the last byte.",
+        )}
+      </div>
       <div className="space-y-2">
         {phases.map((phase: TimingPhase) => {
           const percent: number =

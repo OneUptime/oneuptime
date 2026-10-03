@@ -26,6 +26,9 @@ import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDu
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -66,6 +69,7 @@ interface UserDisplay {
 const LayerRotationSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const numberOfShifts: number = props.numberOfShifts || 5;
 
   /*
@@ -91,7 +95,9 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
       continue;
     }
     const name: string =
-      user?.name?.toString() || user?.email?.toString() || "Unknown user";
+      user?.name?.toString() ||
+      user?.email?.toString() ||
+      translator.translateTemplate("Unknown user");
     if (!usersById[userId]) {
       usersById[userId] = {
         name,
@@ -134,7 +140,10 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
 
     if (substitute) {
       return {
-        name: substitute.name || substitute.email || "Unknown user",
+        name:
+          substitute.name ||
+          substitute.email ||
+          translator.translateTemplate("Unknown user"),
         color: getColorForUserId(userId),
         initials: getUserInitials(
           substitute.name || "",
@@ -145,7 +154,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     }
 
     return {
-      name: "Unknown user",
+      name: translator.translateTemplate("Unknown user"),
       color: getColorForUserId(userId),
       initials: "?",
     };
@@ -169,6 +178,15 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     hasRestriction,
     hasLowerPriorityLayer: props.hasLowerPriorityLayer,
   });
+
+  // The summaries as they read in the middle of a sentence, cased the reader's way.
+  const rotationInSentence: string = translator.translateTerm(rotationSummary, {
+    inSentence: true,
+  });
+  const restrictionInSentence: string = translator.translateTerm(
+    restrictionSummary,
+    { inSentence: true },
+  );
 
   // Amber styling when the off-hours are a real hole rather than a hand-over.
   const isOffHoursUncovered: boolean =
@@ -227,7 +245,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Order
+          {translator.translateText("Order")}
         </span>
         {orderedUsers.map((user: UserDisplay, i: number) => {
           return (
@@ -302,19 +320,19 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
                       userInfoById: overrideDisplayInfoById,
                       policyNameById: {},
                     }).coveringLabel
-                  : "Covering"}
+                  : translator.translateText("Covering")}
               </span>
             )}
             {isCurrent &&
               (isActiveNow ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                  On call now
+                  {translator.translateText("On call now")}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
                   <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                  Current turn · off-hours
+                  {translator.translateText("Current turn · off-hours")}
                 </span>
               ))}
           </div>
@@ -326,8 +344,11 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
         </div>
         <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
           <span className="rounded-md bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-            {formatDurationFromSeconds(turn.coverageSeconds)}
-            {hasRestriction ? " on call" : ""}
+            {hasRestriction
+              ? translator.translateTemplate("{{duration}} on call", {
+                  duration: formatDurationFromSeconds(turn.coverageSeconds),
+                })
+              : formatDurationFromSeconds(turn.coverageSeconds)}
           </span>
           <span className="text-[11px] font-medium text-gray-400">
             {formatRelativeStart(turn.start, props.now)}
@@ -341,7 +362,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-sm font-semibold text-gray-900">
-          Who is on call, and when
+          {translator.translateText("Who is on call, and when")}
         </h4>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
           <Icon icon={IconProp.Refresh} className="h-3 w-3 text-gray-400" />
@@ -352,37 +373,56 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
       {/* Plain-english framing of the rotation */}
       <p className="mb-3 text-sm leading-relaxed text-gray-600">
         {isSingleUser ? (
-          <>
-            <span className="font-semibold text-gray-900">
-              {orderedUsers[0]?.name}
-            </span>{" "}
-            is always on call for this layer — there is no rotation.
-          </>
+          <TranslatedSentence
+            template="{{name}} is always on call for this layer — there is no rotation."
+            slots={{
+              name: (
+                <span className="font-semibold text-gray-900">
+                  {orderedUsers[0]?.name}
+                </span>
+              ),
+            }}
+          />
         ) : (
-          <>
-            On-call duty rotates through{" "}
-            <span className="font-semibold text-gray-900">
-              {orderedUsers.length} people
-            </span>
-            , {rotationSummary.toLowerCase()}. Each person is on call until the
-            next hand-off, then it passes to the next person in order.
-          </>
+          <TranslatedSentence
+            template="On-call duty rotates through {{people}}, {{rotation}}. Each person is on call until the next hand-off, then it passes to the next person in order."
+            values={{ rotation: rotationInSentence }}
+            slots={{
+              people: (
+                <span className="font-semibold text-gray-900">
+                  {translator.translatePlural(
+                    { one: "{{count}} person", other: "{{count}} people" },
+                    orderedUsers.length,
+                  )}
+                </span>
+              ),
+            }}
+          />
         )}
         {hasRestriction && offHoursFallback && (
           <>
             {" "}
-            Coverage is limited to{" "}
-            <span className="font-semibold text-gray-900">
-              {restrictionSummary.toLowerCase()}
-            </span>
-            ;{" "}
-            <span
-              className={
-                isOffHoursUncovered ? "font-medium text-amber-700" : undefined
-              }
-            >
-              {offHoursFallback}
-            </span>
+            <TranslatedSentence
+              template="Coverage is limited to {{restriction}}; {{fallback}}"
+              slots={{
+                restriction: (
+                  <span className="font-semibold text-gray-900">
+                    {restrictionInSentence}
+                  </span>
+                ),
+                fallback: (
+                  <span
+                    className={
+                      isOffHoursUncovered
+                        ? "font-medium text-amber-700"
+                        : undefined
+                    }
+                  >
+                    {offHoursFallback}
+                  </span>
+                ),
+              }}
+            />
           </>
         )}
       </p>
@@ -399,7 +439,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
         (upcomingTurns.length > 0 ? (
           <>
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Upcoming shifts
+              {translator.translateText("Upcoming shifts")}
             </div>
             <ol className="space-y-2">
               {upcomingTurns.map((turn: OnCallShift, index: number) => {
@@ -412,9 +452,10 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
                   isOffHoursUncovered ? "text-amber-700" : "text-gray-400"
                 }`}
               >
-                Each row shows a person&apos;s full rotation turn; the duration
-                counts only active on-call hours (
-                {restrictionSummary.toLowerCase()}).{" "}
+                {translator.translateTemplate(
+                  "Each row shows a person's full rotation turn; the duration counts only active on-call hours ({{restriction}}).",
+                  { restriction: restrictionInSentence },
+                )}{" "}
                 {summarizeOffHoursFallback({
                   hasRestriction,
                   hasLowerPriorityLayer: props.hasLowerPriorityLayer,
@@ -425,8 +466,9 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
           </>
         ) : (
           <div className="rounded-lg border border-dashed border-gray-200 bg-white px-3 py-4 text-center text-sm text-gray-500">
-            No upcoming shifts in the near future. Check the rotation start and
-            hand-off time above.
+            {translator.translateText(
+              "No upcoming shifts in the near future. Check the rotation start and hand-off time above.",
+            )}
           </div>
         ))}
     </div>

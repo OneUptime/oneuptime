@@ -431,10 +431,9 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
   }, [items.length, userCount, teamCount, translator.language]);
 
   // The resource's noun as it reads in the middle of a sentence.
-  const resourceName: TranslatableTerm = translatableTerm(
-    resourceDisplayName,
-    { inSentence: true },
-  );
+  const resourceName: TranslatableTerm = translatableTerm(resourceDisplayName, {
+    inSentence: true,
+  });
 
   const addOwnerText: string =
     translator.translateText(OWNERS_ADD_BUTTON_TEXT) || OWNERS_ADD_BUTTON_TEXT;

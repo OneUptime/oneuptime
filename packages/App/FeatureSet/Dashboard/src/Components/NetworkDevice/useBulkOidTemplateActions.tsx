@@ -337,9 +337,8 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
               to={oidTemplatesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              {translator.translateText(
-                "Create an OID Collection Template",
-              ) || ""}
+              {translator.translateText("Create an OID Collection Template") ||
+                ""}
             </AppLink>
           </Modal>
         ) : (
