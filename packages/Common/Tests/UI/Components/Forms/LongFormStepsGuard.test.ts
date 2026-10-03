@@ -267,7 +267,7 @@ export const SHORT_FORMS_WITH_STEPS: Array<ListedForm> = [
     file: `${DASHBOARD}/Pages/NetworkSite/AssignmentRules.tsx`,
     form: "ModelTable: Network Site Assignment Rules",
     reason:
-      "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like the other sixty.",
+      "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like every other rule.",
   },
   ...[
     [
