@@ -12,7 +12,7 @@ Eine Statusseite unterstützt fünf Kanäle. Sie und die Seite, auf der sich Bes
 
 - **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an. Zeigt den Eintrag **Abonnieren** in der Navigationsleiste der Statusseite, über den sich Besucher über die Kanäle darunter anmelden.
 - **E-Mail** (`enableEmailSubscribers`) – standardmäßig an. Alles andere ist aus, bis Sie es einschalten.
-- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration**. Zum Einschalten muss für das Projekt außerdem **SMS-Benachrichtigungen aktivieren** an sein, unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
+- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration**. Zum Einschalten muss für das Projekt außerdem **SMS** an sein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
 - **Slack** (`enableSlackSubscribers`) – standardmäßig aus.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) – standardmäßig aus.
 - **Webhook** (`enableWebhookSubscribers`) – standardmäßig aus.
