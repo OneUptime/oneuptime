@@ -24434,8 +24434,17 @@
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "尚無存取權限。可在團隊頁面上新增範圍更小的角色（例如事件 成員）或單項權限。",
   "Nothing is blocked for this team.": "此團隊沒有任何被封鎖的權限。",
   "Open the team to give it a role": "開啟團隊為其指派角色",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "簽章使用 RSA-SHA256 和 SHA256 摘要，與大多數身分提供者相同。",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "您的身分提供者用於簽章的 X.509 憑證，包括其 BEGIN CERTIFICATE 和 END CERTIFICATE 行。",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "您的身分提供者用於簽章的演算法。大多數使用 RSA-SHA256。",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "您的身分提供者簽章時使用的摘要演算法。大多數使用 SHA256。",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "此提供者已關閉。在您的身分提供者設定好上方的 Entity ID 和 Reply URL 後，請編輯此提供者並開啟「已啟用」。",
   "This team can do nothing yet. Add a role to give it access.": "此團隊目前什麼也做不了。新增一個角色以給予其存取權限。",
   "What the team's members can do. You can change it on the team's page at any time.": "團隊成員可以執行的操作。您可以隨時在團隊頁面上變更。",
   "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "此團隊成員可以執行的操作。新增角色可取得一組預設權限，新增單項權限則只授予您需要的操作。",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "您的身分提供者的簽發者（即其實體 ID），需與提供者顯示的完全一致。",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "您的身分提供者的單一登入 URL。OneUptime 會將使用者導向該處登入。",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "在您的身分提供者中新增的人員可以登入此狀態頁面，在那裡移除的人員會失去存取權。",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "在您的身分提供者中新增的人員會加入預設團隊，在那裡移除的人員會離開這些團隊。",
   "{{teamName}} was created without access.": "團隊 {{teamName}} 已建立，但沒有任何存取權限。"
 }

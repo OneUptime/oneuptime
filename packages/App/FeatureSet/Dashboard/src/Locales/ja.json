@@ -24434,8 +24434,17 @@
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "まだアクセス権はありません。チームのページで、インシデント メンバーのような限定的なロールや個別の権限を追加します。",
   "Nothing is blocked for this team.": "このチームでブロックされているものはありません。",
   "Open the team to give it a role": "チームを開いてロールを付与",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "署名には、ほとんどの ID プロバイダーと同じく、RSA-SHA256 と SHA256 ダイジェストを使います。",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "ID プロバイダーが署名に使う X.509 証明書です。BEGIN CERTIFICATE と END CERTIFICATE の行も含めてください。",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "ID プロバイダーが署名に使うアルゴリズムです。ほとんどは RSA-SHA256 を使います。",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "ID プロバイダーが署名に使うダイジェストアルゴリズムです。ほとんどは SHA256 を使います。",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "このプロバイダーは無効です。上のエンティティ ID と応答 URL を ID プロバイダーに登録したら、プロバイダーを編集して「有効」をオンにしてください。",
   "This team can do nothing yet. Add a role to give it access.": "このチームはまだ何もできません。ロールを追加してアクセス権を与えてください。",
   "What the team's members can do. You can change it on the team's page at any time.": "チームのメンバーができること。チームのページでいつでも変更できます。",
   "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "このチームのメンバーができること。あらかじめ用意された権限のセットにはロールを、必要なことだけを許可するには個別の権限を追加します。",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "ID プロバイダーの発行者（エンティティ ID）を、プロバイダーの表示どおりに入力します。",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "ID プロバイダーのシングルサインオン URL です。OneUptime はサインインのためにユーザーをここへ送ります。",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "アイデンティティプロバイダーで追加されたユーザーはこのステータスページにサインインでき、そこで削除されたユーザーはアクセスを失います。",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "アイデンティティプロバイダーで追加されたユーザーはデフォルトのチームに参加し、そこで削除されたユーザーはチームから外れます。",
   "{{teamName}} was created without access.": "{{teamName}} はアクセス権なしで作成されました。"
 }

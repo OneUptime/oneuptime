@@ -27,13 +27,14 @@ SSO integration provides the following benefits:
    - Enter the **Sign On URL** from your identity provider
    - Enter the **Issuer** (Entity ID) from your identity provider
    - Paste the **Public Certificate** from your identity provider
-   - Select the **Signature Algorithm** (e.g., `RSA-SHA-256`)
-   - Select the **Digest Algorithm** (e.g., `SHA256`)
+   - On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams
+   - Everything else is filled in under **Advanced**: the **Signature Method** (`RSA-SHA256`), the **Digest Method** (`SHA256`) and a description ("Sign in with" and the name). Change them only if your identity provider needs it
 
 3. **Get OneUptime SSO Metadata**
-   - After saving, click the **View SSO Config** button
+   - Saving opens the **SSO Configuration** dialog. You can open it again with the **View SSO Config** button
    - Copy the **Identifier (Entity ID)** — this is needed in your IdP configuration
    - Copy the **Reply URL (Assertion Consumer Service URL)** — this is needed in your IdP configuration
+   - A new provider starts switched off. Once your IdP has these two values, edit the provider and turn **Enabled** on
 
 ## Keycloak SAML Configuration
 
@@ -54,8 +55,7 @@ Keycloak is a popular open-source identity and access management solution. Follo
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Issuer**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificate**: See [Step 2](#step-2-get-the-keycloak-certificate) below
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** and **Digest Method**: already set under **Advanced** (`RSA-SHA256` and `SHA256`)
 4. Save the configuration
 
 ### Step 2: Get the Keycloak Certificate
@@ -121,8 +121,7 @@ Microsoft Entra ID is Microsoft's cloud-based identity and access management ser
    - **Sign On URL**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
    - **Issuer**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
    - **Certificate**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** and **Digest Method**: already set under **Advanced** (`RSA-SHA256` and `SHA256`)
 4. Click **View SSO Config** and copy the **Identifier (Entity ID)** and **Reply URL (Assertion Consumer Service URL)** — you will need these for Entra ID
 
 ### Step 2: Create Enterprise Application in Microsoft Entra ID
@@ -206,8 +205,7 @@ Okta is a widely-used identity platform that provides robust SAML SSO capabiliti
    - **Sign On URL**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
    - **Issuer**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
    - **Certificate**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Signature Method** and **Digest Method**: already set under **Advanced** (`RSA-SHA256` and `SHA256`)
 4. Click **View SSO Config** and copy the **Identifier (Entity ID)** and **Reply URL (Assertion Consumer Service URL)** — you will need these for Okta
 
 ### Step 2: Create SAML Application in Okta
@@ -287,7 +285,7 @@ OneUptime's SSO implementation uses the SAML 2.0 protocol and should work with a
    - **Sign On URL** (SSO endpoint)
    - **Issuer** (Entity ID of the IdP)
    - **Public Certificate** (X.509 signing certificate)
-4. Set the **Signature Algorithm** to `RSA-SHA-256` and **Digest Algorithm** to `SHA256`
+4. The **Signature Method** (`RSA-SHA256`) and **Digest Method** (`SHA256`) are already set under **Advanced**; change them only if your identity provider signs differently
 
 ## OpenID Connect (OIDC)
 

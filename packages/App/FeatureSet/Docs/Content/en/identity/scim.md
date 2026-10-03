@@ -26,10 +26,9 @@ Project SCIM allows identity providers to manage team members within OneUptime p
 
 2. **Configure SCIM Settings**
 
-   - Enable **Auto Provision Users** to automatically add users when they're assigned in your IdP
-   - Enable **Auto Deprovision Users** to automatically remove users when they're unassigned in your IdP
-   - Select the **Default Teams** that new users should be added to
-   - Copy the **SCIM Base URL** and **Bearer Token** for your IdP configuration
+   - Enter a **Name**. **Default Teams** starts on your project's members team: new users are added to these teams
+   - Under **Advanced**, **Auto Provision Users** (add users when they're assigned in your IdP) and **Auto Deprovision Users** (remove users when they're unassigned in your IdP) are on, and **Enable Push Groups** is off. Change them there if you need to
+   - Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away
 
 3. **Configure Your Identity Provider**
    - Use the SCIM Base URL: `https://oneuptime.com/scim/v2/{scimId}`
@@ -75,9 +74,8 @@ Status Page SCIM allows identity providers to provision and deprovision Status P
 
 2. **Configure SCIM Settings**
 
-   - Enable **Auto Provision Users** to automatically add private users when they're assigned in your IdP
-   - Enable **Auto Deprovision Users** to automatically delete private users when they're unassigned in your IdP
-   - Copy the **SCIM Base URL** and **Bearer Token** for your IdP configuration
+   - Enter a **Name**. Under **Advanced**, **Auto Provision Users** (add private users when they're assigned in your IdP) and **Auto Deprovision Users** (delete private users when they're unassigned in your IdP) are on. Change them there if you need to
+   - Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away
 
 3. **Configure Your Identity Provider**
    - Use the SCIM Base URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -126,13 +124,12 @@ Microsoft Entra ID provides enterprise-grade identity management with robust SCI
 2. Navigate to **Project Settings** > **Security** > **SCIM**
 3. Click **Create SCIM Configuration**
 4. Enter a friendly name (e.g., "Microsoft Entra ID Provisioning")
-5. Configure the following options:
-   - **Auto Provision Users**: Enable to automatically create users
-   - **Auto Deprovision Users**: Enable to automatically remove users
-   - **Default Teams**: Select teams that new users should be added to
-   - **Enable Push Groups**: Enable if you want to manage team membership via Entra ID groups
+5. Check the options:
+   - **Default Teams**: starts on your project's members team; new users are added to these teams
+   - **Auto Provision Users** and **Auto Deprovision Users**: on, under **Advanced**
+   - **Enable Push Groups**: under **Advanced**; turn it on if you want to manage team membership via Entra ID groups
 6. Save the configuration
-7. Copy the **SCIM Base URL** and **Bearer Token** - you'll need these for Entra ID
+7. Copy the **SCIM Base URL** and **Bearer Token** from the dialog that opens - you'll need these for Entra ID
 
 #### Step 2: Create Enterprise Application in Microsoft Entra ID
 
@@ -228,13 +225,12 @@ Okta provides flexible identity management with excellent SCIM support. Follow t
 2. Navigate to **Project Settings** > **Security** > **SCIM**
 3. Click **Create SCIM Configuration**
 4. Enter a friendly name (e.g., "Okta Provisioning")
-5. Configure the following options:
-   - **Auto Provision Users**: Enable to automatically create users
-   - **Auto Deprovision Users**: Enable to automatically remove users
-   - **Default Teams**: Select teams that new users should be added to
-   - **Enable Push Groups**: Enable if you want to manage team membership via Okta groups
+5. Check the options:
+   - **Default Teams**: starts on your project's members team; new users are added to these teams
+   - **Auto Provision Users** and **Auto Deprovision Users**: on, under **Advanced**
+   - **Enable Push Groups**: under **Advanced**; turn it on if you want to manage team membership via Okta groups
 6. Save the configuration
-7. Copy the **SCIM Base URL** and **Bearer Token** - you'll need these for Okta
+7. Copy the **SCIM Base URL** and **Bearer Token** from the dialog that opens - you'll need these for Okta
 
 #### Step 2: Create or Configure Okta Application
 

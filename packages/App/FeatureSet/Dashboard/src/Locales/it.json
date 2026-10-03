@@ -24434,8 +24434,17 @@
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "Ancora nessun accesso. Aggiungi un ruolo più limitato, come Incidente Membro, o singole autorizzazioni nella pagina del team.",
   "Nothing is blocked for this team.": "Nulla è bloccato per questo team.",
   "Open the team to give it a role": "Apri il team per assegnargli un ruolo",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "Le firme usano RSA-SHA256 con un digest SHA256, come la maggior parte dei provider di identità.",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "Il certificato X.509 con cui firma il tuo provider di identità, comprese le righe BEGIN CERTIFICATE ed END CERTIFICATE.",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "L'algoritmo con cui firma il tuo provider di identità. La maggior parte usa RSA-SHA256.",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "L'algoritmo di digest con cui firma il tuo provider di identità. La maggior parte usa SHA256.",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "Questo provider è disabilitato. Quando il tuo provider di identità ha l'Entity ID e la Reply URL qui sopra, modifica il provider e attiva «Abilitato».",
   "This team can do nothing yet. Add a role to give it access.": "Questo team non può ancora fare nulla. Aggiungi un ruolo per dargli accesso.",
   "What the team's members can do. You can change it on the team's page at any time.": "Cosa possono fare i membri del team. Puoi cambiarlo in qualsiasi momento nella pagina del team.",
   "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "Cosa possono fare i membri di questo team. Aggiungi un ruolo per un insieme di autorizzazioni già pronto, oppure una singola autorizzazione per esattamente ciò che ti serve.",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "L'emittente del tuo provider di identità (il suo Entity ID), esattamente come lo mostra il provider.",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "L'URL di single sign-on del tuo provider di identità. OneUptime vi indirizza le persone per accedere.",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "Le persone aggiunte nel tuo provider di identità possono accedere a questa pagina di stato, e quelle rimosse lì perdono l'accesso.",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "Le persone aggiunte nel tuo provider di identità entrano nei team predefiniti, e quelle rimosse lì ne escono.",
   "{{teamName}} was created without access.": "Il team {{teamName}} è stato creato senza accesso."
 }

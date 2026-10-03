@@ -24434,8 +24434,17 @@
   "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "अभी कोई एक्सेस नहीं। टीम के पृष्ठ पर घटना सदस्य जैसी सीमित भूमिका या अलग-अलग अनुमतियाँ जोड़ें।",
   "Nothing is blocked for this team.": "इस टीम के लिए कुछ भी अवरुद्ध नहीं है।",
   "Open the team to give it a role": "टीम को भूमिका देने के लिए उसे खोलें",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "हस्ताक्षर RSA-SHA256 और SHA256 डाइजेस्ट का उपयोग करते हैं, जैसा अधिकांश पहचान प्रदाता करते हैं।",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "वह X.509 प्रमाणपत्र जिससे आपका पहचान प्रदाता हस्ताक्षर करता है, उसकी BEGIN CERTIFICATE और END CERTIFICATE पंक्तियों सहित।",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "वह एल्गोरिद्म जिससे आपका पहचान प्रदाता हस्ताक्षर करता है। अधिकांश RSA-SHA256 का उपयोग करते हैं।",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "वह डाइजेस्ट एल्गोरिद्म जिससे आपका पहचान प्रदाता हस्ताक्षर करता है। अधिकांश SHA256 का उपयोग करते हैं।",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "यह प्रदाता बंद है। जब आपके पहचान प्रदाता में ऊपर दिए गए Entity ID और Reply URL जुड़ जाएं, तो प्रदाता को संपादित करें और \"सक्षम\" चालू करें।",
   "This team can do nothing yet. Add a role to give it access.": "यह टीम अभी कुछ नहीं कर सकती। इसे एक्सेस देने के लिए एक भूमिका जोड़ें।",
   "What the team's members can do. You can change it on the team's page at any time.": "टीम के सदस्य क्या कर सकते हैं। आप इसे टीम के पृष्ठ पर कभी भी बदल सकते हैं।",
   "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "इस टीम के सदस्य क्या कर सकते हैं। अनुमतियों के पहले से तैयार सेट के लिए एक भूमिका जोड़ें, या ठीक उतनी पहुँच के लिए एक अकेली अनुमति जोड़ें जितनी आपको चाहिए।",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "आपके पहचान प्रदाता का जारीकर्ता (इसका Entity ID), ठीक वैसा ही जैसा प्रदाता दिखाता है।",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "आपके पहचान प्रदाता का सिंगल साइन-ऑन URL। साइन इन करने के लिए OneUptime लोगों को वहाँ भेजता है।",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "आपके पहचान प्रदाता में जोड़े गए लोग इस स्थिति पृष्ठ में साइन इन कर सकते हैं, और वहाँ से हटाए गए लोग पहुँच खो देते हैं।",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "आपके पहचान प्रदाता में जोड़े गए लोग डिफ़ॉल्ट टीमों में शामिल होते हैं, और वहाँ से हटाए गए लोग उन्हें छोड़ देते हैं।",
   "{{teamName}} was created without access.": "{{teamName}} टीम बिना एक्सेस के बनाई गई।"
 }
