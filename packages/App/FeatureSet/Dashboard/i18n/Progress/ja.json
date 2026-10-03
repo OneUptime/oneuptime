@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 22288,
+    "keys": 24146,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -93,6 +93,7 @@
     "H3",
     "HA {{state}}",
     "HH",
+    "HTTP {{code}}",
     "HackerBay, Inc.",
     "Hello world",
     "Horizontal Pod Autoscalers",
@@ -174,6 +175,7 @@
     "VLAN ID",
     "VMID",
     "VMware VM",
+    "VMware vCenter",
     "Vertical Pod Autoscalers",
     "Vitals",
     "WARN",
@@ -208,6 +210,7 @@
     "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
     "hh",
     "host:port",
+    "ifIndex {{index}}",
     "internal-probe",
     "internal-service",
     "jeff@example.com",
@@ -278,8 +281,12 @@
     "z",
     "{\"version\": \"...\", \"records\": [...]}",
     "{{format}} JSON",
+    "{{inRate}} / {{outRate}} Mbps",
     "{{itemName}} ID",
+    "{{latency}} ms",
     "{{name}} ID",
+    "{{value}} Mbps",
+    "{{value}} ms",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",
