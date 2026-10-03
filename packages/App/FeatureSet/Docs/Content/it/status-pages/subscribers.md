@@ -130,14 +130,14 @@ Gli allegati sono serviti da `GET {statusPageCrudPath}/status-page-announcement/
 **Show At** (`showAnnouncementAt`) e **End At** (`endAnnouncementAt`) governano tutto, ma la pagina panoramica e l'elenco degli annunci si pongono domande diverse, e la differenza fa inciampare parecchia gente.
 
 - **La pagina panoramica** mostra un annuncio quando `showAnnouncementAt` è nel passato e `endAnnouncementAt` è nel futuro oppure è vuoto.
-- **L'elenco `/announcements`** mostra gli annunci il cui `showAnnouncementAt` ricade entro **Mostra cronologia annunci (in giorni)** (`showAnnouncementHistoryInDays`, predefinito 14), e poi li divide lato client tra attivi e passati.
+- **L'elenco `/announcements`** mostra gli annunci il cui `showAnnouncementAt` ricade nella finestra di cronologia degli annunci (`showAnnouncementHistoryInDays`, predefinito 14), e poi li divide lato client tra attivi e passati.
 
 Due conseguenze da tenere in conto:
 
 - **Un annuncio senza data di fine non scade mai.** Lascia vuoto **Termina la visualizzazione dell'annuncio il** e resterà fissato sulla pagina panoramica all'infinito. Metti una data di fine su tutto ciò che ha una durata definita.
 - **Un annuncio vecchio ma ancora attivo può sparire dall'elenco.** Se è iniziato più di `showAnnouncementHistoryInDays` fa, esce da `/announcements` pur restando sulla panoramica. Allarga la finestra della cronologia se tieni avvisi di lunga durata.
 
-Se gli annunci compaiano o meno è deciso dalla scheda **Impostazioni annuncio** in **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, predefinito true) e **Mostra cronologia annunci (in giorni)** (predefinito 14). Con **Mostra annunci** spento, l'endpoint degli annunci rifiuta la richiesta in blocco.
+Se gli annunci compaiano o meno si imposta nella scheda **Cosa mostra la tua pagina di stato** in **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, predefinito true) e, sotto, **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, predefinito 14). Con **Mostra annunci** spento, l'endpoint degli annunci rifiuta la richiesta in blocco.
 
 ## Modelli di annunci
 

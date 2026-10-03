@@ -11,7 +11,7 @@ Statussider bor under **Statussider** i dashboardets venstre navigation, i grupp
 - **Oprettes med to felter.** En ny statusside beder kun om **Navn** og **Beskrivelse**. Ressourcer, branding og domæner konfigureres bagefter.
 - **Ressourcer er det, besøgende ser.** Hver række på siden er en **Statusside Ressource** — en monitor (eller monitorgruppe) med sit eget visningsnavn, værktøjstip og oppetidsindstillinger. Grupper deler en lang side op i sektioner og kan ligge inde i hinanden.
 - **En preview-URL fra dag ét.** Hver statusside får et preview-link, så du kan se på den, før der findes et brugerdefineret domæne.
-- **De besøgendes ruter styres af indstillinger.** Hændelser, meddelelser, planlagte begivenheder og abonnementssiden dukker kun op, når deres kontakt på **Avancerede indstillinger** er slået til.
+- **De besøgendes ruter styres af indstillinger.** Hændelser, episoder, meddelelser og planlagte begivenheder dukker kun op, så længe deres kontakt i **Hvad din statusside viser** (på **Avancerede indstillinger**) er slået til, og abonnementssiden kun, så længe **Vis abonnentside** er slået til.
 - **Tre måder at gøre den privat på.** Private brugere, en hovedadgangskode eller SAML SSO / OIDC — plus en IP-hvidliste.
 - **Abonnenter får automatisk besked.** Abonnenter via e-mail, SMS, Slack, Microsoft Teams og webhook kan alle følge en side, hver kanal bag sin egen kontakt.
 
@@ -98,36 +98,23 @@ Se [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) 
 
 ## At vælge hvad der vises på siden
 
-De fleste visningskontakter bor ét sted: **Statussider → din side → Avanceret → Avancerede indstillinger**. Hvert kort har sin egen **Edit Settings**-knap.
+Hvad de besøgende ser, indstilles i ét kort: **Hvad din statusside viser**, på **Statussider → din side → Avanceret → Avancerede indstillinger**. Det har en række for hver liste, siden kan vise, derefter **Oppetidshistorik** og linjen "Powered by OneUptime". Der er ingen redigeringsknap: En kontakt gemmes, så snart du slår den om, og et antal dage, når du forlader feltet eller trykker på Enter.
 
-**Hændelsesindstillinger**:
+- **Vis hændelser** (`showIncidentsOnStatusPage`) — slået til som standard. Under den bestemmer **Vis de seneste … dage** (`showIncidentHistoryInDays`, standard 14), hvor langt tilbage listen over hændelser rækker, og **Vis hændelsesetiketter** (`showIncidentLabelsOnStatusPage`) er slået fra som standard.
+- **Vis kun hændelser, der er begrænset til denne side** (`onlyShowScopedIncidents`) — også i hændelsesrækken, slået fra som standard. Er den slået til, viser siden kun de hændelser, der med **Begræns til disse statussider** er begrænset til den, og kun dem får dens abonnenter besked om. Den afgør også, hvilke hændelser der bringer deres episoder på siden, så den bliver stående, når **Vis hændelser** er slået fra.
+- **Vis episoder** (`showEpisodesOnStatusPage`) — slået til som standard, med **Vis de seneste … dage** (`showEpisodeHistoryInDays`, standard 14) og **Vis episodeetiketter** (`showEpisodeLabelsOnStatusPage`, slået fra som standard). Episoder er deres egen model med deres egne endpoints, ikke en visning af hændelser.
+- **Vis meddelelser** (`showAnnouncementsOnStatusPage`) — slået til som standard, med **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14).
+- **Vis planlagte vedligeholdelsesbegivenheder** (`showScheduledMaintenanceEventsOnStatusPage`) — slået til som standard, med **Vis de seneste … dage** (`showScheduledEventHistoryInDays`, standard 14) og **Vis begivenhedsetiketter** (`showScheduledEventLabelsOnStatusPage`, slået fra som standard).
+- **Oppetidshistorik** — **Vis de seneste … dage** (`showUptimeHistoryInDays`) er længden af oppetidsbjælken ved siden af hver ressource. Standard er 90 og skal ligge mellem 1 og 90. Hver eneste **Vis oppetid %**- og **Vis statushistorikdiagram**-indstilling på en ressource eller gruppe læser dette tal.
+- **Vis "Powered By OneUptime"-branding** — slået til som standard, så sidefoden hos de besøgende lyder "Powered by OneUptime". Slå den fra for at skjule linjen. Kolonnen gemmer det omvendt, som `hidePoweredByOneUptimeBranding`.
 
-- **Vis hændelser** (`showIncidentsOnStatusPage`) — slået til som standard. Slår du den fra, forsvinder navigationspunktet **Hændelser** også.
-- **Vis hændelseshistorik (i dage)** (`showIncidentHistoryInDays`) — hvor langt tilbage listen over hændelser rækker. Standard er 14.
-- **Vis hændelsesetiketter** (`showIncidentLabelsOnStatusPage`) — slået fra som standard.
+**En liste, der er slået fra,** forsvinder fra siden sammen med sit punkt i navigationslinjen, hvis den har et; dens offentlige endpoint afviser anmodninger, og sidens abonnenter får ikke besked om den slags begivenhed. Dens række viser så kun kontakten: Hvor langt tilbage en skjult liste går, og om den viser etiketter, ændrer intet.
 
-**Episodeindstillinger** — de samme tre kontakter for hændelsesepisoder: **Vis episoder** (`showEpisodesOnStatusPage`, slået til som standard), **Vis episodehistorik (i dage)** (standard 14) og **Vis episodeetiketter** (slået fra som standard). Episoder er deres egen model med deres egne endpoints, ikke en visning af hændelser.
-
-**Meddelelsesindstillinger**:
-
-- **Vis meddelelser** (`showAnnouncementsOnStatusPage`) — slået til som standard.
-- **Vis meddelelseshistorik (i dage)** (`showAnnouncementHistoryInDays`) — standard er 14.
-
-**Indstillinger for planlagt begivenhed**:
-
-- **Vis planlagte vedligeholdelsesbegivenheder** (`showScheduledMaintenanceEventsOnStatusPage`) — slået til som standard.
-- **Vis historik for planlagte begivenheder (i dage)** (`showScheduledEventHistoryInDays`) — standard er 14.
-- **Vis begivenhedsetiketter** (`showScheduledEventLabelsOnStatusPage`) — slået fra som standard.
-
-**Indstillinger for oppetidshistorik**:
-
-- **Vis oppetidshistorik (i dage)** (`showUptimeHistoryInDays`) — længden af oppetidsbjælken ved siden af hver ressource. Standard er 90 og skal ligge mellem 1 og 90. Hver eneste **Vis oppetid %**- og **Vis statushistorikdiagram**-indstilling på en ressource eller gruppe læser dette tal.
+**Planer.** På OneUptime Cloud står den nødvendige plan ved siden af en indstilling, som din plan ikke må ændre. De fire listekontakter, de tre etiketkontakter og episodehistorikken kræver **Growth**; at skjule linjen "Powered by OneUptime" kræver **Scale**. De øvrige historikvinduer, **Oppetidshistorik** og **Vis kun hændelser, der er begrænset til denne side** kan ændres på alle planer, og hver indstilling gemmes for sig.
 
 Om siden viser punktet **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, slået til som standard), og hvilke kanaler besøgende kan abonnere via, indstilles ikke på denne skærm: Begge dele findes i kortet **Kanaler** under **Abonnenter → Abonnementsindstillinger** (se [Abonnenter og meddelelser](/docs/status-pages/subscribers)).
 
-**Drevet af OneUptime-branding**:
-
-- **Skjul "Powered By OneUptime"-branding** — slået fra som standard, så sidefoden hos de besøgende lyder "Powered by OneUptime", indtil du slår den til.
+Under kortet følger et kort, der eksporterer statussidens indstillinger til en JSON-fil, som du kan importere igen, og kortet til at arkivere statussiden.
 
 **Hvor farverne er.** Farverne på oppetidsbjælken er ikke her — **Standardbjælkefarve**, reglerne for bjælkefarver, **Nedetidsovervågningsstatusser** og **Vis samlet oppetidsprocent** bor alle på **Statussider → din side → Branding → Oversigtsside**. Der findes ingen tema- eller brandfarveindstilling nogen steder; alt ud over de kontroller klares med **Brugerdefineret CSS**.
 

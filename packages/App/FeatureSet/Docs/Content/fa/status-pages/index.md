@@ -11,7 +11,7 @@
 - **با دو فیلد ساخته می‌شود.** صفحه وضعیت تازه فقط **Name** و **Description** می‌پرسد. منابع، برندسازی و دامنه‌ها همه بعداً پیکربندی می‌شوند.
 - **منابع همان چیزی‌اند که بازدیدکنندگان می‌بینند.** هر سطری روی صفحه یک **Status Page Resource** است — مانیتوری (یا گروه مانیتوری) با نام نمایشی، راهنمای شناور و گزینه‌های آپ‌تایم خودش. گروه‌ها صفحه‌ای بلند را به بخش‌ها تقسیم می‌کنند و می‌توانند لانه‌ای باشند.
 - **از روز نخست نشانی پیش‌نمایش.** هر صفحه وضعیتی پیوند پیش‌نمایشی می‌گیرد تا پیش از وجود دامنه سفارشی بتوانید نگاهش کنید.
-- **مسیرهای رو به بازدیدکننده با تنظیمات دروازه‌بانی می‌شوند.** حادثه‌ها، اعلامیه‌ها، رویدادهای زمان‌بندی‌شده و صفحه اشتراک هرکدام فقط وقتی پدیدار می‌شوند که کلیدشان روی **Advanced Settings** روشن باشد.
+- **مسیرهای رو به بازدیدکننده با تنظیمات دروازه‌بانی می‌شوند.** حادثه‌ها، اپیزودها، اعلامیه‌ها و رویدادهای زمان‌بندی‌شده هرکدام فقط تا وقتی پدیدار می‌شوند که کلیدشان در **What your status page shows** (روی **Advanced Settings**) روشن باشد، و صفحه اشتراک فقط تا وقتی **Show Subscriber Page** روشن باشد.
 - **سه راه برای خصوصی کردنش.** کاربران خصوصی، گذرواژه‌ای اصلی، یا SSO از نوع SAML / OIDC — به‌علاوه فهرست سفید IP.
 - **به مشترکان خودکار گفته می‌شود.** مشترکان ایمیل، پیامک، Slack، ‏Microsoft Teams و وب‌هوک همه می‌توانند صفحه‌ای را دنبال کنند، هر کانالی پشت کلید خودش.
 
@@ -98,37 +98,23 @@
 
 ## برگزیدن آنچه روی صفحه نشان داده می‌شود
 
-بیشتر کلیدهای نمایش در یک جا زندگی می‌کنند: **Status Pages → صفحه شما → Advanced → Advanced Settings**. هر کارتی دکمه **Edit Settings** خودش را دارد.
+آنچه بازدیدکنندگان می‌بینند در یک کارت تنظیم می‌شود: **What your status page shows**، روی **Status Pages → صفحه شما → Advanced → Advanced Settings**. این کارت برای هر فهرستی که صفحه می‌تواند نشان دهد یک ردیف دارد، و پس از آن‌ها **Uptime History** و خط «Powered by OneUptime». دکمه ویرایشی در کار نیست: کلید همان لحظه که آن را بزنید ذخیره می‌شود، و تعداد روزها وقتی از کادرش بیرون بروید یا Enter را بزنید.
 
-**Incident Settings**:
+- **Show Incidents** (`showIncidentsOnStatusPage`) — به‌طور پیش‌فرض روشن. زیرش، **Show the last … days** (`showIncidentHistoryInDays`، پیش‌فرض ۱۴) تعیین می‌کند فهرست حادثه‌ها چقدر به عقب می‌رسد، و **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) به‌طور پیش‌فرض خاموش است.
+- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — آن هم در ردیف حادثه‌ها، به‌طور پیش‌فرض خاموش. روشنش کنید تا صفحه فقط حادثه‌هایی را که با **Limit to these status pages** به آن محدود شده‌اند نشان دهد و مشترکانش را فقط درباره آن‌ها خبردار کند. حادثه‌هایی که به هیچ صفحه‌ای محدود نشده‌اند، از جمله حادثه‌هایی که مانیتور، Slack، Microsoft Teams، API یا هوش مصنوعی خودشان باز می‌کنند، هرگز به آن نمی‌رسند تا کسی صفحه را به آن‌ها بیفزاید. این کلید همچنین تعیین می‌کند کدام حادثه‌ها اپیزودهایشان را به صفحه می‌آورند، برای همین وقتی **Show Incidents** خاموش است هم سر جایش می‌ماند. برای صفحه‌هایی که در مانیتورها شریک‌اند اما به مخاطبان مختلفی خدمت می‌کنند، [یک صفحه وضعیت برای هر مخاطب](/docs/status-pages/one-status-page-per-audience) را ببینید.
+- **Show Episodes** (`showEpisodesOnStatusPage`) — به‌طور پیش‌فرض روشن، با **Show the last … days** (`showEpisodeHistoryInDays`، پیش‌فرض ۱۴) و **Show Episode Labels** (`showEpisodeLabelsOnStatusPage`، به‌طور پیش‌فرض خاموش). اپیزودها مدل خودشان با نقطه‌های پایانی خودشان‌اند، نه نمایی از حادثه‌ها.
+- **Show Announcements** (`showAnnouncementsOnStatusPage`) — به‌طور پیش‌فرض روشن، با **Show the last … days** (`showAnnouncementHistoryInDays`، پیش‌فرض ۱۴).
+- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — به‌طور پیش‌فرض روشن، با **Show the last … days** (`showScheduledEventHistoryInDays`، پیش‌فرض ۱۴) و **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`، به‌طور پیش‌فرض خاموش).
+- **Uptime History** — **Show the last … days** (`showUptimeHistoryInDays`) طول میله آپ‌تایم کنار هر منبع است. پیش‌فرض ۹۰ و باید میان ۱ و ۹۰ باشد. هر گزینه **Show Uptime %** و **Show Status History Chart** روی منبعی یا گروهی همین عدد را می‌خواند.
+- **Show Powered By OneUptime Branding** — به‌طور پیش‌فرض روشن، پس پاورقی بازدیدکننده «Powered by OneUptime» می‌خواند. خاموشش کنید تا آن خط پنهان شود. ستون آن را برعکس ذخیره می‌کند، به‌صورت `hidePoweredByOneUptimeBranding`.
 
-- **Show Incidents** (`showIncidentsOnStatusPage`) — به‌طور پیش‌فرض روشن. خاموش کردنش آیتم پیمایش **Incidents** را هم برمی‌دارد.
-- **Show Incident History (in days)** (`showIncidentHistoryInDays`) — فهرست حادثه‌ها چقدر به عقب می‌رسد. پیش‌فرض ۱۴.
-- **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) — به‌طور پیش‌فرض خاموش.
-- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — به‌طور پیش‌فرض خاموش. روشنش کنید تا صفحه فقط حادثه‌هایی را که با **Limit to these status pages** به آن محدود شده‌اند نشان دهد و مشترکانش را فقط درباره آن‌ها خبردار کند. حادثه‌هایی که به هیچ صفحه‌ای محدود نشده‌اند، از جمله حادثه‌هایی که مانیتور، Slack، Microsoft Teams، API یا هوش مصنوعی خودشان باز می‌کنند، هرگز به آن نمی‌رسند تا کسی صفحه را به آن‌ها بیفزاید. برای صفحه‌هایی که در مانیتورها شریک‌اند اما به مخاطبان مختلفی خدمت می‌کنند، [یک صفحه وضعیت برای هر مخاطب](/docs/status-pages/one-status-page-per-audience) را ببینید.
+**فهرستی که خاموش است** از صفحه برداشته می‌شود، همراه با آیتمش در نوار پیمایش اگر آیتمی داشته باشد؛ نقطه پایانی عمومی‌اش درخواست را رد می‌کند و مشترکان صفحه درباره آن نوع رویداد خبردار نمی‌شوند. آن‌وقت ردیفش فقط کلیدش را نشان می‌دهد: اینکه فهرستی پنهان چقدر به عقب می‌رسد یا برچسب نشان می‌دهد یا نه، چیزی را تغییر نمی‌دهد.
 
-**Episode Settings** — همان سه کلید برای اپیزودهای حادثه: **Show Episodes** (`showEpisodesOnStatusPage`، به‌طور پیش‌فرض روشن)، **Show Episode History (in days)** (پیش‌فرض ۱۴)، و **Show Episode Labels** (به‌طور پیش‌فرض خاموش). اپیزودها مدل خودشان با نقطه‌های پایانی خودشان‌اند، نه نمایی از حادثه‌ها.
-
-**Announcement Settings**:
-
-- **Show Announcements** (`showAnnouncementsOnStatusPage`) — به‌طور پیش‌فرض روشن.
-- **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`) — پیش‌فرض ۱۴.
-
-**Scheduled Event Settings**:
-
-- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — به‌طور پیش‌فرض روشن.
-- **Show Scheduled Event History (in days)** (`showScheduledEventHistoryInDays`) — پیش‌فرض ۱۴.
-- **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`) — به‌طور پیش‌فرض خاموش.
-
-**Uptime History Settings**:
-
-- **Show Uptime History (in days)** (`showUptimeHistoryInDays`) — طول میله آپ‌تایم کنار هر منبع. پیش‌فرض ۹۰ و باید میان ۱ و ۹۰ باشد. هر گزینه **Show Uptime %** و **Show Status History Chart** روی منبعی یا گروهی همین عدد را می‌خواند.
+**طرح‌ها.** در OneUptime Cloud، کنار تنظیمی که طرح شما اجازه تغییرش را نمی‌دهد نام طرح لازم نوشته می‌شود. چهار کلید فهرست‌ها، سه کلید برچسب‌ها و تاریخچه اپیزودها به **Growth** نیاز دارند؛ پنهان کردن خط «Powered by OneUptime» به **Scale** نیاز دارد. بقیه بازه‌های تاریخچه، **Uptime History** و **Only Show Incidents Scoped to This Page** در هر طرحی تغییرپذیرند، و هرکدام جداگانه ذخیره می‌شود.
 
 اینکه صفحه آیتم **Subscribe** را نشان بدهد یا نه (**Show Subscriber Page**، `showSubscriberPageOnStatusPage`، به‌طور پیش‌فرض روشن) و بازدیدکنندگان از راه کدام کانال‌ها بتوانند مشترک شوند، در این صفحه تنظیم نمی‌شود: هر دو در کارت **Channels** زیر **Subscribers → Subscriber Settings** هستند (ببینید [مشترکان و اعلامیه‌ها](/docs/status-pages/subscribers)).
 
-**Powered By OneUptime Branding**:
-
-- **Hide Powered By OneUptime Branding** — به‌طور پیش‌فرض خاموش، پس پاورقی بازدیدکننده تا وقتی روشنش نکنید «Powered by OneUptime» می‌خواند.
+زیر کارت، **Export Status Page as JSON** است که تنظیم‌های خود صفحه وضعیت را در فایلی دانلود می‌کند که می‌توانید دوباره وارد کنید، و کارت بایگانی کردن صفحه وضعیت.
 
 **رنگ‌ها کجایند.** رنگ میله‌های آپ‌تایم اینجا نیستند — **Default Bar Color**، قواعد رنگ میله، **Downtime Monitor Statuses** و **Show Overall Uptime Percent** همه در **Status Pages → صفحه شما → Branding → Overview Page** زندگی می‌کنند. هیچ‌جا تنظیم قالب یا رنگ برند وجود ندارد؛ هر چیزی فراتر از آن کنترل‌ها با **Custom CSS** انجام می‌شود.
 

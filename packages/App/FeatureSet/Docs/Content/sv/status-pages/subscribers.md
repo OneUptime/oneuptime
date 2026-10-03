@@ -130,14 +130,14 @@ Bilagor serveras från `GET {statusPageCrudPath}/status-page-announcement/attach
 **Show At** (`showAnnouncementAt`) och **End At** (`endAnnouncementAt`) styr allt, men översiktssidan och meddelandelistan ställer olika frågor, och skillnaden får folk att snubbla.
 
 - **Översiktssidan** visar ett meddelande när `showAnnouncementAt` ligger bakåt i tiden och `endAnnouncementAt` antingen ligger framåt i tiden eller är tomt.
-- **Listan `/announcements`** visar meddelanden vars `showAnnouncementAt` faller inom **Visa meddelandehistorik (i dagar)** (`showAnnouncementHistoryInDays`, standard 14), och delar sedan upp dem i aktiva och tidigare på klientsidan.
+- **Listan `/announcements`** visar meddelanden vars `showAnnouncementAt` faller inom meddelandenas historikfönster (`showAnnouncementHistoryInDays`, standard 14), och delar sedan upp dem i aktiva och tidigare på klientsidan.
 
 Två följder värda att planera för:
 
 - **Ett meddelande utan slutdatum löper aldrig ut.** Lämnar du **Sluta visa meddelande vid** tomt sitter det fastnålat på översiktssidan i all evighet. Sätt ett slutdatum på allt som är tidsbundet.
 - **Ett gammalt men fortfarande aktivt meddelande kan försvinna ur listan.** Startade det för mer än `showAnnouncementHistoryInDays` sedan trillar det av `/announcements` men ligger kvar på översikten. Höj historikfönstret om ni har långvariga notiser.
 
-Om meddelanden syns över huvud taget styrs av kortet **Meddelandeinställningar** på **Avancerade inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och **Visa meddelandehistorik (i dagar)** (standard 14). Med **Visa meddelanden** avslaget avvisar meddelande-endpointen förfrågan rakt av.
+Om meddelanden syns över huvud taget ställs in i kortet **Vad din statussida visar** på **Avancerade inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och under den **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14). Med **Visa meddelanden** avslaget avvisar meddelande-endpointen förfrågan rakt av.
 
 ## Meddelandemallar
 

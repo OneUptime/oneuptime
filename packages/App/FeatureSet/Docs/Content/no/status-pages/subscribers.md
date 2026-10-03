@@ -130,14 +130,14 @@ Vedlegg serveres fra `GET {statusPageCrudPath}/status-page-announcement/attachme
 **Show At** (`showAnnouncementAt`) og **End At** (`endAnnouncementAt`) styrer alt, men oversiktssiden og kunngjøringslisten stiller hvert sitt spørsmål, og forskjellen feller folk.
 
 - **Oversiktssiden** viser en kunngjøring når `showAnnouncementAt` ligger i fortiden og `endAnnouncementAt` enten ligger i framtiden eller er tom.
-- **Listen `/announcements`** viser kunngjøringer der `showAnnouncementAt` faller innenfor **Vis kunngjøringshistorikk (i dager)** (`showAnnouncementHistoryInDays`, standard 14), og deler dem så i aktive og tidligere på klientsiden.
+- **Listen `/announcements`** viser kunngjøringer der `showAnnouncementAt` faller innenfor historikkvinduet for kunngjøringer (`showAnnouncementHistoryInDays`, standard 14), og deler dem så i aktive og tidligere på klientsiden.
 
 To konsekvenser det er verdt å planlegge rundt:
 
 - **En kunngjøring uten sluttdato utløper aldri.** Lar du **Slutt å vise kunngjøring kl.** stå tom, blir den værende festet til oversiktssiden på ubestemt tid. Sett en sluttdato på alt som er tidsbegrenset.
 - **En gammel, men fortsatt aktiv kunngjøring kan forsvinne fra listen.** Startet den for mer enn `showAnnouncementHistoryInDays` siden, faller den ut av `/announcements` samtidig som den blir stående på oversikten. Øk historikkvinduet hvis du har varsler som løper lenge.
 
-Om kunngjøringer vises i det hele tatt, styres av kortet **Kunngjøringsinnstillinger** på **Avanserte innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og **Vis kunngjøringshistorikk (i dager)** (standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen på flekken.
+Om kunngjøringer vises i det hele tatt, stilles inn i kortet **Hva statussiden din viser** på **Avanserte innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og under den **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen på flekken.
 
 ## Kunngjøringsmaler
 

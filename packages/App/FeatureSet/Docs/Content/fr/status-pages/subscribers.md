@@ -130,14 +130,14 @@ Les pièces jointes sont servies depuis `GET {statusPageCrudPath}/status-page-an
 **Show At** (`showAnnouncementAt`) et **End At** (`endAnnouncementAt`) commandent tout, mais la page d'aperçu et la liste des annonces ne posent pas la même question, et cette différence fait trébucher.
 
 - **La page d'aperçu** affiche une annonce quand `showAnnouncementAt` est dans le passé et que `endAnnouncementAt` est soit dans le futur, soit vide.
-- **La liste `/announcements`** affiche les annonces dont le `showAnnouncementAt` tombe dans la fenêtre **Afficher l'historique des annonces (en jours)** (`showAnnouncementHistoryInDays`, 14 par défaut), puis les répartit côté client entre actives et passées.
+- **La liste `/announcements`** affiche les annonces dont le `showAnnouncementAt` tombe dans la fenêtre d'historique des annonces (`showAnnouncementHistoryInDays`, 14 par défaut), puis les répartit côté client entre actives et passées.
 
 Deux conséquences à anticiper :
 
 - **Une annonce sans date de fin n'expire jamais.** Laissez **Fin de l'affichage de l'annonce à** vide et elle reste épinglée indéfiniment sur la page d'aperçu. Mettez une date de fin sur tout ce qui est limité dans le temps.
 - **Une annonce ancienne mais toujours active peut disparaître de la liste.** Si elle a commencé il y a plus de `showAnnouncementHistoryInDays`, elle sort de `/announcements` tout en restant sur l'aperçu. Élargissez la fenêtre d'historique si vous gardez des avis de longue durée.
 
-L'apparition même des annonces dépend de la carte **Paramètres de l'annonce** des **Paramètres avancés** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, activé par défaut) et **Afficher l'historique des annonces (en jours)** (14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
+L'apparition même des annonces se règle dans la carte **Ce que montre votre page de statut** des **Paramètres avancés** : **Afficher les annonces** (`showAnnouncementsOnStatusPage`, activé par défaut) et, en dessous, **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut). Avec **Afficher les annonces** désactivé, le point de terminaison des annonces refuse purement et simplement la requête.
 
 ## Les modèles d'annonce
 

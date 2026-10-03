@@ -324,14 +324,14 @@ Attachments are served from `GET {statusPageCrudPath}/status-page-announcement/a
 **Show At** (`showAnnouncementAt`) and **End At** (`endAnnouncementAt`) drive everything, but the overview page and the announcements list ask different questions, and the difference trips people up.
 
 - **The overview page** shows an announcement when `showAnnouncementAt` is in the past and `endAnnouncementAt` is either in the future or empty.
-- **The `/announcements` list** shows announcements whose `showAnnouncementAt` falls within **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`, default 14), then splits them client-side into active and past.
+- **The `/announcements` list** shows announcements whose `showAnnouncementAt` falls within the announcements' history window (`showAnnouncementHistoryInDays`, default 14), then splits them client-side into active and past.
 
 Two consequences worth planning around:
 
 - **An announcement with no end date never expires.** Leave **End Showing Announcement At** empty and it stays pinned to the overview page indefinitely. Set an end date on anything time-bound.
 - **An old but still-active announcement can vanish from the list.** If it started more than `showAnnouncementHistoryInDays` ago it drops off `/announcements` while remaining on the overview. Raise the history window if you keep long-running notices.
 
-Whether announcements appear at all is controlled by the **Announcement Settings** card on **Advanced Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and **Show Announcement History (in days)** (default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
+Whether announcements appear at all is set in the **What your status page shows** card on **Advanced Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and, under it, **Show the last … days** (`showAnnouncementHistoryInDays`, default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
 
 ## Announcement templates
 

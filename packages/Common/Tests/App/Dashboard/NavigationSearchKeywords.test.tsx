@@ -311,7 +311,61 @@ describe("dashboard product search keywords", () => {
 
     expect(screen.getByRole("combobox")).toHaveFocus();
     expect(screen.getAllByRole("option")).toHaveLength(initialCount);
+
+    /*
+     * The menu is back on Essentials, with every other section folded to one
+     * line: the products the search found are one click away.
+     */
+    for (const section of ["Resources", "Infrastructure"]) {
+      const toggle: HTMLElement = screen.getByRole("button", { name: section });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(toggle);
+    }
     expect(productLink(PageMap.RUM_APPLICATIONS)).toBeVisible();
     expect(productLink(PageMap.KUBERNETES_CLUSTERS)).toBeVisible();
+  });
+
+  test("the real catalog opens on Essentials, and every search case is in a folded section or Essentials", () => {
+    render(navbar());
+    openProducts();
+
+    const essentials: Array<string> = screen
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return option.querySelector("span.truncate")?.textContent ?? "";
+      });
+    expect(essentials).toEqual([
+      "Monitors",
+      "Incidents",
+      "Alerts",
+      "On-Call Duty",
+      "Status Pages",
+      "Scheduled Maintenance",
+      "SLOs",
+    ]);
+
+    /*
+     * Every product a search case above finds is either on screen in
+     * Essentials or behind one of the folded lines, which names it.
+     */
+    const foldedLines: Array<string> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement): boolean => {
+        return button.getAttribute("aria-expanded") === "false";
+      })
+      .map((button: HTMLElement): string => {
+        return (
+          document.getElementById(button.getAttribute("aria-describedby")!)
+            ?.textContent ?? ""
+        );
+      });
+    for (const [, title] of SEARCH_CASES) {
+      expect(
+        essentials.includes(title) ||
+          foldedLines.some((line: string): boolean => {
+            return line.includes(title);
+          }),
+      ).toBe(true);
+    }
   });
 });
