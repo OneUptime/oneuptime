@@ -21423,5 +21423,18 @@
   "{{value}} (no longer available on {{source}})": "{{value}} (no longer available on {{source}})",
   "{{value}} from {{source}}": "{{value}} from {{source}}",
   "{{visible}} of {{count}} columns shown": "{{visible}} of {{count}} columns shown",
-  "{{visible}} of {{count}} columns shown_one": "{{visible}} of {{count}} column shown"
+  "{{visible}} of {{count}} columns shown_one": "{{visible}} of {{count}} column shown",
+  "Change what your status page shows": "Change what your status page shows",
+  "Choose what visitors see on this status page, and how far back each list goes. Changes are saved as you make them.": "Choose what visitors see on this status page, and how far back each list goes. Changes are saved as you make them.",
+  "Enter a whole number of days between 1 and {{max}}.": "Enter a whole number of days between 1 and {{max}}.",
+  "Enter a whole number of days, 1 or more.": "Enter a whole number of days, 1 or more.",
+  "Hidden from visitors, and subscribers aren't notified about them.": "Hidden from visitors, and subscribers aren't notified about them.",
+  "How many days the uptime bars and uptime percentages cover, up to {{max}}.": "How many days the uptime bars and uptime percentages cover, up to {{max}}.",
+  "Logo and Cover Image": "Logo and Cover Image",
+  "Show Powered By OneUptime Branding": "Show Powered By OneUptime Branding",
+  "Show the last {{count}} days": "Show the last {{count}} days",
+  "Show the last {{count}} days_one": "Show the last {{count}} day",
+  "This status page hides these event types, so its subscribers are not notified about them:": "This status page hides these event types, so its subscribers are not notified about them:",
+  "Uptime History": "Uptime History",
+  "What your status page shows": "What your status page shows"
 }
