@@ -196,22 +196,27 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
 /*
  * The same, for the signed-in user: what they may hand on, and whether they
  * may add a permission to a key (or a team) at all - which someone who may
- * create keys (or teams) need not be allowed.
+ * create keys (or teams) need not be allowed, and which a block can take
+ * away whatever else they hold, as on the server (isBlockedFromAny).
  */
 export const getRoleAccessOptionsForCurrentUser: (
   holder: RoleAccessHolder,
 ) => Array<CardSelectOption> = (
   holder: RoleAccessHolder,
 ): Array<CardSelectOption> => {
+  const permissionModel: ApiKeyPermission | TeamPermission =
+    HOLDERS[holder].permissionModel();
+
   return getRoleAccessOptions({
     holder: holder,
     canGrant: (permission: Permission): boolean => {
       return GrantablePermission.canCurrentUserGrant(permission);
     },
-    canAddPermissions: PermissionGate.check(
-      HOLDERS[holder].permissionModel(),
-      ModelAction.Create,
-    ).isAllowed,
+    canAddPermissions:
+      PermissionGate.check(permissionModel, ModelAction.Create).isAllowed &&
+      !GrantablePermission.isCurrentUserBlockedFromAny(
+        permissionModel.getCreatePermissions(),
+      ),
   });
 };
 
