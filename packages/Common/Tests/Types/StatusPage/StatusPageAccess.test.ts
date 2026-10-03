@@ -129,9 +129,11 @@ describe("who can see a status page, read off its columns", () => {
   });
 
   test.each(
-    ALL_STATES.map((state: StatusPageAccessState) => {
-      return [describeState(state), state];
-    }),
+    ALL_STATES.map(
+      (state: StatusPageAccessState): [string, StatusPageAccessState] => {
+        return [describeState(state), state];
+      },
+    ),
   )(
     "%s: the password is asked for exactly when the choice is the password",
     (_label: string, state: StatusPageAccessState) => {
@@ -302,9 +304,11 @@ describe("moving a page to a choice", () => {
   });
 
   describe.each(
-    ALL_STATES.map((state: StatusPageAccessState) => {
-      return [describeState(state), state];
-    }),
+    ALL_STATES.map(
+      (state: StatusPageAccessState): [string, StatusPageAccessState] => {
+        return [describeState(state), state];
+      },
+    ),
   )("from %s", (_label: string, from: StatusPageAccessState) => {
     test.each(STATUS_PAGE_ACCESS_CHOICES)(
       "to %s: writes only what changes, and the server then enforces the choice made",

@@ -30,7 +30,6 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -164,7 +163,7 @@ describe("StatusPageAPI master-page: whether the page asks for the master passwo
       statusPage.masterPasswordSalt = "salt-that-must-stay-home";
     }
 
-    const findOneById: SpyInstance = jest
+    const findOneById: ReturnType<typeof jest.spyOn> = jest
       .spyOn(StatusPageService, "findOneById")
       .mockResolvedValue(statusPage);
 
