@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} har allerede sit gratis SSL-certifikat, og vi fornyer det automatisk.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} vises med det certifikat, du har uploadet.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Din CNAME-post er bekræftet, men det gratis SSL-certifikat til dette domæne er endnu ikke udstedt. Klik på Tjek nu for at prøve igen og se hvorfor.",
-  "{{teamName}} was created without access.": "Teamet {{teamName}} blev oprettet uden adgang."
+  "{{teamName}} was created without access.": "Teamet {{teamName}} blev oprettet uden adgang.",
+  "Certificate expired. We keep trying to renew it.": "Certifikatet er udløbet. Vi bliver ved med at prøve at forny det.",
+  "Certificate issued, but renewing it failed. We keep trying.": "Certifikat udstedt, men fornyelsen mislykkedes. Vi bliver ved med at prøve.",
+  "Could not issue a free certificate yet. We keep trying.": "Kunne endnu ikke udstede et gratis certifikat. Vi bliver ved med at prøve.",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "Vi kunne endnu ikke udstede et gratis SSL-certifikat til {{domain}}. Vi bliver ved med at prøve automatisk.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "Din CNAME-post er bekræftet, men det gratis SSL-certifikat til dette domæne er udløbet. Klik på Tjek nu for at prøve igen og se hvorfor."
 }

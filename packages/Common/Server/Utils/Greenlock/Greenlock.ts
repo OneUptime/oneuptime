@@ -20,6 +20,14 @@ import ArrayUtil from "../../../Utils/Array";
 import acme from "acme-client";
 import { Challenge } from "acme-client/types/rfc8555";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import CertificateOrderLock, {
+  CertificateOrderLockHandle,
+} from "./CertificateOrderLock";
+import CertificateOrderBudget, {
+  CertificateOrderReason,
+} from "./CertificateOrderBudget";
+import CertificateOrderFailures from "./CertificateOrderFailures";
+import { CertificateOrderOutcome } from "./CertificateOrderOutcome";
 
 export default class GreenlockUtil {
   /*
@@ -386,6 +394,23 @@ export default class GreenlockUtil {
         },
       );
 
+      /*
+       * A name whose last renewals failed - a CAA record that leaves Let's
+       * Encrypt out, a name Let's Encrypt has paused - waits longer after
+       * each failure in a row (CertificateOrderFailures) instead of taking a
+       * slot in every run. Each failed order counts against the account all
+       * the same, and Let's Encrypt allows five failed validations per name
+       * per hour.
+       */
+      const renewableDueCertificates: AcmeCertificate[] =
+        await CertificateOrderFailures.withoutThoseWaitingToRetry({
+          items: ownedDueCertificates,
+          getDomain: (certificate: AcmeCertificate): string => {
+            return certificate.domain as string;
+          },
+          now: now,
+        });
+
       const maxPerRun: number = Math.max(
         Math.min(
           data.maxPerRun ?? GreenlockUtil.RENEW_MAX_PER_RUN,
@@ -407,13 +432,13 @@ export default class GreenlockUtil {
        * and starve the renewals behind it. It is still tried whenever slots
        * are left, which in a run without a backlog is every run.
        */
-      const stillValid: AcmeCertificate[] = ownedDueCertificates.filter(
+      const stillValid: AcmeCertificate[] = renewableDueCertificates.filter(
         (certificate: AcmeCertificate) => {
           return OneUptimeDate.isAfter(certificate.expiresAt as Date, now);
         },
       );
 
-      const alreadyExpired: AcmeCertificate[] = ownedDueCertificates.filter(
+      const alreadyExpired: AcmeCertificate[] = renewableDueCertificates.filter(
         (certificate: AcmeCertificate) => {
           return !OneUptimeDate.isAfter(certificate.expiresAt as Date, now);
         },
@@ -434,10 +459,12 @@ export default class GreenlockUtil {
       ];
 
       logger.debug(
-        `Found ${dueCertificates.length} certificates due for renewal, ${ownedDueCertificates.length} of them owned by this caller, renewing ${batch.length} in this run`,
+        `Found ${dueCertificates.length} certificates due for renewal, ${ownedDueCertificates.length} of them owned by this caller, ${ownedDueCertificates.length - renewableDueCertificates.length} of those waiting after failed orders, renewing ${batch.length} in this run`,
         {
           dueCount: dueCertificates.length,
           ownedDueCount: ownedDueCertificates.length,
+          waitingAfterFailureCount:
+            ownedDueCertificates.length - renewableDueCertificates.length,
           batchCount: batch.length,
         },
       );
@@ -573,6 +600,20 @@ export default class GreenlockUtil {
    * Renew one domain. Never throws: one domain that cannot be renewed - a CNAME
    * that no longer points here, a challenge the CA would not accept - must not
    * take down the rest of the run with it.
+   *
+   * The renewal runs with the name's order lock held, so it never overlaps a
+   * reissue, a Check now or a re-order of the same name, and it looks the
+   * certificate up again under that lock: one of those may have replaced it
+   * since this run read the table, and renewing it again would spend an
+   * order on a duplicate.
+   *
+   * A CNAME check that fails never deletes a certificate that is still
+   * valid. It used to, and a moment's DNS trouble during a renewal took a
+   * domain off HTTPS with weeks left on its certificate. Now the renewal is
+   * skipped and tried again on a later run, while the certificate keeps
+   * serving. Only a certificate that has already expired - it serves nobody
+   * - is removed when the check fails, so the domain is ordered afresh once
+   * its record is back.
    */
   private static async renewCertForDomain(data: {
     domain: string;
@@ -590,43 +631,91 @@ export default class GreenlockUtil {
       certLogAttributes,
     );
 
+    const lock: CertificateOrderLockHandle | null =
+      await CertificateOrderLock.tryLock(domain);
+
+    if (!lock) {
+      logger.debug(
+        `Not renewing the certificate of ${domain} now: another order for it is running. A later run renews it if it is still due.`,
+        certLogAttributes,
+      );
+      return;
+    }
+
     try {
-      //validate cname
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const certificate: AcmeCertificate | undefined = (
+        await GreenlockUtil.findCertificatesByDomain([lock.domain])
+      ).get(lock.domain);
+
+      if (!certificate) {
+        logger.debug(
+          `Not renewing the certificate of ${domain}: it is gone. The domain's owner re-orders a missing certificate.`,
+          certLogAttributes,
+        );
+        return;
+      }
+
+      if (!GreenlockUtil.isDueForRenewal(certificate, now)) {
+        logger.debug(
+          `Not renewing the certificate of ${domain}: another order has renewed it since this run started.`,
+          certLogAttributes,
+        );
+        return;
+      }
+
       const isValidCname: boolean = await data.validateCname(domain);
 
       if (!isValidCname) {
+        const hasExpired: boolean = !OneUptimeDate.isAfter(
+          certificate.expiresAt as Date,
+          now,
+        );
+
+        if (!hasExpired) {
+          logger.debug(
+            `CNAME of ${domain} did not validate: keeping its certificate, valid until ${certificate.expiresAt?.toISOString()}, and renewing it on a later run.`,
+            certLogAttributes,
+          );
+          return;
+        }
+
         logger.debug(
-          `CNAME is not valid for domain: ${domain}`,
+          `CNAME of ${domain} did not validate and its certificate has expired: removing the certificate.`,
           certLogAttributes,
         );
 
-        // if cname is not valid then remove the domain
         await GreenlockUtil.removeDomain(domain);
         await data.notifyDomainRemoved(domain);
 
-        logger.error(
-          `Cname is not valid for domain: ${domain}`,
-          certLogAttributes,
-        );
-      } else {
-        logger.debug(`CNAME is valid for domain: ${domain}`, certLogAttributes);
-
-        await GreenlockUtil.orderCert({
-          domain: domain,
-          validateCname: data.validateCname,
-        });
-
-        logger.debug(
-          `Certificate renewed for domain: ${domain}`,
-          certLogAttributes,
-        );
+        return;
       }
+
+      logger.debug(`CNAME is valid for domain: ${domain}`, certLogAttributes);
+
+      const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
+        domain: domain,
+        reason: CertificateOrderReason.Renewal,
+        // Checked a moment ago, above.
+        validateCname: null,
+        lock: lock,
+      });
+
+      logger.debug(
+        outcome === CertificateOrderOutcome.Ordered
+          ? `Certificate renewed for domain: ${domain}`
+          : `Certificate of ${domain} not renewed now (${outcome}): a later run renews it.`,
+        certLogAttributes,
+      );
     } catch (e) {
       logger.error(
         `Error renewing certificate for domain: ${domain}`,
         certLogAttributes,
       );
       logger.error(e, certLogAttributes);
+    } finally {
+      await CertificateOrderLock.release(lock);
     }
   }
 
@@ -650,50 +739,89 @@ export default class GreenlockUtil {
     }
   }
 
+  /*
+   * Order a certificate for a name from Let's Encrypt and store it. Every
+   * certificate this installation orders is ordered here, whoever asks -
+   * Check now, the sweeps, the order and reissue APIs, the renewal runs and
+   * CoreSSL - so what must hold for every order holds here:
+   *
+   *   - One order per name at a time. The order runs under the name's lock
+   *     (CertificateOrderLock): the one the caller hands in, or one taken
+   *     here. A name whose lock is taken is not ordered (NotOrderedNow).
+   *   - The installation's Let's Encrypt allowance. Each order takes one unit
+   *     of CertificateOrderBudget for its reason, and none is placed when
+   *     there is none left (LimitReached).
+   *   - Nothing is deleted. A CNAME check that fails refuses the order and
+   *     leaves the name's certificate as it is. It used to remove it, so a
+   *     DNS blip during a reissue, a renewal or a dashboard order took a
+   *     working domain off HTTPS.
+   *   - A failed order is recorded (CertificateOrderFailures) for the
+   *     domain's Status column and the retry delay of the sweeps, and a
+   *     successful one clears that record.
+   *
+   * Throws when the CNAME check fails or the order fails, with a message the
+   * caller can show.
+   */
   @CaptureSpan()
   public static async orderCert(data: {
     domain: string;
-    validateCname: (domain: string) => Promise<boolean>;
+    reason: CertificateOrderReason;
     /*
-     * Whether a failed CNAME check removes the name's certificate before
-     * the order is refused. True unless a caller says otherwise: renewal
-     * relies on it. A caller ordering for a name that may be serving a
-     * certificate it means to keep (a reissue) passes false.
+     * Checks, before anything is spent, that the domain still points here:
+     * an order for a name whose record is gone only fails, and counts as a
+     * failed validation. Null when the caller has just checked it - a second
+     * check only gives a DNS blip one more chance to refuse an order the
+     * first check allowed.
      */
-    removeCertificateIfCnameIsInvalid?: boolean | undefined;
-  }): Promise<void> {
-    const orderLogAttributes: LogAttributes = {
-      domain: data.domain,
-    };
+    validateCname: ((domain: string) => Promise<boolean>) | null;
+    // The name's order lock, when the caller holds it already.
+    lock?: CertificateOrderLockHandle | undefined;
+  }): Promise<CertificateOrderOutcome> {
+    const domain: string = CertificateOrderLock.normalizeDomain(data.domain);
+
+    if (data.lock && !CertificateOrderLock.isHeldFor(data.lock, domain)) {
+      throw new BadDataException(
+        `The certificate order lock handed in for ${domain} is not held.`,
+      );
+    }
+
+    const lock: CertificateOrderLockHandle | null =
+      data.lock || (await CertificateOrderLock.tryLock(domain));
+
+    if (!lock) {
+      return CertificateOrderOutcome.NotOrderedNow;
+    }
 
     try {
-      logger.debug(
-        `GreenlockUtil - Ordering certificate for domain: ${data.domain}`,
-        orderLogAttributes,
-      );
-
-      let { domain } = data;
-
-      domain = domain.trim().toLowerCase();
-      orderLogAttributes["domain"] = domain;
-
-      const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
-
-      if (!acmeAccountKeyInBase64) {
-        throw new ServerException(
-          "No lets encrypt account key found in environment variables. Please add one.",
-        );
+      return await GreenlockUtil.orderCertWithLockHeld({
+        domain: domain,
+        reason: data.reason,
+        validateCname: data.validateCname,
+      });
+    } finally {
+      if (!data.lock) {
+        await CertificateOrderLock.release(lock);
       }
+    }
+  }
 
-      let acmeAccountKey: string = Buffer.from(
-        acmeAccountKeyInBase64,
-        "base64",
-      ).toString();
+  private static async orderCertWithLockHeld(data: {
+    domain: string;
+    reason: CertificateOrderReason;
+    validateCname: ((domain: string) => Promise<boolean>) | null;
+  }): Promise<CertificateOrderOutcome> {
+    const { domain } = data;
 
-      acmeAccountKey = Text.replaceAll(acmeAccountKey, "\\n", "\n");
+    const orderLogAttributes: LogAttributes = {
+      domain: domain,
+    };
 
-      //validate cname
+    logger.debug(
+      `GreenlockUtil - Ordering certificate for domain: ${domain} (${data.reason})`,
+      orderLogAttributes,
+    );
 
+    if (data.validateCname) {
       logger.debug(
         `Validating cname for domain: ${domain}`,
         orderLogAttributes,
@@ -702,210 +830,259 @@ export default class GreenlockUtil {
       const isValidCname: boolean = await data.validateCname(domain);
 
       if (!isValidCname) {
-        logger.debug(
-          `CNAME is not valid for domain: ${domain}`,
-          orderLogAttributes,
-        );
-
-        if (data.removeCertificateIfCnameIsInvalid !== false) {
-          logger.debug(`Removing domain: ${domain}`, orderLogAttributes);
-          await GreenlockUtil.removeDomain(domain);
-        }
-
         logger.error(
-          `Cname is not valid for domain: ${domain}`,
+          `Cname is not valid for domain: ${domain}. Not ordering, and keeping its certificate, if it has one.`,
           orderLogAttributes,
         );
+
         throw new BadDataException("Cname is not valid for domain " + domain);
       }
 
       logger.debug(`Cname is valid for domain: ${domain}`, orderLogAttributes);
+    }
 
-      const client: acme.Client = new acme.Client({
-        directoryUrl: acme.directory.letsencrypt.production,
-        accountKey: acmeAccountKey,
-      });
+    try {
+      const acmeAccountKeyInBase64: string = LetsEncryptAccountKey;
 
-      const [certificateKey, certificateRequest] = await acme.crypto.createCsr({
-        commonName: domain,
-      });
-
-      logger.debug(
-        `Ordering certificate for domain: ${domain}`,
-        orderLogAttributes,
-      );
-
-      const certificate: string = await client.auto({
-        csr: certificateRequest,
-        email: LetsEncryptNotificationEmail.toString(),
-        termsOfServiceAgreed: true,
-        challengePriority: ["http-01"], // only http-01 challenge is supported by oneuptime
-        challengeCreateFn: async (
-          authz: acme.Authorization,
-          challenge: Challenge,
-          keyAuthorization: string,
-        ) => {
-          // Satisfy challenge here
-          /* http-01 */
-          if (challenge.type === "http-01") {
-            logger.debug(
-              `Creating challenge for domain: ${authz.identifier.value}`,
-              orderLogAttributes,
-            );
-
-            const acmeChallenge: AcmeChallenge = new AcmeChallenge();
-            acmeChallenge.challenge = keyAuthorization;
-            acmeChallenge.token = challenge.token;
-            acmeChallenge.domain = authz.identifier.value;
-
-            await AcmeChallengeService.create({
-              data: acmeChallenge,
-              props: {
-                isRoot: true,
-              },
-            });
-
-            logger.debug(
-              `Challenge created for domain: ${authz.identifier.value}`,
-              orderLogAttributes,
-            );
-          }
-        },
-        challengeRemoveFn: async (
-          authz: acme.Authorization,
-          challenge: Challenge,
-        ) => {
-          // Clean up challenge here
-
-          logger.debug(
-            `Removing challenge for domain: ${authz.identifier.value}`,
-            orderLogAttributes,
-          );
-
-          if (challenge.type === "http-01") {
-            await AcmeChallengeService.deleteBy({
-              query: {
-                domain: authz.identifier.value,
-              },
-              limit: 1,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-
-          logger.debug(
-            `Challenge removed for domain: ${authz.identifier.value}`,
-            orderLogAttributes,
-          );
-        },
-      });
-
-      logger.debug(
-        `Certificate ordered for domain: ${domain}`,
-        orderLogAttributes,
-      );
-
-      // get expires at date from certificate
-      const cert: acme.CertificateInfo =
-        acme.crypto.readCertificateInfo(certificate);
-      const issuedAt: Date = cert.notBefore;
-      const expiresAt: Date = cert.notAfter;
-
-      logger.debug(`Certificate expires at: ${expiresAt}`, orderLogAttributes);
-      logger.debug(`Certificate issued at: ${issuedAt}`, orderLogAttributes);
-
-      // check if the certificate is already in the database.
-      const existingCertificate: AcmeCertificate | null =
-        await AcmeCertificateService.findOneBy({
-          query: {
-            domain: domain,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      /*
-       * The row can be removed between the look-up above and this write (a
-       * domain deleted meanwhile, or the cleanup of expired certificates
-       * nobody owned). Then the update finds nothing, and the certificate
-       * the CA has just issued is stored in a new row instead of being lost.
-       */
-      const updatedCount: number = existingCertificate
-        ? await AcmeCertificateService.updateBy({
-            query: {
-              domain: domain,
-            },
-            limit: 1,
-            skip: 0,
-            data: {
-              certificate: certificate.toString(),
-              certificateKey: certificateKey.toString(),
-              issuedAt: issuedAt,
-              expiresAt: expiresAt,
-            },
-            props: {
-              isRoot: true,
-            },
-          })
-        : 0;
-
-      if (updatedCount > 0) {
-        logger.debug(
-          `Certificate updated for domain: ${domain}`,
-          orderLogAttributes,
-        );
-      } else {
-        logger.debug(
-          `Creating certificate for domain: ${domain}`,
-          orderLogAttributes,
-        );
-        // create the certificate
-        const acmeCertificate: AcmeCertificate = new AcmeCertificate();
-
-        acmeCertificate.domain = domain;
-        acmeCertificate.certificate = certificate.toString();
-        acmeCertificate.certificateKey = certificateKey.toString();
-        acmeCertificate.issuedAt = issuedAt;
-        acmeCertificate.expiresAt = expiresAt;
-
-        await AcmeCertificateService.create({
-          data: acmeCertificate,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        logger.debug(
-          `Certificate created for domain: ${domain}`,
-          orderLogAttributes,
+      if (!acmeAccountKeyInBase64) {
+        throw new ServerException(
+          "No lets encrypt account key found in environment variables. Please add one.",
         );
       }
+
+      if (
+        !(await CertificateOrderBudget.takeSlot({
+          reason: data.reason,
+          now: OneUptimeDate.getCurrentDate(),
+          domain: domain,
+        }))
+      ) {
+        return CertificateOrderOutcome.LimitReached;
+      }
+
+      await GreenlockUtil.orderAndStoreCertificate({
+        domain: domain,
+        acmeAccountKeyInBase64: acmeAccountKeyInBase64,
+        orderLogAttributes: orderLogAttributes,
+      });
     } catch (e) {
       logger.error(
-        `Error ordering certificate for domain: ${data.domain}`,
+        `Error ordering certificate for domain: ${domain}`,
         orderLogAttributes,
       );
       logger.error(e, orderLogAttributes);
 
-      if (e instanceof Exception) {
-        throw e;
-      }
+      const error: Exception = GreenlockUtil.toOrderError(e, domain);
 
-      if (IsBillingEnabled) {
-        throw new ServerException(
-          `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
+      await CertificateOrderFailures.record({
+        domain: domain,
+        error: error.message,
+        now: OneUptimeDate.getCurrentDate(),
+      });
+
+      throw error;
+    }
+
+    await CertificateOrderFailures.clear(domain);
+
+    return CertificateOrderOutcome.Ordered;
+  }
+
+  // What the caller of a failed order is told.
+  private static toOrderError(e: unknown, domain: string): Exception {
+    if (e instanceof Exception) {
+      return e;
+    }
+
+    if (IsBillingEnabled) {
+      return new ServerException(
+        `Unable to order certificate for ${domain}. Please contact support at support@oneuptime.com for more information.`,
+      );
+    }
+
+    return new ServerException(
+      `Unable to order certificate for ${domain}. Please make sure that your server can be accessed publicly over port 80 (HTTP) and port 443 (HTTPS). If the problem persists, please refer to server logs for more information. Please also set up LOG_LEVEL=DEBUG to get more detailed server logs.`,
+    );
+  }
+
+  private static async orderAndStoreCertificate(data: {
+    domain: string;
+    acmeAccountKeyInBase64: string;
+    orderLogAttributes: LogAttributes;
+  }): Promise<void> {
+    const { domain, orderLogAttributes } = data;
+
+    let acmeAccountKey: string = Buffer.from(
+      data.acmeAccountKeyInBase64,
+      "base64",
+    ).toString();
+
+    acmeAccountKey = Text.replaceAll(acmeAccountKey, "\\n", "\n");
+
+    const client: acme.Client = new acme.Client({
+      directoryUrl: acme.directory.letsencrypt.production,
+      accountKey: acmeAccountKey,
+    });
+
+    const [certificateKey, certificateRequest] = await acme.crypto.createCsr({
+      commonName: domain,
+    });
+
+    logger.debug(
+      `Ordering certificate for domain: ${domain}`,
+      orderLogAttributes,
+    );
+
+    const certificate: string = await client.auto({
+      csr: certificateRequest,
+      email: LetsEncryptNotificationEmail.toString(),
+      termsOfServiceAgreed: true,
+      challengePriority: ["http-01"], // only http-01 challenge is supported by oneuptime
+      challengeCreateFn: async (
+        authz: acme.Authorization,
+        challenge: Challenge,
+        keyAuthorization: string,
+      ) => {
+        // Satisfy challenge here
+        /* http-01 */
+        if (challenge.type === "http-01") {
+          logger.debug(
+            `Creating challenge for domain: ${authz.identifier.value}`,
+            orderLogAttributes,
+          );
+
+          const acmeChallenge: AcmeChallenge = new AcmeChallenge();
+          acmeChallenge.challenge = keyAuthorization;
+          acmeChallenge.token = challenge.token;
+          acmeChallenge.domain = authz.identifier.value;
+
+          await AcmeChallengeService.create({
+            data: acmeChallenge,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          logger.debug(
+            `Challenge created for domain: ${authz.identifier.value}`,
+            orderLogAttributes,
+          );
+        }
+      },
+      challengeRemoveFn: async (
+        authz: acme.Authorization,
+        challenge: Challenge,
+      ) => {
+        // Clean up challenge here
+
+        logger.debug(
+          `Removing challenge for domain: ${authz.identifier.value}`,
+          orderLogAttributes,
         );
-      } else {
-        throw new ServerException(
-          `Unable to order certificate for ${data.domain}. Please make sure that your server can be accessed publicly over port 80 (HTTP) and port 443 (HTTPS). If the problem persists, please refer to server logs for more information. Please also set up LOG_LEVEL=DEBUG to get more detailed server logs.`,
+
+        if (challenge.type === "http-01") {
+          await AcmeChallengeService.deleteBy({
+            query: {
+              domain: authz.identifier.value,
+            },
+            limit: 1,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+
+        logger.debug(
+          `Challenge removed for domain: ${authz.identifier.value}`,
+          orderLogAttributes,
         );
-      }
+      },
+    });
+
+    logger.debug(
+      `Certificate ordered for domain: ${domain}`,
+      orderLogAttributes,
+    );
+
+    // get expires at date from certificate
+    const cert: acme.CertificateInfo =
+      acme.crypto.readCertificateInfo(certificate);
+    const issuedAt: Date = cert.notBefore;
+    const expiresAt: Date = cert.notAfter;
+
+    logger.debug(`Certificate expires at: ${expiresAt}`, orderLogAttributes);
+    logger.debug(`Certificate issued at: ${issuedAt}`, orderLogAttributes);
+
+    // check if the certificate is already in the database.
+    const existingCertificate: AcmeCertificate | null =
+      await AcmeCertificateService.findOneBy({
+        query: {
+          domain: domain,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    /*
+     * The row can be removed between the look-up above and this write (a
+     * domain deleted meanwhile, or the cleanup of expired certificates
+     * nobody owned). Then the update finds nothing, and the certificate
+     * the CA has just issued is stored in a new row instead of being lost.
+     */
+    const updatedCount: number = existingCertificate
+      ? await AcmeCertificateService.updateBy({
+          query: {
+            domain: domain,
+          },
+          limit: 1,
+          skip: 0,
+          data: {
+            certificate: certificate.toString(),
+            certificateKey: certificateKey.toString(),
+            issuedAt: issuedAt,
+            expiresAt: expiresAt,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : 0;
+
+    if (updatedCount > 0) {
+      logger.debug(
+        `Certificate updated for domain: ${domain}`,
+        orderLogAttributes,
+      );
+    } else {
+      logger.debug(
+        `Creating certificate for domain: ${domain}`,
+        orderLogAttributes,
+      );
+      // create the certificate
+      const acmeCertificate: AcmeCertificate = new AcmeCertificate();
+
+      acmeCertificate.domain = domain;
+      acmeCertificate.certificate = certificate.toString();
+      acmeCertificate.certificateKey = certificateKey.toString();
+      acmeCertificate.issuedAt = issuedAt;
+      acmeCertificate.expiresAt = expiresAt;
+
+      await AcmeCertificateService.create({
+        data: acmeCertificate,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug(
+        `Certificate created for domain: ${domain}`,
+        orderLogAttributes,
+      );
     }
   }
 }

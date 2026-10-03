@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} ha già il suo certificato SSL gratuito, e lo rinnoviamo automaticamente.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} è servito con il certificato che hai caricato.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Il tuo record CNAME è verificato, ma il certificato SSL gratuito per questo dominio non è ancora stato emesso. Fai clic su Verifica ora per riprovare e vedere perché.",
-  "{{teamName}} was created without access.": "Il team {{teamName}} è stato creato senza accesso."
+  "{{teamName}} was created without access.": "Il team {{teamName}} è stato creato senza accesso.",
+  "Certificate expired. We keep trying to renew it.": "Certificato scaduto. Continuiamo a provare a rinnovarlo.",
+  "Certificate issued, but renewing it failed. We keep trying.": "Certificato emesso, ma il rinnovo non è riuscito. Continuiamo a provare.",
+  "Could not issue a free certificate yet. We keep trying.": "Non è ancora stato possibile emettere un certificato gratuito. Continuiamo a provare.",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "Non siamo ancora riusciti a emettere un certificato SSL gratuito per {{domain}}. Continuiamo a provare automaticamente.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "Il tuo record CNAME è verificato, ma il certificato SSL gratuito per questo dominio è scaduto. Fai clic su Verifica ora per riprovare e vedere perché."
 }

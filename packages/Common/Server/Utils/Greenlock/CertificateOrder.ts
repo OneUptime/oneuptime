@@ -1,13 +1,18 @@
-import Semaphore, {
-  SemaphoreLockTimeoutError,
-  SemaphoreMutex,
-} from "../../Infrastructure/Semaphore";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import GreenlockUtil from "./Greenlock";
+import CertificateOrderLock, {
+  CertificateOrderLockHandle,
+} from "./CertificateOrderLock";
+import CertificateOrderFailures, {
+  CertificateOrderFailure,
+} from "./CertificateOrderFailures";
+import { CertificateOrderOutcome } from "./CertificateOrderOutcome";
 import AcmeCertificate from "../../../Models/DatabaseModels/AcmeCertificate";
 import OneUptimeDate from "../../../Types/Date";
+
+export { CertificateOrderOutcome } from "./CertificateOrderOutcome";
 
 /*
  * Whether Check now may place an order for a domain now, and, when it may
@@ -19,19 +24,13 @@ export interface OnDemandOrderClaim {
   lastError?: string | undefined;
 }
 
-export enum CertificateOrderOutcome {
-  // A certificate was ordered and stored.
-  Ordered = "Ordered",
-  /*
-   * The name already had a certificate. It was recorded as ordered and
-   * nothing was ordered.
-   */
-  AlreadyIssued = "AlreadyIssued",
-  /*
-   * Nothing was ordered now: another order for the name was running, or the
-   * lock that keeps orders apart could not be taken. The sweeps try again.
-   */
-  NotOrderedNow = "NotOrderedNow",
+// Where a custom domain's certificate stands, for its Status column.
+export interface CustomDomainCertificateState {
+  // When its certificate expires; undefined when it has none.
+  certificateExpiresAt?: Date | undefined;
+  // The last order for it that failed, while no order since has succeeded.
+  lastOrderError?: string | undefined;
+  lastOrderFailedAt?: Date | undefined;
 }
 
 /*
@@ -49,32 +48,29 @@ export enum CertificateOrderOutcome {
  * rows.
  *
  * So every first order goes through orderIfMissing:
- *   - one order per name at a time, across every replica: a Redis lock on
- *     the name, taken without waiting. A caller that finds it taken orders
- *     nothing - the order already running is the one it would have placed;
+ *   - one order per name at a time, across every replica: the name's order
+ *     lock (CertificateOrderLock), taken without waiting. A caller that finds
+ *     it taken orders nothing - the order already running is the one it
+ *     would have placed;
  *   - with the lock held, the certificate table is read again. A name that
  *     has a certificate - ordered by whoever held the lock a moment ago, or
  *     a domain that was briefly unverified and is verified again - is only
  *     recorded as ordered. Ordering it again would spend an order on a
  *     duplicate, and a renewal that is due is the renewal run's to order.
  *
- * Renewals and reissues are not first orders and do not come through here.
+ * Renewals and reissues are not first orders and do not come through here,
+ * but they take the same lock: GreenlockUtil.orderCert places every order
+ * under it.
  */
 export default class CertificateOrder {
-  public static readonly LOCK_NAMESPACE: string =
-    "CustomDomainCertificateOrder";
+  public static readonly LOCK_NAMESPACE: string = CertificateOrderLock.NAMESPACE;
 
-  /*
-   * How long the lock outlives a holder that died without releasing it. A
-   * live holder refreshes it (redis-semaphore does, every 80% of this), so
-   * an order that takes longer - the CA polls a challenge for a while - keeps
-   * it.
-   */
   public static readonly LOCK_TIMEOUT_IN_MS: number =
-    OneUptimeDate.convertMinutesToMilliseconds(2);
+    CertificateOrderLock.TIMEOUT_IN_MS;
 
   /*
-   * How often a person may make Check now place an order for one domain.
+   * How often a person may make Check now - or the order API - place an
+   * order for one domain.
    *
    * Check now is open to everyone who can read the domain, and an order
    * that fails leaves the domain unordered, so without this every click
@@ -90,6 +86,19 @@ export default class CertificateOrder {
     "CustomDomainOnDemandCertificateOrder";
 
   private static readonly ON_DEMAND_ORDERING: string = "ordering";
+
+  /*
+   * How many orders people may place on demand - Check now and the order
+   * API, across every domain - in one 15-minute window. Each domain has its
+   * own window above; this bounds the sum, so somebody clicking through many
+   * domains whose orders fail cannot use up the new certificates of the
+   * whole installation (CertificateOrderBudget) and hold up everybody
+   * else's first certificates.
+   */
+  public static readonly ON_DEMAND_ORDER_BUDGET: string =
+    "CustomDomainOnDemandOrders";
+
+  public static readonly ON_DEMAND_ORDERS_PER_WINDOW: number = 6;
 
   /*
    * Claims this window's on-demand order for the domain. Exactly one caller
@@ -166,14 +175,16 @@ export default class CertificateOrder {
   }
 
   /*
-   * A budget of orders that several sweeps share, per 15-minute window - the
-   * window the sweeps run on and GreenlockUtil.pickForThisRun picks in.
+   * A budget of orders that several callers share, per 15-minute window -
+   * the window the sweeps run on and GreenlockUtil.pickForThisRun picks in.
    *
-   * Each sweep caps its own batch, but several sweeps run on every tick,
-   * and every order spends from the one Let's Encrypt account the whole
-   * installation shares (300 new orders per three hours, renewals
-   * included). A budget they draw from together bounds what they order in
-   * a window between them, however many of them have a backlog.
+   * Each sweep caps its own batch, but several sweeps run on every tick. A
+   * budget they draw from together bounds what they order in a window
+   * between them, however many of them have a backlog: the status page
+   * sweeps share one, the dashboard sweeps another, the on-demand orders a
+   * third. All of them, and the renewals, draw from the installation's
+   * Let's Encrypt allowance as well (CertificateOrderBudget), which
+   * GreenlockUtil.orderCert takes for every order.
    */
   public static readonly ORDER_BUDGET_NAMESPACE: string =
     "CustomDomainCertificateOrderBudget";
@@ -220,8 +231,18 @@ export default class CertificateOrder {
     }
   }
 
+  // One order from the on-demand orders' budget of this window.
+  @CaptureSpan()
+  public static async takeOnDemandOrderSlot(now: Date): Promise<boolean> {
+    return await CertificateOrder.takeOrderSlot({
+      budget: CertificateOrder.ON_DEMAND_ORDER_BUDGET,
+      maxPerWindow: CertificateOrder.ON_DEMAND_ORDERS_PER_WINDOW,
+      now: now,
+    });
+  }
+
   public static normalizeDomain(domain: string): string {
-    return domain.trim().toLowerCase();
+    return CertificateOrderLock.normalizeDomain(domain);
   }
 
   @CaptureSpan()
@@ -229,13 +250,25 @@ export default class CertificateOrder {
     domain: string;
     // Called when the name has a certificate already, instead of ordering.
     recordAsOrdered: () => Promise<void>;
-    // Orders and stores the certificate.
-    order: () => Promise<void>;
+    /*
+     * Orders and stores the certificate, with the name's lock held - pass
+     * the lock on to GreenlockUtil.orderCert. What it returns is the
+     * outcome; nothing means it ordered.
+     */
+    order: (
+      lock: CertificateOrderLockHandle,
+    ) => Promise<CertificateOrderOutcome | void>;
     /*
      * Asked only when an order is about to be placed - a budget such as
-     * takeOrderSlot. False orders nothing (NotOrderedNow).
+     * takeOrderSlot. False orders nothing (LimitReached).
      */
     mayOrder?: (() => Promise<boolean>) | undefined;
+    /*
+     * Order for a name whose certificate has expired too, rather than
+     * leave it to the renewal run - for somebody who clicked Check now on
+     * it.
+     */
+    renewIfExpired?: boolean | undefined;
   }): Promise<CertificateOrderOutcome> {
     const domain: string = CertificateOrder.normalizeDomain(data.domain);
 
@@ -243,17 +276,28 @@ export default class CertificateOrder {
       fullDomain: domain,
     } as LogAttributes;
 
-    const mutex: SemaphoreMutex | null = await CertificateOrder.tryLock(domain);
+    const lock: CertificateOrderLockHandle | null =
+      await CertificateOrderLock.tryLock(domain);
 
-    if (!mutex) {
+    if (!lock) {
       return CertificateOrderOutcome.NotOrderedNow;
     }
 
     try {
-      const certificates: Map<string, AcmeCertificate> =
-        await GreenlockUtil.findCertificatesByDomain([domain]);
+      const certificate: AcmeCertificate | undefined = (
+        await GreenlockUtil.findCertificatesByDomain([domain])
+      ).get(domain);
 
-      if (certificates.has(domain)) {
+      const isUsable: boolean = Boolean(
+        certificate &&
+          (!data.renewIfExpired ||
+            OneUptimeDate.isAfter(
+              certificate.expiresAt as Date,
+              OneUptimeDate.getCurrentDate(),
+            )),
+      );
+
+      if (isUsable) {
         logger.debug(
           `${domain} already has a certificate: recording it as ordered instead of ordering another`,
           logAttributes,
@@ -266,69 +310,67 @@ export default class CertificateOrder {
 
       if (data.mayOrder && !(await data.mayOrder())) {
         logger.debug(
-          `Not ordering a certificate for ${domain} now: this run's orders are used up`,
+          `Not ordering a certificate for ${domain} now: this window's orders are used up`,
           logAttributes,
         );
 
-        return CertificateOrderOutcome.NotOrderedNow;
+        return CertificateOrderOutcome.LimitReached;
       }
 
-      await data.order();
-
-      return CertificateOrderOutcome.Ordered;
+      return (await data.order(lock)) || CertificateOrderOutcome.Ordered;
     } finally {
-      await CertificateOrder.release(mutex, domain);
+      await CertificateOrderLock.release(lock);
     }
   }
 
   /*
-   * The lock on the name, or null when it is taken - or cannot be taken at
-   * all. Without Redis the order is left to the sweeps, which run from
-   * Redis' own job queue: ordering without the lock is what this is here to
-   * stop.
+   * Where the certificates of these custom domains stand, by normalized
+   * name: when each one's certificate expires, and why its last order
+   * failed if no order since has succeeded. Two lookups for all of them -
+   * the certificate table and Redis - for a domain list's Status column.
    */
-  private static async tryLock(domain: string): Promise<SemaphoreMutex | null> {
-    try {
-      return await Semaphore.lock({
-        key: domain,
-        namespace: CertificateOrder.LOCK_NAMESPACE,
-        lockTimeout: CertificateOrder.LOCK_TIMEOUT_IN_MS,
-        acquireAttemptsLimit: 1,
-        onLockLost: (err: Error) => {
-          logger.error(
-            `Lost the certificate order lock of ${domain} while ordering`,
-            { fullDomain: domain } as LogAttributes,
-          );
-          logger.error(err, { fullDomain: domain } as LogAttributes);
-        },
+  @CaptureSpan()
+  public static async getCertificateStates(
+    domains: Array<string>,
+  ): Promise<Map<string, CustomDomainCertificateState>> {
+    const names: Array<string> = Array.from(
+      new Set<string>(
+        domains
+          .map((domain: string) => {
+            return CertificateOrder.normalizeDomain(domain || "");
+          })
+          .filter((name: string) => {
+            return name.length > 0;
+          }),
+      ),
+    );
+
+    const states: Map<string, CustomDomainCertificateState> = new Map<
+      string,
+      CustomDomainCertificateState
+    >();
+
+    if (names.length === 0) {
+      return states;
+    }
+
+    const certificates: Map<string, AcmeCertificate> =
+      await GreenlockUtil.findCertificatesByDomain(names);
+
+    const failures: Map<string, CertificateOrderFailure> =
+      await CertificateOrderFailures.get(names);
+
+    for (const name of names) {
+      const certificate: AcmeCertificate | undefined = certificates.get(name);
+      const failure: CertificateOrderFailure | undefined = failures.get(name);
+
+      states.set(name, {
+        certificateExpiresAt: certificate?.expiresAt,
+        lastOrderError: failure?.error,
+        lastOrderFailedAt: failure?.failedAt,
       });
-    } catch (err) {
-      if (err instanceof SemaphoreLockTimeoutError) {
-        logger.debug(
-          `A certificate for ${domain} is being ordered already: not ordering another`,
-          { fullDomain: domain } as LogAttributes,
-        );
-      } else {
-        logger.error(
-          `Could not take the certificate order lock of ${domain}: not ordering now`,
-          { fullDomain: domain } as LogAttributes,
-        );
-        logger.error(err, { fullDomain: domain } as LogAttributes);
-      }
-
-      return null;
     }
-  }
 
-  private static async release(
-    mutex: SemaphoreMutex,
-    domain: string,
-  ): Promise<void> {
-    try {
-      await Semaphore.release(mutex);
-    } catch (err) {
-      // It expires on its own; a failed release must not fail the order.
-      logger.error(err, { fullDomain: domain } as LogAttributes);
-    }
+    return states;
   }
 }

@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} 已有免费的 SSL 证书，我们会自动为其续期。",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} 使用您上传的证书提供服务。",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "您的 CNAME 记录已验证，但此域名的免费 SSL 证书尚未签发。请点击“立即检查”重试并查看原因。",
-  "{{teamName}} was created without access.": "团队 {{teamName}} 已创建，但没有任何访问权限。"
+  "{{teamName}} was created without access.": "团队 {{teamName}} 已创建，但没有任何访问权限。",
+  "Certificate expired. We keep trying to renew it.": "证书已过期。我们会继续尝试续期。",
+  "Certificate issued, but renewing it failed. We keep trying.": "证书已签发，但续期失败。我们会继续尝试。",
+  "Could not issue a free certificate yet. We keep trying.": "暂时无法签发免费证书。我们会继续尝试。",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "我们暂时无法为 {{domain}} 签发免费的 SSL 证书。我们会自动继续尝试。",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "您的 CNAME 记录已验证，但此域名的免费 SSL 证书已过期。请点击“立即检查”重试并查看原因。"
 }

@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} heeft al een gratis SSL-certificaat, en we verlengen het automatisch.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} wordt aangeboden met het certificaat dat u hebt geüpload.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Uw CNAME-record is geverifieerd, maar het gratis SSL-certificaat voor dit domein is nog niet uitgegeven. Klik op Nu controleren om het opnieuw te proberen en te zien waarom.",
-  "{{teamName}} was created without access.": "Team {{teamName}} is aangemaakt zonder toegang."
+  "{{teamName}} was created without access.": "Team {{teamName}} is aangemaakt zonder toegang.",
+  "Certificate expired. We keep trying to renew it.": "Certificaat verlopen. We blijven proberen het te verlengen.",
+  "Certificate issued, but renewing it failed. We keep trying.": "Certificaat uitgegeven, maar verlengen is mislukt. We blijven het proberen.",
+  "Could not issue a free certificate yet. We keep trying.": "Gratis certificaat kon nog niet worden uitgegeven. We blijven het proberen.",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "We konden nog geen gratis SSL-certificaat uitgeven voor {{domain}}. We blijven het automatisch proberen.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "Uw CNAME-record is geverifieerd, maar het gratis SSL-certificaat voor dit domein is verlopen. Klik op Nu controleren om het opnieuw te proberen en te zien waarom."
 }

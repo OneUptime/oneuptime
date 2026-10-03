@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "У {{domain}} уже есть бесплатный SSL-сертификат, и мы продлеваем его автоматически.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} обслуживается с загруженным вами сертификатом.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Ваша CNAME-запись подтверждена, но бесплатный SSL-сертификат для этого домена ещё не выпущен. Нажмите «Проверить сейчас», чтобы повторить попытку и узнать причину.",
-  "{{teamName}} was created without access.": "Команда {{teamName}} создана без доступа."
+  "{{teamName}} was created without access.": "Команда {{teamName}} создана без доступа.",
+  "Certificate expired. We keep trying to renew it.": "Срок действия сертификата истёк. Мы продолжаем попытки его обновить.",
+  "Certificate issued, but renewing it failed. We keep trying.": "Сертификат выпущен, но обновить его не удалось. Мы продолжаем попытки.",
+  "Could not issue a free certificate yet. We keep trying.": "Пока не удалось выпустить бесплатный сертификат. Мы продолжаем попытки.",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "Нам пока не удалось выпустить бесплатный SSL-сертификат для {{domain}}. Мы продолжаем попытки автоматически.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "Ваша CNAME-запись подтверждена, но срок действия бесплатного SSL-сертификата для этого домена истёк. Нажмите «Проверить сейчас», чтобы повторить попытку и узнать причину."
 }

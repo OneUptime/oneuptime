@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} के पास पहले से ही निःशुल्क SSL प्रमाणपत्र है, और हम उसे अपने आप नवीनीकृत करते हैं।",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} आपके अपलोड किए गए प्रमाणपत्र के साथ दिखाया जाता है।",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "आपका CNAME रिकॉर्ड सत्यापित है, लेकिन इस डोमेन का निःशुल्क SSL प्रमाणपत्र अभी जारी नहीं हुआ है। फिर से प्रयास करने और कारण देखने के लिए अभी जाँचें पर क्लिक करें।",
-  "{{teamName}} was created without access.": "{{teamName}} टीम बिना एक्सेस के बनाई गई।"
+  "{{teamName}} was created without access.": "{{teamName}} टीम बिना एक्सेस के बनाई गई।",
+  "Certificate expired. We keep trying to renew it.": "प्रमाणपत्र की अवधि समाप्त हो गई है। हम इसे नवीनीकृत करने का प्रयास करते रहेंगे।",
+  "Certificate issued, but renewing it failed. We keep trying.": "प्रमाणपत्र जारी किया गया, लेकिन इसका नवीनीकरण विफल रहा। हम प्रयास करते रहेंगे।",
+  "Could not issue a free certificate yet. We keep trying.": "अभी तक निःशुल्क प्रमाणपत्र जारी नहीं हो सका। हम प्रयास करते रहेंगे।",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "हम अभी तक {{domain}} के लिए निःशुल्क SSL प्रमाणपत्र जारी नहीं कर सके। हम अपने आप प्रयास करते रहेंगे।",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "आपका CNAME रिकॉर्ड सत्यापित है, लेकिन इस डोमेन के निःशुल्क SSL प्रमाणपत्र की अवधि समाप्त हो गई है। फिर से प्रयास करने और कारण देखने के लिए अभी जाँचें पर क्लिक करें।"
 }

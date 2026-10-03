@@ -15,9 +15,15 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
+import CertificateOrder, {
+  CertificateOrderOutcome,
+  OnDemandOrderClaim,
+} from "../Utils/Greenlock/CertificateOrder";
 
 export default class DashboardDomainAPI extends BaseAPI<
   DashboardDomain,
@@ -119,7 +125,18 @@ export default class DashboardDomainAPI extends BaseAPI<
       },
     );
 
-    // Provision SSL API
+    /*
+     * Order SSL: the Custom Domains page's Order Free SSL. It orders the way
+     * the sweeps do, through orderCertIfMissing - a domain that has its
+     * certificate already, or has one being ordered right now, is not
+     * ordered twice - and never for a domain on an uploaded certificate.
+     *
+     * One order on demand per domain per 15 minutes (the window Check now
+     * uses for status page domains): an order that fails leaves the domain
+     * unordered, so every click on a failing domain - or a script calling
+     * this in a loop - placed another order against the account the whole
+     * installation shares.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/order-ssl/:id`,
       UserMiddleware.getUserMiddleware,
@@ -172,6 +189,7 @@ export default class DashboardDomainAPI extends BaseAPI<
                 cnameVerificationToken: true,
                 isCnameVerified: true,
                 isSslProvisioned: true,
+                isCustomCertificate: true,
               },
               props: {
                 isRoot: true,
@@ -212,6 +230,17 @@ export default class DashboardDomainAPI extends BaseAPI<
             );
           }
 
+          // The sweeps never order for one either: it serves the upload.
+          if (domain.isCustomCertificate) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This domain uses a certificate you uploaded, so there is no free SSL certificate to order for it.",
+              ),
+            );
+          }
+
           if (!domain.fullDomain) {
             return Response.sendErrorResponse(
               req,
@@ -220,12 +249,57 @@ export default class DashboardDomainAPI extends BaseAPI<
             );
           }
 
+          const claim: OnDemandOrderClaim =
+            await CertificateOrder.claimOnDemandOrder(domain.fullDomain);
+
+          if (!claim.mayOrder) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new TooManyRequestsException(
+                claim.lastError
+                  ? `A certificate was ordered for this domain less than ${CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES} minutes ago, and the order failed: ${claim.lastError} Please try again later.`
+                  : `A certificate was ordered for this domain less than ${CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES} minutes ago. Please try again later.`,
+              ),
+            );
+          }
+
           logger.debug(
             "Ordering SSL",
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
-          await DashboardDomainService.orderCert(domain);
+          let outcome: CertificateOrderOutcome;
+
+          try {
+            outcome = await DashboardDomainService.orderCertIfMissing(domain, {
+              onDemand: true,
+            });
+          } catch (err) {
+            await CertificateOrder.recordOnDemandOrderFailure(
+              domain.fullDomain,
+              err instanceof Exception && err.message
+                ? err.message
+                : "We could not order an SSL certificate for this domain.",
+            );
+
+            throw err;
+          }
+
+          if (
+            outcome === CertificateOrderOutcome.NotOrderedNow ||
+            outcome === CertificateOrderOutcome.LimitReached
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new TooManyRequestsException(
+                outcome === CertificateOrderOutcome.NotOrderedNow
+                  ? "A certificate for this domain is being ordered right now. Please try again in a few minutes."
+                  : "This installation has used up its new certificates from Let's Encrypt for the moment. Nothing was ordered: the certificate is ordered automatically shortly, or you can try again in 15 minutes.",
+              ),
+            );
+          }
 
           logger.debug(
             "SSL Provisioned for domain - " + domain.fullDomain,

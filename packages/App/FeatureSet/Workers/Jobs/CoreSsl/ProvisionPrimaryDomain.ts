@@ -9,6 +9,8 @@ import logger from "Common/Server/Utils/Logger";
 import Domain from "Common/Types/Domain";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
 import GreenlockUtil from "Common/Server/Utils/Greenlock/Greenlock";
+import { CertificateOrderReason } from "Common/Server/Utils/Greenlock/CertificateOrderBudget";
+import { CertificateOrderOutcome } from "Common/Server/Utils/Greenlock/CertificateOrderOutcome";
 import OneUptimeDate from "Common/Types/Date";
 import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 
@@ -77,12 +79,32 @@ RunCron(
         `${JOB_NAME}: ordering or renewing certificate for ${hostnameOnly}.`,
       );
 
-      await GreenlockUtil.orderCert({
+      /*
+       * The installation's own host: there is no CNAME to check. The order
+       * takes the host's order lock - every worker replica runs this job on
+       * startup, so after a deploy they all reach it at once - and counts
+       * against the installation's Let's Encrypt budget with a renewal's
+       * priority.
+       */
+      const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
         domain: hostnameOnly,
-        validateCname: async () => {
-          return true;
-        },
+        reason: CertificateOrderReason.PrimaryHost,
+        validateCname: null,
       });
+
+      if (outcome === CertificateOrderOutcome.NotOrderedNow) {
+        logger.debug(
+          `${JOB_NAME}: another worker is ordering the certificate for ${hostnameOnly} right now.`,
+        );
+        return;
+      }
+
+      if (outcome === CertificateOrderOutcome.LimitReached) {
+        logger.warn(
+          `${JOB_NAME}: not ordering the certificate for ${hostnameOnly} now: this installation's Let's Encrypt orders for the next few minutes are used up. The next run orders it.`,
+        );
+        return;
+      }
 
       logger.info(
         `${JOB_NAME}: certificate successfully issued or renewed for ${hostnameOnly}.`,

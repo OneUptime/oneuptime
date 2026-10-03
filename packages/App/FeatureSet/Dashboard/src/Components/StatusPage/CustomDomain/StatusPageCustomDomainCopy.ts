@@ -1,4 +1,5 @@
 import { CustomDomainCertificateStatus } from "Common/Types/StatusPage/CustomDomainVerification";
+import { CustomDomainCertificate } from "Common/Types/StatusPage/CustomDomainCertificates";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -18,6 +19,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * moment the record is found; without a click the 15-minute sweeps do both.
  * Nothing on the page asks anyone to order a certificate.
  *
+ * What the domain row cannot say - the certificate's expiry, and why the
+ * last order failed - comes from the certificates route
+ * (CustomDomainCertificates). With it the Status column says when an order
+ * keeps failing, and why, where it used to say "Issuing" for good; when a
+ * certificate has expired; and when a renewal failed.
+ *
  * Kept free of React so the page, the dialog and App/Tests read these exact
  * strings. Every sentence is wrapped in translationKey() so
  * npm run i18n:extract finds it, and is translated in all seventeen
@@ -32,20 +39,36 @@ export enum StatusPageCustomDomainState {
   UsesUploadedCertificate = "UsesUploadedCertificate",
   // Verified; the free certificate is being ordered or written out.
   IssuingCertificate = "IssuingCertificate",
+  // Verified, no certificate yet, and the last order failed.
+  CertificateFailed = "CertificateFailed",
+  // Its certificate has expired: its renewals have been failing.
+  CertificateExpired = "CertificateExpired",
   // The domain serves its free certificate, which renews on its own.
   CertificateIssued = "CertificateIssued",
+  // It serves its free certificate, but the last renewal failed.
+  RenewalFailed = "RenewalFailed",
 }
 
 export interface StatusPageCustomDomainStateInput {
   isCnameVerified?: boolean | undefined;
   isCustomCertificate?: boolean | undefined;
+  isSslOrdered?: boolean | undefined;
   isSslProvisioned?: boolean | undefined;
 }
 
+/*
+ * Where a domain is, from its own row and - when the page has it - its
+ * certificate. Without the certificate (not loaded yet, or the request
+ * failed) the row alone decides, as it always did.
+ */
 export const getStatusPageCustomDomainState: (
   domain: StatusPageCustomDomainStateInput,
+  certificate?: CustomDomainCertificate | undefined,
+  now?: Date | undefined,
 ) => StatusPageCustomDomainState = (
   domain: StatusPageCustomDomainStateInput,
+  certificate?: CustomDomainCertificate | undefined,
+  now?: Date | undefined,
 ): StatusPageCustomDomainState => {
   if (!domain.isCnameVerified) {
     return StatusPageCustomDomainState.WaitingForDns;
@@ -53,6 +76,22 @@ export const getStatusPageCustomDomainState: (
 
   if (domain.isCustomCertificate) {
     return StatusPageCustomDomainState.UsesUploadedCertificate;
+  }
+
+  if (certificate) {
+    const expiresAt: Date | undefined = certificate.expiresAt;
+
+    if (expiresAt && expiresAt.getTime() <= (now || new Date()).getTime()) {
+      return StatusPageCustomDomainState.CertificateExpired;
+    }
+
+    if (!expiresAt && certificate.lastOrderError) {
+      return StatusPageCustomDomainState.CertificateFailed;
+    }
+
+    if (expiresAt && certificate.lastOrderError && domain.isSslProvisioned) {
+      return StatusPageCustomDomainState.RenewalFailed;
+    }
   }
 
   /*
@@ -66,6 +105,67 @@ export const getStatusPageCustomDomainState: (
   }
 
   return StatusPageCustomDomainState.CertificateIssued;
+};
+
+/*
+ * The reason the last order failed, to show under the state, for the states
+ * that are about a failure.
+ */
+export const getStatusPageCustomDomainCertificateError: (
+  state: StatusPageCustomDomainState,
+  certificate?: CustomDomainCertificate | undefined,
+) => string | undefined = (
+  state: StatusPageCustomDomainState,
+  certificate?: CustomDomainCertificate | undefined,
+): string | undefined => {
+  if (
+    state !== StatusPageCustomDomainState.CertificateFailed &&
+    state !== StatusPageCustomDomainState.CertificateExpired &&
+    state !== StatusPageCustomDomainState.RenewalFailed
+  ) {
+    return undefined;
+  }
+
+  return certificate?.lastOrderError || undefined;
+};
+
+/*
+ * Whether the domain's row offers DNS Setup, the dialog whose Check now
+ * verifies the record and orders the certificate: until the record is
+ * verified, and on a domain whose free certificate is not in place - not
+ * ordered yet, an order that keeps failing, or one that has expired.
+ */
+export const isStatusPageCustomDomainDnsSetupAvailable: (
+  domain: StatusPageCustomDomainStateInput,
+  certificate?: CustomDomainCertificate | undefined,
+  now?: Date | undefined,
+) => boolean = (
+  domain: StatusPageCustomDomainStateInput,
+  certificate?: CustomDomainCertificate | undefined,
+  now?: Date | undefined,
+): boolean => {
+  if (!domain.isCnameVerified) {
+    return true;
+  }
+
+  if (domain.isCustomCertificate) {
+    return false;
+  }
+
+  if (!domain.isSslOrdered) {
+    return true;
+  }
+
+  const state: StatusPageCustomDomainState = getStatusPageCustomDomainState(
+    domain,
+    certificate,
+    now,
+  );
+
+  return (
+    state === StatusPageCustomDomainState.CertificateFailed ||
+    state === StatusPageCustomDomainState.CertificateExpired
+  );
 };
 
 // The Status column, one whole sentence per state.
@@ -82,8 +182,17 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_STATUS: Record<
   [StatusPageCustomDomainState.IssuingCertificate]: translationKey(
     "Issuing a free certificate, usually within 15 minutes.",
   ),
+  [StatusPageCustomDomainState.CertificateFailed]: translationKey(
+    "Could not issue a free certificate yet. We keep trying.",
+  ),
+  [StatusPageCustomDomainState.CertificateExpired]: translationKey(
+    "Certificate expired. We keep trying to renew it.",
+  ),
   [StatusPageCustomDomainState.CertificateIssued]: translationKey(
     "Certificate issued, renews automatically.",
+  ),
+  [StatusPageCustomDomainState.RenewalFailed]: translationKey(
+    "Certificate issued, but renewing it failed. We keep trying.",
   ),
 };
 
@@ -104,8 +213,14 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT: Record<
   [CustomDomainCertificateStatus.Uploaded]: translationKey(
     "{{domain}} is served with the certificate you uploaded.",
   ),
+  /*
+   * "We keep trying" rather than a timing: a domain whose orders keep
+   * failing is ordered less and less often (CertificateOrderFailures), so
+   * one order of a failing name does not cost the whole installation an
+   * order every 15 minutes.
+   */
   [CustomDomainCertificateStatus.Failed]: translationKey(
-    "We could not issue a free SSL certificate for {{domain}} yet. We try again every 15 minutes, so there is nothing else to do here.",
+    "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.",
   ),
 };
 
@@ -131,6 +246,8 @@ export const StatusPageCustomDomainCopy: {
   dnsSetupWhatHappensNextUploaded: string;
   // DNS Setup on a verified domain whose free certificate is not issued yet.
   dnsSetupVerifiedNotIssued: string;
+  // DNS Setup on a verified domain whose free certificate has expired.
+  dnsSetupVerifiedExpired: string;
   dnsSetupCheckNow: string;
   dnsSetupClose: string;
   dnsSetupDone: string;
@@ -175,6 +292,9 @@ export const StatusPageCustomDomainCopy: {
   dnsSetupVerifiedNotIssued: translationKey(
     "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.",
   ),
+  dnsSetupVerifiedExpired: translationKey(
+    "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.",
+  ),
   dnsSetupCheckNow: translationKey("Check now"),
   dnsSetupClose: translationKey("Close"),
   dnsSetupDone: translationKey("Done"),
@@ -206,4 +326,13 @@ export const DNS_SETUP_TEST_IDS: {
   whatHappensNext: "dns-setup-what-happens-next",
   verified: "dns-setup-verified",
   certificateError: "dns-setup-certificate-error",
+};
+
+// data-testids of the Status column.
+export const STATUS_TEST_IDS: {
+  status: string;
+  certificateError: string;
+} = {
+  status: "custom-domain-status",
+  certificateError: "custom-domain-status-certificate-error",
 };

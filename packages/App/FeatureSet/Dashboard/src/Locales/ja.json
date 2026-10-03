@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} にはすでに無料の SSL 証明書があり、自動的に更新されます。",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} はアップロードされた証明書で配信されています。",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "CNAME レコードは確認済みですが、このドメインの無料 SSL 証明書はまだ発行されていません。「今すぐ確認」をクリックすると、再試行して理由を確認できます。",
-  "{{teamName}} was created without access.": "{{teamName}} はアクセス権なしで作成されました。"
+  "{{teamName}} was created without access.": "{{teamName}} はアクセス権なしで作成されました。",
+  "Certificate expired. We keep trying to renew it.": "証明書の有効期限が切れています。引き続き更新を試行します。",
+  "Certificate issued, but renewing it failed. We keep trying.": "証明書は発行済みですが、更新に失敗しました。引き続き試行します。",
+  "Could not issue a free certificate yet. We keep trying.": "無料の証明書をまだ発行できていません。引き続き試行します。",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "{{domain}} の無料 SSL 証明書をまだ発行できていません。引き続き自動的に試行します。",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "CNAME レコードは確認済みですが、このドメインの無料 SSL 証明書の有効期限が切れています。「今すぐ確認」をクリックすると、再試行して理由を確認できます。"
 }

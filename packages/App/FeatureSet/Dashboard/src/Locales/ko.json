@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}}에는 이미 무료 SSL 인증서가 있으며 자동으로 갱신됩니다.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}}은(는) 업로드한 인증서로 제공됩니다.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "CNAME 레코드는 인증되었지만 이 도메인의 무료 SSL 인증서가 아직 발급되지 않았습니다. 지금 확인을 클릭하여 다시 시도하고 이유를 확인하세요.",
-  "{{teamName}} was created without access.": "{{teamName}} 팀이 접근 권한 없이 생성되었습니다."
+  "{{teamName}} was created without access.": "{{teamName}} 팀이 접근 권한 없이 생성되었습니다.",
+  "Certificate expired. We keep trying to renew it.": "인증서가 만료되었습니다. 계속 갱신을 시도하고 있습니다.",
+  "Certificate issued, but renewing it failed. We keep trying.": "인증서가 발급되었지만 갱신에 실패했습니다. 계속 시도하고 있습니다.",
+  "Could not issue a free certificate yet. We keep trying.": "아직 무료 인증서를 발급하지 못했습니다. 계속 시도하고 있습니다.",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "{{domain}}의 무료 SSL 인증서를 아직 발급하지 못했습니다. 자동으로 계속 시도합니다.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "CNAME 레코드는 인증되었지만 이 도메인의 무료 SSL 인증서가 만료되었습니다. 지금 확인을 클릭하여 다시 시도하고 이유를 확인하세요."
 }

@@ -24470,5 +24470,10 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} از قبل گواهی SSL رایگان خود را دارد و ما آن را به‌طور خودکار تمدید می‌کنیم.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} با گواهی‌ای که بارگذاری کرده‌اید ارائه می‌شود.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "رکورد CNAME شما تأیید شده است، اما گواهی SSL رایگان این دامنه هنوز صادر نشده است. برای تلاش دوباره و دیدن دلیل، روی «اکنون بررسی کن» کلیک کنید.",
-  "{{teamName}} was created without access.": "تیم {{teamName}} بدون دسترسی ساخته شد."
+  "{{teamName}} was created without access.": "تیم {{teamName}} بدون دسترسی ساخته شد.",
+  "Certificate expired. We keep trying to renew it.": "گواهی منقضی شده است. برای تمدید آن به تلاش ادامه می‌دهیم.",
+  "Certificate issued, but renewing it failed. We keep trying.": "گواهی صادر شده است، اما تمدید آن ناموفق بود. به تلاش ادامه می‌دهیم.",
+  "Could not issue a free certificate yet. We keep trying.": "هنوز نتوانسته‌ایم گواهی رایگان صادر کنیم. به تلاش ادامه می‌دهیم.",
+  "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.": "هنوز نتوانسته‌ایم گواهی SSL رایگان برای {{domain}} صادر کنیم. به‌طور خودکار به تلاش ادامه می‌دهیم.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain has expired. Click Check now to try again and see why.": "رکورد CNAME شما تأیید شده است، اما گواهی SSL رایگان این دامنه منقضی شده است. برای تلاش دوباره و دیدن دلیل، روی «اکنون بررسی کن» کلیک کنید."
 }
