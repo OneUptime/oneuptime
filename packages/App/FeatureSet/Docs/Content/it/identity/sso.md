@@ -289,6 +289,17 @@ L'implementazione SSO di OneUptime usa il protocollo SAML 2.0 e dovrebbe funzion
    - **Certificato pubblico** (certificato di firma X.509)
 4. Imposta l'**Algoritmo di Firma** su `RSA-SHA-256` e l'**Algoritmo Digest** su `SHA256`
 
+## OpenID Connect (OIDC)
+
+Un progetto può accedere anche tramite un provider OpenID Connect, come Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak.
+
+1. Registra un'app (un client OIDC) presso il tuo provider di identità e copia il suo **URL dell'emittente**, il **Client ID** e il **Client Secret**.
+2. In OneUptime, vai su **Impostazioni del progetto** > **Sicurezza** > **OIDC** e clicca su **Crea: OIDC**.
+3. Inserisci un **Nome** (ciò che le persone vedono nella pagina di accesso), l'**URL dell'emittente**, il **Client ID** e il **Client Secret**. Puoi anche incollare l'URL di discovery del provider in **URL dell'emittente**.
+4. Nel passaggio **Accesso**, **Team** parte dal team dei membri del tuo progetto: chi accede per la prima volta entra in questi team. Tutto il resto viene compilato in **Avanzato**: l'**URL di discovery** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Ambiti** (`openid email profile`), i nomi dei claim `email` e `name` e una descrizione («Sign in with» e il nome). Modificali solo se il tuo provider lo richiede.
+5. Salva. Si apre la finestra **OIDC Configuration** con il **Redirect URI**: aggiungilo ai redirect URI consentiti della tua app. Un nuovo provider parte disabilitato; poi modificalo e attiva **Abilitato**.
+6. Usa il link della scheda **Test OpenID Connect (OIDC)** per accedere tramite il provider prima di rendere obbligatorio l'SSO per il progetto.
+
 ## Note su SSO e Ruoli
 
 OneUptime attualmente non supporta il mapping dei ruoli SAML dal tuo provider di identità. L'accesso basato sui ruoli deve essere configurato separatamente all'interno delle **Impostazioni del progetto** > **SSO** di OneUptime, dove puoi assegnare ruoli predefiniti per gli utenti SSO.

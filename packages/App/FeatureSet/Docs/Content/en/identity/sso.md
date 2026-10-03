@@ -289,6 +289,17 @@ OneUptime's SSO implementation uses the SAML 2.0 protocol and should work with a
    - **Public Certificate** (X.509 signing certificate)
 4. Set the **Signature Algorithm** to `RSA-SHA-256` and **Digest Algorithm** to `SHA256`
 
+## OpenID Connect (OIDC)
+
+A project can also sign in through an OpenID Connect provider, such as Google Workspace, Okta, Microsoft Entra ID, Auth0 or Keycloak.
+
+1. Register an app (an OIDC client) with your identity provider and copy its **Issuer URL**, **Client ID** and **Client Secret**.
+2. In OneUptime, go to **Project Settings** > **Security** > **OIDC** and click **Create OIDC**.
+3. Enter a **Name** (what people see on the sign-in page), the **Issuer URL**, the **Client ID** and the **Client Secret**. You can paste the provider's discovery URL into **Issuer URL** instead.
+4. On the **Sign-in** step, **Teams** starts on your project's members team: people who sign in for the first time join these teams. Everything else is filled in under **Advanced**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description ("Sign in with" and the name). Change them only if your provider needs it.
+5. Save. The **OIDC Configuration** dialog opens with the **Redirect URI**: add it to your app's allowed redirect URIs. A new provider starts switched off, so then edit it and turn **Enabled** on.
+6. Use the link on the **Test OpenID Connect (OIDC)** card to sign in through the provider before you require SSO for the project.
+
 ## Requiring SSO for Your Project
 
 Setting up a provider does not stop anyone signing in with a password. To make SSO the only way into the project, use the **Require SSO for Login** switch on **Project Settings** > **Security** > **SSO**, under your providers:

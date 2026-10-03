@@ -289,6 +289,17 @@ La implementación SSO de OneUptime usa el protocolo SAML 2.0 y debería funcion
    - **Certificado público** (certificado de firma X.509)
 4. Establece el **Algoritmo de firma** en `RSA-SHA-256` y el **Algoritmo de resumen** en `SHA256`
 
+## OpenID Connect (OIDC)
+
+Un proyecto también puede iniciar sesión mediante un proveedor de OpenID Connect, como Google Workspace, Okta, Microsoft Entra ID, Auth0 o Keycloak.
+
+1. Registra una aplicación (un cliente OIDC) en tu proveedor de identidad y copia su **URL del emisor**, su **ID de cliente** y su **Secreto de cliente**.
+2. En OneUptime, ve a **Ajustes del proyecto** > **Seguridad** > **OIDC** y haz clic en **Crear OIDC**.
+3. Introduce un **Nombre** (lo que la gente ve en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
+4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás se rellena en **Avanzado**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de los claims `email` y `name`, y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor lo necesita.
+5. Guarda. Se abre el diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza deshabilitado; después, edítalo y activa **Habilitado**.
+6. Usa el enlace de la tarjeta **Probar OpenID Connect (OIDC)** para iniciar sesión con el proveedor antes de exigir SSO en el proyecto.
+
 ## Notas sobre SSO y roles
 
 OneUptime actualmente no admite la asignación de roles SAML desde tu proveedor de identidad. El control de acceso basado en roles debe configurarse por separado dentro de los **Ajustes del proyecto** > **SSO** de OneUptime, donde puedes asignar roles predeterminados para usuarios SSO.

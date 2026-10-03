@@ -289,6 +289,17 @@ De SSO-implementatie van OneUptime gebruikt het SAML 2.0-protocol en zou moeten 
    - **Openbaar certificaat** (X.509-handtekeningcertificaat)
 4. Stel het **Handtekeningalgoritme** in op `RSA-SHA-256` en het **Digestalgoritme** op `SHA256`
 
+## OpenID Connect (OIDC)
+
+Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google Workspace, Okta, Microsoft Entra ID, Auth0 of Keycloak.
+
+1. Registreer een app (een OIDC-client) bij uw identiteitsprovider en kopieer de **Uitgever-URL**, **Client-ID** en **Client-secret**.
+2. Navigeer in OneUptime naar **Projectinstellingen** > **Beveiliging** > **OIDC** en klik op **OIDC aanmaken**.
+3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
+4. In de stap **Aanmelden** staat bij **Teams** al het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. Al het andere wordt onder **Geavanceerd** ingevuld: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vereist.
+5. Sla op. Het venster **OIDC Configuration** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit; bewerk hem daarna en zet **Ingeschakeld** aan.
+6. Gebruik de link op de kaart **Test OpenID Connect (OIDC)** om via de provider in te loggen voordat u SSO voor het project verplicht maakt.
+
 ## Opmerkingen over SSO en rollen
 
 OneUptime ondersteunt momenteel geen koppeling van SAML-rollen vanuit uw identiteitsprovider. Op rollen gebaseerde toegang moet afzonderlijk worden geconfigureerd binnen **Projectinstellingen** > **SSO** in OneUptime, waar u standaardrollen voor SSO-gebruikers kunt toewijzen.

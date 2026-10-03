@@ -320,6 +320,7 @@ import GlobalSSOProject from "../../../Models/DatabaseModels/GlobalSsoProject";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -522,6 +523,43 @@ const columnsOf: (fields: unknown) => Array<string> = (
   );
 };
 
+// A form's steps, as id and title.
+const stepsOf: (steps: unknown) => Array<string> = (
+  steps: unknown,
+): Array<string> => {
+  return ((steps as Array<{ id: string; title: string }>) || []).map(
+    (step: { id: string; title: string }) => {
+      return `${step.id}: ${step.title}`;
+    },
+  );
+};
+
+/*
+ * Every OIDC provider form, the Global one included, comes from one builder
+ * (Common/UI/Components/Sso/OidcProviderFormFields): what the identity
+ * provider gives on Provider; Enabled, then everything with an answer folded
+ * under Advanced, on Sign-in.
+ */
+const OIDC_FORM_STEPS: Array<string> = [
+  "provider: Provider",
+  "sign-in: Sign-in",
+];
+
+const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
+  "name",
+  "issuerURL",
+  "clientId",
+  "clientSecret",
+  "isEnabled",
+  "discoveryURL",
+  "scopes",
+  "emailClaimName",
+  "nameClaimName",
+  "description",
+  "disableSignUpWithSso",
+  "restrictToAttachedProjects",
+];
+
 // The value next to a label in an "Identity Provider URLs" card, exactly.
 const printedValueFor: (label: string) => string = (label: string): string => {
   const labelElement: HTMLElement = screen.getByText(label);
@@ -693,7 +731,7 @@ describe("the provider lists", () => {
     expect(columnsOf(table["columns"])).toEqual(["name", "isEnabled"]);
   });
 
-  test("Global OIDC: the OIDC provider table and form, as before", async () => {
+  test("Global OIDC: the OIDC provider table, and the two-step form every OIDC provider shares", async () => {
     await renderPage(PAGES[2]!);
 
     const table: MockProps = lastTable("global-oidc-table");
@@ -705,26 +743,48 @@ describe("the provider lists", () => {
     expect((table["viewPageRoute"] as Route).toString()).toBe(
       "/admin/settings/global-oidc",
     );
-    expect(columnsOf(table["formFields"])).toEqual([
-      "name",
-      "description",
-      "discoveryURL",
-      "issuerURL",
-      "clientId",
-      "clientSecret",
-      "scopes",
-      "emailClaimName",
-      "nameClaimName",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    expect(stepsOf(table["formSteps"])).toEqual(OIDC_FORM_STEPS);
+    expect(columnsOf(table["formFields"])).toEqual(GLOBAL_OIDC_FORM_FIELDS);
     expect(columnsOf(table["filters"])).toEqual([
       "name",
       "description",
       "isEnabled",
     ]);
     expect(columnsOf(table["columns"])).toEqual(["name", "isEnabled"]);
+  });
+
+  test("Global OIDC: a provider just added opens on its own page, where its redirect URI, attached projects and test link are", async () => {
+    await renderPage(PAGES[2]!);
+
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return;
+      });
+
+    const onCreateSuccess: (
+      item: GlobalOIDC,
+      modalType?: ModalType,
+    ) => Promise<GlobalOIDC> = lastTable("global-oidc-table")[
+      "onCreateSuccess"
+    ] as (item: GlobalOIDC, modalType?: ModalType) => Promise<GlobalOIDC>;
+
+    const created: GlobalOIDC = new GlobalOIDC();
+    created._id = PROVIDER_ID;
+
+    await expect(onCreateSuccess(created, ModalType.Create)).resolves.toBe(
+      created,
+    );
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      `/admin/settings/global-oidc/${PROVIDER_ID}`,
+    );
+
+    // Saving an edit from the list never moves anyone.
+    await onCreateSuccess(created, ModalType.Edit);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -894,20 +954,9 @@ describe("the Global OIDC provider page", () => {
     expect(detailProps["modelType"]).toBe(GlobalOIDC);
     expect(detailProps["id"]).toBe("global-oidc-detail");
     expect((detailProps["modelId"] as ObjectID).toString()).toBe(PROVIDER_ID);
-    expect(columnsOf(detail["formFields"])).toEqual([
-      "name",
-      "description",
-      "discoveryURL",
-      "issuerURL",
-      "clientId",
-      "clientSecret",
-      "scopes",
-      "emailClaimName",
-      "nameClaimName",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    // The edit dialog has the create form's layout.
+    expect(stepsOf(detail["formSteps"])).toEqual(OIDC_FORM_STEPS);
+    expect(columnsOf(detail["formFields"])).toEqual(GLOBAL_OIDC_FORM_FIELDS);
     expect(columnsOf(detailProps["fields"])).toEqual([
       "name",
       "description",
