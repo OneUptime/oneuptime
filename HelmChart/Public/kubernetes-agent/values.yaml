@@ -1282,6 +1282,13 @@ ebpf:
 #   - Privileged pod with hostPID — same constraints as the eBPF
 #     auto-instrumentation DaemonSet, so it lights up on the same
 #     clusters and fails on the same ones (GKE Autopilot, EKS Fargate).
+#   - Nodes whose hostPID is the kernel's root PID namespace, as any
+#     VM or bare-metal node's is. The profiler looks a sample's process
+#     up by its root-namespace PID in the node's /proc, with no
+#     PID-namespace translation, so on nodes that are themselves
+#     containers (KinD, k3d, container-based Docker Desktop nodes) it
+#     attributes samples to the wrong processes and no sample links to
+#     a span.
 profiling:
   enabled: false
   image:
