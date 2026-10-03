@@ -74,7 +74,11 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   status or severity, trace and span ids, attributes) comes from a hash of the
   minute, the service and the row's index. The span list, the log list, the lists'
   totals, both histograms and the facet counts are read off those same rows, so they
-  agree for any window. A total ("2,120 spans", "1,101 logs") is the explorer's
+  agree for any window. A list answers the way `BaseAnalyticsAPI` does: the page,
+  `hasMore` (whether rows follow it) and, as `count`, only a lower bound (the rows
+  up to the page's last, plus one while more follow). A page that ends the list so
+  proves its own total; otherwise the explorer counts, as it does for both
+  explorers' hour and zoom. A total ("2,120 spans", "1,101 logs") is the explorer's
   `exact` count (`CountBy.exact`), which the server answers with the rows a list
   with the same query pages through, and so does the fixture. The histograms are
   bucketed the way `TraceAggregationService` /
@@ -110,7 +114,9 @@ Every data request is appended to `requests` in order, as
 
 A table, analytics model, metric name, API URL, explorer filter or facet the
 fixture does not model is recorded on `unhandled` too, and the specs fail the test
-on it.
+on it. That includes an `analytics.count` of any table but the generated ones
+(`SpanItemV3`, `LogItemV3`), and a list or count of those that does not filter
+its time column by an `InBetween`.
 
 The gates let a spec pick the moment data lands. Both answer at once by default,
 so the other specs never see them:
