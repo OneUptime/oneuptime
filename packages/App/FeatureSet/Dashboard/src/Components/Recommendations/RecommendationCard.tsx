@@ -7,6 +7,8 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import Route from "Common/Types/API/Route";
 import UILink from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   RecommendationStatus,
   RecommendationViewModel,
@@ -51,6 +53,7 @@ export const DESCRIPTION_CLAMP_CHARACTER_COUNT: number = 170;
 const RecommendationCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const status: RecommendationStatus = props.viewModel.status;
   const isAvailable: boolean = status === RecommendationStatus.Available;
   const isCreated: boolean = status === RecommendationStatus.Created;
@@ -143,7 +146,9 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
           type="button"
           className="absolute inset-0 z-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           aria-pressed={props.isSelected}
-          aria-label={`Select ${props.viewModel.recommendation.name}`}
+          aria-label={translator.translateTemplate("Select {{name}}", {
+            name: props.viewModel.recommendation.name,
+          })}
           data-testid={`recommendation-card-select-${props.viewModel.recommendation.recommendationId}`}
           onClick={toggleSelection}
         />
@@ -238,7 +243,9 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
                 setIsDescriptionExpanded(!isDescriptionExpanded);
               }}
             >
-              {isDescriptionExpanded ? "Show less" : "Show more"}
+              {translator.translateText(
+                isDescriptionExpanded ? "Show less" : "Show more",
+              )}
             </button>
           ) : (
             <></>
@@ -263,8 +270,10 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
         {isAvailable && !props.isDisabled ? (
           <button
             type="button"
-            aria-label={`Dismiss ${props.viewModel.recommendation.name}`}
-            title="Dismiss this recommendation"
+            aria-label={translator.translateTemplate("Dismiss {{name}}", {
+              name: props.viewModel.recommendation.name,
+            })}
+            title={translator.translateText("Dismiss this recommendation")}
             className="pointer-events-auto relative z-20 ml-2 flex-shrink-0 rounded p-1 text-gray-300 opacity-0 transition-opacity hover:bg-gray-100 hover:text-gray-600 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 group-hover:opacity-100"
             onClick={() => {
               props.onDismiss();
@@ -283,7 +292,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
             to={props.monitorRoute}
             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-500"
           >
-            <span>View monitor</span>
+            <span>{translator.translateText("View monitor")}</span>
           </UILink>
         </div>
       ) : (
@@ -299,7 +308,7 @@ const RecommendationCard: FunctionComponent<ComponentProps> = (
               props.onRestore();
             }}
           >
-            Restore
+            {translator.translateText("Restore")}
           </button>
         </div>
       ) : (

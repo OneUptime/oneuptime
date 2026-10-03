@@ -31,6 +31,10 @@ import {
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import MetricExplorerUrl from "Common/Utils/Metrics/MetricExplorerUrl";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "Create monitor" beside a broker health gauge on a queue's Overview.
@@ -96,7 +100,9 @@ export function getMessageQueueMetricMonitorDescription(
   queueName: string | null | undefined,
 ): string {
   const name: string = (queueName || "").trim();
-  return name ? `Created from queue ${name}.` : "";
+  return name
+    ? translateTemplate("Created from queue {{name}}.", { name: name })
+    : "";
 }
 
 /** "orders: Queue depth" — what the monitor's query is titled. */
@@ -411,11 +417,16 @@ export function getMessageQueueMetricMonitorHint(
   link: Pick<MessageQueueMetricMonitorLink, "criteria" | "rollingTime">,
 ): string {
   if (!link.criteria) {
-    return `No starting threshold · ${getMessageQueueRollingTimeAdjective(
-      link.rollingTime,
-    )} window`;
+    return translateTemplate("No starting threshold · {{window}} window", {
+      window: getMessageQueueRollingTimeAdjective(link.rollingTime),
+    });
   }
-  return `${link.criteria.severity} when any point in the last ${getMessageQueueRollingTimeWords(
-    link.rollingTime,
-  )} is above ${link.criteria.valueLabel}`;
+  return translateTemplate(
+    "{{severity}} when any point in the last {{window}} is above {{value}}",
+    {
+      severity: translatableTerm(link.criteria.severity),
+      window: getMessageQueueRollingTimeWords(link.rollingTime),
+      value: link.criteria.valueLabel,
+    },
+  );
 }

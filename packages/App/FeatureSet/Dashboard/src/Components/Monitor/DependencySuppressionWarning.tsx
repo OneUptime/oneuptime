@@ -13,6 +13,8 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -47,6 +49,7 @@ export interface ComponentProps {
 const DependencySuppressionWarning: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [suppressingParents, setSuppressingParents] = useState<
     Array<SuppressingParent>
   >([]);
@@ -173,21 +176,32 @@ const DependencySuppressionWarning: FunctionComponent<ComponentProps> = (
   );
 
   if (suppressingParents.length > 0) {
-    const parentDescriptions: string = suppressingParents
-      .map((parent: SuppressingParent) => {
-        return `Parent monitor "${parent.monitorName}" is ${parent.statusName}.`;
-      })
-      .join(" ");
+    // One sentence per parent, then what that means, each one whole.
+    const sentences: Array<string> = suppressingParents.map(
+      (parent: SuppressingParent): string => {
+        return translator.translateTemplate(
+          'Parent monitor "{{name}}" is {{status}}.',
+          { name: parent.monitorName, status: parent.statusName },
+        );
+      },
+    );
+
+    sentences.push(
+      translator.translatePlural(
+        {
+          one: "New alerts and incidents from this monitor are suppressed until the parent recovers; monitoring and status updates continue.",
+          other:
+            "New alerts and incidents from this monitor are suppressed until the parents recover; monitoring and status updates continue.",
+        },
+        suppressingParents.length,
+      ),
+    );
 
     return (
       <Alert
         type={AlertType.WARNING}
         strongTitle="Alerts are suppressed by a monitor dependency"
-        title={`${parentDescriptions} New alerts and incidents from this monitor are suppressed until the ${
-          suppressingParents.length === 1
-            ? "parent recovers"
-            : "parents recover"
-        }; monitoring and status updates continue.`}
+        title={sentences.join(" ")}
       />
     );
   }
@@ -197,9 +211,14 @@ const DependencySuppressionWarning: FunctionComponent<ComponentProps> = (
       <Alert
         type={AlertType.INFO}
         strongTitle="This monitor depends on monitors you cannot view"
-        title={`${hiddenParentCount} parent ${
-          hiddenParentCount === 1 ? "monitor is" : "monitors are"
-        } outside your access scope. Alerts from this monitor may be suppressed while a hidden parent is offline.`}
+        title={translator.translatePlural(
+          {
+            one: "{{count}} parent monitor is outside your access scope. Alerts from this monitor may be suppressed while a hidden parent is offline.",
+            other:
+              "{{count}} parent monitors are outside your access scope. Alerts from this monitor may be suppressed while a hidden parent is offline.",
+          },
+          hiddenParentCount,
+        )}
       />
     );
   }

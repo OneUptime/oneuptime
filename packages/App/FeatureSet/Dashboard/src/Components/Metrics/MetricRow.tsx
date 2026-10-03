@@ -14,6 +14,8 @@ import { getVisibleMetricServices } from "./MetricRowData";
 import { getMetricServicesWithin } from "./Utils/MetricRowScope";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface MetricRowProps {
   metric: MetricType;
@@ -48,6 +50,7 @@ export interface MetricRowProps {
 const MetricRow: FunctionComponent<MetricRowProps> = (
   props: MetricRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { metric } = props;
 
   /*
@@ -134,7 +137,9 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             })}
             {services.length > 4 && (
               <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
-                +{services.length - 4} more
+                {translator.translateTemplate("+{{count}} more", {
+                  count: translator.formatNumber(services.length - 4),
+                })}
               </span>
             )}
           </div>
@@ -181,7 +186,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             aria-hidden="true"
             className="max-sm:hidden items-center gap-0.5 text-xs font-medium text-gray-400 opacity-0 transition-opacity group-hover:text-indigo-600 group-hover:opacity-100 group-focus-visible:opacity-100 sm:flex"
           >
-            Explore
+            {translator.translateText("Explore")}
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </span>
         )}

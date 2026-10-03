@@ -30,6 +30,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The bulk half of issue #3507.
@@ -68,6 +70,7 @@ interface ApplyOidTemplateData {
 }
 
 function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
+  const translator: Translator = useTranslator();
   const [templates, setTemplates] = useState<Array<NetworkDeviceOidTemplate>>(
     [],
   );
@@ -279,14 +282,23 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
     icon: IconProp.LinkSlash,
     isVisible: isSnmpSelection,
     confirmTitle: (items: Array<NetworkDevice>): string => {
-      return `Clear the OID Collection Template on ${items.length} ${
-        items.length === 1 ? "device" : "devices"
-      }?`;
+      return translator.translatePlural(
+        {
+          one: "Clear the OID Collection Template on {{count}} device?",
+          other: "Clear the OID Collection Template on {{count}} devices?",
+        },
+        items.length,
+      );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
-      return `${
-        items.length === 1 ? "This device" : "These devices"
-      } will stop collecting the template's OIDs on the next poll, and will keep only their own Device-Specific Health OIDs. Automatic vendor health templates are switched off at the same time, so nothing seeds a replacement list behind you.`;
+      return translator.translatePlural(
+        {
+          one: "This device will stop collecting the template's OIDs on the next poll, and will keep only their own Device-Specific Health OIDs. Automatic vendor health templates are switched off at the same time, so nothing seeds a replacement list behind you.",
+          other:
+            "These devices will stop collecting the template's OIDs on the next poll, and will keep only their own Device-Specific Health OIDs. Automatic vendor health templates are switched off at the same time, so nothing seeds a replacement list behind you.",
+        },
+        items.length,
+      );
     },
     onClick: async (
       actionProps: BulkActionOnClickProps<NetworkDevice>,
@@ -334,7 +346,8 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
               to={oidTemplatesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              Create an OID Collection Template
+              {translator.translateText("Create an OID Collection Template") ||
+                ""}
             </AppLink>
           </Modal>
         ) : (

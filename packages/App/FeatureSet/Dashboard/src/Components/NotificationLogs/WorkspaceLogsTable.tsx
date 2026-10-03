@@ -1,4 +1,10 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -35,6 +41,7 @@ export interface WorkspaceLogsTableProps {
 const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
   props: WorkspaceLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -67,10 +74,14 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         };
 
         const textMap: Record<WorkspaceNotificationActionType, string> = {
-          [WorkspaceNotificationActionType.SendMessage]: "Send Message",
-          [WorkspaceNotificationActionType.CreateChannel]: "Create Channel",
-          [WorkspaceNotificationActionType.InviteUser]: "Invite User",
-          [WorkspaceNotificationActionType.ButtonPressed]: "Button Pressed",
+          [WorkspaceNotificationActionType.SendMessage]:
+            translationKey("Send Message"),
+          [WorkspaceNotificationActionType.CreateChannel]:
+            translationKey("Create Channel"),
+          [WorkspaceNotificationActionType.InviteUser]:
+            translationKey("Invite User"),
+          [WorkspaceNotificationActionType.ButtonPressed]:
+            translationKey("Button Pressed"),
         };
 
         return (
@@ -188,12 +199,26 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         cardProps={{
           title: "Workspace Logs",
           description: props.singularName
-            ? `Messages sent to Slack / Teams for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "Messages sent to Slack / Teams for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Messages sent to Slack / Teams.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No Workspace logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "No Workspace logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No Workspace logs."
         }
         showRefreshButton={true}

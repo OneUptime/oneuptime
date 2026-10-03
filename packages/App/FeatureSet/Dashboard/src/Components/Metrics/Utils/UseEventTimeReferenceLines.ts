@@ -26,6 +26,11 @@ import AnalyticsModelAPI, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { isPublicDashboard } from "../../Dashboard/Utils/PublicDashboardContext";
@@ -70,11 +75,11 @@ export function truncateEventMarkerTitle(title: string): string {
  * "Change".
  */
 const CHANGE_EVENT_TYPE_LABELS: Record<string, string> = {
-  deployment: "Deploy",
-  "config-change": "Config change",
-  scaling: "Scaling",
-  rollback: "Rollback",
-  "feature-flag": "Feature flag",
+  deployment: translationKey("Deploy"),
+  "config-change": translationKey("Config change"),
+  scaling: translationKey("Scaling"),
+  rollback: translationKey("Rollback"),
+  "feature-flag": translationKey("Feature flag"),
 };
 
 export function getChangeEventMarkerLabel(
@@ -82,8 +87,13 @@ export function getChangeEventMarkerLabel(
   title: string,
 ): string {
   const prefix: string =
-    CHANGE_EVENT_TYPE_LABELS[(eventType || "").toLowerCase()] || "Change";
-  return `${prefix}: ${truncateEventMarkerTitle(title)}`;
+    CHANGE_EVENT_TYPE_LABELS[(eventType || "").toLowerCase()] ||
+    translationKey("Change");
+  // The kind of change in the reader's language, then the event's own title.
+  return translateTemplate("{{kind}}: {{title}}", {
+    kind: translatableTerm(prefix),
+    title: truncateEventMarkerTitle(title),
+  });
 }
 
 // One incident/alert/change event mapped onto a chart time marker.
@@ -315,11 +325,15 @@ export default function useEventTimeReferenceLines(input: {
           date: OneUptimeDate.fromString(
             incident.createdAt as unknown as string,
           ),
-          label: `Incident: ${truncateEventMarkerTitle(incident.title || "")}`,
+          label: translateTemplate("Incident: {{title}}", {
+            title: truncateEventMarkerTitle(incident.title || ""),
+          }),
           kind: ChartEventKind.Incident,
           subtitle: incident.incidentSeverity?.name
-            ? `Incident · ${incident.incidentSeverity.name}`
-            : "Incident",
+            ? translateTemplate("Incident · {{severity}}", {
+                severity: incident.incidentSeverity.name,
+              })
+            : translateTemplate("Incident"),
           color:
             incident.incidentSeverity?.color?.toString() ||
             INCIDENT_MARKER_COLOR,
@@ -336,11 +350,15 @@ export default function useEventTimeReferenceLines(input: {
         }
         markers.push({
           date: OneUptimeDate.fromString(alert.createdAt as unknown as string),
-          label: `Alert: ${truncateEventMarkerTitle(alert.title || "")}`,
+          label: translateTemplate("Alert: {{title}}", {
+            title: truncateEventMarkerTitle(alert.title || ""),
+          }),
           kind: ChartEventKind.Alert,
           subtitle: alert.alertSeverity?.name
-            ? `Alert · ${alert.alertSeverity.name}`
-            : "Alert",
+            ? translateTemplate("Alert · {{severity}}", {
+                severity: alert.alertSeverity.name,
+              })
+            : translateTemplate("Alert"),
           color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
           route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW]!, {
             modelId: alert.id,

@@ -25,6 +25,8 @@ import MonitorTestForm from "../../Form/Monitor/MonitorTest";
 import { ButtonSize } from "Common/UI/Components/Button/Button";
 import ObjectID from "Common/Types/ObjectID";
 import Dictionary from "Common/Types/Dictionary";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
@@ -70,12 +72,14 @@ export interface ComponentProps {
   probeLoadError?: string | undefined;
 }
 
-const DEFAULT_DESCRIPTION: string =
-  "Here is how your monitor is performing at this moment.";
+const DEFAULT_DESCRIPTION: string = translationKey(
+  "Here is how your monitor is performing at this moment.",
+);
 
 const Summary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Only the user's pick is state. Which probe is shown is worked out on
    * every render from that pick and the current list; it used to be set in
@@ -255,7 +259,10 @@ const Summary: FunctionComponent<ComponentProps> = (
     if (hasProbeLoadError) {
       return (
         <ErrorMessage
-          message={"Probe results are unavailable. " + props.probeLoadError}
+          message={translator.translateTemplate(
+            "Probe results are unavailable. {{error}}",
+            { error: props.probeLoadError || "" },
+          )}
         />
       );
     }
@@ -303,7 +310,10 @@ const Summary: FunctionComponent<ComponentProps> = (
             data-testid="monitor-summary-other-evaluation"
             className="mt-4 text-sm text-gray-500"
           >
-            {`The latest criteria evaluation came from ${otherEvaluationProbeName}. Pick it above to see why it passed or failed.`}
+            {translator.translateTemplate(
+              "The latest criteria evaluation came from {{probe}}. Pick it above to see why it passed or failed.",
+              { probe: otherEvaluationProbeName },
+            )}
           </p>
         ) : (
           <></>

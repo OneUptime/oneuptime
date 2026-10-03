@@ -45,6 +45,14 @@ import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Networ
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { APP_API_URL } from "Common/UI/Config";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -130,7 +138,10 @@ const PROTOCOL_NAMES: { [protocolNumber: number]: string } = {
 const protocolLabel: (protocolNumber: number) => string = (
   protocolNumber: number,
 ): string => {
-  return PROTOCOL_NAMES[protocolNumber] || `Protocol ${protocolNumber}`;
+  return (
+    PROTOCOL_NAMES[protocolNumber] ||
+    translateTemplate("Protocol {{number}}", { number: protocolNumber })
+  );
 };
 
 // 1234567 -> "1.23 MB" — flows are byte counters, keep units human.
@@ -161,19 +172,6 @@ const formatMbps: (mbps: number) => string = (mbps: number): string => {
     return mbps.toFixed(1);
   }
   return mbps.toFixed(2);
-};
-
-/*
- * Human label for the selected window, used in the card description and
- * the empty state ("over the past 1 hour" / "over the selected time range").
- */
-const windowLabel: (timeRange: RangeStartAndEndDateTime) => string = (
-  timeRange: RangeStartAndEndDateTime,
-): string => {
-  if (timeRange.range === TimeRange.CUSTOM) {
-    return "the selected time range";
-  }
-  return `the ${timeRange.range.toLowerCase()}`;
 };
 
 const parseTopEntries: (value: unknown) => Array<TopEntry> = (
@@ -263,9 +261,11 @@ export interface FlowSectionTitleProps {
 export const FlowSectionTitle: FunctionComponent<FlowSectionTitleProps> = (
   props: FlowSectionTitleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-900">
-      <span>{props.title}</span>
+      <span>{translator.translateText(props.title)}</span>
       <InfoTooltip label={props.title} text={props.description} />
     </div>
   );
@@ -286,11 +286,13 @@ export interface FlowStatTileProps {
 export const FlowStatTile: FunctionComponent<FlowStatTileProps> = (
   props: FlowStatTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="rounded-md border border-gray-200 p-4">
       <div className="flex items-center gap-1">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          {props.title}
+          {translator.translateText(props.title)}
         </span>
         <InfoTooltip label={props.title} text={props.description} />
       </div>
@@ -312,6 +314,8 @@ const TopEntryTable: FunctionComponent<{
   keyHeader: string;
   entries: Array<TopEntry>;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div>
       <FlowSectionTitle title={props.title} description={props.description} />
@@ -319,13 +323,13 @@ const TopEntryTable: FunctionComponent<{
         <thead>
           <tr>
             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-              {props.keyHeader}
+              {translator.translateText(props.keyHeader)}
             </th>
             <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-              Bytes
+              {translator.translateText("Bytes")}
             </th>
             <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-              Packets
+              {translator.translateText("Packets")}
             </th>
           </tr>
         </thead>
@@ -398,6 +402,7 @@ export const BandwidthOverTimeChart: FunctionComponent<{
   windowStartAt: string;
   windowEndAt: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const bucketSeconds: number =
     props.bucketSeconds > 0 ? props.bucketSeconds : 60;
 
@@ -501,30 +506,36 @@ export const BandwidthOverTimeChart: FunctionComponent<{
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-        <span>
-          Min{" "}
-          <span className="font-medium text-gray-900">
-            {formatMbps(minMbps)} Mbps
-          </span>
-        </span>
-        <span>
-          Avg{" "}
-          <span className="font-medium text-gray-900">
-            {formatMbps(avgMbps)} Mbps
-          </span>
-        </span>
-        <span>
-          Max{" "}
-          <span className="font-medium text-gray-900">
-            {formatMbps(maxMbps)} Mbps
-          </span>
-        </span>
+        {[
+          { template: translationKey("Min {{value}}"), mbps: minMbps },
+          { template: translationKey("Avg {{value}}"), mbps: avgMbps },
+          { template: translationKey("Max {{value}}"), mbps: maxMbps },
+        ].map((stat: { template: string; mbps: number }): ReactElement => {
+          return (
+            <span key={stat.template}>
+              <TranslatedSentence
+                template={stat.template}
+                slots={{
+                  value: (
+                    <span className="font-medium text-gray-900">
+                      {translator.translateTemplate("{{value}} Mbps", {
+                        value: formatMbps(stat.mbps),
+                      })}
+                    </span>
+                  ),
+                }}
+              />
+            </span>
+          );
+        })}
         <TimeRangeZoomHint revealOnHover={true} className="ml-auto" />
       </div>
       {hasAxis ? (
         <div
           role="figure"
-          aria-label="Bandwidth over time in megabits per second"
+          aria-label={translator.translateText(
+            "Bandwidth over time in megabits per second",
+          )}
           data-testid="flow-bandwidth-chart"
         >
           <AreaChartElement
@@ -564,15 +575,26 @@ export const BandwidthOverTimeChart: FunctionComponent<{
 const FlowNoDataState: FunctionComponent<{
   timeRange: RangeStartAndEndDateTime;
 }> = (props: { timeRange: RangeStartAndEndDateTime }): ReactElement => {
+  const translator: Translator = useTranslator();
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
   const onTimeRangeReset: (() => void) | undefined = zoom?.onTimeRangeReset;
 
   const rangeBeforeZoom: RangeStartAndEndDateTime | null =
     zoom?.rangeBeforeZoom || null;
-  const wayBack: string =
+  // Where Reset zoom goes back to, said as one whole sentence either way.
+  const zoomedOutSentence: string =
     rangeBeforeZoom && rangeBeforeZoom.range !== TimeRange.CUSTOM
-      ? windowLabel(rangeBeforeZoom)
-      : "the time range before the zoom";
+      ? translator.translateTemplate(
+          "This device sent no flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the {{range}}.",
+          {
+            range: translatableTerm(rangeBeforeZoom.range, {
+              inSentence: true,
+            }),
+          },
+        )
+      : translator.translateTemplate(
+          "This device sent no flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to the time range before the zoom.",
+        );
 
   return (
     <div
@@ -585,24 +607,30 @@ const FlowNoDataState: FunctionComponent<{
       {props.timeRange.range === TimeRange.CUSTOM ? (
         <div className="text-center max-w-md">
           <div className="text-sm font-medium text-gray-900">
-            No flows in the selected time range.
+            {translator.translateText("No flows in the selected time range.")}
           </div>
           <p className="mt-1 text-sm text-gray-500">
             {onTimeRangeReset
-              ? `This device sent no flow records in the stretch you zoomed into. Double-click here, or use Reset zoom, to go back to ${wayBack}.`
-              : "This device sent no flow records in this window."}
+              ? zoomedOutSentence
+              : translator.translateText(
+                  "This device sent no flow records in this window.",
+                )}
           </p>
         </div>
       ) : (
         <div className="text-center max-w-md">
           <div className="text-sm font-medium text-gray-900">
-            No flow data yet.
+            {translator.translateText("No flow data yet.")}
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Flow export is not configured for this device, or nothing has
-            arrived in {windowLabel(props.timeRange)}. Point the device&apos;s
-            NetFlow v5 export at your probe&apos;s IP on UDP port 2055 (and set
-            PROBE_NETFLOW_RECEIVER_ENABLED=true on the probe).
+            {translator.translateTemplate(
+              "Flow export is not configured for this device, or nothing has arrived in the {{range}}. Point the device's NetFlow v5 export at your probe's IP on UDP port 2055 (and set PROBE_NETFLOW_RECEIVER_ENABLED=true on the probe).",
+              {
+                range: translatableTerm(props.timeRange.range, {
+                  inSentence: true,
+                }),
+              },
+            )}
           </p>
         </div>
       )}
@@ -617,6 +645,7 @@ const FlowNoDataState: FunctionComponent<{
 const FlowTopTalkersFigures: FunctionComponent<{
   data: TopTalkersData;
 }> = (props: { data: TopTalkersData }): ReactElement => {
+  const translator: Translator = useTranslator();
   const data: TopTalkersData = props.data;
 
   return (
@@ -666,13 +695,13 @@ const FlowTopTalkersFigures: FunctionComponent<{
         <TopEntryTable
           title="Top Sources"
           description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopSources}
-          keyHeader="Source IP"
+          keyHeader={translationKey("Source IP")}
           entries={data.topSources}
         />
         <TopEntryTable
           title="Top Destinations"
           description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopDestinations}
-          keyHeader="Destination IP"
+          keyHeader={translationKey("Destination IP")}
           entries={data.topDestinations}
         />
       </div>
@@ -689,13 +718,13 @@ const FlowTopTalkersFigures: FunctionComponent<{
             <thead>
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                  Source &rarr; Destination
+                  {translator.translateText("Source → Destination")}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                  Bytes
+                  {translator.translateText("Bytes")}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                  Packets
+                  {translator.translateText("Packets")}
                 </th>
               </tr>
             </thead>
@@ -735,16 +764,16 @@ const FlowTopTalkersFigures: FunctionComponent<{
           <thead>
             <tr>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                Protocol
+                {translator.translateText("Protocol")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                Destination Port
+                {translator.translateText("Destination Port")}
               </th>
               <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                Bytes
+                {translator.translateText("Bytes")}
               </th>
               <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
-                Packets
+                {translator.translateText("Packets")}
               </th>
             </tr>
           </thead>
@@ -788,6 +817,7 @@ interface LoadedTopTalkers {
 const FlowTopTalkers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // The last fetch that succeeded; a failed one keeps it.
   const [loaded, setLoaded] = useState<LoadedTopTalkers | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -876,9 +906,20 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       <Card
         title="Top Talkers"
-        description={`Who this device saw talking over ${windowLabel(
-          timeRange,
-        )}, aggregated from the NetFlow records it exported: top sources, destinations, conversations and protocol/port pairs by bytes.`}
+        description={
+          timeRange.range === TimeRange.CUSTOM
+            ? translator.translateTemplate(
+                "Who this device saw talking over the selected time range, aggregated from the NetFlow records it exported: top sources, destinations, conversations and protocol/port pairs by bytes.",
+              )
+            : translator.translateTemplate(
+                "Who this device saw talking over the {{range}}, aggregated from the NetFlow records it exported: top sources, destinations, conversations and protocol/port pairs by bytes.",
+                {
+                  range: translatableTerm(timeRange.range, {
+                    inSentence: true,
+                  }),
+                },
+              )
+        }
         rightElement={
           <div className="flex items-center gap-2">
             <RangeStartAndEndDateView
@@ -920,8 +961,10 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
                   className="h-4 w-4 shrink-0 text-red-500"
                 />
                 <span>
-                  Couldn&apos;t refresh — showing previously loaded data.{" "}
-                  {error}
+                  {translator.translateTemplate(
+                    "Couldn't refresh — showing previously loaded data. {{error}}",
+                    { error: error },
+                  )}
                 </span>
               </div>
             ) : (
@@ -937,7 +980,7 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Refresh}
                   className="h-3 w-3 animate-spin text-gray-400"
                 />
-                Refreshing
+                {translator.translateText("Refreshing")}
               </div>
             ) : (
               <></>

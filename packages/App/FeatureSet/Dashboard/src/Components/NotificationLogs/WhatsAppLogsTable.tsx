@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -32,6 +37,7 @@ export interface WhatsAppLogsTableProps {
 const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
   props: WhatsAppLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -163,12 +169,26 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
         cardProps={{
           title: "WhatsApp Logs",
           description: props.singularName
-            ? `WhatsApp messages sent for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "WhatsApp messages sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "WhatsApp messages sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No WhatsApp logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "No WhatsApp logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No WhatsApp logs."
         }
         showRefreshButton={true}
@@ -208,7 +228,11 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
               }
 
               if (fallbackMessageId) {
-                messageParts.push(`Message ID: ${fallbackMessageId}`);
+                messageParts.push(
+                  translator.translateTemplate("Message ID: {{id}}", {
+                    id: fallbackMessageId,
+                  }),
+                );
               }
 
               setModalTitle("Status Message");

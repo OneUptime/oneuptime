@@ -46,6 +46,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import "./ScheduleTimeline.css";
 
 /*
@@ -175,6 +177,7 @@ export interface ComponentProps {
 const ScheduleTimeline: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const now: Date = useNow();
   const isTeamLocked: boolean = Boolean(props.teamId);
   const teamIdString: string = props.teamId ? props.teamId.toString() : "";
@@ -408,13 +411,21 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
     RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route,
   );
 
+  // English keys: the Card shows its title and description in the reader's language.
   const title: string =
-    props.title || (isTeamLocked ? "On-Call Schedules" : "Schedule Timeline");
+    props.title ||
+    (isTeamLocked
+      ? translationKey("On-Call Schedules")
+      : translationKey("Schedule Timeline"));
   const description: string =
     props.description ||
     (isTeamLocked
-      ? "Who is on call on every schedule this team owns, week by week or month by month."
-      : "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.");
+      ? translationKey(
+          "Who is on call on every schedule this team owns, week by week or month by month.",
+        )
+      : translationKey(
+          "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.",
+        ));
 
   const renderSkeleton: () => ReactElement = (): ReactElement => {
     return (
@@ -471,10 +482,10 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Search} className="h-5 w-5 text-gray-400" />
         </span>
         <p className="text-sm font-medium text-gray-900">
-          No schedules match these filters
+          {translator.translateText("No schedules match these filters")}
         </p>
         <p className="max-w-sm text-sm text-gray-500">
-          Try a different search, team or view.
+          {translator.translateText("Try a different search, team or view.")}
         </p>
         <button
           type="button"
@@ -483,7 +494,7 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
           }}
           className="mt-1 text-sm font-medium text-indigo-600 hover:underline"
         >
-          Clear filters
+          {translator.translateText("Clear filters")}
         </button>
       </div>
     );
@@ -510,7 +521,7 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
             to={schedulesRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Go to On-Call Schedules
+            {translator.translateText("Go to On-Call Schedules")}
           </Link>
         }
       />
@@ -700,13 +711,21 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
             >
               <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Showing the first {data.schedules.length} of{" "}
-                {data.totalScheduleCount}{" "}
-                {isTeamLocked ? "schedules this team owns" : "schedules"}, by
-                name.
                 {isTeamLocked
-                  ? ""
-                  : " Open a team's On-Call Schedules page to see just the schedules that team owns."}
+                  ? translator.translateTemplate(
+                      "Showing the first {{shown}} of {{total}} schedules this team owns, by name.",
+                      {
+                        shown: data.schedules.length,
+                        total: data.totalScheduleCount,
+                      },
+                    )
+                  : translator.translateTemplate(
+                      "Showing the first {{shown}} of {{total}} schedules, by name. Open a team's On-Call Schedules page to see just the schedules that team owns.",
+                      {
+                        shown: data.schedules.length,
+                        total: data.totalScheduleCount,
+                      },
+                    )}
               </span>
             </div>
           )}
@@ -718,9 +737,9 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
             >
               <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Some rotations are too long to compute in full for this range,
-                so a few shifts may be missing. Each schedule&apos;s own page
-                shows its complete rotation.
+                {translator.translateText(
+                  "Some rotations are too long to compute in full for this range, so a few shifts may be missing. Each schedule's own page shows its complete rotation.",
+                )}
               </span>
             </div>
           )}
@@ -732,9 +751,13 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
             >
               <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                The timeline covers {TIMELINE_MAX_PAST_DAYS} days back and{" "}
-                {TIMELINE_MAX_FUTURE_DAYS} days ahead. The shaded part of this
-                range is outside that window.
+                {translator.translateTemplate(
+                  "The timeline covers {{past}} days back and {{future}} days ahead. The shaded part of this range is outside that window.",
+                  {
+                    past: TIMELINE_MAX_PAST_DAYS,
+                    future: TIMELINE_MAX_FUTURE_DAYS,
+                  },
+                )}
               </span>
             </div>
           )}

@@ -6,6 +6,8 @@ import Field from "Common/UI/Components/Detail/Field";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncomingEmailMonitorRequestUtil from "Common/Utils/Monitor/IncomingEmailMonitorRequestUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -16,6 +18,7 @@ export interface ComponentProps {
 const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
   const fields: Array<Field<IncomingEmailMonitorRequest>> = [];
@@ -31,7 +34,7 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
   let lastEmailReceivedAt: string = "-";
 
   if (!hasEmail) {
-    lastEmailReceivedAt = "No email yet";
+    lastEmailReceivedAt = translator.translateTemplate("No email yet");
   } else if (props.incomingEmailMonitorRequest?.emailReceivedAt) {
     lastEmailReceivedAt =
       OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(

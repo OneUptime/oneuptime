@@ -4,6 +4,7 @@ import NetworkDeviceMonitoringMethod, {
 } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The monitoring-method picker, and the predicates every form that shows it
@@ -41,11 +42,14 @@ export const MONITORING_METHOD_OPTIONS: Array<DropdownOption> = [
  * Monitoring" dialog, discovery import and the server all accept a device
  * without one). Sharing the sentence is what stops that happening again.
  */
-export const MONITOR_BINDING_FIELD_DESCRIPTION: string =
-  'The monitor whose status IS this device\'s status — the override for gear a probe cannot reach, or whose health is better judged by an HTTP or port check. Leave it empty to record the device now and bind a monitor later — it still belongs to a site and still appears on the map, and its status reads Pending, tagged "No monitor", until one is bound. Most devices do not need this: switch the method to Probe and the assigned probe pings the device itself.';
+// English keys: the forms look their descriptions and placeholders up.
+export const MONITOR_BINDING_FIELD_DESCRIPTION: string = translationKey(
+  'The monitor whose status IS this device\'s status — the override for gear a probe cannot reach, or whose health is better judged by an HTTP or port check. Leave it empty to record the device now and bind a monitor later — it still belongs to a site and still appears on the map, and its status reads Pending, tagged "No monitor", until one is bound. Most devices do not need this: switch the method to Probe and the assigned probe pings the device itself.',
+);
 
-export const MONITOR_BINDING_FIELD_PLACEHOLDER: string =
-  "Select Monitor (optional)";
+export const MONITOR_BINDING_FIELD_PLACEHOLDER: string = translationKey(
+  "Select Monitor (optional)",
+);
 
 /*
  * The monitoring-method picker's own explanation, worded once so the create
@@ -54,8 +58,9 @@ export const MONITOR_BINDING_FIELD_PLACEHOLDER: string =
  * beyond the choice itself. The old sentence said "bind it to an existing
  * Ping or IP monitor", which read as a prerequisite; the binding is optional.
  */
-export const MONITORING_METHOD_FIELD_DESCRIPTION: string =
-  "Probe is the normal choice: the assigned probe pings this device on its schedule, and walks it over SNMP as well whenever it has credentials — a phone, a camera or a PDU with no SNMP is simply pinged. Pick Bound monitor only when nothing can reach the device from a probe, or when an existing HTTP, port or Ping monitor already judges its health; that monitor's status then becomes the device's status and polling stops. Either way the device belongs to a site, carries labels, and appears on the network topology map.";
+export const MONITORING_METHOD_FIELD_DESCRIPTION: string = translationKey(
+  "Probe is the normal choice: the assigned probe pings this device on its schedule, and walks it over SNMP as well whenever it has credentials — a phone, a camera or a PDU with no SNMP is simply pinged. Pick Bound monitor only when nothing can reach the device from a probe, or when an existing HTTP, port or Ping monitor already judges its health; that monitor's status then becomes the device's status and polling stops. Either way the device belongs to a site, carries labels, and appears on the network topology map.",
+);
 
 /*
  * The hostname field is shown on four surfaces (the create form, the
@@ -65,8 +70,9 @@ export const MONITORING_METHOD_FIELD_DESCRIPTION: string =
  * probe-polled device without credentials, which is pinged and never
  * walked. One sentence for all four keeps that from happening again.
  */
-export const HOSTNAME_FIELD_DESCRIPTION: string =
-  "The device's address — an IP or a hostname. A probe-polled device is pinged here on its schedule, and walked over SNMP at the same address once it has credentials; a monitor-backed device is only identified by it. It is also the address a Ping monitor created for the device checks.";
+export const HOSTNAME_FIELD_DESCRIPTION: string = translationKey(
+  "The device's address — an IP or a hostname. A probe-polled device is pinged here on its schedule, and walked over SNMP at the same address once it has credentials; a monitor-backed device is only identified by it. It is also the address a Ping monitor created for the device checks.",
+);
 
 /*
  * Read through the parser rather than compared directly: an unset value means
@@ -102,8 +108,10 @@ export function isMonitorBackedDevice(
  * profile) are added. Said once so the create form, the Settings form and the
  * topology dialog agree about what an empty community string means.
  */
-export const SNMP_STEP_DESCRIPTION: string =
-  "Optional. Leave the community string (or v3 username) empty and this device is pinged only — it still gets a status from its first poll. Add credentials, or pick a credential profile, to walk it over SNMP as well: interfaces, hardware inventory, neighbours and health OIDs.";
+export const SNMP_STEP_DESCRIPTION: string = translationKey(
+  "Optional. Leave the community string (or v3 username) empty and this device is pinged only — it still gets a status from its first poll. Add credentials, or pick a credential profile, to walk it over SNMP as well: interfaces, hardware inventory, neighbours and health OIDs.",
+);
 
-export const PROBE_FIELD_DESCRIPTION: string =
-  "The probe that pings this device on its schedule, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It has to be able to reach the device directly, so pick one deployed on the device's network — a probe on the public internet cannot reach a private address. Polling starts as soon as the device is created.";
+export const PROBE_FIELD_DESCRIPTION: string = translationKey(
+  "The probe that pings this device on its schedule, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It has to be able to reach the device directly, so pick one deployed on the device's network — a probe on the public internet cannot reach a private address. Polling starts as soon as the device is created.",
+);

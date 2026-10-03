@@ -191,7 +191,7 @@ describe("Network device Traffic: the top-talkers card's range is the page's", (
   test("a zoom into a quiet stretch says so, and keeps the NetFlow setup steps for a preset window", () => {
     // sdn-6
     expect(code).toContain(
-      '{props.timeRange.range === TimeRange.CUSTOM ? ( <div className="text-center max-w-md"> <div className="text-sm font-medium text-gray-900"> No flows in the selected time range. </div>',
+      '{props.timeRange.range === TimeRange.CUSTOM ? ( <div className="text-center max-w-md"> <div className="text-sm font-medium text-gray-900"> {translator.translateText("No flows in the selected time range.")} </div>',
     );
     expect(code).toContain("No flow data yet.");
     expect(code).toContain("PROBE_NETFLOW_RECEIVER_ENABLED=true");

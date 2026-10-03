@@ -5,6 +5,8 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import TimezoneAlias from "Common/Types/TimezoneAlias";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -38,6 +40,7 @@ export interface ComponentProps {
 const LayerDateTimeFieldElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Display the stored instant in the input as its wall-clock IN THE SCHEDULE
    * TIMEZONE. The Input renders a Date at its current-timezone wall clock
@@ -69,8 +72,14 @@ const LayerDateTimeFieldElement: FunctionComponent<ComponentProps> = (
 
       <p className="mt-2 text-xs text-gray-400">
         {props.timezone
-          ? `This time is in the schedule's timezone: ${TimezoneAlias.getCanonicalTimezone(props.timezone)}.`
-          : `This time is in your local timezone: ${OneUptimeDate.getCurrentTimezoneString()}.`}
+          ? translator.translateTemplate(
+              "This time is in the schedule's timezone: {{timezone}}.",
+              { timezone: TimezoneAlias.getCanonicalTimezone(props.timezone) },
+            )
+          : translator.translateTemplate(
+              "This time is in your local timezone: {{timezone}}.",
+              { timezone: OneUptimeDate.getCurrentTimezoneString() },
+            )}
       </p>
     </div>
   );

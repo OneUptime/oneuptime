@@ -4,6 +4,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface TeamItem {
   id: string;
@@ -24,6 +26,7 @@ export interface TeamsAvailableModalProps {
 const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
   props: TeamsAvailableModalProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   // No search; render a clean list of team names only.
 
   if (!props.isOpen) {
@@ -62,16 +65,20 @@ const TeamsAvailableModal: FunctionComponent<TeamsAvailableModalProps> = (
           <div className="space-y-4">
             {props.teams.length === 0 && (
               <div className="text-center py-12 text-gray-500 border rounded-md">
-                {props.isAdminConsentCompleted
-                  ? "No teams found. Try refreshing the list or verify your Microsoft Teams permissions."
-                  : "Admin consent is required to list teams."}
+                {translator.translateText(
+                  props.isAdminConsentCompleted
+                    ? "No teams found. Try refreshing the list or verify your Microsoft Teams permissions."
+                    : "Admin consent is required to list teams.",
+                )}
               </div>
             )}
 
             {props.teams.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm text-gray-600">
-                  Teams ({props.teams.length})
+                  {translator.translateTemplate("Teams ({{count}})", {
+                    count: translator.formatNumber(props.teams.length),
+                  })}
                 </div>
                 <div className="max-h-[60vh] overflow-y-auto pr-1">
                   <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
