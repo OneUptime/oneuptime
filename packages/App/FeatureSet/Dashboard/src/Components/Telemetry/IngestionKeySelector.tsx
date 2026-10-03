@@ -11,13 +11,19 @@ import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestion
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  IngestionKeyFormOptions,
+  getDefaultIngestionKeyName,
+  getIngestionKeyFormFields,
+  getIngestionKeyFormSteps,
+  getUniqueIngestionKeyName,
+  prepareIngestionKeyForCreate,
+} from "./IngestionKeyForm";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -44,17 +50,26 @@ export interface ComponentProps {
   endpointHint?: string | undefined;
 
   /*
-   * Restrict the picker to one class of key, and pin new keys created from
-   * here to it.
+   * The one class of key the guide's snippet works with: the picker lists
+   * only those, and a key created here is of that type without asking.
    *
-   * Optional, and undefined keeps exactly the behaviour this component has
-   * always had: every key in the project, and a create form that defaults to
-   * Server. A guide whose snippet ends up in a page the public can read
-   * (a browser SDK, a session replay tag) passes Browser, so the list cannot
-   * offer a server secret for pasting into a page in the first place - the
-   * warning below the token is the second line of defence, not the first.
+   * Every guide knows the answer. An agent, a collector or a server SDK
+   * sends no Origin header, so a Browser key is refused on every export
+   * (422): those guides pass Server. A guide whose snippet ends up in a page
+   * the public can read (a browser SDK, a session replay tag) passes
+   * Browser, so the list cannot offer a server secret for pasting into a
+   * page in the first place - the warning below the token is the second
+   * line of defence, not the first.
    */
-  keyTypeFilter?: TelemetryIngestionKeyType | undefined;
+  keyTypeFilter: TelemetryIngestionKeyType;
+
+  /*
+   * The name a key created here starts with: what the guide is for, as the
+   * English text of a translation key - translationKey("Kubernetes key").
+   * Shown in the reader's language, and numbered when the list already has
+   * a key of that name. The reader can change it before creating the key.
+   */
+  newKeyName: string;
 
   /*
    * Fires with the key the snippets should be rendered with, and with
@@ -68,6 +83,7 @@ export interface ComponentProps {
 const IngestionKeySelector: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [ingestionKeys, setIngestionKeys] = useState<
     Array<TelemetryIngestionKey>
   >([]);
@@ -170,6 +186,42 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     onSelectedKeyChangeRef.current(selectedKey || null);
   }, [selectedKey]);
+
+  /*
+   * What a key created here starts as: of the guide's type, and named after
+   * what the guide is for - "Kubernetes key", or "Kubernetes key 2" when the
+   * list already has one, so the two can be told apart in the picker.
+   */
+  const createKeyFormOptions: IngestionKeyFormOptions = useMemo(
+    (): IngestionKeyFormOptions => {
+      return {
+        keyType: props.keyTypeFilter,
+        keyName: getUniqueIngestionKeyName({
+          name: props.newKeyName
+            ? translator.translateText(props.newKeyName) || props.newKeyName
+            : getDefaultIngestionKeyName(props.keyTypeFilter),
+          existingNames: ingestionKeys.map(
+            (key: TelemetryIngestionKey): string | undefined => {
+              return key.name;
+            },
+          ),
+        }),
+      };
+    },
+    [props.keyTypeFilter, props.newKeyName, ingestionKeys],
+  );
+
+  const createKeyFormSteps: Array<FormStep<TelemetryIngestionKey>> = useMemo(
+    (): Array<FormStep<TelemetryIngestionKey>> => {
+      return getIngestionKeyFormSteps(createKeyFormOptions);
+    },
+    [createKeyFormOptions],
+  );
+
+  const createKeyFormFields: Array<ModelField<TelemetryIngestionKey>> =
+    useMemo((): Array<ModelField<TelemetryIngestionKey>> => {
+      return getIngestionKeyFormFields(createKeyFormOptions);
+    }, [createKeyFormOptions]);
 
   /*
    * Printed directly under the token, every time, on every guide that uses
@@ -376,163 +428,17 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
     );
   };
 
-  /*
-   * True when the key about to be created is a Browser key - either because
-   * the caller pinned the type, or because the user picked Browser in the
-   * dropdown below. The origin allowlist and the pinned service name are
-   * ignored on a Server key, so they are only offered when they will
-   * actually do something.
-   */
-  const isBrowserKeyBeingCreated: (
-    item: FormValues<TelemetryIngestionKey>,
-  ) => boolean = (item: FormValues<TelemetryIngestionKey>): boolean => {
-    if (props.keyTypeFilter) {
-      return props.keyTypeFilter === TelemetryIngestionKeyType.Browser;
-    }
-
-    return item.keyType === TelemetryIngestionKeyType.Browser;
-  };
-
-  /*
-   * The steps of the create wizard on the Telemetry Ingestion Keys page, so
-   * the two doors onto creating a key walk the same way: Details, Key Type
-   * (left out when the guide has pinned the type), Browser Settings for a
-   * browser key, and Billing on the Free plan.
-   */
-  const getCreateKeyFormSteps: () => Array<
-    FormStep<TelemetryIngestionKey>
-  > = (): Array<FormStep<TelemetryIngestionKey>> => {
-    const hasBillingStep: boolean =
-      getTelemetryPayAsYouGoFormFields().length > 0;
-
-    /*
-     * A guide that pins a Server key, on a paid plan, asks for a name and
-     * a description only: one short page, with no steps to walk.
-     */
-    if (
-      props.keyTypeFilter === TelemetryIngestionKeyType.Server &&
-      !hasBillingStep
-    ) {
-      return [];
-    }
-
-    return [
-      { id: "details", title: "Details" },
-      ...(props.keyTypeFilter ? [] : [{ id: "key-type", title: "Key Type" }]),
-      {
-        id: "browser-settings",
-        title: "Browser Settings",
-        showIf: isBrowserKeyBeingCreated,
-      },
-      ...(hasBillingStep ? [{ id: "billing", title: "Billing" }] : []),
-    ];
-  };
-
-  const getCreateKeyFormFields: () => Array<
-    ModelField<TelemetryIngestionKey>
-  > = (): Array<ModelField<TelemetryIngestionKey>> => {
-    const fields: Array<ModelField<TelemetryIngestionKey>> = [
-      {
-        field: {
-          name: true,
-        },
-        title: "Name",
-        stepId: "details",
-        fieldType: FormFieldSchemaType.Text,
-        required: true,
-        placeholder: "e.g. Production Key",
-        validation: {
-          minLength: 2,
-        },
-      },
-      {
-        field: {
-          description: true,
-        },
-        title: "Description",
-        stepId: "details",
-        fieldType: FormFieldSchemaType.LongText,
-        required: false,
-        placeholder: "Optional description for this key",
-      },
-    ];
-
-    /*
-     * A pinned type is applied in onBeforeCreate rather than shown as a
-     * disabled dropdown: the guide has already decided which kind of key its
-     * snippet needs, and offering the choice back only invites picking the
-     * wrong one for the code on screen.
-     */
-    if (!props.keyTypeFilter) {
-      fields.push({
-        field: {
-          keyType: true,
-        },
-        title: "Key Type",
-        stepId: "key-type",
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions:
-          DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-            TelemetryIngestionKeyType,
-          ),
-        required: true,
-        defaultValue: TelemetryIngestionKeyType.Server,
-        description:
-          "A Server key is a secret and belongs in your servers, containers and collectors - never in browser JavaScript or anywhere else your users can read it. A Browser key is safe to publish in a page: it is accepted only from the origins you list and can write only traces, logs, metrics and session replays. The type cannot be changed later.",
-      });
-    }
-
-    fields.push({
-      field: {
-        allowedOrigins: true,
-      },
-      title: "Allowed Origins",
-      stepId: "browser-settings",
-      fieldType: FormFieldSchemaType.JSON,
-      showIf: isBrowserKeyBeingCreated,
-      required: isBrowserKeyBeingCreated,
-      placeholder: '["https://app.example.com"]',
-      description:
-        'JSON array of the origins this key may be used from. Required on a browser key and enforced on the server for every request: telemetry from an origin that is not listed, or with no Origin header at all, is refused. One leading "*." host wildcard is allowed.',
-    });
-
-    fields.push({
-      field: {
-        pinnedServiceName: true,
-      },
-      title: "Pinned Service Name",
-      stepId: "browser-settings",
-      fieldType: FormFieldSchemaType.Text,
-      showIf: isBrowserKeyBeingCreated,
-      required: false,
-      placeholder: "storefront-web",
-      description:
-        "Forces service.name to this value on everything the key writes. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
-    });
-
-    /*
-     * The same pay-as-you-go notice the settings page shows, on the same last
-     * step. This is the second door onto creating a key, and a gate with a
-     * way around it is not a gate.
-     */
-    fields.push(
-      ...getTelemetryPayAsYouGoFormFields().map(
-        (
-          field: ModelField<TelemetryIngestionKey>,
-        ): ModelField<TelemetryIngestionKey> => {
-          return { ...field, stepId: "billing" };
-        },
-      ),
-    );
-
-    return fields;
-  };
-
   return (
     <div>
       {renderContent()}
 
-      {/* Create Ingestion Key Modal */}
+      {/*
+       * The create dialog every door shares (Telemetry/IngestionKeyForm):
+       * the guide's name for the key already filled in, its type not asked,
+       * the description under Advanced - one page and one click for a
+       * Server key, a Browser key's origins on that same page, and the Free
+       * plan's pricing as a step of its own.
+       */}
       {showCreateModal && (
         <ModelFormModal<TelemetryIngestionKey>
           modelType={TelemetryIngestionKey}
@@ -550,7 +456,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           onClose={() => {
             setShowCreateModal(false);
           }}
-          submitButtonText="Create Key"
+          submitButtonText="Create Ingestion Key"
           onSuccess={(item: TelemetryIngestionKey) => {
             setShowCreateModal(false);
             // Refresh the list and select the new key
@@ -566,8 +472,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             name: "Create Ingestion Key",
             modelType: TelemetryIngestionKey,
             id: "create-ingestion-key",
-            steps: getCreateKeyFormSteps(),
-            fields: getCreateKeyFormFields(),
+            steps: createKeyFormSteps,
+            fields: createKeyFormFields,
             formType: FormType.Create,
           }}
           onBeforeCreate={(
@@ -575,11 +481,9 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           ): Promise<TelemetryIngestionKey> => {
             item.projectId = ProjectUtil.getCurrentProjectId()!;
 
-            if (props.keyTypeFilter) {
-              item.keyType = props.keyTypeFilter;
-            }
-
-            return Promise.resolve(item);
+            return Promise.resolve(
+              prepareIngestionKeyForCreate(item, createKeyFormOptions),
+            );
           }}
         />
       )}

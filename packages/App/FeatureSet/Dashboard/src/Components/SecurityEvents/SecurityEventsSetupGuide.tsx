@@ -6,6 +6,8 @@ import React, {
 } from "react";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -771,6 +773,12 @@ curl -X POST "${ingestUrl}?format=udm" \\
                 endpointLabel="Security Events Ingest Endpoint"
                 endpointValue={ingestUrl}
                 endpointHint="Send the token in the x-oneuptime-token header. Name the source with x-oneuptime-service-name, or let it be inferred from the payload's product or vendor."
+                /*
+                 * Security events come from a SIEM, a log shipper or a
+                 * script, never a page: only a Server key may write them.
+                 */
+                keyTypeFilter={TelemetryIngestionKeyType.Server}
+                newKeyName={translationKey("Security events key")}
                 onSelectedKeyChange={setSelectedKey}
               />,
             )}
