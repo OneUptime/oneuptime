@@ -366,6 +366,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                {
 	                  "_type": "MonitorCriteriaInstance",
 	                  "value": {
+	                    "id": "94cbd253-fc7f-52e3-9864-6c6806f70843",
 	                    "name": "Online",
 	                    "description": "Website responds with 200.",
 	                    "filterCondition": "All",
@@ -389,6 +390,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                {
 	                  "_type": "MonitorCriteriaInstance",
 	                  "value": {
+	                    "id": "e5f1d922-de22-5624-8a3e-3c96d94ca30d",
 	                    "name": "Offline",
 	                    "description": "Website is unreachable.",
 	                    "filterCondition": "Any",
@@ -411,6 +413,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                    ],
 	                    "incidents": [
 	                      {
+	                        "id": "61d0fdeb-68b4-5b55-a0f0-908e1e28b2cd",
 	                        "title": "Site is down",
 	                        "description": "The site did not respond.",
 	                        "incidentSeverityId": "sev-1",
@@ -426,6 +429,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                    ],
 	                    "alerts": [
 	                      {
+	                        "id": "20d66982-7e3c-5465-ac18-f3323e59f9e7",
 	                        "title": "Site is down (alert)",
 	                        "description": "The site did not respond (alert).",
 	                        "alertSeverityId": "asev-1",
@@ -460,17 +464,6 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 		t.Fatalf("wire envelope mismatch.\nactual:\n%s\ngolden:\n%s", actualJSON, goldenJSON)
 	}
 
-	// The envelope must never contain server-generated ids.
-	wireJSON, err := json.Marshal(wire)
-	if err != nil {
-		t.Fatalf("marshal wire: %v", err)
-	}
-	var idProbe map[string]interface{}
-	if err := json.Unmarshal(wireJSON, &idProbe); err != nil {
-		t.Fatalf("unmarshal wire: %v", err)
-	}
-	assertNoIDKeys(t, idProbe, "$")
-
 	// Full round trip.
 	back, diags := MonitorStepsFromAPI(ctx, monitorStepsTestJSONCopy(t, wire))
 	monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
@@ -479,20 +472,42 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	}
 }
 
-func assertNoIDKeys(t *testing.T, v interface{}, at string) {
-	t.Helper()
-	switch tv := v.(type) {
-	case map[string]interface{}:
-		for k, child := range tv {
-			if k == "id" {
-				t.Fatalf("wire envelope contains an id key at %s", at)
+func TestMonitorStepsToAPIDerivedIDsAreStableAndUnique(t *testing.T) {
+	ctx := context.Background()
+	list := monitorStepsFullUserList(t)
+
+	first, diags := MonitorStepsToAPI(ctx, list)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+	second, diags := MonitorStepsToAPI(ctx, list)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+	if !reflect.DeepEqual(monitorStepsTestNormalizeJSON(t, first), monitorStepsTestNormalizeJSON(t, second)) {
+		t.Fatal("ToAPI must derive the same ids on every call")
+	}
+
+	ids := map[string]bool{}
+	var collect func(v interface{})
+	collect = func(v interface{}) {
+		switch tv := v.(type) {
+		case map[string]interface{}:
+			if id, ok := tv["id"].(string); ok {
+				if ids[id] {
+					t.Fatalf("duplicate derived id %s", id)
+				}
+				ids[id] = true
 			}
-			assertNoIDKeys(t, child, at+"."+k)
+			for _, child := range tv {
+				collect(child)
+			}
+		case []interface{}:
+			for _, child := range tv {
+				collect(child)
+			}
 		}
-	case []interface{}:
-		for i, child := range tv {
-			assertNoIDKeys(t, child, at+"["+string(rune('0'+i%10))+"]")
-		}
+	}
+	collect(monitorStepsTestNormalizeJSON(t, first))
+	// Two criteria, one incident template, one alert template.
+	if len(ids) != 4 {
+		t.Fatalf("expected 4 derived ids, got %d", len(ids))
 	}
 }
 
@@ -522,6 +537,7 @@ func TestMonitorStepsRoundTripMinimal(t *testing.T) {
 	                {
 	                  "_type": "MonitorCriteriaInstance",
 	                  "value": {
+	                    "id": "94cbd253-fc7f-52e3-9864-6c6806f70843",
 	                    "name": "Online",
 	                    "filterCondition": "All",
 	                    "filters": [{"checkOn": "Is Online", "filterType": "True"}]
