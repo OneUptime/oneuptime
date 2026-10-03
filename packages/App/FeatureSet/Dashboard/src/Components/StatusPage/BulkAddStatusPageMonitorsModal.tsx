@@ -22,6 +22,11 @@ import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import {
+  NEXT_BUTTON_TEXT,
+  SteppedFormFooter,
+  getSteppedFormFooter,
+} from "Common/UI/Components/Forms/Utils/FinishFromAnyStep";
 import { BulkAddedLabel } from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import React, {
@@ -144,8 +149,22 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   const syncLabelsRef: MutableRefObject<Array<BulkAddedLabel>> = useRef<
     Array<BulkAddedLabel>
   >([]);
-  const [submitButtonText, setSubmitButtonText] =
-    useState<string>("Add Monitors");
+  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(false);
+  const [canFinishFromCurrentStep, setCanFinishFromCurrentStep] =
+    useState<boolean>(false);
+
+  /*
+   * The monitors are all this asks for: the Advanced step's options have
+   * their defaults, so Add Monitors is there from the first step, with a
+   * plain Next beside it for anyone who wants them
+   * (Common/UI/Components/Forms/Utils/FinishFromAnyStep.ts).
+   */
+  const footer: SteppedFormFooter = getSteppedFormFooter({
+    hasSteps: true,
+    isOnLastStep: isOnLastFormStep,
+    canFinishFromCurrentStep: canFinishFromCurrentStep,
+    actionText: "Add Monitors",
+  });
 
   const formRef: MutableRefObject<any> = useRef<any>(null);
 
@@ -524,12 +543,28 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
       title="Add Multiple Monitors"
       description="Add monitors to this status page. Each resource gets its display name and description from its monitor."
       modalWidth={ModalWidth.Medium}
-      submitButtonText={submitButtonText}
+      submitButtonText={footer.primaryButtonText}
       submitButtonType={ButtonType.Submit}
       onClose={props.onClose}
       onSubmit={() => {
+        if (footer.primaryButtonSubmitsAllSteps) {
+          formRef.current?.submitAllSteps();
+          return;
+        }
+
         formRef.current?.submitForm();
       }}
+      secondaryButton={
+        footer.showNextButton
+          ? {
+              title: NEXT_BUTTON_TEXT,
+              dataTestId: "modal-footer-next-button",
+              onClick: () => {
+                formRef.current?.goToNextStep();
+              },
+            }
+          : undefined
+      }
       isLoading={isLoading}
       disableSubmitButton={isLoading}
       error={error}
@@ -542,7 +577,10 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         fields={getFields()}
         steps={FORM_STEPS}
         onIsLastFormStep={(isLastFormStep: boolean) => {
-          setSubmitButtonText(isLastFormStep ? "Add Monitors" : "Next");
+          setIsOnLastFormStep(isLastFormStep);
+        }}
+        onCanFinishFromCurrentStep={(canFinish: boolean) => {
+          setCanFinishFromCurrentStep(canFinish);
         }}
         onSubmit={(values: FormValues<BulkAddStatusPageMonitorsFormValues>) => {
           onSubmit(values).catch((err: Error) => {

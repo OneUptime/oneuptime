@@ -6,6 +6,11 @@ import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
 } from "../Forms/BasicForm";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
+import {
+  NEXT_BUTTON_TEXT,
+  SteppedFormFooter,
+  getSteppedFormFooter,
+} from "../Forms/Utils/FinishFromAnyStep";
 import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import GenericObject from "../../../Types/GenericObject";
@@ -46,8 +51,10 @@ const BasicFormModal: <T extends GenericObject>(
   /*
    * A stepped form's button moves on until the last step, and says so: it
    * read the action ("Change State", "Add Subscribers") on every step while
-   * it only went to the next one. Like ModelFormModal, a stepped dialog is
-   * also widened to fit the step list beside the fields.
+   * it only went to the next one - unless every step left is optional, when
+   * it is the action again, with a plain Next beside it
+   * (Forms/Utils/FinishFromAnyStep.ts). Like ModelFormModal, a stepped
+   * dialog is also widened to fit the step list beside the fields.
    */
   const hasSteps: boolean = Boolean(
     props.formProps.steps && props.formProps.steps.length > 0,
@@ -65,10 +72,23 @@ const BasicFormModal: <T extends GenericObject>(
 
   const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
 
+  const [canFinishFromCurrentStep, setCanFinishFromCurrentStep] =
+    useState<boolean>(false);
+
+  /*
+   * Without a submitButtonText the dialog's own default ("Save") is the
+   * action: Modal draws it when handed none.
+   */
+  const footer: SteppedFormFooter = getSteppedFormFooter({
+    hasSteps: hasSteps,
+    isOnLastStep: isOnLastFormStep,
+    canFinishFromCurrentStep: canFinishFromCurrentStep,
+    savesFromAnyStep: isEditFormWithSteps,
+    actionText: props.submitButtonText || "",
+  });
+
   const submitButtonText: string | undefined =
-    hasSteps && !isOnLastFormStep && !isEditFormWithSteps
-      ? "Next"
-      : props.submitButtonText;
+    footer.primaryButtonText || props.submitButtonText;
 
   useEffect(() => {
     setIsLoading(Boolean(props.isLoading));
@@ -86,7 +106,7 @@ const BasicFormModal: <T extends GenericObject>(
       submitButtonType={ButtonType.Submit}
       isLoading={isLoading}
       onSubmit={() => {
-        if (isEditFormWithSteps) {
+        if (footer.primaryButtonSubmitsAllSteps) {
           formRef.current.submitAllSteps();
           return;
         }
@@ -94,12 +114,12 @@ const BasicFormModal: <T extends GenericObject>(
         formRef.current.submitForm();
       }}
       secondaryButton={
-        isEditFormWithSteps && !isOnLastFormStep
+        footer.showNextButton
           ? {
-              title: "Next",
+              title: NEXT_BUTTON_TEXT,
               dataTestId: "modal-footer-next-button",
               onClick: () => {
-                formRef.current.submitForm();
+                formRef.current.goToNextStep();
               },
             }
           : undefined
@@ -125,6 +145,10 @@ const BasicFormModal: <T extends GenericObject>(
             onIsLastFormStep={(isLastFormStep: boolean) => {
               setIsOnLastFormStep(isLastFormStep);
               props.formProps.onIsLastFormStep?.(isLastFormStep);
+            }}
+            onCanFinishFromCurrentStep={(canFinish: boolean) => {
+              setCanFinishFromCurrentStep(canFinish);
+              props.formProps.onCanFinishFromCurrentStep?.(canFinish);
             }}
             ref={formRef}
             onLoadingChange={(isFormLoading: boolean) => {

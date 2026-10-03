@@ -701,6 +701,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "Episode Role Assignments",
             stepId: "on-call-ownership",
+            // Writes only the roles someone fills in.
+            customElementCanBeSkipped: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             spanFullRow: true,

@@ -150,6 +150,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   submitButtonStyleType?: ButtonStyleType | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
+  // Whether the form can be finished from the step on screen (see BasicForm).
+  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
   onLoadingChange?: undefined | ((isLoading: boolean) => void);
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
@@ -1371,6 +1373,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         )}
         onFormStepChange={props.onFormStepChange}
         onIsLastFormStep={props.onIsLastFormStep}
+        onCanFinishFromCurrentStep={props.onCanFinishFromCurrentStep}
         fields={fields}
         steps={props.steps}
         onChange={(

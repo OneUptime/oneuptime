@@ -221,6 +221,8 @@ const EpisodeCreate: FunctionComponent<
                     "Assign team members to roles. Role assignments will propagate to all incidents in this episode.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
+                  // Writes only the roles someone fills in.
+                  customElementCanBeSkipped: true,
                   overrideFieldKey: "episodeRoles",
                   getCustomElement: (
                     _value: FormValues<IncidentEpisode>,

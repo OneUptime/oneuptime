@@ -323,6 +323,8 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       description:
         "Please add a list of notification options to notify subscribers before the event",
       fieldType: FormFieldSchemaType.CustomComponent,
+      // Starts with no reminders, and writes only the ones added.
+      customElementCanBeSkipped: true,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
         props: CustomElementProps,
@@ -404,6 +406,8 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       description:
         "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
       fieldType: FormFieldSchemaType.CustomComponent,
+      // Writes an interval only when one is typed or picked.
+      customElementCanBeSkipped: true,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
         props: CustomElementProps,
