@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
 import path from "path";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
@@ -462,7 +463,25 @@ function describeSwitch(item: SwitchOnCreateForm): string {
 }
 
 describe("the project's create forms", () => {
-  const files: Array<string> = listScanRoots(REPOSITORY_ROOT).flatMap(
+  const scanRoots: Array<string> = listScanRoots(REPOSITORY_ROOT);
+
+  /*
+   * Whether a listed form is one this checkout has to read. Common's CI job
+   * deletes ee/ before it runs (core builds and passes without the Enterprise
+   * Edition), so an entry for an ee/ form is held to the scan only where ee/
+   * is checked out, and every other entry always.
+   */
+  const isScannedHere: (item: { file: string }) => boolean = (item: {
+    file: string;
+  }): boolean => {
+    const filePath: string = path.join(REPOSITORY_ROOT, item.file);
+
+    return scanRoots.some((root: string): boolean => {
+      return filePath.startsWith(`${root}${path.sep}`);
+    });
+  };
+
+  const files: Array<string> = scanRoots.flatMap(
     (root: string): Array<string> => {
       return listSourceFiles(root);
     },
@@ -599,12 +618,28 @@ describe("the project's create forms", () => {
     );
 
     expect(
-      SWITCHES_OFF_THEIR_COLUMN_DEFAULT.map(formKey).filter(
-        (key: string): boolean => {
+      SWITCHES_OFF_THEIR_COLUMN_DEFAULT.filter(isScannedHere)
+        .map(formKey)
+        .filter((key: string): boolean => {
           return !found.has(key);
-        },
-      ),
+        }),
     ).toEqual([]);
+  });
+
+  test("hold every listed form to the scan, an ee/ one wherever ee/ is checked out", () => {
+    const enterprisePresent: boolean = fs.existsSync(
+      path.join(REPOSITORY_ROOT, "ee", "Dashboard"),
+    );
+
+    for (const item of [
+      ...SWITCHES_OFF_THEIR_COLUMN_DEFAULT,
+      ...RULE_FORMS_ASKING_ENABLED,
+    ]) {
+      expect({ file: item.file, scanned: isScannedHere(item) }).toEqual({
+        file: item.file,
+        scanned: item.file.startsWith("ee/") ? enterprisePresent : true,
+      });
+    }
   });
 
   test("give every listed switch and form a reason", () => {
@@ -661,9 +696,11 @@ describe("the project's create forms", () => {
     );
 
     expect(
-      RULE_FORMS_ASKING_ENABLED.map(formKey).filter((key: string): boolean => {
-        return !askingKeys.has(key);
-      }),
+      RULE_FORMS_ASKING_ENABLED.filter(isScannedHere)
+        .map(formKey)
+        .filter((key: string): boolean => {
+          return !askingKeys.has(key);
+        }),
     ).toEqual([]);
   });
 

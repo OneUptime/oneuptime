@@ -66,12 +66,14 @@ jobs:
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts --forceExit
-      # Common's foreign `.hidden` guard walks ee/Dashboard and ee/AdminDashboard
-      # too, but the Common Test job deletes ee/ first, so only this run sees
-      # the Enterprise UI. It only reads files.
-      - name: Run Common's foreign .hidden guard with ee/ present
+      # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
+      # too - the foreign `.hidden` guard, and the create-form defaults guard,
+      # which lists the ee compliance rule form's Enabled switch - but the
+      # Common Test job deletes ee/ first, so only this run sees the Enterprise
+      # UI. They only read files (and load Common's models).
+      - name: Run Common's UI source guards with ee/ present
         working-directory: packages/Common
-        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:
