@@ -822,22 +822,17 @@ export class Service extends DatabaseService<StatusPageDomain> {
   }
 
   /*
-   * Which of these certificate domains are status page domains that use our
-   * Let's Encrypt certificate. The renewal run renews - and removes - only
-   * the certificates this returns, so the certificates of dashboard domains
-   * and of the primary host, which share the AcmeCertificate table, are
-   * never mistaken for status page domains whose CNAME stopped validating.
+   * Which of these certificate domains are status page domains. The renewal
+   * run renews - and removes - only the certificates this returns, so the
+   * certificates of dashboard domains and of the primary host, which share
+   * the AcmeCertificate table, are never mistaken for status page domains
+   * whose CNAME stopped validating.
    *
-   * A domain serving a certificate its owner uploaded does not claim the
-   * Let's Encrypt one it may have from before the switch. nginx serves the
-   * uploaded one for that name, so renewing the other would only spend
-   * orders - or fail every run, where the domain's CAA record leaves Let's
-   * Encrypt out. Left unclaimed, it expires and is cleaned up. Switching
-   * back is still safe: nginx never writes an expired certificate over the
-   * uploaded one on disk (AcmeWriteCertificates), and the domain claims its
-   * certificate again, or is ordered a new one, straight away. The test is
-   * the one nginx uses: the switch is on and both the certificate and its key
-   * are there.
+   * A domain serving a certificate its owner uploaded still claims its
+   * Let's Encrypt certificate, which stays renewed meanwhile: nginx serves
+   * the uploaded one for that name (AcmeWriteCertificates leaves it alone),
+   * and switching back is then instant, on every nginx replica, including
+   * ones that start with an empty certificate directory.
    */
   @CaptureSpan()
   public async getOwnedDomains(domains: Array<string>): Promise<Array<string>> {
@@ -851,9 +846,6 @@ export class Service extends DatabaseService<StatusPageDomain> {
       },
       select: {
         fullDomain: true,
-        isCustomCertificate: true,
-        customCertificate: true,
-        customCertificateKey: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -863,19 +855,11 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
 
     return statusPageDomains
-      .filter((statusPageDomain: StatusPageDomain) => {
-        const servesUploadedCertificate: boolean = Boolean(
-          statusPageDomain.isCustomCertificate &&
-            statusPageDomain.customCertificate &&
-            statusPageDomain.customCertificateKey,
-        );
-
-        return (
-          Boolean(statusPageDomain.fullDomain) && !servesUploadedCertificate
-        );
-      })
       .map((statusPageDomain: StatusPageDomain) => {
-        return statusPageDomain.fullDomain as string;
+        return statusPageDomain.fullDomain || "";
+      })
+      .filter((fullDomain: string) => {
+        return fullDomain.length > 0;
       });
   }
 

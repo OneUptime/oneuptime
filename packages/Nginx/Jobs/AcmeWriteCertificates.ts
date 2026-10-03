@@ -8,7 +8,6 @@ import BasicCron from "Common/Server/Utils/BasicCron";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
-import OneUptimeDate from "Common/Types/Date";
 
 type DomainRow = {
   fullDomain?: string | undefined;
@@ -19,11 +18,12 @@ export default class Jobs {
    * The custom domains whose owner uploaded a certificate, lower-cased.
    *
    * nginx serves one file per name, and WriteCustomCertsToDisk writes the
-   * uploaded certificate to it. A Let's Encrypt certificate left over from
-   * before the switch must not be written over it, or the two jobs overwrite
-   * each other's file every 15 minutes and the domain serves whichever ran
-   * last. Same test as WriteCustomCertsToDisk: the switch is on and both the
-   * certificate and its key are there.
+   * uploaded certificate to it. Such a domain usually still has a Let's
+   * Encrypt certificate - its owner keeps it renewed, so switching back is
+   * instant - and that one must not be written over the uploaded file, or
+   * the two jobs overwrite each other's file every 15 minutes and the domain
+   * serves whichever ran last. Same test as WriteCustomCertsToDisk: the
+   * switch is on and both the certificate and its key are there.
    *
    * null when the domains cannot be read, and then every certificate is
    * written as before: a domain served the wrong certificate now and then is
@@ -106,7 +106,6 @@ export default class Jobs {
               domain: true,
               certificate: true,
               certificateKey: true,
-              expiresAt: true,
             },
             skip: 0,
             props: {
@@ -124,30 +123,6 @@ export default class Jobs {
           if (domainsWithUploadedCertificates?.has(domain)) {
             logger.debug(
               `Not writing the Let's Encrypt certificate of ${domain}: it is served with the certificate its owner uploaded`,
-              {
-                service: "ingress",
-                job: "AcmeWriteCertificates",
-                domain: domain,
-              },
-            );
-            continue;
-          }
-
-          /*
-           * An expired certificate serves nobody, and whatever is on disk for
-           * the name is no worse: the certificate the domain's owner uploaded
-           * before switching back to Let's Encrypt, say, which keeps serving
-           * until the renewal has replaced this one.
-           */
-          if (
-            cert.expiresAt &&
-            !OneUptimeDate.isAfter(
-              cert.expiresAt,
-              OneUptimeDate.getCurrentDate(),
-            )
-          ) {
-            logger.debug(
-              `Not writing the Let's Encrypt certificate of ${domain}: it expired on ${OneUptimeDate.toString(cert.expiresAt)}`,
               {
                 service: "ingress",
                 job: "AcmeWriteCertificates",
