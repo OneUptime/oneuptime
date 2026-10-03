@@ -24452,6 +24452,15 @@
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Hvor OneUptime finner leverandørens endepunkter. Den følger utstederen; endre den bare hvis leverandøren publiserer discovery-dokumentet sitt et annet sted.",
   "Your CNAME record is verified.": "CNAME-posten din er verifisert.",
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Identitetsleverandørens utsteder, nøyaktig slik leverandøren viser den. Du kan også lime inn discovery-URL-en.",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "Signaturer bruker RSA-SHA256 med et SHA256-digest, slik de fleste identitetsleverandører gjør.",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "X.509-sertifikatet som identitetsleverandøren din signerer med, inkludert linjene BEGIN CERTIFICATE og END CERTIFICATE.",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "Algoritmen som identitetsleverandøren din signerer med. De fleste bruker RSA-SHA256.",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "Digest-algoritmen som identitetsleverandøren din signerer med. De fleste bruker SHA256.",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "Denne leverandøren er slått av. Når identitetsleverandøren din har Entity ID-en og Reply URL-en ovenfor, redigerer du leverandøren og slår på «Aktivert».",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "Identitetsleverandørens utsteder (entity ID-en), nøyaktig slik leverandøren viser den.",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "Single sign-on-URL-en til identitetsleverandøren din. OneUptime sender folk dit for å logge på.",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "Personer som legges til hos identitetsleverandøren din, kan logge på denne statussiden, og personer som fjernes der, mister tilgangen.",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "Personer som legges til hos identitetsleverandøren din, blir med i standardteamene, og personer som fjernes der, forlater dem.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} har allerede sitt gratis SSL-sertifikat, og vi fornyer det automatisk.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} vises med sertifikatet du lastet opp."
 }

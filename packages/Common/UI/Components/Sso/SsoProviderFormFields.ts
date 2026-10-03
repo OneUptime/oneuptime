@@ -34,6 +34,11 @@ import FormValues from "../Forms/Types/FormValues";
  *     URLs first, and those exist once the provider is saved.
  *   - Teams (project providers): the teams people join when they first sign
  *     in. The project's settings pages start it on the members team.
+ *   - Disable Sign Up with SSO and Restrict to Attached Projects (the
+ *     instance-wide providers of the Admin Dashboard): two switches that
+ *     start off, as their columns do, always folded under Advanced. While
+ *     both are off a newcomer who signs in joins the projects attached to
+ *     the provider, which is what the folded section says.
  *
  * Use each helper with the step (and, for the folded description, the
  * form's Advanced section) written in the call:
@@ -85,6 +90,26 @@ export const SSO_PROVIDER_TEAMS_DESCRIPTION: string = translationKey(
   "Add users to these teams when they sign up.",
 );
 
+/*
+ * What the folded Advanced section of an instance-wide provider says while
+ * both of its switches are off.
+ */
+export const SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
+  "People who sign in for the first time join the projects you attach.",
+);
+
+export const SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION: string = translationKey(
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.",
+);
+
+/*
+ * Turning it on narrows access for people who are already signed in, which
+ * the old wording said in capitals; it still says so.
+ */
+export const SSO_GLOBAL_RESTRICT_DESCRIPTION: string = translationKey(
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.",
+);
+
 export interface SsoProviderFieldOptions {
   // The step the field is on: SSO_PROVIDER_STEP_ID or SSO_SIGN_IN_STEP_ID.
   stepId: string;
@@ -122,6 +147,19 @@ export const ssoFormValueAsText: AsTextFunction = (value: unknown): string => {
   }
 
   return String(value);
+};
+
+/**
+ * Whether an instance-wide provider's two switches are where they start:
+ * both off.
+ */
+export const isSsoGlobalAccessAtDefaults: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return (
+    !readSsoFormValue(values, "disableSignUpWithSso") &&
+    !readSsoFormValue(values, "restrictToAttachedProjects")
+  );
 };
 
 /**
@@ -245,3 +283,40 @@ export const getSsoProviderTeamsField: GetSsoProviderFieldFunction = <TEntity>(
     stepId: options.stepId,
   };
 };
+
+/*
+ * The instance-wide provider's two switches. Each starts off, as its column
+ * does, so neither writes a default of its own; they are always folded under
+ * the form's Advanced section.
+ */
+export const getSsoProviderDisableSignUpField: GetSsoProviderFoldedFieldFunction =
+  <TEntity>(
+    options: SsoProviderFoldedFieldOptions<TEntity>,
+  ): Field<TEntity> => {
+    return {
+      field: {
+        disableSignUpWithSso: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Disable Sign Up with SSO",
+      fieldType: FormFieldSchemaType.Toggle,
+      description: SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
+      stepId: options.stepId,
+      collapsibleSection: options.collapsibleSection,
+    };
+  };
+
+export const getSsoProviderRestrictToAttachedProjectsField: GetSsoProviderFoldedFieldFunction =
+  <TEntity>(
+    options: SsoProviderFoldedFieldOptions<TEntity>,
+  ): Field<TEntity> => {
+    return {
+      field: {
+        restrictToAttachedProjects: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Restrict to Attached Projects",
+      fieldType: FormFieldSchemaType.Toggle,
+      description: SSO_GLOBAL_RESTRICT_DESCRIPTION,
+      stepId: options.stepId,
+      collapsibleSection: options.collapsibleSection,
+    };
+  };

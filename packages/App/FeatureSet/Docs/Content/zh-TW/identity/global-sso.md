@@ -21,7 +21,7 @@ Global SSO（包括執行個體層級的「Require SSO for Login」開關）屬�
 2. **建立提供者**
 
    - 點選 **Create Global SSO**。
-   - 若使用 SAML：輸入 **Name**、來自您身分提供者的 **Sign On URL** 與 **Issuer**，並貼上 **Public Certificate**。選擇 **Signature** 與 **Digest** 方法（若不確定，請保留預設值 — `RSA-SHA256` / `SHA256`）。
+   - 若使用 SAML：輸入 **Name**、來自您身分提供者的 **Sign On URL** 與 **Issuer**，並貼上 **Public Certificate**。其餘內容會在 **Advanced** 中自動填好：**Signature Method**（`RSA-SHA256`）、**Digest Method**（`SHA256`）以及描述（`Sign in with` 加名稱）。僅在您的 IdP 需要時才變更。儲存後會開啟該提供者的頁面。
    - 若使用 OIDC：輸入 **Name**、**Issuer URL**，以及您在 IdP 中註冊之應用程式的 **Client ID** 與 **Client Secret**。也可以把 IdP 的探索 URL 直接貼到 **Issuer URL**。其餘內容會在 **Advanced** 中自動填好：**Discovery URL**（簽發者後接 `/.well-known/openid-configuration`）、**Scopes**（`openid email profile`）、`email` 與 `name` 宣告名稱，以及描述（`Sign in with` 加名稱）。僅在您的 IdP 需要時才變更。儲存後會開啟該提供者的頁面。
 
 3. **將 OneUptime URL 複製到您的身分提供者**

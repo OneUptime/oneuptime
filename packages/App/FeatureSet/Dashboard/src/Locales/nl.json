@@ -24452,6 +24452,15 @@
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Waar OneUptime de endpoints van de provider vindt. Deze volgt de uitgever; wijzig hem alleen als uw provider zijn discovery-document ergens anders publiceert.",
   "Your CNAME record is verified.": "Uw CNAME-record is geverifieerd.",
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "De uitgever van uw identiteitsprovider, precies zoals de provider die toont. U kunt ook de discovery-URL plakken.",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "Handtekeningen gebruiken RSA-SHA256 met een SHA256-digest, zoals bij de meeste identiteitsproviders.",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "Het X.509-certificaat waarmee uw identiteitsprovider ondertekent, inclusief de regels BEGIN CERTIFICATE en END CERTIFICATE.",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "Het algoritme waarmee uw identiteitsprovider ondertekent. De meeste gebruiken RSA-SHA256.",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "Het digest-algoritme waarmee uw identiteitsprovider ondertekent. De meeste gebruiken SHA256.",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "Deze provider staat uit. Zodra uw identiteitsprovider de Entity ID en Reply URL hierboven heeft, bewerkt u de provider en zet u 'Ingeschakeld' aan.",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "De uitgever van uw identiteitsprovider (de entity ID), precies zoals de provider die toont.",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "De single sign-on-URL van uw identiteitsprovider. OneUptime stuurt mensen daarheen om zich aan te melden.",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "Mensen die in uw identiteitsprovider worden toegevoegd, kunnen zich aanmelden bij deze statuspagina, en mensen die daar worden verwijderd, verliezen de toegang.",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "Mensen die in uw identiteitsprovider worden toegevoegd, worden lid van de standaardteams, en mensen die daar worden verwijderd, verlaten ze.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} heeft al een gratis SSL-certificaat, en we verlengen het automatisch.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} wordt aangeboden met het certificaat dat u hebt geüpload."
 }

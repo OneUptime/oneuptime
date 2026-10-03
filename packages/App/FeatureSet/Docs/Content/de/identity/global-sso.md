@@ -21,7 +21,7 @@ Global SSO, einschließlich des instanzweiten Schalters „Require SSO for Login
 2. **Einen Provider erstellen**
 
    - Klicken Sie auf **Global SSO erstellen**.
-   - Für SAML: Geben Sie einen **Namen**, die **Anmelde-URL** und den **Aussteller** von Ihrem Identity Provider ein und fügen Sie das **Öffentliche Zertifikat** ein. Wählen Sie die **Signatur**- und **Digest**-Methoden (belassen Sie die Standardwerte — `RSA-SHA256` / `SHA256` —, wenn Sie unsicher sind).
+   - Für SAML: Geben Sie einen **Namen**, die **Anmelde-URL** und den **Aussteller** von Ihrem Identity Provider ein und fügen Sie das **Öffentliche Zertifikat** ein. Alles andere wird unter **Erweitert** ausgefüllt: die **Signaturmethode** (`RSA-SHA256`), die **Digest-Methode** (`SHA256`) und eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es erfordert. Nach dem Speichern öffnet sich die Seite des Anbieters.
    - Für OIDC: Geben Sie einen **Namen**, die **Aussteller-URL** sowie **Client-ID** und **Client-Secret** der App ein, die Sie bei Ihrem IdP registriert haben. Sie können auch die Discovery-URL Ihres IdP in **Aussteller-URL** einfügen. Alles andere wird unter **Erweitert** ausgefüllt: die **Discovery-URL** (der Aussteller gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es erfordert. Nach dem Speichern öffnet sich die Seite des Anbieters.
 
 3. **Die OneUptime-URLs in Ihren Identity Provider kopieren**

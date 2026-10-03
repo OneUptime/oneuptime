@@ -536,13 +536,29 @@ const stepsOf: (steps: unknown) => Array<string> = (
 
 /*
  * Every OIDC provider form, the Global one included, comes from one builder
- * (Common/UI/Components/Sso/OidcProviderFormFields): what the identity
- * provider gives on Provider; Enabled, then everything with an answer folded
- * under Advanced, on Sign-in.
+ * (Common/UI/Components/Sso/OidcProviderFormFields), and every SAML provider
+ * form from another (SamlProviderFormFields): what the identity provider
+ * gives on Provider; Enabled, then everything with an answer folded under
+ * Advanced, on Sign-in. Both walk the same two steps.
  */
 const OIDC_FORM_STEPS: Array<string> = [
   "provider: Provider",
   "sign-in: Sign-in",
+];
+
+const SAML_FORM_STEPS: Array<string> = OIDC_FORM_STEPS;
+
+const GLOBAL_SAML_FORM_FIELDS: Array<string> = [
+  "name",
+  "signOnURL",
+  "issuerURL",
+  "publicCertificate",
+  "isEnabled",
+  "signatureMethod",
+  "digestMethod",
+  "description",
+  "disableSignUpWithSso",
+  "restrictToAttachedProjects",
 ];
 
 const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
@@ -698,7 +714,7 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
 });
 
 describe("the provider lists", () => {
-  test("Global SSO: the SAML provider table and form, as before", async () => {
+  test("Global SSO: the SAML provider table, and the two-step form every SAML provider shares", async () => {
     await renderPage(PAGES[0]!);
 
     const table: MockProps = lastTable("global-sso-table");
@@ -711,18 +727,8 @@ describe("the provider lists", () => {
     expect((table["viewPageRoute"] as Route).toString()).toBe(
       "/admin/settings/global-sso",
     );
-    expect(columnsOf(table["formFields"])).toEqual([
-      "name",
-      "description",
-      "signOnURL",
-      "issuerURL",
-      "publicCertificate",
-      "signatureMethod",
-      "digestMethod",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    expect(stepsOf(table["formSteps"])).toEqual(SAML_FORM_STEPS);
+    expect(columnsOf(table["formFields"])).toEqual(GLOBAL_SAML_FORM_FIELDS);
     expect(columnsOf(table["filters"])).toEqual([
       "name",
       "description",
@@ -787,6 +793,40 @@ describe("the provider lists", () => {
     expect(navigate).toHaveBeenCalledTimes(1);
   });
 
+  test("Global SSO: a provider just added opens on its own page, where its ACS URL, Entity ID, attached projects and test link are", async () => {
+    await renderPage(PAGES[0]!);
+
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return;
+      });
+
+    const onCreateSuccess: (
+      item: GlobalSSO,
+      modalType?: ModalType,
+    ) => Promise<GlobalSSO> = lastTable("global-sso-table")[
+      "onCreateSuccess"
+    ] as (item: GlobalSSO, modalType?: ModalType) => Promise<GlobalSSO>;
+
+    const created: GlobalSSO = new GlobalSSO();
+    created._id = PROVIDER_ID;
+
+    await expect(onCreateSuccess(created, ModalType.Create)).resolves.toBe(
+      created,
+    );
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      `/admin/settings/global-sso/${PROVIDER_ID}`,
+    );
+
+    // Saving an edit from the list never moves anyone.
+    await onCreateSuccess(created, ModalType.Edit);
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
   test.each([
     [0, "Instance-wide SAML SSO"],
     [2, "Instance-wide OpenID Connect (OIDC) SSO"],
@@ -843,18 +883,9 @@ describe("the Global SSO provider page", () => {
     expect(detailProps["modelType"]).toBe(GlobalSSO);
     expect(detailProps["id"]).toBe("global-sso-detail");
     expect((detailProps["modelId"] as ObjectID).toString()).toBe(PROVIDER_ID);
-    expect(columnsOf(detail["formFields"])).toEqual([
-      "name",
-      "description",
-      "signOnURL",
-      "issuerURL",
-      "publicCertificate",
-      "signatureMethod",
-      "digestMethod",
-      "disableSignUpWithSso",
-      "restrictToAttachedProjects",
-      "isEnabled",
-    ]);
+    // The edit dialog has the create form's layout.
+    expect(stepsOf(detail["formSteps"])).toEqual(SAML_FORM_STEPS);
+    expect(columnsOf(detail["formFields"])).toEqual(GLOBAL_SAML_FORM_FIELDS);
     expect(columnsOf(detailProps["fields"])).toEqual([
       "name",
       "description",

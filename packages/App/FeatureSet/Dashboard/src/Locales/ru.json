@@ -24452,6 +24452,15 @@
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Где OneUptime находит конечные точки провайдера. Он следует за издателем; меняйте его, только если ваш провайдер публикует свой документ обнаружения в другом месте.",
   "Your CNAME record is verified.": "Ваша CNAME-запись подтверждена.",
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Издатель вашего поставщика идентификации — точно в том виде, в каком его показывает провайдер. Можно также вставить его URL обнаружения.",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "Подписи используют RSA-SHA256 с дайджестом SHA256, как у большинства поставщиков идентификации.",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "Сертификат X.509, которым подписывает ваш поставщик идентификации, включая строки BEGIN CERTIFICATE и END CERTIFICATE.",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "Алгоритм, которым подписывает ваш поставщик идентификации. Большинство используют RSA-SHA256.",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "Алгоритм дайджеста, с которым подписывает ваш поставщик идентификации. Большинство используют SHA256.",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "Этот провайдер выключен. Когда ваш поставщик идентификации получит указанные выше Entity ID и Reply URL, отредактируйте провайдера и включите «Включено».",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "Издатель вашего поставщика идентификации (его Entity ID) — точно в том виде, в каком его показывает провайдер.",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "URL единого входа вашего поставщика идентификации. OneUptime отправляет туда людей для входа.",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "Люди, добавленные в вашем поставщике удостоверений, могут входить на эту страницу статуса, а удалённые там теряют доступ.",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "Люди, добавленные в вашем поставщике удостоверений, попадают в команды по умолчанию, а удалённые там покидают их.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "У {{domain}} уже есть бесплатный SSL-сертификат, и мы продлеваем его автоматически.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} обслуживается с загруженным вами сертификатом."
 }

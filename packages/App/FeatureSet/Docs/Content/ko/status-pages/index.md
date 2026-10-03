@@ -142,7 +142,7 @@
 
 ### SSO와 OIDC
 
-ID 공급자와 연결된 비공개 페이지를 만들려면, **상태 페이지 → 해당 페이지 → 보안 → SSO**에서 SAML(로그인 URL, 발급자, x509 인증서, 서명 및 다이제스트 방식)을 설정하고 **상태 페이지 → 해당 페이지 → 보안 → OIDC**에서 OpenID Connect를 설정하세요(발급자, 클라이언트 ID와 시크릿만 입력하면 디스커버리 URL, 스코프, 클레임 이름은 **고급**에 자동으로 채워집니다). **SCIM**은 IdP에서 비공개 사용자를 자동으로 프로비저닝합니다. OneUptime Cloud에서는 세 가지 모두 Scale 플랜 이상이 필요합니다. 셀프 호스팅 설치에서는 SSO와 OIDC가 모든 에디션에 포함되며, SCIM에는 [Enterprise Edition](/docs/self-hosted/enterprise)이 필요합니다.
+ID 공급자와 연결된 비공개 페이지를 만들려면, **상태 페이지 → 해당 페이지 → 보안 → SSO**에서 SAML(로그인 URL, 발급자, x509 인증서만 입력하면 서명 및 다이제스트 방식은 **고급**에 자동으로 채워집니다)을 설정하고 **상태 페이지 → 해당 페이지 → 보안 → OIDC**에서 OpenID Connect를 설정하세요(발급자, 클라이언트 ID와 시크릿만 입력하면 디스커버리 URL, 스코프, 클레임 이름은 **고급**에 자동으로 채워집니다). **SCIM**은 IdP에서 비공개 사용자를 자동으로 프로비저닝합니다. OneUptime Cloud에서는 세 가지 모두 Scale 플랜 이상이 필요합니다. 셀프 호스팅 설치에서는 SSO와 OIDC가 모든 에디션에 포함되며, SCIM에는 [Enterprise Edition](/docs/self-hosted/enterprise)이 필요합니다.
 
 **SSO 설정** 카드에는 **로그인에 SSO 강제 적용**(`requireSsoForLogin`, 기본 꺼짐)이 있습니다. 켜기 전에 SSO 구성을 먼저 테스트하세요 — 동작하지 않으면 여러분 스스로 상태 페이지에서 잠기게 됩니다.
 

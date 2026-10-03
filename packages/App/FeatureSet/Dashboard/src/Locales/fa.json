@@ -24452,6 +24452,15 @@
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "جایی که OneUptime نقاط پایانی ارائه‌دهنده را پیدا می‌کند. این نشانی همراه صادرکننده تغییر می‌کند؛ فقط اگر ارائه‌دهنده شما سند کشف خود را جای دیگری منتشر می‌کند آن را تغییر دهید.",
   "Your CNAME record is verified.": "رکورد CNAME شما تأیید شد.",
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "صادرکننده ارائه‌دهنده هویت شما، دقیقاً همان‌طور که ارائه‌دهنده نشان می‌دهد. می‌توانید نشانی کشف آن را هم جای‌گذاری کنید.",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "امضاها، مانند بیشتر ارائه‌دهندگان هویت، از RSA-SHA256 با خلاصهٔ SHA256 استفاده می‌کنند.",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "گواهی X.509 که ارائه‌دهنده هویت شما با آن امضا می‌کند، همراه با خط‌های BEGIN CERTIFICATE و END CERTIFICATE آن.",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "الگوریتمی که ارائه‌دهنده هویت شما با آن امضا می‌کند. بیشتر آن‌ها از RSA-SHA256 استفاده می‌کنند.",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "الگوریتم خلاصه‌سازی که ارائه‌دهنده هویت شما در امضا به کار می‌برد. بیشتر آن‌ها از SHA256 استفاده می‌کنند.",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "این ارائه‌دهنده خاموش است. وقتی ارائه‌دهنده هویت شما Entity ID و Reply URL بالا را دریافت کرد، ارائه‌دهنده را ویرایش کنید و «فعال» را روشن کنید.",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "صادرکننده ارائه‌دهنده هویت شما (Entity ID آن)، دقیقاً همان‌طور که ارائه‌دهنده نشان می‌دهد.",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "نشانی ورود یکپارچه (SSO) ارائه‌دهنده هویت شما. OneUptime افراد را برای ورود به آنجا می‌فرستد.",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "افرادی که در ارائه‌دهنده هویت شما اضافه می‌شوند می‌توانند وارد این صفحه وضعیت شوند و افرادی که آنجا حذف می‌شوند دسترسی خود را از دست می‌دهند.",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "افرادی که در ارائه‌دهنده هویت شما اضافه می‌شوند به تیم‌های پیش‌فرض می‌پیوندند و افرادی که آنجا حذف می‌شوند از آن‌ها خارج می‌شوند.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} از قبل گواهی SSL رایگان خود را دارد و ما آن را به‌طور خودکار تمدید می‌کنیم.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} با گواهی‌ای که بارگذاری کرده‌اید ارائه می‌شود."
 }

@@ -24452,6 +24452,15 @@
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "जहाँ OneUptime प्रदाता के एंडपॉइंट खोजता है। यह जारीकर्ता के साथ बदलता है; इसे केवल तभी बदलें जब आपका प्रदाता अपना डिस्कवरी दस्तावेज़ कहीं और प्रकाशित करता हो।",
   "Your CNAME record is verified.": "आपका CNAME रिकॉर्ड सत्यापित हो गया है।",
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "आपके पहचान प्रदाता का जारीकर्ता, ठीक वैसा ही जैसा प्रदाता दिखाता है। आप इसका डिस्कवरी URL भी चिपका सकते हैं।",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "हस्ताक्षर RSA-SHA256 और SHA256 डाइजेस्ट का उपयोग करते हैं, जैसा अधिकांश पहचान प्रदाता करते हैं।",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "वह X.509 प्रमाणपत्र जिससे आपका पहचान प्रदाता हस्ताक्षर करता है, उसकी BEGIN CERTIFICATE और END CERTIFICATE पंक्तियों सहित।",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "वह एल्गोरिद्म जिससे आपका पहचान प्रदाता हस्ताक्षर करता है। अधिकांश RSA-SHA256 का उपयोग करते हैं।",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "वह डाइजेस्ट एल्गोरिद्म जिससे आपका पहचान प्रदाता हस्ताक्षर करता है। अधिकांश SHA256 का उपयोग करते हैं।",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "यह प्रदाता बंद है। जब आपके पहचान प्रदाता में ऊपर दिए गए Entity ID और Reply URL जुड़ जाएं, तो प्रदाता को संपादित करें और \"सक्षम\" चालू करें।",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "आपके पहचान प्रदाता का जारीकर्ता (इसका Entity ID), ठीक वैसा ही जैसा प्रदाता दिखाता है।",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "आपके पहचान प्रदाता का सिंगल साइन-ऑन URL। साइन इन करने के लिए OneUptime लोगों को वहाँ भेजता है।",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "आपके पहचान प्रदाता में जोड़े गए लोग इस स्थिति पृष्ठ में साइन इन कर सकते हैं, और वहाँ से हटाए गए लोग पहुँच खो देते हैं।",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "आपके पहचान प्रदाता में जोड़े गए लोग डिफ़ॉल्ट टीमों में शामिल होते हैं, और वहाँ से हटाए गए लोग उन्हें छोड़ देते हैं।",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} के पास पहले से ही निःशुल्क SSL प्रमाणपत्र है, और हम उसे अपने आप नवीनीकृत करते हैं।",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} आपके अपलोड किए गए प्रमाणपत्र के साथ दिखाया जाता है।"
 }

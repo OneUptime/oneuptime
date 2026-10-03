@@ -120,9 +120,10 @@ const mockProviderRow: { _id: string } = {
 };
 
 /*
- * The team a project's new OIDC provider starts on (Utils/DefaultInviteTeam,
- * looked up when Settings > OIDC opens). Stubbed so the pages make no
- * request at all here; its own suite tests the lookup.
+ * The team a project's new SAML or OIDC provider starts on
+ * (Utils/DefaultInviteTeam, looked up when Settings > SSO or Settings > OIDC
+ * opens). Stubbed so the pages make no request at all here; its own suite
+ * tests the lookup.
  */
 const mockDefaultInviteTeam: {
   team: { id: string; name: string } | null;
@@ -451,6 +452,22 @@ interface RequireSsoSwitch {
   modelId: string;
 }
 
+// What the configuration dialog says while the provider is off.
+interface TurnOnNote {
+  testId: string;
+  text: string;
+}
+
+const SAML_TURN_ON_NOTE: TurnOnNote = {
+  testId: "sso-config-turn-on-note",
+  text: "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.",
+};
+
+const OIDC_TURN_ON_NOTE: TurnOnNote = {
+  testId: "oidc-config-turn-on-note",
+  text: "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.",
+};
+
 interface PageCase {
   name: string;
   Page: FunctionComponent<PageComponentProps>;
@@ -460,6 +477,9 @@ interface PageCase {
   modalTitle: string;
   // What the configuration dialog prints for the identity provider, exactly.
   printed: Array<string>;
+  turnOnNote: TurnOnNote;
+  // A project's provider: the teams newcomers join start on the members team.
+  startsOnMembersTeam: boolean;
   // The "test it before you force it" link, exactly.
   testLink: string;
   forceSsoCard: ForceSsoCard | null;
@@ -486,19 +506,22 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/identity/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: SAML_TURN_ON_NOTE,
+    startsOnMembersTeam: true,
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
     forceSsoCard: null,
     requireSsoSwitch: { modelId: PROJECT_ID },
+    // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
-      "description",
       "signOnURL",
       "issuerURL",
       "publicCertificate",
+      "teams",
+      "isEnabled",
       "signatureMethod",
       "digestMethod",
-      "isEnabled",
-      "teams",
+      "description",
     ],
     attachesToStatusPage: false,
     upsellTitle: "Single Sign On (SSO)",
@@ -516,6 +539,8 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/identity/oidc-callback/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: OIDC_TURN_ON_NOTE,
+    startsOnMembersTeam: true,
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
     forceSsoCard: null,
     requireSsoSwitch: null,
@@ -549,6 +574,8 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/identity/status-page-idp-login/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: SAML_TURN_ON_NOTE,
+    startsOnMembersTeam: false,
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
     forceSsoCard: {
       model: "StatusPage",
@@ -559,13 +586,13 @@ const PAGE_CASES: Array<PageCase> = [
     requireSsoSwitch: null,
     formFields: [
       "name",
-      "description",
       "signOnURL",
       "issuerURL",
       "publicCertificate",
+      "isEnabled",
       "signatureMethod",
       "digestMethod",
-      "isEnabled",
+      "description",
     ],
     attachesToStatusPage: true,
     upsellTitle: "Status Page SSO",
@@ -583,6 +610,8 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/identity/status-page-oidc-callback/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/${STATUS_PAGE_ID}/${PROVIDER_ID}`,
     ],
+    turnOnNote: OIDC_TURN_ON_NOTE,
+    startsOnMembersTeam: false,
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
     forceSsoCard: null,
     requireSsoSwitch: null,
@@ -1011,23 +1040,16 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
 });
 
 /*
- * Adding an OIDC provider asks for what the identity provider gives - name,
- * issuer, client ID and secret - on a Provider step, and keeps the rest on a
- * Sign-in step, filled in (Common/UI/Components/Sso/OidcProviderFormFields;
- * its own tests pin the fields). Once a provider is saved, the dialog with
- * the redirect URI to give the identity provider opens straight away, and
+ * Adding a provider - SAML or OIDC - asks for what the identity provider
+ * gives on a Provider step (SAML: name, sign-on URL, issuer, certificate;
+ * OIDC: name, issuer, client ID and secret), and keeps the rest on a Sign-in
+ * step, filled in (Common/UI/Components/Sso/SamlProviderFormFields and
+ * OidcProviderFormFields; their own tests pin the fields). Once a provider
+ * is saved, the dialog with what to give the identity provider opens
+ * straight away - the Entity ID and Reply URL, or the redirect URI - and
  * says the provider is off until it is turned on. A project's provider
  * starts on the team the project's members join.
  */
-const OIDC_PAGE_CASES: Array<PageCase> = PAGE_CASES.filter(
-  (pageCase: PageCase): boolean => {
-    return pageCase.viewAction === "View OIDC Config";
-  },
-);
-
-const TURN_ON_NOTE: string =
-  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.";
-
 const MEMBERS_TEAM_ID: string = "44444444-4444-4444-8444-444444444444";
 
 test("the stand-in table saves dialogs the way the real one names them", () => {
@@ -1037,156 +1059,179 @@ test("the stand-in table saves dialogs the way the real one names them", () => {
   });
 });
 
-describe.each(OIDC_PAGE_CASES)(
-  "$name: adding a provider",
+describe.each(PAGE_CASES)("$name: adding a provider", (pageCase: PageCase) => {
+  test("walks Provider, then Sign-in", () => {
+    renderPage(pageCase);
+
+    expect(providerTable(pageCase)).toHaveAttribute(
+      "data-form-steps",
+      "provider: Provider|sign-in: Sign-in",
+    );
+  });
+
+  test("opens what to give the identity provider as soon as one is saved, and says it is off", async () => {
+    renderPage(pageCase);
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-off`));
+    });
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      pageCase.modalTitle,
+    );
+
+    for (const printed of pageCase.printed) {
+      expect(
+        within(modal).getByText(printed, { exact: true }),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      within(modal).getByTestId(pageCase.turnOnNote.testId),
+    ).toHaveTextContent(pageCase.turnOnNote.text);
+
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("a provider saved switched on has nothing left to turn on", async () => {
+    renderPage(pageCase);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-on`));
+    });
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(modal).getByText(pageCase.printed[0]!)).toBeInTheDocument();
+    expect(
+      within(modal).queryByTestId(pageCase.turnOnNote.testId),
+    ).not.toBeInTheDocument();
+  });
+
+  test("saving an edit opens nothing", async () => {
+    renderPage(pageCase);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`edited-${pageCase.table}`));
+    });
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("the dialog opened from a row that is off says so too", () => {
+    renderPage(pageCase);
+
+    fireEvent.click(screen.getByRole("button", { name: pageCase.viewAction }));
+
+    expect(
+      within(screen.getByTestId("modal")).getByTestId(
+        pageCase.turnOnNote.testId,
+      ),
+    ).toHaveTextContent(pageCase.turnOnNote.text);
+  });
+});
+
+/*
+ * The two dialogs say the same thing about a provider that is off, each
+ * naming what its identity provider is given.
+ */
+test("the SAML and OIDC dialogs word the provider that is off alike", () => {
+  expect(
+    SAML_TURN_ON_NOTE.text.replace("the Entity ID and Reply URL", "X"),
+  ).toBe(OIDC_TURN_ON_NOTE.text.replace("the redirect URI", "X"));
+});
+
+describe.each(
+  PAGE_CASES.filter((pageCase: PageCase): boolean => {
+    return pageCase.startsOnMembersTeam;
+  }),
+)(
+  "$name: a project's new provider starts on the members team",
   (pageCase: PageCase) => {
-    test("walks Provider, then Sign-in", () => {
+    test("looked up once as the page opens, and handed to the Create form", async () => {
+      mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
+
       renderPage(pageCase);
 
+      await waitFor(() => {
+        expect(providerTable(pageCase)).toHaveAttribute(
+          "data-create-initial-values",
+          JSON.stringify({ teams: [MEMBERS_TEAM_ID] }),
+        );
+      });
+
+      expect(mockDefaultInviteTeam.lookups).toBe(1);
+    });
+
+    test("with nothing picked when the project has no team to start on", async () => {
+      renderPage(pageCase);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(mockDefaultInviteTeam.lookups).toBe(1);
       expect(providerTable(pageCase)).toHaveAttribute(
-        "data-form-steps",
-        "provider: Provider|sign-in: Sign-in",
+        "data-create-initial-values",
+        "null",
       );
     });
 
-    test("opens the redirect URI to give the identity provider as soon as one is saved, and says it is off", async () => {
-      renderPage(pageCase);
+    test("behind the plan upsell, nothing is looked up", async () => {
+      pinCloud(PlanType.Growth);
 
-      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-off`));
-      });
-
-      const modal: HTMLElement = screen.getByTestId("modal");
-
-      expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
-        pageCase.modalTitle,
-      );
-
-      for (const printed of pageCase.printed) {
-        expect(
-          within(modal).getByText(printed, { exact: true }),
-        ).toBeInTheDocument();
-      }
-
-      expect(
-        within(modal).getByTestId("oidc-config-turn-on-note"),
-      ).toHaveTextContent(TURN_ON_NOTE);
-
-      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
-
-      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-    });
-
-    test("a provider saved switched on has nothing left to turn on", async () => {
       renderPage(pageCase);
 
       await act(async () => {
-        fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-on`));
+        await Promise.resolve();
       });
 
-      const modal: HTMLElement = screen.getByTestId("modal");
-
-      expect(within(modal).getByText(pageCase.printed[0]!)).toBeInTheDocument();
-      expect(
-        within(modal).queryByTestId("oidc-config-turn-on-note"),
-      ).not.toBeInTheDocument();
-    });
-
-    test("saving an edit opens nothing", async () => {
-      renderPage(pageCase);
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId(`edited-${pageCase.table}`));
-      });
-
-      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-    });
-
-    test("the dialog opened from a row that is off says so too", () => {
-      renderPage(pageCase);
-
-      fireEvent.click(
-        screen.getByRole("button", { name: pageCase.viewAction }),
-      );
-
-      expect(
-        within(screen.getByTestId("modal")).getByTestId(
-          "oidc-config-turn-on-note",
-        ),
-      ).toHaveTextContent(TURN_ON_NOTE);
+      expectPlanUpsell(pageCase);
+      expect(mockDefaultInviteTeam.lookups).toBe(0);
     });
   },
 );
 
-describe("a project's new OIDC provider starts on the members team", () => {
-  const SETTINGS_OIDC: PageCase = OIDC_PAGE_CASES.find(
-    (pageCase: PageCase): boolean => {
-      return pageCase.name === "Settings > OIDC";
-    },
-  )!;
-  const STATUS_PAGE_OIDC: PageCase = OIDC_PAGE_CASES.find(
-    (pageCase: PageCase): boolean => {
-      return pageCase.name === "Status page > OIDC";
-    },
-  )!;
-
-  test("looked up once as the page opens, and handed to the Create form", async () => {
+describe.each(
+  PAGE_CASES.filter((pageCase: PageCase): boolean => {
+    return !pageCase.startsOnMembersTeam;
+  }),
+)("$name: a status page's provider has no teams", (pageCase: PageCase) => {
+  test("so nothing is looked up", async () => {
     mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
 
-    renderPage(SETTINGS_OIDC);
-
-    await waitFor(() => {
-      expect(providerTable(SETTINGS_OIDC)).toHaveAttribute(
-        "data-create-initial-values",
-        JSON.stringify({ teams: [MEMBERS_TEAM_ID] }),
-      );
-    });
-
-    expect(mockDefaultInviteTeam.lookups).toBe(1);
-  });
-
-  test("with nothing picked when the project has no team to start on", async () => {
-    renderPage(SETTINGS_OIDC);
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(mockDefaultInviteTeam.lookups).toBe(1);
-    expect(providerTable(SETTINGS_OIDC)).toHaveAttribute(
-      "data-create-initial-values",
-      "null",
-    );
-  });
-
-  test("a status page's provider has no teams, so nothing is looked up", async () => {
-    mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
-
-    renderPage(STATUS_PAGE_OIDC);
+    renderPage(pageCase);
 
     await act(async () => {
       await Promise.resolve();
     });
 
     expect(mockDefaultInviteTeam.lookups).toBe(0);
-    expect(providerTable(STATUS_PAGE_OIDC)).toHaveAttribute(
+    expect(providerTable(pageCase)).toHaveAttribute(
       "data-create-initial-values",
       "null",
     );
+    expect(
+      providerTable(pageCase).getAttribute("data-form-fields"),
+    ).not.toMatch(/teams/);
   });
+});
 
-  test("behind the plan upsell, nothing is looked up", async () => {
-    pinCloud(PlanType.Growth);
-
-    renderPage(SETTINGS_OIDC);
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expectPlanUpsell(SETTINGS_OIDC);
-    expect(mockDefaultInviteTeam.lookups).toBe(0);
-  });
+test("every provider page is one of those two kinds", () => {
+  expect(
+    PAGE_CASES.map((pageCase: PageCase): string => {
+      return `${pageCase.name}: ${pageCase.startsOnMembersTeam}`;
+    }),
+  ).toEqual([
+    "Settings > SSO: true",
+    "Settings > OIDC: true",
+    "Status page > SSO: false",
+    "Status page > OIDC: false",
+  ]);
 });

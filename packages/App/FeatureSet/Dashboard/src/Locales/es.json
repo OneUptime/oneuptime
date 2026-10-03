@@ -24452,6 +24452,15 @@
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Dónde encuentra OneUptime los endpoints del proveedor. Sigue al emisor; cámbiala solo si tu proveedor publica su documento de descubrimiento en otro lugar.",
   "Your CNAME record is verified.": "Tu registro CNAME está verificado.",
   "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "El emisor de tu proveedor de identidad, exactamente como lo muestra el proveedor. También puedes pegar su URL de descubrimiento.",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "Las firmas usan RSA-SHA256 con un resumen SHA256, como la mayoría de los proveedores de identidad.",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "El certificado X.509 con el que firma tu proveedor de identidad, incluidas sus líneas BEGIN CERTIFICATE y END CERTIFICATE.",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "El algoritmo con el que firma tu proveedor de identidad. La mayoría usa RSA-SHA256.",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "El algoritmo de resumen con el que firma tu proveedor de identidad. La mayoría usa SHA256.",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "Este proveedor está deshabilitado. Cuando tu proveedor de identidad tenga el Entity ID y la URL de respuesta de arriba, edita el proveedor y activa «Habilitado».",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "El emisor de tu proveedor de identidad (su Entity ID), exactamente como lo muestra el proveedor.",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "La URL de inicio de sesión único de tu proveedor de identidad. OneUptime envía allí a las personas para iniciar sesión.",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "Las personas que se añaden en tu proveedor de identidad pueden iniciar sesión en esta página de estado, y las que se eliminan allí pierden el acceso.",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "Las personas que se añaden en tu proveedor de identidad se unen a los equipos predeterminados, y las que se eliminan allí los abandonan.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} ya tiene su certificado SSL gratuito, y lo renovamos automáticamente.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} se sirve con el certificado que subiste."
 }
