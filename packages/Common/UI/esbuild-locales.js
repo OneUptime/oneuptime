@@ -16,14 +16,28 @@
  *   key, and English is always loaded, so a missing entry renders the same
  *   English as the placeholder.
  *
+ *   A count-dependent sentence keeps its English "one" form under its key
+ *   plus "_one" ("{{count}} monitors_one": "{{count}} monitor"). The code
+ *   hands that sentence to the lookup itself (translatePlural in
+ *   Common/UI/Utils/TranslateTemplate.ts), which reads an English "_one"
+ *   entry as no translation at all - so English readers never need them.
+ *   Another language reads its own "_one" form for the counts its plural
+ *   rules call "one", and falls back to the English entry while it has not
+ *   translated it.
+ *
  * This plugin ships each locale without those entries. The source files are
  * read as they are: only the bundle changes. What is kept:
  *
  *   en.json  - nested keys (read with t("navbar.items.formsTitle"), whose key
- *              is not the text), plural "_one" forms and any other entry
- *              whose value differs from its key.
+ *              is not the text) and any other entry whose value differs from
+ *              its key, except the plural "_one" forms. So the entry chunk
+ *              does not grow with every count-dependent sentence.
  *   others   - every string that differs from the fallback's string at the
- *              same place: the translations.
+ *              same place: the translations. A language whose plural rules
+ *              have a "one" form also ships every "_one" form - its own, or
+ *              the English one it would have fallen back to - since en.json
+ *              no longer carries them; one without (Japanese, Korean,
+ *              Chinese) never reads them.
  *
  * CommonJS, like esbuild-config.js: the frontends' esbuild.config.js files
  * are plain node scripts. Types for TypeScript callers are in
@@ -35,6 +49,8 @@ const fs = require("fs");
 const path = require("path");
 
 const RUNTIME_LOCALES_PLUGIN_NAME = "runtime-locales";
+
+const PLURAL_ONE_SUFFIX = "_one";
 
 /**
  * A JSON object of translations (and not an array or null).
@@ -114,6 +130,40 @@ function withoutFallbackEntries(locale, fallback) {
 }
 
 /**
+ * The flat keys of a locale that hold the "one" form of a count-dependent
+ * sentence: "<key>_one" beside "<key>", which holds the general form (a
+ * PluralTemplate, Common/UI/Utils/TranslateTemplate.ts).
+ * @param {Object} tree - A parsed locale file
+ * @returns {Array<string>} The keys, in the file's order
+ */
+function getPluralOneFormKeys(tree) {
+  return Object.keys(tree).filter((key) => {
+    return (
+      key.endsWith(PLURAL_ONE_SUFFIX) &&
+      typeof tree[key] === "string" &&
+      typeof tree[key.slice(0, -PLURAL_ONE_SUFFIX.length)] === "string"
+    );
+  });
+}
+
+/**
+ * Whether a language reads "_one" forms at all: its plural rules have a "one"
+ * category, as Intl.PluralRules - which the lookup picks a form with - says.
+ * Japanese, Korean and Chinese have none.
+ * @param {string} language - A language code, e.g. "de"
+ * @returns {boolean} True as well when Intl cannot tell
+ */
+function usesPluralOneForm(language) {
+  try {
+    return new Intl.PluralRules(language)
+      .resolvedOptions()
+      .pluralCategories.includes("one");
+  } catch {
+    return true;
+  }
+}
+
+/**
  * The copy of one locale that is bundled.
  * @param {Object} options
  * @param {string} options.language - The locale's code, e.g. "de"
@@ -132,7 +182,18 @@ function getRuntimeLocale(options) {
   }
 
   if (language === fallbackLanguage) {
-    return withoutIdentityEntries(locale);
+    /*
+     * The "_one" forms go too: a reader of the fallback language is never
+     * shown one - the code hands the lookup the same sentence - and the
+     * other languages ship the ones they read (below).
+     */
+    const shipped = withoutIdentityEntries(locale);
+
+    for (const key of getPluralOneFormKeys(locale)) {
+      delete shipped[key];
+    }
+
+    return shipped;
   }
 
   if (!isLocaleTree(fallback)) {
@@ -141,7 +202,37 @@ function getRuntimeLocale(options) {
     );
   }
 
-  return withoutFallbackEntries(locale, fallback);
+  const shipped = withoutFallbackEntries(locale, fallback);
+
+  if (!usesPluralOneForm(language)) {
+    return shipped;
+  }
+
+  /*
+   * The fallback ships without its "_one" forms, so this language ships every
+   * one it reads: its translation, or the fallback's sentence where it has
+   * none - what the lookup would have fallen back to from the full files. In
+   * the locale's order, then any the locale lacks in the fallback's.
+   */
+  const oneForms = getPluralOneFormKeys(fallback);
+  const isOneForm = new Set(oneForms);
+  const result = {};
+
+  for (const key of Object.keys(locale)) {
+    if (isOneForm.has(key) && typeof locale[key] === "string") {
+      result[key] = locale[key];
+    } else if (hasOwn(shipped, key)) {
+      result[key] = shipped[key];
+    }
+  }
+
+  for (const key of oneForms) {
+    if (!hasOwn(result, key)) {
+      result[key] = fallback[key];
+    }
+  }
+
+  return result;
 }
 
 function parseLocaleText(text, filePath) {
@@ -260,6 +351,8 @@ module.exports = {
   isLocaleTree,
   withoutIdentityEntries,
   withoutFallbackEntries,
+  getPluralOneFormKeys,
+  usesPluralOneForm,
   getRuntimeLocale,
   createRuntimeLocalesPlugin,
 };
