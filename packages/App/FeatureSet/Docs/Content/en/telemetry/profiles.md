@@ -256,6 +256,8 @@ View a sortable table of all functions captured in a profile, ranked by self tim
 
 When a profile carries trace and span IDs (for example as `trace_id` / `span_id` sample labels), you can navigate directly from a slow trace span to the corresponding CPU or memory profile to understand exactly what code was executing.
 
+A span's **Profile** tab also includes the samples linked to the spans nested under it, since profilers often attach a request's CPU time to a child span rather than to the request span itself.
+
 ### Filtering by Profile Type
 
 Filter profiles by category (CPU, Memory, Locks, Wall time, Goroutines) to focus on the specific resource dimension you are investigating.

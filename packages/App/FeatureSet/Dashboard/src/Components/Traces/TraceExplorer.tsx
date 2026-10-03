@@ -8,6 +8,7 @@ import TraceWaterfall from "./TraceDetail/TraceWaterfall";
 import ExceptionSegmentedControl from "../Exceptions/ExceptionSegmentedControl";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import { PROFILE_SPAN_ID_LIMIT } from "../../Utils/TraceCorrelatedSignals";
 import {
   OperationSummary,
   ServiceSummary,
@@ -24,6 +25,7 @@ import {
 } from "../../Utils/TraceDetailPresentation";
 import {
   FULL_VIEWPORT,
+  SpanSubtreeIds,
   SpanTree,
   SpanVisibility,
   TimeViewport,
@@ -36,6 +38,7 @@ import {
   filterSpanTree,
   flattenVisibleRows,
   getCollapsibleSpanIds,
+  getSubtreeSpanIds,
   getViewportForSpan,
   revealSpans,
   toCriticalPathSpanData,
@@ -659,6 +662,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     ? tree.nodesById.get(selectedSpanId)
     : undefined;
 
+  // The selected span and the spans under it: what its Profile tab covers.
+  const selectedSubtree: SpanSubtreeIds | null = useMemo(() => {
+    if (!selectedSpanId) {
+      return null;
+    }
+    return getSubtreeSpanIds(tree, selectedSpanId, PROFILE_SPAN_ID_LIMIT);
+  }, [tree, selectedSpanId]);
+
   const hasActiveFilter: boolean = visibility !== null;
 
   if (isLoading && spans.length === 0) {
@@ -1206,7 +1217,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
           <div className="flex items-start gap-4 p-4">
             <div className="min-w-0 flex-1">{renderView()}</div>
-            {selectedNode && (
+            {selectedNode && selectedSubtree && (
               <>
                 <div
                   className="fixed inset-0 z-40 bg-gray-900/30 xl:hidden"
@@ -1241,6 +1252,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                         : null
                     }
                     childCount={selectedNode.children.length}
+                    subtree={selectedSubtree}
                     selfTime={selfTimes.get(selectedNode.span.spanId)}
                     traceStartUnixNano={tree.startTimeUnixNano}
                     traceDurationUnixNano={tree.durationUnixNano}

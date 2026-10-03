@@ -549,6 +549,34 @@ describe("ProfileAggregationService.getTracePresence", () => {
     expect(captured[1]!.query).not.toContain("spanId");
   });
 
+  test("a span's whole subtree binds as one parameter, so the query text does not grow", async () => {
+    // The Dashboard's span Profile tab sends a span and up to 999 spans under it.
+    const captured: Array<Statement> = stubAndCaptureStatements([
+      { sampleCount: 3 },
+    ]);
+    const subtreeSpanIds: Array<string> = [];
+    for (let index: number = 0; index < 1000; index++) {
+      subtreeSpanIds.push(index.toString(16).padStart(16, "0"));
+    }
+
+    await ProfileAggregationService.getTracePresence({
+      projectId,
+      traceId: "trace-1",
+      spanIds: ["0000000000000000"],
+    });
+    await ProfileAggregationService.getTracePresence({
+      projectId,
+      traceId: "trace-1",
+      spanIds: subtreeSpanIds,
+    });
+
+    expect(captured[1]!.query).toBe(captured[0]!.query);
+    expect(captured[1]!.query).not.toContain(subtreeSpanIds[999]!);
+    expect(Object.values(captured[1]!.query_params)).toContainEqual(
+      subtreeSpanIds,
+    );
+  });
+
   test("returns 0 when the boundary yields no rows", async () => {
     stubAndCaptureStatements([]);
 

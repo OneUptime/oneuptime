@@ -14,6 +14,7 @@ import {
   toMetricsExplorerQueryParams,
 } from "../../../Common/Utils/Telemetry/CrossSignalScope";
 import {
+  PROFILE_SPAN_ID_LIMIT,
   ProfilePresenceGate,
   SpanPanelLogQueryPlan,
   TraceCorrelatedMetricItem,
@@ -25,9 +26,19 @@ import {
   buildTraceFlamegraphRequest,
   buildTracesPivotScope,
   describeDroppedScopeFields,
+  describeSpanProfileScope,
   getProfilePresenceGate,
   groupMetricsForTrace,
 } from "../../FeatureSet/Dashboard/src/Utils/TraceCorrelatedSignals";
+import { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  SpanSubtreeIds,
+  SpanTree,
+  WaterfallSpan,
+  buildSpanTree,
+  getSubtreeSpanIds,
+} from "../../FeatureSet/Dashboard/src/Utils/TraceWaterfall";
 
 /*
  * These helpers are the logic behind the trace <-> other-signal surfaces:
@@ -374,6 +385,177 @@ describe("buildTraceFlamegraphRequest", () => {
         spanIds: ["s1"],
       }),
     ).toBeNull();
+  });
+});
+
+function waterfallSpan(spanId: string, parentSpanId: string): WaterfallSpan {
+  return {
+    spanId,
+    parentSpanId,
+    name: spanId,
+    serviceId: "svc-a",
+    startTimeUnixNano: 0,
+    endTimeUnixNano: 1,
+    durationUnixNano: 1,
+    isError: false,
+    kind: SpanKind.Internal,
+  };
+}
+
+describe("span Profile tab request", () => {
+  // 16 hex digits, like a real OTLP span id.
+  function hexSpanId(index: number): string {
+    return index.toString(16).padStart(16, "0");
+  }
+
+  test("asks for the span and every span under it, within its own trace", () => {
+    const tree: SpanTree = buildSpanTree([
+      waterfallSpan("server", ""),
+      waterfallSpan("queue", "server"),
+      waterfallSpan("processing", "server"),
+      waterfallSpan("select", "processing"),
+      waterfallSpan("other-root", ""),
+    ]);
+
+    const subtree: SpanSubtreeIds = getSubtreeSpanIds(
+      tree,
+      "server",
+      PROFILE_SPAN_ID_LIMIT,
+    );
+
+    /*
+     * The traceId rides along with the span ids, so samples another trace
+     * linked to a reused span id are never counted.
+     */
+    expect(
+      buildTraceFlamegraphRequest({
+        traceId: "trace-1",
+        spanIds: subtree.spanIds,
+      }),
+    ).toEqual({
+      traceId: "trace-1",
+      spanIds: ["server", "queue", "processing", "select"],
+    });
+  });
+
+  test("a span alone still narrows the request to that span", () => {
+    const tree: SpanTree = buildSpanTree([waterfallSpan("leaf", "")]);
+
+    expect(
+      buildTraceFlamegraphRequest({
+        traceId: "trace-1",
+        spanIds: getSubtreeSpanIds(tree, "leaf", PROFILE_SPAN_ID_LIMIT).spanIds,
+      }),
+    ).toEqual({ traceId: "trace-1", spanIds: ["leaf"] });
+  });
+
+  test("a huge subtree sends at most PROFILE_SPAN_ID_LIMIT ids, the span first", () => {
+    const spans: Array<WaterfallSpan> = [waterfallSpan("root", "")];
+    for (let index: number = 0; index < PROFILE_SPAN_ID_LIMIT * 3; index++) {
+      spans.push(waterfallSpan(hexSpanId(index), "root"));
+    }
+    const tree: SpanTree = buildSpanTree(spans);
+
+    const request: JSONObject | null = buildTraceFlamegraphRequest({
+      traceId: "trace-1",
+      spanIds: getSubtreeSpanIds(tree, "root", PROFILE_SPAN_ID_LIMIT).spanIds,
+    });
+
+    const spanIds: Array<string> = request!["spanIds"] as Array<string>;
+    expect(spanIds).toHaveLength(PROFILE_SPAN_ID_LIMIT);
+    expect(spanIds[0]).toBe("root");
+  });
+
+  test("the limit keeps the ClickHouse parameter far below its URI cap", () => {
+    expect(PROFILE_SPAN_ID_LIMIT).toBeGreaterThanOrEqual(100);
+
+    /*
+     * The ClickHouse client formats an Array(String) parameter as
+     * ['id','id',...] and puts it in the URI's query string as param_<name>.
+     */
+    const ids: Array<string> = [];
+    for (let index: number = 0; index < PROFILE_SPAN_ID_LIMIT; index++) {
+      ids.push(`'${hexSpanId(index)}'`);
+    }
+    const encodedLength: number = new URLSearchParams({
+      param_p: `[${ids.join(",")}]`,
+    }).toString().length;
+
+    // http_max_uri_size defaults to 1 MiB; the limit stays around 25 KB.
+    expect(encodedLength).toBeLessThan(30 * 1024);
+  });
+});
+
+describe("describeSpanProfileScope", () => {
+  // server -> processing -> (query, call); call -> remote.
+  function subtreeOf(spanId: string, limit: number = 100): SpanSubtreeIds {
+    const tree: SpanTree = buildSpanTree([
+      waterfallSpan("server", ""),
+      waterfallSpan("processing", "server"),
+      waterfallSpan("query", "processing"),
+      waterfallSpan("call", "processing"),
+      waterfallSpan("remote", "call"),
+    ]);
+    return getSubtreeSpanIds(tree, spanId, limit);
+  }
+
+  test("a span with nothing under it speaks only of itself", () => {
+    expect(
+      describeSpanProfileScope({
+        sampleCount: 42,
+        subtree: subtreeOf("query"),
+      }),
+    ).toBe(
+      "Flame graph built from the 42 profile samples linked to this span.",
+    );
+  });
+
+  test("says the samples of the spans nested under the span are included", () => {
+    expect(
+      describeSpanProfileScope({
+        sampleCount: 1250,
+        subtree: subtreeOf("server"),
+      }),
+    ).toBe(
+      `Flame graph built from the ${(1250).toLocaleString()} profile samples linked to this span and the 4 spans nested under it.`,
+    );
+  });
+
+  test("one sample and one nested span read in the singular", () => {
+    expect(
+      describeSpanProfileScope({
+        sampleCount: 1,
+        subtree: subtreeOf("call"),
+      }),
+    ).toBe(
+      "Flame graph built from the 1 profile sample linked to this span and the 1 span nested under it.",
+    );
+  });
+
+  test("a capped subtree says how many of the nested spans were covered", () => {
+    expect(
+      describeSpanProfileScope({
+        sampleCount: 7,
+        subtree: subtreeOf("server", 3),
+      }),
+    ).toBe(
+      "Flame graph built from the 7 profile samples linked to this span and the nearest 2 of the 4 spans nested under it.",
+    );
+  });
+
+  test("large counts are formatted for the reader", () => {
+    expect(
+      describeSpanProfileScope({
+        sampleCount: 3,
+        subtree: {
+          spanIds: ["s", ...new Array<string>(999).fill("c")],
+          descendantCount: 4500,
+          isTruncated: true,
+        },
+      }),
+    ).toBe(
+      `Flame graph built from the 3 profile samples linked to this span and the nearest 999 of the ${(4500).toLocaleString()} spans nested under it.`,
+    );
   });
 });
 
