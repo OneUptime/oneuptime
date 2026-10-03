@@ -18,8 +18,9 @@ cell through every outcome of that request and through the table's own controls:
   tooltip, legacy numbers kept
 - the Enabled facet and the search box narrowing both the table query and the phone
   number lookup
-- the two-step create form: required and minimum-length validation on Name, then the
-  created policy appearing in the refetched table
+- the one-page create form (the labels folded under Advanced): required and
+  minimum-length validation on Name, then the created policy appearing in the
+  refetched table
 
 `Fixture/Fixture.js` records every list request and every create on
 `window.__fixture`, so the assertions check what the page asked for as well as what

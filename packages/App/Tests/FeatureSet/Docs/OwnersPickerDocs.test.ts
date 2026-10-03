@@ -83,14 +83,23 @@ describe("the docs on picking owners", () => {
     expect(hits).toEqual([]);
   });
 
+  /*
+   * The template's owners have no step of their own any more: they fold
+   * under Advanced at the end of Incident Details, beside the labels
+   * (labels-not-a-step), listed there as one field.
+   */
   test.each(["en", "fa"])(
-    "%s: the incident template's Owners step is one Owners field",
+    "%s: the incident template's owners are one Owners field, under Advanced on Incident Details",
     (language: string) => {
       const settings: string = read(language, "incidents/settings");
       const declaring: string = read(language, "incidents/declaring-incidents");
 
-      expect(settings).toMatch(/^- \*\*Owners\*\* — \*\*Owners\*\*/m);
+      expect(settings).not.toMatch(/^- \*\*Owners\*\* — \*\*Owners\*\*/m);
+      expect(settings).toMatch(/^ {2}- \*\*Owners\*\* — /m);
       expect(settings).toContain("**Add owner**");
+      expect(declaring).toMatch(
+        /\*\*Owners\*\*.{1,10}\*\*Labels\*\*.{1,40}\*\*Advanced\*\*/,
+      );
       // One row for owners in the template fields table.
       expect(declaring).toMatch(/^\| \*\*Owners\*\* +\|/m);
     },
