@@ -24350,6 +24350,8 @@
   "all": "all",
   "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.",
   "Customer Support Access": "Customer Support Access",
+  "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.": "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.",
+  "Enter the issuer as a URL that starts with https://.": "Enter the issuer as a URL that starts with https://.",
   "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.",
   "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.",
   "Let OneUptime support access this project": "Let OneUptime support access this project",
@@ -24362,7 +24364,18 @@
   "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.",
   "OneUptime's support team cannot open this project.": "OneUptime's support team cannot open this project.",
   "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.",
+  "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.": "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.",
+  "People who sign in for the first time join the projects you attach.": "People who sign in for the first time join the projects you attach.",
   "Require SSO for this project?": "Require SSO for this project?",
+  "Shown under the name on the sign-in page.": "Shown under the name on the sign-in page.",
+  "Sign-in": "Sign-in",
   "Test SSO with the link above before you require it.": "Test SSO with the link above before you require it.",
-  "Turn optional features on or off for this project.": "Turn optional features on or off for this project."
+  "The scopes must include openid.": "The scopes must include openid.",
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.": "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.",
+  "Turn optional features on or off for this project.": "Turn optional features on or off for this project.",
+  "What people see on the sign-in page.": "What people see on the sign-in page.",
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.",
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too."
 }

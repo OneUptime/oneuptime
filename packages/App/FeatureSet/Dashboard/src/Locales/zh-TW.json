@@ -24350,6 +24350,8 @@
   "all": "全部",
   "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "監測器群組將多個監測器彙總為一個狀態，狀態頁面可將其顯示為一列。關閉此項不會刪除任何群組。",
   "Customer Support Access": "客戶支援存取權",
+  "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.": "端點會根據簽發者尋找，登入時會要求 openid、email 和 profile 範圍。",
+  "Enter the issuer as a URL that starts with https://.": "請以 https:// 開頭的 URL 輸入簽發者。",
   "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "所有人都必須使用 SSO 登入才能開啟此專案。僅使用密碼登入是不夠的。",
   "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "此專案中的所有人（包括您）都必須使用 SSO 登入才能開啟它。使用密碼登入的人將被鎖在專案之外，直到他們使用 SSO 登入，因此請先用上方的連結測試 SSO。",
   "Let OneUptime support access this project": "允許 OneUptime 支援團隊存取此專案",
@@ -24362,7 +24364,18 @@
   "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "OneUptime 支援團隊可以開啟此專案，檢視並變更其中的所有內容。他們協助完成後，請關閉此項。",
   "OneUptime's support team cannot open this project.": "OneUptime 支援團隊無法開啟此專案。",
   "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "在您關閉此項之前，OneUptime 支援團隊將能開啟此專案，並檢視和變更其中的所有內容，包括設定和資料。",
+  "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.": "只有在此提供者啟用時，才能透過它登入。請在您的身分提供者設定好 OneUptime 儲存後顯示的 URL 後再啟用它。",
+  "People who sign in for the first time join the projects you attach.": "首次登入的人員會加入您關聯的專案。",
   "Require SSO for this project?": "要為此專案強制要求 SSO 嗎？",
+  "Shown under the name on the sign-in page.": "顯示在登入頁面上的名稱下方。",
+  "Sign-in": "登入",
   "Test SSO with the link above before you require it.": "在要求使用 SSO 之前，請先用上方的連結測試 SSO。",
-  "Turn optional features on or off for this project.": "為此專案開啟或關閉選用功能。"
+  "The scopes must include openid.": "範圍必須包含 openid。",
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.": "此提供者已關閉。在您的身分提供者設定好上方的重新導向 URI 後，請編輯此提供者並開啟「已啟用」。",
+  "Turn optional features on or off for this project.": "為此專案開啟或關閉選用功能。",
+  "What people see on the sign-in page.": "使用者在登入頁面上看到的內容。",
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "開啟後，人員必須先受邀加入專案，才能透過此提供者登入。首次登入時不會建立新使用者。",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "開啟後，透過此提供者登入僅在與其關聯的專案中滿足 SSO 強制要求，因此已登入的人員可能會失去其他專案的存取權。關閉後，在該人員所屬的每個專案中都滿足要求，關聯的專案僅決定新成員加入的位置。",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "OneUptime 尋找提供者端點的位置。它會跟隨簽發者；僅當您的提供者在其他位置發布探索文件時才需要變更。",
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "您的身分提供者的簽發者，需與提供者顯示的完全一致。也可以直接貼上其探索 URL。"
 }

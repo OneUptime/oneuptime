@@ -289,6 +289,17 @@ OneUptime का SSO implementation SAML 2.0 protocol उपयोग करत�
    - **सार्वजनिक प्रमाणपत्र** (X.509 signing certificate)
 4. **Signature Algorithm** को `RSA-SHA-256` और **Digest Algorithm** को `SHA256` पर सेट करें
 
+## OpenID Connect (OIDC)
+
+कोई प्रोजेक्ट OpenID Connect प्रदाता से भी साइन इन कर सकता है, जैसे Google Workspace, Okta, Microsoft Entra ID, Auth0 या Keycloak।
+
+1. अपने identity provider में एक ऐप (OIDC client) पंजीकृत करें और उसका **जारीकर्ता URL**, **क्लाइंट ID** और **क्लाइंट सीक्रेट** कॉपी करें।
+2. OneUptime में **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **OIDC** पर जाएं और **OIDC बनाएँ** पर क्लिक करें।
+3. एक **नाम** (जो लोग साइन-इन पेज पर देखते हैं), **जारीकर्ता URL**, **क्लाइंट ID** और **क्लाइंट सीक्रेट** दर्ज करें। आप प्रदाता का discovery URL भी **जारीकर्ता URL** में चिपका सकते हैं।
+4. **साइन-इन** चरण में **टीमें** पहले से आपके प्रोजेक्ट की सदस्य टीम पर सेट होती हैं: पहली बार साइन इन करने वाले लोग इन टीमों में जुड़ते हैं। बाकी सब **उन्नत** में अपने आप भर जाता है: **डिस्कवरी URL** (जारीकर्ता के बाद `/.well-known/openid-configuration`), **दायरे** (`openid email profile`), `email` और `name` claim नाम, और एक विवरण ("Sign in with" और नाम)। इन्हें तभी बदलें जब आपके प्रदाता को ज़रूरत हो।
+5. सहेजें। **OIDC Configuration** डायलॉग **Redirect URI** के साथ खुलता है: इसे अपने ऐप के अनुमत redirect URI में जोड़ें। नया प्रदाता शुरू में बंद रहता है; फिर इसे संपादित करें और **सक्षम** चालू करें।
+6. प्रोजेक्ट के लिए SSO अनिवार्य करने से पहले, **Test OpenID Connect (OIDC)** कार्ड के लिंक से प्रदाता के ज़रिए साइन इन करके देखें।
+
 ## SSO और Roles पर नोट्स
 
 OneUptime वर्तमान में अपने identity provider से SAML roles mapping का समर्थन नहीं करता। Role-based access को OneUptime के **प्रोजेक्ट सेटिंग्स** > **SSO** settings के भीतर अलग से configure किया जाना चाहिए, जहाँ आप SSO users के लिए default roles assign कर सकते हैं।

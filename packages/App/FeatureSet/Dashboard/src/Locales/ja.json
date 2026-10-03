@@ -24350,6 +24350,8 @@
   "all": "すべて",
   "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "モニターグループは複数のモニターを 1 つのステータスにまとめ、ステータスページでは 1 行として表示できます。オフにしてもグループは削除されません。",
   "Customer Support Access": "カスタマーサポートのアクセス",
+  "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.": "エンドポイントは発行者から検出され、サインイン時に openid、email、profile のスコープを要求します。",
+  "Enter the issuer as a URL that starts with https://.": "発行者は https:// で始まる URL で入力してください。",
   "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "このプロジェクトを開くには、全員が SSO でサインインする必要があります。パスワードでのサインインでは開けません。",
   "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "このプロジェクトのメンバーは、あなたも含め全員、プロジェクトを開くために SSO でサインインする必要があります。パスワードでサインインしている人は、SSO でサインインするまでプロジェクトから締め出されます。先に上のリンクで SSO をテストしてください。",
   "Let OneUptime support access this project": "OneUptime サポートにこのプロジェクトへのアクセスを許可",
@@ -24362,7 +24364,18 @@
   "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "OneUptime のサポートチームはこのプロジェクトを開き、その中のすべてを表示・変更できます。サポートが終わったらオフにしてください。",
   "OneUptime's support team cannot open this project.": "OneUptime のサポートチームはこのプロジェクトを開けません。",
   "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "オフにするまで、OneUptime のサポートチームはこのプロジェクトを開き、設定やデータを含むその中のすべてを表示・変更できるようになります。",
+  "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.": "このプロバイダーでサインインできるのは、有効になっている間だけです。保存後に OneUptime が表示する URL を ID プロバイダーに登録したら、有効にしてください。",
+  "People who sign in for the first time join the projects you attach.": "初めてサインインしたユーザーは、割り当てたプロジェクトに参加します。",
   "Require SSO for this project?": "このプロジェクトで SSO を必須にしますか？",
+  "Shown under the name on the sign-in page.": "サインインページで名前の下に表示されます。",
+  "Sign-in": "サインイン",
   "Test SSO with the link above before you require it.": "必須にする前に、上のリンクで SSO をテストしてください。",
-  "Turn optional features on or off for this project.": "このプロジェクトのオプション機能をオンまたはオフにします。"
+  "The scopes must include openid.": "スコープには openid を含める必要があります。",
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.": "このプロバイダーは無効です。上のリダイレクト URI を ID プロバイダーに登録したら、プロバイダーを編集して「有効」をオンにしてください。",
+  "Turn optional features on or off for this project.": "このプロジェクトのオプション機能をオンまたはオフにします。",
+  "What people see on the sign-in page.": "サインインページでユーザーに表示されます。",
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "オンにすると、このプロバイダーでサインインする前にプロジェクトへの招待が必要になります。初回サインイン時に新しいユーザーは作成されません。",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "オンにすると、このプロバイダーでのサインインは、割り当てられたプロジェクトでのみ SSO の強制要件を満たすため、すでにサインインしているユーザーが他のプロジェクトにアクセスできなくなることがあります。オフの場合は、そのユーザーが所属するすべてのプロジェクトで要件を満たし、割り当てられたプロジェクトは新しいユーザーの追加先を決めるだけです。",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "OneUptime がプロバイダーのエンドポイントを見つける場所です。発行者に連動します。プロバイダーがディスカバリドキュメントを別の場所で公開している場合にのみ変更してください。",
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "ID プロバイダーの発行者を、プロバイダーの表示どおりに入力します。ディスカバリ URL を貼り付けることもできます。"
 }

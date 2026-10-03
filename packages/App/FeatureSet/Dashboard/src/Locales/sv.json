@@ -24350,6 +24350,8 @@
   "all": "alla",
   "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "En monitorgrupp samlar flera monitorer i en status, som en statussida kan visa som en rad. Att stänga av det tar inte bort någon grupp.",
   "Customer Support Access": "Åtkomst för kundsupport",
+  "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.": "Slutpunkterna hämtas från utfärdaren, och inloggningen begär omfattningarna openid, email och profile.",
+  "Enter the issuer as a URL that starts with https://.": "Ange utfärdaren som en URL som börjar med https://.",
   "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "Alla måste logga in med SSO för att öppna det här projektet. Det räcker inte att logga in med lösenord.",
   "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "Alla i det här projektet, även du, måste logga in med SSO för att öppna det. Den som är inloggad med lösenord är utelåst från projektet tills hen loggar in med SSO, så testa SSO med länken ovan först.",
   "Let OneUptime support access this project": "Ge OneUptimes support åtkomst till det här projektet",
@@ -24362,7 +24364,18 @@
   "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "OneUptimes supportteam kan öppna det här projektet och se och ändra allt i det. Stäng av det när de har hjälpt dig klart.",
   "OneUptime's support team cannot open this project.": "OneUptimes supportteam kan inte öppna det här projektet.",
   "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "OneUptimes supportteam kommer att kunna öppna det här projektet och se och ändra allt i det, inklusive inställningar och data, tills du stänger av det.",
+  "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.": "Det går bara att logga in med den här leverantören medan den är aktiverad. Aktivera den när din identitetsleverantör har de URL:er som OneUptime visar när du har sparat.",
+  "People who sign in for the first time join the projects you attach.": "Personer som loggar in för första gången går med i de projekt du kopplar.",
   "Require SSO for this project?": "Kräva SSO för det här projektet?",
+  "Shown under the name on the sign-in page.": "Visas under namnet på inloggningssidan.",
+  "Sign-in": "Inloggning",
   "Test SSO with the link above before you require it.": "Testa SSO med länken ovan innan du kräver det.",
-  "Turn optional features on or off for this project.": "Slå på eller av valfria funktioner för det här projektet."
+  "The scopes must include openid.": "Omfattningarna måste innehålla openid.",
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.": "Den här leverantören är avstängd. När din identitetsleverantör har omdirigerings-URI:n ovan redigerar du leverantören och slår på ”Aktiverad”.",
+  "Turn optional features on or off for this project.": "Slå på eller av valfria funktioner för det här projektet.",
+  "What people see on the sign-in page.": "Det som folk ser på inloggningssidan.",
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "När detta är på måste personer vara inbjudna till ett projekt innan de kan logga in med den här leverantören. Ingen ny skapas vid första inloggningen.",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "När detta är på uppfyller inloggning med den här leverantören SSO-kravet bara i de projekt som är kopplade till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. När det är av uppfyller den kravet i alla projekt personen tillhör, och kopplade projekt avgör bara var nya personer läggs till.",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Var OneUptime hittar leverantörens slutpunkter. Den följer utfärdaren; ändra den bara om din leverantör publicerar sitt discovery-dokument någon annanstans.",
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Din identitetsleverantörs utfärdare, exakt som leverantören visar den. Du kan också klistra in dess discovery-URL."
 }

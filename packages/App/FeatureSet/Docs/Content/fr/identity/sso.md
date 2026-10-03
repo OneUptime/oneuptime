@@ -289,6 +289,17 @@ L'implémentation SSO de OneUptime utilise le protocole SAML 2.0 et devrait fonc
    - **Certificat public** (certificat de signature X.509)
 4. Définissez l'**Algorithme de signature** sur `RSA-SHA-256` et l'**Algorithme de hachage** sur `SHA256`
 
+## OpenID Connect (OIDC)
+
+Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Google Workspace, Okta, Microsoft Entra ID, Auth0 ou Keycloak.
+
+1. Enregistrez une application (un client OIDC) auprès de votre fournisseur d'identité et copiez son **URL de l'émetteur**, son **ID client** et son **Secret client**.
+2. Dans OneUptime, naviguez vers **Paramètres du projet** > **Sécurité** > **OIDC** et cliquez sur **Créer : OIDC**.
+3. Saisissez un **Nom** (ce que les utilisateurs voient sur la page de connexion), l'**URL de l'émetteur**, l'**ID client** et le **Secret client**. Vous pouvez aussi coller l'URL de découverte du fournisseur dans **URL de l'émetteur**.
+4. À l'étape **Connexion**, **Équipes** part de l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est rempli sous **Avancé** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur l'exige.
+5. Enregistrez. La boîte de dialogue **Configuration OIDC** s'ouvre avec le **Redirect URI** : ajoutez-le aux URI de redirection autorisées de votre application. Un nouveau fournisseur est d'abord désactivé ; modifiez-le ensuite et activez **Activé**.
+6. Utilisez le lien de la carte **Test OpenID Connect (OIDC)** pour vous connecter via le fournisseur avant de rendre le SSO obligatoire pour le projet.
+
 ## Notes sur SSO et les rôles
 
 OneUptime ne prend actuellement pas en charge le mappage des rôles SAML depuis votre fournisseur d'identité. L'accès basé sur les rôles doit être configuré séparément dans les **Paramètres du projet** > **SSO** de OneUptime, où vous pouvez attribuer des rôles par défaut pour les utilisateurs SSO.

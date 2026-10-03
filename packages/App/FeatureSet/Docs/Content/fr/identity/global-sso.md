@@ -22,7 +22,7 @@ Global SSO, y compris le bouton « Require SSO for Login » à l'échelle de l'i
 
    - Cliquez sur **Create Global SSO**.
    - Pour SAML : saisissez un **Name**, le **Sign On URL** et l'**Issuer** de votre fournisseur d'identité, puis collez le **Public Certificate**. Choisissez les méthodes **Signature** et **Digest** (laissez les valeurs par défaut — `RSA-SHA256` / `SHA256` — si vous n'êtes pas sûr).
-   - Pour OIDC : saisissez le **Discovery URL**, l'**Issuer**, le **Client ID**, le **Client Secret**, les **Scopes** (doivent inclure `openid`), ainsi que les noms de revendications **email** / **name**.
+   - Pour OIDC : saisissez un **Name**, l'**Issuer URL**, ainsi que le **Client ID** et le **Client Secret** de l'application enregistrée auprès de votre IdP. Vous pouvez aussi coller l'URL de découverte de votre IdP dans **Issuer URL**. Tout le reste est rempli sous **Advanced** : le **Discovery URL** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Scopes** (`openid email profile`), les noms de revendications `email` et `name`, et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
 
 3. **Copier les URL OneUptime dans votre fournisseur d'identité**
 

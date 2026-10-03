@@ -24350,6 +24350,8 @@
   "all": "все",
   "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "Группа мониторов объединяет несколько мониторов в один статус, который страница статуса может показать одной строкой. Отключение не удаляет ни одной группы.",
   "Customer Support Access": "Доступ службы поддержки",
+  "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.": "Конечные точки определяются по издателю, а при входе запрашиваются области openid, email и profile.",
+  "Enter the issuer as a URL that starts with https://.": "Укажите издателя в виде URL, начинающегося с https://.",
   "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "Чтобы открыть этот проект, все должны войти через SSO. Входа с паролем недостаточно.",
   "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "Все участники этого проекта, включая вас, должны будут входить через SSO, чтобы открыть его. Тот, кто вошёл с паролем, потеряет доступ к проекту, пока не войдёт через SSO, поэтому сначала проверьте SSO по ссылке выше.",
   "Let OneUptime support access this project": "Разрешить поддержке OneUptime доступ к этому проекту",
@@ -24362,7 +24364,18 @@
   "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "Команда поддержки OneUptime может открыть этот проект, видеть и изменять в нём всё. Отключите это, когда она закончит вам помогать.",
   "OneUptime's support team cannot open this project.": "Команда поддержки OneUptime не может открыть этот проект.",
   "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "Команда поддержки OneUptime сможет открыть этот проект, видеть и изменять в нём всё, включая настройки и данные, пока вы это не отключите.",
+  "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.": "Войти через этого провайдера можно, только пока он включён. Включите его, когда ваш поставщик идентификации получит URL-адреса, которые OneUptime покажет после сохранения.",
+  "People who sign in for the first time join the projects you attach.": "Люди, которые входят впервые, добавляются в проекты, которые вы привяжете.",
   "Require SSO for this project?": "Сделать SSO обязательным для этого проекта?",
+  "Shown under the name on the sign-in page.": "Показывается под названием на странице входа.",
+  "Sign-in": "Вход",
   "Test SSO with the link above before you require it.": "Проверьте SSO по ссылке выше, прежде чем делать его обязательным.",
-  "Turn optional features on or off for this project.": "Включайте и отключайте дополнительные функции этого проекта."
+  "The scopes must include openid.": "Области должны включать openid.",
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.": "Этот провайдер выключен. Когда ваш поставщик идентификации получит указанный выше URI перенаправления, отредактируйте провайдера и включите «Включено».",
+  "Turn optional features on or off for this project.": "Включайте и отключайте дополнительные функции этого проекта.",
+  "What people see on the sign-in page.": "То, что люди видят на странице входа.",
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "Если включено, людей нужно пригласить в проект, прежде чем они смогут войти через этого провайдера. При первом входе новые пользователи не создаются.",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "Если включено, вход через этого провайдера выполняет требование SSO только в привязанных к нему проектах, поэтому уже вошедшие люди могут потерять доступ к другим проектам. Если выключено, он выполняет его в каждом проекте, в котором состоит человек, а привязанные проекты лишь определяют, куда добавляются новички.",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Где OneUptime находит конечные точки провайдера. Он следует за издателем; меняйте его, только если ваш провайдер публикует свой документ обнаружения в другом месте.",
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Издатель вашего поставщика идентификации — точно в том виде, в каком его показывает провайдер. Можно также вставить его URL обнаружения."
 }

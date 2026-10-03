@@ -22,7 +22,7 @@ Global SSO, inclusief de instantiebrede schakelaar "Require SSO for Login", maak
 
    - Klik op **Create Global SSO**.
    - Voor SAML: voer een **Naam** in, de **Sign On URL** en **Issuer** van uw identiteitsprovider, en plak het **Public Certificate**. Kies de **Signature**- en **Digest**-methoden (laat de standaardwaarden — `RSA-SHA256` / `SHA256` — staan als u twijfelt).
-   - Voor OIDC: voer de **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (moet `openid` bevatten) en de claimnamen voor **email** / **name** in.
+   - Voor OIDC: voer een **Name**, de **Issuer URL**, en de **Client ID** en **Client Secret** van de app die u bij uw IdP hebt geregistreerd in. U kunt ook de discovery-URL van uw IdP in **Issuer URL** plakken. Al het andere wordt onder **Advanced** ingevuld: de **Discovery URL** (de issuer gevolgd door `/.well-known/openid-configuration`), de **Scopes** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vereist. Na het opslaan opent de pagina van de provider.
 
 3. **Kopieer de OneUptime-URL's naar uw identiteitsprovider**
 
