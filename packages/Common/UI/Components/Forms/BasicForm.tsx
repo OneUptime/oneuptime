@@ -1124,6 +1124,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               openWhenConfigured={
                                 section.openWhenConfigured !== false
                               }
+                              summary={section.getSummary?.(
+                                refCurrentValue.current,
+                              )}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {
                                   const fieldName: string = getFieldName(field);
