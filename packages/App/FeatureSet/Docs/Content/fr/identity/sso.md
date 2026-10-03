@@ -27,13 +27,14 @@ L'intégration SSO offre les avantages suivants :
    - Saisissez l'**URL de connexion** de votre fournisseur d'identité
    - Saisissez l'**Émetteur** (Entity ID) de votre fournisseur d'identité
    - Collez le **Certificat public** de votre fournisseur d'identité
-   - Sélectionnez l'**Algorithme de signature** (par ex., `RSA-SHA-256`)
-   - Sélectionnez l'**Algorithme de hachage** (par ex., `SHA256`)
+   - À l'étape **Connexion**, **Équipes** commence par l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes
+   - Tout le reste est rempli sous **Avancé** : la **Méthode de signature** (`RSA-SHA256`), la **Méthode de hachage** (`SHA256`) et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur d'identité l'exige
 
 3. **Obtenir les métadonnées SSO OneUptime**
-   - Après l'enregistrement, cliquez sur le bouton **Voir la configuration SSO**
+   - L'enregistrement ouvre la boîte de dialogue **SSO Configuration**. Vous pouvez la rouvrir avec le bouton **Voir la configuration SSO**
    - Copiez l'**Identifiant (Entity ID)** — cela est nécessaire dans la configuration de votre IdP
    - Copiez l'**URL de réponse (URL du service consommateur d'assertion)** — cela est nécessaire dans la configuration de votre IdP
+   - Un nouveau fournisseur est d'abord désactivé. Dès que votre IdP a ces deux valeurs, modifiez le fournisseur et activez l'option **Activé**
 
 ## Configuration SAML Keycloak
 
@@ -54,8 +55,7 @@ Keycloak est une solution populaire de gestion des identités et des accès en o
    - **URL de connexion** : `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Émetteur** : `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificat** : Voir [Étape 2](#étape-2-obtenir-le-certificat-keycloak) ci-dessous
-   - **Algorithme de signature** : `RSA-SHA-256`
-   - **Algorithme de hachage** : `SHA256`
+   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Avancé** (`RSA-SHA256` et `SHA256`)
 4. Enregistrez la configuration
 
 ### Étape 2 : Obtenir le certificat Keycloak
@@ -121,8 +121,7 @@ Microsoft Entra ID est le service de gestion des identités et des accès basé 
    - **URL de connexion** : Vous l'obtiendrez depuis Entra ID à l'étape 3
    - **Émetteur** : Vous l'obtiendrez depuis Entra ID à l'étape 3
    - **Certificat** : Vous l'obtiendrez depuis Entra ID à l'étape 3
-   - **Algorithme de signature** : `RSA-SHA-256`
-   - **Algorithme de hachage** : `SHA256`
+   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Avancé** (`RSA-SHA256` et `SHA256`)
 4. Cliquez sur **Voir la configuration SSO** et copiez l'**Identifiant (Entity ID)** et l'**URL de réponse (URL du service consommateur d'assertion)** — vous en aurez besoin pour Entra ID
 
 ### Étape 2 : Créer une application d'entreprise dans Microsoft Entra ID
@@ -206,8 +205,7 @@ Okta est une plateforme d'identité largement utilisée qui offre des capacités
    - **URL de connexion** : Vous l'obtiendrez depuis Okta à l'étape 3
    - **Émetteur** : Vous l'obtiendrez depuis Okta à l'étape 3
    - **Certificat** : Vous l'obtiendrez depuis Okta à l'étape 3
-   - **Algorithme de signature** : `RSA-SHA-256`
-   - **Algorithme de hachage** : `SHA256`
+   - **Méthode de signature** et **Méthode de hachage** : déjà définies sous **Avancé** (`RSA-SHA256` et `SHA256`)
 4. Cliquez sur **Voir la configuration SSO** et copiez l'**Identifiant (Entity ID)** et l'**URL de réponse (URL du service consommateur d'assertion)** — vous en aurez besoin pour Okta
 
 ### Étape 2 : Créer une application SAML dans Okta
@@ -287,7 +285,7 @@ L'implémentation SSO de OneUptime utilise le protocole SAML 2.0 et devrait fonc
    - **URL de connexion** (point de terminaison SSO)
    - **Émetteur** (Entity ID de l'IdP)
    - **Certificat public** (certificat de signature X.509)
-4. Définissez l'**Algorithme de signature** sur `RSA-SHA-256` et l'**Algorithme de hachage** sur `SHA256`
+4. La **Méthode de signature** (`RSA-SHA256`) et la **Méthode de hachage** (`SHA256`) sont déjà définies sous **Avancé** ; ne les modifiez que si votre fournisseur d'identité signe autrement
 
 ## OpenID Connect (OIDC)
 

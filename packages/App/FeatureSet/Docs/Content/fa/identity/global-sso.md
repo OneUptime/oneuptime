@@ -21,7 +21,7 @@ SSO سراسری، از جمله کلید «Require SSO for Login» در سطح 
 2. **یک ارائه‌دهنده بسازید**
 
    - روی **Create Global SSO** کلیک کنید.
-   - برای SAML: یک **Name**، و **Sign On URL** و **Issuer** ارائه‌دهنده هویت خود را وارد کنید و **Public Certificate** را بگذارید. روش‌های **Signature** و **Digest** را انتخاب کنید (اگر مطمئن نیستید، پیش‌فرض‌ها — `RSA-SHA256` / `SHA256` — را نگه دارید).
+   - برای SAML: یک **Name**، و **Sign On URL** و **Issuer** ارائه‌دهنده هویت خود را وارد کنید و **Public Certificate** را بگذارید. بقیه زیر **Advanced** پر می‌شود: **Signature Method** (`RSA-SHA256`)، **Digest Method** (`SHA256`) و یک توضیح (`Sign in with` و نام). فقط اگر IdP شما لازم دارد آن‌ها را تغییر دهید. با ذخیره کردن، صفحه ارائه‌دهنده باز می‌شود.
    - برای OIDC: یک **Name**، **Issuer URL** و **Client ID** و **Client Secret** برنامه‌ای را که در IdP خود ثبت کرده‌اید وارد کنید. می‌توانید نشانی کشف IdP را هم در **Issuer URL** جای‌گذاری کنید. بقیه زیر **Advanced** پر می‌شود: **Discovery URL** (صادرکننده به‌همراه `/.well-known/openid-configuration`)، **Scopes** (`openid email profile`)، نام ادعاهای `email` و `name` و یک توضیح (`Sign in with` و نام). فقط اگر IdP شما لازم دارد آن‌ها را تغییر دهید. با ذخیره کردن، صفحه ارائه‌دهنده باز می‌شود.
 
 3. **نشانی‌های OneUptime را در ارائه‌دهنده هویت خود بگذارید**

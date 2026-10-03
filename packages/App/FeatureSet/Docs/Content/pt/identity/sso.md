@@ -27,13 +27,14 @@ A integração SSO oferece os seguintes benefícios:
    - Insira a **URL de login** do seu provedor de identidade
    - Insira o **Emissor** (Entity ID) do seu provedor de identidade
    - Cole o **Certificado público** do seu provedor de identidade
-   - Selecione o **Signature Algorithm** (ex.: `RSA-SHA-256`)
-   - Selecione o **Digest Algorithm** (ex.: `SHA256`)
+   - Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes
+   - Todo o resto é preenchido em **Avançado**: o **Método de assinatura** (`RSA-SHA256`), o **Método de digest** (`SHA256`) e uma descrição ("Sign in with" e o nome). Altere-os apenas se o seu provedor de identidade exigir
 
 3. **Obter Metadados SSO do OneUptime**
-   - Após salvar, clique no botão **Ver configuração SSO**
+   - Ao salvar, a caixa de diálogo **SSO Configuration** é aberta. Você pode abri-la novamente com o botão **Ver configuração SSO**
    - Copie o **Identifier (Entity ID)** — isso é necessário na configuração do seu IdP
    - Copie o **Reply URL (Assertion Consumer Service URL)** — isso é necessário na configuração do seu IdP
+   - Um provedor novo começa desabilitado. Quando o seu IdP tiver esses dois valores, edite o provedor e ative **Habilitado**
 
 ## Configuração do Keycloak SAML
 
@@ -54,8 +55,7 @@ O Keycloak é uma solução popular de código aberto para gerenciamento de iden
    - **URL de login**: `https://<seu-dominio-keycloak>/auth/realms/<seu-realm>/protocol/saml`
    - **Emissor**: `https://<seu-dominio-keycloak>/auth/realms/<seu-realm>`
    - **Certificado**: Consulte o [Passo 2](#passo-2-obter-o-certificado-do-keycloak) abaixo
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Método de assinatura** e **Método de digest**: já definidos em **Avançado** (`RSA-SHA256` e `SHA256`)
 4. Salve a configuração
 
 ### Passo 2: Obter o Certificado do Keycloak
@@ -121,8 +121,7 @@ O Microsoft Entra ID é o serviço de gerenciamento de identidade e acesso basea
    - **URL de login**: Você obterá isso do Entra ID no [Passo 3](#passo-3-configurar-o-sso-saml-no-entra-id)
    - **Emissor**: Você obterá isso do Entra ID no [Passo 3](#passo-3-configurar-o-sso-saml-no-entra-id)
    - **Certificado**: Você obterá isso do Entra ID no [Passo 3](#passo-3-configurar-o-sso-saml-no-entra-id)
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Método de assinatura** e **Método de digest**: já definidos em **Avançado** (`RSA-SHA256` e `SHA256`)
 4. Clique em **Ver configuração SSO** e copie o **Identifier (Entity ID)** e o **Reply URL (Assertion Consumer Service URL)** — você precisará desses para o Entra ID
 
 ### Passo 2: Criar Aplicativo Empresarial no Microsoft Entra ID
@@ -206,8 +205,7 @@ O Okta é uma plataforma de identidade amplamente utilizada que fornece capacida
    - **URL de login**: Você obterá isso do Okta no [Passo 3](#passo-3-copiar-metadados-saml-do-okta-para-o-oneuptime)
    - **Emissor**: Você obterá isso do Okta no [Passo 3](#passo-3-copiar-metadados-saml-do-okta-para-o-oneuptime)
    - **Certificado**: Você obterá isso do Okta no [Passo 3](#passo-3-copiar-metadados-saml-do-okta-para-o-oneuptime)
-   - **Signature Algorithm**: `RSA-SHA-256`
-   - **Digest Algorithm**: `SHA256`
+   - **Método de assinatura** e **Método de digest**: já definidos em **Avançado** (`RSA-SHA256` e `SHA256`)
 4. Clique em **Ver configuração SSO** e copie o **Identifier (Entity ID)** e o **Reply URL (Assertion Consumer Service URL)** — você precisará desses para o Okta
 
 ### Passo 2: Criar Aplicativo SAML no Okta
@@ -287,7 +285,7 @@ A implementação SSO do OneUptime usa o protocolo SAML 2.0 e deve funcionar com
    - **URL de login** (endpoint SSO)
    - **Emissor** (Entity ID do IdP)
    - **Certificado público** (certificado de assinatura X.509)
-4. Defina o **Signature Algorithm** como `RSA-SHA-256` e **Digest Algorithm** como `SHA256`
+4. O **Método de assinatura** (`RSA-SHA256`) e o **Método de digest** (`SHA256`) já estão definidos em **Avançado**; altere-os apenas se o seu provedor de identidade assinar de outra forma
 
 ## OpenID Connect (OIDC)
 

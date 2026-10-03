@@ -27,13 +27,14 @@ Die SSO-Integration bietet folgende Vorteile:
    - Geben Sie die **Anmelde-URL** von Ihrem Identity Provider ein
    - Geben Sie den **Aussteller** (Entity ID) von Ihrem Identity Provider ein
    - Fügen Sie das **Öffentliche Zertifikat** von Ihrem Identity Provider ein
-   - Wählen Sie den **Signaturalgorithmus** (z. B. `RSA-SHA-256`)
-   - Wählen Sie den **Digest-Algorithmus** (z. B. `SHA256`)
+   - Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Personen, die sich zum ersten Mal anmelden, treten diesen Teams bei
+   - Alles andere wird unter **Erweitert** ausgefüllt: die **Signaturmethode** (`RSA-SHA256`), die **Digest-Methode** (`SHA256`) und eine Beschreibung („Sign in with“ und der Name). Ändern Sie sie nur, wenn Ihr Identity Provider es erfordert
 
 3. **OneUptime SSO-Metadaten abrufen**
-   - Klicken Sie nach dem Speichern auf die Schaltfläche **SSO-Konfiguration anzeigen**
+   - Nach dem Speichern öffnet sich der Dialog **SSO-Konfiguration**. Über die Schaltfläche **SSO-Konfiguration anzeigen** können Sie ihn erneut öffnen
    - Kopieren Sie den **Bezeichner (Entity ID)** — dieser wird in Ihrer IdP-Konfiguration benötigt
    - Kopieren Sie die **Antwort-URL (Assertion Consumer Service URL)** — diese wird in Ihrer IdP-Konfiguration benötigt
+   - Ein neuer Anbieter ist zunächst deaktiviert. Sobald Ihr IdP diese beiden Werte kennt, bearbeiten Sie den Anbieter und schalten Sie **Aktiviert** ein
 
 ## Keycloak SAML-Konfiguration
 
@@ -48,8 +49,7 @@ Keycloak ist eine beliebte Open-Source-Identitäts- und Zugriffsmanagementlösun
    - **Anmelde-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Aussteller**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Zertifikat**: Siehe Schritt 2 unten
-   - **Signaturalgorithmus**: `RSA-SHA-256`
-   - **Digest-Algorithmus**: `SHA256`
+   - **Signaturmethode** und **Digest-Methode**: bereits unter **Erweitert** gesetzt (`RSA-SHA256` und `SHA256`)
 4. Konfiguration speichern
 
 ### Schritt 4: Keycloak-Client-Einstellungen konfigurieren
@@ -124,7 +124,7 @@ OneUptime's SSO-Implementierung verwendet das SAML 2.0-Protokoll und sollte mit 
    - **Anmelde-URL** (SSO-Endpunkt)
    - **Aussteller** (Entity ID des IdP)
    - **Öffentliches Zertifikat** (X.509-Signierzertifikat)
-4. **Signaturalgorithmus** auf `RSA-SHA-256` und **Digest-Algorithmus** auf `SHA256` setzen
+4. **Signaturmethode** (`RSA-SHA256`) und **Digest-Methode** (`SHA256`) sind bereits unter **Erweitert** gesetzt; ändern Sie sie nur, wenn Ihr Identity Provider anders signiert
 
 ## OpenID Connect (OIDC)
 

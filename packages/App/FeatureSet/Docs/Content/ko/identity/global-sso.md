@@ -21,7 +21,7 @@ Global SSO를 사용하면 OneUptime **인스턴스 관리자**(마스터 관리
 2. **공급자 생성**
 
    - **Create Global SSO**를 클릭합니다.
-   - SAML의 경우: **Name**, ID 공급자의 **Sign On URL** 및 **Issuer**를 입력하고 **Public Certificate**를 붙여 넣습니다. **Signature** 및 **Digest** 방법을 선택합니다(확실하지 않은 경우 기본값 — `RSA-SHA256` / `SHA256` — 을 그대로 둡니다).
+   - SAML의 경우: **Name**, ID 공급자의 **Sign On URL** 및 **Issuer**를 입력하고 **Public Certificate**를 붙여 넣습니다. 나머지는 **Advanced**에 자동으로 채워집니다: **Signature Method**(`RSA-SHA256`), **Digest Method**(`SHA256`), 설명(`Sign in with`와 이름). IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
    - OIDC의 경우: **Name**, **Issuer URL**, 그리고 IdP에 등록한 앱의 **Client ID**와 **Client Secret**을 입력합니다. IdP의 discovery URL을 **Issuer URL**에 붙여 넣어도 됩니다. 나머지는 **Advanced**에 자동으로 채워집니다: **Discovery URL**(발급자 뒤에 `/.well-known/openid-configuration`을 붙인 것), **Scopes**(`openid email profile`), `email` 및 `name` 클레임 이름, 설명(`Sign in with`와 이름). IdP에서 필요한 경우에만 변경하세요. 저장하면 공급자 페이지가 열립니다.
 
 3. **OneUptime URL을 ID 공급자에 복사**
