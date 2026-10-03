@@ -755,10 +755,31 @@ describe("collectObiNodeInspectorRequestSpans", () => {
   });
 
   test("never throws on a malformed request, and collects what it can read", () => {
+    // An OBI resource, so the pre-pass goes on to read what it holds.
+    function obi(rest: Record<string, unknown>): Array<unknown> {
+      return [
+        {
+          resource: {
+            attributes: [
+              {
+                key: "telemetry.distro.name",
+                value: { stringValue: OBI_DISTRO },
+              },
+            ],
+          },
+          ...rest,
+        },
+      ];
+    }
+    function obiSpans(spans: Array<unknown>): Array<unknown> {
+      return obi({ scopeSpans: [{ spans: spans }] });
+    }
+
     const malformed: Array<unknown> = [
       undefined,
       null,
       {},
+      7,
       "resourceSpans",
       [null],
       [1],
@@ -767,63 +788,42 @@ describe("collectObiNodeInspectorRequestSpans", () => {
       [{ resource: null }],
       [{ resource: {} }],
       [{ resource: { attributes: "x" } }],
+      [{ resource: { attributes: 7 } }],
+      [{ resource: { attributes: {} } }],
       [{ resource: { attributes: [null, 1, { key: 1 }, { value: {} }] } }],
       [
         {
           resource: {
-            attributes: [
-              {
-                key: "telemetry.distro.name",
-                value: { stringValue: OBI_DISTRO },
-              },
-            ],
+            attributes: [{ key: "telemetry.distro.name", value: null }],
           },
-          scopeSpans: "x",
         },
       ],
-      [
-        {
-          resource: {
-            attributes: [
-              {
-                key: "telemetry.distro.name",
-                value: { stringValue: OBI_DISTRO },
-              },
-            ],
-          },
-          scopeSpans: [
-            null,
-            1,
-            {},
-            { spans: "x" },
-            { spans: [null, 1, "x", {}] },
-          ],
-        },
-      ],
-      [
-        {
-          resource: {
-            attributes: [
-              {
-                key: "telemetry.distro.name",
-                value: { stringValue: OBI_DISTRO },
-              },
-            ],
-          },
-          scopeSpans: [
-            {
-              spans: [
-                { kind: 2, attributes: "x" },
-                {
-                  kind: 2,
-                  attributes: [null, 1, { key: 1 }, { key: "url.path" }],
-                },
-                { kind: 2, parentSpanId: 7, attributes: [] },
-              ],
-            },
-          ],
-        },
-      ],
+      obi({}),
+      obi({ scopeSpans: null }),
+      obi({ scopeSpans: 7 }),
+      obi({ scopeSpans: {} }),
+      obi({ scopeSpans: "x" }),
+      obi({
+        scopeSpans: [
+          null,
+          1,
+          {},
+          { spans: null },
+          { spans: 7 },
+          { spans: {} },
+          { spans: "x" },
+          { spans: [null, 1, "x", {}] },
+        ],
+      }),
+      obiSpans([
+        { kind: 2, attributes: "x" },
+        { kind: 2, attributes: 7 },
+        { kind: 2, attributes: {} },
+        { kind: 2, attributes: null },
+        { kind: 2, attributes: [null, 1, { key: 1 }, { key: "url.path" }] },
+        { kind: 2, parentSpanId: 7, attributes: [] },
+        { kind: 2, traceId: 7, spanId: {}, attributes: [] },
+      ]),
     ];
     for (const resourceSpans of malformed) {
       expect(
