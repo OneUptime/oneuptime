@@ -408,9 +408,7 @@ describe("a policy with first responders", () => {
      * then under the caller's create scope) before letting the rule through.
      */
     expect(policyReads.length).toBeGreaterThanOrEqual(1);
-    expect(policyReads[0]!.props.userId?.toString()).toBe(
-      CALLER_ID.toString(),
-    );
+    expect(policyReads[0]!.props.userId?.toString()).toBe(CALLER_ID.toString());
     expect(String(policyReads[0]!.query["_id"])).toBe(POLICY_ID.toString());
   });
 
@@ -422,8 +420,9 @@ describe("a policy with first responders", () => {
 
     expect(ruleCreates).toHaveLength(1);
     expect(
-      (ruleCreates[0]!.miscDataProps!["onCallSchedules"] as Array<ObjectID>)[0]!
-        .toString(),
+      (
+        ruleCreates[0]!.miscDataProps!["onCallSchedules"] as Array<ObjectID>
+      )[0]!.toString(),
     ).toBe(SCHEDULE_ID);
   });
 
@@ -457,9 +456,9 @@ describe("a policy with first responders", () => {
 
 describe("refused before anything is saved", () => {
   test("a list that is not a list of ids", async () => {
-    await expect(
-      createPolicy({ users: ["alex@example.com"] }),
-    ).rejects.toThrow(BadDataException);
+    await expect(createPolicy({ users: ["alex@example.com"] })).rejects.toThrow(
+      BadDataException,
+    );
 
     expect(policyWasSaved()).toBe(false);
     expect(ruleCreates).toHaveLength(0);
@@ -765,7 +764,10 @@ describe("with the real base create of the policy", () => {
     jest
       .spyOn(
         OnCallDutyPolicyService as unknown as {
-          onCreateSuccess: () => Promise<OnCallDutyPolicy>;
+          onCreateSuccess: (
+            onCreate: unknown,
+            item: OnCallDutyPolicy,
+          ) => Promise<OnCallDutyPolicy>;
         },
         "onCreateSuccess",
       )

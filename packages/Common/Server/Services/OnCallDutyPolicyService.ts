@@ -96,8 +96,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
   public override async create(
     createBy: CreateBy<OnCallDutyPolicy>,
   ): Promise<OnCallDutyPolicy> {
-    const firstResponders: FirstResponderIds | null = createBy.props
-      .ignoreHooks
+    const firstResponders: FirstResponderIds | null = createBy.props.ignoreHooks
       ? null
       : readFirstResponderIds(createBy.miscDataProps);
 

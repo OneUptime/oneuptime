@@ -132,17 +132,20 @@ describe("the first responders change's strings", () => {
     expect(wrong).toEqual([]);
   });
 
-  test.each(LOCALE_FILES)("%s keeps none of the retired keys", (file: string) => {
-    const locale: Record<string, unknown> = readLocale(file);
+  test.each(LOCALE_FILES)(
+    "%s keeps none of the retired keys",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
 
-    const kept: Array<string> = RETIRED_STRINGS.filter(
-      (text: string): boolean => {
-        return text in locale;
-      },
-    );
+      const kept: Array<string> = RETIRED_STRINGS.filter(
+        (text: string): boolean => {
+          return text in locale;
+        },
+      );
 
-    expect(kept).toEqual([]);
-  });
+      expect(kept).toEqual([]);
+    },
+  );
 
   test.each(NON_ENGLISH_FILES)(
     "%s translates every new string",

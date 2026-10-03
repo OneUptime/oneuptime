@@ -1,7 +1,9 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
-import { getDefaultEscalationRuleName } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import {
+  DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+  getDefaultEscalationRuleName,
+} from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { FIRST_RESPONDER_KEYS } from "Common/Types/OnCallDutyPolicy/FirstResponders";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -185,7 +187,11 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
           "Escalation Rules",
           "Advanced",
         ]) {
-          expect({ lang, label, found: first.includes(`**${dashboard[label]}**`) }).toEqual({
+          expect({
+            lang,
+            label,
+            found: first.includes(`**${dashboard[label]}**`),
+          }).toEqual({
             lang,
             label,
             found: true,

@@ -99,14 +99,12 @@ const OnCallDutyPage: FunctionComponent<
    * Advanced (OnCallPolicyCreateForm.ts). Built once, not on every render of
    * the page.
    */
-  const createFormFields: Array<ModelField<OnCallDutyPolicy>> = useMemo(
-    (): Array<ModelField<OnCallDutyPolicy>> => {
+  const createFormFields: Array<ModelField<OnCallDutyPolicy>> =
+    useMemo((): Array<ModelField<OnCallDutyPolicy>> => {
       return getOnCallPolicyCreateFormFields({
         canAddEscalationRules: canAddEscalationRules,
       });
-    },
-    [],
-  );
+    }, []);
 
   return (
     <Fragment>
@@ -147,7 +145,9 @@ const OnCallDutyPage: FunctionComponent<
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
         formFields={createFormFields}
-        onCreateSuccess={(item: OnCallDutyPolicy): Promise<OnCallDutyPolicy> => {
+        onCreateSuccess={(
+          item: OnCallDutyPolicy,
+        ): Promise<OnCallDutyPolicy> => {
           /*
            * A new policy opens on its Escalation Rules: Level 1 is there when
            * someone was picked to be paged first, and adding the first rule

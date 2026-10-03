@@ -291,7 +291,11 @@ afterEach(() => {
 async function openCreateForm(): Promise<HTMLElement> {
   render(<OnCallDutyPoliciesPage {...pageProps} />);
 
-  await screen.findByText("No on-call duty policies yet", {}, { timeout: 10000 });
+  await screen.findByText(
+    "No on-call duty policies yet",
+    {},
+    { timeout: 10000 },
+  );
 
   const createButton: HTMLElement = await waitFor((): HTMLElement => {
     const button: HTMLElement | undefined = screen
@@ -472,7 +476,9 @@ describe("creating the policy", () => {
     expect(model.name).toBe("Payments on-call");
     // The picker's own key, and its lists, are not columns of the policy.
     for (const key of ["notify", "onCallSchedules", "teams", "users"]) {
-      expect((model as unknown as Record<string, unknown>)[key]).toBeUndefined();
+      expect(
+        (model as unknown as Record<string, unknown>)[key],
+      ).toBeUndefined();
     }
     expect(request.miscDataProps).not.toHaveProperty("notify");
   });
@@ -522,9 +528,9 @@ describe("creating the policy", () => {
       createOrUpdateMock.mock.calls[0]![0].miscDataProps;
 
     for (const key of ["onCallSchedules", "teams", "users"]) {
-      expect(
-        (miscDataProps[key] as Array<string> | undefined) || [],
-      ).toEqual([]);
+      expect((miscDataProps[key] as Array<string> | undefined) || []).toEqual(
+        [],
+      );
     }
   });
 
