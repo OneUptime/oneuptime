@@ -67,7 +67,7 @@ Ve a **Incidentes → Ajustes → Plantillas de Notas** (`/dashboard/{projectId}
 
 Igual que con las plantillas de incidente, las filas se crean y se consultan en lugar de editarse en línea; abre una plantilla para cambiarla.
 
-Las plantillas de notas aparecen justo donde las necesitas: los diálogos de confirmación **Acknowledge Incident** y **Resolve Incident** ofrecen **Seleccionar plantilla de nota** junto al campo **Nota pública**. Consulta [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed) para ver en qué se diferencian las notas públicas de las privadas.
+Las plantillas de notas aparecen justo donde las necesitas: los diálogos de confirmación **Reconocer incidente** y **Resolver incidente** ofrecen **Seleccionar plantilla de nota** sobre el campo **Nota pública**, plegados bajo **Añadir una nota pública**. Consulta [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed) para ver en qué se diferencian las notas públicas de las privadas.
 
 ## Plantillas post-mortem
 

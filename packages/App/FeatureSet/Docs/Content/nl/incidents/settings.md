@@ -65,7 +65,7 @@ Ga naar **Incidenten → Instellingen → Notitie-sjablonen** (`/dashboard/{proj
 
 Net als bij incidentsjablonen worden rijen aangemaakt en bekeken in plaats van ter plekke bewerkt; open een sjabloon om het te wijzigen.
 
-Notitiesjablonen duiken op waar je ze echt nodig hebt: de bevestigingsdialogen **Acknowledge Incident** en **Resolve Incident** bieden allebei **Selecteer notitiesjabloon** naast het veld **Openbare notitie**. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed) voor het verschil tussen openbare en privénotities.
+Notitiesjablonen duiken op waar je ze echt nodig hebt: de bevestigingsdialogen **Incident bevestigen** en **Incident oplossen** bieden allebei **Selecteer notitiesjabloon** boven het veld **Openbare notitie**, ingeklapt onder **Openbare notitie toevoegen**. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed) voor het verschil tussen openbare en privénotities.
 
 ## Postmortemsjablonen
 

@@ -452,14 +452,28 @@ describe.each([
 
       fireEvent.click(document.getElementById(headerCase.acknowledgeId)!);
 
+      type ModalField = {
+        overrideFieldKey?: string | undefined;
+        showIf?: () => boolean;
+      };
+
       const modalProps: {
-        formProps: { fields: Array<{ showIf?: () => boolean }> };
+        formProps: { fields: Array<ModalField> };
       } = modelFormModalMock.mock.calls[
         modelFormModalMock.mock.calls.length - 1
-      ]![0] as { formProps: { fields: Array<{ showIf?: () => boolean }> } };
+      ]![0] as { formProps: { fields: Array<ModalField> } };
 
-      // No templates, so the template picker stays hidden.
-      expect(modalProps.formProps.fields[0]!.showIf!()).toBe(false);
+      /*
+       * No templates, so the template picker (folded with the note, after
+       * any notify checkbox) stays hidden.
+       */
+      const templatePicker: ModalField | undefined =
+        modalProps.formProps.fields.find((field: ModalField): boolean => {
+          return Boolean(field.overrideFieldKey?.endsWith("NoteTemplate"));
+        });
+
+      expect(templatePicker).toBeDefined();
+      expect(templatePicker!.showIf!()).toBe(false);
     });
 
     test("a failed state read offers a retry that recovers", async () => {

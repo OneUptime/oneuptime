@@ -67,7 +67,7 @@ Vá a **Incidentes → Configurações → Modelos de notas** (`/dashboard/{proj
 
 Como nos modelos de incidente, as linhas são criadas e consultadas, não editadas na própria lista; abra um modelo para alterá-lo.
 
-Os modelos de notas aparecem onde você realmente precisa deles: as caixas de confirmação **Acknowledge Incident** e **Resolve Incident** oferecem **Selecionar Modelo de Nota** ao lado do campo **Nota pública**. Veja [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-and-feed) para entender como notas públicas e privadas se diferenciam.
+Os modelos de notas aparecem onde você realmente precisa deles: as caixas de confirmação **Confirmar incidente** e **Resolver incidente** oferecem **Selecionar Modelo de Nota** acima do campo **Nota pública**, recolhidos em **Adicionar uma nota pública**. Veja [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-and-feed) para entender como notas públicas e privadas se diferenciam.
 
 ## Modelos de post-mortem
 

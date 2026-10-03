@@ -184,19 +184,6 @@ const MODAL_FORMS: Array<ModalFormCase> = [
     derivation:
       "const notifySubscribersByDefault: boolean = props.notifyStatusPageSubscribersByDefault ?? true;",
   },
-  {
-    name: "Scheduled maintenance change state",
-    file: ["Components", "ScheduledMaintenance", "ChangeState.tsx"],
-    modal:
-      /\{showModal && \( <ModelFormModal [^>]*?modelType=\{ScheduledMaintenanceStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
-    flagKey: "shouldStatusPageSubscribersBeNotified",
-    notifyingDescription: "Notify subscribers of this state change.",
-    helperImport: HELPER_WITH_STATE_CHANGE_SETTINGS_IMPORT,
-    propDeclaration:
-      "subscriberNotificationSettings?: | ScheduledMaintenanceStateChangeSubscriberNotificationSetting | undefined;",
-    derivation:
-      "const notifySubscribersByDefault: boolean = PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange( props.subscriberNotificationSettings, selectedScheduledMaintenanceState, );",
-  },
 ];
 
 describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
@@ -238,6 +225,72 @@ describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
     expect(checkbox).toContain(
       `description: notifySubscribersByDefault ? "${form.notifyingDescription}" : ${QUIET_DESCRIPTION_REFERENCE},`,
     );
+  });
+});
+
+/*
+ * The state change dialog builds its body with the shared state change
+ * fields (EventView/StateChangeFormFields): the notify checkbox open, the
+ * public note folded under it. The checkbox is the builder's; what the
+ * event decides is what it hands the builder.
+ */
+describe("Scheduled maintenance change state", () => {
+  const source: string = readSource(
+    "Components",
+    "ScheduledMaintenance",
+    "ChangeState.tsx",
+  );
+  const modal: string = extract(
+    source,
+    /\{showModal && \( <ModelFormModal [^>]*?modelType=\{ScheduledMaintenanceStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
+  );
+  const builder: string = readSource(
+    "Components",
+    "EventView",
+    "StateChangeFormFields.ts",
+  );
+  const checkbox: string = extract(
+    builder,
+    /\{ field: \{ shouldStatusPageSubscribersBeNotified: true, \} as SelectFormFields<TEntity>, fieldType: FormFieldSchemaType\.Checkbox,[\s\S]*?\}/,
+  );
+
+  test("finds the modal form and builds it with the shared state change fields", () => {
+    expect(modal).not.toBe("");
+    expect(modal).toContain(
+      "fields: getStateChangeFormFields<ScheduledMaintenanceStateTimeline>( {",
+    );
+    expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
+    expect(checkbox).not.toBe("");
+    expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
+  });
+
+  test("takes the default from an optional prop, through the shared rule", () => {
+    expect(source).toContain(
+      "subscriberNotificationSettings?: | ScheduledMaintenanceStateChangeSubscriberNotificationSetting | undefined;",
+    );
+    expect(source).toContain(
+      "const notifySubscribersByDefault: boolean = PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange( props.subscriberNotificationSettings, selectedScheduledMaintenanceState, );",
+    );
+  });
+
+  test("seeds the flag as an initial form value, not only as the checkbox default", () => {
+    expect(modal).toMatch(
+      /initialValues=\{\{ shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,? \}\}/,
+    );
+  });
+
+  test("starts the checkbox from the event's default and explains a quiet one", () => {
+    expect(source).toContain(HELPER_WITH_STATE_CHANGE_SETTINGS_IMPORT);
+    expect(modal).toContain(
+      `notifySubscribers: { byDefault: notifySubscribersByDefault, quietDescription: ${QUIET_DESCRIPTION_REFERENCE}, },`,
+    );
+  });
+
+  test("the shared checkbox starts where it is told, never hard-coded on", () => {
+    expect(checkbox).toContain(
+      "defaultValue: options.notifySubscribers.byDefault,",
+    );
+    expect(checkbox).not.toContain("defaultValue: true");
   });
 });
 
@@ -313,11 +366,25 @@ describe("scheduled maintenance change state public note", () => {
   );
 
   test("offers a public note under the one notify checkbox", () => {
-    expect(modal).toContain("field: { publicNote: true, } as any,");
-    expect(modal.match(/fieldType: FormFieldSchemaType\.Checkbox,/g)).toEqual([
-      "fieldType: FormFieldSchemaType.Checkbox,",
+    const builder: string = readSource(
+      "Components",
+      "EventView",
+      "StateChangeFormFields.ts",
+    );
+
+    // A public note, and the notify checkbox the builder draws once.
+    expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
+    expect(modal.match(/notifySubscribers: \{/g)).toEqual([
+      "notifySubscribers: {",
     ]);
+    expect(modal).not.toContain("FormFieldSchemaType.Checkbox");
+    expect(builder.match(/fieldType: FormFieldSchemaType\.Checkbox,/g)).toEqual(
+      ["fieldType: FormFieldSchemaType.Checkbox,"],
+    );
     expect(modal).not.toContain(
+      "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
+    );
+    expect(builder).not.toContain(
       "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
     );
   });

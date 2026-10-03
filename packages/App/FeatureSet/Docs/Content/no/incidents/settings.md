@@ -67,7 +67,7 @@ Gå til **Hendelser → Innstillinger → Notatmaler** (`/dashboard/{projectId}/
 
 Som med hendelsesmaler opprettes og vises radene i stedet for å redigeres direkte i listen; åpne en mal for å endre den.
 
-Notatmaler dukker opp der du faktisk trenger dem: bekreftelsesdialogene **Acknowledge Incident** og **Resolve Incident** tilbyr begge **Velg notatmal** ved siden av feltet **Offentlig notat**. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed) for hvordan offentlige og private notater skiller seg fra hverandre.
+Notatmaler dukker opp der du faktisk trenger dem: bekreftelsesdialogene **Bekreft hendelse** og **Løs hendelse** tilbyr begge **Velg notatmal** over feltet **Offentlig notat**, foldet sammen under **Legg til et offentlig notat**. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed) for hvordan offentlige og private notater skiller seg fra hverandre.
 
 ## Postmortem-maler
 

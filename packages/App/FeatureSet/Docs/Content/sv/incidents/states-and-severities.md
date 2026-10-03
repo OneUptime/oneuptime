@@ -97,7 +97,7 @@ Där allvarlighetsgrad gör mer än att beskriva: under **Incidenter → Regler 
 
 Det finns fyra sätt en incident byter tillstånd:
 
-- **Rubrikknapparna.** Öppna en incident. Om dess aktuella tillstånd ligger före det bekräftade tillståndet får du **Acknowledge** och **Lös**; ligger det mellan de två får du **Lös**. Var och en öppnar en bekräftelsedialog — **Acknowledge Incident** eller **Resolve Incident** — som också erbjuder **Välj anteckningsmall**, **Offentlig anteckning** och **Meddela statussideprenumeranter**.
+- **Rubrikknapparna.** Öppna en incident. Om dess aktuella tillstånd ligger före det bekräftade tillståndet får du **Bekräfta** och **Lös**; ligger det mellan de två får du **Lös**. Var och en öppnar en kort bekräftelse — **Bekräfta incident** eller **Lös incident** — med **Meddela statussideprenumeranter** och, hopfällda under **Lägg till en offentlig anteckning**, det valfria fältet **Offentlig anteckning** och väljaren **Välj anteckningsmall** (när projektet har anteckningsmallar). Att bekräfta stoppar också all joureskalering för incidenten.
 - **Tillståndstidslinjen.** Lägg till en rad för hand från incidentens sida **Tillståndstidslinje** med **Incidentstatus**, **Börjar den** och **Meddela statussideprenumeranter**.
 - **Massändring.** Incidentlistan har massåtgärden **Ändra tillstånd** för att flytta flera incidenter samtidigt.
 - **Automatiskt.** Ett monitorkriterium med **Lös incident automatiskt** påslaget löser sin incident när kriteriet inte längre uppfylls, och API:et kan uppdatera tillståndet genom `/api/incident-state-timeline`.

@@ -97,7 +97,7 @@ Dér hvor alvorsgrad gør mere end at beskrive: på **Hændelser → Regler → 
 
 Der er fire måder, en hændelse skifter tilstand på:
 
-- **Knapperne i sidehovedet.** Åbn en hændelse. Ligger dens aktuelle tilstand før den bekræftede tilstand, får du **Acknowledge** og **Løs**; ligger den mellem de to, får du **Løs**. Hver åbner en bekræftelsesdialog — **Acknowledge Incident** eller **Resolve Incident** — der også tilbyder **Vælg noteskabelon**, **Offentlig note** og **Underret statussideabonnenter**.
+- **Knapperne i sidehovedet.** Åbn en hændelse. Ligger dens aktuelle tilstand før den bekræftede tilstand, får du **Bekræft** og **Løs**; ligger den mellem de to, får du **Løs**. Hver åbner en kort bekræftelse — **Bekræft hændelse** eller **Løs hændelse** — med **Underret statussideabonnenter** og, foldet sammen under **Tilføj en offentlig note**, det valgfrie felt **Offentlig note** og vælgeren **Vælg noteskabelon** (når projektet har noteskabeloner). Bekræftelsen stopper også enhver vagteskalering for hændelsen.
 - **Tilstandstidslinjen.** Tilføj en række i hånden fra hændelsens side **Tilstandstidslinje** med **Hændelsesstatus**, **Begynder den** og **Underret statussideabonnenter**.
 - **Massevis.** Listen over hændelser har massehandlingen **Skift tilstand** til at flytte flere hændelser på én gang.
 - **Automatisk.** Et monitorkriterium med **Løs hændelse automatisk** slået til løser sin hændelse, når kriteriet ikke længere er opfyldt, og API'et kan opdatere tilstanden gennem `/api/incident-state-timeline`.

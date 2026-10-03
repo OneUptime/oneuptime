@@ -67,7 +67,7 @@ Gå til **Hændelser → Indstillinger → Noteskabeloner** (`/dashboard/{projec
 
 Som med hændelsesskabeloner oprettes og åbnes rækker frem for at blive redigeret på listen; åbn en skabelon for at ændre den.
 
-Noteskabeloner dukker op dér, hvor du reelt har brug for dem: bekræftelsesdialogerne **Acknowledge Incident** og **Resolve Incident** tilbyder begge **Vælg noteskabelon** ved siden af feltet **Offentlig note**. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed) for forskellen på offentlige og private noter.
+Noteskabeloner dukker op dér, hvor du reelt har brug for dem: bekræftelsesdialogerne **Bekræft hændelse** og **Løs hændelse** tilbyder begge **Vælg noteskabelon** over feltet **Offentlig note**, foldet sammen under **Tilføj en offentlig note**. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed) for forskellen på offentlige og private noter.
 
 ## Postmortem-skabeloner
 
