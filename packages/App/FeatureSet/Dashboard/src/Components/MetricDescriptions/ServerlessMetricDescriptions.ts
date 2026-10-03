@@ -15,6 +15,8 @@
  * Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type ServerlessMetric =
   | "invocations"
   | "errorRate"
@@ -26,15 +28,15 @@ export type ServerlessMetric =
 export const SERVERLESS_METRIC_DESCRIPTIONS: Record<ServerlessMetric, string> =
   {
     invocations:
-      "Spans recorded for this function (matched by its faas.name attribute) in the selected range. An invocation usually produces one span, plus more for the database and service calls it makes, so this can be higher than the true invocation count.",
+      translationKey("Spans recorded for this function (matched by its faas.name attribute) in the selected range. An invocation usually produces one span, plus more for the database and service calls it makes, so this can be higher than the true invocation count."),
     errorRate:
-      "The share of this function's spans in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
+      translationKey("The share of this function's spans in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%."),
     p95Duration:
-      "p95 means the 95th percentile: 95% of this function's spans (not only whole invocations) finished faster than this and the slowest 5% took longer. Worked out for each interval on the chart, then averaged over the selected range, so quiet and busy intervals count equally.",
+      translationKey("p95 means the 95th percentile: 95% of this function's spans (not only whole invocations) finished faster than this and the slowest 5% took longer. Worked out for each interval on the chart, then averaged over the selected range, so quiet and busy intervals count equally."),
     instances:
-      "Warm copies of this function's runtime (faas.instance) on record, whatever the selected range. One that stops reporting is dropped about 15 minutes later by default while the function keeps reporting; an idle function keeps its last list.",
+      translationKey("Warm copies of this function's runtime (faas.instance) on record, whatever the selected range. One that stops reporting is dropped about 15 minutes later by default while the function keeps reporting; an idle function keeps its last list."),
     invocationsChart:
-      "Spans recorded for this function in each interval, with the ones whose status was Error as a second line. One invocation can produce several spans.",
+      translationKey("Spans recorded for this function in each interval, with the ones whose status was Error as a second line. One invocation can produce several spans."),
     p95DurationChart:
-      "The 95th percentile span duration in each interval: 95% of this function's spans in that interval finished faster than the line. A spike means some invocations were much slower than usual.",
+      translationKey("The 95th percentile span duration in each interval: 95% of this function's spans in that interval finished faster than the line. A spike means some invocations were much slower than usual."),
   };

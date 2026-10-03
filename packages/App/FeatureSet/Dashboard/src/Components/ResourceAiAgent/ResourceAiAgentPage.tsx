@@ -154,6 +154,11 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * A resource's AI agent page (AI → AI agent): whether OneUptime AI can reach
@@ -256,6 +261,7 @@ interface SettingsModalProps {
 const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   props: SettingsModalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [saved, setSaved] = useState<ResourceAiAccessSavedSettings | null>(
     null,
   );
@@ -293,7 +299,10 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 
         if (!model) {
           throw new Error(
-            `Could not read this ${descriptor.noun}'s AI settings. It may have been deleted, or you may no longer have access to it.`,
+            translator.translateTemplate(
+              "Could not read this {{noun}}'s AI settings. It may have been deleted, or you may no longer have access to it.",
+              { noun: translatableTerm(descriptor.noun) },
+            ),
           );
         }
 
@@ -353,7 +362,13 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       {
         field: { isAiInvestigationEnabled: true },
         title: descriptor.investigateTitle,
-        description: `Read-only: ${descriptor.readExamples}. An investigation never changes this ${descriptor.noun}.`,
+        description: translator.translateTemplate(
+          "Read-only: {{readExamples}}. An investigation never changes this {{noun}}.",
+          {
+            readExamples: descriptor.readExamples,
+            noun: translatableTerm(descriptor.noun),
+          },
+        ),
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         dataTestId: "ai-investigation-field",
@@ -581,6 +596,8 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 function InstallInstructions(props: {
   install: ResourceAiAgentInstall;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="space-y-3" data-testid="ai-agent-install">
       <p className="text-xs text-gray-600" data-testid="ai-agent-install-where">
@@ -589,7 +606,9 @@ function InstallInstructions(props: {
       <div data-testid="ai-agent-install-command">
         <CodeBlock language="yaml" code={props.install.composeSnippet} />
       </div>
-      <p className="text-xs text-gray-600">Then start it:</p>
+      <p className="text-xs text-gray-600">
+        {translator.translateText("Then start it:")}
+      </p>
       <div data-testid="ai-agent-install-start">
         <CodeBlock language="bash" code={props.install.startCommand} />
       </div>
@@ -615,13 +634,13 @@ function InstallInstructions(props: {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-2 text-left font-medium text-gray-500">
-                Variable
+                {translator.translateText("Variable")}
               </th>
               <th className="px-3 py-2 text-left font-medium text-gray-500">
-                Value
+                {translator.translateText("Value")}
               </th>
               <th className="px-3 py-2 text-left font-medium text-gray-500">
-                What it does
+                {translator.translateText("What it does")}
               </th>
             </tr>
           </thead>
@@ -640,7 +659,7 @@ function InstallInstructions(props: {
                       {variable.value}
                     </td>
                     <td className="px-3 py-2 text-gray-600">
-                      {variable.description}
+                      {translator.translateText(variable.description)}
                     </td>
                   </tr>
                 );
@@ -657,6 +676,7 @@ function InstallInstructions(props: {
 function WriteAccessInstructions(props: {
   descriptor: ResourceAiAgentDescriptor;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const commands: ResourceAiAgentWriteAccessCommands =
     getResourceAiAgentWriteAccessCommands(props.descriptor.resourceType);
 
@@ -666,7 +686,9 @@ function WriteAccessInstructions(props: {
       dataTestId="ai-access-write-commands"
     >
       <p className="text-xs leading-5 text-gray-600">
-        The agent is read-only, so fixes cannot run yet.
+        {translator.translateText(
+          "The agent is read-only, so fixes cannot run yet.",
+        )}
       </p>
       {commands.installerNote ? (
         <p
@@ -700,7 +722,7 @@ function WriteAccessInstructions(props: {
             <></>
           )}
           <p className="text-xs leading-5 text-gray-600">
-            Or allow every target:
+            {translator.translateText("Or allow every target:")}
           </p>
         </>
       ) : (
@@ -709,7 +731,9 @@ function WriteAccessInstructions(props: {
       <div data-testid="ai-access-write-all-env">
         <CodeBlock language="bash" code={commands.allTargetsEnv} />
       </div>
-      <p className="text-xs leading-5 text-gray-600">Then restart the agent:</p>
+      <p className="text-xs leading-5 text-gray-600">
+        {translator.translateText("Then restart the agent:")}
+      </p>
       <div data-testid="ai-access-write-restart-command">
         <CodeBlock language="bash" code={commands.restartCommand} />
       </div>
@@ -726,6 +750,7 @@ function WriteAccessInstructions(props: {
 const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const descriptor: ResourceAiAgentDescriptor = props.descriptor;
   const modelId: ObjectID = useResourceId();
 
@@ -1208,7 +1233,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         <Alert
           type={AlertType.WARNING}
           strongTitle="Could not refresh the AI agent status"
-          title={`${error} Showing the last known status; this page retries on its own.`}
+          title={translator.translateTemplate(
+            "{{error}} Showing the last known status; this page retries on its own.",
+            { error: error },
+          )}
           dataTestId="ai-access-refresh-warning"
         />
       ) : (
@@ -1298,9 +1326,17 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               className="text-xs text-rose-600"
               data-testid="ai-agent-last-error"
             >
-              Last command error
-              {lastVerifiedAt ? ` (last worked ${lastVerifiedAt})` : ""}:{" "}
-              {status.aiAccessLastError}
+              {lastVerifiedAt
+                ? translator.translateTemplate(
+                    "Last command error (last worked {{lastVerifiedAt}}): {{error}}",
+                    {
+                      lastVerifiedAt: lastVerifiedAt,
+                      error: status.aiAccessLastError,
+                    },
+                  )
+                : translator.translateTemplate("Last command error: {{error}}", {
+                    error: status.aiAccessLastError,
+                  })}
             </p>
           ) : (
             <></>
@@ -1368,11 +1404,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                           text={
                             row.succeeded
                               ? "succeeded"
-                              : `failed${
-                                  row.exitCode !== null
-                                    ? ` (exit ${row.exitCode})`
-                                    : ""
-                                }`
+                              : row.exitCode !== null
+                                ? translator.translateTemplate(
+                                    "failed (exit {{exitCode}})",
+                                    { exitCode: row.exitCode },
+                                  )
+                                : "failed"
                           }
                           color={row.succeeded ? Green500 : Red500}
                         />
@@ -1529,7 +1566,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
       {isConfirmingReset ? (
         <ConfirmModal
           title="Reset the AI agent?"
-          description={`This revokes the ${descriptor.agentName}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.`}
+          description={translator.translateTemplate(
+            "This revokes the {{agentName}}'s key. The agent registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked.",
+            { agentName: translatableTerm(descriptor.agentName) },
+          )}
           submitButtonText="Reset agent"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isActing}

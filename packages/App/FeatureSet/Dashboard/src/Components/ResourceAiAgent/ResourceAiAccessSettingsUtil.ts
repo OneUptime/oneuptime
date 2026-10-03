@@ -18,6 +18,12 @@ import ResourceCommandPolicy, {
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import { joinAiAccessProtections } from "../AiAccess/AiAccessModes";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure pieces behind "What AI may do" on a resource's AI agent page and
@@ -680,9 +686,14 @@ export function getResourceAiAccessConfirmation(data: {
   if (newMode === ResourceAiRemediationMode.BypassApproval) {
     return {
       title: "Turn on Bypass approval?",
-      description: `With Bypass approval OneUptime AI does not ask: it applies every fix the command policy allows on this ${noun} on its own — ${data.descriptor.riskierExamples} included, in follow-up rounds too. Even so, ${getEveryModeProtectionsSentence(
-        data.descriptor,
-      )}.`,
+      description: translateTemplate(
+        "With Bypass approval OneUptime AI does not ask: it applies every fix the command policy allows on this {{noun}} on its own — {{riskierExamples}} included, in follow-up rounds too. Even so, {{protections}}.",
+        {
+          noun: translatableTerm(noun),
+          riskierExamples: translatableTerm(data.descriptor.riskierExamples),
+          protections: getEveryModeProtectionsSentence(data.descriptor),
+        },
+      ),
     };
   }
 
@@ -728,26 +739,33 @@ export function getResourceAiAccessConfirmation(data: {
     return null;
   }
 
-  const isOne: boolean = broadPatterns.length === 1;
   const quoted: string = broadPatterns
     .map((pattern: string): string => {
       return `"${pattern}"`;
     })
     .join(", ");
 
+  // One sentence per mode, each with its own singular and plural.
+  const broadEntriesSentence: PluralTemplate =
+    resultingMode === ResourceAiRemediationMode.Automatic
+      ? {
+          one: "The allowlist entry {{patterns}} uses a * for the object a change touches, so it pre-approves a whole class of changes, not one. In Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+          other:
+            "The allowlist entries {{patterns}} use a * for the object a change touches, so they pre-approve a whole class of changes, not one. In Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+        }
+      : {
+          one: "The allowlist entry {{patterns}} uses a * for the object a change touches, so it pre-approves a whole class of changes, not one. Once this {{noun}} is switched to Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+          other:
+            "The allowlist entries {{patterns}} use a * for the object a change touches, so they pre-approve a whole class of changes, not one. Once this {{noun}} is switched to Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+        };
+
   return {
     title: "Let riskier changes run without approval?",
-    description: `The allowlist entr${isOne ? "y" : "ies"} ${quoted} ${
-      isOne ? "uses" : "use"
-    } a * for the object a change touches, so ${
-      isOne ? "it pre-approves" : "they pre-approve"
-    } a whole class of changes, not one. ${
-      resultingMode === ResourceAiRemediationMode.Automatic
-        ? "In Automatic mode"
-        : `Once this ${noun} is switched to Automatic mode`
-    }, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, ${getEveryModeProtectionsSentence(
-      data.descriptor,
-    )}.`,
+    description: translatePlural(broadEntriesSentence, broadPatterns.length, {
+      patterns: quoted,
+      noun: translatableTerm(noun),
+      protections: getEveryModeProtectionsSentence(data.descriptor),
+    }),
   };
 }
 

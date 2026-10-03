@@ -24,6 +24,11 @@ import {
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
 } from "./FilterChipStyles";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -64,6 +69,7 @@ export interface ComponentProps {
 const FilterChipDateRange: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
 
@@ -139,7 +145,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
             )}
             <span className="whitespace-nowrap">
               <span className={isChipActive ? "text-indigo-500/80" : ""}>
-                {props.label}
+                {translator.translateText(props.label)}
               </span>
               <span
                 className={`mx-1 ${
@@ -150,11 +156,13 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
               </span>
               <span className="font-semibold">
                 {valueless
-                  ? FILTER_OPERATOR_LABELS[operator]
-                  : `${FILTER_OPERATOR_LABELS[operator]} ${formatFacetDateRange(
-                      props.values,
-                      operator,
-                    )}`}
+                  ? translator.translateText(FILTER_OPERATOR_LABELS[operator])
+                  : translator.translateTemplate("{{operator}} {{value}}", {
+                      operator: translatableTerm(
+                        FILTER_OPERATOR_LABELS[operator],
+                      ),
+                      value: formatFacetDateRange(props.values, operator),
+                    })}
               </span>
             </span>
             <span
@@ -172,7 +180,10 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 }
               }}
               className={FILTER_CHIP_CLEAR_CLASSES}
-              aria-label={`Clear ${props.label} filter`}
+              aria-label={translator.translateTemplate(
+                "Clear {{label}} filter",
+                { label: translatableTerm(props.label) },
+              )}
             >
               <Icon icon={IconProp.Close} className="h-3 w-3" />
             </span>
@@ -185,7 +196,9 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 className="h-3.5 w-3.5 text-gray-400"
               />
             )}
-            <span className="whitespace-nowrap">{props.label}</span>
+            <span className="whitespace-nowrap">
+              {translator.translateText(props.label)}
+            </span>
             <Icon
               icon={IconProp.ChevronDown}
               className="h-3 w-3 text-gray-400 transition-transform group-aria-expanded:rotate-180"
@@ -204,19 +217,24 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
         >
           {supportedOperators.length > 1 && (
             <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
-              <span className="shrink-0">{props.label.toLowerCase()}</span>
+              <span className="shrink-0">
+                {translator.translateTerm(props.label, { inSentence: true })}
+              </span>
               <select
                 value={operator}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   changeOperator(e.target.value as FilterOperator);
                 }}
                 className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
-                aria-label={`${props.label} operator`}
+                aria-label={translator.translateTemplate(
+                  "{{label}} operator",
+                  { label: translatableTerm(props.label) },
+                )}
               >
                 {supportedOperators.map((op: FilterOperator) => {
                   return (
                     <option key={op} value={op}>
-                      {FILTER_OPERATOR_LABELS[op]}
+                      {translator.translateText(FILTER_OPERATOR_LABELS[op])}
                     </option>
                   );
                 })}
@@ -226,7 +244,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
 
           {valueless ? (
             <div className="px-3 py-4 text-center text-xs text-gray-500">
-              No date needed.
+              {translator.translateText("No date needed.")}
             </div>
           ) : (
             <div className="p-2">
@@ -234,7 +252,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 <div className="min-w-0 flex-1">
                   {isBetween && (
                     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                      From
+                      {translator.translateText("From")}
                     </label>
                   )}
                   <Input
@@ -257,7 +275,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 {isBetween && (
                   <div className="min-w-0 flex-1">
                     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                      To
+                      {translator.translateText("To")}
                     </label>
                     <Input
                       key={`end-${operator}`}
@@ -274,7 +292,9 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
               </div>
               {isBetween && !isChipActive && hasAnyDate && (
                 <p className="mt-2 px-0.5 text-xs text-gray-400">
-                  Pick both dates to apply this filter.
+                  {translator.translateText(
+                    "Pick both dates to apply this filter.",
+                  )}
                 </p>
               )}
             </div>

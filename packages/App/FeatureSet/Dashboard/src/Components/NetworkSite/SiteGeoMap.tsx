@@ -88,6 +88,8 @@ import {
   setMapLayer,
   splitMapTooltip,
 } from "./SiteMapInk";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -299,11 +301,13 @@ const MapControlButton: FunctionComponent<{
   disabled: boolean;
   onClick: () => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <button
       type="button"
-      title={props.label}
-      aria-label={props.label}
+      title={translator.translateText(props.label)}
+      aria-label={translator.translateText(props.label)}
       disabled={props.disabled}
       data-testid={`site-geo-map-control-${props.label
         .toLowerCase()
@@ -403,6 +407,7 @@ const MapModeSwitch: FunctionComponent<{
    * what reads as the same thing — so it falls back to naming the
    * behaviour instead.
    */
+  const translator: Translator = useTranslator();
   const isGenericLabel: boolean =
     props.childTypeLabel.toLowerCase() === GENERIC_SITE_TYPE_LABEL;
 
@@ -416,21 +421,26 @@ const MapModeSwitch: FunctionComponent<{
        * "One marker per regions at this level".
        */
       label: isGenericLabel
-        ? "Grouped"
+        ? translator.translateTemplate("Grouped")
         : pluralizeSiteType(props.childTypeLabel),
-      hint: `One marker per ${props.childTypeLabel.toLowerCase()} at this level`,
+      hint: translator.translateTemplate(
+        "One marker per {{siteType}} at this level",
+        { siteType: props.childTypeLabel.toLowerCase() },
+      ),
     },
     {
       value: "all",
-      label: "All sites",
-      hint: "Every site below this level, individually",
+      label: translator.translateTemplate("All sites"),
+      hint: translator.translateTemplate(
+        "Every site below this level, individually",
+      ),
     },
   ];
 
   return (
     <div
       role="group"
-      aria-label="Map grouping"
+      aria-label={translator.translateText("Map grouping")}
       className="inline-flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
     >
       {options.map(
@@ -476,6 +486,7 @@ const MapModeSwitch: FunctionComponent<{
 const SiteGeoMap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [openCluster, setOpenCluster] = useState<OpenCluster | null>(null);
   const [hovered, setHovered] = useState<HoveredTarget | null>(null);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
@@ -1046,8 +1057,13 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             description={
               <span className="mx-auto block max-w-md">
                 {searchText
-                  ? `Nothing matching “${searchText}” at this level is down, and no unit beneath it is either. Switch back to All to see the map.`
-                  : "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see the map."}
+                  ? translator.translateTemplate(
+                      "Nothing matching “{{searchText}}” at this level is down, and no unit beneath it is either. Switch back to All to see the map.",
+                      { searchText: searchText },
+                    )
+                  : translator.translateText(
+                      "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see the map.",
+                    )}
               </span>
             }
           />
@@ -1064,7 +1080,10 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             title="No sites here match your search"
             description={
               <span className="mx-auto block max-w-md">
-                {`Nothing at this level matches “${searchText}”. The results under the search box look through your whole network, not just this level.`}
+                {translator.translateTemplate(
+                  "Nothing at this level matches “{{searchText}}”. The results under the search box look through your whole network, not just this level.",
+                  { searchText: searchText },
+                )}
               </span>
             }
           />
@@ -1084,20 +1103,29 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           description={
             hasSites ? (
               <span className="mx-auto block max-w-md">
-                {unmappableCount} site
-                {unmappableCount === 1 ? " has" : "s have"} coordinates the map
-                cannot read. Check the latitude and longitude on{" "}
-                {unmappableCount === 1 ? "that site" : "those sites"}.
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} site has coordinates the map cannot read. Check the latitude and longitude on that site.",
+                    other:
+                      "{{count}} sites have coordinates the map cannot read. Check the latitude and longitude on those sites.",
+                  },
+                  unmappableCount,
+                )}
               </span>
             ) : (
               <span className="mx-auto block max-w-md">
                 {unplacedCount > 0
-                  ? `${unplacedCount} ${
-                      unplacedCount === 1 ? "site has" : "sites have"
-                    } no coordinates — neither on ${
-                      unplacedCount === 1 ? "it" : "them"
-                    } nor on anything beneath. Add a latitude and longitude to the sites at the bottom of your hierarchy and everything above them lands on the map automatically.`
-                  : "Sites with a latitude and longitude appear here. Add coordinates to a site to place it on the map."}
+                  ? translator.translatePlural(
+                      {
+                        one: "{{count}} site has no coordinates — neither on it nor on anything beneath. Add a latitude and longitude to the sites at the bottom of your hierarchy and everything above them lands on the map automatically.",
+                        other:
+                          "{{count}} sites have no coordinates — neither on them nor on anything beneath. Add a latitude and longitude to the sites at the bottom of your hierarchy and everything above them lands on the map automatically.",
+                      },
+                      unplacedCount,
+                    )
+                  : translator.translateText(
+                      "Sites with a latitude and longitude appear here. Add coordinates to a site to place it on the map.",
+                    )}
               </span>
             )
           }
@@ -1131,9 +1159,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     inkPlan.links === "quiet";
   const hasDrawnLinks: boolean = layers.links && linkLines.length > 0;
   const emphasisHint: string = hasDrawnLinks
-    ? " Hover one to trace what it connects to."
+    ? translator.translateTemplate("Hover one to trace what it connects to.")
     : isInkCalmed
-      ? " Hover one to see exactly where it sits."
+      ? translator.translateTemplate("Hover one to see exactly where it sits.")
       : "";
 
   const coverageLabel: string = describeMapCoverage({
@@ -1156,9 +1184,14 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <p className="text-xs text-gray-500" data-testid="site-geo-map-hint">
             {props.mode === "grouped"
-              ? `Each marker is one ${props.childTypeLabel.toLowerCase()} — click to open it.`
-              : "Each marker is one site. Nearby sites share a marker; zoom in to separate them."}
-            {emphasisHint}
+              ? translator.translateTemplate(
+                  "Each marker is one {{siteType}} — click to open it.",
+                  { siteType: props.childTypeLabel.toLowerCase() },
+                )
+              : translator.translateText(
+                  "Each marker is one site. Nearby sites share a marker; zoom in to separate them.",
+                )}
+            {emphasisHint ? ` ${emphasisHint}` : ""}
           </p>
           <MapModeSwitch
             mode={props.selectedMode}
@@ -1204,7 +1237,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           <svg
             role="img"
             tabIndex={0}
-            aria-label="World network site map. Arrow keys pan, plus and minus zoom, zero refits the map to your sites."
+            aria-label={translator.translateText(
+              "World network site map. Arrow keys pan, plus and minus zoom, zero refits the map to your sites.",
+            )}
             viewBox={viewBoxOfViewport(viewport)}
             preserveAspectRatio="xMidYMid meet"
             className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -1849,11 +1884,11 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               <div
                 data-testid="site-geo-map-layers-panel"
                 role="group"
-                aria-label="Map layers"
+                aria-label={translator.translateText("Map layers")}
                 className="w-60 rounded-lg border border-gray-200 bg-white/95 p-1.5 shadow-lg backdrop-blur"
               >
                 <p className="px-1.5 pb-1 text-xs font-medium text-gray-700">
-                  Show on the map
+                  {translator.translateText("Show on the map")}
                 </p>
                 <ul role="list">
                   {MAP_LAYER_OPTIONS.map(
@@ -1885,10 +1920,10 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                             </span>
                             <span className="min-w-0">
                               <span className="block text-xs font-medium text-gray-800">
-                                {option.label}
+                                {translator.translateText(option.label)}
                               </span>
                               <span className="block text-xs leading-tight text-gray-500">
-                                {option.hint}
+                                {translator.translateText(option.hint)}
                               </span>
                             </span>
                           </button>
@@ -1947,8 +1982,8 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                */}
               <button
                 type="button"
-                title="Map layers"
-                aria-label="Map layers"
+                title={translator.translateText("Map layers")}
+                aria-label={translator.translateText("Map layers")}
                 aria-expanded={isLayerPanelOpen}
                 data-testid="site-geo-map-layers-toggle"
                 className={`relative flex h-7 w-7 items-center justify-center rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
@@ -2018,11 +2053,17 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-3 py-1.5">
                 <span className="text-xs font-medium text-gray-700">
-                  {openCluster.ids.length} sites here
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} site here",
+                      other: "{{count}} sites here",
+                    },
+                    openCluster.ids.length,
+                  )}
                 </span>
                 <button
                   type="button"
-                  aria-label="Close site list"
+                  aria-label={translator.translateText("Close site list")}
                   className="rounded text-xs text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   onClick={() => {
                     setOpenCluster(null);
@@ -2077,7 +2118,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
         <ul
           role="list"
           className="flex flex-wrap items-center gap-x-3 gap-y-1"
-          aria-label="Marker color key"
+          aria-label={translator.translateText("Marker color key")}
         >
           {LEGEND.map(
             (entry: { key: ClusterColorKey; label: string }): ReactElement => {
@@ -2091,7 +2132,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                     className="h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white"
                     style={{ backgroundColor: CLUSTER_COLORS[entry.key] }}
                   />
-                  {entry.label}
+                  {translator.translateText(entry.label)}
                 </li>
               );
             },
@@ -2107,7 +2148,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           <ul
             role="list"
             className="flex flex-wrap items-center gap-x-3 gap-y-1"
-            aria-label="Marker shape key"
+            aria-label={translator.translateText("Marker shape key")}
           >
             {/*
              * Colored inline from the marker palette, like the status
@@ -2122,7 +2163,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 className="h-2.5 w-2.5 flex-shrink-0 rounded-[3px] ring-2 ring-white"
                 style={{ backgroundColor: CLUSTER_COLORS["none"] }}
               />
-              Group — opens
+              {translator.translateText("Group — opens")}
             </li>
             <li className="flex items-center gap-1.5 text-xs text-gray-600">
               <span
@@ -2130,7 +2171,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 className="h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white"
                 style={{ backgroundColor: CLUSTER_COLORS["none"] }}
               />
-              Single site
+              {translator.translateText("Single site")}
             </li>
           </ul>
         ) : (
@@ -2172,7 +2213,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 strokeDasharray="4 3"
               />
             </svg>
-            Site link — colored by its monitor; dashed when it has none
+            {translator.translateText(
+              "Site link — colored by its monitor; dashed when it has none",
+            )}
           </span>
         ) : (
           <></>
@@ -2205,7 +2248,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               <circle cx="3" cy="9" r="1.8" fill={CLUSTER_COLORS["none"]} />
               <circle cx="18" cy="4" r="4" fill={CLUSTER_COLORS["none"]} />
             </svg>
-            Nudged apart — the line ends at the real spot
+            {translator.translateText(
+              "Nudged apart — the line ends at the real spot",
+            )}
           </span>
         ) : (
           <></>
@@ -2226,9 +2271,14 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
               icon={IconProp.Layers}
             />
-            {nudgedMarkerCount === 1
-              ? "1 marker is nudged apart to stay visible — turn position lines back on to see where it belongs"
-              : `${nudgedMarkerCount} markers are nudged apart to stay visible — turn position lines back on to see where they belong`}
+            {translator.translatePlural(
+              {
+                one: "{{count}} marker is nudged apart to stay visible — turn position lines back on to see where it belongs",
+                other:
+                  "{{count}} markers are nudged apart to stay visible — turn position lines back on to see where they belong",
+              },
+              nudgedMarkerCount,
+            )}
           </span>
         ) : (
           <></>
@@ -2270,7 +2320,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 fillOpacity="0.35"
               />
             </svg>
-            Name set clear — the line joins it to its marker
+            {translator.translateText(
+              "Name set clear — the line joins it to its marker",
+            )}
           </span>
         ) : (
           <></>
@@ -2286,7 +2338,10 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           {/* Coordinates the projection cannot read at all. */}
           {unmappableCount > 0 ? (
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600">
-              {unmappableCount} without usable coordinates
+              {translator.translateTemplate(
+                "{{count}} without usable coordinates",
+                { count: translator.formatNumber(unmappableCount) },
+              )}
             </span>
           ) : (
             <></>
@@ -2311,11 +2366,14 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             icon={IconProp.MapPin}
           />
           <span>
-            Not on the map — no coordinates yet
             {props.unplacedSites.length > UNPLACED_NAMES_SHOWN
-              ? ` (${props.unplacedSites.length})`
-              : ""}
-            :
+              ? translator.translateTemplate(
+                  "Not on the map — no coordinates yet ({{count}}):",
+                  { count: translator.formatNumber(props.unplacedSites.length) },
+                )
+              : translator.translateText(
+                  "Not on the map — no coordinates yet:",
+                )}
           </span>
           {props.unplacedSites
             .slice(0, UNPLACED_NAMES_SHOWN)
@@ -2324,7 +2382,10 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 <button
                   key={site.id}
                   type="button"
-                  title={`${site.name} — ${site.siteType}. Open it and add coordinates to a site beneath it.`}
+                  title={translator.translateTemplate(
+                    "{{name}} — {{siteType}}. Open it and add coordinates to a site beneath it.",
+                    { name: site.name, siteType: site.siteType },
+                  )}
                   className="inline-flex max-w-full items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-600 transition hover:border-indigo-300 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   onClick={() => {
                     props.onSiteClick(site.id);
@@ -2336,7 +2397,11 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             })}
           {props.unplacedSites.length > UNPLACED_NAMES_SHOWN ? (
             <span className="text-gray-400">
-              +{props.unplacedSites.length - UNPLACED_NAMES_SHOWN} more
+              {translator.translateTemplate("+{{count}} more", {
+                count: translator.formatNumber(
+                  props.unplacedSites.length - UNPLACED_NAMES_SHOWN,
+                ),
+              })}
             </span>
           ) : (
             <></>

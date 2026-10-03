@@ -74,6 +74,11 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * A resource's AI Insights page (AI → Insights): what OneUptime AI
@@ -135,6 +140,8 @@ function AgentPageLink(props: {
   resourceId: ObjectID;
   hint: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <p className="text-sm text-gray-600" data-testid="ai-insights-agent-hint">
       {props.hint}{" "}
@@ -145,7 +152,7 @@ function AgentPageLink(props: {
         )}
         className="font-medium text-indigo-600 hover:text-indigo-800 underline"
       >
-        Open the AI agent page
+        {translator.translateText("Open the AI agent page")}
       </Link>
     </p>
   );
@@ -193,6 +200,7 @@ function InvestigationRow(props: {
 }
 
 function FixRow(props: { fix: ResourceAiInsightsFix }): ReactElement {
+  const translator: Translator = useTranslator();
   const look: ResourceAiStatusLook | null = props.fix.status
     ? getResourceFixStatusLook(props.fix.status)
     : null;
@@ -216,14 +224,15 @@ function FixRow(props: { fix: ResourceAiInsightsFix }): ReactElement {
               to={target.route}
               className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {target.label}
+              {translator.translateText(target.label)}
             </Link>
           ) : null}
           <When at={props.fix.createdAt} />
         </div>
       </div>
       <p className="mt-1 break-words text-sm text-gray-600">
-        {props.fix.rationale || "No reason was recorded."}
+        {props.fix.rationale ||
+          translator.translateText("No reason was recorded.")}
       </p>
     </li>
   );
@@ -232,6 +241,7 @@ function FixRow(props: { fix: ResourceAiInsightsFix }): ReactElement {
 const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const descriptor: ResourceAiAgentDescriptor = props.descriptor;
   const { id } = useParams();
   /*
@@ -416,7 +426,10 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
 
         <Card
           title="Investigations"
-          description={`Incidents and alerts on this ${descriptor.noun} that OneUptime AI investigated, newest first.`}
+          description={translator.translateTemplate(
+            "Incidents and alerts on this {{noun}} that OneUptime AI investigated, newest first.",
+            { noun: translatableTerm(descriptor.noun) },
+          )}
         >
           {insights.investigations.length > 0 ? (
             <ul className="divide-y divide-gray-100">
@@ -438,14 +451,17 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
               className="text-sm text-gray-500"
               data-testid="ai-insights-no-investigations"
             >
-              No investigations yet.
+              {translator.translateText("No investigations yet.")}
             </p>
           )}
         </Card>
 
         <Card
           title="Fixes"
-          description={`Fixes OneUptime AI proposed or applied on this ${descriptor.noun}, newest first.`}
+          description={translator.translateTemplate(
+            "Fixes OneUptime AI proposed or applied on this {{noun}}, newest first.",
+            { noun: translatableTerm(descriptor.noun) },
+          )}
         >
           {insights.fixes.length > 0 ? (
             <ul className="divide-y divide-gray-100">
@@ -460,7 +476,7 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
               className="text-sm text-gray-500"
               data-testid="ai-insights-no-fixes"
             >
-              No fixes yet.
+              {translator.translateText("No fixes yet.")}
             </p>
           )}
         </Card>
@@ -604,7 +620,13 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
                     <Pill
                       text={
                         typeof item.exitCode === "number"
-                          ? `${statusText} (exit ${item.exitCode})`
+                          ? translator.translateTemplate(
+                              "{{status}} (exit {{exitCode}})",
+                              {
+                                status: translatableTerm(statusText),
+                                exitCode: item.exitCode,
+                              },
+                            )
                           : statusText
                       }
                       color={color}
@@ -636,10 +658,13 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-600"
             data-testid="resource-command-jobs-permission-note"
           >
-            Seeing the commands needs permission to read Runner jobs (one of:{" "}
-            {getResourceCommandJobsPermissionTitles().join(", ")}). Commands AI
-            ran while investigating or fixing an incident or alert also appear
-            on that incident or alert.
+            {translator.translateTemplate(
+              "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
+              {
+                permissions:
+                  getResourceCommandJobsPermissionTitles().join(", "),
+              },
+            )}
           </p>
         </Card>
       )}

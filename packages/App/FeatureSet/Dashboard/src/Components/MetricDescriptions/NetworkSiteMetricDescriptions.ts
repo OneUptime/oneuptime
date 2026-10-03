@@ -20,6 +20,8 @@
  * Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type NetworkSiteMetric =
   | "health"
   | "uptime24h"
@@ -44,47 +46,47 @@ export const NETWORK_SITE_METRIC_DESCRIPTIONS: Record<
 > = {
   // Site Overview hero (Components/NetworkSite/SiteStatusHero.tsx).
   health:
-    "This site's overall status, rolled up from the devices here and at every site beneath it: the worst device status by default, or a share-of-devices-down rule set in Settings. Maintenance on this site does not hide its own outage.",
+    translationKey("This site's overall status, rolled up from the devices here and at every site beneath it: the worst device status by default, or a share-of-devices-down rule set in Settings. Maintenance on this site does not hide its own outage."),
   uptime24h:
-    "Share of the last 24 hours this site spent outside a non-operational status such as Degraded or Offline. Scheduled maintenance is left out, and time before the site's first health rollup counts as up.",
+    translationKey("Share of the last 24 hours this site spent outside a non-operational status such as Degraded or Offline. Scheduled maintenance is left out, and time before the site's first health rollup counts as up."),
   uptime30d:
-    "Share of the last 30 days this site spent outside a non-operational status, with scheduled maintenance left out. One full day of outage lowers it by only about 3.3 points; time before the first rollup counts as up.",
+    translationKey("Share of the last 30 days this site spent outside a non-operational status, with scheduled maintenance left out. One full day of outage lowers it by only about 3.3 points; time before the first rollup counts as up."),
   devices:
-    "Devices assigned directly to this site, not counting those in child sites. Up and down use each device's most recent check; devices still pending are in neither.",
+    translationKey("Devices assigned directly to this site, not counting those in child sites. Up and down use each device's most recent check; devices still pending are in neither."),
   childSites:
-    "Sites directly beneath this one in the hierarchy, one level down. Their own child sites are not counted here.",
+    translationKey("Sites directly beneath this one in the hierarchy, one level down. Their own child sites are not counted here."),
   endpoints:
-    "Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host found so far is counted, including ones not seen recently.",
+    translationKey("Hosts such as PCs, phones and printers that devices assigned to this site found in their address tables (ARP and MAC forwarding tables). Every host found so far is counted, including ones not seen recently."),
 
   // Status Timeline tab (Pages/NetworkSite/View/StatusTimeline.tsx).
   uptimeWindow:
-    "Share of the period in the title this site spent outside a non-operational status such as Degraded or Offline, leaving out scheduled maintenance on the site or its parents. Time before the first rollup counts as up; red means below 99%.",
+    translationKey("Share of the period in the title this site spent outside a non-operational status such as Degraded or Offline, leaving out scheduled maintenance on the site or its parents. Time before the first rollup counts as up; red means below 99%."),
   dailyUptime:
-    "Green is 99.9% uptime or better, amber 95% or better and red below that. A pale amber bar was entirely scheduled maintenance, and a hollow outline is a day before the site's first health rollup.",
+    translationKey("Green is 99.9% uptime or better, amber 95% or better and red below that. A pale amber bar was entirely scheduled maintenance, and a hollow outline is a day before the site's first health rollup."),
 
   // Child Sites tab (Pages/NetworkSite/View/ChildSites.tsx).
   childSiteStatus:
-    "Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet.",
+    translationKey("Each child site's health, rolled up from the devices at that site and at every site beneath it. No Data means nothing below it has reported yet."),
 
   // Sites list summary strip (SiteSummaryTiles.ts).
   totalSites:
-    "Every network site in the project at every level of the hierarchy, from regions down to single units. Selecting this tile clears the filters on the list below.",
+    translationKey("Every network site in the project at every level of the hierarchy, from regions down to single units. Selecting this tile clears the filters on the list below."),
   unhealthySites:
-    "Sites whose health, rolled up from the devices at and beneath them, is non-operational, such as Degraded or Offline. Counts the whole project, whatever filters are set below.",
+    translationKey("Sites whose health, rolled up from the devices at and beneath them, is non-operational, such as Degraded or Offline. Counts the whole project, whatever filters are set below."),
   sitesWithoutData:
-    "Sites with no health status yet because no device at or beneath them has reported, including sites whose last status was deleted. They are not counted as unhealthy.",
+    translationKey("Sites with no health status yet because no device at or beneath them has reported, including sites whose last status was deleted. They are not counted as unhealthy."),
   unassignedDevices:
-    "Devices in the project that are not assigned to any site, so they count toward no site's health. Selecting this tile opens them on the device list.",
+    translationKey("Devices in the project that are not assigned to any site, so they count toward no site's health. Selecting this tile opens them on the device list."),
 
   // Sites list Status column (Pages/NetworkSite/Sites.tsx).
   siteStatus:
-    "Each site's health, rolled up from the devices at that site and every site beneath it, leaving out child sites under maintenance: the worst device status unless its Settings set a share-of-devices-down rule. No Data means nothing below it has reported yet.",
+    translationKey("Each site's health, rolled up from the devices at that site and every site beneath it, leaving out child sites under maintenance: the worst device status unless its Settings set a share-of-devices-down rule. No Data means nothing below it has reported yet."),
 
   // Devices tab Status column (Pages/NetworkSite/View/Devices.tsx).
   siteDeviceStatus:
-    "Whether each device answered its most recent check, the probe's ping or SNMP walk. A monitor-backed device is Down only when its bound monitor reports it offline and Up otherwise, and Pending means no result yet.",
+    translationKey("Whether each device answered its most recent check, the probe's ping or SNMP walk. A monitor-backed device is Down only when its bound monitor reports it offline and Up otherwise, and Pending means no result yet."),
 
   // Network Map site cards (SiteCard.tsx), under Pages/NetworkSite/NetworkMap.tsx.
   siteCards:
-    "Units are unit-level sites such as single stores; any not operational, even with no data yet, count as down. Uptime covers 30 days and 'today' the last 24 hours, maintenance left out. Devices span every site below; a degraded one answers but has a port down.",
+    translationKey("Units are unit-level sites such as single stores; any not operational, even with no data yet, count as down. Uptime covers 30 days and 'today' the last 24 hours, maintenance left out. Devices span every site below; a degraded one answers but has a port down."),
 };

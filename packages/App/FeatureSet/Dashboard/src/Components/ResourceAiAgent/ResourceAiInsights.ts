@@ -6,6 +6,7 @@ import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure half of a resource's AI Insights page (ResourceAiInsightsPage):
@@ -74,12 +75,12 @@ export function describeResourceCommandJobOrigin(job: {
 
   if (origin === RunnerJobOrigin.AiInvestigation) {
     return job.aiRunId
-      ? "Investigation (read-only)"
-      : "Connection test (read-only)";
+      ? translateTemplate("Investigation (read-only)")
+      : translateTemplate("Connection test (read-only)");
   }
 
   if (origin === RunnerJobOrigin.AiRemediation) {
-    return "Fix";
+    return translateTemplate("Fix");
   }
 
   return origin;
@@ -334,11 +335,11 @@ export function describeResourceFixType(
   suggestionType: string | null,
 ): string | null {
   if (suggestionType === AutoRemediationSuggestionType.CommandPlan) {
-    return "Command plan";
+    return translateTemplate("Command plan");
   }
 
   if (suggestionType === AutoRemediationSuggestionType.Runbook) {
-    return "Runbook";
+    return translateTemplate("Runbook");
   }
 
   return null;
@@ -349,15 +350,25 @@ export function describeResourceInvestigationSubject(
   investigation: ResourceAiInsightsInvestigation,
 ): { text: string; incidentId: string | null; alertId: string | null } {
   if (investigation.incident) {
-    const number: string =
-      investigation.incident.number !== null
-        ? ` #${investigation.incident.number}`
-        : "";
-    const title: string = investigation.incident.title
-      ? `: ${investigation.incident.title}`
-      : "";
+    const number: number | null = investigation.incident.number;
+    const title: string | null = investigation.incident.title || null;
+    let text: string;
+
+    if (number !== null && title) {
+      text = translateTemplate("Incident #{{number}}: {{title}}", {
+        number: number,
+        title: title,
+      });
+    } else if (number !== null) {
+      text = translateTemplate("Incident #{{number}}", { number: number });
+    } else if (title) {
+      text = translateTemplate("Incident: {{title}}", { title: title });
+    } else {
+      text = translateTemplate("Incident");
+    }
+
     return {
-      text: `Incident${number}${title}`,
+      text: text,
       incidentId: investigation.incident.id,
       alertId: null,
     };
@@ -365,13 +376,21 @@ export function describeResourceInvestigationSubject(
 
   if (investigation.alert) {
     return {
-      text: `Alert${investigation.alert.title ? `: ${investigation.alert.title}` : ""}`,
+      text: investigation.alert.title
+        ? translateTemplate("Alert: {{title}}", {
+            title: investigation.alert.title,
+          })
+        : translateTemplate("Alert"),
       incidentId: null,
       alertId: investigation.alert.id,
     };
   }
 
-  return { text: "Investigation", incidentId: null, alertId: null };
+  return {
+    text: translateTemplate("Investigation"),
+    incidentId: null,
+    alertId: null,
+  };
 }
 
 // What an investigation found, or why there is nothing to show yet.
@@ -386,8 +405,8 @@ export function getResourceInvestigationSummary(
     investigation.status === AIRunStatus.Queued ||
     investigation.status === AIRunStatus.Running
   ) {
-    return "Still investigating.";
+    return translateTemplate("Still investigating.");
   }
 
-  return "No summary was recorded.";
+  return translateTemplate("No summary was recorded.");
 }

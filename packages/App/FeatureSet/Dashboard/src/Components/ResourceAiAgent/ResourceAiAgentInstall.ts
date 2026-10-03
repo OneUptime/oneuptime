@@ -10,6 +10,11 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How to install a resource's AI agent, and how to give it write access,
@@ -757,8 +762,17 @@ export function getResourceAiAgentInstall(data: {
             name: info.identityEnvVars[0] || "",
             value: identity || "from .env",
             description: identity
-              ? `The name this ${noun} reports. The agent must register with exactly this name, or it serves a different ${noun}.`
-              : `Must be the name the ${spec.collectorName} reports, so the agent serves this ${noun}.`,
+              ? translateTemplate(
+                  "The name this {{noun}} reports. The agent must register with exactly this name, or it serves a different {{noun}}.",
+                  { noun: translatableTerm(noun) },
+                )
+              : translateTemplate(
+                  "Must be the name the {{collectorName}} reports, so the agent serves this {{noun}}.",
+                  {
+                    collectorName: translatableTerm(spec.collectorName),
+                    noun: translatableTerm(noun),
+                  },
+                ),
           },
           ...(isIdentityPinned({ resourceType: data.resourceType, identity })
             ? []
@@ -766,7 +780,14 @@ export function getResourceAiAgentInstall(data: {
                 {
                   name: RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
                   value: "(empty)",
-                  description: `Optional: overrides ${info.identityEnvVars[0] || "the identity"} as the name the agent registers under.`,
+                  description: info.identityEnvVars[0]
+                    ? translateTemplate(
+                        "Optional: overrides {{variable}} as the name the agent registers under.",
+                        { variable: info.identityEnvVars[0] },
+                      )
+                    : translateTemplate(
+                        "Optional: overrides the identity as the name the agent registers under.",
+                      ),
                 },
               ]),
         ];
@@ -776,19 +797,41 @@ export function getResourceAiAgentInstall(data: {
    * lists every one the collector's shipped service does — so the .env
    * the collector uses configures the agent completely.
    */
-  const settingsSource: string =
-    "it takes every variable below from the same .env";
+  // Whole sentences, so each one reads in the reader's language.
+  const collectorName: TranslatableTerm = translatableTerm(spec.collectorName);
   let whereText: string;
 
   if (spec.isStandalone) {
-    whereText = `Save this as docker-compose.yml in ${spec.directory || "a directory of its own"} on the ${noun}, next to a .env file.`;
+    whereText = spec.directory
+      ? translateTemplate(
+          "Save this as docker-compose.yml in {{directory}} on the {{noun}}, next to a .env file.",
+          { directory: spec.directory, noun: translatableTerm(noun) },
+        )
+      : translateTemplate(
+          "Save this as docker-compose.yml in a directory of its own on the {{noun}}, next to a .env file.",
+          { noun: translatableTerm(noun) },
+        );
   } else if (!spec.collectorShipsAgent) {
-    whereText = `Add this service to the ${spec.collectorName}'s docker-compose.yml${spec.directory ? ` (in ${spec.directory} by default)` : ""} — ${settingsSource}.`;
+    whereText = spec.directory
+      ? translateTemplate(
+          "Add this service to the {{collectorName}}'s docker-compose.yml (in {{directory}} by default) — it takes every variable below from the same .env.",
+          { collectorName: collectorName, directory: spec.directory },
+        )
+      : translateTemplate(
+          "Add this service to the {{collectorName}}'s docker-compose.yml — it takes every variable below from the same .env.",
+          { collectorName: collectorName },
+        );
   } else if (!spec.directory) {
     // Usually installed with install.sh (plain containers): that comes first.
-    whereText = `Installed the ${spec.collectorName} with install.sh? Run it again: it now starts this agent too, as the container ${service}. With Compose, the ${spec.collectorName}'s docker-compose.yml ships this service; for an older Compose install, add it to your docker-compose.yml — ${settingsSource}.`;
+    whereText = translateTemplate(
+      "Installed the {{collectorName}} with install.sh? Run it again: it now starts this agent too, as the container {{service}}. With Compose, the {{collectorName}}'s docker-compose.yml ships this service; for an older Compose install, add it to your docker-compose.yml — it takes every variable below from the same .env.",
+      { collectorName: collectorName, service: service },
+    );
   } else {
-    whereText = `The ${spec.collectorName}'s docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in ${spec.directory} — ${settingsSource}.`;
+    whereText = translateTemplate(
+      "The {{collectorName}}'s docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env.",
+      { collectorName: collectorName, directory: spec.directory },
+    );
   }
 
   return {
@@ -812,7 +855,9 @@ export function getResourceAiAgentInstall(data: {
         value: "from .env",
         description: spec.isStandalone
           ? "Your project's telemetry ingestion key."
-          : `The key the ${spec.collectorName} already uses.`,
+          : translateTemplate("The key the {{collectorName}} already uses.", {
+              collectorName: collectorName,
+            }),
       },
       ...spec.connectionVariables.map(
         (variable: ConnectionVariable): ResourceAiAgentInstallVariable => {
@@ -836,7 +881,10 @@ export function getResourceAiAgentInstall(data: {
         name: RESOURCE_AI_WRITE_TARGETS_ENV,
         value: "(empty)",
         description: spec.writeTargetNoun
-          ? `Optional: comma-separated ${spec.writeTargetNoun} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.`
+          ? translateTemplate(
+              "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
+              { targets: translatableTerm(spec.writeTargetNoun) },
+            )
           : "Optional: comma-separated targets fixes may change. Empty means any, except the agent's own.",
       },
       {

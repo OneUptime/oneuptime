@@ -32,6 +32,12 @@ import {
   isMonitorBatchConsentRequired,
 } from "../Billing/PayAsYouGo";
 import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { MonitorRecommendationCreateProgress } from "./MonitorRecommendationCreateRunner";
 
 export interface ComponentProps {
@@ -115,6 +121,7 @@ export const toSeverityDropdownOptions: ToDropdownOptionsFunction = (
 const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * `Alert` rather than `Both` is the default even though `Both` reproduces
    * what the templates did before this control existed. Every shipped template
@@ -245,9 +252,11 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
               data.severity === "Critical" ? "text-red-600" : "text-amber-600"
             }`}
           >
-            {data.severity}
+            {translator.translateText(data.severity)}
           </span>
-          <span className="ml-1 text-xs text-gray-400">({data.count})</span>
+          <span className="ml-1 text-xs text-gray-400">
+            ({translator.formatNumber(data.count)})
+          </span>
         </div>
         <Icon
           icon={IconProp.ArrowCircleRight}
@@ -292,12 +301,21 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // The resource's noun as it reads in the middle of a sentence.
+  const resourceName: TranslatableTerm = translatableTerm(props.resourceLabel, {
+    inSentence: true,
+  });
+
   return (
     <SideOver
-      title={`Create ${props.selectedRecommendations.length} ${
-        props.selectedRecommendations.length === 1 ? "Monitor" : "Monitors"
-      }`}
-      description={`These monitors will be created on this ${props.resourceLabel.toLowerCase()}. Everything below applies to every monitor in this batch.`}
+      title={translator.translatePlural(
+        { one: "Create {{count}} Monitor", other: "Create {{count}} Monitors" },
+        props.selectedRecommendations.length,
+      )}
+      description={translator.translateTemplate(
+        "These monitors will be created on this {{resourceName}}. Everything below applies to every monitor in this batch.",
+        { resourceName: resourceName },
+      )}
       size={SideOverSize.Medium}
       submitButtonText={props.isCreating ? "Creating..." : "Create Monitors"}
       submitButtonIsLoading={props.isCreating}
@@ -392,14 +410,21 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
               />
               <p className="text-xs text-amber-700">
                 {props.onCallPolicyDropdownOptions.length === 0
-                  ? "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors."
-                  : `Without a policy, ${
-                      criticalCount > 0
-                        ? `the ${criticalCount} Critical ${
-                            criticalCount === 1 ? "monitor" : "monitors"
-                          } in this batch will open records that`
-                        : "these monitors will open records that"
-                    } sit unacknowledged until someone opens the dashboard.`}
+                  ? translator.translateText(
+                      "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.",
+                    )
+                  : criticalCount > 0
+                    ? translator.translatePlural(
+                        {
+                          one: "Without a policy, the {{count}} Critical monitor in this batch will open records that sit unacknowledged until someone opens the dashboard.",
+                          other:
+                            "Without a policy, the {{count}} Critical monitors in this batch will open records that sit unacknowledged until someone opens the dashboard.",
+                        },
+                        criticalCount,
+                      )
+                    : translator.translateText(
+                        "Without a policy, these monitors will open records that sit unacknowledged until someone opens the dashboard.",
+                      )}
               </p>
             </div>
           ) : (
@@ -416,7 +441,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
             {willCreateAlerts ? (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Alert severity
+                  {translator.translateText("Alert severity")}
                 </p>
                 {renderSeverityRow({
                   severity: "Critical",
@@ -450,7 +475,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
             {willCreateIncidents ? (
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Incident severity
+                  {translator.translateText("Incident severity")}
                 </p>
                 {renderSeverityRow({
                   severity: "Critical",
@@ -530,7 +555,9 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
         </CollapsibleSection>
 
         <CollapsibleSection
-          title={`Monitors to create (${props.selectedRecommendations.length})`}
+          title={translator.translateTemplate("Monitors to create ({{count}})", {
+            count: translator.formatNumber(props.selectedRecommendations.length),
+          })}
           variant="bordered"
           defaultCollapsed={true}
         >
@@ -550,7 +577,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                           : "text-amber-600"
                       }`}
                     >
-                      {recommendation.severity}
+                      {translator.translateText(recommendation.severity)}
                     </span>
                   </li>
                 );

@@ -17,6 +17,11 @@ import {
   FILTER_CHIP_OPERATOR_SELECT_CLASSES,
   FILTER_CHIP_POPOVER_CLASSES,
 } from "./FilterChipStyles";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -71,6 +76,7 @@ const readCommittedValue: ReadCommittedValueFunction = (
 const FilterChipValueInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
 
@@ -173,8 +179,11 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
   };
 
   const summary: string = valueless
-    ? FILTER_OPERATOR_LABELS[operator]
-    : `${FILTER_OPERATOR_LABELS[operator]} ${committedValue}`;
+    ? translator.translateTemplate(FILTER_OPERATOR_LABELS[operator])
+    : translator.translateTemplate("{{operator}} {{value}}", {
+        operator: translatableTerm(FILTER_OPERATOR_LABELS[operator]),
+        value: committedValue,
+      });
 
   return (
     <div className="relative inline-block">
@@ -198,7 +207,9 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
               />
             )}
             <span className="whitespace-nowrap">
-              <span className="text-indigo-500/80">{props.label}</span>
+              <span className="text-indigo-500/80">
+                {translator.translateText(props.label)}
+              </span>
               <span className="mx-1 text-indigo-300">·</span>
               <span className="font-semibold">{summary}</span>
             </span>
@@ -217,7 +228,10 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
                 }
               }}
               className={FILTER_CHIP_CLEAR_CLASSES}
-              aria-label={`Clear ${props.label} filter`}
+              aria-label={translator.translateTemplate(
+                "Clear {{label}} filter",
+                { label: translatableTerm(props.label) },
+              )}
             >
               <Icon icon={IconProp.Close} className="h-3 w-3" />
             </span>
@@ -230,7 +244,9 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
                 className="h-3.5 w-3.5 text-gray-400"
               />
             )}
-            <span className="whitespace-nowrap">{props.label}</span>
+            <span className="whitespace-nowrap">
+              {translator.translateText(props.label)}
+            </span>
             <Icon
               icon={IconProp.ChevronDown}
               className="h-3 w-3 text-gray-400 transition-transform group-aria-expanded:rotate-180"
@@ -247,19 +263,24 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
         >
           {supportedOperators.length > 1 && (
             <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
-              <span className="shrink-0">{props.label.toLowerCase()}</span>
+              <span className="shrink-0">
+                {translator.translateTerm(props.label, { inSentence: true })}
+              </span>
               <select
                 value={operator}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   changeOperator(e.target.value as FilterOperator);
                 }}
                 className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
-                aria-label={`${props.label} operator`}
+                aria-label={translator.translateTemplate(
+                  "{{label}} operator",
+                  { label: translatableTerm(props.label) },
+                )}
               >
                 {supportedOperators.map((op: FilterOperator) => {
                   return (
                     <option key={op} value={op}>
-                      {FILTER_OPERATOR_LABELS[op]}
+                      {translator.translateText(FILTER_OPERATOR_LABELS[op])}
                     </option>
                   );
                 })}
@@ -269,7 +290,7 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
 
           {valueless ? (
             <div className="px-3 py-4 text-center text-xs text-gray-500">
-              No value needed.
+              {translator.translateText("No value needed.")}
             </div>
           ) : (
             <div className="p-2">
@@ -295,7 +316,12 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
                       : InputType.TEXT
                   }
                   value={draft}
-                  placeholder={props.placeholder || `Enter ${props.label}`}
+                  placeholder={
+                    props.placeholder ||
+                    translator.translateTemplate("Enter {{label}}", {
+                      label: translatableTerm(props.label),
+                    })
+                  }
                   outerDivClassName="relative rounded-md w-full"
                   onChange={(changed: string) => {
                     setDraft(changed);
@@ -304,14 +330,14 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <p className="px-0.5 text-xs text-gray-400">
-                  Press Enter to apply.
+                  {translator.translateText("Press Enter to apply.")}
                 </p>
                 <button
                   type="button"
                   onClick={closePopover}
                   className="rounded border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                 >
-                  Apply
+                  {translator.translateText("Apply")}
                 </button>
               </div>
             </div>
