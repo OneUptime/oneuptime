@@ -6,7 +6,6 @@ import {
 } from "./CriteriaFilter";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
-import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
@@ -28,6 +27,8 @@ import Radio from "Common/UI/Components/Radio/Radio";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import React, {
   FunctionComponent,
@@ -43,6 +44,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -123,8 +125,71 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   const filterConditionOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);
 
-  const [errors, setErrors] = useState<Dictionary<string>>({});
-  const [touched, setTouched] = useState<Dictionary<boolean>>({});
+  const translator: Translator = useTranslator();
+
+  // Ties each label to its field, so a screen reader names the field.
+  const nameInputId: string = useId();
+  const descriptionInputId: string = useId();
+
+  /*
+   * The name the filters give this criteria. A criteria added with "Add
+   * Criteria" starts with it, and keeps following the filters until the
+   * user types a name of their own (CriteriaNameUtil).
+   */
+  const nameFromFilters: string = CriteriaNameUtil.getNameForCriteria(
+    monitorCriteriaInstance,
+  );
+
+  const isNameFromFilters: boolean = CriteriaNameUtil.isNameFromFilters({
+    name: monitorCriteriaInstance.data?.name,
+    filters: monitorCriteriaInstance.data?.filters,
+    filterCondition: monitorCriteriaInstance.data?.filterCondition,
+  });
+
+  /*
+   * Every change to the filters or to how they combine goes through here,
+   * so a generated name follows them: "Response Time (in ms) is above 3000"
+   * becomes "... is above 5000" when the threshold does. A name the user
+   * typed, or one the monitor was seeded with, is left alone.
+   */
+  const changeFilters: (change: {
+    filters?: Array<CriteriaFilter> | undefined;
+    filterCondition?: FilterCondition | undefined;
+  }) => void = (change: {
+    filters?: Array<CriteriaFilter> | undefined;
+    filterCondition?: FilterCondition | undefined;
+  }): void => {
+    const previousFilters: Array<CriteriaFilter> =
+      monitorCriteriaInstance.data?.filters || [];
+    const previousFilterCondition: FilterCondition =
+      monitorCriteriaInstance.data?.filterCondition || FilterCondition.All;
+
+    if (change.filters) {
+      monitorCriteriaInstance.setFilters(change.filters);
+    }
+
+    if (change.filterCondition) {
+      monitorCriteriaInstance.setFilterCondition(change.filterCondition);
+    }
+
+    monitorCriteriaInstance.setName(
+      CriteriaNameUtil.getNameAfterFiltersChange({
+        name: monitorCriteriaInstance.data?.name,
+        previous: {
+          filters: previousFilters,
+          filterCondition: previousFilterCondition,
+        },
+        next: {
+          filters: monitorCriteriaInstance.data?.filters,
+          filterCondition: monitorCriteriaInstance.data?.filterCondition,
+        },
+      }),
+    );
+
+    if (props.onChange) {
+      props.onChange(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+    }
+  };
 
   useEffect(() => {
     // set first value as default
@@ -235,53 +300,23 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mt-4">
-      {/* Criteria Name and Description */}
+      {/*
+       * The name, filled in from the filters. The description is optional
+       * and lives under Settings, below.
+       */}
       <div className="mb-4">
         <div className="mt-3">
           <FieldLabelElement
             title={"Criteria Name"}
-            description={
-              "Any friendly name for this criteria, that will help you remember later."
-            }
+            htmlFor={nameInputId}
             required={true}
           />
           <Input
+            id={nameInputId}
+            dataTestId="monitor-criteria-name-input"
             value={monitorCriteriaInstance?.data?.name?.toString() || ""}
-            onBlur={() => {
-              setTouched({
-                ...touched,
-                name: true,
-              });
-
-              if (!monitorCriteriaInstance?.data?.name) {
-                setErrors({
-                  ...errors,
-                  name: "Name is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  name: "",
-                });
-              }
-            }}
-            error={
-              touched["name"] && errors["name"] ? errors["name"] : undefined
-            }
-            placeholder="Online Criteria"
+            placeholder={nameFromFilters}
             onChange={(value: string) => {
-              if (!value) {
-                setErrors({
-                  ...errors,
-                  name: "Name is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  name: "",
-                });
-              }
-
               monitorCriteriaInstance.setName(value);
               if (props.onChange) {
                 props.onChange(
@@ -289,62 +324,39 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 );
               }
             }}
-          />
-        </div>
-        <div className="mt-4">
-          <FieldLabelElement
-            title={"Criteria Description"}
-            description={
-              "Any friendly description for this criteria, that will help you remember later."
-            }
-            required={true}
-          />
-          <TextArea
-            value={monitorCriteriaInstance?.data?.description?.toString() || ""}
             onBlur={() => {
-              setTouched({
-                ...touched,
-                description: true,
-              });
+              /*
+               * A criteria cannot be saved without a name, so a name cleared
+               * and left empty goes back to the one the filters give it -
+               * the field never strands the user on "Name is required".
+               */
+              if (monitorCriteriaInstance.data?.name?.trim()) {
+                return;
+              }
 
-              if (!monitorCriteriaInstance?.data?.description) {
-                setErrors({
-                  ...errors,
-                  description: "Description is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  description: "",
-                });
-              }
-            }}
-            error={
-              touched["description"] && errors["description"]
-                ? errors["description"]
-                : undefined
-            }
-            onChange={(value: string) => {
-              if (!value) {
-                setErrors({
-                  ...errors,
-                  description: "Description is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  description: "",
-                });
-              }
-              monitorCriteriaInstance.setDescription(value);
+              monitorCriteriaInstance.setName(nameFromFilters);
               if (props.onChange) {
                 props.onChange(
                   MonitorCriteriaInstance.clone(monitorCriteriaInstance),
                 );
               }
             }}
-            placeholder="This criteria checks if the monitor is online."
           />
+          {isNameFromFilters && (
+            <p
+              className="mt-1 text-xs text-gray-500"
+              data-testid="monitor-criteria-name-follows-filters"
+            >
+              {props.monitorType === MonitorType.Kubernetes ||
+              props.monitorType === MonitorType.Metrics
+                ? translator.translateText(
+                    "Named after the alert rules below. It follows them until you type a name of your own.",
+                  )
+                : translator.translateText(
+                    "Named after the filters below. It follows them until you type a name of your own.",
+                  )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -393,14 +405,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
-                monitorCriteriaInstance.setFilterCondition(
-                  value as FilterCondition,
-                );
-                if (props.onChange) {
-                  props.onChange(
-                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                  );
-                }
+                changeFilters({
+                  filterCondition: value as FilterCondition,
+                });
               }}
             />
           </div>
@@ -417,12 +424,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 FilterCondition.All
               }
               onChange={(value: Array<CriteriaFilter>) => {
-                monitorCriteriaInstance.setFilters(value);
-                if (props.onChange) {
-                  props.onChange(
-                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                  );
-                }
+                changeFilters({
+                  filters: value,
+                });
               }}
             />
           </NetworkDeviceCriteriaCatalogueContext.Provider>
@@ -620,7 +624,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Settings — criteria enable toggle + (incoming request) incident grouping */}
+      {/*
+       * Settings — the enable switch, the optional description and, for
+       * incoming request monitors, incident grouping.
+       */}
       <CollapsibleSection
         title="Settings"
         description="Configure additional settings for this criteria."
@@ -643,6 +650,33 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               }
             }}
           />
+
+          {/*
+           * Optional: the name already says what the criteria is for. When
+           * there is one, it shows under the name in the criteria's header.
+           */}
+          <div className="mt-4">
+            <FieldLabelElement
+              title={"Description"}
+              htmlFor={descriptionInputId}
+            />
+            <TextArea
+              id={descriptionInputId}
+              dataTestId="monitor-criteria-description-input"
+              autoGrow={true}
+              value={
+                monitorCriteriaInstance?.data?.description?.toString() || ""
+              }
+              onChange={(value: string) => {
+                monitorCriteriaInstance.setDescription(value);
+                if (props.onChange) {
+                  props.onChange(
+                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                  );
+                }
+              }}
+            />
+          </div>
 
           {props.monitorType === MonitorType.IncomingRequest && (
             <div className="mt-6 border-t border-gray-100 pt-4">

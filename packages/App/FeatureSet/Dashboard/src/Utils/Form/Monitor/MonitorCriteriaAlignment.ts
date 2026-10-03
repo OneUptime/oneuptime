@@ -7,6 +7,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import CriteriaFilterUtil from "./CriteriaFilter";
+import CriteriaNameUtil from "./CriteriaName";
 
 /*
  * Everything MonitorCriteria.getDefaultMonitorCriteria needs to seed the
@@ -213,7 +214,10 @@ export default class MonitorCriteriaAlignmentUtil {
    * type can still express and dropping the ones it cannot. Nothing else
    * about the criteria is touched - names, descriptions, incidents,
    * alerts, the filter condition, the monitor status it sets and which
-   * criteria exist are all the user's.
+   * criteria exist are all the user's. The one exception is a name the
+   * filters gave the criteria (CriteriaNameUtil): it was never the user's,
+   * and it follows the repaired filters as it follows any other edit, so
+   * it cannot go on describing a filter that is gone.
    *
    * Dropping rather than substituting is deliberate. A filter naming a
    * check the monitor type does not offer has no honest translation, and
@@ -275,15 +279,30 @@ export default class MonitorCriteriaAlignmentUtil {
 
         didChange = true;
 
-        return MonitorCriteriaInstance.clone(instance).setFilters(
+        const repairedFilters: Array<CriteriaFilter> =
           keptFilters.length > 0
             ? keptFilters
             : MonitorCriteriaAlignmentUtil.defaultFiltersForCriteria({
                 monitorCriteriaInstance: instance,
                 monitorType: monitorType,
                 seedOptions: seedOptions,
-              }),
-        );
+              });
+
+        return MonitorCriteriaInstance.clone(instance)
+          .setFilters(repairedFilters)
+          .setName(
+            CriteriaNameUtil.getNameAfterFiltersChange({
+              name: instance.data?.name,
+              previous: {
+                filters: filters,
+                filterCondition: instance.data?.filterCondition,
+              },
+              next: {
+                filters: repairedFilters,
+                filterCondition: instance.data?.filterCondition,
+              },
+            }),
+          );
       },
     );
 

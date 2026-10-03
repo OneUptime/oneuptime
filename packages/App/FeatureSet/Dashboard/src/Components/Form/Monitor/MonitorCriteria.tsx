@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
+import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
@@ -433,6 +434,15 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
               newMonitorCriteria.data.filters = [
                 CriteriaFilterUtil.getDefaultCriteriaFilter(props.monitorType),
               ];
+
+              /*
+               * Named after that filter, so the criteria is ready to save
+               * without anyone inventing a name. The name follows the
+               * filters as they are edited, until the user types their own.
+               */
+              newMonitorCriteria.setName(
+                CriteriaNameUtil.getNameForCriteria(newMonitorCriteria),
+              );
             }
 
             newMonitorCriterias.push(newMonitorCriteria);
