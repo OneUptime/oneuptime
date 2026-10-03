@@ -113,8 +113,12 @@ const DeviceHealthOidsFormField: FunctionComponent<ComponentProps> = (
     props.areTemplateOidsResolved !== false;
 
   const emptyTemplateMessage: string = areTemplateOidsResolved
-    ? "This template has no OIDs yet, so it adds nothing to this device — only the device-specific OIDs below are collected."
-    : "This device collects this template's OIDs on every poll, but they could not be loaded here, so what is shown is incomplete. Open the template itself to see what it contains.";
+    ? translator.translateTemplate(
+        "This template has no OIDs yet, so it adds nothing to this device — only the device-specific OIDs below are collected.",
+      )
+    : translator.translateTemplate(
+        "This device collects this template's OIDs on every poll, but they could not be loaded here, so what is shown is incomplete. Open the template itself to see what it contains.",
+      );
 
   /*
    * An OID on both lists resolves to the DEVICE's entry at the TEMPLATE's

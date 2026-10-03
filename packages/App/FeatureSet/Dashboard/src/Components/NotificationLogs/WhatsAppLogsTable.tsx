@@ -228,7 +228,11 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
               }
 
               if (fallbackMessageId) {
-                messageParts.push(`Message ID: ${fallbackMessageId}`);
+                messageParts.push(
+                  translator.translateTemplate("Message ID: {{id}}", {
+                    id: fallbackMessageId,
+                  }),
+                );
               }
 
               setModalTitle("Status Message");

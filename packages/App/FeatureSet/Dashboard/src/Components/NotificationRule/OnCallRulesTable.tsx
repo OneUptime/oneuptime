@@ -44,7 +44,7 @@ import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -275,8 +275,9 @@ const getSuppliedMethodSelect: GetSuppliedMethodSelect =
  * here" against "paged on a device this screen cannot name". An admin who reads
  * the second as the first deletes a working rule.
  */
-const UNRESOLVED_METHOD_LABEL: string =
-  "A notification method is set - its identifier is not shown here";
+const UNRESOLVED_METHOD_LABEL: string = translationKey(
+  "A notification method is set - its identifier is not shown here",
+);
 
 /*
  * The method cell for a table that is about somebody else, resolved from ids.
@@ -464,7 +465,9 @@ const DEFAULT_NO_ITEMS_MESSAGE: string =
  * full of "Email: j@example.com" concludes the row is corrupt and deletes it -
  * which silently re-enables paging the owner had asked to stop.
  */
-const OPT_OUT_LABEL: string = "Muted - notifications turned off for this rule";
+const OPT_OUT_LABEL: string = translationKey(
+  "Muted - notifications turned off for this rule",
+);
 
 /*
  * The on-call notification rules table, one per severity band.
@@ -1003,7 +1006,11 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
                * turning somebody's paging back on.
                */
               if (item["isOptOut"]) {
-                return <p className="text-gray-500 italic">{OPT_OUT_LABEL}</p>;
+                return (
+                  <p className="text-gray-500 italic">
+                    {translator.translateText(OPT_OUT_LABEL)}
+                  </p>
+                );
               }
 
               /*
@@ -1036,7 +1043,11 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               }
 
               if (suppliedLabel === UNRESOLVED_METHOD_LABEL) {
-                return <p className="text-gray-500 italic">{suppliedLabel}</p>;
+                return (
+                  <p className="text-gray-500 italic">
+                    {translator.translateText(suppliedLabel)}
+                  </p>
+                );
               }
 
               return <p>{suppliedLabel}</p>;

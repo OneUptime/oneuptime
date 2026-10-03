@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -73,10 +74,14 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         };
 
         const textMap: Record<WorkspaceNotificationActionType, string> = {
-          [WorkspaceNotificationActionType.SendMessage]: "Send Message",
-          [WorkspaceNotificationActionType.CreateChannel]: "Create Channel",
-          [WorkspaceNotificationActionType.InviteUser]: "Invite User",
-          [WorkspaceNotificationActionType.ButtonPressed]: "Button Pressed",
+          [WorkspaceNotificationActionType.SendMessage]:
+            translationKey("Send Message"),
+          [WorkspaceNotificationActionType.CreateChannel]:
+            translationKey("Create Channel"),
+          [WorkspaceNotificationActionType.InviteUser]:
+            translationKey("Invite User"),
+          [WorkspaceNotificationActionType.ButtonPressed]:
+            translationKey("Button Pressed"),
         };
 
         return (

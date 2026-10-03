@@ -300,18 +300,23 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
     icon: IconProp.LinkSlash,
     isVisible: isProbePolledSelection,
     confirmTitle: (items: Array<NetworkDevice>): string => {
-      return `Clear the SNMP Credential Profile on ${items.length} ${
-        items.length === 1 ? "device" : "devices"
-      }?`;
+      return translator.translatePlural(
+        {
+          one: "Clear the SNMP Credential Profile on {{count}} device?",
+          other: "Clear the SNMP Credential Profile on {{count}} devices?",
+        },
+        items.length,
+      );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
-      return `${
-        items.length === 1 ? "This device" : "These devices"
-      } will fall back to ${
-        items.length === 1 ? "its" : "their"
-      } own credentials, then to the profile on ${
-        items.length === 1 ? "its" : "their"
-      } site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.`;
+      return translator.translatePlural(
+        {
+          one: "This device will fall back to its own credentials, then to the profile on its site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.",
+          other:
+            "These devices will fall back to their own credentials, then to the profile on their site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.",
+        },
+        items.length,
+      );
     },
     onClick: async (
       actionProps: BulkActionOnClickProps<NetworkDevice>,

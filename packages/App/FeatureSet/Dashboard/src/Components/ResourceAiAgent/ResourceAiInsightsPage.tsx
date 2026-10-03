@@ -76,6 +76,7 @@ import React, {
 import { useParams } from "react-router-dom";
 import {
   translatableTerm,
+  translateTemplate,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -300,7 +301,9 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
 
         if (!parsed) {
           throw new Error(
-            "The server returned AI insights this page cannot read.",
+            translateTemplate(
+              "The server returned AI insights this page cannot read.",
+            ),
           );
         }
       } catch (err) {
@@ -488,7 +491,7 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
     <Fragment>
       <div className="mb-5" data-testid="ai-insights-page-heading">
         <h2 className="text-lg font-semibold text-gray-900">
-          {RESOURCE_AI_INSIGHTS_PAGE_TITLE}
+          {translator.translateText(RESOURCE_AI_INSIGHTS_PAGE_TITLE)}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           {getResourceAiInsightsPageSubtitle(descriptor)}

@@ -156,6 +156,8 @@ import React, {
 import { useParams } from "react-router-dom";
 import {
   translatableTerm,
+  translateTemplate,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -230,11 +232,18 @@ async function postResourceAiAccess(data: {
 function AdminPermissionNote(): ReactElement {
   return (
     <AiAccessPermissionNote
-      canText="You can turn investigation on or off, lower fixes and remove allowlist entries."
-      cannotText={`Turning fixes on or up, or adding allowlist entries, needs ${formatNameList(
-        getResourceAiAccessAdminPermissionTitles(),
-        "or",
-      )}.`}
+      canText={translationKey(
+        "You can turn investigation on or off, lower fixes and remove allowlist entries.",
+      )}
+      cannotText={translateTemplate(
+        "Turning fixes on or up, or adding allowlist entries, needs {{permissions}}.",
+        {
+          permissions: formatNameList(
+            getResourceAiAccessAdminPermissionTitles(),
+            translateTemplate("or"),
+          ),
+        },
+      )}
       dataTestId="resource-ai-access-admin-note"
     />
   );
@@ -492,7 +501,14 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       });
       if (loosening.length > 0) {
         setSaveError(
-          `${capitalizeFirst(loosening.join(", "))} needs one of these permissions: ${getResourceAiAccessAdminPermissionTitles().join(", ")}.`,
+          translator.translateTemplate(
+            "{{changes}} needs one of these permissions: {{permissions}}.",
+            {
+              changes: capitalizeFirst(loosening.join(", ")),
+              permissions:
+                getResourceAiAccessAdminPermissionTitles().join(", "),
+            },
+          ),
         );
         return;
       }
@@ -619,7 +635,11 @@ function InstallInstructions(props: {
         >
           {props.install.prerequisites.map(
             (prerequisite: string): ReactElement => {
-              return <li key={prerequisite}>{prerequisite}</li>;
+              return (
+                <li key={prerequisite}>
+                  {translator.translateText(prerequisite)}
+                </li>
+              );
             },
           )}
         </ul>
@@ -801,7 +821,9 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
 
         if (!parsed) {
           throw new Error(
-            "The server returned an AI agent status this page cannot read.",
+            translateTemplate(
+              "The server returned an AI agent status this page cannot read.",
+            ),
           );
         }
 
@@ -976,7 +998,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
-        {RESOURCE_AI_AGENT_PAGE_TITLE}
+        {translator.translateText(RESOURCE_AI_AGENT_PAGE_TITLE)}
       </h2>
       <p className="mt-1 text-sm text-gray-500">
         {getResourceAiAgentPageSubtitle(descriptor)}
@@ -1049,7 +1071,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         className="text-xs font-medium text-gray-500"
         data-testid="ai-agent-gap-ask"
       >
-        {RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT}
+        {translator.translateText(RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT)}
       </p>
     );
   };
@@ -1089,7 +1111,17 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                 run: async (): Promise<void> => {
                   await updateResource({ isAiInvestigationEnabled: true });
                 },
-                notice: `AI may now investigate this ${descriptor.noun} with ${descriptor.readOnlyCommandsPhrase}.`,
+                notice: translator.translateTemplate(
+                  "AI may now investigate this {{noun}} with {{commands}}.",
+                  {
+                    noun: translatableTerm(descriptor.noun, {
+                      inSentence: true,
+                    }),
+                    commands: translatableTerm(
+                      descriptor.readOnlyCommandsPhrase,
+                    ),
+                  },
+                ),
                 isConfirmed: false,
               }).catch(() => {
                 // handled inside runPageAction
@@ -1589,7 +1621,10 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                   resourceId: modelId,
                 });
               },
-              notice: `The ${descriptor.agentName} was reset. It reconnects on its own within a few minutes.`,
+              notice: translator.translateTemplate(
+                "The {{agent}} was reset. It reconnects on its own within a few minutes.",
+                { agent: translatableTerm(descriptor.agentName) },
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction

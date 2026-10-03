@@ -27,7 +27,7 @@ import {
   normalizeSiteSearchText,
 } from "./SiteSearchUtil";
 import { pluralizeSiteType } from "./SiteMapViewModel";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
@@ -66,8 +66,9 @@ const INPUT_CLASS: string =
 const NO_STATUS_COLOR: string = "#9ca3af"; // gray-400
 
 const DEFAULT_TEST_ID: string = "network-map-search";
-const DEFAULT_PLACEHOLDER: string =
-  "Search sites by name — anywhere in your network";
+const DEFAULT_PLACEHOLDER: string = translationKey(
+  "Search sites by name — anywhere in your network",
+);
 
 export interface ComponentProps {
   value: string;
@@ -122,7 +123,9 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
   const canSearchRemotely: boolean = isRemoteSearchable(normalized);
 
   const testId: string = props.dataTestId || DEFAULT_TEST_ID;
-  const placeholder: string = props.placeholder || DEFAULT_PLACEHOLDER;
+  const placeholder: string =
+    translator.translateText(props.placeholder || DEFAULT_PLACEHOLDER) ||
+    DEFAULT_PLACEHOLDER;
   const listboxId: string = `${testId}-listbox`;
   const optionId: (result: SiteSearchResultView) => string = (
     result: SiteSearchResultView,

@@ -76,7 +76,11 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100"
           title="Rows Truncated"
-          value={sqlResponse?.isRowsCapped ? "Yes (result capped)" : "No"}
+          value={
+            translator.translateText(
+              sqlResponse?.isRowsCapped ? "Yes (result capped)" : "No",
+            ) || ""
+          }
         />
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100"

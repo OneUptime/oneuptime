@@ -19,7 +19,7 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import { MonitorOverviewResponseTime } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -36,8 +36,8 @@ export const getResponseTimeCardTitle: (metric: MonitorMetricType) => string = (
   metric: MonitorMetricType,
 ): string => {
   return metric === MonitorMetricType.ExecutionTime
-    ? "Run time"
-    : "Response time";
+    ? translationKey("Run time")
+    : translationKey("Response time");
 };
 
 /*
@@ -46,8 +46,9 @@ export const getResponseTimeCardTitle: (metric: MonitorMetricType) => string = (
  * timeout or a connection error has no answer and no time, so those checks
  * are the only ones missing from the chart.
  */
-export const RESPONSE_TIME_CARD_DESCRIPTION: string =
-  "Average response time per probe. Error responses are included; timeouts and connection errors are not.";
+export const RESPONSE_TIME_CARD_DESCRIPTION: string = translationKey(
+  "Average response time per probe. Error responses are included; timeouts and connection errors are not.",
+);
 
 /*
  * "across 3 probes", or "across 2 of 3 probes" when some probes' latest

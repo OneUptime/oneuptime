@@ -23,13 +23,16 @@ export interface ComponentProps {
 }
 
 const CARD_TITLE: Record<MonitorOverviewSetupKind, string> = {
-  [MonitorOverviewSetupKind.HeartbeatUrl]: "Heartbeat URL",
-  [MonitorOverviewSetupKind.InboundEmail]: "Inbound email address",
-  [MonitorOverviewSetupKind.ServerAgent]: "Server agent",
+  [MonitorOverviewSetupKind.HeartbeatUrl]: translationKey("Heartbeat URL"),
+  [MonitorOverviewSetupKind.InboundEmail]: translationKey(
+    "Inbound email address",
+  ),
+  [MonitorOverviewSetupKind.ServerAgent]: translationKey("Server agent"),
 };
 
-const HIDDEN_SECRET_TEXT: string =
-  "Only people who can edit monitors can see this, because it contains the monitor's secret key.";
+const HIDDEN_SECRET_TEXT: string = translationKey(
+  "Only people who can edit monitors can see this, because it contains the monitor's secret key.",
+);
 
 /*
  * Where a push-based monitor gets its data from, once data is arriving: the
@@ -100,7 +103,11 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
     });
 
     if (!secretKey) {
-      return <p className="text-sm text-gray-500">{HIDDEN_SECRET_TEXT}</p>;
+      return (
+        <p className="text-sm text-gray-500">
+          {translator.translateText(HIDDEN_SECRET_TEXT)}
+        </p>
+      );
     }
 
     if (props.kind === MonitorOverviewSetupKind.InboundEmail) {

@@ -26,7 +26,11 @@ import AnalyticsModelAPI, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { isPublicDashboard } from "../../Dashboard/Utils/PublicDashboardContext";
@@ -71,11 +75,11 @@ export function truncateEventMarkerTitle(title: string): string {
  * "Change".
  */
 const CHANGE_EVENT_TYPE_LABELS: Record<string, string> = {
-  deployment: "Deploy",
-  "config-change": "Config change",
-  scaling: "Scaling",
-  rollback: "Rollback",
-  "feature-flag": "Feature flag",
+  deployment: translationKey("Deploy"),
+  "config-change": translationKey("Config change"),
+  scaling: translationKey("Scaling"),
+  rollback: translationKey("Rollback"),
+  "feature-flag": translationKey("Feature flag"),
 };
 
 export function getChangeEventMarkerLabel(
@@ -83,8 +87,13 @@ export function getChangeEventMarkerLabel(
   title: string,
 ): string {
   const prefix: string =
-    CHANGE_EVENT_TYPE_LABELS[(eventType || "").toLowerCase()] || "Change";
-  return `${prefix}: ${truncateEventMarkerTitle(title)}`;
+    CHANGE_EVENT_TYPE_LABELS[(eventType || "").toLowerCase()] ||
+    translationKey("Change");
+  // The kind of change in the reader's language, then the event's own title.
+  return translateTemplate("{{kind}}: {{title}}", {
+    kind: translatableTerm(prefix),
+    title: truncateEventMarkerTitle(title),
+  });
 }
 
 // One incident/alert/change event mapped onto a chart time marker.

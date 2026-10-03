@@ -19,7 +19,13 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatePlural,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   planShortDeviceName,
   planShortDeviceNames,
@@ -85,11 +91,13 @@ export const MAX_CONFIRM_EXAMPLES: number = 5;
  * the progress modal has exactly two lists, and a device left untouched is
  * honestly in neither — "succeeded" would claim it was renamed.
  */
-export const SKIPPED_NAME_CHANGED_MESSAGE: string =
-  "Skipped: the name changed since it was selected.";
+export const SKIPPED_NAME_CHANGED_MESSAGE: string = translationKey(
+  "Skipped: the name changed since it was selected.",
+);
 
-export const DEVICE_NOT_FOUND_MESSAGE: string =
-  "This device could not be read. It may have been deleted since the list was loaded.";
+export const DEVICE_NOT_FOUND_MESSAGE: string = translationKey(
+  "This device could not be read. It may have been deleted since the list was loaded.",
+);
 
 /*
  * The collision with a device OUTSIDE the batch. Names the device that holds
@@ -100,7 +108,10 @@ export function buildNameTakenMessage(data: {
   newName: string;
   existingDeviceName: string;
 }): string {
-  return `Skipped: another device is already named "${data.existingDeviceName}", so this one cannot also be renamed "${data.newName}". Rename one of them individually.`;
+  return translateTemplate(
+    'Skipped: another device is already named "{{existing}}", so this one cannot also be renamed "{{name}}". Rename one of them individually.',
+    { existing: data.existingDeviceName, name: data.newName },
+  );
 }
 
 /*
@@ -163,16 +174,25 @@ export function buildShortenDeviceNamesConfirmMessage(
   if (renames.length === 0) {
     lines.push(
       items.length === 1
-        ? "This device's name is not a fully qualified hostname that can be shortened, so it will be left as it is."
-        : "None of these devices has a fully qualified hostname that can be shortened on its own, so none will be renamed. Devices that would end up sharing a short name are left as they are.",
+        ? translateTemplate(
+            "This device's name is not a fully qualified hostname that can be shortened, so it will be left as it is.",
+          )
+        : translateTemplate(
+            "None of these devices has a fully qualified hostname that can be shortened on its own, so none will be renamed. Devices that would end up sharing a short name are left as they are.",
+          ),
     );
   } else {
     lines.push(
       items.length === 1
-        ? "This device will be renamed to its hostname, dropping the domain:"
-        : `${renames.length} of the ${items.length} selected devices will be renamed to their hostname, dropping the domain${
-            renames.length > MAX_CONFIRM_EXAMPLES ? ". For example" : ""
-          }:`,
+        ? translateTemplate(
+            "This device will be renamed to its hostname, dropping the domain:",
+          )
+        : translateTemplate(
+            renames.length > MAX_CONFIRM_EXAMPLES
+              ? "{{renamed}} of the {{selected}} selected devices will be renamed to their hostname, dropping the domain. For example:"
+              : "{{renamed}} of the {{selected}} selected devices will be renamed to their hostname, dropping the domain:",
+            { renamed: renames.length, selected: items.length },
+          ),
     );
 
     for (const rename of renames.slice(0, MAX_CONFIRM_EXAMPLES)) {
@@ -180,35 +200,53 @@ export function buildShortenDeviceNamesConfirmMessage(
     }
 
     if (renames.length > MAX_CONFIRM_EXAMPLES) {
-      lines.push(`  …and ${renames.length - MAX_CONFIRM_EXAMPLES} more.`);
+      lines.push(
+        `  ${translateTemplate("…and {{count}} more.", {
+          count: renames.length - MAX_CONFIRM_EXAMPLES,
+        })}`,
+      );
     }
 
     if (skippedCount > 0) {
       lines.push(
         "",
-        `${skippedCount} ${
-          skippedCount === 1 ? "device is" : "devices are"
-        } left as ${
-          skippedCount === 1 ? "it is" : "they are"
-        }: a name that is not a fully qualified hostname has no domain to drop, and devices that would end up sharing a short name are not renamed.`,
+        translatePlural(
+          {
+            one: "{{count}} device is left as it is: a name that is not a fully qualified hostname has no domain to drop, and devices that would end up sharing a short name are not renamed.",
+            other:
+              "{{count}} devices are left as they are: a name that is not a fully qualified hostname has no domain to drop, and devices that would end up sharing a short name are not renamed.",
+          },
+          skippedCount,
+        ),
       );
     }
   }
 
   lines.push(
     "",
-    "When a device has no DNS Name, its full name is kept as its DNS Name, so it can still be searched for - unless that name is also the device's SNMP System Name (which keeps it already), or is 80 characters or longer and may have been cut short at import.",
-    "Site-assignment rules run again for every renamed device.",
-    "Label and owner rules are not applied again — use Run Now on a rule that matches device names.",
-    "Existing Ping monitors keep their current names.",
-    "Metric series labelled with the device name start a new series under the new name.",
-    "A device is skipped if another device already has its short name, or if its name changed since it was selected.",
+    translateTemplate(
+      "When a device has no DNS Name, its full name is kept as its DNS Name, so it can still be searched for - unless that name is also the device's SNMP System Name (which keeps it already), or is 80 characters or longer and may have been cut short at import.",
+    ),
+    translateTemplate(
+      "Site-assignment rules run again for every renamed device.",
+    ),
+    translateTemplate(
+      "Label and owner rules are not applied again — use Run Now on a rule that matches device names.",
+    ),
+    translateTemplate("Existing Ping monitors keep their current names."),
+    translateTemplate(
+      "Metric series labelled with the device name start a new series under the new name.",
+    ),
+    translateTemplate(
+      "A device is skipped if another device already has its short name, or if its name changed since it was selected.",
+    ),
   );
 
   return lines.join("\n");
 }
 
 function useBulkShortenDeviceNames(): BulkShortenDeviceNamesResult {
+  const translator: Translator = useTranslator();
   /*
    * One device. Returns the "Skipped:" message when it was left alone, null
    * when it was renamed; anything that goes wrong is thrown to the loop, which
@@ -411,15 +449,19 @@ function useBulkShortenDeviceNames(): BulkShortenDeviceNamesResult {
         if (skippedMessage) {
           failedItems.push({
             item: item,
-            failedMessage: skippedMessage,
+            // The progress list shows it as given: a fixed sentence is looked up.
+            failedMessage:
+              translator.translateText(skippedMessage) || skippedMessage,
           });
         } else {
           successItems.push(item);
         }
       } catch (err) {
+        const message: string = API.getFriendlyMessage(err);
+
         failedItems.push({
           item: item,
-          failedMessage: API.getFriendlyMessage(err),
+          failedMessage: translator.translateText(message) || message,
         });
       }
 
@@ -496,11 +538,13 @@ function useBulkShortenDeviceNames(): BulkShortenDeviceNamesResult {
     icon: IconProp.Scissors,
     isVisible: hasShortenableDevice,
     confirmTitle: (items: Array<NetworkDevice>): string => {
-      return `Shorten the ${
-        items.length === 1
-          ? "name of 1 device"
-          : `names of ${items.length} devices`
-      } to the hostname?`;
+      return translator.translatePlural(
+        {
+          one: "Shorten the name of {{count}} device to the hostname?",
+          other: "Shorten the names of {{count}} devices to the hostname?",
+        },
+        items.length,
+      );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
       return buildShortenDeviceNamesConfirmMessage(items);

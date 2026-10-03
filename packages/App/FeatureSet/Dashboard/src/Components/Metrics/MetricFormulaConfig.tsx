@@ -50,7 +50,7 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
     props.data.metricAliasData?.title ||
     props.data.metricAliasData?.legend ||
     formulaExpression ||
-    "New formula";
+    translator.translateTemplate("New formula");
 
   const content: ReactElement = (
     <div>

@@ -234,22 +234,51 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
 
     const notes: Array<string> = [];
 
+    // An error is the hook's own sentence or the server's; either is looked up.
+    const errorText: (error: string | undefined | null) => string = (
+      error: string | undefined | null,
+    ): string => {
+      return translator.translateText(error || "") || "";
+    };
+
     if (incidentsState === "forbidden") {
       notes.push(
-        "Incidents are hidden: you need permission to read incidents.",
+        translator.translateTemplate(
+          "Incidents are hidden: you need permission to read incidents.",
+        ),
       );
     } else if (incidentsState === "error") {
-      notes.push(`Couldn't load incidents. ${incidents.error}`);
+      notes.push(
+        translator.translateTemplate("Couldn't load incidents. {{error}}", {
+          error: errorText(incidents.error),
+        }),
+      );
     } else if (incidents.refreshError) {
-      notes.push(`Couldn't refresh incidents. ${incidents.refreshError}`);
+      notes.push(
+        translator.translateTemplate("Couldn't refresh incidents. {{error}}", {
+          error: errorText(incidents.refreshError),
+        }),
+      );
     }
 
     if (alertsState === "forbidden") {
-      notes.push("Alerts are hidden: you need permission to read alerts.");
+      notes.push(
+        translator.translateTemplate(
+          "Alerts are hidden: you need permission to read alerts.",
+        ),
+      );
     } else if (alertsState === "error") {
-      notes.push(`Couldn't load alerts. ${alerts.error}`);
+      notes.push(
+        translator.translateTemplate("Couldn't load alerts. {{error}}", {
+          error: errorText(alerts.error),
+        }),
+      );
     } else if (alerts.refreshError) {
-      notes.push(`Couldn't refresh alerts. ${alerts.refreshError}`);
+      notes.push(
+        translator.translateTemplate("Couldn't refresh alerts. {{error}}", {
+          error: errorText(alerts.refreshError),
+        }),
+      );
     }
 
     let list: ReactElement = <></>;

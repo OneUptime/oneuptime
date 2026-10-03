@@ -46,7 +46,7 @@ import React, {
   useState,
 } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -56,9 +56,10 @@ export interface ComponentProps {
   onRetry: () => void;
 }
 
-const CARD_TITLE: string = "Uptime history";
-const CARD_DESCRIPTION: string =
-  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.";
+const CARD_TITLE: string = translationKey("Uptime history");
+const CARD_DESCRIPTION: string = translationKey(
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.",
+);
 
 interface StatusModels {
   all: Array<MonitorStatus>;
@@ -354,7 +355,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
 
     legendItems.push({
       key: statusId,
-      name: status?.name || "Unknown status",
+      name: status?.name || translator.translateTemplate("Unknown status"),
       color: status?.color || Green.toString(),
     });
   }

@@ -6,7 +6,11 @@ import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure half of a resource's AI Insights page (ResourceAiInsightsPage):
@@ -20,32 +24,49 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
  * suites read it without a browser.
  */
 
-export const RESOURCE_AI_INSIGHTS_PAGE_TITLE: string = "AI Insights";
+export const RESOURCE_AI_INSIGHTS_PAGE_TITLE: string =
+  translationKey("AI Insights");
 
-export const RESOURCE_AI_INSIGHTS_EMPTY_TITLE: string = "Nothing yet";
+export const RESOURCE_AI_INSIGHTS_EMPTY_TITLE: string =
+  translationKey("Nothing yet");
 
 export function getResourceAiInsightsPageSubtitle(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `What OneUptime AI investigated and changed on this ${descriptor.noun}.`;
+  return translateTemplate(
+    "What OneUptime AI investigated and changed on this {{noun}}.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 export function getResourceAiInsightsEmptyDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `When an incident or alert on this ${descriptor.noun} is investigated, the findings, proposed fixes and every command AI ran appear here.`;
+  return translateTemplate(
+    "When an incident or alert on this {{noun}} is investigated, the findings, proposed fixes and every command AI ran appear here.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 export function getResourceCommandsCardDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Every command OneUptime AI ran on this ${descriptor.noun} through the ${descriptor.agentName} — while investigating (read-only), for fixes, and for connection tests — with its result.`;
+  return translateTemplate(
+    "Every command OneUptime AI ran on this {{noun}} through the {{agent}} — while investigating (read-only), for fixes, and for connection tests — with its result.",
+    {
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+      agent: translatableTerm(descriptor.agentName),
+    },
+  );
 }
 
 export function getResourceCommandsEmptyMessage(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `OneUptime AI has not run any commands on this ${descriptor.noun} yet.`;
+  return translateTemplate(
+    "OneUptime AI has not run any commands on this {{noun}} yet.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 /*
@@ -59,8 +80,10 @@ export const RESOURCE_COMMAND_JOB_ORIGIN_LABELS: Record<
   >,
   string
 > = {
-  [RunnerJobOrigin.AiInvestigation]: "Investigation or connection test",
-  [RunnerJobOrigin.AiRemediation]: "Fix",
+  [RunnerJobOrigin.AiInvestigation]: translationKey(
+    "Investigation or connection test",
+  ),
+  [RunnerJobOrigin.AiRemediation]: translationKey("Fix"),
 };
 
 /*

@@ -24,7 +24,10 @@ import IncomingEmailMonitorAddress, {
 } from "Common/Utils/Monitor/IncomingEmailMonitorAddress";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -71,7 +74,7 @@ const getLocalPartError: GetErrorFunction = (value: string): string | null => {
   } catch (err) {
     return err instanceof BadDataException
       ? err.message
-      : "Please enter a valid name.";
+      : translateTemplate("Please enter a valid name.");
   }
 };
 

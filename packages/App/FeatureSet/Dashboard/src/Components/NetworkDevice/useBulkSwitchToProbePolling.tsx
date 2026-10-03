@@ -71,8 +71,9 @@ export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string = translationKey(
  * honestly — "succeeded" claims it was switched, dropping it makes the
  * totals stop adding up.
  */
-export const SKIPPED_ALREADY_PROBE_POLLED_MESSAGE: string =
-  "Skipped: already probe-polled.";
+export const SKIPPED_ALREADY_PROBE_POLLED_MESSAGE: string = translationKey(
+  "Skipped: already probe-polled.",
+);
 
 /*
  * The one field the modal writes. A type alias rather than an interface so
@@ -169,7 +170,9 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
 
     if (!device) {
       throw new BadDataException(
-        "This device could not be read. It may have been deleted since the list was loaded.",
+        translationKey(
+          "This device could not be read. It may have been deleted since the list was loaded.",
+        ),
       );
     }
 
@@ -239,15 +242,19 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
         if (skippedMessage) {
           failedItems.push({
             item: item,
-            failedMessage: skippedMessage,
+            // The progress list shows it as given: a fixed sentence is looked up.
+            failedMessage:
+              translator.translateText(skippedMessage) || skippedMessage,
           });
         } else {
           successItems.push(item);
         }
       } catch (err) {
+        const message: string = API.getFriendlyMessage(err);
+
         failedItems.push({
           item: item,
-          failedMessage: API.getFriendlyMessage(err),
+          failedMessage: translator.translateText(message) || message,
         });
       }
 

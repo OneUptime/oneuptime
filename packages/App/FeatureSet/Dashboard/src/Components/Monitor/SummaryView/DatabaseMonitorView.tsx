@@ -221,12 +221,16 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
    * opposite of what happened.
    */
   const collectionSummary: string = !isOnline
-    ? "Not attempted"
+    ? translator.translateTemplate("Not attempted")
     : unavailableGroups.length === 0
-      ? "Healthy"
-      : `${unavailableGroups.length} group${
-          unavailableGroups.length === 1 ? "" : "s"
-        } unavailable`;
+      ? translator.translateTemplate("Healthy")
+      : translator.translatePlural(
+          {
+            one: "{{count}} group unavailable",
+            other: "{{count}} groups unavailable",
+          },
+          unavailableGroups.length,
+        );
 
   const getMetricRows: (
     category: DatabaseMetricCategory,

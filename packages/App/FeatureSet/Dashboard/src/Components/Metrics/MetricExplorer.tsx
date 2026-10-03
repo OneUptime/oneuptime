@@ -900,7 +900,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                   metricViewData,
                 ).toString()}
                 label="Copy Link"
-                copiedLabel="Link Copied!"
+                copiedLabel={translator.translateText("Link Copied!") || ""}
                 size="sm"
                 variant="ghost"
                 title="Copy a shareable link to this view"

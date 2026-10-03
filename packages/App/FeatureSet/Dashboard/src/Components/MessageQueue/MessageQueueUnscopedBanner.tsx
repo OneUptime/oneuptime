@@ -23,7 +23,8 @@ export interface ComponentProps {
   signal?: string | undefined;
 }
 
-export const MESSAGE_QUEUE_UNSCOPED_TITLE: string = "No telemetry scope";
+export const MESSAGE_QUEUE_UNSCOPED_TITLE: string =
+  translationKey("No telemetry scope");
 
 // Whole sentences per signal, so a locale words each one its own way.
 const UNSCOPED_DESCRIPTIONS: Record<string, string> = {

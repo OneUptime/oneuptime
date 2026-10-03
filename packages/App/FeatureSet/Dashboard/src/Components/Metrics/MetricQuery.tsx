@@ -134,8 +134,12 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
       (!hasCounterMetadata && looksLikeCounterByName));
 
   const rateHintCopy: string = isKnownCumulativeCounter
-    ? "Cumulative counter — convert to per-second rate?"
-    : "This metric looks like a cumulative counter — convert to per-second rate?";
+    ? translator.translateTemplate(
+        "Cumulative counter — convert to per-second rate?",
+      )
+    : translator.translateTemplate(
+        "This metric looks like a cumulative counter — convert to per-second rate?",
+      );
 
   const toggleAdvancedFilters: () => void = (): void => {
     setShowAdvancedFilters((prev: boolean): boolean => {

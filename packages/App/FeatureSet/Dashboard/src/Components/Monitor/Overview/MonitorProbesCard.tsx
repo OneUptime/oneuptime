@@ -17,7 +17,10 @@ import {
 } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -98,12 +101,18 @@ export const getProbeAgreementText: (data: {
   }
 
   if (requiredCount < activeCount) {
-    return `A status change needs ${requiredCount} of ${activeCount} connected probes to agree.`;
+    return translateTemplate(
+      "A status change needs {{required}} of {{count}} connected probes to agree.",
+      { required: requiredCount, count: activeCount },
+    );
   }
 
   return activeCount === 2
-    ? "A status change needs both connected probes to agree."
-    : `A status change needs all ${activeCount} connected probes to agree.`;
+    ? translateTemplate("A status change needs both connected probes to agree.")
+    : translateTemplate(
+        "A status change needs all {{count}} connected probes to agree.",
+        { count: activeCount },
+      );
 };
 
 const toProbeModel: (row: MonitorOverviewProbeRow) => Probe = (

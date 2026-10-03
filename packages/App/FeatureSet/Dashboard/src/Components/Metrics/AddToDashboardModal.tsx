@@ -16,7 +16,11 @@ import {
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
@@ -114,7 +118,9 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
         dashboard.id || (dashboard._id ? new ObjectID(dashboard._id) : null);
 
       if (!dashboardId) {
-        throw new Error("The selected dashboard does not have a valid ID.");
+        throw new Error(
+          translateTemplate("The selected dashboard does not have a valid ID."),
+        );
       }
 
       const fullDashboard: Dashboard | null = await ModelAPI.getItem<Dashboard>(
@@ -129,7 +135,9 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
       );
 
       if (!fullDashboard) {
-        throw new Error("This dashboard could not be loaded.");
+        throw new Error(
+          translateTemplate("This dashboard could not be loaded."),
+        );
       }
 
       const dashboardViewConfig: DashboardViewConfig =
@@ -268,7 +276,9 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
   return (
     <ModelListModal<Dashboard>
       modalTitle="Add to Dashboard"
-      modalDescription="Select the dashboard this chart should be added to."
+      modalDescription={translationKey(
+        "Select the dashboard this chart should be added to.",
+      )}
       modelType={Dashboard}
       titleField="name"
       descriptionField="description"

@@ -6,6 +6,11 @@ import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTop
 import { NetworkDeviceDiagnosticPingResult } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
+import {
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure half of the on-demand device diagnostics (issue #3745): the
@@ -115,8 +120,11 @@ export function describePingResult(
       rows.push({ label: "Reason", value: result.failureCause });
     }
 
+    // An English key: the drawer looks the headline up.
     return {
-      headline: result.isOnline ? "Reachable" : "Unreachable",
+      headline: result.isOnline
+        ? translationKey("Reachable")
+        : translationKey("Unreachable"),
       tone: result.isOnline ? "up" : "down",
       rows,
     };
@@ -125,14 +133,14 @@ export function describePingResult(
   const loss: number = result.pingResponse.packetLossPercent;
   const isDown: boolean = !result.isOnline || loss >= 100;
 
-  let headline: string = "Reachable";
+  let headline: string = translationKey("Reachable");
   let tone: PingResultTone = "up";
 
   if (isDown) {
-    headline = "Unreachable";
+    headline = translationKey("Unreachable");
     tone = "down";
   } else if (loss > 0) {
-    headline = "Reachable with packet loss";
+    headline = translationKey("Reachable with packet loss");
     tone = "degraded";
   }
 
@@ -159,9 +167,11 @@ export function describePingResult(
   });
   rows.push({
     label: "Packet loss",
-    value: `${formatPercent(loss)} (${result.pingResponse.packetsReceived}/${
-      result.pingResponse.packetsSent
-    } received)`,
+    value: translateTemplate("{{percent}} ({{received}}/{{sent}} received)", {
+      percent: formatPercent(loss),
+      received: result.pingResponse.packetsReceived,
+      sent: result.pingResponse.packetsSent,
+    }),
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingPacketLoss,
   });
 
@@ -180,7 +190,7 @@ export interface TraceRouteSummary {
 export function describeTraceRoute(trace: NetworkPathTrace): TraceRouteSummary {
   const hops: Array<TraceRouteHop> = trace.traceRoute?.hops || [];
 
-  let headline: string = "Did not reach the destination";
+  let headline: string = translateTemplate("Did not reach the destination");
 
   /*
    * No hops is no path, not a route that fell short: traceroute never ran
@@ -191,29 +201,38 @@ export function describeTraceRoute(trace: NetworkPathTrace): TraceRouteSummary {
    * headline claims nothing and the note carries the trace's reason.
    */
   if (hops.length === 0) {
-    headline = "No path was recorded";
+    headline = translateTemplate("No path was recorded");
   } else if (trace.traceRoute?.isComplete) {
-    headline = `Reached the destination in ${hops.length} ${
-      hops.length === 1 ? "hop" : "hops"
-    }`;
+    headline = translatePlural(
+      {
+        one: "Reached the destination in {{count}} hop",
+        other: "Reached the destination in {{count}} hops",
+      },
+      hops.length,
+    );
   } else if (trace.traceRoute?.failedHop !== undefined) {
-    headline = `Route broke at hop ${trace.traceRoute.failedHop}`;
+    headline = translateTemplate("Route broke at hop {{hop}}", {
+      hop: trace.traceRoute.failedHop,
+    });
   }
 
   let dnsLine: string | undefined = undefined;
 
   if (trace.dnsLookup) {
     dnsLine = trace.dnsLookup.isSuccess
-      ? `${
-          trace.dnsLookup.hostName
-        } resolved to ${trace.dnsLookup.resolvedAddresses.join(", ")} in ${
-          trace.dnsLookup.resolvedInMS
-        } ms`
-      : `Lookup for ${trace.dnsLookup.hostName} failed${
-          trace.dnsLookup.errorMessage
-            ? ` — ${trace.dnsLookup.errorMessage}`
-            : ""
-        }`;
+      ? translateTemplate("{{host}} resolved to {{addresses}} in {{time}} ms", {
+          host: trace.dnsLookup.hostName,
+          addresses: trace.dnsLookup.resolvedAddresses.join(", "),
+          time: trace.dnsLookup.resolvedInMS,
+        })
+      : trace.dnsLookup.errorMessage
+        ? translateTemplate("Lookup for {{host}} failed — {{error}}", {
+            host: trace.dnsLookup.hostName,
+            error: trace.dnsLookup.errorMessage,
+          })
+        : translateTemplate("Lookup for {{host}} failed", {
+            host: trace.dnsLookup.hostName,
+          });
   }
 
   return {
@@ -233,14 +252,23 @@ export function diagnosticTimeoutMessage(
   type: NetworkDeviceDiagnosticType,
   probeName?: string | undefined,
 ): string {
-  const probe: string = probeName
-    ? `The probe "${probeName}"`
-    : "This device's probe";
+  // One whole sentence per case: named probe or not, traceroute or ping.
+  const isTraceroute: boolean = type === NetworkDeviceDiagnosticType.Traceroute;
 
-  const what: string =
-    type === NetworkDeviceDiagnosticType.Traceroute ? "traceroute" : "ping";
+  if (probeName) {
+    return translateTemplate(
+      isTraceroute
+        ? 'The probe "{{probe}}" did not report a traceroute result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics.'
+        : 'The probe "{{probe}}" did not report a ping result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics.',
+      { probe: probeName },
+    );
+  }
 
-  return `${probe} did not report a ${what} result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics.`;
+  return translateTemplate(
+    isTraceroute
+      ? "This device's probe did not report a traceroute result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics."
+      : "This device's probe did not report a ping result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics.",
+  );
 }
 
 export interface LatencyPoint {

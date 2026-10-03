@@ -42,6 +42,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -72,11 +76,13 @@ interface PollData {
   consecutiveFailures: number;
 }
 
-const GONE_MESSAGE: string =
-  "This diagnostic no longer exists. The device or its probe may have been deleted.";
+const GONE_MESSAGE: string = translationKey(
+  "This diagnostic no longer exists. The device or its probe may have been deleted.",
+);
 
-const NO_PROBE_MESSAGE: string =
-  "This device has no probe assigned, so there is nothing to ping or trace it from.";
+const NO_PROBE_MESSAGE: string = translationKey(
+  "This device has no probe assigned, so there is nothing to ping or trace it from.",
+);
 
 const TONE_CLASS_NAMES: Record<PingResultTone, string> = {
   up: "text-green-700",
@@ -362,7 +368,9 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
 
       if (!diagnosticId) {
         throw new Error(
-          "The diagnostic was created but its id did not come back.",
+          translateTemplate(
+            "The diagnostic was created but its id did not come back.",
+          ),
         );
       }
 

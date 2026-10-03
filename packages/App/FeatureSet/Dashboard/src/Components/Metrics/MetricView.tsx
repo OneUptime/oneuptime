@@ -592,7 +592,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
       });
     } catch (err) {
       setTelemetryAttributesError(
-        `We couldn't load metric attributes. ${API.getFriendlyErrorMessage(err as Error)}`,
+        translator.translateTemplate(
+          "We couldn't load metric attributes. {{error}}",
+          { error: API.getFriendlyErrorMessage(err as Error) },
+        ),
       );
     } finally {
       setLoadingMetricAttributes((prev: Set<string>) => {

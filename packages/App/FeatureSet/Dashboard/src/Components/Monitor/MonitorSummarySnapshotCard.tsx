@@ -137,10 +137,17 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
 
   const description: string =
     snapshot.source === MonitorSummarySnapshotSource.Legacy
-      ? "What the monitor reported when this was created, reconstructed from the stored evaluation."
+      ? translator.translateTemplate(
+          "What the monitor reported when this was created, reconstructed from the stored evaluation.",
+        )
       : capturedAtText
-        ? `What the monitor reported at ${capturedAtText}, when this was created.`
-        : "What the monitor reported when this was created.";
+        ? translator.translateTemplate(
+            "What the monitor reported at {{time}}, when this was created.",
+            { time: capturedAtText },
+          )
+        : translator.translateTemplate(
+            "What the monitor reported when this was created.",
+          );
 
   return (
     <Fragment>

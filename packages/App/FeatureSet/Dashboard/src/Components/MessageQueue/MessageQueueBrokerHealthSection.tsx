@@ -92,8 +92,9 @@ export interface ComponentProps {
 
 export const BROKER_HEALTH_TITLE: string = translationKey("Broker health");
 
-export const BROKER_HEALTH_NO_DATA_TITLE: string =
-  "No broker metrics in this range";
+export const BROKER_HEALTH_NO_DATA_TITLE: string = translationKey(
+  "No broker metrics in this range",
+);
 
 export const BROKER_HEALTH_CREATE_MONITOR_LABEL: string =
   translationKey("Create monitor");

@@ -216,7 +216,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
   const metricName: string =
     props.data?.metricQueryData?.filterData?.metricName?.toString() ||
-    "No metric selected";
+    translator.translateTemplate("No metric selected");
 
   /*
    * Look up the currently selected metric's native unit so MetricAlias

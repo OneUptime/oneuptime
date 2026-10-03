@@ -282,14 +282,23 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
     icon: IconProp.LinkSlash,
     isVisible: isSnmpSelection,
     confirmTitle: (items: Array<NetworkDevice>): string => {
-      return `Clear the OID Collection Template on ${items.length} ${
-        items.length === 1 ? "device" : "devices"
-      }?`;
+      return translator.translatePlural(
+        {
+          one: "Clear the OID Collection Template on {{count}} device?",
+          other: "Clear the OID Collection Template on {{count}} devices?",
+        },
+        items.length,
+      );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
-      return `${
-        items.length === 1 ? "This device" : "These devices"
-      } will stop collecting the template's OIDs on the next poll, and will keep only their own Device-Specific Health OIDs. Automatic vendor health templates are switched off at the same time, so nothing seeds a replacement list behind you.`;
+      return translator.translatePlural(
+        {
+          one: "This device will stop collecting the template's OIDs on the next poll, and will keep only their own Device-Specific Health OIDs. Automatic vendor health templates are switched off at the same time, so nothing seeds a replacement list behind you.",
+          other:
+            "These devices will stop collecting the template's OIDs on the next poll, and will keep only their own Device-Specific Health OIDs. Automatic vendor health templates are switched off at the same time, so nothing seeds a replacement list behind you.",
+        },
+        items.length,
+      );
     },
     onClick: async (
       actionProps: BulkActionOnClickProps<NetworkDevice>,

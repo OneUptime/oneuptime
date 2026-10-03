@@ -20,6 +20,7 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 const Webhook: () => JSX.Element = (): ReactElement => {
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
@@ -58,7 +59,7 @@ const Webhook: () => JSX.Element = (): ReactElement => {
           | undefined;
         const statusMessage: string =
           (data["statusMessage"] as string) ||
-          "Test webhook sent successfully.";
+          translateTemplate("Test webhook sent successfully.");
         setTestMessage(
           statusCode ? `${statusMessage} (HTTP ${statusCode})` : statusMessage,
         );

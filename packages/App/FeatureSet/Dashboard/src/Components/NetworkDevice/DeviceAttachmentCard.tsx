@@ -88,7 +88,8 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   const getSwitchElement: GetSwitchElementFunction = (
     found: DeviceAttachment,
   ): ReactElement => {
-    const switchName: string = found.switchName || "Unnamed switch";
+    const switchName: string =
+      found.switchName || translator.translateTemplate("Unnamed switch");
 
     if (!found.switchDeviceId) {
       return <span className="text-gray-900">{switchName}</span>;

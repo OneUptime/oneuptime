@@ -24,9 +24,15 @@ export interface ComponentProps {
 }
 
 const WAITING_TITLE: Record<MonitorOverviewSetupKind, string> = {
-  [MonitorOverviewSetupKind.HeartbeatUrl]: "Waiting for the first heartbeat",
-  [MonitorOverviewSetupKind.InboundEmail]: "Waiting for the first email",
-  [MonitorOverviewSetupKind.ServerAgent]: "Waiting for the agent to report",
+  [MonitorOverviewSetupKind.HeartbeatUrl]: translationKey(
+    "Waiting for the first heartbeat",
+  ),
+  [MonitorOverviewSetupKind.InboundEmail]: translationKey(
+    "Waiting for the first email",
+  ),
+  [MonitorOverviewSetupKind.ServerAgent]: translationKey(
+    "Waiting for the agent to report",
+  ),
 };
 
 // Why the setup is hidden, one whole sentence per kind of setup.
