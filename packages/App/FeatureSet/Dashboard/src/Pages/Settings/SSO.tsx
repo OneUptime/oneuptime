@@ -1,4 +1,5 @@
 import TeamsElement from "../../Components/Team/TeamsElement";
+import RequireSsoForLoginCard from "../../Components/Project/RequireSsoForLoginCard";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
@@ -11,7 +12,6 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import {
@@ -22,7 +22,6 @@ import {
 } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
-import Project from "Common/Models/DatabaseModels/Project";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, {
@@ -38,7 +37,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 
 /*
  * Settings > SSO: the project's SAML single sign-on providers, the link to
- * test them, and "Force SSO for Login".
+ * test them, and "Require SSO for Login".
  */
 const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -307,42 +306,13 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           }
         />
 
-        {/* API Key View  */}
-        <CardModelDetail
-          name="SSO Settings"
-          editButtonText={"Edit Settings"}
-          cardProps={{
-            title: "SSO Settings",
-            description: "Configure settings for SSO.",
-          }}
-          isEditable={true}
-          formFields={[
-            {
-              field: {
-                requireSsoForLogin: true,
-              },
-              title: "Force SSO for Login",
-              description:
-                "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: Project,
-            id: "sso-settings",
-            fields: [
-              {
-                field: {
-                  requireSsoForLogin: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Force SSO for Login",
-                description:
-                  "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-              },
-            ],
-            modelId: ProjectUtil.getCurrentProjectId()!,
-          }}
+        {/*
+         * Whether everyone has to sign in with SSO to open the project: one
+         * switch that saves when flipped, and asks - with a red button -
+         * before it locks out everyone not signed in with SSO.
+         */}
+        <RequireSsoForLoginCard
+          projectId={ProjectUtil.getCurrentProjectId()!}
         />
 
         {showSingleSignOnUrlId && (

@@ -1,3 +1,4 @@
+import { REQUIRE_SSO_COPY } from "../../FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -8,14 +9,15 @@ import path from "path";
  *
  * The Admin Dashboard, and the Enterprise screens it bundles from
  * ee/AdminDashboard, look each string up by its English text (Card, Button,
- * the form's and the details' FieldLabel, Alert), so an entry is what decides
- * whether a string is translated.
+ * the switch and its dialog, the form's and the details' FieldLabel, Alert),
+ * so an entry is what decides whether a string is translated.
  *
  *   - Settings > Authentication shows the instance-wide "Require SSO for
- *     Login" card in every edition, like the page's other cards. Every string
- *     the card hands a translating prop has an entry in all 17 locales, and
- *     the card hands them exactly these strings: a string added or reworded
- *     without an entry would stay English for everyone.
+ *     Login" switch in every edition, like the page's other switches, and
+ *     it asks before it turns on. Every string of its card and its dialog
+ *     (AuthenticationSwitchesCopy's REQUIRE_SSO_COPY) has an entry in all 17
+ *     locales, and the page hands the switch exactly these strings: a string
+ *     added or reworded without an entry would stay English for everyone.
  *   - The Health screens' license notice (ee/AdminDashboard/Health/
  *     HealthLicenseRequired.tsx) has an entry in every locale. No core code
  *     renders it - the Enterprise Edition does, and ee/ is not in every
@@ -83,13 +85,27 @@ const OTHER_LOCALES: Array<string> = [
 
 const ALL_LOCALES: Array<string> = ["en", ...OTHER_LOCALES];
 
-// The "Single Sign-On (SSO)" card, in the order the page renders it.
+/*
+ * The "Single Sign-On (SSO)" card, in the order the page renders it: the
+ * card, the switch and its sentence, then the dialog before SSO is
+ * required.
+ */
 const SSO_CARD_STRINGS: Array<string> = [
   "Single Sign-On (SSO)",
   "Control whether users must sign in with SSO across this server.",
-  "Edit SSO Settings",
   "Require SSO for Login",
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
+  "Require SSO for everyone?",
+  "Everyone except master admins will have to sign in with SSO to open any project on this server. Anyone who signs in with a password is locked out of their projects until they sign in with SSO, so check that an SSO provider works for them first.",
+  "Require SSO",
+];
+
+/*
+ * What the card said before it was a switch: its Edit button, and the
+ * sentence under the saved value. Gone with the dialog.
+ */
+const RETIRED_SSO_CARD_STRINGS: Array<string> = [
+  "Edit SSO Settings",
   "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt.",
 ];
 
@@ -149,40 +165,6 @@ function codeOf(source: string): string {
     .replace(/\s+/g, " ");
 }
 
-/*
- * The literal values the card hands the props that are looked up by their
- * English text - titles, descriptions, placeholders and the edit button - in
- * the `prop: "…"` and the JSX `prop="…"` / `prop={"…"}` spellings, with any
- * quote character.
- */
-function translatedLiterals(code: string): Array<string> {
-  const literals: Array<string> = [];
-  const pattern: RegExp =
-    /\b(?:title|description|placeholder|editButtonText|submitButtonText|noItemsMessage)\s*[:=]\s*\{?\s*(["'`])((?:(?!\1)[^\\]|\\.)*)\1/g;
-
-  let match: RegExpExecArray | null = pattern.exec(code);
-
-  while (match !== null) {
-    literals.push((match[2] as string).replace(/\\(["'`\\])/g, "$1"));
-    match = pattern.exec(code);
-  }
-
-  return literals;
-}
-
-// The "SSO Settings" card's JSX: from its name to the next card.
-function ssoCardOf(code: string): string {
-  const start: number = code.indexOf('name="SSO Settings"');
-
-  if (start === -1) {
-    return "";
-  }
-
-  const next: number = code.indexOf("<CardModelDetail", start);
-
-  return code.slice(start, next === -1 ? undefined : next);
-}
-
 // Source files under a directory, locale files and tests left out.
 function sourceFilesUnder(directory: string): Array<string> {
   const files: Array<string> = [];
@@ -230,26 +212,49 @@ function blockFrom(
 const english: Locale = readLocale("en");
 const pageCode: string = codeOf(fs.readFileSync(AUTHENTICATION_PAGE, "utf8"));
 
-describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
-  test("the page still hands each of these strings to a translating prop", () => {
-    const literals: Array<string> = translatedLiterals(ssoCardOf(pageCode));
+// The copy, in the order the page renders it.
+const COPY_IN_ORDER: Array<string> = [
+  REQUIRE_SSO_COPY.cardTitle,
+  REQUIRE_SSO_COPY.cardDescription,
+  REQUIRE_SSO_COPY.switchTitle,
+  REQUIRE_SSO_COPY.note,
+  REQUIRE_SSO_COPY.confirmTitle,
+  REQUIRE_SSO_COPY.confirmDescription,
+  REQUIRE_SSO_COPY.confirmButton,
+];
 
-    for (const text of SSO_CARD_STRINGS) {
-      expect({ text, rendered: literals.includes(text) }).toEqual({
-        text,
-        rendered: true,
-      });
-    }
+describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
+  test("its copy is exactly these strings", () => {
+    expect(COPY_IN_ORDER).toEqual(SSO_CARD_STRINGS);
+    expect(Object.values(REQUIRE_SSO_COPY).sort()).toEqual(
+      [...SSO_CARD_STRINGS].sort(),
+    );
   });
 
-  test("nothing else the card hands a translating prop is missing an entry", () => {
-    const withoutEntry: Array<string> = translatedLiterals(
-      ssoCardOf(pageCode),
-    ).filter((literal: string) => {
-      return english[literal] !== literal;
-    });
+  test("the page hands each of them to the switch, and nothing else", () => {
+    for (const wiring of [
+      "cardTitle={REQUIRE_SSO_COPY.cardTitle}",
+      "cardDescription={REQUIRE_SSO_COPY.cardDescription}",
+      "title={REQUIRE_SSO_COPY.switchTitle}",
+      "note={REQUIRE_SSO_COPY.note}",
+      "getConfirmation={getRequireSsoConfirmation}",
+      "title: REQUIRE_SSO_COPY.confirmTitle,",
+      "description: REQUIRE_SSO_COPY.confirmDescription,",
+      "submitButtonText: REQUIRE_SSO_COPY.confirmButton,",
+    ]) {
+      expect({ wiring, used: pageCode.includes(wiring) }).toEqual({
+        wiring,
+        used: true,
+      });
+    }
 
-    expect(withoutEntry).toEqual([]);
+    // No English of its own on the page: every string comes from the copy.
+    for (const text of SSO_CARD_STRINGS) {
+      expect({ text, inPage: pageCode.includes(text) }).toEqual({
+        text,
+        inPage: false,
+      });
+    }
   });
 
   test("says nothing about an edition or a license", () => {
@@ -260,52 +265,12 @@ describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
     }
   });
 
-  /*
-   * The toggle's descriptions before this change, and the card the
-   * Community Edition showed in its place: the check above sees every
-   * string of a card spelled either way, so none of these could come back
-   * without failing it (their text has no entry).
-   */
-  test("the check sees reworded and replaced cards (negative controls)", () => {
-    const retiredDetail: string = codeOf(`<CardModelDetail
-        name="SSO Settings"
-        modelDetailProps={{
-          fields: [
-            {
-              title: "Require SSO for Login",
-              description:
-                "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt. Not enforced while the Enterprise license is missing or expired.",
-            },
-          ],
-        }}
-      />`);
-    const retiredToggle: string = codeOf(`<CardModelDetail
-        name="SSO Settings"
-        formFields={[
-          {
-            title: "Require SSO for Login",
-            description: \`When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this. On a self-hosted server this is not enforced while the Enterprise license is missing or expired (after the \${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial).\`,
-          },
-        ]}
-      />`);
-    const communityCard: string = codeOf(`<Card
-          title="Single Sign-On (SSO)"
-          description="Requiring SSO for login is part of the OneUptime Enterprise Edition. This server runs the Community Edition, where users sign in with their email and password, so this setting is not enforced here."
-        />`);
-
-    for (const code of [
-      ssoCardOf(retiredDetail),
-      ssoCardOf(retiredToggle),
-      communityCard,
-    ]) {
-      const withoutEntry: Array<string> = translatedLiterals(code).filter(
-        (literal: string) => {
-          return english[literal] !== literal;
-        },
-      );
-
-      expect(withoutEntry.length).toBeGreaterThan(0);
-    }
+  test("the dialog says who is locked out, and who is not", () => {
+    expect(REQUIRE_SSO_COPY.confirmDescription).toContain(
+      "Everyone except master admins",
+    );
+    expect(REQUIRE_SSO_COPY.confirmDescription).toContain("locked out");
+    expect(REQUIRE_SSO_COPY.note).toContain("Master admins are exempt");
   });
 
   test("en.json maps every string to itself", () => {
@@ -314,6 +279,16 @@ describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
     });
 
     expect(missing).toEqual([]);
+  });
+
+  /*
+   * A string reworded in the copy without an entry would stay English: the
+   * check above sees it (its text has no entry).
+   */
+  test("the check sees a reworded string (negative control)", () => {
+    const reworded: string = `${REQUIRE_SSO_COPY.confirmDescription} Really.`;
+
+    expect(english[reworded]).toBeUndefined();
   });
 
   test.each(OTHER_LOCALES)("%s translates every string", (locale: string) => {
@@ -350,9 +325,17 @@ describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
       }
     }
 
-    // The two labels are not the English ones in any language.
-    expect(entries["Edit SSO Settings"]).not.toBe("Edit SSO Settings");
-    expect(entries["Require SSO for Login"]).not.toBe("Require SSO for Login");
+    // The labels and the dialog are not the English ones in any language.
+    for (const label of [
+      REQUIRE_SSO_COPY.switchTitle,
+      REQUIRE_SSO_COPY.confirmTitle,
+      REQUIRE_SSO_COPY.confirmButton,
+    ]) {
+      expect({ label, translated: entries[label] !== label }).toEqual({
+        label,
+        translated: true,
+      });
+    }
   });
 
   test("every locale keeps the card's entries together, in the order the page renders them", () => {
@@ -367,6 +350,23 @@ describe("Settings > Authentication: the Single Sign-On (SSO) card", () => {
           SSO_CARD_STRINGS.length,
         ),
       }).toEqual({ locale, block: SSO_CARD_STRINGS });
+    }
+  });
+
+  test("the retired Edit button and saved-value sentence are gone from every locale and the page", () => {
+    for (const locale of ALL_LOCALES) {
+      const entries: Locale = readLocale(locale);
+
+      expect({
+        locale,
+        retired: RETIRED_SSO_CARD_STRINGS.filter((key: string) => {
+          return key in entries;
+        }),
+      }).toEqual({ locale, retired: [] });
+    }
+
+    for (const text of RETIRED_SSO_CARD_STRINGS) {
+      expect(pageCode).not.toContain(text);
     }
   });
 });
