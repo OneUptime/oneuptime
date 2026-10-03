@@ -51,7 +51,9 @@ describe("the custom probe guide", () => {
     expect(guide.indexOf("### Verify")).toBeLessThan(
       guide.indexOf("### Check a monitor from the probe"),
     );
-    expect(section).toContain("A probe checks only the monitors it is added to.");
+    expect(section).toContain(
+      "A probe checks only the monitors it is added to.",
+    );
   });
 
   it("sends readers to the one page, where Create Monitor's step has them", () => {

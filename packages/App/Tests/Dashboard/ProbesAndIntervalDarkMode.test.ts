@@ -26,7 +26,12 @@ const DASHBOARD_SRC: string = path.join(
 const COMMON_DIR: string = path.join(__dirname, "..", "..", "..", "Common");
 
 const FILES: Array<string> = [
-  path.join(DASHBOARD_SRC, "Components", "Monitor", "MonitoringIntervalCard.tsx"),
+  path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "Monitor",
+    "MonitoringIntervalCard.tsx",
+  ),
   path.join(DASHBOARD_SRC, "Components", "Monitor", "ProbeAgreementCard.tsx"),
   path.join(DASHBOARD_SRC, "Components", "Monitor", "ProbesAndIntervalCopy.ts"),
   path.join(DASHBOARD_SRC, "Pages", "Monitor", "View", "Probes.tsx"),

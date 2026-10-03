@@ -26,7 +26,6 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -62,8 +61,6 @@ export interface ComponentProps {
 const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const errorId: string = `monitoring-interval-error-${useId()}`;
-
   const initialValue: string | undefined = getMonitoringIntervalValue(
     props.initialInterval,
   );
@@ -91,12 +88,19 @@ const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
     null,
   );
 
-  const updateGate: PermissionGateResult = useMemo((): PermissionGateResult => {
-    return PermissionGate.checkColumnUpdate(
-      new Monitor(),
-      "monitoringInterval",
-    );
+  const monitor: Monitor = useMemo((): Monitor => {
+    return new Monitor();
   }, []);
+
+  /*
+   * Read on every render, as a settings switch does: the permissions arrive
+   * after the first paint of a fresh sign-in, and a gate kept from then would
+   * leave the dropdown locked for someone who may change it.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+    monitor,
+    "monitoringInterval",
+  );
 
   /*
    * Built from the saved interval, not the pick, so an interval the list
@@ -189,7 +193,6 @@ const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
         ariaLabel={ProbesAndIntervalCopy.intervalLabel}
         isClearable={false}
         disabled={!updateGate.isAllowed}
-        dataTestId={MONITORING_INTERVAL_TEST_ID}
         className="relative w-full overflow-visible rounded-md"
         onChange={pick}
       />
@@ -226,7 +229,6 @@ const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
           </div>
           {error ? (
             <p
-              id={errorId}
               className="mt-2 text-sm text-red-600"
               role="alert"
               data-testid={`${MONITORING_INTERVAL_TEST_ID}-error`}

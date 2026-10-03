@@ -187,7 +187,12 @@ export const getProbeAgreementText: (
     : "";
 };
 
-// The data-testid of the Monitoring Interval dropdown.
+/*
+ * The data-testid stem of the Monitoring Interval card: its body is
+ * `${id}-card`, the dropdown's row `${id}-row`, the "Saved" status
+ * `${id}-status` and a refusal `${id}-error`. The dropdown itself is found by
+ * its name, Monitoring Interval.
+ */
 export const MONITORING_INTERVAL_TEST_ID: string =
   "monitor-monitoring-interval";
 

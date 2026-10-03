@@ -186,8 +186,10 @@ describe("the Monitoring Interval card", () => {
 
   test("is locked only for someone who may not change the interval, never while it saves", () => {
     expect(card).toContain(
-      'PermissionGate.checkColumnUpdate( new Monitor(), "monitoringInterval", )',
+      'PermissionGate.checkColumnUpdate( monitor, "monitoringInterval", );',
     );
+    // Read on every render: permissions arrive after a fresh sign-in's first paint.
+    expect(card).not.toMatch(/useMemo\(\(\): PermissionGateResult/);
     expect(card).toContain("disabled={!updateGate.isAllowed}");
     expect(card).toContain("<SaveStatus");
   });
@@ -219,8 +221,9 @@ describe("the Probe Agreement card", () => {
 
   test("is locked for someone who may not change it", () => {
     expect(card).toContain(
-      'PermissionGate.checkColumnUpdate( new Monitor(), "minimumProbeAgreement", )',
+      'PermissionGate.checkColumnUpdate( monitor, "minimumProbeAgreement", );',
     );
+    expect(card).not.toMatch(/useMemo\(\(\): PermissionGateResult/);
   });
 });
 

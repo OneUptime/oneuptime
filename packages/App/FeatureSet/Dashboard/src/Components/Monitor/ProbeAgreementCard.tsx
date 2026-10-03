@@ -89,17 +89,34 @@ const ProbeAgreementCard: FunctionComponent<ComponentProps> = (
    */
   const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
-  const updateGate: PermissionGateResult = useMemo((): PermissionGateResult => {
-    return PermissionGate.checkColumnUpdate(
-      new Monitor(),
-      "minimumProbeAgreement",
-    );
+  const monitor: Monitor = useMemo((): Monitor => {
+    return new Monitor();
   }, []);
+
+  /*
+   * Read on every render, as a settings switch does: the permissions arrive
+   * after the first paint of a fresh sign-in, and a gate kept from then would
+   * leave the box locked for someone who may change it.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+    monitor,
+    "minimumProbeAgreement",
+  );
 
   const isSaving: boolean = saveState === SaveState.Saving;
 
   const save: () => Promise<void> = async (): Promise<void> => {
     if (isSavingRef.current || !updateGate.isAllowed) {
+      return;
+    }
+
+    /*
+     * Untouched, the box holds what the monitor has: nothing to save, and
+     * nothing to complain about either, even a number the dashboard would
+     * not write itself (a 0 set through the API).
+     */
+    if (text === getProbeAgreementText(savedValue)) {
+      setError("");
       return;
     }
 
@@ -167,7 +184,7 @@ const ProbeAgreementCard: FunctionComponent<ComponentProps> = (
           .join(" ")}
         disabled={isSaving || !updateGate.isAllowed}
         dataTestId={PROBE_AGREEMENT_TEST_ID}
-        outerDivClassName="relative w-20 rounded-md shadow-sm"
+        outerDivClassName="relative w-24 rounded-md shadow-sm"
         onChange={(value: string): void => {
           setText(value);
           setSaveState(SaveState.Idle);

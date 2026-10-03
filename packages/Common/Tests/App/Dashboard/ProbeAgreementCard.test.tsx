@@ -306,6 +306,25 @@ describe("the Probe Agreement card", () => {
     expect(status()).toHaveTextContent("");
   });
 
+  test("a value the dashboard would not write (a 0 set through the API) is shown as it is, and leaving it untouched neither saves nor complains", async () => {
+    renderCard(0);
+
+    expect(box().value).toBe("0");
+
+    fireEvent.focus(box());
+    await leave();
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(errorText()).toBeNull();
+
+    // Changing it is held to the rule like any other number.
+    type("00");
+    await leave();
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(errorText()).toBe(INVALID);
+  });
+
   test("the number the monitor already has, written another way, saves nothing and reads as it is", async () => {
     renderCard(2);
 
@@ -415,6 +434,34 @@ describe("the Probe Agreement card", () => {
     renderCard(null);
 
     expect(gateColumns).toContain("minimumProbeAgreement");
+  });
+
+  test("unlocks once the permissions arrive, which is after a fresh sign-in's first paint", async () => {
+    gate = { isAllowed: false };
+
+    const view: { rerender: (ui: React.ReactElement) => void } = render(
+      <ProbeAgreementCard
+        monitorId={new ObjectID(MONITOR_ID)}
+        initialValue={null}
+      />,
+    );
+
+    expect(box()).toHaveAttribute("readonly");
+
+    gate = { isAllowed: true };
+    view.rerender(
+      <ProbeAgreementCard
+        monitorId={new ObjectID(MONITOR_ID)}
+        initialValue={null}
+      />,
+    );
+
+    expect(box()).not.toHaveAttribute("readonly");
+
+    type("2");
+    await leave();
+
+    expect(updateCall().data).toEqual({ minimumProbeAgreement: 2 });
   });
 
   test("someone who may not change it sees the box locked, and nothing is saved", async () => {

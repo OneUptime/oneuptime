@@ -414,6 +414,36 @@ describe("the Monitoring Interval card", () => {
     expect(gateColumns).toContain("monitoringInterval");
   });
 
+  test("unlocks once the permissions arrive, which is after a fresh sign-in's first paint", async () => {
+    // An empty permission snapshot: locked, with nothing to say yet.
+    gate = { isAllowed: false };
+
+    const view: { rerender: (ui: React.ReactElement) => void } = render(
+      <MonitoringIntervalCard
+        monitorId={new ObjectID(MONITOR_ID)}
+        monitorType={MonitorType.API}
+        initialInterval="*/5 * * * *"
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { hidden: true })).toBeDisabled();
+
+    gate = { isAllowed: true };
+    view.rerender(
+      <MonitoringIntervalCard
+        monitorId={new ObjectID(MONITOR_ID)}
+        monitorType={MonitorType.API}
+        initialInterval="*/5 * * * *"
+      />,
+    );
+
+    expect(combobox()).not.toBeDisabled();
+
+    await pick("Every Hour");
+
+    expect(updateCall().data).toEqual({ monitoringInterval: "0 * * * *" });
+  });
+
   test("someone who may not change the interval sees it locked, and nothing is saved", async () => {
     gate = {
       isAllowed: false,
