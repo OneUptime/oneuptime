@@ -2,9 +2,16 @@ import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import OneUptimeDate from "Common/Types/Date";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import {
+  getAdvancedFormSection,
+  isFormFieldValueSet,
+} from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { API_KEY_ACCESS_FIELD_KEY, API_KEY_ACCESS_LATER } from "./ApiKeyAccess";
 
 /*
@@ -18,7 +25,10 @@ import { API_KEY_ACCESS_FIELD_KEY, API_KEY_ACCESS_LATER } from "./ApiKeyAccess";
  *     later (ApiKeyAccess.ts), with Choose permissions later picked. Not
  *     asked of someone who may not give a key permissions.
  *   - Advanced, folded: the description, and Expires - a year from today,
- *     already filled in. The key's page shows the date and edits it.
+ *     already filled in. Folded, the section says so ("The key expires a
+ *     year from today."): a key that stops working is a default nobody
+ *     should find out about a year later. The key's page shows the date and
+ *     edits it.
  *
  * Three rows, so no steps. React-free, so tests can read the fields without
  * rendering the page.
@@ -44,6 +54,51 @@ export const getDefaultApiKeyExpiry: (now?: Date | undefined) => Date = (
   );
 };
 
+/*
+ * Expires on a new key, held the way the date picker holds a picked date -
+ * its ISO string - so picking the same day again does not read as a change.
+ */
+export const getDefaultApiKeyExpiryValue: () => string = (): string => {
+  return OneUptimeDate.toString(getDefaultApiKeyExpiry());
+};
+
+/*
+ * Under the folded Advanced header while Expires is the date the form
+ * started with. Once another date is picked it is not shown, and the header
+ * says "Configured" as for any other setting.
+ */
+export const API_KEY_DEFAULT_EXPIRY_SUMMARY: string = translationKey(
+  "The key expires a year from today.",
+);
+
+/*
+ * Expires' value and default, as the folded section reads them - with the
+ * rule that decides "Configured" (isFormFieldValueSet), so the line and the
+ * badge never disagree about whether another date was picked.
+ */
+const EXPIRES_VALUE: Field<ApiKey> = {
+  field: {
+    expiresAt: true,
+  },
+  fieldType: FormFieldSchemaType.Date,
+  getDefaultValue: getDefaultApiKeyExpiryValue,
+};
+
+/*
+ * What the folded Advanced section says: when the key expires, while that
+ * is still a year from today; nothing once another date is picked. The
+ * description is the user's own words, not a setting, so it changes nothing.
+ */
+export const getApiKeyAdvancedSummary: (
+  values: FormValues<ApiKey>,
+) => Array<string> | undefined = (
+  values: FormValues<ApiKey>,
+): Array<string> | undefined => {
+  return isFormFieldValueSet(EXPIRES_VALUE, values)
+    ? undefined
+    : [API_KEY_DEFAULT_EXPIRY_SUMMARY];
+};
+
 export interface ApiKeyCreateFormOptions {
   /*
    * The Access cards this user may pick from (getApiKeyAccessOptions). Empty
@@ -59,7 +114,9 @@ export const getApiKeyCreateFormFields: (
   options: ApiKeyCreateFormOptions,
 ): Array<ModelField<ApiKey>> => {
   const advanced: FormFieldCollapsibleSection<ApiKey> =
-    getAdvancedFormSection<ApiKey>();
+    getAdvancedFormSection<ApiKey>({
+      getSummary: getApiKeyAdvancedSummary,
+    });
 
   return [
     {
@@ -123,13 +180,7 @@ export const getApiKeyCreateFormFields: (
       validation: {
         dateShouldBeInTheFuture: true,
       },
-      /*
-       * Held the way the date picker holds a picked date - its ISO string -
-       * so picking the same day again does not read as a change.
-       */
-      getDefaultValue: (): string => {
-        return OneUptimeDate.toString(getDefaultApiKeyExpiry());
-      },
+      getDefaultValue: getDefaultApiKeyExpiryValue,
       collapsibleSection: advanced,
     },
   ];

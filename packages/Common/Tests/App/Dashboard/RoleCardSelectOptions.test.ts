@@ -156,9 +156,6 @@ describe("every Add Role uses this one list", () => {
     );
 
     expect(source).toContain("getRoleCardSelectOptions()");
-    expect(source).toContain(
-      'cardSelectSearchPlaceholder: translationKey("Search roles")',
-    );
     // No list of its own left behind.
     expect(source).not.toContain("roleIconMap");
     expect(source).not.toContain("getRolePermissionProps");
@@ -171,9 +168,27 @@ describe("every Add Role uses this one list", () => {
     );
 
     expect(source).toContain("cardSelectOptions: getRoleCardSelectOptions()");
-    expect(source).toContain(
-      'cardSelectSearchPlaceholder: translationKey("Search roles")',
+  });
+
+  /*
+   * The roles read the same wherever they are picked: a plain grid under
+   * their four headings, which is how the maintainer keeps a team's
+   * (App/Tests/Dashboard/MonitorTypePickerWiring: "team permission table
+   * stays a plain grid"). A key's Add Role does not grow a search box or
+   * folding of its own.
+   */
+  test.each([
+    ["a team's", "Components/Team/TeamPermissionTable.tsx"],
+    ["an API key's", "Components/ApiKey/ApiKeyPermissionTable.tsx"],
+  ])("%s Add Role is the same plain grid", (_name: string, file: string) => {
+    const source: string = fs.readFileSync(
+      path.join(DASHBOARD_SRC, file),
+      "utf8",
     );
+
+    expect(source).toContain("FormFieldSchemaType.CardSelect");
+    expect(source).not.toContain("cardSelectSearchable");
+    expect(source).not.toContain("cardSelectCollapsibleGroups");
   });
 
   test("a new API key's Access", () => {

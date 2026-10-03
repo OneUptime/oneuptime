@@ -448,11 +448,18 @@ describe("the page", () => {
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(advancedHeader()).not.toHaveTextContent("Configured");
 
+    // Folded, it already says block permissions are in there.
+    expect(
+      within(advancedSection()).getByTestId("collapsible-section-summary"),
+    ).toHaveTextContent(
+      "Block permissions: what this key can never do, even when one of its roles or permissions allows it.",
+    );
+
     fireEvent.click(advancedHeader());
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "true");
     expect(
-      within(advancedSection()).getByText(
+      within(advancedHeader()).getByText(
         "Block permissions: what this key can never do, even when one of its roles or permissions allows it.",
       ),
     ).toBeInTheDocument();
@@ -544,30 +551,6 @@ describe("what the key can do", () => {
     expect(request.model.apiKeyId?.toString()).toBe(KEY_ID);
     expect(request.model.projectId?.toString()).toBe(PROJECT_ID);
     expect(request.model.isBlockPermission).toBe(false);
-  });
-
-  test("Add Role finds a role by name in its search box", async () => {
-    await renderPage();
-
-    const modal: HTMLElement = await openModal(
-      cardButton(card("Permissions"), "Add Role"),
-    );
-
-    const search: HTMLElement = within(modal).getByTestId("card-select-search");
-
-    expect(search).toHaveAttribute("placeholder", "Search roles");
-
-    fireEvent.change(search, { target: { value: "incident member" } });
-
-    await waitFor(() => {
-      expect(
-        within(modal)
-          .getAllByRole("radio")
-          .map((radio: HTMLElement): string | null => {
-            return radio.getAttribute("data-testid");
-          }),
-      ).toEqual([`card-select-option-${Permission.IncidentMember}`]);
-    });
   });
 
   test("the empty state's Add Role opens the same role cards", async () => {

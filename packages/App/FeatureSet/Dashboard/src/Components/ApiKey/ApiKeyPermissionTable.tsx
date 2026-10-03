@@ -18,7 +18,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -202,10 +202,6 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
         "A role is a ready-made set of permissions. The key can do what the role allows in the whole project.",
       fieldType: FormFieldSchemaType.CardSelect,
       cardSelectOptions: getRoleCardSelectOptions(),
-      // Some forty roles: a search box finds one by name or area.
-      cardSelectSearchable: true,
-      // CardSelect translates it; the key marks it for the extractor.
-      cardSelectSearchPlaceholder: translationKey("Search roles"),
       required: true,
       placeholder: "Select a role",
       doNotShowWhenEditing: true,

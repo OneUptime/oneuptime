@@ -150,7 +150,7 @@ API keys are granted permissions directly, on the key itself — they do not bel
 | Viewer | Read everything in the project, and change nothing. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
-The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **Advanced**; a key expires a year from the day it is created unless you pick another date. The new key opens on its page, where you copy it.
+The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **Advanced**; a key expires a year from the day it is created unless you pick another date, and the folded section says so. The new key opens on its page, where you copy it.
 
 On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **Advanced** at the bottom of the page, which says **Configured** while the key has any.
 

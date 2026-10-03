@@ -104,6 +104,8 @@ describe("the Access choices the docs describe", () => {
       "The description and the expiry date are under **Advanced**",
     );
     expect(page).toContain("a key expires a year from the day it is created");
+    // The folded section says when the key expires (ApiKeyCreateForm).
+    expect(page).toContain("and the folded section says so");
     expect(page).toContain(
       "**Block Permissions** are under **Advanced** at the bottom of the page",
     );

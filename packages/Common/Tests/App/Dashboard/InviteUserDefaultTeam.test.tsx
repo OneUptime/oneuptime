@@ -382,6 +382,11 @@ describe("Invite User", () => {
   test("invites to it without touching the team", async () => {
     const modal: HTMLElement = await openInviteModal();
 
+    // Shown as picked: what is on screen is what is sent.
+    await waitFor(() => {
+      expect(teamValue(modal)).toHaveTextContent("Members");
+    });
+
     await typeEmail(modal, "new.person@example.com");
     await submit(modal);
 

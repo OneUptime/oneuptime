@@ -254,6 +254,31 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * BasicForm settles its fields and defaults in effects. Wait until it has:
+ * on a busy machine one tick is not enough, and a form submitted before
+ * Expires is filled in is refused for want of a date. A default that never
+ * arrives - a form holding on to the last key's answers - still fails here.
+ */
+async function waitForFormDefaults(modal: HTMLElement): Promise<void> {
+  await within(modal).findByPlaceholderText("API Key Name");
+  await act(async (): Promise<void> => {});
+
+  await waitFor(() => {
+    expect(within(modal).getByPlaceholderText("Expires at")).toHaveValue(
+      OneUptimeDate.asDateForDatabaseQuery(getDefaultApiKeyExpiry()),
+    );
+
+    const later: HTMLElement | null = within(modal).queryByTestId(
+      `card-select-option-${API_KEY_ACCESS_LATER}`,
+    );
+
+    if (later) {
+      expect(later).toHaveAttribute("aria-checked", "true");
+    }
+  });
+}
+
 async function openCreateForm(): Promise<HTMLElement> {
   render(<APIKeysPage {...pageProps} />);
 
@@ -278,10 +303,7 @@ async function openCreateForm(): Promise<HTMLElement> {
 
   const modal: HTMLElement = await screen.findByTestId("modal");
 
-  await within(modal).findByPlaceholderText("API Key Name");
-
-  // BasicForm settles its fields and defaults in effects.
-  await act(async (): Promise<void> => {});
+  await waitForFormDefaults(modal);
 
   return modal;
 }
@@ -393,6 +415,56 @@ describe("the Create API Key form", () => {
     expect(within(modal).getByPlaceholderText("Expires at")).toHaveValue(
       OneUptimeDate.asDateForDatabaseQuery(getDefaultApiKeyExpiry()),
     );
+  });
+
+  test("folded, Advanced says the key expires a year from today", async () => {
+    const modal: HTMLElement = await openCreateForm();
+
+    const summary: HTMLElement = within(modal).getByTestId(
+      "collapsible-section-summary",
+    );
+
+    expect(summary).toHaveTextContent("The key expires a year from today.");
+    // Read out with the header, and on screen while it is folded.
+    expect(advancedHeader(modal)).toHaveAttribute(
+      "aria-describedby",
+      summary.id,
+    );
+    expect(summary).toBeVisible();
+    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
+  });
+
+  test("a description typed under Advanced keeps the line: the expiry is still the default", async () => {
+    const modal: HTMLElement = await openCreateForm();
+
+    fireEvent.click(advancedHeader(modal));
+    fireEvent.change(
+      within(modal).getByPlaceholderText("API Key Description"),
+      {
+        target: { value: "Manages our monitors." },
+      },
+    );
+    fireEvent.click(advancedHeader(modal));
+
+    expect(
+      within(modal).getByTestId("collapsible-section-summary"),
+    ).toHaveTextContent("The key expires a year from today.");
+  });
+
+  test("another expiry date replaces the line with Configured", async () => {
+    const modal: HTMLElement = await openCreateForm();
+
+    fireEvent.click(advancedHeader(modal));
+    fireEvent.change(within(modal).getByPlaceholderText("Expires at"), {
+      target: { value: "2030-01-15" },
+    });
+    fireEvent.click(advancedHeader(modal));
+
+    expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
+    expect(advancedHeader(modal)).toHaveTextContent("Configured");
+    expect(
+      within(modal).queryByTestId("collapsible-section-summary"),
+    ).toBeNull();
   });
 });
 
@@ -524,9 +596,14 @@ describe("creating a key", () => {
     fireEvent.click(createButton);
 
     const secondModal: HTMLElement = await screen.findByTestId("modal");
-    await within(secondModal).findByPlaceholderText("API Key Name");
-    await act(async (): Promise<void> => {});
 
+    // Back on Choose permissions later, not on the first key's Viewer.
+    await waitForFormDefaults(secondModal);
+
+    expect(accessCard(secondModal, Permission.Viewer)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
     expect(accessCard(secondModal, API_KEY_ACCESS_LATER)).toHaveAttribute(
       "aria-checked",
       "true",

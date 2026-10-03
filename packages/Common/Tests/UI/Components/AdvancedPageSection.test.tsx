@@ -23,7 +23,8 @@ import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/
  *     hold) but are out of sight, the tab order and screen readers;
  *   - the header says "Configured" while something in it is set, and only
  *     while folded - open, the cards say it themselves;
- *   - its one-line description shows while it is open;
+ *   - its one-line description says what is in it, folded or open, and
+ *     describes the folded header for a screen reader;
  *   - it is a block of its own on the page, spaced like a card.
  */
 
@@ -121,20 +122,58 @@ describe("AdvancedPageSection", () => {
     expect(header()).not.toHaveTextContent("Configured");
   });
 
-  test("shows its description while open", () => {
+  test("says what is in it while folded, without being opened", () => {
     renderSection({
       description: "Block permissions: what this key can never do.",
     });
 
-    expect(
-      screen.queryByText("Block permissions: what this key can never do."),
-    ).toBeNull();
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+
+    const summary: HTMLElement = screen.getByTestId(
+      "collapsible-section-summary",
+    );
+
+    expect(summary).toHaveTextContent(
+      "Block permissions: what this key can never do.",
+    );
+    // Read out with the header, not only seen.
+    expect(header()).toHaveAttribute("aria-describedby", summary.id);
+    // Outside the folded body, so it is on screen.
+    expect(body()).not.toContainElement(summary);
+  });
+
+  test("still says it once opened, in the header", () => {
+    renderSection({
+      description: "Block permissions: what this key can never do.",
+    });
 
     fireEvent.click(header());
 
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
     expect(
-      screen.getByText("Block permissions: what this key can never do."),
+      within(header()).getByText(
+        "Block permissions: what this key can never do.",
+      ),
     ).toBeInTheDocument();
+  });
+
+  test("says Configured beside what is in it", () => {
+    renderSection({
+      description: "Block permissions: what this key can never do.",
+      isConfigured: true,
+    });
+
+    expect(header()).toHaveTextContent("Configured");
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      "Block permissions: what this key can never do.",
+    );
+  });
+
+  test("with no description, folded says nothing under its title", () => {
+    renderSection();
+
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+    expect(header()).not.toHaveAttribute("aria-describedby");
   });
 
   test("is a block of its own, spaced like the cards around it", () => {

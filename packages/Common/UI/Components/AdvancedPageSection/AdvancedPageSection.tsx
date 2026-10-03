@@ -11,6 +11,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the same way:
  *
  *   - it starts folded, every time the page opens;
+ *   - its description says what is in it, folded or open, so a reader
+ *     looking for block permissions finds them without opening every fold;
  *   - while folded it says "Configured" on its header when something in it
  *     is set (the page says when: an API key with block permissions), so
  *     folding never hides that a setting is in force;
@@ -29,7 +31,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 
 export interface ComponentProps {
-  // One short line under the title while the section is open.
+  /*
+   * What is in it, in one line under the title: shown while it is folded
+   * too, so nobody has to open it to find out.
+   */
   description?: string | undefined;
   // Whether anything in it is set: the folded header then says "Configured".
   isConfigured?: boolean | undefined;
@@ -52,6 +57,7 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
       <CollapsibleSection
         title={ADVANCED_FORM_SECTION_TITLE}
         description={props.description}
+        collapsedDescription={props.description}
         variant="card"
         defaultCollapsed={true}
         badge={

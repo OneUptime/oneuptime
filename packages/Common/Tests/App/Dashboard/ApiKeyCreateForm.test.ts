@@ -17,7 +17,8 @@ import {
  *
  *   - Name; Access (Project Admin, Project Member, Viewer, Choose
  *     permissions later - picked); and folded under Advanced the
- *     description and Expires, a year from today;
+ *     description and Expires, a year from today, which the folded header
+ *     says until another date is picked;
  *   - Access offers only the roles the user may hand on, and is left out
  *     for someone who may not give a key permissions or may give none;
  *   - a role becomes one allow row for the whole project, created through
@@ -73,6 +74,7 @@ import {
   giveApiKeyAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyAccess";
 import {
+  API_KEY_DEFAULT_EXPIRY_SUMMARY,
   getApiKeyCreateFormFields,
   getDefaultApiKeyExpiry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm";
@@ -565,6 +567,76 @@ describe("the Create API Key form", () => {
         ),
       } as never),
     ).toBe(true);
+  });
+
+  test("folded, Advanced says the key expires a year from today while Expires is the date it started with", () => {
+    const fields: Array<ModelField<ApiKey>> = getApiKeyCreateFormFields({
+      accessOptions: accessOptions,
+    });
+    const expires: ModelField<ApiKey> = fields[3]!;
+    const summaryOf: (values: unknown) => Array<string> | undefined = (
+      values: unknown,
+    ): Array<string> | undefined => {
+      return expires.collapsibleSection!.getSummary!(values as never);
+    };
+
+    expect(API_KEY_DEFAULT_EXPIRY_SUMMARY).toBe(
+      "The key expires a year from today.",
+    );
+
+    // Untouched.
+    expect(summaryOf({})).toEqual([API_KEY_DEFAULT_EXPIRY_SUMMARY]);
+    // The date the form fills in.
+    expect(summaryOf({ expiresAt: expires.getDefaultValue!({}) })).toEqual([
+      API_KEY_DEFAULT_EXPIRY_SUMMARY,
+    ]);
+    // The same day picked again in the date picker.
+    expect(
+      summaryOf({
+        expiresAt: OneUptimeDate.toString(
+          OneUptimeDate.fromDateTimeLocalString(
+            OneUptimeDate.asDateForDatabaseQuery(getDefaultApiKeyExpiry()),
+          ),
+        ),
+      }),
+    ).toEqual([API_KEY_DEFAULT_EXPIRY_SUMMARY]);
+    // A description is the user's own words, not a setting: the line stays.
+    expect(
+      summaryOf({
+        description: "Manages our monitors.",
+        expiresAt: expires.getDefaultValue!({}),
+      }),
+    ).toEqual([API_KEY_DEFAULT_EXPIRY_SUMMARY]);
+  });
+
+  test("once another date is picked, Advanced says Configured instead", () => {
+    const fields: Array<ModelField<ApiKey>> = getApiKeyCreateFormFields({
+      accessOptions: accessOptions,
+    });
+    const expires: ModelField<ApiKey> = fields[3]!;
+    const otherDate: Record<string, unknown> = {
+      expiresAt: OneUptimeDate.toString(
+        OneUptimeDate.fromDateTimeLocalString("2030-01-15"),
+      ),
+    };
+
+    expect(
+      expires.collapsibleSection!.getSummary!(otherDate as never),
+    ).toBeUndefined();
+    // With no line to show, the header falls back to its badge.
+    expect(isFormFieldValueSet(expires, otherDate as never)).toBe(true);
+  });
+
+  test("the description says nothing of the expiry: the line is the section's", () => {
+    const fields: Array<ModelField<ApiKey>> = getApiKeyCreateFormFields({
+      accessOptions: accessOptions,
+    });
+
+    // One section, so one line, whichever field is asked.
+    expect(fields[2]!.collapsibleSection).toBe(fields[3]!.collapsibleSection);
+    expect(fields[2]!.collapsibleSection!.getSummary!({} as never)).toEqual([
+      API_KEY_DEFAULT_EXPIRY_SUMMARY,
+    ]);
   });
 
   test("Name keeps what it asked before", () => {
