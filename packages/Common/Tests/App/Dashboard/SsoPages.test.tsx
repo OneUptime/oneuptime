@@ -24,12 +24,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * On a self-hosted install (billing off) each page is the configuration
  * screen whatever the edition and whatever the Enterprise license says: the
- * provider table offers create, edit and delete, there is no "Disable" row
- * action and no license banner or notice, requiring SSO (on the two SAML
- * pages) can always be changed - the project's "Require SSO for Login" is a
- * switch that saves on flip and asks first, the status page's "Force SSO
- * for Login" a card with its usual description - and the page never asks
- * the server for the license. On OneUptime Cloud (billing on) only the
+ * provider table offers create, edit and delete, there is no "Disable"
+ * row action and no license banner or notice, requiring SSO (on the two SAML
+ * pages) can always be changed - the project's and the status page's
+ * "Require SSO for Login" are switches that save on flip and ask first,
+ * with a red button - and the page never asks the server for the license. On OneUptime Cloud (billing on) only the
  * plan decides: a project below Scale, or one whose plan cannot be read,
  * sees the Scale plan upsell - never the Enterprise Edition one.
  *
@@ -434,21 +433,25 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID: string = mockProviderRow._id;
 
-// The project's "Require SSO for Login" switch card, as the stand-in draws it.
+/*
+ * The "Require SSO for Login" switch cards, as the stand-in draws them: the
+ * project's (RequireSsoForLoginCard) and the status page's
+ * (StatusPageRequireSsoCard, which replaced its "Force SSO for Login" card).
+ */
 const REQUIRE_SSO_SWITCH_CARD: string =
   "model-switch-card-project-require-sso-switch";
+const STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD: string =
+  "model-switch-card-status-page-require-sso-switch";
 
-const FORCE_SSO_FORM_DESCRIPTION: string =
-  "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.";
+const REQUIRE_SSO_SWITCH_CARDS: Array<string> = [
+  REQUIRE_SSO_SWITCH_CARD,
+  STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
+];
 
-interface ForceSsoCard {
-  model: string;
-  modelId: string;
-  detailDescription: string;
-}
-
-// The project's "Require SSO for Login" switch (RequireSsoForLoginCard).
+// A page's "Require SSO for Login" switch: the record it saves on.
 interface RequireSsoSwitch {
+  testId: string;
+  model: string;
   modelId: string;
 }
 
@@ -482,7 +485,6 @@ interface PageCase {
   startsOnMembersTeam: boolean;
   // The "test it before you force it" link, exactly.
   testLink: string;
-  forceSsoCard: ForceSsoCard | null;
   requireSsoSwitch: RequireSsoSwitch | null;
   // Columns the create / edit form writes.
   formFields: Array<string>;
@@ -509,8 +511,11 @@ const PAGE_CASES: Array<PageCase> = [
     turnOnNote: SAML_TURN_ON_NOTE,
     startsOnMembersTeam: true,
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
-    forceSsoCard: null,
-    requireSsoSwitch: { modelId: PROJECT_ID },
+    requireSsoSwitch: {
+      testId: REQUIRE_SSO_SWITCH_CARD,
+      model: "Project",
+      modelId: PROJECT_ID,
+    },
     // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
@@ -542,7 +547,6 @@ const PAGE_CASES: Array<PageCase> = [
     turnOnNote: OIDC_TURN_ON_NOTE,
     startsOnMembersTeam: true,
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
-    forceSsoCard: null,
     requireSsoSwitch: null,
     // What the identity provider gives, then how people sign in.
     formFields: [
@@ -577,13 +581,11 @@ const PAGE_CASES: Array<PageCase> = [
     turnOnNote: SAML_TURN_ON_NOTE,
     startsOnMembersTeam: false,
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
-    forceSsoCard: {
+    requireSsoSwitch: {
+      testId: STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
       model: "StatusPage",
       modelId: STATUS_PAGE_ID,
-      detailDescription:
-        "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.",
     },
-    requireSsoSwitch: null,
     formFields: [
       "name",
       "signOnURL",
@@ -613,7 +615,6 @@ const PAGE_CASES: Array<PageCase> = [
     turnOnNote: OIDC_TURN_ON_NOTE,
     startsOnMembersTeam: false,
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
-    forceSsoCard: null,
     requireSsoSwitch: null,
     formFields: [
       "name",
@@ -702,40 +703,25 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
   expect(table).toHaveAttribute("data-actions", pageCase.viewAction);
   expect(table).toHaveAttribute("data-refresh-toggle", "false");
 
-  if (pageCase.forceSsoCard) {
-    const card: HTMLElement = screen.getByTestId(
-      "card-model-detail-SSO Settings",
-    );
-
-    expect(card).toHaveAttribute("data-editable", "true");
-    expect(card).toHaveAttribute("data-edit-button-text", "Edit Settings");
-    expect(card).toHaveAttribute("data-model", pageCase.forceSsoCard.model);
-    expect(card).toHaveAttribute(
-      "data-model-id",
-      pageCase.forceSsoCard.modelId,
-    );
-    expect(card).toHaveAttribute(
-      "data-form-descriptions",
-      `Force SSO for Login: ${FORCE_SSO_FORM_DESCRIPTION}`,
-    );
-    expect(card).toHaveAttribute(
-      "data-detail-descriptions",
-      `Force SSO for Login: ${pageCase.forceSsoCard.detailDescription}`,
-    );
-  } else {
-    expect(
-      screen.queryByTestId("card-model-detail-SSO Settings"),
-    ).not.toBeInTheDocument();
-  }
+  // No page keeps an Edit dialog for requiring SSO ("Force SSO for Login").
+  expect(
+    screen.queryByTestId("card-model-detail-SSO Settings"),
+  ).not.toBeInTheDocument();
 
   if (pageCase.requireSsoSwitch) {
     /*
-     * The project's switch: it saves when flipped, asks with a red button
-     * before it locks people out, and never asks to turn it off.
+     * The page's switch - the project's, or the status page's for its
+     * private users: it saves when flipped, asks with a red button before
+     * it locks people out, and never asks to turn it off.
      */
-    const requireSso: HTMLElement = screen.getByTestId(REQUIRE_SSO_SWITCH_CARD);
+    const requireSso: HTMLElement = screen.getByTestId(
+      pageCase.requireSsoSwitch.testId,
+    );
 
-    expect(requireSso).toHaveAttribute("data-model", "Project");
+    expect(requireSso).toHaveAttribute(
+      "data-model",
+      pageCase.requireSsoSwitch.model,
+    );
     expect(requireSso).toHaveAttribute(
       "data-model-id",
       pageCase.requireSsoSwitch.modelId,
@@ -746,10 +732,13 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
     expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
     expect(requireSso).toHaveAttribute("data-danger-turning-on", "true");
     expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
-  } else {
-    expect(
-      screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD),
-    ).not.toBeInTheDocument();
+  }
+
+  // The other page's switch is not here.
+  for (const testId of REQUIRE_SSO_SWITCH_CARDS) {
+    if (testId !== pageCase.requireSsoSwitch?.testId) {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
   }
 
   for (const testId of LICENSE_TEST_IDS) {
@@ -788,7 +777,10 @@ const expectPlanUpsell: (pageCase: PageCase) => void = (
   expect(
     screen.queryByTestId("card-model-detail-SSO Settings"),
   ).not.toBeInTheDocument();
-  expect(screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD)).not.toBeInTheDocument();
+
+  for (const testId of REQUIRE_SSO_SWITCH_CARDS) {
+    expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+  }
 };
 
 const pinCloud: (plan: string | null) => void = (plan: string | null): void => {

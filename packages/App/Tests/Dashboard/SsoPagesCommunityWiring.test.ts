@@ -50,10 +50,12 @@ interface SsoPage {
   /*
    * How the page asks whether everyone must sign in with SSO: the project's
    * "Require SSO for Login" switch, which saves on flip and asks first
-   * (Components/Project/RequireSsoForLoginCard), the status page's "Force
-   * SSO for Login" card with its Edit dialog, or not at all (OIDC pages).
+   * (Components/Project/RequireSsoForLoginCard), the status page's own
+   * "Require SSO for Login" switch, which does the same for its private
+   * users (Components/StatusPage/StatusPageRequireSsoCard), or not at all
+   * (OIDC pages).
    */
-  requireSso: "switch" | "card" | null;
+  requireSso: "switch" | "status-page-switch" | null;
 }
 
 const SSO_PAGES: Array<SsoPage> = [
@@ -85,7 +87,7 @@ const SSO_PAGES: Array<SsoPage> = [
       "`/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`",
       "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
-    requireSso: "card",
+    requireSso: "status-page-switch",
   },
   {
     name: "Status page > OIDC",
@@ -201,12 +203,21 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
       return;
     }
 
-    // The provider table's isEditable, and the card's.
-    expect(countOf(code, "isEditable={true}")).toBe(2);
-    expect(code).toContain('name="SSO Settings"');
-    expect(code).toMatch(
-      /description: "Please test SSO before you enable this feature\. If SSO is not tested properly then you will be locked out of the (project|status page)\."/,
+    /*
+     * The status page's switch: it saves on flip and asks, with a red
+     * button, before it turns off signing in with a password. Only the
+     * provider table has an Edit dialog, and the old "Force SSO for Login"
+     * card's "you you" typo is gone with it.
+     */
+    expect(code).toContain(
+      'import StatusPageRequireSsoCard from "../../../Components/StatusPage/StatusPageRequireSsoCard";',
     );
+    expect(code).toContain("<StatusPageRequireSsoCard statusPageId={modelId} />");
+    expect(countOf(code, "isEditable={true}")).toBe(1);
+    expect(code).not.toContain("CardModelDetail");
+    expect(code).not.toContain("requireSsoForLogin");
+    expect(code).not.toContain("Force SSO for Login");
+    expect(code).not.toContain("you you");
   });
 
   test("prints the identity provider URLs byte for byte", () => {
