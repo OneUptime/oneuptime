@@ -74,7 +74,7 @@ Schrijft je team elke storing dezelfde drie updates, sla ze dan één keer op. B
 
 Sjablonen worden gedeeld tussen openbare en privénotities: één sjabloonlijst bedient beide, en hetzelfde sjabloon kan in elk van beide soorten notities worden ingevoegd.
 
-Je beheert ze onder **Incidenten → Instellingen → Notitie-sjablonen** — de kaart heet **Public or Private Note Templates for Incidents** en het formulier heeft een stap **Sjablooninformatie** (**Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht) en een stap **Notitiedetails** voor de tekst. Klik je op **Maken op basis van sjabloon** voordat je er een hebt gemaakt, dan meldt OneUptime dat er nog geen bestaan; let op dat die melding naar Projectinstellingen wijst, terwijl de pagina in werkelijkheid onder **Incidenten → Instellingen → Notitie-sjablonen** staat.
+Je beheert ze onder **Incidenten → Instellingen → Notitie-sjablonen** — de kaart heet **Public or Private Note Templates for Incidents** en het formulier is één pagina: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan de tekst. Klik je op **Maken op basis van sjabloon** voordat je er een hebt gemaakt, dan meldt OneUptime dat er nog geen bestaan; let op dat die melding naar Projectinstellingen wijst, terwijl de pagina in werkelijkheid onder **Incidenten → Instellingen → Notitie-sjablonen** staat.
 
 ## Notities plaatsen vanuit Slack of Microsoft Teams
 

@@ -100,10 +100,10 @@
 
 قالب‌های یادداشت به پاسخ‌دهندگان متنی از پیش آماده برای به‌روزرسانی حادثه می‌دهند، تا به‌روزرسانی صفحه وضعیت ساعت سه بامداد را کسی نیمه‌خواب از صفر ننویسد.
 
-به **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`) بروید. کارت با عنوان **Public or Private Note Templates for Incidents** است — یک کتابخانه به هر دو نوع یادداشت خدمت می‌کند. فرم ساخت دو گام دارد:
+به **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`) بروید. کارت با عنوان **Public or Private Note Templates for Incidents** است — یک کتابخانه به هر دو نوع یادداشت خدمت می‌کند. فرم ساخت یک صفحه است:
 
-- **Template Info** — **Template Name** و **Template Description**، هر دو الزامی.
-- **Note Details** — خودِ **Note**، به مارک‌داون، الزامی: متنی که یادداشت با برگزیدن قالب با آن آغاز می‌شود.
+- **Template Name** و **Template Description**، هر دو الزامی.
+- خودِ **Note**، به مارک‌داون، الزامی: متنی که یادداشت با برگزیدن قالب با آن آغاز می‌شود.
 
 مانند قالب‌های حادثه، سطرها به‌جای ویرایش درجا ساخته و دیده می‌شوند؛ برای تغییرش قالبی را باز کنید.
 
@@ -136,10 +136,10 @@
 
 قالب پس‌مرگ اسکلت نوشته‌ای است که پس از حادثه تولید می‌کنید — سرتیترهای شما، اعلان‌های شما، پرسش‌های همیشگی شما — تا هر بازبینی‌ای در پروژه از همان شکل پیروی کند.
 
-به **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`) بروید. کارت با عنوان **Postmortem Templates** است. فرم ساخت دو گام دارد:
+به **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`) بروید. کارت با عنوان **Postmortem Templates** است. فرم ساخت یک صفحه است:
 
-- **Template Info** — **Template Name** و **Template Description**، هر دو الزامی.
-- **Postmortem Details** — **Postmortem Template**، خودِ بدنه، به مارک‌داون، الزامی.
+- **Template Name** و **Template Description**، هر دو الزامی.
+- **Postmortem Template**، خودِ بدنه، به مارک‌داون، الزامی.
 
 یکی را از حادثه اعمال می‌کنید، نه از تنظیمات. حادثه‌ای را باز کنید، **Postmortem** را در منوی کناری‌اش برگزینید (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`)، و از **Apply Template** استفاده کنید. آن پنجره **Apply Postmortem Template** را با فهرست کشویی **Select Template** باز می‌کند؛ برگزیدن یکی بدنه قالب را در ویرایشگر **Postmortem Note** بارگذاری می‌کند، جایی که پیش از ذخیره ویرایشش می‌کنید. اپیزودهای حادثه همان صفحه **Postmortem** را دارند و از همان کتابخانه قالب می‌کشند.
 

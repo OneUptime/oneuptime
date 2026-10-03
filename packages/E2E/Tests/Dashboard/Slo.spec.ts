@@ -12,13 +12,13 @@ import { JSONish, listItems } from "./Helpers/MonitorAlerting";
 
 /*
  * SLOs (Service Level Objectives) end-to-end coverage for the dashboard
- * product area: products menu -> list -> three-step create wizard -> overview
+ * product area: products menu -> list -> one-page create form -> overview
  * -> attach a monitor -> burn rate rules, alerts and metrics -> edit the
  * details card -> save a Settings card -> monitor rules lock hand edits ->
  * archive and unarchive -> delete.
  *
  * One project and one monitor are created up front (serial mode + shared
- * page). The create wizard no longer asks for monitors, so the monitor is
+ * page). The create form does not ask for monitors, so the monitor is
  * attached afterwards on the SLO's own Monitors page — the flow a real user
  * follows. Each step is its own test so a failure points at exactly one
  * interaction instead of failing an opaque mega-test; serial mode means the
@@ -69,12 +69,6 @@ const sloStatusRegex: RegExp =
 
 // The empty state SloHistoryCharts renders when no SloHistory rows exist in range.
 const noChartHistoryText: string = "No history in this range";
-
-/*
- * The create wizard's steps, in order (SLO_FORM_STEPS). The labels have no
- * step of their own: they fold under Advanced at the end of Basic Info.
- */
-const SLO_CREATE_STEPS: Array<string> = ["Basic Info", "Objective", "Period"];
 
 // The SLO view side menu (Pages/Slo/View/SideMenu.tsx), in order.
 const SLO_VIEW_TABS: Array<string> = [
@@ -333,7 +327,7 @@ test.describe("SLOs", () => {
     await expect(archivedLink).toBeVisible({ timeout: 30000 });
   });
 
-  test("should create an SLO through the three-step wizard and land on its overview", async () => {
+  test("should create an SLO from one short form and land on its overview", async () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
@@ -361,39 +355,28 @@ test.describe("SLOs", () => {
     const submitButton: Locator = page.getByTestId(
       "modal-footer-submit-button",
     );
-    /*
-     * The plain Next beside Create Service Level Objective, once every step
-     * left is optional: it walks on without creating anything.
-     */
-    const nextButton: Locator = page.getByTestId("modal-footer-next-button");
-    const currentStep: Locator = form.locator('[aria-current="step"]');
 
     /*
-     * Exactly three steps, in this order. There is no Monitors step any more:
-     * monitors are attached on the SLO's Monitors page or by a monitor rule,
-     * and how downtime is counted lives on Settings with server defaults.
-     * Nor a Labels step: they fold under Advanced on Basic Info.
+     * One page of three rows: the name, the target and the folded Advanced
+     * section. There is no step list and no Next - the target was the only
+     * thing without a default, and it comes prefilled - so the one button
+     * creates. No Monitors field either: monitors are attached on the SLO's
+     * Monitors page or by a monitor rule.
      */
-    await expect
-      .poll(
-        async (): Promise<Array<string>> => {
-          return readStepRail(form);
-        },
-        { timeout: 30000 },
-      )
-      .toEqual(SLO_CREATE_STEPS);
-
-    /*
-     * Step 1 - Basic Info: the name and the description, and the labels
-     * folded under Advanced at the end of the step.
-     */
-    await expect(currentStep).toContainText("Basic Info");
-    await expect(form.getByLabel("Name")).toBeVisible();
-    await expect(form.getByLabel("Target (%)")).toHaveCount(0);
+    await expect(form.getByLabel("Name", { exact: true })).toBeVisible();
+    await expect(form.locator('nav[aria-label="Progress"]')).toHaveCount(0);
+    await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
+    await expect(submitButton).toContainText("Create Service Level Objective");
+    // The suggested target, there to see and change.
+    await expect(form.getByLabel("Target (%)")).toHaveValue("99.9");
     await expect(
       form.getByRole("combobox", { name: /^Monitors\b/ }),
     ).toHaveCount(0);
 
+    /*
+     * Advanced is folded, and says what its defaults do instead of hiding
+     * them: the window the target is measured over, and when it warns.
+     */
     const advancedHeader: Locator = form.getByRole("button", {
       name: /^Advanced/,
     });
@@ -401,41 +384,25 @@ test.describe("SLOs", () => {
       name: "Labels (Optional)",
       exact: true,
     });
+    const atRiskInput: Locator = form.getByLabel("At-Risk Threshold (%)");
     await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
+    await expect(form.getByTestId("collapsible-section-summary")).toHaveText(
+      "Measured over a rolling 30-day window, and At Risk when less than 20% of the error budget is left.",
+    );
     await expect(labelsInput).toBeHidden();
+    await expect(atRiskInput).toBeHidden();
+
+    await form.getByLabel("Name", { exact: true }).fill(ctx.sloName);
+
+    /*
+     * Opened, it holds the description, the at-risk threshold, the window
+     * and the labels, at the column defaults. Timezone only belongs to a
+     * calendar-month window, so a rolling window hides it.
+     */
     await advancedHeader.click();
+    await expect(advancedHeader).toHaveAttribute("aria-expanded", "true");
     await expect(labelsInput).toBeVisible();
-
-    await form.getByLabel("Name").fill(ctx.sloName);
-    await form.getByLabel("Description").fill(ctx.sloDescription);
-    await expect(submitButton).toContainText("Next");
-    await submitButton.click();
-
-    /*
-     * Step 2 - Objective: the target and the at-risk threshold that only
-     * means something next to it. The window moved to its own step, so its
-     * absence here catches a field assigned to the wrong step.
-     */
-    await expect(currentStep).toContainText("Objective");
-    await expect(form.getByLabel("Target (%)")).toBeVisible();
-    await expect(form.getByLabel("Window (Days)")).toHaveCount(0);
-    // Seeded from SLO_CREATE_INITIAL_VALUES, the column's own default.
-    await expect(form.getByLabel("At-Risk Threshold (%)")).toHaveValue("20");
-    await form.getByLabel("Target (%)").fill("99.9");
-
-    /*
-     * The target was the last thing the SLO needed: Period has its
-     * defaults, so the main button creates from here. Next walks on to
-     * check them.
-     */
-    await expect(submitButton).toContainText("Create Service Level Objective");
-    await nextButton.click();
-
-    /*
-     * Step 3 - Period: window type and its conditional fields. Timezone only
-     * belongs to a calendar-month window, so a rolling window hides it.
-     */
-    await expect(currentStep).toContainText("Period");
+    await expect(atRiskInput).toHaveValue("20");
     await expect(
       form.getByRole("combobox", { name: /^Window Type\b/ }),
     ).toBeVisible();
@@ -444,21 +411,18 @@ test.describe("SLOs", () => {
     ).toHaveCount(0);
 
     /*
-     * Window (Days) is a free number field (the column accepts 1-366), and
-     * it is prefilled with the default of 30 — set it explicitly anyway so
-     * the assertions below are not asserting a default that could quietly
-     * change.
+     * Window (Days) is a free number field (the column accepts 1-366),
+     * prefilled with the default of 30. The overview's window chip below
+     * checks what was saved.
      */
-    const windowDaysInput: Locator = form.getByLabel("Window (Days)");
-    await expect(windowDaysInput).toHaveValue("30");
-    await windowDaysInput.fill("30");
-
-    // Period is the last step, so there is nothing left to walk to.
-    await expect(nextButton).toHaveCount(0);
+    await expect(form.getByLabel("Window (Days)")).toHaveValue("30");
+    await form
+      .getByLabel("Description", { exact: true })
+      .fill(ctx.sloDescription);
 
     /*
-     * The questions the wizard deliberately stopped asking. None of them may
-     * come back on any step: each has a server default and a Settings card.
+     * The questions the form deliberately does not ask. None of them may
+     * come back: each has a server default and a Settings card.
      */
     await expect(modal.getByText("Multi Monitor Mode")).toHaveCount(0);
     await expect(modal.getByText("Downtime Monitor Statuses")).toHaveCount(0);
@@ -466,7 +430,6 @@ test.describe("SLOs", () => {
       0,
     );
 
-    await expect(submitButton).toContainText("Create Service Level Objective");
     await submitButton.click();
     await modal.waitFor({ state: "hidden", timeout: 90000 });
 
@@ -1013,8 +976,8 @@ test.describe("SLOs", () => {
 
     /*
      * Settings owns how the SLO measures, including the downtime rules the
-     * create wizard no longer asks about. A new SLO carries the server
-     * default for them.
+     * create form does not ask about. A new SLO carries the server default
+     * for them.
      */
     for (const cardTitle of [
       "Objective",

@@ -23,7 +23,8 @@ const IncidentPostmortemTemplateView: FunctionComponent<
         name="Basic Details"
         cardProps={{
           title: "Basic Details",
-          description: "Here are more details for this postmortem template.",
+          description:
+            "The name people pick this template by, and what it is for.",
         }}
         isEditable={true}
         editButtonText="Edit Details"
@@ -90,7 +91,7 @@ const IncidentPostmortemTemplateView: FunctionComponent<
         cardProps={{
           title: "Postmortem Template",
           description:
-            "Here is the Markdown content for this postmortem template.",
+            "The postmortem's text when this template is applied. It can still be edited before it is saved.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
@@ -100,6 +101,8 @@ const IncidentPostmortemTemplateView: FunctionComponent<
               postmortemNote: true,
             },
             title: "Postmortem Template",
+            description:
+              "The postmortem's text when this template is applied. It can still be edited before it is saved.",
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
             validation: {

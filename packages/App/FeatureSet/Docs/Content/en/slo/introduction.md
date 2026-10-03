@@ -78,13 +78,13 @@ SLO owners are notified when the status changes to **At Risk** or **Budget Exhau
 
 1. Go to **SLOs** in the OneUptime Dashboard
 2. Click **Create SLO**
-3. Work through the three steps:
+3. Fill in the one-page form:
 
-| Step           | What you set                                                                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic Info** | The **name** and an optional **description**. Optional **labels**, to organize and filter SLOs, are under **Advanced**.                                        |
-| **Objective**  | The **target percentage** (e.g., `99.9`) and the **at-risk threshold** (20 by default).                                                                       |
-| **Period**     | The **window type** — **Rolling** (then the window length in days, 1 to 366, 30 by default) or **Calendar Month** (then the **timezone** the month rolls over in). |
+| Field          | What you set                                                                                                                                                                                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**       | What the SLO is about, for example "API Availability".                                                                                                                                                                                                                                                       |
+| **Target (%)** | The share of time its monitors must be up. It starts at `99.9`; change it to the target you hold yourself to.                                                                                                                                                                                                |
+| **Advanced**   | Folded, with a line saying what its defaults do. Open it for an optional **description**, the **at-risk threshold** (20 by default), the **window type** — **Rolling** (then the window length in days, 1 to 366, 30 by default) or **Calendar Month** (then the **timezone** the month rolls over in) — and optional **labels**, to organize and filter SLOs. |
 
 The create form asks only what the SLO is. Everything about how it measures starts from a default you can change later:
 

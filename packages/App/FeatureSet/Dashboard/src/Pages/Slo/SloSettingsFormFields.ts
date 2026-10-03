@@ -21,9 +21,10 @@ import {
  * cards show, kept React-free for the same reason as SloFormFields.ts: App
  * tests can import this without pulling the Dashboard's react into App.
  *
- * Settings owns how an SLO measures. The create wizard asks only for the
- * objective and period and leaves the rest to server defaults, so this page
- * is the one place the downtime rules can be changed. Objective and period
+ * Settings owns how an SLO measures. The create form asks only for the
+ * name and the target, with the threshold and period folded at their
+ * defaults, and leaves the rest to server defaults, so this page is the
+ * one place the downtime rules can be changed. Objective and period
  * are editable here too, because they are what the SLO measures against
  * and the Overview's details card no longer edits them. Whether the SLO is
  * evaluated at all is not a form: it is the Evaluation card's switch,

@@ -74,7 +74,7 @@ Si tu equipo escribe las mismas tres actualizaciones en cada interrupción, guá
 
 Las plantillas se comparten entre notas públicas y privadas: una sola lista de plantillas sirve a ambas, y la misma plantilla se puede insertar en cualquiera de los dos tipos de nota.
 
-Las gestionas en **Incidentes → Ajustes → Plantillas de Notas**: la tarjeta se titula **Public or Private Note Templates for Incidents** y su formulario tiene un paso **Información de la plantilla** (**Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios) y un paso **Detalles de la nota** para el cuerpo. Si haces clic en **Crear desde plantilla** antes de crear ninguna, OneUptime te dice que todavía no existe ninguna; ojo, porque el mensaje apunta a Ajustes del proyecto, pero la página vive en realidad en **Incidentes → Ajustes → Plantillas de Notas**.
+Las gestionas en **Incidentes → Ajustes → Plantillas de Notas**: la tarjeta se titula **Public or Private Note Templates for Incidents** y su formulario es una sola página: **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios, y luego el cuerpo. Si haces clic en **Crear desde plantilla** antes de crear ninguna, OneUptime te dice que todavía no existe ninguna; ojo, porque el mensaje apunta a Ajustes del proyecto, pero la página vive en realidad en **Incidentes → Ajustes → Plantillas de Notas**.
 
 ## Publicar notas desde Slack o Microsoft Teams
 
