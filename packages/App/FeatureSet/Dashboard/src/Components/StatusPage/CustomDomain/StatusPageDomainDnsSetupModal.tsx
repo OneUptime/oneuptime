@@ -40,6 +40,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 export interface ComponentProps {
   // The domain: its id, fullDomain, subdomain and isCustomCertificate.
   domain: StatusPageDomain;
+  // The domain's free certificate has expired: its renewals keep failing.
+  hasExpiredCertificate?: boolean | undefined;
   onClose: () => void;
   // Check now found the record: what shows the domain's status is stale.
   onVerified: () => void;
@@ -71,13 +73,16 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
 
   /*
    * What happens next, for where the domain is: a verified one is here
-   * because its free certificate is not issued yet - an order that keeps
-   * failing - and Check now tries again and says why.
+   * because its free certificate is not in place - an order that keeps
+   * failing, or a certificate that has expired - and Check now tries again
+   * and says why.
    */
   const whatHappensNext: string = props.domain.isCustomCertificate
     ? StatusPageCustomDomainCopy.dnsSetupWhatHappensNextUploaded
     : props.domain.isCnameVerified
-      ? StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued
+      ? props.hasExpiredCertificate
+        ? StatusPageCustomDomainCopy.dnsSetupVerifiedExpired
+        : StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued
       : StatusPageCustomDomainCopy.dnsSetupWhatHappensNext;
 
   // The subdomain is empty for the domain itself ("@" when it was added).

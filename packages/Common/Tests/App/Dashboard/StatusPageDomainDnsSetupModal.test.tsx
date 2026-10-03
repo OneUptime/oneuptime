@@ -138,13 +138,17 @@ type Rendered = {
   onVerified: Mock<() => void>;
 };
 
-function renderDialog(row: StatusPageDomain = domain()): Rendered {
+function renderDialog(
+  row: StatusPageDomain = domain(),
+  options?: { hasExpiredCertificate?: boolean },
+): Rendered {
   const onClose: Mock<() => void> = jest.fn();
   const onVerified: Mock<() => void> = jest.fn();
 
   render(
     <StatusPageDomainDnsSetupModal
       domain={row}
+      hasExpiredCertificate={options?.hasExpiredCertificate}
       onClose={onClose as never}
       onVerified={onVerified as never}
     />,
@@ -287,6 +291,37 @@ describe("the DNS Setup dialog", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * And on a verified domain whose free certificate has expired - its
+   * renewals keep failing. "Not issued yet" would be wrong; Check now
+   * renews it now.
+   */
+  test("a verified domain whose certificate has expired is told so, and that Check now tries again", () => {
+    renderDialog(domain({ isCnameVerified: true }), {
+      hasExpiredCertificate: true,
+    });
+
+    expect(
+      screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
+    ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupVerifiedExpired);
+    expect(dialog()).not.toHaveTextContent(
+      StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued,
+    );
+    expect(
+      within(dialog()).getByRole("button", { name: "Check now" }),
+    ).toBeInTheDocument();
+  });
+
+  test("an expired certificate is about a verified domain only: one waiting for DNS is asked for its record", () => {
+    renderDialog(domain({ isCnameVerified: false }), {
+      hasExpiredCertificate: true,
+    });
+
+    expect(
+      screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
+    ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupWhatHappensNext);
+  });
+
   test("Check now asks verify-cname about this domain", async () => {
     renderDialog();
 
@@ -372,7 +407,7 @@ describe("the DNS Setup dialog", () => {
     );
   });
 
-  test("a failed order says why, and that it is tried again without anyone doing anything", async () => {
+  test("a failed order says why, and that it is tried again without anyone doing anything, without promising when", async () => {
     mockApiGet = async (): Promise<unknown> => {
       return found({
         certificateStatus: CustomDomainCertificateStatus.Failed,
@@ -386,8 +421,9 @@ describe("the DNS Setup dialog", () => {
 
     expect(dialog()).toHaveTextContent("Your CNAME record is verified.");
     expect(dialog()).toHaveTextContent(
-      "We could not issue a free SSL certificate for status.acme.com yet. We try again every 15 minutes, so there is nothing else to do here.",
+      "We could not issue a free SSL certificate for status.acme.com yet. We keep trying automatically.",
     );
+    expect(dialog()).not.toHaveTextContent("every 15 minutes");
     expect(
       screen.getByTestId(DNS_SETUP_TEST_IDS.certificateError),
     ).toHaveTextContent("accessed publicly over port 80");

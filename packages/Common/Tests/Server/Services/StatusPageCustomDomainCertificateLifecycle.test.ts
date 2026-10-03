@@ -19,29 +19,50 @@
  *     that has a certificate, during a moment of DNS trouble, took the
  *     domain off HTTPS.
  *
+ * The hardening that followed (custom-domain-ssl-hardening) adds the rest
+ * of what its review found, end to end:
+ *
+ *   - Reissue SSL takes the same lock as every other order;
+ *   - Check now and the CNAME sweep check the record once, not again inside
+ *     the order, and a sweep's DNS blip during a Check now order cannot
+ *     leave the domain ordered but "waiting for DNS";
+ *   - Check now says Issued only for a certificate that exists and has not
+ *     expired, and renews an expired one;
+ *   - a domain whose order failed waits longer before the sweeps order it
+ *     again, and its failure is what the Status column reads;
+ *   - Check now, the sweeps and the renewal run together stay within the
+ *     installation's Let's Encrypt budget.
+ *
  * Real: StatusPageDomainService (the sweeps, isCnameValid, orderCert,
- * orderCertIfMissing, orderCertOnceCnameIsVerified), CertificateOrder and
- * GreenlockUtil.orderCert. Replaced: the two tables (in memory), the
- * Let's Encrypt client, the DNS and HTTP checks of the customer's domain,
- * and the Redis lock (in memory, refusing a held key at once as Redis does).
+ * orderCertIfMissing, orderCertOnceCnameIsVerified, reissueCert, the
+ * renewal run), CertificateOrder, CertificateOrderBudget,
+ * CertificateOrderFailures and GreenlockUtil.orderCert. Replaced: the two
+ * tables (in memory), the Let's Encrypt client, the DNS and HTTP checks of
+ * the customer's domain, and Redis (InMemoryRedis: a held lock refuses at
+ * once, as Redis does).
  */
 
 import StatusPageDomainService, {
   Service as StatusPageDomainServiceClass,
 } from "../../../Server/Services/StatusPageDomainService";
 import AcmeCertificateService from "../../../Server/Services/AcmeCertificateService";
-import Semaphore, {
-  SemaphoreLockTimeoutError,
-  SemaphoreMutex,
-} from "../../../Server/Infrastructure/Semaphore";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Domain from "../../../Server/Types/Domain";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import CertificateOrderBudget from "../../../Server/Utils/Greenlock/CertificateOrderBudget";
+import CertificateOrderFailures from "../../../Server/Utils/Greenlock/CertificateOrderFailures";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
+import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import {
   CustomDomainCertificateStatus,
   CustomDomainVerificationResult,
 } from "../../../Types/StatusPage/CustomDomainVerification";
+import { CustomDomainCertificate } from "../../../Types/StatusPage/CustomDomainCertificates";
+import {
+  InMemoryRedis,
+  useInMemoryRedis,
+} from "../Utils/Greenlock/InMemoryRedis";
 import {
   afterEach,
   beforeEach,
@@ -50,6 +71,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const mockCnameRecord: string = "statuspage.example.com";
 
@@ -117,6 +139,7 @@ type DomainRow = {
   isSslOrdered: boolean;
   isSslProvisioned: boolean;
   isCustomCertificate: boolean;
+  certificateReissueRequestedAt?: Date | undefined;
 };
 
 type CertificateRow = {
@@ -135,8 +158,9 @@ type World = {
   served: Set<string>;
   deletedCertificates: Array<string>;
   heldLocks: Set<string>;
-  // Redis keys with their values: the on-demand order window of Check now.
+  // Redis keys with their values: Check now's window, the budgets, failures.
   cache: Map<string, string>;
+  redis: InMemoryRedis;
 };
 
 let world: World;
@@ -165,9 +189,26 @@ function makeDomain(
 
 function matches(row: DomainRow, query: Record<string, unknown>): boolean {
   return Object.entries(query).every(([key, value]: [string, unknown]) => {
+    // "IN (...)": QueryHelper.any, as the spy below builds it.
+    const inList: Array<string> | undefined = (
+      value as { inList?: Array<string> } | null
+    )?.inList;
+
+    if (inList) {
+      return inList.includes(
+        String((row as unknown as Record<string, unknown>)[key]),
+      );
+    }
+
+    if (value instanceof Date) {
+      const current: unknown = (row as unknown as Record<string, unknown>)[key];
+
+      return current instanceof Date && current.getTime() === value.getTime();
+    }
+
     /*
-     * A query operator (the reissue cooldown's "older than or null") is
-     * not modelled: the domains here have never been reissued.
+     * Another query operator (the reissue cooldown's "older than or null")
+     * is not modelled: the domains here are reissued at most once.
      */
     if (value !== null && typeof value === "object") {
       return true;
@@ -209,14 +250,17 @@ function addCertificate(domain: string, expiresInDays: number): void {
 let holdOrderSweepRead: Promise<void> | null = null;
 
 function setUpWorld(): void {
+  const redis: InMemoryRedis = useInMemoryRedis();
+
   world = {
     domains: [],
     certificates: new Map(),
     dnsLive: new Set(),
     served: new Set(),
     deletedCertificates: [],
-    heldLocks: new Set(),
-    cache: new Map(),
+    heldLocks: redis.heldLocks,
+    cache: redis.cache,
+    redis: redis,
   };
   mockCaOrders.length = 0;
   holdOrderSweepRead = null;
@@ -298,12 +342,50 @@ function setUpWorld(): void {
       return 1;
     }) as never);
 
-  // The certificate table.
+  // Every row the query matches: the one write that records many domains.
+  jest
+    .spyOn(StatusPageDomainService, "updateBy")
+    .mockImplementation((async (update: {
+      query: Record<string, unknown>;
+      data: Partial<DomainRow>;
+    }) => {
+      const rows: Array<DomainRow> = world.domains.filter(
+        (candidate: DomainRow) => {
+          return matches(candidate, update.query);
+        },
+      );
+
+      for (const row of rows) {
+        Object.assign(row, update.data);
+      }
+
+      return rows.length;
+    }) as never);
+
+  /*
+   * The certificate table: a lookup by name, or - for the renewal run - the
+   * rows due, by expiry.
+   */
   jest
     .spyOn(AcmeCertificateService, "findBy")
     .mockImplementation((async (call: {
-      query: { domain: { inList: Array<string> } };
+      query: { domain?: { inList: Array<string> } };
+      skip?: number;
     }) => {
+      if (!call.query.domain) {
+        if (call.skip) {
+          return [];
+        }
+
+        return [...world.certificates.values()]
+          .sort((a: CertificateRow, b: CertificateRow) => {
+            return a.expiresAt.getTime() - b.expiresAt.getTime();
+          })
+          .map((row: CertificateRow) => {
+            return { ...row };
+          });
+      }
+
       return call.query.domain.inList
         .filter((domain: string) => {
           return world.certificates.has(domain);
@@ -388,73 +470,23 @@ function setUpWorld(): void {
     return world.dnsLive.has(data.domain) ? [mockCnameRecord] : [];
   }) as never);
 
-  // The lock: a held key refuses at once, like Redis with one attempt.
-  jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
-    key: string;
-    namespace: string;
-  }) => {
-    const key: string = `${data.namespace}-${data.key}`;
-
-    if (world.heldLocks.has(key)) {
-      throw new SemaphoreLockTimeoutError(`Acquire mutex ${key} timeout`);
-    }
-
-    world.heldLocks.add(key);
-    return { key: key } as unknown as SemaphoreMutex;
-  }) as never);
-
-  jest.spyOn(Semaphore, "release").mockImplementation((async (
-    mutex: SemaphoreMutex,
-  ) => {
-    world.heldLocks.delete((mutex as unknown as { key: string }).key);
-  }) as never);
-
-  // The cache: SET NX, GET and SET, without expiry (a test is one window).
-  jest.spyOn(GlobalCache, "setStringIfNotExists").mockImplementation((async (
-    namespace: string,
-    key: string,
-    value: string,
-  ): Promise<boolean> => {
-    const fullKey: string = `${namespace}-${key}`;
-
-    if (world.cache.has(fullKey)) {
-      return false;
-    }
-
-    world.cache.set(fullKey, value);
-    return true;
-  }) as never);
-
-  jest.spyOn(GlobalCache, "getString").mockImplementation((async (
-    namespace: string,
-    key: string,
-  ) => {
-    return world.cache.get(`${namespace}-${key}`) ?? null;
-  }) as never);
-
-  jest.spyOn(GlobalCache, "setString").mockImplementation((async (
-    namespace: string,
-    key: string,
-    value: string,
-  ): Promise<void> => {
-    world.cache.set(`${namespace}-${key}`, value);
-  }) as never);
-
-  // The sweeps' shared order budget: a counter per window, in the cache.
-  jest.spyOn(GlobalCache, "incrementWithExpiry").mockImplementation((async (
-    namespace: string,
-    key: string,
-  ): Promise<number> => {
-    const fullKey: string = `${namespace}-${key}`;
-    const count: number = Number(world.cache.get(fullKey) || "0") + 1;
-    world.cache.set(fullKey, String(count));
-    return count;
-  }) as never);
+  /*
+   * The lock (a held key refuses at once, like Redis with one attempt) and
+   * the cache - Check now's window, the order budgets and the failed-order
+   * records - are InMemoryRedis, set up above.
+   */
 }
 
 // A new on-demand order window: what 15 minutes later looks like.
 function nextOnDemandWindow(): void {
   world.cache.clear();
+}
+
+// The clock, moved on by this many minutes from now.
+function minutesLater(minutes: number): void {
+  const later: Date = OneUptimeDate.addRemoveMinutes(new Date(), minutes);
+
+  jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(later);
 }
 
 /*
@@ -463,7 +495,11 @@ function nextOnDemandWindow(): void {
  */
 async function clickCheckNow(
   domain: DomainRow,
-  options?: { waitInMs?: number },
+  options?: {
+    waitInMs?: number;
+    // DNS stops answering the moment after the route found the record.
+    dnsGoesAwayAfterTheCheck?: boolean;
+  },
 ): Promise<CustomDomainVerificationResult | null> {
   const asRead: DomainRow = copyOf(rowById(domain.id)!);
 
@@ -473,6 +509,10 @@ async function clickCheckNow(
 
   if (!isValid) {
     return null;
+  }
+
+  if (options?.dnsGoesAwayAfterTheCheck) {
+    world.dnsLive.delete(asRead.fullDomain);
   }
 
   return await StatusPageDomainService.orderCertOnceCnameIsVerified(
@@ -817,7 +857,13 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     expect(mockCaOrders).toEqual(["status.acme.com"]);
   });
 
-  test("an order that fails is reported to Check now, and the sweeps order again", async () => {
+  /*
+   * The sweeps order a failed domain again - once its retry delay is up,
+   * not on the very next tick: a domain whose order keeps failing used to
+   * be ordered every run, each order against the account the whole
+   * installation shares.
+   */
+  test("an order that fails is reported to Check now, and the sweeps order again once its delay is up", async () => {
     const domain: DomainRow = makeDomain("status.acme.com");
     world.domains.push(domain);
     world.dnsLive.add("status.acme.com");
@@ -839,6 +885,13 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     expect(domain.isCnameVerified).toBe(true);
     expect(domain.isSslOrdered).toBe(false);
 
+    // The next tick, a moment later: the domain waits.
+    await runSweeps();
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+
+    // Its first retry delay, 15 minutes, is up.
+    minutesLater(15);
     await runSweeps();
 
     expect(mockCaOrders).toEqual(["status.acme.com", "status.acme.com"]);
@@ -989,5 +1042,474 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     expect(domain.isSslOrdered).toBe(true);
     expect(world.certificates.has("status.acme.com")).toBe(true);
     expect(world.heldLocks.size).toBe(0);
+  });
+});
+
+describe("custom domain certificates, hardened: the review's findings end to end", () => {
+  beforeEach(() => {
+    mockAuto = DEFAULT_AUTO;
+    setUpWorld();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * Review finding 2 (lock part): Reissue SSL ordered without the name's
+   * lock, beside a Check now or a re-order of the same name - two orders,
+   * and two http-01 challenges that remove each other's challenge rows.
+   */
+  test("Reissue SSL while another order of the name runs is refused, orders nothing, and keeps the day's reissue", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    // The certificate went missing; the re-order sweep is ordering it.
+    const ca: { release: () => void; started: Promise<void> } =
+      holdTheNextOrder();
+    const reorder: Promise<void> = StatusPageDomainService.checkOrderStatus();
+    await ca.started;
+
+    await expect(
+      StatusPageDomainService.reissueCert(domain.id),
+    ).rejects.toThrow(TooManyRequestsException);
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+    expect(domain.certificateReissueRequestedAt).toBeUndefined();
+
+    ca.release();
+    await reorder;
+
+    // Nothing runs now: the reissue goes ahead, once.
+    await StatusPageDomainService.reissueCert(domain.id);
+
+    expect(mockCaOrders).toEqual(["status.acme.com", "status.acme.com"]);
+    expect(domain.certificateReissueRequestedAt).toBeInstanceOf(Date);
+    expect(world.heldLocks.size).toBe(0);
+  });
+
+  test("Check now while a reissue of the name runs orders nothing more", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+    addCertificate("status.acme.com", -1);
+
+    const ca: { release: () => void; started: Promise<void> } =
+      holdTheNextOrder();
+    const reissue: Promise<void> = StatusPageDomainService.reissueCert(
+      domain.id,
+    );
+    await ca.started;
+
+    const result: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(result?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+
+    ca.release();
+    await reissue;
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+  });
+
+  /*
+   * Review finding 3: the route found the record, then the order checked it
+   * once more. A DNS blip between the two marked the domain unverified and
+   * failed the order, while the dialog said "Your CNAME record is verified."
+   */
+  test("Check now does not check the record twice: a DNS blip right after the route found it does not fail the order", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    const result: CustomDomainVerificationResult | null = await clickCheckNow(
+      domain,
+      { dnsGoesAwayAfterTheCheck: true },
+    );
+
+    expect(result?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+    expect(domain.isCnameVerified).toBe(true);
+    expect(domain.isSslOrdered).toBe(true);
+  });
+
+  test("the CNAME sweep does not check the record twice either", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    const isCnameValid: SpyInstance<
+      typeof StatusPageDomainService.isCnameValid
+    > = jest.spyOn(StatusPageDomainService, "isCnameValid");
+
+    await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+    expect(isCnameValid).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Review finding 8: the CNAME sweep read the domain as unverified before
+   * Check now verified it, then hit a DNS blip on it while Check now's order
+   * ran - marking it unverified and unordered - and the order then marked
+   * it ordered: "ordered", but "waiting for DNS".
+   */
+  test("a sweep's DNS blip while Check now orders never leaves the domain ordered but unverified", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    const ca: { release: () => void; started: Promise<void> } =
+      holdTheNextOrder();
+    const checkNow: Promise<CustomDomainVerificationResult | null> =
+      clickCheckNow(domain);
+    await ca.started;
+
+    // The sweep's own check of the domain, during a blip.
+    world.dnsLive.delete("status.acme.com");
+    await StatusPageDomainService.isCnameValid("status.acme.com");
+
+    expect(domain.isCnameVerified).toBe(false);
+
+    world.dnsLive.add("status.acme.com");
+    ca.release();
+    await checkNow;
+
+    // Let's Encrypt fetched its challenge from the domain: it reaches us.
+    expect(domain.isSslOrdered).toBe(true);
+    expect(domain.isCnameVerified).toBe(true);
+  });
+
+  test("a domain that has a certificate is recorded as ordered only while it is verified", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+    });
+    world.domains.push(domain);
+    addCertificate("status.acme.com", 40);
+
+    // Read as verified by the order sweep, then a blip marks it unverified.
+    let letTheSweepGoOn: () => void = (): void => {};
+    holdOrderSweepRead = new Promise<void>((resolve: () => void) => {
+      letTheSweepGoOn = resolve;
+    });
+
+    const sweep: Promise<void> =
+      StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+    await settle();
+
+    holdOrderSweepRead = null;
+    await StatusPageDomainService.isCnameValid("status.acme.com");
+
+    letTheSweepGoOn();
+    await sweep;
+
+    expect(domain.isCnameVerified).toBe(false);
+    expect(domain.isSslOrdered).toBe(false);
+    expect(mockCaOrders).toEqual([]);
+  });
+
+  /*
+   * Review finding 6: Check now said Issued - "already has its free SSL
+   * certificate, and we renew it automatically" - for an expired
+   * certificate, and for a domain marked ordered whose certificate was gone.
+   */
+  test("Check now renews an expired certificate, and does not call it issued", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+    addCertificate("status.acme.com", -2);
+
+    const result: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(result?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+    expect(
+      world.certificates.get("status.acme.com")!.expiresAt.getTime(),
+    ).toBeGreaterThan(Date.now());
+    expect(world.deletedCertificates).toEqual([]);
+  });
+
+  test("Check now on a domain marked ordered whose certificate is gone orders it, and does not call it issued", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    const result: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(result?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+  });
+
+  test("Check now calls a certificate issued only when it is there and valid", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+    addCertificate("status.acme.com", 30);
+
+    const result: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(result?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issued,
+    );
+    expect(mockCaOrders).toEqual([]);
+  });
+
+  /*
+   * Review finding 4 / honest status: a domain whose order kept failing
+   * said "Issuing a free certificate" for days, with the reason only in the
+   * worker's log. The Status column reads this.
+   */
+  test("a failed order is what the Status column reads, until an order succeeds", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    mockAuto = async (): Promise<string> => {
+      throw new Error("urn:ietf:params:acme:error:caa");
+    };
+
+    await runSweeps();
+
+    const failed: Array<CustomDomainCertificate> =
+      await StatusPageDomainService.getCertificates([domain as never]);
+
+    expect(failed).toEqual([
+      {
+        domainId: domain._id,
+        expiresAt: undefined,
+        lastOrderError: expect.stringContaining(
+          "Unable to order certificate for status.acme.com",
+        ),
+        lastOrderFailedAt: expect.any(Date),
+      },
+    ]);
+
+    mockAuto = DEFAULT_AUTO;
+    minutesLater(15);
+    await runSweeps();
+
+    const issued: Array<CustomDomainCertificate> =
+      await StatusPageDomainService.getCertificates([domain as never]);
+
+    expect(issued[0]!.lastOrderError).toBeUndefined();
+    expect(issued[0]!.expiresAt).toBeInstanceOf(Date);
+  });
+
+  test("a domain whose orders keep failing is ordered less and less often by the sweeps", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+    });
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    mockAuto = async (): Promise<string> => {
+      throw new Error("urn:ietf:params:acme:error:caa");
+    };
+
+    // Two hours of ticks, every 15 minutes.
+    for (let tick: number = 0; tick < 8; tick++) {
+      minutesLater(tick * 15);
+      await runSweeps();
+    }
+
+    /*
+     * At 0, 15 and 45 minutes, then at 1 hour 45: four orders in eight
+     * ticks, where every tick used to order one.
+     */
+    expect(mockCaOrders).toHaveLength(4);
+
+    const failure: Map<string, unknown> = await CertificateOrderFailures.get([
+      "status.acme.com",
+    ]);
+
+    expect(failure.size).toBe(1);
+  });
+
+  /*
+   * Review finding 5: each sweep and run capped only itself, and the caps
+   * added up past the 300 new orders per three hours of the account the
+   * whole installation shares. Check now, the sweeps and the renewal run
+   * now draw from one budget per window.
+   */
+  test("Check now, the sweeps and the renewal run together stay within the installation's budget, renewals first", async () => {
+    // Due for renewal: a full renewal run.
+    for (let i: number = 0; i < 10; i++) {
+      const renewing: DomainRow = makeDomain(`renew${i}.acme.com`, {
+        isCnameVerified: true,
+        isSslOrdered: true,
+        isSslProvisioned: true,
+      });
+      world.domains.push(renewing);
+      world.dnsLive.add(renewing.fullDomain);
+      world.served.add(renewing.fullDomain);
+      addCertificate(renewing.fullDomain, 2);
+    }
+
+    // Verified, waiting for the order sweep.
+    for (let i: number = 0; i < 10; i++) {
+      world.domains.push(
+        makeDomain(`waiting${i}.acme.com`, { isCnameVerified: true }),
+      );
+      world.dnsLive.add(`waiting${i}.acme.com`);
+    }
+
+    // Clicks on Check now, on domains whose record just went live.
+    const clicked: Array<DomainRow> = [];
+
+    for (let i: number = 0; i < 10; i++) {
+      const domain: DomainRow = makeDomain(`clicked${i}.acme.com`);
+      world.domains.push(domain);
+      world.dnsLive.add(domain.fullDomain);
+      clicked.push(domain);
+    }
+
+    // The new certificates come first in this window...
+    for (const domain of clicked) {
+      await clickCheckNow(domain);
+    }
+
+    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    const newCertificates: number = mockCaOrders.length;
+
+    expect(newCertificates).toBeLessThanOrEqual(
+      CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW,
+    );
+
+    // ...and the renewals still have their share.
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(mockCaOrders.length).toBeLessThanOrEqual(
+      CertificateOrderBudget.ORDERS_PER_WINDOW,
+    );
+    expect(mockCaOrders.length - newCertificates).toBeGreaterThanOrEqual(
+      CertificateOrderBudget.ORDERS_PER_WINDOW -
+        CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW,
+    );
+    expect(world.deletedCertificates).toEqual([]);
+  });
+
+  /*
+   * Finding (h): renewal still deleted a certificate whose CNAME check
+   * failed, weeks before it expired. And (review of this change) its CNAME
+   * check still marked the domain unverified, unordered and unprovisioned -
+   * "Waiting for DNS", Reissue SSL refused - while the certificate kept
+   * serving.
+   */
+  test("a DNS blip during a renewal keeps the certificate and the domain as they are, says why, and a later run renews it", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+      isSslProvisioned: true,
+    });
+    world.domains.push(domain);
+    world.served.add("status.acme.com");
+    addCertificate("status.acme.com", 10);
+
+    const before: string =
+      world.certificates.get("status.acme.com")!.certificate;
+
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(world.deletedCertificates).toEqual([]);
+    expect(world.certificates.get("status.acme.com")?.certificate).toBe(before);
+    expect(mockCaOrders).toEqual([]);
+
+    // The row is untouched...
+    expect(domain.isCnameVerified).toBe(true);
+    expect(domain.isSslOrdered).toBe(true);
+    expect(domain.isSslProvisioned).toBe(true);
+
+    // ...and the Status column learns why the renewal did not happen.
+    const certificates: Array<CustomDomainCertificate> =
+      await StatusPageDomainService.getCertificates([domain as never]);
+
+    expect(certificates[0]!.lastOrderError).toContain(
+      "CNAME record could not be verified",
+    );
+
+    world.dnsLive.add("status.acme.com");
+
+    // The name waits a little before the next try...
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(mockCaOrders).toEqual([]);
+
+    // ...and is renewed once its delay is up.
+    minutesLater(15);
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+    expect(world.deletedCertificates).toEqual([]);
+    expect(
+      (await StatusPageDomainService.getCertificates([domain as never]))[0]!
+        .lastOrderError,
+    ).toBeUndefined();
+  });
+
+  /*
+   * Review of this change: a Check now refused for the window's orders being
+   * used up kept the domain's window, so the next click within 15 minutes
+   * only said "Issuing" again although nothing had been ordered.
+   */
+  test("Check now that ordered nothing - the orders used up - leaves the window to the next click", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    // This window's new certificates are all spent.
+    world.cache.set(
+      `${CertificateOrderBudget.NAMESPACE}-window-${CertificateOrderBudget.getWindowIndex(new Date())}`,
+      String(CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW),
+    );
+
+    const refused: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(refused?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual([]);
+
+    // The next window: the next click orders straight away.
+    minutesLater(15);
+
+    const ordered: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(ordered?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
   });
 });

@@ -15,9 +15,11 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
+import CertificateOrder from "../Utils/Greenlock/CertificateOrder";
 
 export default class DashboardDomainAPI extends BaseAPI<
   DashboardDomain,
@@ -119,7 +121,18 @@ export default class DashboardDomainAPI extends BaseAPI<
       },
     );
 
-    // Provision SSL API
+    /*
+     * Order SSL: the Custom Domains page's Order Free SSL. It orders the way
+     * the sweeps do, through orderCertIfMissing - a domain that has its
+     * certificate already, or has one being ordered right now, is not
+     * ordered twice - and never for a domain on an uploaded certificate.
+     *
+     * One order on demand per domain per 15 minutes (the window Check now
+     * uses for status page domains): an order that fails leaves the domain
+     * unordered, so every click on a failing domain - or a script calling
+     * this in a loop - placed another order against the account the whole
+     * installation shares.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/order-ssl/:id`,
       UserMiddleware.getUserMiddleware,
@@ -172,6 +185,9 @@ export default class DashboardDomainAPI extends BaseAPI<
                 cnameVerificationToken: true,
                 isCnameVerified: true,
                 isSslProvisioned: true,
+                isCustomCertificate: true,
+                // Whose on-demand orders the order counts against.
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -212,6 +228,17 @@ export default class DashboardDomainAPI extends BaseAPI<
             );
           }
 
+          // The sweeps never order for one either: it serves the upload.
+          if (domain.isCustomCertificate) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This domain uses a certificate you uploaded, so there is no free SSL certificate to order for it.",
+              ),
+            );
+          }
+
           if (!domain.fullDomain) {
             return Response.sendErrorResponse(
               req,
@@ -225,7 +252,23 @@ export default class DashboardDomainAPI extends BaseAPI<
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
-          await DashboardDomainService.orderCert(domain);
+          try {
+            await CertificateOrder.orderOnDemand({
+              domain: domain.fullDomain,
+              order: () => {
+                return DashboardDomainService.orderCertIfMissing(domain, {
+                  onDemand: true,
+                });
+              },
+            });
+          } catch (err) {
+            // Too soon, or nothing ordered: the order's own failures go on.
+            if (err instanceof TooManyRequestsException) {
+              return Response.sendErrorResponse(req, res, err);
+            }
+
+            throw err;
+          }
 
           logger.debug(
             "SSL Provisioned for domain - " + domain.fullDomain,

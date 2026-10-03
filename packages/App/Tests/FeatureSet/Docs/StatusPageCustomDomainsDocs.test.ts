@@ -127,6 +127,25 @@ describe("Status page custom domains (English docs)", () => {
     expect(certificates).toContain("Let's Encrypt");
   });
 
+  /*
+   * A domain whose order keeps failing is no longer retried every 15
+   * minutes, a failure shows in the Status column, every order shares one
+   * budget with renewals first, and a DNS blip during a renewal keeps the
+   * certificate (custom-domain-ssl-hardening).
+   */
+  it("says how a failed order is shown and retried, and that renewals come first", () => {
+    const certificates: string = section(
+      "## SSL certificates",
+      "## Reissuing a certificate",
+    );
+
+    expect(certificates).not.toContain("tries again every 15 minutes");
+    expect(certificates).toContain("keeps trying on its own");
+    expect(certificates).toContain("Status column says so");
+    expect(certificates).toContain("renewals always come first");
+    expect(certificates).toContain("the certificate keeps serving");
+  });
+
   it("keeps Reissue SSL, and says when it appears", () => {
     const reissue: string = section(
       "## Reissuing a certificate",

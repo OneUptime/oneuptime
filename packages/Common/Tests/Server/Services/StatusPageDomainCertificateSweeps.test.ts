@@ -6,9 +6,11 @@ import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Domain from "../../../Server/Types/Domain";
 import GreenlockUtil from "../../../Server/Utils/Greenlock/Greenlock";
 import { CertificateOrderOutcome } from "../../../Server/Utils/Greenlock/CertificateOrder";
+import CertificateOrderFailures from "../../../Server/Utils/Greenlock/CertificateOrderFailures";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import { useInMemoryRedis } from "../Utils/Greenlock/InMemoryRedis";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -140,6 +142,13 @@ type Service = {
   fromSweep: Array<boolean>;
   // Domains recorded as ordered without an order.
   recordedAsOrdered: Array<string>;
+  // The writes that recorded them: one per run, for all of them.
+  recordingWrites: Array<{
+    query: Record<string, unknown>;
+    data: Record<string, unknown>;
+  }>;
+  // What each orderCertIfMissing call was handed.
+  orderOptions: Array<Record<string, unknown> | undefined>;
 };
 
 /*
@@ -156,6 +165,8 @@ function setUpService(data: {
     ordered: [],
     fromSweep: [],
     recordedAsOrdered: [],
+    recordingWrites: [],
+    orderOptions: [],
   };
 
   const byId: Map<string, DomainRow> = new Map<string, DomainRow>(
@@ -179,6 +190,7 @@ function setUpService(data: {
     ): Promise<CertificateOrderOutcome> => {
       service.ordered.push(domain.fullDomain);
       service.fromSweep.push(Boolean(options?.fromSweep));
+      service.orderOptions.push(options as Record<string, unknown>);
 
       if ((data.failOrdersFor || []).includes(domain.fullDomain)) {
         throw new Error(`CA refused the order for ${domain.fullDomain}`);
@@ -198,6 +210,29 @@ function setUpService(data: {
           byId.get(update.id.toString())?.fullDomain || "unknown",
         );
       }
+    }) as never);
+
+  // Domains with a certificate are recorded in one write, by id.
+  jest
+    .spyOn(StatusPageDomainService, "updateBy")
+    .mockImplementation((async (update: {
+      query: Record<string, unknown>;
+      data: { isSslOrdered?: boolean };
+    }): Promise<number> => {
+      service.recordingWrites.push({
+        query: update.query,
+        data: update.data as Record<string, unknown>,
+      });
+
+      const ids: Array<string> = inList(update.query["_id"]);
+
+      if (update.data.isSslOrdered === true) {
+        for (const id of ids) {
+          service.recordedAsOrdered.push(byId.get(id)?.fullDomain || "unknown");
+        }
+      }
+
+      return ids.length;
     }) as never);
 
   return service;
@@ -452,6 +487,88 @@ describe("StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet", () =
       "broken.example.com",
       "ok.example.com",
     ]);
+  });
+
+  /*
+   * Review finding 10: one UPDATE per domain, in a loop of its own. Now one
+   * write records them all - and only on domains still verified and not yet
+   * ordered, so a CNAME check that failed meanwhile is not overwritten with
+   * "ordered" (review finding 8).
+   */
+  test("records every domain that has a certificate in one write, only while it is still verified", async () => {
+    atRun(0);
+    withCertificates({ "a.example.com": 40, "b.example.com": 50 });
+    const rows: Array<DomainRow> = [
+      makeDomain("a.example.com", { isSslOrdered: false }),
+      makeDomain("b.example.com", { isSslOrdered: false }),
+      makeDomain("c.example.com", { isSslOrdered: false }),
+    ];
+    const service: Service = setUpService({ rows });
+
+    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    expect(service.recordingWrites).toHaveLength(1);
+    expect(service.recordingWrites[0]!.query).toEqual({
+      _id: { inList: [rows[0]!._id, rows[1]!._id] },
+      isCnameVerified: true,
+      isSslOrdered: false,
+    });
+    expect(service.recordingWrites[0]!.data).toEqual({ isSslOrdered: true });
+    expect(service.ordered).toEqual(["c.example.com"]);
+  });
+
+  test("with nothing to record, it writes nothing", async () => {
+    atRun(0);
+    withCertificates({});
+    const service: Service = setUpService({
+      rows: [makeDomain("a.example.com")],
+    });
+
+    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    expect(service.recordingWrites).toEqual([]);
+  });
+
+  /*
+   * A domain whose order keeps failing - a CAA record that leaves Let's
+   * Encrypt out - used to be ordered every run it was picked, each order
+   * against the account the whole installation shares. Now it waits longer
+   * after each failure, and its slot goes to a domain that can be ordered.
+   */
+  test("a domain waiting after a failed order is not ordered this run, and its slot goes to another", async () => {
+    const now: Date = atRun(0);
+    withCertificates({});
+    useInMemoryRedis();
+
+    await CertificateOrderFailures.record({
+      domain: "failing.example.com",
+      error: "Unable to order certificate for failing.example.com.",
+      now: now,
+    });
+
+    const service: Service = setUpService({
+      rows: [
+        makeDomain("failing.example.com"),
+        ...manyDomains("w", StatusPageDomainServiceClass.ORDER_MAX_PER_RUN),
+      ],
+    });
+
+    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    expect(service.ordered).toHaveLength(
+      StatusPageDomainServiceClass.ORDER_MAX_PER_RUN,
+    );
+    expect(service.ordered).not.toContain("failing.example.com");
+
+    // Its delay is up 15 minutes later.
+    atRun(1);
+    const later: Service = setUpService({
+      rows: [makeDomain("failing.example.com")],
+    });
+
+    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    expect(later.ordered).toEqual(["failing.example.com"]);
   });
 });
 
@@ -844,6 +961,8 @@ describe("StatusPageDomainService.verifyCnameWhoseCnameisNotVerified", () => {
     findByCalls: Array<FindByCall>;
     checked: Array<string>;
     ordered: Array<string>;
+    // What each orderCertIfMissing call was handed.
+    orderOptions: Array<Record<string, unknown> | undefined>;
     recordedAsOrdered: Array<string>;
   };
 
@@ -860,6 +979,7 @@ describe("StatusPageDomainService.verifyCnameWhoseCnameisNotVerified", () => {
       findByCalls: [],
       checked: [],
       ordered: [],
+      orderOptions: [],
       recordedAsOrdered: [],
     };
 
@@ -892,8 +1012,10 @@ describe("StatusPageDomainService.verifyCnameWhoseCnameisNotVerified", () => {
       .spyOn(StatusPageDomainService, "orderCertIfMissing")
       .mockImplementation((async (
         domain: DomainRow,
+        options?: Record<string, unknown>,
       ): Promise<CertificateOrderOutcome> => {
         verify.ordered.push(domain.fullDomain);
+        verify.orderOptions.push(options);
         return CertificateOrderOutcome.Ordered;
       }) as never);
 
@@ -908,6 +1030,25 @@ describe("StatusPageDomainService.verifyCnameWhoseCnameisNotVerified", () => {
             byId.get(update.id.toString())?.fullDomain || "unknown",
           );
         }
+      }) as never);
+
+    jest
+      .spyOn(StatusPageDomainService, "updateBy")
+      .mockImplementation((async (update: {
+        query: Record<string, unknown>;
+        data: { isSslOrdered?: boolean };
+      }): Promise<number> => {
+        const ids: Array<string> = inList(update.query["_id"]);
+
+        if (update.data.isSslOrdered === true) {
+          for (const id of ids) {
+            verify.recordedAsOrdered.push(
+              byId.get(id)?.fullDomain || "unknown",
+            );
+          }
+        }
+
+        return ids.length;
       }) as never);
 
     return verify;
@@ -996,6 +1137,28 @@ describe("StatusPageDomainService.verifyCnameWhoseCnameisNotVerified", () => {
 
     expect(verify.ordered).toEqual([]);
     expect(verify.recordedAsOrdered).toEqual(["back-again.example.com"]);
+  });
+
+  /*
+   * Regression (review finding 3): the sweep checks the record, then the
+   * order checked it again - one more chance for a DNS blip to refuse an
+   * order the sweep had just allowed.
+   */
+  test("the orders of the domains it has just verified do not check the CNAME again", async () => {
+    atRun(0);
+    withCertificates({});
+    const verify: Verify = setUpVerify({
+      rows: [makeDomain("new.example.com")],
+      verified: ["new.example.com"],
+    });
+
+    await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
+
+    expect(verify.ordered).toEqual(["new.example.com"]);
+    expect(verify.orderOptions[0]).toEqual(
+      expect.objectContaining({ fromSweep: true, cnameVerifiedJustNow: true }),
+    );
+    expect(verify.checked).toEqual(["new.example.com"]);
   });
 
   test("orders at most ORDER_MAX_PER_RUN of the domains verified in one run", async () => {
