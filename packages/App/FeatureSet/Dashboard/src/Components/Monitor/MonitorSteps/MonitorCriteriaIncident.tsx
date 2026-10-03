@@ -24,6 +24,8 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   incident: CriteriaIncident;
@@ -38,6 +40,7 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mt-4 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
       <Detail<CriteriaIncident>
@@ -172,7 +175,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 (item["labelIds"] as Array<ObjectID>) || [];
               if (labelIds.length === 0) {
                 return (
-                  <span className="text-gray-400">No labels assigned</span>
+                  <span className="text-gray-400">
+                    {translator.translateText("No labels assigned")}
+                  </span>
                 );
               }
               const labels: Array<Label> = props.labelOptions.filter(
@@ -201,7 +206,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               if (incidentMemberRoles.length === 0) {
                 return (
                   <span className="text-gray-400">
-                    No incident roles assigned
+                    {translator.translateText("No incident roles assigned")}
                   </span>
                 );
               }
@@ -234,7 +239,8 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                       return (
                         <div key={roleId}>
                           <div className="font-medium text-gray-700 mb-1">
-                            {role?.name || "Unknown Role"}
+                            {role?.name ||
+                              translator.translateText("Unknown Role")}
                           </div>
                           <UsersElement users={users} />
                         </div>

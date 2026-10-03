@@ -5,6 +5,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { MonitorCriteriaSeedIds } from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Resolves the four project-scoped ids a monitor's default criteria are seeded
@@ -97,19 +98,25 @@ export default class PingMonitorSeedIds {
 
     if (!onlineMonitorStatus?.id || !offlineMonitorStatus?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.",
+        translateTemplate(
+          "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.",
+        ),
       );
     }
 
     if (!incidentSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then try again.",
+        translateTemplate(
+          "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then try again.",
+        ),
       );
     }
 
     if (!alertSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then try again.",
+        translateTemplate(
+          "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then try again.",
+        ),
       );
     }
 

@@ -1549,7 +1549,7 @@ function verificationStep(context: GuideContext): SetupGuideStep {
 
   /*
    * The header's liveness in the Overview pill's words
-   * (MESSAGE_QUEUE_LIVENESS_DESCRIPTION) where the broker's metrics reach
+   * (getMessageQueueLivenessDescription) where the broker's metrics reach
    * this queue. Where they never do — a system none of whose metrics name a
    * queue, or an Azure queue without a namespace — no broker metric sights
    * it, so the sentence names what does (spans, and messaging client

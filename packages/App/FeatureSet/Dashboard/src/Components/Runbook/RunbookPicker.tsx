@@ -17,6 +17,8 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -37,6 +39,7 @@ export interface ComponentProps {
 const RunbookPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [startingRunbookId, setStartingRunbookId] = useState<string | null>(
     null,
@@ -162,7 +165,7 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
             </span>
             <input
               type="text"
-              placeholder="Search runbooks..."
+              placeholder={translator.translateText("Search runbooks...")}
               value={pickerSearch}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setPickerSearch(e.target.value);
@@ -185,14 +188,18 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="text-sm font-medium text-gray-900">
-                {availableRunbooks.length === 0
-                  ? "No runbooks yet"
-                  : "No matches"}
+                {translator.translateText(
+                  availableRunbooks.length === 0
+                    ? "No runbooks yet"
+                    : "No matches",
+                )}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {availableRunbooks.length === 0
-                  ? "Create a runbook first, then come back to attach one."
-                  : "Try a different search term."}
+                {translator.translateText(
+                  availableRunbooks.length === 0
+                    ? "Create a runbook first, then come back to attach one."
+                    : "Try a different search term.",
+                )}
               </p>
             </div>
           ) : (
@@ -211,7 +218,8 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
                             className="text-indigo-500 shrink-0"
                           />
                           <span className="text-sm font-semibold text-gray-900 truncate">
-                            {rb.name || "Untitled runbook"}
+                            {rb.name ||
+                              translator.translateText("Untitled runbook")}
                           </span>
                         </div>
                         {rb.description && (

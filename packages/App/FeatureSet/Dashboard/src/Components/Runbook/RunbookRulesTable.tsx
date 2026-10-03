@@ -13,6 +13,7 @@ import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookRuleTriggerEntity from "Common/Types/Runbook/RunbookRuleTriggerEntity";
 import { Green, Red } from "Common/Types/BrandColors";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -37,6 +38,65 @@ export function getRunbookRuleCriteriaSubject(
     default:
       return "Incident";
   }
+}
+
+/*
+ * What the table and its conditions say for each kind of rule, as whole
+ * English phrases the shared table translates: "Incident Labels" is one
+ * phrase, never "Incident" + " Labels", and the plural of what a rule
+ * matches is a word of its own in every language.
+ */
+interface RunbookRuleCopy {
+  cardDescription: string;
+  helpDescription: string;
+  labelsTitle: string;
+  titleTitle: string;
+  descriptionTitle: string;
+}
+
+const RUNBOOK_RULE_COPY: Record<RunbookRuleTriggerEntity, RunbookRuleCopy> = {
+  [RunbookRuleTriggerEntity.Incident]: {
+    cardDescription: translationKey(
+      "Auto-attach runbooks when matching incidents are created.",
+    ),
+    helpDescription: translationKey(
+      "Match incidents and start runbooks automatically.",
+    ),
+    labelsTitle: translationKey("Incident Labels"),
+    titleTitle: translationKey("Incident Title"),
+    descriptionTitle: translationKey("Incident Description"),
+  },
+  [RunbookRuleTriggerEntity.Alert]: {
+    cardDescription: translationKey(
+      "Auto-attach runbooks when matching alerts are created.",
+    ),
+    helpDescription: translationKey(
+      "Match alerts and start runbooks automatically.",
+    ),
+    labelsTitle: translationKey("Alert Labels"),
+    titleTitle: translationKey("Alert Title"),
+    descriptionTitle: translationKey("Alert Description"),
+  },
+  [RunbookRuleTriggerEntity.ScheduledMaintenance]: {
+    cardDescription: translationKey(
+      "Auto-attach runbooks when matching scheduled maintenance events are created.",
+    ),
+    helpDescription: translationKey(
+      "Match scheduled maintenance events and start runbooks automatically.",
+    ),
+    labelsTitle: translationKey("Event Labels"),
+    titleTitle: translationKey("Event Title"),
+    descriptionTitle: translationKey("Event Description"),
+  },
+};
+
+export function getRunbookRuleCopy(
+  triggerEntityType: RunbookRuleTriggerEntity,
+): RunbookRuleCopy {
+  return (
+    RUNBOOK_RULE_COPY[triggerEntityType] ||
+    RUNBOOK_RULE_COPY[RunbookRuleTriggerEntity.Incident]
+  );
 }
 
 /*
@@ -91,9 +151,7 @@ When a rule matches, every selected runbook starts its own execution attached to
 const RunbookRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const criteriaSubject: string = getRunbookRuleCriteriaSubject(
-    props.triggerEntityType,
-  );
+  const copy: RunbookRuleCopy = getRunbookRuleCopy(props.triggerEntityType);
 
   return (
     <ModelTable<RunbookRule>
@@ -112,11 +170,11 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
       }}
       cardProps={{
         title: "Runbook Rules",
-        description: `Auto-attach runbooks when matching ${props.entityLabel}s are created.`,
+        description: copy.cardDescription,
       }}
       helpContent={{
         title: "How Runbook Rules Work",
-        description: `Match ${props.entityLabel}s and start runbooks automatically.`,
+        description: copy.helpDescription,
         markdown: getRunbookRuleDocumentation({
           triggerEntityType: props.triggerEntityType,
           entityLabel: props.entityLabel,
@@ -245,7 +303,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
           : []),
         {
           field: { labels: true },
-          title: `${criteriaSubject} Labels`,
+          title: copy.labelsTitle,
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -271,7 +329,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { titlePattern: true },
-          title: `${criteriaSubject} Title`,
+          title: copy.titleTitle,
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
@@ -279,7 +337,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: { descriptionPattern: true },
-          title: `${criteriaSubject} Description`,
+          title: copy.descriptionTitle,
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

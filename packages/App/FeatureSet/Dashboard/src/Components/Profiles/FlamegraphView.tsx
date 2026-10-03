@@ -12,6 +12,12 @@ import React, {
 import ProfileUtil, { ModuleCategory } from "../../Utils/ProfileUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /**
  * Normalised flame graph node. Both the single-profile loader and the
@@ -146,6 +152,7 @@ const TOOLTIP_HEIGHT: number = 140;
 const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
   props: FlamegraphViewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [zoomStack, setZoomStack] = useState<Array<FlamegraphNode>>([]);
   const [hoveredNode, setHoveredNode] = useState<FlamegraphNode | null>(null);
   const [internalSearch, setInternalSearch] = useState<string>("");
@@ -626,10 +633,13 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
           <Icon icon={IconProp.ChartBar} className="h-5 w-5 text-gray-400" />
         </div>
-        <p className="text-sm font-medium text-gray-900 mb-1">No data yet</p>
+        <p className="text-sm font-medium text-gray-900 mb-1">
+          {translator.translateText("No data yet")}
+        </p>
         <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          No samples were captured in this window. Try expanding the time range,
-          or check that your profiler agent is running.
+          {translator.translateText(
+            "No samples were captured in this window. Try expanding the time range, or check that your profiler agent is running.",
+          )}
         </p>
       </div>
     );
@@ -658,7 +668,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 id={searchInputId}
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search functions or files…   ( / )"
+                placeholder={translator.translateText(
+                  "Search functions or files…   ( / )",
+                )}
                 className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 value={search}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -670,11 +682,13 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             <div
               className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 p-0.5"
               role="group"
-              aria-label="Search display mode"
+              aria-label={translator.translateText("Search display mode")}
             >
               <button
                 type="button"
-                title="Dim frames that do not match the search"
+                title={translator.translateText(
+                  "Dim frames that do not match the search",
+                )}
                 onClick={() => {
                   setSearchMode("highlight");
                 }}
@@ -684,11 +698,13 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Highlight
+                {translator.translateText("Highlight")}
               </button>
               <button
                 type="button"
-                title="Show only stacks that pass through a matching frame"
+                title={translator.translateText(
+                  "Show only stacks that pass through a matching frame",
+                )}
                 onClick={() => {
                   setSearchMode("stacks");
                 }}
@@ -698,7 +714,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Stacks only
+                {translator.translateText("Stacks only")}
               </button>
             </div>
 
@@ -711,7 +727,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   setOnlyOwnCode(e.target.checked);
                 }}
               />
-              Only my code
+              {translator.translateText("Only my code")}
             </label>
 
             {zoomStack.length > 0 && (
@@ -720,29 +736,37 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   className="px-2.5 py-1.5 text-xs font-medium bg-white hover:bg-gray-50 text-gray-700 rounded-md border border-gray-300"
                   onClick={handleZoomOut}
                 >
-                  ← Back
+                  {translator.translateText("← Back")}
                 </button>
                 <button
                   className="px-2.5 py-1.5 text-xs font-medium bg-white hover:bg-gray-50 text-gray-700 rounded-md border border-gray-300"
                   onClick={handleResetZoom}
                 >
-                  Reset zoom
+                  {translator.translateText("Reset zoom")}
                 </button>
               </>
             )}
 
             <div className="ml-auto text-xs text-gray-500">
-              <span className="font-medium text-gray-700">Total: </span>
+              <span className="font-medium text-gray-700">
+                {translator.translateText("Total:")}{" "}
+              </span>
               {totalFormatted}
               {search.trim() && (
                 <span className="ml-3">
-                  <span className="font-medium text-gray-700">Matched: </span>
+                  <span className="font-medium text-gray-700">
+                    {translator.translateText("Matched:")}{" "}
+                  </span>
                   {ProfileUtil.formatPercent(searchPct)}
                   <span className="ml-1.5 text-gray-400">
                     ·{" "}
-                    {matchedFrameCount === 1
-                      ? "1 frame matches"
-                      : `${matchedFrameCount.toLocaleString()} frames match`}
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} frame matches",
+                        other: "{{count}} frames match",
+                      },
+                      matchedFrameCount,
+                    )}
                   </span>
                 </span>
               )}
@@ -750,7 +774,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           </div>
 
           <div className="mb-2 flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
-            <span className="font-medium text-gray-700">Legend:</span>
+            <span className="font-medium text-gray-700">
+              {translator.translateText("Legend:")}
+            </span>
             {(
               [
                 { key: "own" as ModuleCategory, label: "Your code" },
@@ -766,24 +792,35 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               return (
                 <span key={item.key} className="flex items-center gap-1.5">
                   <span className={`inline-block w-3 h-3 rounded-sm ${s.bg}`} />
-                  <span>{item.label}</span>
+                  <span>{translator.translateText(item.label)}</span>
                 </span>
               );
             })}
             <span className="ml-auto text-gray-400">
-              Click a frame to zoom · Esc to reset
+              {translator.translateText("Click a frame to zoom · Esc to reset")}
             </span>
           </div>
 
           {zoomStack.length > 0 && (
             <div className="mb-2 text-xs text-gray-500 flex items-center gap-1.5">
               <Icon icon={IconProp.Filter} className="h-3 w-3" />
-              Zoomed into{" "}
-              <span className="font-mono text-gray-800">{activeRoot.name}</span>
+              <TranslatedSentence
+                template="Zoomed into {{name}}"
+                slots={{
+                  name: (
+                    <span className="font-mono text-gray-800">
+                      {activeRoot.name}
+                    </span>
+                  ),
+                }}
+              />
               {props.onFocusFunction && activeRoot.name !== "(root)" && (
                 <button
                   type="button"
-                  title={`Show callers and callees of ${activeRoot.name}`}
+                  title={translator.translateTemplate(
+                    "Show callers and callees of {{name}}",
+                    { name: activeRoot.name },
+                  )}
                   className="ml-1 inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   onClick={() => {
                     props.onFocusFunction?.({
@@ -793,7 +830,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   }}
                 >
                   <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
-                  Callers &amp; callees
+                  {translator.translateText("Callers & callees")}
                 </button>
               )}
             </div>
@@ -813,14 +850,14 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             onClick={handleZoomOut}
             className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
           >
-            ← Back
+            {translator.translateText("← Back")}
           </button>
           <button
             type="button"
             onClick={handleResetZoom}
             className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
           >
-            Reset zoom
+            {translator.translateText("Reset zoom")}
           </button>
           <span className="font-mono text-gray-700 truncate">
             {activeRoot.name}
@@ -835,8 +872,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500"
           />
           <span>
-            Data is truncated to the largest stacks — the sample limit was hit.
-            Percentages are of the sampled subset, not the full window.
+            {translator.translateText(
+              "Data is truncated to the largest stacks — the sample limit was hit. Percentages are of the sampled subset, not the full window.",
+            )}
           </span>
         </div>
       )}
@@ -857,7 +895,10 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           activeRoot.name !== "(root)" && (
             <button
               type="button"
-              title={`Show callers and callees of ${activeRoot.name}`}
+              title={translator.translateTemplate(
+                "Show callers and callees of {{name}}",
+                { name: activeRoot.name },
+              )}
               className="absolute right-1.5 top-[2px] z-10 inline-flex h-[18px] w-[18px] items-center justify-center rounded bg-white/90 text-gray-600 ring-1 ring-gray-300 hover:bg-white hover:text-gray-900"
               onClick={() => {
                 props.onFocusFunction?.({
@@ -889,7 +930,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div>
               <div className="text-gray-400 text-[10px] uppercase tracking-wider">
-                self
+                {translator.translateText("self")}
               </div>
               <div className="font-mono">
                 {ProfileUtil.formatProfileValue(
@@ -898,12 +939,14 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 )}
               </div>
               <div className="text-gray-400 text-[10px]">
-                {ProfileUtil.formatPercent(hoveredSelfPct)} of visible
+                {translator.translateTemplate("{{percent}} of visible", {
+                  percent: ProfileUtil.formatPercent(hoveredSelfPct),
+                })}
               </div>
             </div>
             <div>
               <div className="text-gray-400 text-[10px] uppercase tracking-wider">
-                total
+                {translator.translateText("total")}
               </div>
               <div className="font-mono">
                 {ProfileUtil.formatProfileValue(
@@ -912,13 +955,25 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                 )}
               </div>
               <div className="text-gray-400 text-[10px]">
-                {ProfileUtil.formatPercent(hoveredTotalPct)} of visible
+                {translator.translateTemplate("{{percent}} of visible", {
+                  percent: ProfileUtil.formatPercent(hoveredTotalPct),
+                })}
               </div>
             </div>
           </div>
           <div className="mt-2 text-[10px] text-gray-400">
-            {ProfileUtil.getModuleCategoryLabel(hoveredNode.category)}
-            {hoveredNode.children.length > 0 ? " · click to zoom in" : ""}
+            {hoveredNode.children.length > 0
+              ? translator.translateTemplate(
+                  "{{category}} · click to zoom in",
+                  {
+                    category: translatableTerm(
+                      ProfileUtil.getModuleCategoryLabel(hoveredNode.category),
+                    ),
+                  },
+                )
+              : translator.translateText(
+                  ProfileUtil.getModuleCategoryLabel(hoveredNode.category),
+                )}
           </div>
         </div>
       )}

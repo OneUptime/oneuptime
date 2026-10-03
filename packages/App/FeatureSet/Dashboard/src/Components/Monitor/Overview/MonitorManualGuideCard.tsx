@@ -4,6 +4,8 @@ import { getMonitorPageRoute } from "./MonitorOverviewLinks";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -16,6 +18,7 @@ export interface ComponentProps {
 const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Card
       title="Manual monitor"
@@ -24,7 +27,11 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
     >
       <ul className="space-y-2 text-sm text-gray-700">
         <li>
-          <p>Change the status from the status timeline.</p>
+          <p>
+            {translator.translateText(
+              "Change the status from the status timeline.",
+            )}
+          </p>
           <SloOverviewActionLink
             variant="text"
             title="Open status timeline"
@@ -35,7 +42,11 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
           />
         </li>
         <li>
-          <p>Incidents and scheduled maintenance can change it too.</p>
+          <p>
+            {translator.translateText(
+              "Incidents and scheduled maintenance can change it too.",
+            )}
+          </p>
           <SloOverviewActionLink
             variant="text"
             title="View incidents"
@@ -46,7 +57,11 @@ const MonitorManualGuideCard: FunctionComponent<ComponentProps> = (
           />
         </li>
         <li>
-          <p>Uptime counts time spent in operational statuses.</p>
+          <p>
+            {translator.translateText(
+              "Uptime counts time spent in operational statuses.",
+            )}
+          </p>
         </li>
       </ul>
     </Card>

@@ -14,6 +14,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -40,6 +42,7 @@ export interface ComponentProps {
 const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [attachment, setAttachment] = useState<DeviceAttachment | undefined>(
     undefined,
   );
@@ -85,7 +88,8 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   const getSwitchElement: GetSwitchElementFunction = (
     found: DeviceAttachment,
   ): ReactElement => {
-    const switchName: string = found.switchName || "Unnamed switch";
+    const switchName: string =
+      found.switchName || translator.translateTemplate("Unnamed switch");
 
     if (!found.switchDeviceId) {
       return <span className="text-gray-900">{switchName}</span>;
@@ -118,7 +122,9 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
     }
 
     if (found.interfaceIndex !== undefined && found.interfaceIndex !== null) {
-      return `ifIndex ${found.interfaceIndex}`;
+      return translator.translateTemplate("ifIndex {{index}}", {
+        index: found.interfaceIndex,
+      });
     }
 
     return "—";
@@ -130,16 +136,18 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
     return (
       <div data-testid="device-attachment-empty" className="py-6 text-center">
         <p className="text-sm text-gray-500">
-          {isLookupPossible
-            ? "No switch at this site has reported this device yet. The port appears once a switch with Collect Connected Endpoints turned on sees this device's MAC address in its forwarding table — or, for a device known by its IP address, once a router at the same site that collects endpoints has that address in its ARP table."
-            : "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it."}
+          {translator.translateText(
+            isLookupPossible
+              ? "No switch at this site has reported this device yet. The port appears once a switch with Collect Connected Endpoints turned on sees this device's MAC address in its forwarding table — or, for a device known by its IP address, once a router at the same site that collects endpoints has that address in its ARP table."
+              : "There is nothing to look this device up by. Give it a MAC address, or set its hostname to an IP address so a router at its site that collects endpoints can learn the MAC from its ARP table — then the switch port appears here once a switch with Collect Connected Endpoints turned on sees it.",
+          )}
         </p>
         <div className="mt-3">
           <AppLink
             to={settingsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Edit this device in Settings →
+            {translator.translateText("Edit this device in Settings →") || ""}
           </AppLink>
         </div>
       </div>
@@ -166,13 +174,13 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Switch
+              {translator.translateText("Switch")}
             </dt>
             <dd className="mt-0.5">{getSwitchElement(attachment)}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Port
+              {translator.translateText("Port")}
             </dt>
             <dd
               className="mt-0.5 text-gray-900"
@@ -183,7 +191,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              VLAN
+              {translator.translateText("VLAN")}
             </dt>
             <dd
               className="mt-0.5 text-gray-900"
@@ -196,7 +204,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              MAC Address
+              {translator.translateText("MAC Address")}
             </dt>
             <dd className="mt-0.5 font-mono text-gray-900">
               {attachment.macAddress}
@@ -204,12 +212,18 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
           </div>
         </dl>
         <p className="mt-4 text-xs text-gray-500">
-          {attachment.matchedBy === "mac"
-            ? "Matched by MAC address"
-            : "Matched by IP address"}
           {attachment.lastSeenAt
-            ? ` · Last seen ${OneUptimeDate.fromNow(attachment.lastSeenAt)}`
-            : ""}
+            ? translator.translateTemplate(
+                attachment.matchedBy === "mac"
+                  ? "Matched by MAC address · Last seen {{time}}"
+                  : "Matched by IP address · Last seen {{time}}",
+                { time: OneUptimeDate.fromNow(attachment.lastSeenAt) },
+              )
+            : translator.translateText(
+                attachment.matchedBy === "mac"
+                  ? "Matched by MAC address"
+                  : "Matched by IP address",
+              )}
         </p>
       </div>
     );

@@ -2,6 +2,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { subscribeToArchiveStateChanges } from "../Archive/ArchiveStateEvents";
 import React, {
@@ -36,15 +37,21 @@ export const getDisabledMessage: (monitor: Monitor | null) => string = (
   }
 
   if (monitor.disableActiveMonitoring) {
-    return "We are not monitoring this monitor since it is disabled. To enable active monitoring, please go to Settings.";
+    return translationKey(
+      "We are not monitoring this monitor since it is disabled. To enable active monitoring, please go to Settings.",
+    );
   }
 
   if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
-    return "We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.";
+    return translationKey(
+      "We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.",
+    );
   }
 
   if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
-    return "We are not monitoring this monitor since it is disabled because of an ongoing scheduled maintenance event. To enable active monitoring, please resolve the scheduled maintenance event.";
+    return translationKey(
+      "We are not monitoring this monitor since it is disabled because of an ongoing scheduled maintenance event. To enable active monitoring, please resolve the scheduled maintenance event.",
+    );
   }
 
   return "";

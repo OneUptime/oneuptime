@@ -67,11 +67,11 @@ import {
   getMessageQueueServiceIds,
 } from "../../../Components/MessageQueue/MessageQueueTelemetryQueries";
 import {
-  MESSAGE_QUEUE_LIVENESS_DESCRIPTION,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
   formatMessageQueueErrorRate,
+  getMessageQueueLivenessDescription,
   getMessageQueueLivenessLabel,
   getMessageQueueLivenessStatus,
   getMessageQueueLivenessTone,
@@ -672,7 +672,7 @@ const MessageQueueOverview: FunctionComponent<
         }
         statusLabel={getMessageQueueLivenessLabel(liveness)}
         statusTone={getMessageQueueLivenessTone(liveness)}
-        statusDescription={MESSAGE_QUEUE_LIVENESS_DESCRIPTION}
+        statusDescription={getMessageQueueLivenessDescription()}
         lastSeenAt={q.lastSeenAt}
         description={q.description as string}
         chips={chips}

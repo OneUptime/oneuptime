@@ -37,6 +37,10 @@ const MODULE_FILES: Array<string> = fs
 const DASHBOARD_SRC: string = path.join(DESCRIPTIONS_DIR, "..", "..");
 const SOURCE_FILE_PATTERN: RegExp = /\.(ts|tsx)$/;
 
+// The one Common/UI import a description module may have.
+const TRANSLATION_KEY_IMPORT: string =
+  'import { translationKey } from "Common/UI/Utils/TranslateTemplate";';
+
 function listSources(directory: string): Array<string> {
   const files: Array<string> = [];
 
@@ -106,10 +110,15 @@ describe("metric description modules", () => {
 
       /*
        * The App suite imports these from a node test; anything that reaches
-       * react or Common/UI/Config would break it.
+       * react or Common/UI/Config would break it. The one Common/UI module
+       * they may read is the translation-key marker: it imports nothing but
+       * i18next, and it lets the texts be found and translated where they
+       * are shown.
        */
       expect(source).not.toMatch(/from\s+["']react["']/);
-      expect(source).not.toMatch(/Common\/UI\//);
+      expect(source.replace(TRANSLATION_KEY_IMPORT, "")).not.toMatch(
+        /Common\/UI\//,
+      );
       expect(source).not.toMatch(/\.tsx["']/);
     },
   );

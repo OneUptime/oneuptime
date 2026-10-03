@@ -56,6 +56,7 @@ import {
   MONITOR_OVERVIEW_STATUS_ROW_SELECT,
 } from "./MonitorOverviewSelect";
 import { MonitorOverviewProbeData } from "./MonitorOverviewTypes";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The shortest monitoring interval is one minute, so a one-minute poll keeps
@@ -114,8 +115,9 @@ export const MONITOR_OVERVIEW_EVALUATION_RETRY_POLLS: number = 3;
 export const MONITOR_OVERVIEW_SLOW_FETCH_MS: number =
   MONITOR_OVERVIEW_REFRESH_INTERVAL_MS;
 
-export const MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE: string =
-  "The server has not answered in over a minute.";
+export const MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE: string = translationKey(
+  "The server has not answered in over a minute.",
+);
 
 /*
  * A fetch still out after this long is presumed lost, and the next tick
@@ -128,12 +130,13 @@ export const MONITOR_OVERVIEW_SLOW_FETCH_MESSAGE: string =
  */
 export const MONITOR_OVERVIEW_STALLED_FETCH_MS: number = 10 * 60 * 1000;
 
-export const MONITOR_OVERVIEW_NOT_FOUND_MESSAGE: string =
-  "This monitor could not be found. It may have been deleted, or you may not have permission to view it.";
+export const MONITOR_OVERVIEW_NOT_FOUND_MESSAGE: string = translationKey(
+  "This monitor could not be found. It may have been deleted, or you may not have permission to view it.",
+);
 
 // Probe rows were read, but never with their results.
 export const MONITOR_OVERVIEW_PROBE_RESULTS_UNREADABLE_MESSAGE: string =
-  "The probe results could not be read.";
+  translationKey("The probe results could not be read.");
 
 // Why a supplementary read was not sent. The cards word their own copy.
 export const MONITOR_OVERVIEW_ACCESS_REASONS: {
@@ -141,9 +144,13 @@ export const MONITOR_OVERVIEW_ACCESS_REASONS: {
   statusRows: string;
   evaluation: string;
 } = {
-  probes: "You need permission to read this monitor's probes.",
-  statusRows: "You need permission to read this monitor's status timeline.",
-  evaluation: "You need permission to read this monitor's logs.",
+  probes: translationKey("You need permission to read this monitor's probes."),
+  statusRows: translationKey(
+    "You need permission to read this monitor's status timeline.",
+  ),
+  evaluation: translationKey(
+    "You need permission to read this monitor's logs.",
+  ),
 };
 
 export type MonitorOverviewRefreshReason =

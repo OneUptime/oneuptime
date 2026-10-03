@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const DISCOVERY_REFRESH_INTERVAL_MS: number = 10000;
 export const DISCOVERY_REFRESH_TIMEOUT_MS: number = 15000;
@@ -180,7 +181,9 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
           refreshableRows.some((scan: NetworkDeviceDiscoveryScan): boolean => {
             return !updates.has(scan._id!);
           })
-            ? "Some scans are no longer available. Refresh the list to see the latest scans."
+            ? translationKey(
+                "Some scans are no longer available. Refresh the list to see the latest scans.",
+              )
             : "",
         );
       } catch (err) {

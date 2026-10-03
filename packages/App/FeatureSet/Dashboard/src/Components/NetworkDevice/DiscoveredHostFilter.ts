@@ -4,6 +4,7 @@ import {
   isPingOnlyDiscoveredHost as isPingOnlyDiscoveredHostForImport,
 } from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Normalisation moved to Common so the server-side auto-import rule engine
@@ -253,14 +254,14 @@ export function getDiscoveredHostFilterEmptyMessage(
   filter: DiscoveredHostFilter,
 ): string {
   if (filter === DiscoveredHostFilter.Snmp) {
-    return "No host in this scan answered SNMP.";
+    return translateTemplate("No host in this scan answered SNMP.");
   }
 
   if (filter === DiscoveredHostFilter.NoSnmp) {
-    return "Every host in this scan answered SNMP.";
+    return translateTemplate("Every host in this scan answered SNMP.");
   }
 
-  return "This scan did not find any responding hosts.";
+  return translateTemplate("This scan did not find any responding hosts.");
 }
 
 /**

@@ -27,6 +27,7 @@ import {
   MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The App-side half of the recommendation registry.
@@ -282,11 +283,15 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         ) !== null;
 
       if (isEnabled && hasRecorded && !hasBudget) {
-        return "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.";
+        return translateTemplate(
+          "Of the session replay storage budget alerts, only the two for the project's shared daily limit are offered: this application has no monthly budget. Set a Monthly budget (GB) on its Replay Policy page and the monthly-budget alerts appear here too.",
+        );
       }
 
       if (context.sessionReplayEnabled === false && hasRecorded) {
-        return "Session replay is off for this application, so its storage budget alerts are not offered. Turn it back on under Replay Policy and they appear here.";
+        return translateTemplate(
+          "Session replay is off for this application, so its storage budget alerts are not offered. Turn it back on under Replay Policy and they appear here.",
+        );
       }
 
       /*
@@ -294,11 +299,15 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
        * exists once the application has recorded.
        */
       if (context.sessionReplayEnabled === false && hasBudget) {
-        return "Session replay is off for this application, so its storage budget alerts are not offered. Turn it on under Replay Policy and they appear here once it records its first replay.";
+        return translateTemplate(
+          "Session replay is off for this application, so its storage budget alerts are not offered. Turn it on under Replay Policy and they appear here once it records its first replay.",
+        );
       }
 
       if (isEnabled && !hasRecorded && hasBudget) {
-        return "The session replay budget alerts appear here once this application records its first replay.";
+        return translateTemplate(
+          "The session replay budget alerts appear here once this application records its first replay.",
+        );
       }
 
       return undefined;
@@ -326,12 +335,15 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       context: MonitorRecommendationContext,
     ): string | undefined => {
       if (!context.serviceLanguage) {
-        return "This service has not reported which runtime it uses, so only the recommendations that apply to every service are shown. Once its SDK reports telemetry.sdk.language — or you set the tech stack under Settings — the runtime-specific ones appear here too.";
+        return translateTemplate(
+          "This service has not reported which runtime it uses, so only the recommendations that apply to every service are shown. Once its SDK reports telemetry.sdk.language — or you set the tech stack under Settings — the runtime-specific ones appear here too.",
+        );
       }
 
-      return `Detected as ${
-        SERVICE_LANGUAGE_DISPLAY_NAMES[context.serviceLanguage]
-      }, so the runtime-specific recommendations below are the ones that apply to it.`;
+      return translateTemplate(
+        "Detected as {{runtime}}, so the runtime-specific recommendations below are the ones that apply to it.",
+        { runtime: SERVICE_LANGUAGE_DISPLAY_NAMES[context.serviceLanguage] },
+      );
     },
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       const record: Record<string, unknown> = model as unknown as Record<
@@ -449,7 +461,9 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       context: MonitorRecommendationContext,
     ): string | undefined => {
       if (!context.databaseEngine) {
-        return "This database has no engine recorded, and every recommended database monitor reads one engine's own metrics, so none apply to it.";
+        return translateTemplate(
+          "This database has no engine recorded, and every recommended database monitor reads one engine's own metrics, so none apply to it.",
+        );
       }
 
       const engineName: string = getDatabaseSystemDisplayName(
@@ -461,17 +475,31 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       ).length;
 
       if (templateCount === 0) {
-        return `OneUptime does not ship recommended monitors for ${engineName} yet. You can still alert on this database: create a Metrics monitor that filters on oneuptime.database.server.id (shown on the Documentation tab), and its alerts and incidents will appear on this database.`;
+        return translateTemplate(
+          "OneUptime does not ship recommended monitors for {{engine}} yet. You can still alert on this database: create a Metrics monitor that filters on oneuptime.database.server.id (shown on the Documentation tab), and its alerts and incidents will appear on this database.",
+          { engine: engineName },
+        );
       }
 
       if (context.databaseEngineMetricsReported === false) {
         const receivers: string = getDatabaseRecommendationReceivers(
           context.databaseEngine,
         ).join(" / ");
-        return `None of the metrics the ${templateCount} recommended ${engineName} monitors read has arrived from this database in the last ${DATABASE_ENGINE_METRICS_LOOKBACK_DAYS} days. They come from the collector's ${receivers} receiver, which the Database Agent runs; other telemetry linked to this database (its logs, another receiver, an exporter) does not count. Connect the Database Agent or that receiver (see the Documentation tab), and the ${engineName} recommendations appear here.`;
+        return translateTemplate(
+          "None of the metrics the {{count}} recommended {{engine}} monitors read has arrived from this database in the last {{days}} days. They come from the collector's {{receivers}} receiver, which the Database Agent runs; other telemetry linked to this database (its logs, another receiver, an exporter) does not count. Connect the Database Agent or that receiver (see the Documentation tab), and the {{engine}} recommendations appear here.",
+          {
+            count: templateCount,
+            engine: engineName,
+            days: DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
+            receivers: receivers,
+          },
+        );
       }
 
-      return `Recommended for ${engineName}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.`;
+      return translateTemplate(
+        "Recommended for {{engine}}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.",
+        { engine: engineName },
+      );
     },
   },
 ];
