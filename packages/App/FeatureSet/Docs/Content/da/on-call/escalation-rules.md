@@ -2,6 +2,12 @@
 
 En vagtpolitik tilkalder folk i niveauer. Hver eskaleringsregel er ét niveau: hvem der tilkaldes, og hvor længe der ventes på, at nogen kvitterer, før næste niveau tilkaldes. En politiks regler står i rækkefølge på dens side **Eskaleringsregler**.
 
+## Hvem der tilkaldes først
+
+Når du opretter en vagtpolitik på siden **Vagtpolitikker**, beder formularen om dens **Navn** og **Hvem tilkaldes først?**. Spørgsmålet bruger samme vælger som **Underret**: vagtplaner, teams og personer, så mange du har brug for. Dem, du vælger, udgør politikkens første eskaleringsregel, **Level 1**, som venter **30 minutter** på en kvittering, før næste niveau tilkaldes. Den nye politik åbner derefter på sin side **Eskaleringsregler**, hvor du kan tilføje flere niveauer.
+
+**Hvem tilkaldes først?** er valgfrit. Lader du det stå tomt, starter politikken uden eskaleringsregler: Den tilkalder ingen, før du tilføjer en, og dens oversigt siger det. Beskrivelsen og etiketterne ligger under **Avanceret**. Spørgsmålet stilles kun til dem, der må tilføje eskaleringsregler.
+
 ## Tilføj en eskaleringsregel
 
 Åbn vagtpolitikken, vælg **Eskaleringsregler** i sidemenuen, og klik på **Add Escalation Rule**. Dialogen er én kort side med to spørgsmål:
@@ -38,3 +44,4 @@ Eskaleringsregler er ressourcen `/api/on-call-duty-policy-escalation-rule`; de p
 - En regel, der oprettes uden `name`, opkaldes efter sit niveau, ligesom i dashboardet: **Level 3** for en regel, der bliver tredje niveau i sin politik. Terraform-ressourcen til eskaleringsregler kræver stadig et navn.
 - `escalateAfterInMinutes` har ingen standardværdi uden for dashboardet. En regel, der oprettes uden den, venter ikke: næste niveau tilkaldes, så snart dette har kørt. Angiv den udtrykkeligt — dashboardet foreslår 30.
 - Regler, der er opkaldt efter deres niveau, omdøbes, når du flytter eller sletter regler i dashboardet. Ændrer du `order` via API'et eller Terraform, ændres kun rækkefølgen.
+- Oprettes en vagtpolitik via `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (lister med id'er) i dens `miscDataProps`, får den sin første eskaleringsregel, ligesom i dashboardet: **Level 1**, som tilkalder dem, med en `escalateAfterInMinutes` på 30. Hvert id skal høre til projektet, og kalderen skal have lov til at oprette eskaleringsregler; ellers oprettes politikken ikke. En politik, der oprettes uden dem, har ingen regler, som før; Terraform-ressourcen til politikker sender dem ikke.

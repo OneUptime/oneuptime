@@ -25,6 +25,12 @@ import Validation from "./Validation";
 import { isFormSectionConfigured } from "./Utils/AdvancedFormSection";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
+  NEXT_BUTTON_TEXT,
+  SteppedFormFooter,
+  canFinishFormFromStep,
+  getSteppedFormFooter,
+} from "./Utils/FinishFromAnyStep";
+import {
   getPeoplePickerValueKeys,
   toPeoplePickerIds,
 } from "../PeoplePicker/PeoplePickerTypes";
@@ -46,6 +52,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -78,6 +85,12 @@ export interface BasicFormHandle {
   setFieldValue: (fieldName: string, value: JSONValue) => void;
   // Validates the current step, then moves on - or submits on the last step.
   submitForm: () => void;
+  /*
+   * Validates the current step, then moves on. Never submits: on the last
+   * step it does nothing. What a plain Next beside the form's action calls,
+   * so a second click that lands after the last step opened cannot submit.
+   */
+  goToNextStep: () => void;
   /*
    * Validates every step and submits from wherever the user is. A field
    * that fails sends the user to the first step it is on, with its error
@@ -114,6 +127,14 @@ export interface BaseComponentProps<T> {
   error?: string | undefined;
   onFormStepChange?: undefined | ((stepId: string) => void);
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
+  /*
+   * Whether the form can be finished from the step on screen: every other
+   * step already holds valid answers (Utils/FinishFromAnyStep.ts). A host
+   * that draws its own buttons (hideSubmitButton) then shows the form's
+   * action as its main button, calling submitAllSteps, with a plain Next
+   * beside it calling submitForm. The form's own buttons do that already.
+   */
+  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
   onFormValidationErrorChanged?: ((hasError: boolean) => void) | undefined;
   showSubmitButtonOnlyIfSomethingChanged?: boolean | undefined;
   summary?: FormSummaryConfig | undefined;
@@ -220,11 +241,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       ((formSteps as Array<FormStep<T>>)[formSteps.length - 1] as FormStep<T>)
         .id === currentFormStepId;
 
-    const submitButtonTextRaw: string = isOnLastFormStep
-      ? props.submitButtonText || "Submit"
-      : "Next";
-    const submitButtonText: string =
-      translateString(submitButtonTextRaw) ?? submitButtonTextRaw;
+    /*
+     * The steps the form has shown. A step holding a custom element that has
+     * not been drawn yet keeps the form from being finished before it
+     * (Utils/FinishFromAnyStep.ts).
+     */
+    const [shownStepIds, setShownStepIds] = useState<Array<string>>([]);
 
     useEffect(() => {
       if (props.values) {
@@ -238,7 +260,25 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       }
     }, []);
 
-    useEffect(() => {
+    /*
+     * Recorded while rendering the step, not in an effect after it: an
+     * effect's update could still be waiting when the next click lands, and
+     * the step would not count as shown yet. Setting state of this component
+     * while it renders is React's way to keep state in step with other state.
+     */
+    if (currentFormStepId && !shownStepIds.includes(currentFormStepId)) {
+      setShownStepIds([...shownStepIds, currentFormStepId]);
+    }
+
+    /*
+     * A layout effect, as is the report below: a host that draws the
+     * buttons (a dialog's footer) learns where the form is in the same pass
+     * that moved it, before anything is painted. With a plain effect the
+     * footer said what the step before wanted for a frame - long enough for
+     * a quick second click to land on a button that had since changed
+     * meaning (Next one moment, the form's action the next).
+     */
+    useLayoutEffect(() => {
       if (props.onIsLastFormStep) {
         props.onIsLastFormStep(isOnLastFormStep);
       }
@@ -261,6 +301,41 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     }, [refCurrentValue.current]);
 
     const [formFields, setFormFields] = useState<Fields<T>>([]);
+
+    /*
+     * Worked out on every render, from the values as they are now: an answer
+     * that brings a step with a required field into view takes the action
+     * away again, and answering that field gives it back.
+     */
+    const canFinishFromCurrentStep: boolean =
+      formFields.length > 0 &&
+      Boolean(currentFormStepId) &&
+      !isOnLastFormStep &&
+      canFinishFormFromStep<T>({
+        steps: getVisibleFormSteps() || [],
+        currentStepId: currentFormStepId,
+        fields: formFields,
+        values: refCurrentValue.current,
+        shownStepIds: shownStepIds,
+        onValidate: props.onValidate || undefined,
+      });
+
+    useLayoutEffect(() => {
+      props.onCanFinishFromCurrentStep?.(canFinishFromCurrentStep);
+    }, [canFinishFromCurrentStep]);
+
+    const footer: SteppedFormFooter = getSteppedFormFooter({
+      hasSteps: Boolean(currentFormStepId && formSteps && formSteps.length > 0),
+      isOnLastStep: isOnLastFormStep,
+      canFinishFromCurrentStep: canFinishFromCurrentStep,
+      actionText: props.submitButtonText || "Submit",
+    });
+
+    const submitButtonText: string =
+      translateString(footer.primaryButtonText) ?? footer.primaryButtonText;
+
+    const nextButtonText: string =
+      translateString(NEXT_BUTTON_TEXT) ?? NEXT_BUTTON_TEXT;
 
     const setFieldTouched: (fieldName: string, value: boolean) => void = (
       fieldName: string,
@@ -300,6 +375,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         setFieldTouched,
         setFieldValue,
         submitForm,
+        goToNextStep,
         submitAllSteps,
       };
     }, [
@@ -523,9 +599,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       });
     };
 
-    const submitForm: () => void = (): void => {
-      // check for any boolean values and if they don't exist in values - mark them as false.
-
+    /*
+     * Checks the step on screen, then walks on to the next one; on the last
+     * step (or a form without steps) it submits, unless told not to.
+     */
+    const validateStepAndWalkOn: (data: {
+      submitOnLastStep: boolean;
+    }) => void = (data: { submitOnLastStep: boolean }): void => {
       setValidationAttempt((attempt: number) => {
         return attempt + 1;
       });
@@ -552,7 +632,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           (steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) ||
         currentFormStepId === null
       ) {
-        submitValues();
+        if (data.submitOnLastStep) {
+          submitValues();
+        }
       } else if (steps && steps.length > 0) {
         const currentStepIndex: number = steps.findIndex(
           (step: FormStep<T>) => {
@@ -564,6 +646,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           setCurrentFormStepId((steps[currentStepIndex + 1] as FormStep<T>).id);
         }
       }
+    };
+
+    const submitForm: () => void = (): void => {
+      validateStepAndWalkOn({ submitOnLastStep: true });
+    };
+
+    const goToNextStep: () => void = (): void => {
+      validateStepAndWalkOn({ submitOnLastStep: false });
     };
 
     const submitAllSteps: () => void = (): void => {
@@ -792,6 +882,34 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     if (props.showSubmitButtonOnlyIfSomethingChanged && didSomethingChange) {
       showSubmitButton = true;
     }
+
+    /*
+     * Next beside the action, on a step the form can be finished from. Plain,
+     * like Cancel: the action stays the form's one primary button. Beside it
+     * on the left, as in a dialog's footer; under it where the action spans
+     * the form (a status page's Subscribe).
+     */
+    const nextButtonElement: ReactElement | null =
+      showSubmitButton && footer.showNextButton ? (
+        <div
+          className="mt-3"
+          style={{
+            width: props.maxPrimaryButtonWidth ? "100%" : "auto",
+          }}
+        >
+          <Button
+            title={nextButtonText}
+            dataTestId="form-next-button"
+            id={`${props.id}-next-button`}
+            onClick={() => {
+              goToNextStep();
+            }}
+            disabled={isLoading || isDropdownOptionsLoading || false}
+            buttonStyle={ButtonStyleType.NORMAL}
+            style={primaryButtonStyle}
+          />
+        </div>
+      ) : null;
 
     return (
       <div className="row" id={props.id}>
@@ -1032,7 +1150,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                   })()}
                 </div>
 
-                <div className="flex w-full justify-end">
+                <div
+                  className={`flex w-full ${
+                    props.maxPrimaryButtonWidth && nextButtonElement
+                      ? "flex-col"
+                      : "justify-end"
+                  }`}
+                >
+                  {!props.maxPrimaryButtonWidth && nextButtonElement}
                   {showSubmitButton && (
                     <div
                       className="mt-3"
@@ -1044,6 +1169,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         title={submitButtonText}
                         dataTestId={props.submitButtonText!}
                         onClick={() => {
+                          if (footer.primaryButtonSubmitsAllSteps) {
+                            submitAllSteps();
+                            return;
+                          }
+
                           submitForm();
                         }}
                         id={`${props.id}-submit-button`}
@@ -1057,6 +1187,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                       />
                     </div>
                   )}
+                  {props.maxPrimaryButtonWidth && nextButtonElement}
                   {props.onCancel && (
                     <div>
                       <Button

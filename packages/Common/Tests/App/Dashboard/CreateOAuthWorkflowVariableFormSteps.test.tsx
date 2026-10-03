@@ -678,13 +678,15 @@ describe.each(SCOPES)(
       ).toBeVisible();
       expect(queryInput(CLIENT_ID_PLACEHOLDER)).not.toBeInTheDocument();
 
-      // The last step: its main button creates the variable.
+      // The last step: its main button creates the variable, and no Next.
       expect(
         await within(dialog()).findByRole("button", { name: SUBMIT_LABEL }),
       ).toBeVisible();
-      expect(
-        within(dialog()).queryByRole("button", { name: "Next" }),
-      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          within(dialog()).queryByRole("button", { name: "Next" }),
+        ).not.toBeInTheDocument();
+      });
     });
 
     test("reminds Microsoft Entra ID users of the /.default scope", async () => {
