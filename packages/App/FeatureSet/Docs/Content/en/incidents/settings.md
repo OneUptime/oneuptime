@@ -369,7 +369,7 @@ A new project starts with one role, **Incident Commander**, the person in charge
 
 Add the other roles your team uses, such as Responder, Communications Lead or Scribe, with **Create Incident Role**: a name and a description, then an icon and a colour. A role is held by one person per incident unless you turn on **Allow Multiple Users**, under **Advanced** on the first step. Projects created by earlier versions of OneUptime also started with Responder, Communications Lead and Observer. They keep them until you delete them.
 
-Roles are definitions only. You assign people to them per incident — the declare wizard has an **Incident Roles** step with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu.
+Roles are definitions only. You assign people to them per incident — the declare wizard asks on its **On-Call & Roles** step, with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu.
 
 ## Number prefixes
 
@@ -473,7 +473,7 @@ Severity is a match criterion here and nowhere else. There is no on-call field o
 
 ## Attaching on-call policies directly
 
-Rules are not the only route. Every incident carries an on-call policy list of its own, surfaced as the **On-Call Policy** field on the **On-Call** step of the declare wizard and on the **On-Call** step of an incident template. The field description says it plainly: these are the on-call duty policies to execute when this incident is created.
+Rules are not the only route. Every incident carries an on-call policy list of its own, surfaced as the **On-Call Policy** field on the **On-Call & Roles** step of the declare wizard and on the **On-Call** step of an incident template. The field description says it plainly: these are the on-call duty policies to execute when this incident is created.
 
 When an incident is created, OneUptime runs label rules, then on-call rules (which merge their matching policies into the incident's list), then runbook rules — and if the resulting list is non-empty, every policy in it is executed. Executions run in parallel and are settled independently, so one policy failing does not stop the others. Each execution is tagged with the incident that triggered it and with the incident-created notification event type.
 

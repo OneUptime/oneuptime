@@ -2538,7 +2538,8 @@ describe("Incident Linked Alerts docs", () => {
             section.includes(`**${ReminderStopState.Acknowledged}**`),
           notRecalled: section.includes(NOT_RECALLED[language] as string),
           episode: section.includes(EPISODE_WORD[language] as string),
-          onCallStep: section.includes("**On-Call**"),
+          // The declare form's step with the on-call policies.
+          onCallStep: section.includes("**On-Call & Roles**"),
         }).toEqual({
           language: language,
           reminders: true,
