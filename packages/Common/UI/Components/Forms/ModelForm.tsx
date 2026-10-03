@@ -70,6 +70,7 @@ import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
+import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 
@@ -653,9 +654,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
   /*
    * What a dropdown's options depend on, and nothing else: the model, the
-   * two columns read off it, and the order it is listed in. The request below
-   * takes no query and no closure state, so two fields with the same four
-   * always get the same list back - which is what makes caching them safe.
+   * two columns read off it, the order it is listed in and the query that
+   * narrows it. The request below takes no closure state, so two fields with
+   * the same five always get the same list back - which is what makes
+   * caching them safe.
    */
   type GetCachedDropdownOptionsFunction = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
@@ -677,7 +679,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       })
       .join(",");
 
-    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}`;
+    const queryKey: string = JSON.stringify(dropdownModal.query || {});
+
+    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}|${queryKey}`;
   };
 
   const getCachedDropdownOptions: GetCachedDropdownOptionsFunction = (
@@ -807,7 +811,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
           const listResult: ListResult<BaseModel> =
             await modelAPI.getList<BaseModel>({
               modelType: field.dropdownModal.type,
-              query: {},
+              query: {
+                ...(field.dropdownModal.query || {}),
+              } as Query<BaseModel>,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: select,

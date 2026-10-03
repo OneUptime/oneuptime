@@ -17,6 +17,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
+import CustomDomainVerification, {
+  CustomDomainVerificationResult,
+} from "../../Types/StatusPage/CustomDomainVerification";
 
 export default class StatusPageDomainAPI extends BaseAPI<
   StatusPageDomain,
@@ -25,7 +28,15 @@ export default class StatusPageDomainAPI extends BaseAPI<
   public constructor() {
     super(StatusPageDomain, StatusPageDomainService);
 
-    // CNAME verification api. THis API will be used from the dashboard to validate the CNAME MANUALLY.
+    /*
+     * CNAME verification: the domain's Check now button in the dashboard.
+     *
+     * The sweeps verify every domain every 15 minutes anyway; this is for the
+     * person who has just added the record and wants to know now. Once the
+     * record is found the domain's free certificate is ordered straight away
+     * (StatusPageDomainService.orderCertOnceCnameIsVerified), and the answer
+     * says what happens to the certificate next.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/verify-cname/:id`,
       UserMiddleware.getUserMiddleware,
@@ -77,6 +88,8 @@ export default class StatusPageDomainAPI extends BaseAPI<
               select: {
                 _id: true,
                 fullDomain: true,
+                isCustomCertificate: true,
+                isSslOrdered: true,
               },
               props: {
                 isRoot: true,
@@ -108,19 +121,32 @@ export default class StatusPageDomainAPI extends BaseAPI<
               req,
               res,
               new BadDataException(
-                "CNAME is not verified. Please make sure you have the correct record and please verify CNAME again. If you are sure that the record is correct, please wait for some time for the DNS to propagate.",
+                `We could not find a CNAME record for ${domain.fullDomain} that points to ${StatusPageCNameRecord} yet. Please check the record at your DNS provider. A new record can take a while to show up, and we keep checking every 15 minutes.`,
               ),
             );
           }
 
-          return Response.sendEmptySuccessResponse(req, res);
+          const result: CustomDomainVerificationResult =
+            await StatusPageDomainService.orderCertOnceCnameIsVerified(domain);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            CustomDomainVerification.toJSON(result),
+          );
         } catch (e) {
           next(e);
         }
       },
     );
 
-    // Provision SSL API. THis API will be used from the dashboard to validate the CNAME MANUALLY.
+    /*
+     * Order SSL. The dashboard no longer has a button for this: a domain's
+     * certificate is ordered as soon as its CNAME is verified. It stays for
+     * API callers, and orders the way everything else does, through
+     * orderCertIfMissing: a domain that has its certificate already, or has
+     * one being ordered right now, is not ordered twice.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/order-ssl/:id`,
       UserMiddleware.getUserMiddleware,
@@ -175,6 +201,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 cnameVerificationToken: true,
                 isCnameVerified: true,
                 isSslProvisioned: true,
+                isCustomCertificate: true,
               },
               props: {
                 isRoot: true,
@@ -215,6 +242,17 @@ export default class StatusPageDomainAPI extends BaseAPI<
             );
           }
 
+          // The sweeps never order for one either: it serves the upload.
+          if (domain.isCustomCertificate) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This domain uses a certificate you uploaded, so there is no free SSL certificate to order for it.",
+              ),
+            );
+          }
+
           if (!domain.fullDomain) {
             return Response.sendErrorResponse(
               req,
@@ -226,7 +264,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
           logger.debug("Ordering SSL", getLogAttributesFromRequest(req as any));
 
           // provision SSL
-          await StatusPageDomainService.orderCert(domain);
+          await StatusPageDomainService.orderCertIfMissing(domain);
 
           logger.debug(
             "SSL Provisioned for domain - " + domain.fullDomain,

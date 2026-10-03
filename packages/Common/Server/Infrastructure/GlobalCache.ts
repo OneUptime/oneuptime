@@ -395,6 +395,45 @@ export default abstract class GlobalCache {
     return typeof result === "string" && result ? result : null;
   }
 
+  /*
+   * Adds one to a counter and returns the new count. The first add also
+   * sets the counter's expiry, in the same atomic evaluation, so a counter
+   * is never left without one - the primitive for a fixed-window budget
+   * whose key names its window.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async incrementWithExpiry(
+    namespace: string,
+    key: string,
+    options: CacheSetOptions,
+  ): Promise<number> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local count = redis.call('INCR', KEYS[1]) " +
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end " +
+        "return count",
+      1,
+      `${namespace}-${key}`,
+      String(options.expiresInSeconds),
+    );
+
+    const count: number = Number(result);
+
+    if (!Number.isFinite(count)) {
+      throw new BadDataException("The cache counter is not a number");
+    }
+
+    return count;
+  }
+
   @CaptureSpan()
   public static async deleteKey(namespace: string, key: string): Promise<void> {
     const client: ClientType | null = Redis.getClient();
