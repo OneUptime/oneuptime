@@ -368,11 +368,11 @@ describe("the old wording is gone from the dashboard", () => {
   });
 
   /*
-   * The status page's own "Force SSO for Login" card still carries the old
-   * sentence: who may see a status page is the status page access task's,
-   * which turns that card into one choice.
+   * The status page's own "Force SSO for Login" card was the last to carry
+   * the old sentence; it is a "Require SSO for Login" switch now
+   * (Components/StatusPage/StatusPageRequireSsoCard), so no page has it.
    */
-  test("the doubled word in the old SSO help is only left on the status page's card", () => {
+  test("the doubled word in the old SSO help is gone from every page", () => {
     const using: Array<string> = sources
       .filter((file: string): boolean => {
         return readSource(file).includes(
@@ -383,11 +383,7 @@ describe("the old wording is gone from the dashboard", () => {
         return path.relative(DASHBOARD_SRC, file).split(path.sep).join("/");
       });
 
-    expect(
-      using.filter((file: string): boolean => {
-        return file !== "Pages/StatusPages/View/SSO.tsx";
-      }),
-    ).toEqual([]);
+    expect(using).toEqual([]);
   });
 });
 

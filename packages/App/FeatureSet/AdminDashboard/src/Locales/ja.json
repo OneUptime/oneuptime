@@ -556,9 +556,7 @@
         "cardDescription": "グローバルLLMプロバイダーはすべてのプロジェクトでAI機能のために利用できます。OpenAI、Anthropic、Ollama、またはその他のLLMプロバイダーを設定します。",
         "noItems": "LLMプロバイダーが設定されていません。AI機能を有効にするにはLLMプロバイダーを追加してください。",
         "stepBasicInfo": "基本情報",
-        "stepProviderSettings": "プロバイダー設定",
-        "stepAdvanced": "詳細",
-        "stepCostSettings": "コスト設定"
+        "stepProviderSettings": "プロバイダー設定"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "新しいプロジェクトを作成",
   "Create Project": "プロジェクトを作成",
   "Created At": "作成日",
-  "Credentials": "認証情報",
   "Datastore capacity": "データストア容量",
   "Disable Sign Up": "サインアップを無効化",
   "Disk and memory utilization of the databases backing this instance.": "このインスタンスを支えるデータベースのディスクおよびメモリ使用率。",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "インスタンス全体のすべてのユーザーを管理します。",
   "Master API Key": "マスターAPIキー",
   "Message": "メッセージ",
-  "Meta App": "Meta アプリ",
   "Model": "モデル",
   "Model Name": "モデル名",
   "Monitor Log Retention (Days)": "モニターログ保持期間（日）",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "ユーザー名とパスワードによる認証で必須です。OAuth では使用されません。",
   "Sample Description": "サンプルの説明",
   "Sample Title": "サンプルタイトル",
-  "Secondary Twilio Phone Number": "セカンダリ Twilio 電話番号",
   "Secondary Twilio Phone Numbers": "セカンダリ Twilio 電話番号",
   "Secret token configured in Meta to validate webhook subscription requests.": "Webhook 購読リクエストを検証するために Meta で設定されたシークレットトークン。",
   "Select a team": "チームを選択",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "{{name}} を完全に削除します。",
   "This action cannot be undone.": "このアクションは元に戻すことができません。",
   "and {{remaining}} more": "他 {{remaining}} 件",
-  "Type {{name}} to confirm.": "確認のため {{name}} と入力してください。"
+  "Type {{name}} to confirm.": "確認のため {{name}} と入力してください。",
+  "Configured": "設定済み"
 }

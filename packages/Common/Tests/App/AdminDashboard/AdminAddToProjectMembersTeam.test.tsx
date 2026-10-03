@@ -23,9 +23,10 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * ModelForm, BasicForm, the picker), with only the network, the tables and
  * the page chrome stood in for.
  *
- *   - Projects > Users > Invite User opens with the project's members team
- *     picked, so Invite can be pressed on the first step; the Team step says
- *     which team that is. With no members team it opens as before.
+ *   - Projects > Users > Invite User is one page, as the Dashboard's is: the
+ *     email, the team - the project's members team picked to start with,
+ *     which its description names - and the auto-accept box, so Invite
+ *     needs only the email. With no members team it opens with no team.
  *   - Users > Projects > Add to Project is one page: the project, its team
  *     (its members team as soon as the project is picked) and the auto-accept
  *     box. One press adds the user to that team.
@@ -601,31 +602,48 @@ describe("Projects > Users > Invite User", () => {
         return args.modelType === Team || args.modelType === TeamPermission;
       });
 
+    const modelTypes: Array<unknown> = lookups.map((args: ListArgs) => {
+      return args.modelType;
+    });
+
+    // The lookup comes first, before the dialog opens: teams, then their roles.
+    expect(modelTypes.slice(0, 2)).toEqual([Team, TeamPermission]);
+
+    /*
+     * Then only the Team field's own list of the project's teams, which the
+     * dialog reads as soon as it draws the field - on its one page.
+     */
     expect(
-      lookups.map((args: ListArgs) => {
-        return args.modelType;
+      modelTypes.slice(2).filter((modelType: unknown): boolean => {
+        return modelType !== Team;
       }),
-    ).toEqual([Team, TeamPermission]);
+    ).toEqual([]);
 
     for (const args of lookups) {
       expect(args.query?.projectId?.toString()).toBe(PROJECT_ID);
     }
   });
 
-  test("opens with the members team picked, so Invite can be pressed on the first step", async () => {
+  test("is one page that opens with the members team picked, so Invite needs only the email", async () => {
     await openInviteDialog();
 
-    // Step one: the email. The main button is already Invite, with Next beside it.
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("modal-footer-next-button")).toBeVisible();
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
+    await waitForSelectedTeams("Members");
+    await settle();
+
+    // One page: no step list and no Next, only Invite.
+    expect(
+      screen.queryByRole("navigation", { name: "Progress" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("modal-footer-next-button")).toBeNull();
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
       "pages.projectUsers.inviteUserSubmit",
     );
-    expect(screen.getByRole("navigation", { name: "Progress" })).toBeVisible();
+
+    // The team and the auto-accept box are beside the email, in view.
+    expect(screen.getByText("Team")).toBeVisible();
+    expect(
+      screen.getByText("Accept the invitation automatically"),
+    ).toBeVisible();
 
     fireEvent.change(screen.getByPlaceholderText("member@company.com"), {
       target: { value: "new.person@example.com" },
@@ -651,20 +669,12 @@ describe("Projects > Users > Invite User", () => {
     expect(Boolean(member.hasAcceptedInvitation)).toBe(false);
   });
 
-  test("the Team step shows the members team picked, and says so", async () => {
+  test("shows the members team picked beside the email, and says so", async () => {
     await openInviteDialog();
-
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("modal-footer-next-button")).toBeVisible();
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
 
     fireEvent.change(screen.getByPlaceholderText("member@company.com"), {
       target: { value: "new.person@example.com" },
     });
-    fireEvent.click(screen.getByTestId("modal-footer-next-button"));
 
     await waitForSelectedTeams("Members");
 
@@ -690,7 +700,7 @@ describe("Projects > Users > Invite User", () => {
     expect(teamIdOf(savedModel<TeamMember>())).toBe(SUPPORT_ID);
   });
 
-  test("a project with no members team opens with nothing picked, and walks to the Team step as before", async () => {
+  test("a project with no members team opens with nothing picked, and asks for a team before inviting", async () => {
     goTo(`/admin/projects/${PLAIN_PROJECT_ID}/users`);
 
     render(<ProjectUsers />);
@@ -708,16 +718,15 @@ describe("Projects > Users > Invite User", () => {
 
     await settle();
 
-    // Nothing picked: the first step's only way on is Next.
+    // Still one page, whose button invites: there is no step to walk to.
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-      "Next",
+      "pages.projectUsers.inviteUserSubmit",
     );
     expect(screen.queryByTestId("modal-footer-next-button")).toBeNull();
 
     fireEvent.change(screen.getByPlaceholderText("member@company.com"), {
       target: { value: "new.person@example.com" },
     });
-    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
     await waitForSelectedTeams("(none)");
 

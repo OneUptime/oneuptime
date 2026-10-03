@@ -556,9 +556,7 @@
         "cardDescription": "Global LLM Providers are available to all projects for AI features. Configure OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other LLM providers.",
         "noItems": "No LLM Providers configured. Add an LLM Provider to enable AI features.",
         "stepBasicInfo": "Basic Info",
-        "stepProviderSettings": "Provider Settings",
-        "stepAdvanced": "Advanced",
-        "stepCostSettings": "Cost Settings"
+        "stepProviderSettings": "Provider Settings"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Create New Project",
   "Create Project": "Create Project",
   "Created At": "Created At",
-  "Credentials": "Credentials",
   "Datastore capacity": "Datastore capacity",
   "Disable Sign Up": "Disable Sign Up",
   "Disk and memory utilization of the databases backing this instance.": "Disk and memory utilization of the databases backing this instance.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Manage all users across the instance.",
   "Master API Key": "Master API Key",
   "Message": "Message",
-  "Meta App": "Meta App",
   "Model": "Model",
   "Model Name": "Model Name",
   "Monitor Log Retention (Days)": "Monitor Log Retention (Days)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Required for Username and Password authentication. Not used for OAuth.",
   "Sample Description": "Sample Description",
   "Sample Title": "Sample Title",
-  "Secondary Twilio Phone Number": "Secondary Twilio Phone Number",
   "Secondary Twilio Phone Numbers": "Secondary Twilio Phone Numbers",
   "Secret token configured in Meta to validate webhook subscription requests.": "Secret token configured in Meta to validate webhook subscription requests.",
   "Select a team": "Select a team",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Permanently delete {{name}}.",
   "This action cannot be undone.": "This action cannot be undone.",
   "and {{remaining}} more": "and {{remaining}} more",
-  "Type {{name}} to confirm.": "Type {{name}} to confirm."
+  "Type {{name}} to confirm.": "Type {{name}} to confirm.",
+  "Configured": "Configured"
 }

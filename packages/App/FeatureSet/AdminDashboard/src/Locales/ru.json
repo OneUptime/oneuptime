@@ -556,9 +556,7 @@
         "cardDescription": "Глобальные LLM-провайдеры доступны для всех проектов для функций AI. Настройте OpenAI, Anthropic, Ollama или других LLM-провайдеров.",
         "noItems": "LLM-провайдеры не настроены. Добавьте LLM-провайдера, чтобы включить функции AI.",
         "stepBasicInfo": "Основная информация",
-        "stepProviderSettings": "Настройки провайдера",
-        "stepAdvanced": "Расширенный",
-        "stepCostSettings": "Настройки стоимости"
+        "stepProviderSettings": "Настройки провайдера"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Создать новый проект",
   "Create Project": "Создать проект",
   "Created At": "Создано",
-  "Credentials": "Учётные данные",
   "Datastore capacity": "Ёмкость хранилища данных",
   "Disable Sign Up": "Отключить регистрацию",
   "Disk and memory utilization of the databases backing this instance.": "Использование диска и памяти баз данных, обеспечивающих работу этого экземпляра.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Управляйте всеми пользователями в рамках инстанса.",
   "Master API Key": "Главный API-ключ",
   "Message": "Сообщение",
-  "Meta App": "Приложение Meta",
   "Model": "Модель",
   "Model Name": "Имя модели",
   "Monitor Log Retention (Days)": "Срок хранения логов монитора (дни)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Требуется для аутентификации по имени пользователя и паролю. Не используется для OAuth.",
   "Sample Description": "Пример описания",
   "Sample Title": "Пример заголовка",
-  "Secondary Twilio Phone Number": "Дополнительный номер телефона Twilio",
   "Secondary Twilio Phone Numbers": "Дополнительные номера телефонов Twilio",
   "Secret token configured in Meta to validate webhook subscription requests.": "Секретный токен, настроенный в Meta для проверки запросов на подписку на вебхуки.",
   "Select a team": "Выберите команду",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Безвозвратно удалить {{name}}.",
   "This action cannot be undone.": "Это действие нельзя отменить.",
   "and {{remaining}} more": "и ещё {{remaining}}",
-  "Type {{name}} to confirm.": "Введите {{name}} для подтверждения."
+  "Type {{name}} to confirm.": "Введите {{name}} для подтверждения.",
+  "Configured": "Настроено"
 }

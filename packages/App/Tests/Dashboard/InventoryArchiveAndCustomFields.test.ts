@@ -97,7 +97,9 @@ describe("archiving", () => {
   test("the archived page explains that archiving is not decommissioning", () => {
     /*
      * The single most likely misreading of this page: archived rows keep
-     * their identity and keep collecting telemetry.
+     * their identity and keep collecting telemetry. The card's description
+     * says so, as on every other Archived page. It used to be a blue banner
+     * above the list, shown on every visit.
      */
     const page: string = readCode(
       DASHBOARD_SRC,
@@ -106,9 +108,34 @@ describe("archiving", () => {
       "Archived.tsx",
     );
 
-    expect(page).toContain('dataTestId="inventory-archived-banner"');
+    expect(page).not.toContain("<Alert");
+    expect(page).not.toContain("inventory-archived-banner");
     expect(page).toContain("archivedOnly={true}");
-    expect(page.toLowerCase()).toContain("keep collecting telemetry");
+    expect(page).toContain("cardDescription={INVENTORY_ARCHIVED_DESCRIPTION}");
+    expect(page).toContain(
+      'INVENTORY_ARCHIVED_DESCRIPTION: string = translationKey( "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.", );',
+    );
+  });
+
+  test("an empty archive has its own empty state, without the main list's setup guide", () => {
+    const archivedStart: number = table.indexOf(
+      "const emptyState: EmptyStateOptions = isArchivedView ? {",
+    );
+    const archivedEnd: number = table.indexOf(
+      '} : { ...facetEmptyState, title: "Nothing here yet."',
+    );
+
+    expect(archivedStart).toBeGreaterThan(-1);
+    expect(archivedEnd).toBeGreaterThan(archivedStart);
+
+    const archived: string = table.slice(archivedStart, archivedEnd);
+
+    expect(archived).toContain("...facetEmptyState,");
+    expect(archived).toContain('title: "No archived items."');
+    expect(archived).toContain("icon: IconProp.Archive");
+    expect(archived).not.toContain("description:");
+    expect(archived).not.toContain("inventory-setup-guide");
+    expect(table).toContain("emptyState={emptyState}");
   });
 
   test("the model carries the whole archive column set", () => {

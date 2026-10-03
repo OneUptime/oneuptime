@@ -30,7 +30,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - an eligible project on a Community bundle is pointed at the edition,
  *     never told to upgrade its plan;
  *   - the plugin gets each page's own model, record id, resource name and a
- *     DOM id prefix no other page uses;
+ *     DOM id prefix no other page uses, and the database's scope note (which
+ *     of its telemetry the retention covers; it used to be a banner above
+ *     the cards);
  *   - Settings > Telemetry keeps the project's default retention everywhere.
  *
  * The plugins come from a stand-in for src/Enterprise/Plugins; `null` means
@@ -179,7 +181,9 @@ jest.mock(
 
 import CephSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Settings";
 import CloudSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Settings";
-import DatabaseServerSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
+import DatabaseServerSettings, {
+  DATABASE_RETENTION_SCOPE_NOTE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
 import DockerSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Settings";
 import DockerSwarmSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Settings";
 import HostSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Settings";
@@ -234,6 +238,8 @@ interface ResourcePageCase {
   settingsKey: PageMap;
   resourceName: string;
   detailIdPrefix: string;
+  // Which of the resource's telemetry its retention covers, when not all.
+  scopeNote?: string | undefined;
 }
 
 /*
@@ -354,6 +360,7 @@ const RESOURCE_PAGES: Array<ResourcePageCase> = [
     settingsKey: PageMap.DATABASE_SERVER_VIEW_SETTINGS,
     resourceName: "database",
     detailIdPrefix: "database-server",
+    scopeNote: DATABASE_RETENTION_SCOPE_NOTE,
   },
 ];
 
@@ -580,6 +587,13 @@ describe.each(RESOURCE_PAGES)(
       expect(overrideReads()).toEqual([]);
       // The rest of the page is still there.
       expect(screen.getByTestId("archive-resource-card")).toBeInTheDocument();
+      // No banner above the retention: a scope note is the cards' to say.
+      expect(
+        screen.queryByText("Which telemetry this covers."),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("database-retention-scope-note"),
+      ).not.toBeInTheDocument();
     });
 
     test("on the Enterprise Edition: the plugin gets this page's model, record, name and id prefix", async () => {
@@ -605,6 +619,7 @@ describe.each(RESOURCE_PAGES)(
       expect(props.modelId.toString()).toBe(MODEL_ID.toString());
       expect(props.resourceName).toBe(pageCase.resourceName);
       expect(props.modelDetailIdPrefix).toBe(pageCase.detailIdPrefix);
+      expect(props.scopeNote).toBe(pageCase.scopeNote);
     });
 
     test("an Enterprise flag on a Community bundle points at the edition, not a plan", async () => {
@@ -644,6 +659,26 @@ describe.each(RESOURCE_PAGES)(
     );
   },
 );
+
+describe("the database's scope note", () => {
+  test("is one whole note, English in the source, for the card to translate", () => {
+    expect(DATABASE_RETENTION_SCOPE_NOTE).toBe(
+      "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.",
+    );
+  });
+
+  test("only the database passes one", () => {
+    const withNotes: Array<string> = RESOURCE_PAGES.filter(
+      (pageCase: ResourcePageCase): boolean => {
+        return Boolean(pageCase.scopeNote);
+      },
+    ).map((pageCase: ResourcePageCase): string => {
+      return pageCase.name;
+    });
+
+    expect(withNotes).toEqual(["database"]);
+  });
+});
 
 describe("the resource pages together", () => {
   test("every page hands the plugin its own DOM id prefix", async () => {

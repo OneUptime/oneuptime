@@ -443,6 +443,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getDashboardBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/dashboards/:id/authentication-settings",
+    titles: ["Project", "Dashboards", "View Dashboard", "Sharing"],
+  },
+  {
+    getter: "getDashboardBreadcrumbs",
     pagePattern: "/dashboard/:projectId/dashboards/:id/branding",
     titles: ["Project", "Dashboards", "View Dashboard", "Branding"],
   },
@@ -2686,12 +2691,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getStatusPagesBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/status-pages/:id/authentication-settings",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Authentication Settings",
-    ],
+    titles: ["Project", "Status Pages", "View Status Page", "Access"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",

@@ -556,9 +556,7 @@
         "cardDescription": "वैश्विक LLM प्रदाता AI सुविधाओं के लिए सभी परियोजनाओं के लिए उपलब्ध हैं। OpenAI, Anthropic, Ollama, या अन्य LLM प्रदाता कॉन्फ़िगर करें।",
         "noItems": "कोई LLM प्रदाता कॉन्फ़िगर नहीं किए गए। AI सुविधाओं को सक्षम करने के लिए एक LLM प्रदाता जोड़ें।",
         "stepBasicInfo": "मूल जानकारी",
-        "stepProviderSettings": "प्रदाता सेटिंग्स",
-        "stepAdvanced": "उन्नत",
-        "stepCostSettings": "लागत सेटिंग्स"
+        "stepProviderSettings": "प्रदाता सेटिंग्स"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "नया प्रोजेक्ट बनाएँ",
   "Create Project": "प्रोजेक्ट बनाएं",
   "Created At": "बनाया गया",
-  "Credentials": "क्रेडेंशियल",
   "Datastore capacity": "डेटास्टोर क्षमता",
   "Disable Sign Up": "साइन अप अक्षम करें",
   "Disk and memory utilization of the databases backing this instance.": "इस इंस्टेंस का समर्थन करने वाले डेटाबेस का डिस्क और मेमोरी उपयोग।",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "इंस्टेंस में सभी उपयोगकर्ताओं को प्रबंधित करें।",
   "Master API Key": "मास्टर API कुंजी",
   "Message": "संदेश",
-  "Meta App": "Meta App",
   "Model": "मॉडल",
   "Model Name": "मॉडल नाम",
   "Monitor Log Retention (Days)": "मॉनिटर लॉग प्रतिधारण (दिन)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "उपयोगकर्ता नाम और पासवर्ड प्रमाणीकरण के लिए आवश्यक। OAuth के लिए उपयोग नहीं किया जाता।",
   "Sample Description": "नमूना विवरण",
   "Sample Title": "नमूना शीर्षक",
-  "Secondary Twilio Phone Number": "द्वितीयक Twilio फ़ोन नंबर",
   "Secondary Twilio Phone Numbers": "द्वितीयक Twilio फ़ोन नंबर",
   "Secret token configured in Meta to validate webhook subscription requests.": "वेबहुक सब्सक्रिप्शन अनुरोधों को मान्य करने के लिए Meta में कॉन्फ़िगर किया गया सीक्रेट टोकन।",
   "Select a team": "एक टीम चुनें",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "{{name}} को स्थायी रूप से हटाएँ।",
   "This action cannot be undone.": "यह कार्रवाई पूर्ववत नहीं की जा सकती।",
   "and {{remaining}} more": "और {{remaining}} अन्य",
-  "Type {{name}} to confirm.": "पुष्टि करने के लिए {{name}} टाइप करें।"
+  "Type {{name}} to confirm.": "पुष्टि करने के लिए {{name}} टाइप करें।",
+  "Configured": "कॉन्फ़िगर किया गया"
 }

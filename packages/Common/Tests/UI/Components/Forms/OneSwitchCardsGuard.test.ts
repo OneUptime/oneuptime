@@ -9,6 +9,7 @@ import {
   FormFieldFacts,
   getOnlyVisibleField,
   isOneSwitchForm,
+  isSwitchFieldType,
   scanFormFiles,
   SourceFileSystem,
 } from "../../../Helpers/FormStepsScan";
@@ -32,14 +33,19 @@ import {
  * conversion - first or second - removes what it retired.
  *
  * The monitor and status page areas are done: no card under the
- * Dashboard's Pages/Monitor may be listed, and under Pages/StatusPages only
- * the cards that decide who may see a status page, which the status page
- * access task turns into one choice. So are incidents, alerts, episodes,
- * scheduled maintenance, runbooks, SLOs and RUM: their reminders, privacy,
- * status page visibility and on/off switches save on flip, and no card
- * under those pages may be listed. So are the AI settings pages: every AI
- * behaviour there (Enable AI, investigating, drafting postmortems, opening
- * fix pull requests, AI Insights) is a switch that saves on flip. So are
+ * Dashboard's Pages/Monitor or Pages/StatusPages may be listed. Who can see
+ * a status page is one choice on its Access page (anyone with the link,
+ * only people who sign in, anyone with the password), and requiring SSO
+ * for its sign-in is a switch on its SSO page. So are dashboards: who can
+ * view one is one choice on its Sharing page (only people in the project,
+ * anyone with the link, anyone with the link and a password), and no card
+ * under Pages/Dashboards may be listed. So are incidents, alerts,
+ * episodes, scheduled maintenance, runbooks, SLOs and RUM: their
+ * reminders, privacy, status page visibility and on/off switches save on
+ * flip, and no card under those pages may be listed. So are the AI
+ * settings pages: every AI behaviour there (Enable AI, investigating,
+ * drafting postmortems, opening fix pull requests, AI Insights) is a
+ * switch that saves on flip. So are
  * Project Settings and the admin dashboard: customer support access,
  * monitor groups, requiring SSO, sign up, project creation and master
  * admin save on flip, and nothing under the Dashboard's Pages/Settings may
@@ -68,11 +74,7 @@ const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
  * an entry's owner is a name someone can look up. "" for a card no task in
  * the batch converts yet.
  */
-export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [
-  "dashboard-sharing-one-choice",
-  "status-page-access-one-choice",
-  "",
-];
+export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [""];
 
 export interface OneSwitchCardLeft {
   // Repository-relative, with "/".
@@ -87,52 +89,12 @@ export interface OneSwitchCardLeft {
   reason: string;
 }
 
-const STATUS_PAGE_ACCESS_TASK: string = "status-page-access-one-choice";
-const DASHBOARD_SHARING_TASK: string = "dashboard-sharing-one-choice";
-
-export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [
-  // Who may see a dashboard.
-  {
-    file: `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
-    column: "isPublicDashboard",
-    card: "Dashboard > Authentication Settings (Is Visible to Public)",
-    task: DASHBOARD_SHARING_TASK,
-    reason:
-      "Part of who may view a dashboard, which its task turns into one choice rather than a switch.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
-    column: "enableMasterPassword",
-    card: "Dashboard > Master Password",
-    task: DASHBOARD_SHARING_TASK,
-    reason: "Part of who may view a dashboard, with its public switch.",
-  },
-
-  // Who may see a status page.
-  {
-    file: `${DASHBOARD}/Pages/StatusPages/View/AuthenticationSettings.tsx`,
-    column: "isPublicStatusPage",
-    card: "Status Page > Authentication Settings (Is Visible to Public)",
-    task: STATUS_PAGE_ACCESS_TASK,
-    reason:
-      "Who can see the status page: anyone, people who sign in, or anyone with the password, which its task makes one choice. A switch could hide a public page in one press.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/StatusPages/View/AuthenticationSettings.tsx`,
-    column: "enableMasterPassword",
-    card: "Status Page > Master Password",
-    task: STATUS_PAGE_ACCESS_TASK,
-    reason: "Part of who can see the status page, with its public switch.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
-    column: "requireSsoForLogin",
-    card: "SSO Settings (Force SSO for Login)",
-    task: STATUS_PAGE_ACCESS_TASK,
-    reason:
-      "Requiring SSO for a status page's visitors is part of who can see it, and locks out anyone SSO does not let in.",
-  },
-];
+/*
+ * Empty: every one-switch card the batch found is converted. The last two,
+ * who may view a dashboard (its public switch and its password switch),
+ * became one choice on the dashboard's Sharing page.
+ */
+export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [];
 
 // The cards one-switch cards are judged on.
 function isCard(form: FormFacts): boolean {
@@ -296,11 +258,25 @@ describe("one-switch cards in the frontends", () => {
     });
   };
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. No one-switch card is
+   * left, so the walk is proven by the cards it reads that hold a switch
+   * beside other fields: the detector sees their switches, and judges them
+   * (as above) to be forms.
+   */
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
     expect(forms.filter(isCard).length).toBeGreaterThan(100);
-    expect(cards.length).toBeGreaterThan(0);
+    expect(
+      forms.filter((form: FormFacts): boolean => {
+        return (
+          isCard(form) &&
+          form.fields.some((field: FormFieldFacts): boolean => {
+            return isSwitchFieldType(field.fieldType);
+          })
+        );
+      }).length,
+    ).toBeGreaterThan(0);
   });
 
   test("every card that is one switch is converted, or listed with its task", () => {
@@ -367,32 +343,30 @@ describe("one-switch cards in the frontends", () => {
     ).toEqual([]);
   });
 
-  test("a status page's one-switch cards are only who may see it, which the access task owns", () => {
-    const statusPageCards: Array<FormFacts> = cards.filter(
-      (form: FormFacts): boolean => {
+  /*
+   * Who can see a status page is one choice on its Access page, and
+   * requiring SSO for its sign-in a switch on its SSO page: no card under
+   * the status pages may be one switch, and none may be listed.
+   */
+  test("no status page has a one-switch card", () => {
+    const statusPageCards: Array<string> = cards
+      .filter((form: FormFacts): boolean => {
         return form.file.startsWith(`${DASHBOARD}/Pages/StatusPages/`);
-      },
-    );
+      })
+      .map(describeCard);
 
-    for (const form of statusPageCards) {
-      const entry: OneSwitchCardLeft | undefined = ONE_SWITCH_CARDS_LEFT.find(
-        (candidate: OneSwitchCardLeft): boolean => {
-          return (
-            candidate.file === form.file && candidate.column === columnOf(form)
-          );
-        },
-      );
+    expect(statusPageCards).toEqual([]);
+    expect(
+      ONE_SWITCH_CARDS_LEFT.filter((entry: OneSwitchCardLeft): boolean => {
+        return entry.file.startsWith(`${DASHBOARD}/Pages/StatusPages/`);
+      }),
+    ).toEqual([]);
 
-      expect([describeCard(form), entry?.task]).toEqual([
-        describeCard(form),
-        STATUS_PAGE_ACCESS_TASK,
-      ]);
-    }
-
-    // Embedded Status and MCP are switches that save when flipped.
+    // Embedded Status, MCP and SSO hold switches that save when flipped.
     const converted: Array<string> = [
       `${DASHBOARD}/Pages/StatusPages/View/EmbeddedStatus.tsx`,
       `${DASHBOARD}/Pages/StatusPages/View/Mcp.tsx`,
+      `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
     ];
 
     for (const file of converted) {
@@ -403,6 +377,36 @@ describe("one-switch cards in the frontends", () => {
         }).length,
       ]).toEqual([file, 0]);
     }
+  });
+
+  /*
+   * Who can view a dashboard is one choice on its Sharing page
+   * (Components/Dashboard/Sharing/DashboardSharingCard): no card under the
+   * dashboards may be one switch, and none may be listed.
+   */
+  test("no dashboard page has a one-switch card", () => {
+    const dashboardCards: Array<string> = cards
+      .filter((form: FormFacts): boolean => {
+        return form.file.startsWith(`${DASHBOARD}/Pages/Dashboards/`);
+      })
+      .map(describeCard);
+
+    expect(dashboardCards).toEqual([]);
+    expect(
+      ONE_SWITCH_CARDS_LEFT.filter((entry: OneSwitchCardLeft): boolean => {
+        return entry.file.startsWith(`${DASHBOARD}/Pages/Dashboards/`);
+      }),
+    ).toEqual([]);
+
+    // The walk really reads the dashboards' pages (Sharing's IP allowlist).
+    expect(
+      forms.filter((form: FormFacts): boolean => {
+        return (
+          form.file === `${DASHBOARD}/Pages/Dashboards/View/Sharing.tsx` &&
+          isCard(form)
+        );
+      }).length,
+    ).toBe(1);
   });
 
   /*
@@ -463,7 +467,7 @@ describe("one-switch cards in the frontends", () => {
     }
   });
 
-  test("the cards the monitor, status page, event, runbook, SLO, RUM and AI areas converted stay converted", () => {
+  test("the cards the monitor, status page, dashboard, event, runbook, SLO, RUM and AI areas converted stay converted", () => {
     const retired: Array<{ file: string; column: string }> = [
       {
         file: `${DASHBOARD}/Pages/Monitor/View/Settings.tsx`,
@@ -481,6 +485,37 @@ describe("one-switch cards in the frontends", () => {
         file: `${DASHBOARD}/Pages/StatusPages/View/Mcp.tsx`,
         column: "enableMcpServer",
       },
+      /*
+       * Who can see a status page: one choice on Access
+       * (Components/StatusPage/StatusPageAccessCard), and the SSO page's
+       * Require SSO for Login switch (StatusPageRequireSsoCard).
+       */
+      {
+        file: `${DASHBOARD}/Pages/StatusPages/View/AuthenticationSettings.tsx`,
+        column: "isPublicStatusPage",
+      },
+      {
+        file: `${DASHBOARD}/Pages/StatusPages/View/AuthenticationSettings.tsx`,
+        column: "enableMasterPassword",
+      },
+      {
+        file: `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
+        column: "requireSsoForLogin",
+      },
+      /*
+       * Who can view a dashboard: one choice on Sharing (the old
+       * Authentication page, at the same address), whose file was renamed.
+       */
+      ...[
+        `${DASHBOARD}/Pages/Dashboards/View/Sharing.tsx`,
+        `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
+      ].flatMap((file: string): Array<{ file: string; column: string }> => {
+        return ["isPublicDashboard", "enableMasterPassword"].map(
+          (column: string): { file: string; column: string } => {
+            return { file, column };
+          },
+        );
+      }),
       {
         file: `${DASHBOARD}/Pages/Incidents/View/Settings.tsx`,
         column: "enableReminders",
