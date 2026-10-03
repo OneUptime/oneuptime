@@ -403,7 +403,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
               "This policy has no escalation rules yet, so triggering it will not page anyone.",
             )}
           </p>
-          <div className="mt-4 flex justify-center">
+          {/* md:-ml-3 takes back the Button's own md:ml-3: truly centred. */}
+          <div className="mt-4 flex justify-center md:-ml-3">
             {getEscalationRulesButton()}
           </div>
         </div>
@@ -611,7 +612,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                     "This policy will not page anyone when it is triggered.",
                   )}
                 </p>
-                <div className="mt-3">{getEscalationRulesButton()}</div>
+                {/* Lined up with the text above it (the Button has md:ml-3). */}
+                <div className="mt-3 md:-ml-3">
+                  {getEscalationRulesButton()}
+                </div>
               </div>
             </div>
           </div>
