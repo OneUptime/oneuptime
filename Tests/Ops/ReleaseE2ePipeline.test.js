@@ -391,11 +391,15 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
  * of an async function of `github` and `context` - with each ${{ }}
  * expression in it replaced from `expressions`. An expression with no value
  * there throws, rather than reaching the script as literal text.
+ * `setTimeout`, if given, stands in for the global one the script waits on.
  * @param {object} step
- * @param {{github: object, context: object, expressions: Object<string, string>}} scope
+ * @param {{github: object, context: object, expressions: Object<string, string>, setTimeout?: Function}} scope
  * @returns {Promise<unknown>}
  */
-function runGithubScript(step, { github, context, expressions }) {
+function runGithubScript(
+  step,
+  { github, context, expressions, setTimeout = global.setTimeout },
+) {
   const script = step.with.script.replace(
     /\$\{\{\s*(.+?)\s*\}\}/g,
     (match, expression) => {
@@ -409,7 +413,11 @@ function runGithubScript(step, { github, context, expressions }) {
     return undefined;
   }).constructor;
 
-  return new AsyncFunction("github", "context", script)(github, context);
+  return new AsyncFunction("github", "context", "setTimeout", script)(
+    github,
+    context,
+    setTimeout,
+  );
 }
 
 /*
@@ -476,7 +484,7 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
     const sha = "5a55eface9b1d6f0c2e8a4b7d3c9e1f2a6b8c0d4";
 
     // Runs the publish script for 9.9.9, whose draft is release 42.
-    async function runPublish(updateRelease) {
+    async function runPublish(updateRelease, waits = jest.fn()) {
       const github = {
         paginate: jest.fn().mockResolvedValue([
           { id: 41, tag_name: "9.9.8", draft: false },
@@ -498,6 +506,12 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
           github,
           context: { repo: { owner: "OneUptime", repo: "oneuptime" }, sha },
           expressions: { "needs.read-version.outputs.major_minor": "9.9.9" },
+          // The back-off between attempts returns at once, recorded in
+          // `waits`, so a retry shows up as calls rather than minutes.
+          setTimeout: (resolve, ms) => {
+            waits(ms);
+            resolve();
+          },
         });
       } finally {
         log.mockRestore();
@@ -522,6 +536,50 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
           target_commitish: sha,
         }),
       );
+    });
+
+    test("still retries a transient failure", async () => {
+      const unavailable = Object.assign(
+        new Error("No server is currently available to service your request."),
+        { status: 503 },
+      );
+      const updateRelease = jest
+        .fn()
+        .mockRejectedValueOnce(unavailable)
+        .mockResolvedValue({ data: {} });
+      const waits = jest.fn();
+
+      await runPublish(updateRelease, waits);
+
+      expect(updateRelease).toHaveBeenCalledTimes(2);
+      expect(waits).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The workflow token may not create a ref at a commit whose workflows
+     * differ from master's, so the publish is refused if master changed a
+     * workflow during the run. That is not transient: retrying it only
+     * waited out 150 seconds of back-off before failing with a bare 403.
+     */
+    test("stops at once when GitHub refuses to create the tag, and says how to publish by hand", async () => {
+      const refused = Object.assign(
+        new Error(
+          "Resource not accessible by integration - https://docs.github.com/rest/releases/releases#update-a-release",
+        ),
+        { status: 403 },
+      );
+      const updateRelease = jest.fn().mockRejectedValue(refused);
+      const waits = jest.fn();
+      const publishing = runPublish(updateRelease, waits);
+
+      await expect(publishing).rejects.toThrow(
+        `GitHub refused to create tag 9.9.9 at ${sha}`,
+      );
+      await expect(publishing).rejects.toThrow(
+        "Publish the draft for 9.9.9 from the Releases page",
+      );
+      expect(updateRelease).toHaveBeenCalledTimes(1);
+      expect(waits).not.toHaveBeenCalled();
     });
   });
 });

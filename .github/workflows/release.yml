@@ -2436,7 +2436,8 @@ jobs:
       # and the release page's source archives followed the tag. github.sha
       # is the commit this run stamps into its images (--git-sha). The action
       # sends `commit` when it updates a draft as well as when it creates
-      # one, so a draft an earlier run left behind is corrected too.
+      # one, so a draft an earlier run left behind is corrected too. GitHub
+      # can refuse to create the tag there; see finalize-github-release.
       - name: Create draft release
         id: draft_release_1
         continue-on-error: true
@@ -2916,6 +2917,18 @@ jobs:
                 break;
               } catch (error) {
                 const message = error.message ?? error;
+
+                // Not transient, so not retried. GITHUB_TOKEN may not create
+                // a ref at a commit whose .github/workflows differ from
+                // master's: test-release's build-number tag was refused this
+                // way (run 37040970616) moments after master changed a
+                // workflow. Creating the tag at context.sha can be refused
+                // the same way once master changes a workflow while a release
+                // is running. A person is not held to that, and the draft
+                // already targets this commit.
+                if (error.status === 403 && /Resource not accessible by integration/.test(message)) {
+                  throw new Error(`GitHub refused to create tag ${tag} at ${context.sha} (${message}). The likely cause is that master's .github/workflows have changed since this commit, and the workflow token may not create a ref at a commit whose workflows differ from master's. Re-running this job will not help. Publish the draft for ${tag} from the Releases page: it targets ${context.sha}, so the tag is created there.`);
+                }
 
                 if (attempt >= maxAttempts) {
                   throw new Error(`Failed to publish release for tag ${tag} after ${maxAttempts} attempts: ${message}`);
