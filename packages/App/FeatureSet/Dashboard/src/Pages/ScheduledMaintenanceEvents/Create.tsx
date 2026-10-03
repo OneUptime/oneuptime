@@ -43,7 +43,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
@@ -53,6 +57,25 @@ import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArra
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getDefaultMaintenanceEndsAt,
+  getDefaultMaintenanceStartsAt,
+  getMaintenanceEndsAtError,
+  getSubscriberNotificationsSection,
+  moveMaintenanceEndWithStart,
+} from "../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+
+/*
+ * Three steps - Event, Resources Affected, Notify & more - and the review
+ * step (see Components/ScheduledMaintenance/ScheduledMaintenanceForm for
+ * why). Built once: BasicForm folds the fields next to each other that
+ * carry the same section.
+ */
+const advancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getAdvancedFormSection<ScheduledMaintenance>();
+
+const subscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getSubscriberNotificationsSection<ScheduledMaintenance>();
 
 /*
  * Every resource type the "Resources Affected" step offers. The editor and
@@ -273,32 +296,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
               id="create-scheduledMaintenance-form"
               steps={[
                 {
-                  title: "Event Info",
-                  id: "event-info",
-                },
-                {
-                  title: "Event Time",
-                  id: "event-time",
+                  title: "Event",
+                  id: "event",
                 },
                 {
                   title: "Resources Affected",
                   id: "resources-affected",
                 },
                 {
-                  title: "Status Pages",
-                  id: "status-pages",
-                },
-                {
-                  title: "Owners",
-                  id: "owners",
-                },
-                {
-                  title: "Subscribers",
-                  id: "subscribers",
-                },
-                {
-                  title: "Labels",
-                  id: "labels",
+                  title: "Notify & more",
+                  id: "notify",
                 },
               ]}
               fields={[
@@ -307,7 +314,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     title: true,
                   },
                   title: "Title",
-                  stepId: "event-info",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
                   placeholder: "Event Title",
@@ -320,32 +327,50 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     description: true,
                   },
                   title: "Description",
-                  stepId: "event-info",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
                   description: MarkdownUtil.getMarkdownCheatsheet(
                     "Describe the scheduled maintenance event here",
                   ),
                 },
+                /*
+                 * The next full hour, for an hour: change them only when
+                 * they are wrong. Moving the start moves the end with it.
+                 */
                 {
                   field: {
                     startsAt: true,
                   },
-                  title: "Event Starts At",
-                  stepId: "event-time",
+                  title: "Starts At",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  getDefaultValue: (): string => {
+                    return getDefaultMaintenanceStartsAt();
+                  },
+                  onChange: moveMaintenanceEndWithStart,
                 },
                 {
                   field: {
                     endsAt: true,
                   },
                   title: "Ends At",
-                  stepId: "event-time",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  getDefaultValue: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ): string => {
+                    return getDefaultMaintenanceEndsAt(values);
+                  },
+                  customValidation: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ): string | null => {
+                    return getMaintenanceEndsAtError(values);
+                  },
                 },
                 {
                   field: {
@@ -559,6 +584,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   stepId: "resources-affected",
                   description:
                     "This will change the status of all the monitors attached when the event starts.",
+                  collapsibleSection: advancedSection,
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: MonitorStatus,
@@ -598,7 +624,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     statusPages: true,
                   },
                   title: "Show event on these status pages ",
-                  stepId: "status-pages",
+                  stepId: "notify",
                   description: "Select status pages to show this event on",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
@@ -650,25 +676,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 },
                 /*
-                 * People and teams in one picker, kept in ownerUsers /
-                 * ownerTeams: ScheduledMaintenanceService adds them as the
-                 * event's owners. The summary step lists them by name.
+                 * Folded to one line that says what happens. All three are
+                 * on, as on the model: subscribers hear when the event is
+                 * scheduled, starts and ends.
                  */
-                getOwnersFormField({
-                  stepId: "owners",
-                  description:
-                    "Who owns this event. They are notified when its status changes.",
-                }),
-
                 {
                   field: {
                     shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
                   },
-
-                  title: "Event Created: Notify Status Page Subscribers",
-                  stepId: "subscribers",
-                  description:
-                    "Should status page subscribers be notified when this event is created?",
+                  title: "When the event is scheduled",
+                  stepId: "notify",
+                  collapsibleSection: subscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -678,11 +696,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
                       true,
                   },
-
-                  title: "Event Ongoing: Notify Status Page Subscribers",
-                  stepId: "subscribers",
-                  description:
-                    "Should status page subscribers be notified when this event state changes to ongoing?",
+                  title: "When the event starts",
+                  stepId: "notify",
+                  collapsibleSection: subscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -692,11 +708,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
                       true,
                   },
-
-                  title: "Event Ended: Notify Status Page Subscribers",
-                  stepId: "subscribers",
-                  description:
-                    "Should status page subscribers be notified when this event state changes to ended?",
+                  title: "When the event ends",
+                  stepId: "notify",
+                  collapsibleSection: subscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -705,10 +719,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   field: {
                     sendSubscriberNotificationsOnBeforeTheEvent: true,
                   },
-                  stepId: "subscribers",
-                  title: "Send reminders to subscribers before the event",
+                  stepId: "notify",
+                  collapsibleSection: subscriberNotificationsSection,
+                  title: "Reminders before the event",
                   description:
-                    "Please add a list of notification options to notify subscribers before the event",
+                    "Remind subscribers before the event starts, for example 1 day before.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   // Starts with no reminders, and writes only the ones added.
                   customElementCanBeSkipped: true,
@@ -750,20 +765,34 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         value={
                           item.sendSubscriberNotificationsOnBeforeTheEvent as Recurring[]
                         }
-                        postfix=" before the event is begins"
+                        postfix=" before the event begins"
                       />
                     );
                   },
                   required: false,
                 },
+                /*
+                 * Folded under Advanced: owner rules and the owners page
+                 * cover most events. People and teams in one picker, kept
+                 * in ownerUsers / ownerTeams: ScheduledMaintenanceService
+                 * adds them as the event's owners. The summary step lists
+                 * them by name.
+                 */
+                getOwnersFormField({
+                  stepId: "notify",
+                  description:
+                    "Who owns this event. They are notified when its status changes.",
+                  collapsibleSection: advancedSection,
+                }),
                 {
                   field: {
                     labels: true,
                   },
                   title: "Labels ",
-                  stepId: "labels",
+                  stepId: "notify",
                   description:
                     "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                  collapsibleSection: advancedSection,
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: Label,

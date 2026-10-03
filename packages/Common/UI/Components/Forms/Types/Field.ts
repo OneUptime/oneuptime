@@ -83,6 +83,21 @@ export interface FormFieldCollapsibleSection<TEntity> {
    * "Configured" on its header instead.
    */
   openWhenConfigured?: boolean | undefined;
+  /*
+   * What the folded fields are set to, in plain words, shown under the
+   * title while the section is folded - so the form says what will happen
+   * without being opened, and a section whose defaults are right for most
+   * people can stay folded ("Subscribers of the event's status pages are
+   * notified when it is scheduled, when it starts and when it ends.").
+   * Worked out from the form's values as they are now, so it follows what
+   * is ticked. Whole English sentences: each is looked up in the
+   * translations on its own (keep them in translationKey() so the string
+   * extractor finds them). It takes the place of the "Configured" badge,
+   * which shows as usual while nothing is returned.
+   */
+  getSummary?:
+    | ((values: FormValues<TEntity>) => Array<string> | undefined)
+    | undefined;
 }
 
 export default interface Field<TEntity> {
