@@ -130,14 +130,14 @@ Anhänge werden über `GET {statusPageCrudPath}/status-page-announcement/attachm
 **Show At** (`showAnnouncementAt`) und **End At** (`endAnnouncementAt`) treiben alles, aber die Übersichtsseite und die Ankündigungsliste stellen unterschiedliche Fragen, und dieser Unterschied bringt Leute ins Stolpern.
 
 - **Die Übersichtsseite** zeigt eine Ankündigung, wenn `showAnnouncementAt` in der Vergangenheit liegt und `endAnnouncementAt` entweder in der Zukunft liegt oder leer ist.
-- **Die Liste `/announcements`** zeigt Ankündigungen, deren `showAnnouncementAt` in den Zeitraum **Ankündigungsverlauf anzeigen (in Tagen)** (`showAnnouncementHistoryInDays`, Standard 14) fällt, und teilt sie dann clientseitig in aktive und vergangene auf.
+- **Die Liste `/announcements`** zeigt Ankündigungen, deren `showAnnouncementAt` in den Verlaufszeitraum der Ankündigungen (`showAnnouncementHistoryInDays`, Standard 14) fällt, und teilt sie dann clientseitig in aktive und vergangene auf.
 
 Zwei Folgen, die Sie einplanen sollten:
 
 - **Eine Ankündigung ohne Enddatum läuft nie ab.** Lassen Sie **Anzeige der Ankündigung beenden um** leer, bleibt sie unbegrenzt oben auf der Übersichtsseite. Setzen Sie bei allem Zeitgebundenen ein Enddatum.
 - **Eine alte, aber noch aktive Ankündigung kann aus der Liste verschwinden.** Hat sie vor mehr als `showAnnouncementHistoryInDays` begonnen, fällt sie aus `/announcements` heraus, bleibt aber auf der Übersicht. Erhöhen Sie den Verlaufszeitraum, wenn Sie lange laufende Hinweise pflegen.
 
-Ob Ankündigungen überhaupt erscheinen, steuert die Karte **Ankündigungseinstellungen** unter **Erweiterte Einstellungen**: **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`, Standard true) und **Ankündigungsverlauf anzeigen (in Tagen)** (Standard 14). Ist **Ankündigungen anzeigen** aus, weist der Ankündigungs-Endpunkt die Anfrage rundheraus ab.
+Ob Ankündigungen überhaupt erscheinen, legen Sie in der Karte **Was Ihre Statusseite zeigt** unter **Erweiterte Einstellungen** fest: **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`, Standard true) und darunter **Die letzten … Tage anzeigen** (`showAnnouncementHistoryInDays`, Standard 14). Ist **Ankündigungen anzeigen** aus, weist der Ankündigungs-Endpunkt die Anfrage rundheraus ab.
 
 ## Ankündigungsvorlagen
 

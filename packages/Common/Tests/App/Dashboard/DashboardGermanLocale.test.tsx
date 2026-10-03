@@ -167,6 +167,22 @@ describe("the products menu in German", () => {
 
     const menu: HTMLElement = screen.getByRole("dialog");
 
+    /*
+     * The menu opens on Essentials and folds the other sections to one line
+     * each. These products sit in two of them, named in German as well:
+     * open those the way a user would.
+     */
+    for (const section of ["Observability", "Infrastruktur"]) {
+      const toggle: HTMLElement = within(menu).getByRole("button", {
+        name: section,
+      });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(toggle);
+    }
+    expect(
+      within(menu).queryByRole("button", { name: "Infrastructure" }),
+    ).toBeNull();
+
     for (const [, value] of PRODUCTS_MENU_GERMAN) {
       expect(within(menu).getAllByText(value).length).toBeGreaterThan(0);
     }

@@ -79,6 +79,13 @@ const PRODUCTS_MENU_SPANISH: Array<[string, string]> = [
   ["navbar.items.logsDescription", "Busca y analiza registros."],
 ];
 
+// The products menu's folded sections the test below opens or looks for.
+const MENU_SECTIONS_SPANISH: Array<[string, string]> = [
+  ["navbar.categories.observability", "Observabilidad"],
+  ["navbar.categories.infrastructure", "Infraestructura"],
+  ["navbar.categories.ai", "IA"],
+];
+
 /*
  * "General" is the same word in Spanish, so it is not listed here: the
  * last test checks that every listed value differs from the English.
@@ -256,6 +263,31 @@ describe("the products menu in Spanish", () => {
 
     const menu: HTMLElement = screen.getByRole("dialog");
 
+    /*
+     * The menu opens on Essentials and folds the other sections to one line
+     * each. These products sit in two of them, named in Spanish as well:
+     * open those the way a user would.
+     */
+    for (const section of ["Observabilidad", "Infraestructura"]) {
+      const toggle: HTMLElement = within(menu).getByRole("button", {
+        name: section,
+      });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(toggle);
+    }
+    expect(
+      within(menu).queryByRole("button", { name: "Observability" }),
+    ).toBeNull();
+    expect(
+      within(menu).queryByRole("button", { name: "Infrastructure" }),
+    ).toBeNull();
+
+    // AI is IA in Spanish, in the section name as in the products.
+    expect(
+      within(menu).getByRole("button", { name: "IA" }),
+    ).toBeInTheDocument();
+    expect(within(menu).queryByRole("button", { name: "AI" })).toBeNull();
+
     for (const [, value] of PRODUCTS_MENU_SPANISH) {
       expect(within(menu).getAllByText(value).length).toBeGreaterThan(0);
     }
@@ -355,6 +387,7 @@ describe("the Dashboard addresses the user as tú", () => {
 describe("the Spanish above is the Spanish es.json ships", () => {
   const all: Array<[string, string]> = [
     ...PRODUCTS_MENU_SPANISH,
+    ...MENU_SECTIONS_SPANISH,
     ...SHORTCUTS_SPANISH,
     ...CARD_SPANISH,
     ...MODEL_NAMES_SPANISH,

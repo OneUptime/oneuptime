@@ -52,7 +52,7 @@ Auch **Anzeigename** (`displayName`) und **Beschreibung** (`displayDescription`)
 
 ## Verfügbarkeitsprozente und Verlaufsdiagramme
 
-Sowohl **Verfügbarkeit % anzeigen** als auch **Statusverlaufsdiagramm anzeigen** hängen an einer Einstellung, die woanders liegt. Der Zeitraum, den beide abdecken, ist **Verfügbarkeitsverlauf anzeigen (in Tagen)** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**, in der Karte **Einstellungen für Verfügbarkeitsverlauf**. Sie nimmt 1 bis 90 Tage und steht standardmäßig auf 90.
+Sowohl **Verfügbarkeit % anzeigen** als auch **Statusverlaufsdiagramm anzeigen** hängen an einer Einstellung, die woanders liegt. Der Zeitraum, den beide abdecken, ist **Verfügbarkeitsverlauf** in der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**. Er nimmt 1 bis 90 Tage und steht standardmäßig auf 90.
 
 Die Reihenfolge ist also: die Schalter pro Ressource einschalten, dann den Zeitraum einmal für die ganze Seite setzen.
 

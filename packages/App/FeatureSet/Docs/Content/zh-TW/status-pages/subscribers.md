@@ -130,14 +130,14 @@ SMS、Slack、Microsoft Teams 與 Webhook 訂閱者跳過這一關——它們�
 **Show At**（`showAnnouncementAt`）與 **End At**（`endAnnouncementAt`）主導一切，但總覽頁面和公告清單問的問題不一樣，這個差別常讓人踩坑。
 
 - **總覽頁面** 在 `showAnnouncementAt` 已經過去、而 `endAnnouncementAt` 還在未來或根本沒填時顯示公告。
-- **`/announcements` 清單** 顯示 `showAnnouncementAt` 落在 **顯示公告歷史記錄（天數）**（`showAnnouncementHistoryInDays`，預設 14）範圍內的公告，然後在前端把它們分成進行中與過往。
+- **`/announcements` 清單** 顯示 `showAnnouncementAt` 落在公告歷史記錄天數（`showAnnouncementHistoryInDays`，預設 14）範圍內的公告，然後在前端把它們分成進行中與過往。
 
 有兩個後果值得先想好：
 
 - **沒有結束日期的公告永遠不會過期。** 把 **公告顯示結束於** 留空，它就會無限期釘在總覽頁面上。凡是有時效的內容都設個結束時間。
 - **舊但仍生效的公告可能從清單中消失。** 如果它的開始時間早於 `showAnnouncementHistoryInDays`，它會從 `/announcements` 掉出去，但仍留在總覽頁面上。如果你會掛長期公告，就把歷史區間調大。
 
-公告到底要不要顯示，由 **進階設定** 上的 **公告設定** 卡片控制：**顯示公告**（`showAnnouncementsOnStatusPage`，預設 true）與 **顯示公告歷史記錄（天數）**（預設 14）。**顯示公告** 關閉時，公告端點會直接拒絕請求。
+公告到底要不要顯示，在 **進階設定** 上的 **狀態頁面顯示的內容** 卡片裡設定：**顯示公告**（`showAnnouncementsOnStatusPage`，預設 true）以及它底下的 **顯示最近 … 天**（`showAnnouncementHistoryInDays`，預設 14）。**顯示公告** 關閉時，公告端點會直接拒絕請求。
 
 ## 公告範本
 

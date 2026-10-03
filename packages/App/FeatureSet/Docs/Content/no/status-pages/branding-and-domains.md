@@ -34,7 +34,7 @@ Bruk det når: siden bare er intern eller fortsatt er under oppsett. Slå av **A
 
 **Statussider → siden din → Merkevare → Topptekst** (`{id}/header-style`). Til tross for navnet i sidemenyen er det her de to største merkeressursene dine ligger.
 
-Det første kortet heter **Logo, omslag og favikon**, med en knapp **Edit Images**:
+Det første kortet heter **Logo og forsidebilde**, med en knapp **Edit Images**:
 
 - **Logo** — bildeopplasting, plassholder `Upload logo`.
 - **Logo Alt Text** — plassholder `Logo of My Company`. Lar du det stå tomt, brukes statussidens tittel i stedet.
@@ -64,7 +64,7 @@ Lenker til juridisk informasjon, personvern og vilkår hører hjemme her. Toppte
 - **Standard stolpefarge for historikkdiagrammet** — **Edit Default Bar Color** åpner fargevelgeren **Standard stolpefarge**, altså fargen som brukes når ingen regel treffer.
 - **Samlet oppetidsprosent** — **Edit Settings** åpner bryteren **Vis samlet oppetidsprosent** og nedtrekkslisten **Velg presisjon for oppetid**, som er to desimaler som standard (`99.99% (Two Decimal)`).
 
-**Hvor mange dager diagrammet dekker, settes ikke her.** Det er **Vis oppetidshistorikk (i dager)** på **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`), gyldig fra 1 til 90.
+**Hvor mange dager diagrammet dekker, settes ikke her.** Det er **Oppetidshistorikk** i kortet **Hva statussiden din viser** på **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`), fra 1 til 90 dager.
 
 ## Egendefinert HTML, CSS og JavaScript
 
@@ -152,7 +152,7 @@ Blir en rad stående på «Action Required: Please add your CNAME record.» leng
 
 ## Powered by OneUptime
 
-Linjen «Powered by OneUptime» er ikke en innstilling i merkevareseksjonen. Den bor på **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`), i kortet **Drevet av OneUptime-merkevarebygging**, som én enkelt bryter: **Skjul «Powered By OneUptime»-merkevarebygging**. **Edit Settings** åpner den, som på hvert annet kort på den siden.
+Linjen «Powered by OneUptime» er ikke en innstilling i merkevareseksjonen. Det er den siste bryteren i kortet **Hva statussiden din viser** på **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, på som standard. Slå den av for å skjule linjen; det lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den.
 
 ## Hvor du leser videre
 
