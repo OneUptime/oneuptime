@@ -24462,5 +24462,6 @@
   "People added in your identity provider can sign in to this status page, and people removed there lose access.": "Personer, der tilføjes i din identitetsudbyder, kan logge på denne statusside, og personer, der fjernes der, mister adgangen.",
   "People added in your identity provider join the default teams, and people removed there leave them.": "Personer, der tilføjes i din identitetsudbyder, kommer med i standardteamene, og personer, der fjernes der, forlader dem.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} har allerede sit gratis SSL-certifikat, og vi fornyer det automatisk.",
-  "{{domain}} is served with the certificate you uploaded.": "{{domain}} vises med det certifikat, du har uploadet."
+  "{{domain}} is served with the certificate you uploaded.": "{{domain}} vises med det certifikat, du har uploadet.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Din CNAME-post er bekræftet, men det gratis SSL-certifikat til dette domæne er endnu ikke udstedt. Klik på Tjek nu for at prøve igen og se hvorfor."
 }

@@ -123,7 +123,8 @@ export interface EntityDropdownProps {
    * Every list the dropdown asks the server for to offer entries (the
    * search, and the Labels tab's entries for a label) is narrowed by it.
    * Looking up the label of an entry that is already picked is not, so a
-   * saved value never shows as a raw id.
+   * saved value never shows as a raw id. A condition on labelField itself
+   * is replaced by the reader's search text while they type.
    */
   query?: Record<string, unknown> | undefined;
   /*

@@ -224,8 +224,8 @@ describe("the copy", () => {
     }
   });
 
-  test("brings 23 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(23);
+  test("brings 24 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(24);
   });
 
   test.each(OTHER_LOCALES)(

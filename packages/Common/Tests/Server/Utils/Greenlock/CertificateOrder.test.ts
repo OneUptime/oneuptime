@@ -415,6 +415,170 @@ describe("CertificateOrder.orderIfMissing", () => {
   });
 });
 
+describe("CertificateOrder.orderIfMissing with a budget", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("asks mayOrder only when an order is about to be placed, and orders when it says yes", async () => {
+    useInMemoryLocks();
+    useCertificates(new Map());
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+    const mayOrder: Mock<() => Promise<boolean>> = jest.fn(async () => {
+      return true;
+    });
+
+    const outcome: CertificateOrderOutcome =
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        order: order as never,
+        recordAsOrdered: jest.fn(async () => {}) as never,
+        mayOrder: mayOrder as never,
+      });
+
+    expect(outcome).toBe(CertificateOrderOutcome.Ordered);
+    expect(mayOrder).toHaveBeenCalledTimes(1);
+    expect(order).toHaveBeenCalledTimes(1);
+  });
+
+  test("a spent budget orders nothing, and releases the lock", async () => {
+    const locks: Locks = useInMemoryLocks();
+    useCertificates(new Map());
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+
+    const outcome: CertificateOrderOutcome =
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        order: order as never,
+        recordAsOrdered: jest.fn(async () => {}) as never,
+        mayOrder: (async (): Promise<boolean> => {
+          return false;
+        }) as never,
+      });
+
+    expect(outcome).toBe(CertificateOrderOutcome.NotOrderedNow);
+    expect(order).not.toHaveBeenCalled();
+    expect(locks.held.size).toBe(0);
+  });
+
+  // Recording an existing certificate costs no order, so it takes no budget.
+  test("a name that has a certificate never asks the budget", async () => {
+    useInMemoryLocks();
+    useCertificates(new Map([["status.acme.com", IN_SIXTY_DAYS]]));
+    const mayOrder: Mock<() => Promise<boolean>> = jest.fn(async () => {
+      return true;
+    });
+
+    await CertificateOrder.orderIfMissing({
+      domain: "status.acme.com",
+      order: jest.fn(async () => {}) as never,
+      recordAsOrdered: jest.fn(async () => {}) as never,
+      mayOrder: mayOrder as never,
+    });
+
+    expect(mayOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("CertificateOrder.takeOrderSlot", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  type Increment = { namespace: string; key: string; expiresInSeconds: number };
+
+  function useInMemoryCounters(): Array<Increment> {
+    const counters: Map<string, number> = new Map();
+    const increments: Array<Increment> = [];
+
+    jest.spyOn(GlobalCache, "incrementWithExpiry").mockImplementation((async (
+      namespace: string,
+      key: string,
+      options: { expiresInSeconds: number },
+    ): Promise<number> => {
+      increments.push({
+        namespace,
+        key,
+        expiresInSeconds: options.expiresInSeconds,
+      });
+
+      const fullKey: string = `${namespace}-${key}`;
+      const count: number = (counters.get(fullKey) || 0) + 1;
+      counters.set(fullKey, count);
+      return count;
+    }) as never);
+
+    return increments;
+  }
+
+  const WINDOW_START: Date = new Date(1_800_000_000_000);
+
+  test("gives out maxPerWindow orders in a window, and no more", async () => {
+    useInMemoryCounters();
+
+    const taken: Array<boolean> = [];
+
+    for (let i: number = 0; i < 7; i++) {
+      taken.push(
+        await CertificateOrder.takeOrderSlot({
+          budget: "Sweeps",
+          maxPerWindow: 5,
+          now: WINDOW_START,
+        }),
+      );
+    }
+
+    expect(taken).toEqual([true, true, true, true, true, false, false]);
+  });
+
+  test("a new 15-minute window has a new budget, and budgets do not share", async () => {
+    const increments: Array<Increment> = useInMemoryCounters();
+
+    for (let i: number = 0; i < 5; i++) {
+      await CertificateOrder.takeOrderSlot({
+        budget: "Sweeps",
+        maxPerWindow: 5,
+        now: WINDOW_START,
+      });
+    }
+
+    expect(
+      await CertificateOrder.takeOrderSlot({
+        budget: "Sweeps",
+        maxPerWindow: 5,
+        now: new Date(WINDOW_START.getTime() + 15 * 60 * 1000),
+      }),
+    ).toBe(true);
+    expect(
+      await CertificateOrder.takeOrderSlot({
+        budget: "Other",
+        maxPerWindow: 5,
+        now: WINDOW_START,
+      }),
+    ).toBe(true);
+
+    expect(increments[0]!.namespace).toBe(
+      CertificateOrder.ORDER_BUDGET_NAMESPACE,
+    );
+    // Outlives its window, so no replica's clock can read a fresh counter.
+    expect(increments[0]!.expiresInSeconds).toBeGreaterThanOrEqual(15 * 60);
+  });
+
+  test("without the cache it gives out nothing", async () => {
+    jest
+      .spyOn(GlobalCache, "incrementWithExpiry")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    expect(
+      await CertificateOrder.takeOrderSlot({
+        budget: "Sweeps",
+        maxPerWindow: 5,
+        now: WINDOW_START,
+      }),
+    ).toBe(false);
+  });
+});
+
 /*
  * The on-demand order window behind Check now: one order per domain per
  * ON_DEMAND_ORDER_WINDOW_IN_MINUTES, claimed with SET NX, and the last

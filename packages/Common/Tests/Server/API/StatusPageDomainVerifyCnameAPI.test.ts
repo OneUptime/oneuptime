@@ -443,6 +443,26 @@ describe("order-ssl (API callers)", () => {
     expect(sendEmptySuccessResponseMock).toHaveBeenCalled();
   });
 
+  test("refuses a domain on an uploaded certificate, which the sweeps never order for either", async () => {
+    const spies: Spies = setUp({
+      domain: makeDomain({
+        isCnameVerified: true,
+        isCustomCertificate: true,
+        cnameVerificationToken: "token",
+      }),
+    });
+
+    await callRoute(ORDER_ROUTE);
+
+    expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+    expect(spies.orderCert).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error.message).toContain("uses a certificate you uploaded");
+  });
+
   test("still refuses a domain whose CNAME is not verified, before any order", async () => {
     const spies: Spies = setUp({
       domain: makeDomain({

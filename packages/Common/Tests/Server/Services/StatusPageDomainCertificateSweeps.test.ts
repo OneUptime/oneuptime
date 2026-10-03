@@ -136,6 +136,8 @@ type Service = {
   findByCalls: Array<FindByCall>;
   // Domains handed to orderCertIfMissing, in order.
   ordered: Array<string>;
+  // Whether each of those orders drew from the sweeps' shared budget.
+  fromSweep: Array<boolean>;
   // Domains recorded as ordered without an order.
   recordedAsOrdered: Array<string>;
 };
@@ -152,6 +154,7 @@ function setUpService(data: {
   const service: Service = {
     findByCalls: [],
     ordered: [],
+    fromSweep: [],
     recordedAsOrdered: [],
   };
 
@@ -172,8 +175,10 @@ function setUpService(data: {
     .spyOn(StatusPageDomainService, "orderCertIfMissing")
     .mockImplementation((async (
       domain: DomainRow,
+      options?: { fromSweep?: boolean },
     ): Promise<CertificateOrderOutcome> => {
       service.ordered.push(domain.fullDomain);
+      service.fromSweep.push(Boolean(options?.fromSweep));
 
       if ((data.failOrdersFor || []).includes(domain.fullDomain)) {
         throw new Error(`CA refused the order for ${domain.fullDomain}`);
@@ -282,6 +287,8 @@ describe("StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet", () =
 
     expect(service.ordered.sort()).toEqual(["a.example.com", "b.example.com"]);
     expect(service.recordedAsOrdered).toEqual([]);
+    // Each order draws from the budget the ordering sweeps share.
+    expect(service.fromSweep).toEqual([true, true]);
   });
 
   /*
@@ -470,6 +477,7 @@ describe("StatusPageDomainService.checkOrderStatus", () => {
     await StatusPageDomainService.checkOrderStatus();
 
     expect(service.ordered).toEqual(["lost-its-certificate.example.com"]);
+    expect(service.fromSweep).toEqual([true]);
   });
 
   /*

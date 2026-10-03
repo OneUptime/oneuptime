@@ -204,7 +204,8 @@ export default class CertificateOrder {
         `${data.budget}-${windowIndex}`,
         {
           // Two windows: long enough for every replica's clock.
-          expiresInSeconds: CertificateOrder.ORDER_BUDGET_WINDOW_IN_MINUTES * 2 * 60,
+          expiresInSeconds:
+            CertificateOrder.ORDER_BUDGET_WINDOW_IN_MINUTES * 2 * 60,
         },
       );
 

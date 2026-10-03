@@ -17,6 +17,7 @@ import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateS
 import AcmeCertificate from "../../../../Models/DatabaseModels/AcmeCertificate";
 import OneUptimeDate from "../../../../Types/Date";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const mockIssuedAt: Date = new Date("2026-10-01T00:00:00.000Z");
 const mockExpiresAt: Date = new Date("2026-12-30T00:00:00.000Z");
@@ -130,6 +131,50 @@ describe("GreenlockUtil.orderCert storing the issued certificate", () => {
     expect(store.creates[0]!.domain).toBe("dash.acme.com");
     expect(store.creates[0]!.issuedAt).toEqual(mockIssuedAt);
     expect(store.creates[0]!.expiresAt).toEqual(mockExpiresAt);
+  });
+
+  /*
+   * A failed CNAME check refuses the order. By default it also removes the
+   * name's certificate - renewal relies on that - but a caller that may be
+   * replacing a certificate that is serving (a reissue) keeps it.
+   */
+  test("a failed CNAME check removes the name's certificate by default, and refuses", async () => {
+    setUpStore({ existingRow: true, rowsUpdated: 1 });
+    const removeSpy: SpyInstance<(domain: string) => Promise<void>> = jest
+      .spyOn(GreenlockUtil, "removeDomain")
+      .mockResolvedValue(undefined);
+
+    await expect(
+      GreenlockUtil.orderCert({
+        domain: "dash.acme.com",
+        validateCname: async (): Promise<boolean> => {
+          return false;
+        },
+      }),
+    ).rejects.toThrow("Cname is not valid");
+
+    expect(removeSpy).toHaveBeenCalledWith("dash.acme.com");
+  });
+
+  test("with removeCertificateIfCnameIsInvalid false, a failed CNAME check refuses and keeps the certificate", async () => {
+    const store: Store = setUpStore({ existingRow: true, rowsUpdated: 1 });
+    const removeSpy: SpyInstance<(domain: string) => Promise<void>> = jest
+      .spyOn(GreenlockUtil, "removeDomain")
+      .mockResolvedValue(undefined);
+
+    await expect(
+      GreenlockUtil.orderCert({
+        domain: "dash.acme.com",
+        validateCname: async (): Promise<boolean> => {
+          return false;
+        },
+        removeCertificateIfCnameIsInvalid: false,
+      }),
+    ).rejects.toThrow("Cname is not valid");
+
+    expect(removeSpy).not.toHaveBeenCalled();
+    expect(store.updates).toEqual([]);
+    expect(store.creates).toEqual([]);
   });
 
   test("creates a row when the one it found was removed before the write", async () => {

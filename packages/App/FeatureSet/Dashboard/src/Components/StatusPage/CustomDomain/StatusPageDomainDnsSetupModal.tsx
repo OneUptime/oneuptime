@@ -69,6 +69,17 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     <span className="font-semibold text-gray-900">{fullDomain}</span>
   );
 
+  /*
+   * What happens next, for where the domain is: a verified one is here
+   * because its free certificate is not issued yet - an order that keeps
+   * failing - and Check now tries again and says why.
+   */
+  const whatHappensNext: string = props.domain.isCustomCertificate
+    ? StatusPageCustomDomainCopy.dnsSetupWhatHappensNextUploaded
+    : props.domain.isCnameVerified
+      ? StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued
+      : StatusPageCustomDomainCopy.dnsSetupWhatHappensNext;
+
   // The subdomain is empty for the domain itself ("@" when it was added).
   const isRootDomain: boolean =
     typeof props.domain.subdomain === "string" &&
@@ -246,12 +257,11 @@ const StatusPageDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <p className="text-sm leading-6 text-gray-600">
-          {translator.translateText(
-            props.domain.isCustomCertificate
-              ? StatusPageCustomDomainCopy.dnsSetupWhatHappensNextUploaded
-              : StatusPageCustomDomainCopy.dnsSetupWhatHappensNext,
-          )}
+        <p
+          className="text-sm leading-6 text-gray-600"
+          data-testid={DNS_SETUP_TEST_IDS.whatHappensNext}
+        >
+          {translator.translateText(whatHappensNext)}
         </p>
       </div>
     </Modal>

@@ -129,6 +129,8 @@ export const StatusPageCustomDomainCopy: {
   dnsSetupRootDomain: string;
   dnsSetupWhatHappensNext: string;
   dnsSetupWhatHappensNextUploaded: string;
+  // DNS Setup on a verified domain whose free certificate is not issued yet.
+  dnsSetupVerifiedNotIssued: string;
   dnsSetupCheckNow: string;
   dnsSetupClose: string;
   dnsSetupDone: string;
@@ -170,6 +172,9 @@ export const StatusPageCustomDomainCopy: {
   dnsSetupWhatHappensNextUploaded: translationKey(
     "We check for this record every 15 minutes, and once it is live we serve this domain with the certificate you uploaded. Added it already? Click Check now.",
   ),
+  dnsSetupVerifiedNotIssued: translationKey(
+    "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.",
+  ),
   dnsSetupCheckNow: translationKey("Check now"),
   dnsSetupClose: translationKey("Close"),
   dnsSetupDone: translationKey("Done"),
@@ -189,6 +194,7 @@ export const DNS_SETUP_TEST_IDS: {
   recordName: string;
   recordValue: string;
   rootDomainNote: string;
+  whatHappensNext: string;
   verified: string;
   certificateError: string;
 } = {
@@ -197,6 +203,7 @@ export const DNS_SETUP_TEST_IDS: {
   recordName: "dns-setup-record-name",
   recordValue: "dns-setup-record-value",
   rootDomainNote: "dns-setup-root-domain",
+  whatHappensNext: "dns-setup-what-happens-next",
   verified: "dns-setup-verified",
   certificateError: "dns-setup-certificate-error",
 };

@@ -26,7 +26,9 @@
  * and the Redis lock (in memory, refusing a held key at once as Redis does).
  */
 
-import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
+import StatusPageDomainService, {
+  Service as StatusPageDomainServiceClass,
+} from "../../../Server/Services/StatusPageDomainService";
 import AcmeCertificateService from "../../../Server/Services/AcmeCertificateService";
 import Semaphore, {
   SemaphoreLockTimeoutError,
@@ -163,6 +165,14 @@ function makeDomain(
 
 function matches(row: DomainRow, query: Record<string, unknown>): boolean {
   return Object.entries(query).every(([key, value]: [string, unknown]) => {
+    /*
+     * A query operator (the reissue cooldown's "older than or null") is
+     * not modelled: the domains here have never been reissued.
+     */
+    if (value !== null && typeof value === "object") {
+      return true;
+    }
+
     return (
       String((row as unknown as Record<string, unknown>)[key]) === String(value)
     );
@@ -428,6 +438,17 @@ function setUpWorld(): void {
     value: string,
   ): Promise<void> => {
     world.cache.set(`${namespace}-${key}`, value);
+  }) as never);
+
+  // The sweeps' shared order budget: a counter per window, in the cache.
+  jest.spyOn(GlobalCache, "incrementWithExpiry").mockImplementation((async (
+    namespace: string,
+    key: string,
+  ): Promise<number> => {
+    const fullKey: string = `${namespace}-${key}`;
+    const count: number = Number(world.cache.get(fullKey) || "0") + 1;
+    world.cache.set(fullKey, String(count));
+    return count;
   }) as never);
 }
 
@@ -701,6 +722,38 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     );
   });
 
+  /*
+   * Regression: Reissue SSL during a CNAME blip. The order checks the CNAME
+   * once more, and GreenlockUtil.orderCert used to remove the name's
+   * certificate when that check failed - the one being reissued, still
+   * serving. The reissue is refused; the certificate stays.
+   */
+  test("Reissue SSL during a CNAME blip is refused, and the working certificate stays", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com", {
+      isCnameVerified: true,
+      isSslOrdered: true,
+      isSslProvisioned: true,
+    });
+    world.domains.push(domain);
+    addCertificate("status.acme.com", 60);
+
+    const certificateBefore: string =
+      world.certificates.get("status.acme.com")!.certificate;
+
+    // The blip, as the reissue's own CNAME check runs.
+    world.dnsLive.delete("status.acme.com");
+
+    await expect(
+      StatusPageDomainService.reissueCert(domain.id),
+    ).rejects.toThrow("Cname is not valid");
+
+    expect(world.deletedCertificates).toEqual([]);
+    expect(world.certificates.get("status.acme.com")?.certificate).toBe(
+      certificateBefore,
+    );
+    expect(mockCaOrders).toEqual([]);
+  });
+
   test("Check now on a domain verified again after a blip records its certificate and orders nothing", async () => {
     const domain: DomainRow = makeDomain("status.acme.com");
     world.domains.push(domain);
@@ -859,6 +912,57 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     await runSweeps();
 
     expect(mockCaOrders).toEqual(["status.acme.com"]);
+  });
+
+  /*
+   * The three sweeps that order - the CNAME sweep for what it has just
+   * verified, the order sweep, the re-order of a missing certificate - run
+   * on the same tick, each capping its own batch. Between them they order
+   * no more than ORDER_MAX_PER_RUN in a window: one budget.
+   */
+  test("the ordering sweeps together order at most ORDER_MAX_PER_RUN in a window", async () => {
+    const max: number = StatusPageDomainServiceClass.ORDER_MAX_PER_RUN;
+
+    // Verified and waiting for the order sweep.
+    for (let i: number = 0; i < max; i++) {
+      world.domains.push(
+        makeDomain(`waiting${i}.acme.com`, { isCnameVerified: true }),
+      );
+      world.dnsLive.add(`waiting${i}.acme.com`);
+    }
+
+    // Live but not verified yet: the CNAME sweep verifies and orders them.
+    for (let i: number = 0; i < max; i++) {
+      world.domains.push(makeDomain(`new${i}.acme.com`));
+      world.dnsLive.add(`new${i}.acme.com`);
+    }
+
+    // Marked ordered, certificate gone: the re-order sweep's.
+    for (let i: number = 0; i < max; i++) {
+      world.domains.push(
+        makeDomain(`lost${i}.acme.com`, {
+          isCnameVerified: true,
+          isSslOrdered: true,
+        }),
+      );
+      world.dnsLive.add(`lost${i}.acme.com`);
+    }
+
+    await runSweeps();
+
+    expect(mockCaOrders).toHaveLength(max);
+
+    // The same window: nothing more.
+    await runSweeps();
+
+    expect(mockCaOrders).toHaveLength(max);
+
+    // The next window orders the next batch.
+    nextOnDemandWindow();
+    await runSweeps();
+
+    expect(mockCaOrders).toHaveLength(max * 2);
+    expect(new Set(mockCaOrders).size).toBe(max * 2);
   });
 
   test("an order that outlives Check now's wait is answered as issuing, and finishes on its own", async () => {

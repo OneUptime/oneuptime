@@ -24462,5 +24462,6 @@
   "People added in your identity provider can sign in to this status page, and people removed there lose access.": "افرادی که در ارائه‌دهنده هویت شما اضافه می‌شوند می‌توانند وارد این صفحه وضعیت شوند و افرادی که آنجا حذف می‌شوند دسترسی خود را از دست می‌دهند.",
   "People added in your identity provider join the default teams, and people removed there leave them.": "افرادی که در ارائه‌دهنده هویت شما اضافه می‌شوند به تیم‌های پیش‌فرض می‌پیوندند و افرادی که آنجا حذف می‌شوند از آن‌ها خارج می‌شوند.",
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} از قبل گواهی SSL رایگان خود را دارد و ما آن را به‌طور خودکار تمدید می‌کنیم.",
-  "{{domain}} is served with the certificate you uploaded.": "{{domain}} با گواهی‌ای که بارگذاری کرده‌اید ارائه می‌شود."
+  "{{domain}} is served with the certificate you uploaded.": "{{domain}} با گواهی‌ای که بارگذاری کرده‌اید ارائه می‌شود.",
+  "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "رکورد CNAME شما تأیید شده است، اما گواهی SSL رایگان این دامنه هنوز صادر نشده است. برای تلاش دوباره و دیدن دلیل، روی «اکنون بررسی کن» کلیک کنید."
 }

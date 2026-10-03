@@ -155,7 +155,7 @@ Every custom domain gets a free certificate from Let's Encrypt, issued and renew
 
 A new certificate is served within 15 minutes of being issued, because that is how often certificates are written out to the servers that answer for your domain. The Status column says _usually_ within 15 minutes: when many domains are waiting at once, they are worked through a few at a time, because every OneUptime certificate is ordered from one shared Let's Encrypt account.
 
-If the order that **Check now** places fails, the dialog shows the reason, and OneUptime tries again every 15 minutes. **Check now** places at most one order per domain every 15 minutes, because every order counts against Let's Encrypt's limits for the shared account; a click in between shows how the last order went. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details.
+If the order that **Check now** places fails, the dialog shows the reason, and OneUptime tries again every 15 minutes. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details. **Check now** places at most one order per domain every 15 minutes, because every order counts against Let's Encrypt's limits for the shared account; a click in between shows how the last order went.
 
 If you uploaded your own certificate under **Advanced**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
 
