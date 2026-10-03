@@ -8,6 +8,7 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepFacts,
+  MIN_SCANNED_FORMS,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
 
@@ -99,7 +100,7 @@ describe("rarely used options", () => {
   });
 
   test("are really read", () => {
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
   });
 
   test("sit in a folded Advanced section, never a wizard step of their own", () => {

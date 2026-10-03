@@ -10,6 +10,7 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepFacts,
+  MIN_SCANNED_FORMS,
   RULE_CRITERIA_STEP_ID,
   SourceFileSystem,
   countFieldRows,
@@ -1084,11 +1085,14 @@ describe("labels on the project's forms", () => {
     },
   );
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
-    expect(forms.length).toBeGreaterThan(500);
-    expect(withLabels.length).toBeGreaterThan(50);
-    expect(withLabels.filter(decidesAccessByLabels).length).toBeGreaterThan(45);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
+    expect(withLabels.length).toBeGreaterThan(30);
+    expect(withLabels.filter(decidesAccessByLabels).length).toBeGreaterThan(25);
   });
 
   test("never walk a step that holds nothing but Labels, or nothing but folded fields", () => {

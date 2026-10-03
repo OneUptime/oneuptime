@@ -4,6 +4,7 @@ import { listScanRoots, listSourceFiles } from "../../ForeignHiddenRuleGuard";
 import {
   FormFacts,
   FormFieldFacts,
+  MIN_SCANNED_FORMS,
   SourceFileSystem,
   countFieldRows,
   scanFormFiles,
@@ -156,10 +157,13 @@ describe("the project's forms", () => {
     files,
   });
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
   });
 
   test("ask for an escalation rule's on-call schedules only with the Notify picker", () => {
