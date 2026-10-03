@@ -22,23 +22,23 @@ De beschrijving van de kaart verandert mee met de vorm van je pagina. Met groepe
 
 ## Een monitor toevoegen
 
-Selecteer de groep waarin de resource moet landen (of **Top of page** voor een ongegroepeerde rij) en klik op **Monitor toevoegen**. De modal heet **Add a monitor to {group}** en heeft twee stappen: **Monitordetails** en **Geavanceerd**.
-
-Op **Monitordetails**:
+Selecteer de groep waarin de resource moet landen (of **Top of page** voor een ongegroepeerde rij) en klik op **Monitor toevoegen**. Het venster heet **Add a monitor to {group}** en is één pagina die maar naar één ding vraagt — de monitor:
 
 - **Monitor** — de vervolgkeuzelijst met monitoren in je project, placeholder **Selecteer monitor**. Verplicht.
-- **Weergavenaam** — verplicht. Dit is de tekst die bezoekers lezen, en ze wordt los van de naam van de monitor zelf opgeslagen, dus je kunt hier hernoemen zonder aan je monitoring te komen.
-- **Beschrijving** — optionele markdown, getoond onder de rij. Goed voor één zin over wat de dienst eigenlijk doet.
+- **Weergavenaam** — de tekst die bezoekers lezen. Ze wordt ingevuld met de naam van de monitor zodra je die kiest, en loopt mee als je een andere monitor kiest, totdat je zelf een naam typt. Ze wordt los van de naam van de monitor zelf opgeslagen, dus je kunt hier hernoemen zonder aan je monitoring te komen.
+- **Geavanceerd** — ingeklapt. Bevat **Beschrijving** (optionele markdown, getoond onder de rij, goed voor één zin over wat de dienst eigenlijk doet) en de [weergaveopties](#weergaveopties-op-een-resource). Laat je het dicht, dan krijgt de resource hun standaardwaarden.
+
+Kies een monitor, klik op **Monitor toevoegen** en de rij staat op de pagina. In een rastergroep vraagt het venster boven **Geavanceerd** ook om de rij en de kolom waarin de monitor komt — zie [Lijstindeling versus rasterindeling](#lijstindeling-versus-rasterindeling).
 
 Staan monitorgroepen in je project aan, dan verschijnt onder de lijst een link **Add a Monitor Group instead.** — klik erop en de lijst **Monitor** wordt vervangen door een lijst **Monitor Groep** (**Selecteer monitorgroep**). De link verandert dan in **Add a Monitor instead.** zodat je terug kunt. Gebruik een monitorgroep wanneer je wilt dat één rij op de pagina meerdere checks samen vertegenwoordigt.
 
 ### Er meerdere tegelijk toevoegen
 
-**Add Multiple** (in het menu **More actions** ook **Add multiple monitors**) opent **Add Multiple Monitors**. Dat heeft dezelfde twee stappen, maar de eerste is een multiselect **Monitoren** in plaats van één vervolgkeuzelijst, en de weergaveopties die je op **Geavanceerd** kiest gelden voor elke monitor die je selecteerde. Dit is de snelste manier om een nieuwe pagina te vullen.
+**Add Multiple** (in het menu **More actions** ook **Add multiple monitors**) opent **Add Multiple Monitors**. Ook dat is één pagina: een multiselect **Monitoren** in plaats van één vervolgkeuzelijst, daaronder dezelfde ingeklapte sectie **Geavanceerd**, waarvan de weergaveopties gelden voor elke monitor die je selecteerde. Elke resource neemt zijn weergavenaam en beschrijving over van zijn monitor, en **Add Monitors** voegt ze toe — er zijn geen stappen om door te lopen. Dit is de snelste manier om een nieuwe pagina te vullen.
 
 ## Weergaveopties op een resource
 
-De stap **Geavanceerd** is identiek op het enkelvoudige formulier en in de bulkmodal. Alles hier geldt per resource — twee rijen in dezelfde groep mogen anders ingesteld zijn.
+De sectie **Geavanceerd** is identiek op het enkelvoudige formulier en in de bulkmodal. Ze begint op allebei ingeklapt, en ook bij **Resource bewerken**, waar haar kop **Ingesteld** zegt wanneer iets erin niet op de standaardwaarde staat. Alles hier geldt per resource — twee rijen in dezelfde groep mogen anders ingesteld zijn.
 
 | Veld                                                     | Waarvoor                                                                                           |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ De stap **Geavanceerd** is identiek op het enkelvoudige formulier en in de bulkm
 | **Selecteer uptime-precisie** (`uptimePercentPrecision`) | Verschijnt pas wanneer **Uptime % weergeven** aan staat. Verplicht, standaard één decimaal.        |
 | **Statusgeschiedenisgrafiek weergeven** (`showStatusHistoryChart`) | Standaard aan. Toont de staafgrafiek met de uptime-geschiedenis per dag voor de resource. |
 
-**Weergavenaam** (`displayName`) en **Beschrijving** (`displayDescription`) uit de eerste stap zijn eveneens alleen voor de weergave — ze veranderen nooit iets aan de monitor zelf.
+**Weergavenaam** (`displayName`) en **Beschrijving** (`displayDescription`) zijn eveneens alleen voor de weergave — ze veranderen nooit iets aan de monitor zelf.
 
 ## Uptimepercentages en geschiedenisgrafieken
 
@@ -64,19 +64,18 @@ De kleuren van de balken in de geschiedenisgrafiek, en welke monitorstatussen al
 
 ## Groepen
 
-Klik op **New Group** om **Create New Status Page Group** te openen. Het formulier heeft drie stappen: **Groepsdetails**, **Indeling** en **Geavanceerd**.
-
-**Groepsdetails**:
+Klik op **New Group** om **Create New Status Page Group** te openen. Het is één pagina: twee velden, daaronder twee ingeklapte secties.
 
 - **Groepsnaam** (`name`) — verplicht. Dit is het sectiekopje dat bezoekers zien.
-- **Groepsbeschrijving** (`description`) — optionele markdown, getoond onder het kopje.
-- **Parent Group** (`parentStatusPageGroupId`) — optioneel. Laat het op **No parent group (top level)** staan om de groep op het hoogste niveau te houden.
-- **Standaard uitvouwen op statuspagina** (`isExpandedByDefault`) — of de sectie voor bezoekers open of ingeklapt begint.
+- **Parent Group** (`parentStatusPageGroupId`) — optioneel. Laat het op **No parent group (top level)** staan om de groep op het hoogste niveau te houden. **Add a sub group** vult het voor je in.
+- **Indeling** — ingeklapt, en de kop zegt **List** of **Grid**. Bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling versus rasterindeling](#lijstindeling-versus-rasterindeling)), en gaat bij een rastergroep vanzelf open.
+- **Geavanceerd** — ingeklapt. Bevat de rest en spiegelt de resourceopties op groepsniveau:
+  - **Groepsbeschrijving** (`description`) — optionele markdown, getoond onder het kopje.
+  - **Standaard uitvouwen op statuspagina** (`isExpandedByDefault`) — standaard aan: of de sectie voor bezoekers open of ingeklapt begint.
+  - **Huidige groepsstatus weergeven** (`showCurrentStatus`) — standaard aan. Toont een status naast het groepskopje.
+  - **Uptime % weergeven** (`showUptimePercent`) — standaard uit, met **Selecteer uptime-precisie** zodra het aan staat.
 
-**Geavanceerd** spiegelt de resourceschakelaars op groepsniveau:
-
-- **Huidige groepsstatus weergeven** (`showCurrentStatus`) — standaard aan. Toont een status naast het groepskopje.
-- **Uptime % weergeven** (`showUptimePercent`) — standaard uit, met **Selecteer uptime-precisie** zodra het aan staat.
+De meeste groepen hebben alleen een naam nodig: typ die en klik op **Create Status Page Group**.
 
 Bewerken werkt op dezelfde manier: **Edit Group** in de kop van het paneel, of **Edit group** in het rijmenu van de navigator, opent **Edit Status Page Group** met een knop **Wijzigingen opslaan**.
 
@@ -96,7 +95,7 @@ Nesten verdient zichzelf terug op grote pagina's: een hostingprovider met regio'
 
 ## Lijstindeling versus rasterindeling
 
-De stap **Indeling** zet **Weergavemodus** (`viewMode`) voor de groep, en dat verandert hoe de groep publiek wordt weergegeven.
+De sectie **Indeling** van het groepsformulier zet **Weergavemodus** (`viewMode`) voor de groep, en dat verandert hoe de groep publiek wordt weergegeven.
 
 | Als je wilt…                                                        | Kies                     |
 | ------------------------------------------------------------------- | ---------------------- |
@@ -110,9 +109,9 @@ Kies je **Grid**, dan verschijnen er vier velden bij:
 - **Label van kolomas** — de kolomdimensie, placeholder `Region`.
 - **Waarden van kolomas** — toegevoegd met **Add Column** (placeholder `e.g. US-East`).
 
-Elke monitor in een rastergroep krijgt vervolgens een cel, dus de bulkmodal vraagt naast de monitoren ook om de rij en de kolom, met jouw eigen aslabels.
+Elke monitor in een rastergroep krijgt vervolgens een cel, dus **Monitor toevoegen** en de bulkmodal vragen naast de monitor ook om de rij en de kolom, met jouw eigen aslabels.
 
-**Zet de assen op voordat je monitoren toevoegt.** Een rastergroep zonder rijen of kolommen toont een oranje melding dat er nergens een monitor kwijt kan totdat de assen bestaan, met een knop **Set up the grid** — en de knop **Monitor toevoegen** blijft weg tot je dat hebt gedaan.
+**Zet de assen op voordat je monitoren toevoegt.** Een rastergroep zonder rijen of kolommen toont een oranje melding dat er nergens een monitor kwijt kan totdat de assen bestaan, met een knop **Set up the grid** die het formulier van de groep opent bij de sectie **Indeling** — en de knop **Monitor toevoegen** blijft weg tot je dat hebt gedaan.
 
 ## De volgorde bepalen die bezoekers zien
 

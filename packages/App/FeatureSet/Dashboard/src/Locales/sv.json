@@ -24222,6 +24222,7 @@
   "Security events key": "Nyckel för säkerhetshändelser",
   "Server key": "Servernyckel",
   "Serverless key": "Serverless-nyckel",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Namnet som besökare ser på statussidan. Det följer det du väljer ovan tills du skriver ett eget.",
   "Traces key": "Nyckel för spår",
   "VMware key": "VMware-nyckel"
 }

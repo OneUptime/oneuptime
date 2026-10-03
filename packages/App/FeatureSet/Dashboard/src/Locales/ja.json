@@ -24222,6 +24222,7 @@
   "Security events key": "セキュリティイベントキー",
   "Server key": "サーバーキー",
   "Serverless key": "サーバーレスキー",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "訪問者がステータスページで目にする名前です。独自の名前を入力するまで、上で選んだものに合わせて変わります。",
   "Traces key": "トレースキー",
   "VMware key": "VMware キー"
 }

@@ -24222,6 +24222,7 @@
   "Security events key": "Schlüssel für Sicherheitsereignisse",
   "Server key": "Server-Schlüssel",
   "Serverless key": "Serverless-Schlüssel",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Der Name, den Besucher auf der Statusseite sehen. Er folgt Ihrer Auswahl oben, bis Sie einen eigenen eingeben.",
   "Traces key": "Schlüssel für Traces",
   "VMware key": "VMware-Schlüssel"
 }

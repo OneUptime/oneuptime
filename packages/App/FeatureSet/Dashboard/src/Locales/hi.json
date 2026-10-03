@@ -24222,6 +24222,7 @@
   "Security events key": "सुरक्षा इवेंट कुंजी",
   "Server key": "सर्वर कुंजी",
   "Serverless key": "सर्वरलेस कुंजी",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "वह नाम जो विज़िटर्स स्थिति पृष्ठ पर देखते हैं। जब तक आप अपना नाम नहीं लिखते, यह ऊपर आपके चुनाव के साथ बदलता रहता है।",
   "Traces key": "ट्रेस कुंजी",
   "VMware key": "VMware कुंजी"
 }

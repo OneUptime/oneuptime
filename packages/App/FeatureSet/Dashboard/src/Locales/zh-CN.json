@@ -24222,6 +24222,7 @@
   "Security events key": "安全事件密钥",
   "Server key": "服务器密钥",
   "Serverless key": "无服务器密钥",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "访问者在状态页上看到的名称。在您输入自己的名称之前，它会随您在上方的选择而变化。",
   "Traces key": "追踪密钥",
   "VMware key": "VMware 密钥"
 }

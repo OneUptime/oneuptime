@@ -24222,6 +24222,7 @@
   "Security events key": "보안 이벤트 키",
   "Server key": "서버 키",
   "Serverless key": "서버리스 키",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "방문자가 상태 페이지에서 보는 이름입니다. 직접 이름을 입력할 때까지 위에서 선택한 항목에 따라 바뀝니다.",
   "Traces key": "트레이스 키",
   "VMware key": "VMware 키"
 }

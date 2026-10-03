@@ -24222,6 +24222,7 @@
   "Security events key": "Ключ событий безопасности",
   "Server key": "Ключ сервера",
   "Serverless key": "Ключ Serverless",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Название, которое посетители видят на странице статуса. Оно меняется вместе с выбором выше, пока вы не введёте своё.",
   "Traces key": "Ключ трассировок",
   "VMware key": "Ключ VMware"
 }

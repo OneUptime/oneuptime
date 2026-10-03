@@ -8,6 +8,7 @@ import {
   CardSelectOptionGroup,
 } from "../../CardSelect/CardSelect";
 import { DropdownOption, DropdownOptionGroup } from "../../Dropdown/Dropdown";
+import type { DropdownChange } from "../../Dropdown/DropdownChange";
 import { BulkAddedLabel } from "../../EntityDropdown/EntityDropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
@@ -190,11 +191,22 @@ export default interface Field<TEntity> {
   codeEditorToolbarActions?:
     | ((editor: CodeEditorActions) => ReactNode)
     | undefined;
+  /*
+   * Called with the new value before the form stores it. currentFormValues
+   * are the values as they were; setNewFormValues replaces them all (spread
+   * currentFormValues into what you hand it), and the new value is stored
+   * on top. For a Dropdown or MultiSelectDropdown field, change says what
+   * the pick was as the list showed it - the options picked now and before,
+   * with their labels - so a field can fill in a name after what was picked
+   * without a request of its own (a status page resource's display name
+   * follows its monitor: StatusPageResourceFormFields).
+   */
   onChange?:
     | ((
         value: any,
         currentFormValues: FormValues<TEntity>,
         setNewFormValues: (currentFormValues: FormValues<TEntity>) => void,
+        change?: DropdownChange | undefined,
       ) => void)
     | undefined;
   fieldType?: FormFieldSchemaType;

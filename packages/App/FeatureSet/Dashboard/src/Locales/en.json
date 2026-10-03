@@ -24222,6 +24222,7 @@
   "Security events key": "Security events key",
   "Server key": "Server key",
   "Serverless key": "Serverless key",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "The name visitors see on the status page. It follows what you pick above until you type a name of your own.",
   "Traces key": "Traces key",
   "VMware key": "VMware key"
 }

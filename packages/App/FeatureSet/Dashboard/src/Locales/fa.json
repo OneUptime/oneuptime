@@ -24222,6 +24222,7 @@
   "Security events key": "کلید رویدادهای امنیتی",
   "Server key": "کلید سرور",
   "Serverless key": "کلید بدون سرور",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "نامی که بازدیدکنندگان در صفحه وضعیت می‌بینند. تا وقتی نام دلخواه خود را وارد نکنید، همراه آنچه بالا انتخاب می‌کنید تغییر می‌کند.",
   "Traces key": "کلید ترِیس‌ها",
   "VMware key": "کلید VMware"
 }
