@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد. هر نقشی با برچسب «اصلی» را که خالی بگذارید، خودتان بر عهده می‌گیرید.",
   "Ends At must be after Starts At.": "زمان پایان باید پس از زمان شروع باشد.",
   "How often should this event recur?": "می‌خواهید این رویداد هر چند وقت یک بار تکرار شود؟",
-  "Notify & more": "اطلاع‌رسانی و بیشتر",
   "Remind subscribers before the event starts, for example 1 day before.": "پیش از شروع رویداد به مشترکان یادآوری کنید، برای نمونه ۱ روز قبل.",
   "Reminders before the event": "یادآوری‌های پیش از رویداد",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "مشترکان صفحات وضعیت رویداد هنگام زمان‌بندی، شروع یا پایان آن مطلع نمی‌شوند.",

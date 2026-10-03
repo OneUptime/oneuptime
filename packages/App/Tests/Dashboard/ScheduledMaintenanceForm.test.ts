@@ -32,7 +32,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Scheduling maintenance in three short steps
+ * Scheduling maintenance in two short steps
  * (Components/ScheduledMaintenance/ScheduledMaintenanceForm): what the
  * folded Subscriber Notifications section says, the window a new event
  * starts with, how the end follows the start and when it is refused, and
@@ -388,7 +388,6 @@ describe("its words", () => {
     ...Object.values(SUBSCRIBER_NOTIFICATION_SUMMARIES),
     SUBSCRIBER_REMINDERS_SUMMARY,
     MAINTENANCE_ENDS_BEFORE_IT_STARTS_ERROR,
-    "Notify & more",
     "When the event is scheduled",
     "When the event starts",
     "When the event ends",

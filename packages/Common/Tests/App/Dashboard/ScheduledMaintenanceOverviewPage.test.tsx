@@ -1235,12 +1235,13 @@ describe("Scheduled maintenance overview page", () => {
   });
 
   /*
-   * The details card's Edit walks the create form's steps for what it
-   * edits: Event (title and window) and Notify & more (status pages,
-   * reminders, and labels under Advanced). The resources, description and
-   * owners have cards and pages of their own, and whether subscribers hear
-   * about the event when it is scheduled, starts and ends cannot be changed
-   * after it is created (those columns take no updates).
+   * The details card's Edit puts what it edits where the create form does:
+   * Event (title and window, labels under Advanced), then Status Pages (the
+   * status pages and the reminders - on the create form they share
+   * Resources Affected with the resources, which this page edits in a card
+   * of their own, as it does the description and the owners). Whether
+   * subscribers hear about the event when it is scheduled, starts and ends
+   * cannot be changed after it is created (those columns take no updates).
    */
   describe("details card Edit", () => {
     interface EditField {
@@ -1304,25 +1305,29 @@ describe("Scheduled maintenance overview page", () => {
       return found!;
     }
 
-    test("walks Event and Notify & more", async () => {
+    test("walks Event and Status Pages", async () => {
       const card: EditCard = await editCard();
 
       expect(
         card.formSteps.map((step: { id: string; title: string }): string => {
           return `${step.id}: ${step.title}`;
         }),
-      ).toEqual(["event: Event", "notify: Notify & more"]);
+      ).toEqual(["event: Event", "status-pages: Status Pages"]);
 
-      expect(rowsOn(card, "event")).toEqual(["title", "startsAt", "endsAt"]);
-      expect(rowsOn(card, "notify")).toEqual([
+      expect(rowsOn(card, "event")).toEqual([
+        "title",
+        "startsAt",
+        "endsAt",
+        "Advanced: labels",
+      ]);
+      expect(rowsOn(card, "status-pages")).toEqual([
         "statusPages",
         "sendSubscriberNotificationsOnBeforeTheEvent",
-        "Advanced: labels",
       ]);
       // Every field is on one of the two steps.
       expect(
         card.formFields.filter((field: EditField): boolean => {
-          return field.stepId !== "event" && field.stepId !== "notify";
+          return field.stepId !== "event" && field.stepId !== "status-pages";
         }),
       ).toEqual([]);
     });

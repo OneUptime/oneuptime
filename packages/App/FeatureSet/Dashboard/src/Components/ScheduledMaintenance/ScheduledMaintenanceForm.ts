@@ -12,7 +12,7 @@ import { translateValidationMessage } from "Common/UI/Components/Forms/Validatio
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * SCHEDULING MAINTENANCE IN THREE SHORT STEPS.
+ * SCHEDULING MAINTENANCE IN TWO SHORT STEPS.
  *
  * The maintainer, closing the feedback document: "reduce decision / choice
  * paralysis as much as possible: show people as few options as possible
@@ -21,27 +21,28 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Create Scheduled Maintenance Event walked seven steps - Event Info, Event
  * Time, Resources Affected, Status Pages, Owners, Subscribers, Labels - with
  * both times empty and required, and four subscriber controls that already
- * did the right thing. It now walks three, each one a question:
+ * did the right thing. It now walks two, each one a question, in the shape
+ * Declare Incident has had since #4287:
  *
  *   1. Event - what is happening, and when: Title, Description, Starts At
  *      (the next full hour) and Ends At (an hour later, moving along with
- *      the start, and never before it).
- *   2. Resources Affected - the resources picker, with Change Monitor
- *      Status to folded under Advanced.
- *   3. Notify & more - Show event on these status pages, then Subscriber
+ *      the start, and never before it); Owners and Labels folded under
+ *      Advanced.
+ *   2. Resources Affected - what it touches and who hears about it: the
+ *      resources picker, Show event on these status pages, then Subscriber
  *      Notifications folded to the one line that says what happens ("...
  *      notified when it is scheduled, when it starts and when it ends"),
- *      then Owners and Labels folded under Advanced.
+ *      and Change Monitor Status to folded under Advanced.
  *
  * and the review step after them. Only the title has to be typed: every
- * other step is optional, so the form can be finished from the first one
- * (Forms/Utils/FinishFromAnyStep).
+ * other field has a default or is optional, so the form can be finished
+ * from the first step (Forms/Utils/FinishFromAnyStep).
  *
  * The scheduled maintenance template forms and the event's own edit card
- * use the same steps, in the same order, for the fields they hold - a
- * template adds its name and description in front and its recurring
- * schedule at the end; the event's page edits its resources, description
- * and owners in cards of their own.
+ * put the fields they hold on the same steps - a template adds its name and
+ * description in front and its recurring schedule at the end; the event's
+ * page edits its resources, description and owners in cards of their own,
+ * so its second step there is just its status pages and reminders.
  *
  * React-free, so App's tests can read it; the pages hold the fields.
  */

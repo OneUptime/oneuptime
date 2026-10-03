@@ -38,14 +38,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * ModelForm and BasicForm, with only the network, the clock and the
  * signed-in user stubbed:
  *
- *   - three steps (Event, Resources Affected, Notify & more) and the review;
+ *   - two steps (Event, Resources Affected) and the review, the shape of
+ *     Declare Incident;
  *   - Starts At is the next full hour, Ends At an hour later, so typing a
  *     title is all it takes - Create is the main button from the first step;
  *   - moving the start moves the end with it, and the end must come after
  *     the start;
- *   - Change Monitor Status to, Owners and Labels wait under Advanced;
+ *   - Owners and Labels wait under Advanced on Event, Change Monitor Status
+ *     to under Advanced on Resources Affected;
  *   - the three subscriber switches and the reminders are folded to the one
- *     line that says what happens, and that line follows the switches;
+ *     line that says what happens, that line follows the switches, and the
+ *     review step shows it;
  *   - an event made from a template that keeps subscribers quiet opens that
  *     section by itself, so nothing set away from the default is hidden.
  */
@@ -241,7 +244,7 @@ async function renderPage(language?: i18n): Promise<void> {
     { wrapper: Wrapper },
   );
 
-  await screen.findByRole("navigation", { name: "Progress" });
+  await screen.findByRole("navigation", { name: inPageLanguage("Progress") });
   // The defaults land once the form has its fields.
   await waitFor(() => {
     expect(startsAtInput().value).not.toBe("");
@@ -253,7 +256,9 @@ function form(): HTMLElement {
 }
 
 function stepTitles(): Array<string> {
-  return within(screen.getByRole("navigation", { name: "Progress" }))
+  return within(
+    screen.getByRole("navigation", { name: inPageLanguage("Progress") }),
+  )
     .getAllByRole("listitem")
     .map((item: HTMLElement): string => {
       return (item.textContent || "").trim();
@@ -262,7 +267,7 @@ function stepTitles(): Array<string> {
 
 function currentStepTitle(): string {
   const current: Element | null = screen
-    .getByRole("navigation", { name: "Progress" })
+    .getByRole("navigation", { name: inPageLanguage("Progress") })
     .querySelector("[aria-current='step']");
 
   return (current?.textContent || "").trim();
@@ -437,15 +442,10 @@ afterEach(() => {
 });
 
 describe("Create Scheduled Maintenance Event", () => {
-  test("walks three steps and the review", async () => {
+  test("walks two steps and the review", async () => {
     await renderPage();
 
-    expect(stepTitles()).toEqual([
-      "Event",
-      "Resources Affected",
-      "Notify & more",
-      "Summary",
-    ]);
+    expect(stepTitles()).toEqual(["Event", "Resources Affected", "Summary"]);
     expect(currentStepTitle()).toBe("Event");
   });
 
@@ -571,33 +571,32 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(currentStepTitle()).toBe("Event");
   });
 
-  test("Resources Affected keeps Change Monitor Status to under Advanced", async () => {
+  test("Event folds Owners and Labels under Advanced, at the end of the step", async () => {
     await renderPage();
-    await typeTitle("Database upgrade");
-    await goToNextStep("Resources Affected");
 
     const advanced: HTMLElement = sectionHeader("Advanced");
 
     expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(
-      screen.getByText("Change Monitor Status to", { exact: false }),
-    ).not.toBeVisible();
+    expect(screen.queryByText("Configured")).toBeNull();
+    expect(fieldLabelsIn(sectionBody(advanced))).toEqual(["Owners", "Labels"]);
+
+    const labelsLabel: HTMLElement = within(sectionBody(advanced)).getByText(
+      "Labels",
+      { exact: false, selector: "label *, label" },
+    );
+
+    expect(labelsLabel).not.toBeVisible();
 
     fireEvent.click(advanced);
 
     expect(advanced).toHaveAttribute("aria-expanded", "true");
-    expect(
-      screen.getByText("Change Monitor Status to", { exact: false }),
-    ).toBeVisible();
-    // Create stays the main button: nothing on the steps left is required.
-    expect(createButton()).toBeInTheDocument();
+    expect(labelsLabel).toBeVisible();
   });
 
-  test("Notify & more shows the status pages, one line about subscribers, and Advanced", async () => {
+  test("Resources Affected shows the status pages, one line about subscribers, and Advanced", async () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
-    await goToNextStep("Notify & more");
 
     expect(
       screen.getByText("Show event on these status pages", { exact: false }),
@@ -617,14 +616,6 @@ describe("Create Scheduled Maintenance Event", () => {
         hidden: true,
       }),
     ).not.toBeVisible();
-
-    const advanced: HTMLElement = sectionHeader("Advanced");
-
-    expect(advanced).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Configured")).toBeNull();
-
-    // Owners and Labels are the two fields folded under it.
-    expect(fieldLabelsIn(sectionBody(advanced))).toEqual(["Owners", "Labels"]);
     expect(fieldLabelsIn(sectionBody(notifications))).toEqual([
       "When the event is scheduled",
       "When the event starts",
@@ -632,16 +623,26 @@ describe("Create Scheduled Maintenance Event", () => {
       "Reminders before the event",
     ]);
 
+    // Change Monitor Status to is the one field folded under Advanced here.
+    const advanced: HTMLElement = sectionHeader("Advanced");
+
+    expect(advanced).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Configured")).toBeNull();
+    expect(fieldLabelsIn(sectionBody(advanced))).toEqual([
+      "Change Monitor Status to",
+    ]);
+
     fireEvent.click(advanced);
 
     expect(sectionBody(advanced)).toBeVisible();
+    // Create stays the main button: nothing on the steps left is required.
+    expect(createButton()).toBeInTheDocument();
   });
 
   test("the subscriber line follows the switches, and the event is saved as they say", async () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
-    await goToNextStep("Notify & more");
 
     const notifications: HTMLElement = sectionHeader(
       "Subscriber Notifications",
@@ -694,14 +695,13 @@ describe("Create Scheduled Maintenance Event", () => {
     ).toBe(true);
   });
 
-  test("the review step lists every step's fields under its own title", async () => {
+  test("the review step says who will be told, in the section's line", async () => {
     await renderPage();
     await typeTitle("Database upgrade");
     await goToNextStep("Resources Affected");
-    await goToNextStep("Notify & more");
     await goToNextStep("Summary");
 
-    for (const heading of ["Event", "Resources Affected", "Notify & more"]) {
+    for (const heading of ["Event", "Resources Affected"]) {
       expect(
         within(form()).getByRole("heading", { level: 2, name: heading }),
       ).toBeInTheDocument();
@@ -709,11 +709,22 @@ describe("Create Scheduled Maintenance Event", () => {
 
     expect(within(form()).getByText("Database upgrade")).toBeInTheDocument();
     expect(
-      within(form()).getByText("When the event is scheduled"),
+      within(form()).getByText("Subscriber Notifications"),
     ).toBeInTheDocument();
     expect(
-      within(form()).getByText("No reminders set for subscribers."),
-    ).toBeInTheDocument();
+      within(form()).getByTestId("form-summary-section-summary"),
+    ).toHaveTextContent(ALL_ON_SUMMARY);
+    // The switches are reviewed by that line, not one row each.
+    expect(
+      within(form()).queryByText("When the event is scheduled"),
+    ).toBeNull();
+    // Advanced options nobody touched are left out of the review.
+    expect(within(form()).queryByText("Labels", { exact: false })).toBeNull();
+    expect(
+      within(form()).queryByText("Change Monitor Status to", {
+        exact: false,
+      }),
+    ).toBeNull();
   });
 
   test("an event from a template that keeps subscribers quiet opens that section by itself", async () => {
@@ -729,7 +740,6 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(startsAtInput().value).toMatch(/^2026-10-03T10:00/);
 
     await goToNextStep("Resources Affected");
-    await goToNextStep("Notify & more");
 
     const notifications: HTMLElement = sectionHeader(
       "Subscriber Notifications",
@@ -759,19 +769,14 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(stepTitles()).toEqual([
       german_("Event"),
       german_("Resources Affected"),
-      german_("Notify & more"),
       german_("Summary"),
     ]);
-    expect(german_("Notify & more")).not.toBe("Notify & more");
+    expect(german_("Resources Affected")).not.toBe("Resources Affected");
 
     await typeTitle("Datenbank-Upgrade");
     fireEvent.click(nextButton());
     await waitFor(() => {
       expect(currentStepTitle()).toBe(german_("Resources Affected"));
-    });
-    fireEvent.click(nextButton());
-    await waitFor(() => {
-      expect(currentStepTitle()).toBe(german_("Notify & more"));
     });
 
     const summary: string = getSubscriberNotificationSummary({})
@@ -784,5 +789,10 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       summary,
     );
+    expect(
+      screen.getByRole("button", {
+        name: german_("Subscriber Notifications"),
+      }),
+    ).toBeInTheDocument();
   });
 });

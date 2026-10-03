@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Кто берёт каждую роль в этом инциденте. Любую роль с отметкой «Основная», которую вы оставите пустой, берёте вы.",
   "Ends At must be after Starts At.": "Время окончания должно быть позже времени начала.",
   "How often should this event recur?": "Как часто вы хотите, чтобы это событие повторялось?",
-  "Notify & more": "Уведомления и прочее",
   "Remind subscribers before the event starts, for example 1 day before.": "Напомните подписчикам до начала события, например за 1 день.",
   "Reminders before the event": "Напоминания перед событием",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "Подписчики страниц статуса события не получают уведомлений, когда оно запланировано, начинается или заканчивается.",

@@ -4,6 +4,7 @@ import path from "path";
 import {
   FormFacts,
   FormFieldFacts,
+  STEP_FIELD_LIMIT,
   countFieldRows,
   scanFormFiles,
 } from "../../Helpers/FormStepsScan";
@@ -17,22 +18,23 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates";
 
 /*
- * "Scheduling maintenance takes three short steps": Event, Resources
- * Affected, Notify & more. The four forms of a scheduled maintenance event
- * keep the same steps, in the same order, for the fields each one holds:
+ * Scheduling maintenance takes two short steps and a review: Event, then
+ * Resources Affected - the shape of Declare Incident. The four forms of a
+ * scheduled maintenance event put each field they hold on the same step:
  *
  *   - Create Scheduled Maintenance Event (Pages/ScheduledMaintenanceEvents/
  *     Create.tsx), and the review step after them;
  *   - the event's details card Edit (View/Index.tsx) - its resources,
- *     description and owners are edited elsewhere on the page;
+ *     description and owners are edited elsewhere on the page, so its
+ *     second step is just its status pages and reminders, "Status Pages";
  *   - a template's create form, which adds its own name and description in
  *     front and its recurring schedule at the end, and the template's Edit,
  *     which leaves out the resources and owners its page has cards for.
  *
  * So a field is on the same step, folded the same way, in every form that
- * has it - Owners and Labels under Advanced on Notify & more, the subscriber
+ * has it - Owners and Labels under Advanced on Event, the subscriber
  * switches in Subscriber Notifications, Change Monitor Status to under
- * Advanced on Resources Affected - and no step exists for one field.
+ * Advanced last on Resources Affected - and no step exists for one field.
  *
  * labels-not-a-step and other later sweeps: these forms are already done;
  * keep them matching this, or change this on purpose.
@@ -92,6 +94,19 @@ const SECTION_CONSTANTS: Record<
     builtWith: "getAdvancedFormSection",
     files: [TEMPLATE_VIEW_FILE],
   },
+};
+
+/*
+ * Which step of the event a step id stands for. The Edit forms call their
+ * second step after what is left on it ("Status Pages"): the resources are
+ * edited in a card of their own on those pages.
+ */
+const STEP_OF_THE_EVENT: Record<string, string> = {
+  "template-info": "the template",
+  event: "the event",
+  "resources-affected": "what it affects and who hears",
+  "status-pages": "what it affects and who hears",
+  recurring: "the schedule",
 };
 
 // A field as this test compares it: where it is and what it is folded in.
@@ -267,7 +282,7 @@ describe("the scheduled maintenance forms", () => {
     }
   });
 
-  test("Create walks Event, Resources Affected and Notify & more, then the review", () => {
+  test("Create walks Event and Resources Affected, then the review", () => {
     const form: FormFacts = scannedForm(
       CREATE_FILE,
       "ModelForm: Create New Scheduled Maintenance Event",
@@ -276,18 +291,23 @@ describe("the scheduled maintenance forms", () => {
     expect(CREATE.steps).toEqual([
       "event: Event",
       "resources-affected: Resources Affected",
-      "notify: Notify & more",
     ]);
     expect(readSource(CREATE_FILE)).toContain("summary={{");
     expect(form.hasSteps).toBe(true);
 
     expect(rowsByStep(CREATE)).toEqual({
-      event: ["title", "description", "startsAt", "endsAt"],
-      "resources-affected": ["monitors", `${ADVANCED}: changeMonitorStatusTo`],
-      notify: [
+      event: [
+        "title",
+        "description",
+        "startsAt",
+        "endsAt",
+        `${ADVANCED}: owners, labels`,
+      ],
+      "resources-affected": [
+        "monitors",
         "statusPages",
         NOTIFY_SECTION_ROW,
-        `${ADVANCED}: owners, labels`,
+        `${ADVANCED}: changeMonitorStatusTo`,
       ],
     });
   });
@@ -316,11 +336,11 @@ describe("the scheduled maintenance forms", () => {
     expect(source).toContain("return getMaintenanceEndsAtError(values);");
   });
 
-  test("the details card Edit walks Event and Notify & more", () => {
-    expect(EDIT.steps).toEqual(["event: Event", "notify: Notify & more"]);
+  test("the details card Edit walks Event and Status Pages", () => {
+    expect(EDIT.steps).toEqual(["event: Event", "status-pages: Status Pages"]);
     expect(rowsByStep(EDIT)).toEqual({
-      event: ["title", "startsAt", "endsAt"],
-      notify: ["statusPages", REMINDERS, `${ADVANCED}: labels`],
+      event: ["title", "startsAt", "endsAt", `${ADVANCED}: labels`],
+      "status-pages": ["statusPages", REMINDERS],
     });
 
     const source: string = readSource(VIEW_FILE);
@@ -335,17 +355,16 @@ describe("the scheduled maintenance forms", () => {
       "template-info: Template Info",
       "event: Event",
       "resources-affected: Resources Affected",
-      "notify: Notify & more",
       "recurring: Recurring",
     ]);
     expect(rowsByStep(TEMPLATE_CREATE)).toEqual({
       "template-info": ["templateName", "templateDescription"],
-      event: ["title", "description"],
-      "resources-affected": ["monitors", `${ADVANCED}: changeMonitorStatusTo`],
-      notify: [
+      event: ["title", "description", `${ADVANCED}: owners, labels`],
+      "resources-affected": [
+        "monitors",
         "statusPages",
         NOTIFY_SECTION_ROW,
-        `${ADVANCED}: owners, labels`,
+        `${ADVANCED}: changeMonitorStatusTo`,
       ],
       recurring: [
         "isRecurringEvent",
@@ -361,13 +380,20 @@ describe("the scheduled maintenance forms", () => {
     expect(TEMPLATE_EDIT.steps).toEqual([
       "template-info: Template Info",
       "event: Event",
-      "notify: Notify & more",
+      "resources-affected: Status Pages",
       "recurring: Recurring",
     ]);
-    expect(rowsByStep(TEMPLATE_EDIT)["notify"]).toEqual([
+
+    const rows: Record<string, Array<string>> = rowsByStep(TEMPLATE_EDIT);
+
+    expect(rows["event"]).toEqual([
+      "title",
+      "description",
+      `${ADVANCED}: labels`,
+    ]);
+    expect(rows["resources-affected"]).toEqual([
       "statusPages",
       NOTIFY_SECTION_ROW,
-      `${ADVANCED}: labels`,
     ]);
 
     // Its Affected Resources card folds the monitor status the same way.
@@ -398,7 +424,9 @@ describe("the scheduled maintenance forms", () => {
         const section: string = isLoneReminders
           ? SUBSCRIBER_NOTIFICATIONS
           : placement.section;
-        const at: string = `${placement.stepId} / ${section || "-"}`;
+        const step: string =
+          STEP_OF_THE_EVENT[placement.stepId] || `step ${placement.stepId}`;
+        const at: string = `${step} / ${section || "-"}`;
         const first: { form: string; at: string } | undefined = seen.get(
           placement.key,
         );
@@ -417,59 +445,58 @@ describe("the scheduled maintenance forms", () => {
     }
 
     expect(problems).toEqual([]);
-    // Labels and owners are folded under Advanced wherever they are asked.
-    expect(seen.get("labels")?.at).toBe(`notify / ${ADVANCED}`);
-    expect(seen.get("owners")?.at).toBe(`notify / ${ADVANCED}`);
+    // Labels and owners are folded under Advanced on the event's step.
+    expect(seen.get("labels")?.at).toBe(`the event / ${ADVANCED}`);
+    expect(seen.get("owners")?.at).toBe(`the event / ${ADVANCED}`);
+    expect(seen.get("statusPages")?.at).toBe(
+      "what it affects and who hears / -",
+    );
   });
 
-  test("have no step for one field, and no step named after a field", () => {
+  test("have no step for one field, and none named after the old one-field steps", () => {
     const retiredSteps: Array<string> = [
       "Event Info",
       "Event Time",
-      "Status Pages",
       "Owners",
       "Subscribers",
       "Labels",
       "Event Details",
     ];
 
-    for (const shape of [CREATE, TEMPLATE_CREATE]) {
+    for (const shape of ALL_FORMS) {
       const rows: Record<string, Array<string>> = rowsByStep(shape);
 
       for (const step of shape.steps) {
         const [id, title] = step.split(": ") as [string, string];
 
         expect(retiredSteps).not.toContain(title);
-        // The template's Recurring step is a switch and the schedule it opens.
         expect(`${shape.name} ${id}: ${(rows[id] || []).length > 1}`).toBe(
           `${shape.name} ${id}: true`,
         );
       }
     }
 
-    for (const shape of [EDIT, TEMPLATE_EDIT]) {
-      for (const step of shape.steps) {
-        expect(retiredSteps).not.toContain(step.split(": ")[1]);
-      }
+    // A create form's second step holds the resources, and is named for them.
+    for (const shape of [CREATE, TEMPLATE_CREATE]) {
+      expect(shape.steps).not.toContain("resources-affected: Status Pages");
     }
   });
 
-  test("keep every step short: no more than four rows on one", () => {
-    const form: FormFacts = scannedForm(
-      CREATE_FILE,
-      "ModelForm: Create New Scheduled Maintenance Event",
-    );
+  test(`keep every step to ${STEP_FIELD_LIMIT} rows or fewer`, () => {
+    for (const label of ["ModelForm: Create New Scheduled Maintenance Event"]) {
+      const form: FormFacts = scannedForm(CREATE_FILE, label);
 
-    for (const step of form.steps || []) {
-      const onStep: Array<FormFieldFacts> = form.fields.filter(
-        (field: FormFieldFacts): boolean => {
-          return field.stepId === step.id && !field.isNeverShown;
-        },
-      );
+      for (const step of form.steps || []) {
+        const onStep: Array<FormFieldFacts> = form.fields.filter(
+          (field: FormFieldFacts): boolean => {
+            return field.stepId === step.id && !field.isNeverShown;
+          },
+        );
 
-      expect(`${step.id}: ${countFieldRows(onStep) <= 4}`).toBe(
-        `${step.id}: true`,
-      );
+        expect(
+          `${step.id}: ${countFieldRows(onStep) <= STEP_FIELD_LIMIT}`,
+        ).toBe(`${step.id}: true`);
+      }
     }
   });
 

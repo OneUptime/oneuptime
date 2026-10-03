@@ -22,9 +22,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * A scheduled maintenance template walks the steps of Create Scheduled
- * Maintenance Event - Event, Resources Affected, Notify & more - with its
- * own name in front and its recurring schedule at the end (it walked eight
- * steps). Drawn here through the real ModelForm and BasicForm, as the
+ * Maintenance Event - Event, Resources Affected - with its own name in
+ * front and its recurring schedule at the end (it walked eight steps). Drawn here through the real ModelForm and BasicForm, as the
  * templates table's Create dialog draws it, with only the network and the
  * signed-in user stubbed. And the template's page says what its subscriber
  * switches do in the same words as the form.
@@ -236,6 +235,22 @@ async function fillTemplateInfo(): Promise<void> {
   await act(async () => {});
 }
 
+// What a folded section holds: the body its header controls.
+function sectionBody(header: HTMLElement): HTMLElement {
+  return document.getElementById(header.getAttribute("aria-controls")!)!;
+}
+
+// The fields in an element, by the labels they are drawn with.
+function fieldLabelsIn(element: HTMLElement): Array<string> {
+  return Array.from(element.querySelectorAll("label"))
+    .map((label: HTMLLabelElement): string => {
+      return (label.textContent || "").replace("(Optional)", "").trim();
+    })
+    .filter((text: string, index: number, all: Array<string>): boolean => {
+      return Boolean(text) && all.indexOf(text) === index;
+    });
+}
+
 async function goToNextStep(expectedTitle: string): Promise<void> {
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
@@ -297,7 +312,6 @@ describe("Create Scheduled Maintenance Template", () => {
       "Template Info",
       "Event",
       "Resources Affected",
-      "Notify & more",
       "Recurring",
     ]);
   });
@@ -345,7 +359,7 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(Boolean(template.isRecurringEvent)).toBe(false);
   });
 
-  test("Notify & more folds the subscriber switches to a line, and owners and labels under Advanced", async () => {
+  test("Event folds owners and labels under Advanced; Resources Affected folds the subscriber switches to a line", async () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });
     await fillTemplateInfo();
@@ -354,14 +368,18 @@ describe("Create Scheduled Maintenance Template", () => {
       target: { value: "Database maintenance" },
     });
     await act(async () => {});
+
+    const eventAdvanced: HTMLElement = screen.getByRole("button", {
+      name: "Advanced",
+    });
+
+    expect(eventAdvanced).toHaveAttribute("aria-expanded", "false");
+    expect(fieldLabelsIn(sectionBody(eventAdvanced))).toEqual([
+      "Owners",
+      "Labels",
+    ]);
+
     await goToNextStep("Resources Affected");
-
-    expect(screen.getByRole("button", { name: "Advanced" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-
-    await goToNextStep("Notify & more");
 
     const notifications: HTMLElement = screen.getByRole("button", {
       name: "Subscriber Notifications",
@@ -371,10 +389,15 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
     );
-    expect(screen.getByRole("button", { name: "Advanced" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
+
+    const resourcesAdvanced: HTMLElement = screen.getByRole("button", {
+      name: "Advanced",
+    });
+
+    expect(resourcesAdvanced).toHaveAttribute("aria-expanded", "false");
+    expect(fieldLabelsIn(sectionBody(resourcesAdvanced))).toEqual([
+      "Change Monitor Status to",
+    ]);
 
     fireEvent.click(notifications);
     fireEvent.click(
@@ -401,7 +424,6 @@ describe("Create Scheduled Maintenance Template", () => {
     });
     await act(async () => {});
     await goToNextStep("Resources Affected");
-    await goToNextStep("Notify & more");
     await goToNextStep("Recurring");
 
     // Off, the schedule is not asked for.

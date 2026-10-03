@@ -81,7 +81,7 @@ import {
 // How many status page names the header lists before summarising the rest.
 const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
 
-// The details card's Edit: labels folded under Advanced, as on the create form.
+// The details card's Edit: labels folded under Advanced on Event, as on the create form.
 const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
   getAdvancedFormSection<ScheduledMaintenance>();
 
@@ -465,9 +465,10 @@ const ScheduledMaintenanceView: FunctionComponent<
             /*
              * The create form's steps, for what this card edits: the
              * resources, the description and the owners have cards and
-             * pages of their own, and whether subscribers hear about the
-             * event when it is scheduled, starts and ends is set once,
-             * when it is created (those columns cannot be updated).
+             * pages of their own, so the second step holds only the status
+             * pages and the reminders. Whether subscribers hear about the
+             * event when it is scheduled, starts and ends is set once, when
+             * it is created (those columns cannot be updated).
              */
             formSteps={[
               {
@@ -475,8 +476,8 @@ const ScheduledMaintenanceView: FunctionComponent<
                 id: "event",
               },
               {
-                title: "Notify & more",
-                id: "notify",
+                title: "Status Pages",
+                id: "status-pages",
               },
             ]}
             isEditable={true}
@@ -531,10 +532,28 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
               {
                 field: {
+                  labels: true,
+                },
+                title: "Labels ",
+                stepId: "event",
+                description:
+                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                collapsibleSection: detailsAdvancedSection,
+                fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                dropdownModal: {
+                  type: Label,
+                  labelField: "name",
+                  valueField: "_id",
+                },
+                required: false,
+                placeholder: "Labels",
+              },
+              {
+                field: {
                   statusPages: true,
                 },
                 title: "Show event on these status pages ",
-                stepId: "notify",
+                stepId: "status-pages",
                 description: "Select status pages to show this event on",
                 fieldType: FormFieldSchemaType.MultiSelectDropdown,
                 dropdownModal: {
@@ -549,7 +568,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 field: {
                   sendSubscriberNotificationsOnBeforeTheEvent: true,
                 },
-                stepId: "notify",
+                stepId: "status-pages",
                 title: "Reminders before the event",
                 description:
                   "Remind subscribers before the event starts, for example 1 day before.",
@@ -568,24 +587,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                   );
                 },
                 required: false,
-              },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
-                stepId: "notify",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                collapsibleSection: detailsAdvancedSection,
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
               },
             ]}
             modelDetailProps={{

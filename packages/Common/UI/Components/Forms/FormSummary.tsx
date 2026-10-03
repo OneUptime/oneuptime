@@ -245,6 +245,77 @@ export const isListedInFormSummary: <T extends GenericObject>(
   return true;
 };
 
+/*
+ * The rows the review shows for a list of fields, in order. A folded
+ * section that says what it holds in a line (FormFieldCollapsibleSection
+ * .getSummary) is reviewed by that line: one row, titled with the section,
+ * in place of its fields - "Subscriber Notifications: Subscribers of the
+ * event's status pages are notified when it is scheduled, when it starts
+ * and when it ends." is what someone confirming the form needs to read,
+ * defaults included. Every other field is listed when isListedInFormSummary
+ * says so.
+ */
+export const getFormSummaryFields: <T extends GenericObject>(
+  fields: Fields<T>,
+  formValues: FormValues<T>,
+) => Fields<T> = <T extends GenericObject>(
+  fields: Fields<T>,
+  formValues: FormValues<T>,
+): Fields<T> => {
+  const rows: Fields<T> = [];
+  // The summarised section the fields being walked belong to, if any.
+  let summarisedSectionId: string | null = null;
+
+  for (const field of fields) {
+    if (field.showIf && !field.showIf(formValues)) {
+      continue;
+    }
+
+    const section: Field<T>["collapsibleSection"] = field.collapsibleSection;
+
+    if (section && section.id === summarisedSectionId) {
+      continue;
+    }
+
+    summarisedSectionId = null;
+
+    const sentences: Array<string> = (
+      section?.getSummary?.(formValues) || []
+    ).filter((sentence: string): boolean => {
+      return Boolean(sentence && sentence.trim());
+    });
+
+    if (section && sentences.length > 0) {
+      summarisedSectionId = section.id;
+
+      rows.push({
+        // Detail draws a row only under a key; the section's own id is one.
+        field: { [section.id]: true } as unknown as Field<T>["field"],
+        title: section.title,
+        getSummaryElement: (): ReactElement => {
+          return (
+            <span data-testid="form-summary-section-summary">
+              {sentences
+                .map((sentence: string): string => {
+                  return translateText(sentence) ?? sentence;
+                })
+                .join(" ")}
+            </span>
+          );
+        },
+      });
+
+      continue;
+    }
+
+    if (isListedInFormSummary(field, formValues)) {
+      rows.push(field);
+    }
+  }
+
+  return rows;
+};
+
 export interface ComponentProps<T> {
   formValues: FormValues<T>;
   formFields: Fields<T>;
@@ -322,13 +393,12 @@ const FormSummary: <T extends GenericObject>(
   const getDetailForFormStep: (formStep: FormStep<T>) => ReactElement = (
     formStep: FormStep<T>,
   ): ReactElement => {
-    const formFields: Fields<T> = props.formFields
-      .filter((field: Field<T>) => {
+    const formFields: Fields<T> = getFormSummaryFields(
+      props.formFields.filter((field: Field<T>) => {
         return formStep.id === field.stepId;
-      })
-      .filter((formField: Field<T>) => {
-        return isListedInFormSummary(formField, formValues);
-      });
+      }),
+      formValues,
+    );
 
     if (formFields.length === 0) {
       return <></>;
@@ -361,9 +431,7 @@ const FormSummary: <T extends GenericObject>(
 
   return getDetailForFormFields(
     formValues,
-    formFields.filter((field: Field<T>) => {
-      return isListedInFormSummary(field, formValues);
-    }),
+    getFormSummaryFields(formFields, formValues),
   );
 };
 

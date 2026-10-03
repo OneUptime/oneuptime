@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Scheduling maintenance takes three short steps. The subscribers guide
+ * Scheduling maintenance takes two short steps. The subscribers guide
  * (status-pages/subscribers.md) walks them, quotes the line the folded
  * Subscriber Notifications section shows, and names the switches inside
  * it. Markdown is not compiled, so this reads the create form's source and
@@ -53,10 +53,10 @@ function stepTitles(): Array<string> {
 }
 
 describe("the scheduled maintenance create form in the docs", () => {
-  test("walks the form's three steps, in its order", () => {
+  test("walks the form's two steps, in its order", () => {
     const steps: Array<string> = stepTitles();
 
-    expect(steps).toEqual(["Event", "Resources Affected", "Notify & more"]);
+    expect(steps).toEqual(["Event", "Resources Affected"]);
 
     let from: number = 0;
 
@@ -97,6 +97,10 @@ describe("the scheduled maintenance create form in the docs", () => {
     expect(ENGLISH_GUIDE).toContain(
       "Moving **Starts At** moves **Ends At** with it",
     );
+  });
+
+  test("says the review step shows the same line", () => {
+    expect(ENGLISH_GUIDE).toContain("the review step shows it too");
   });
 
   test("puts the options the form folds under Advanced there", () => {

@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "由谁担任此事件的各个角色。标记为“主要”的角色如果留空，将由你担任。",
   "Ends At must be after Starts At.": "结束时间必须晚于开始时间。",
   "How often should this event recur?": "您希望此事件多久重复一次？",
-  "Notify & more": "通知及其他",
   "Remind subscribers before the event starts, for example 1 day before.": "在事件开始前提醒订阅者，例如提前 1 天。",
   "Reminders before the event": "事件前提醒",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "事件的状态页订阅者在其安排、开始或结束时都不会收到通知。",

@@ -39,11 +39,12 @@ import { getSubscriberNotificationsSection } from "../../../Components/Scheduled
 
 /*
  * A template is an event to schedule again and again, so its form walks the
- * steps of Create Scheduled Maintenance Event - Event, Resources Affected,
- * Notify & more (Components/ScheduledMaintenance/ScheduledMaintenanceForm) -
- * with the template's own name and description in front and its recurring
- * schedule at the end. Its view page edits the resources and the owners in
- * cards of their own, so its Edit leaves those out.
+ * steps of Create Scheduled Maintenance Event - Event, Resources Affected
+ * (Components/ScheduledMaintenance/ScheduledMaintenanceForm) - with the
+ * template's own name and description in front and its recurring schedule
+ * at the end. Its view page edits the resources and the owners in cards of
+ * their own, so its Edit leaves those out, and calls the step that is left
+ * with the status pages and subscriber notifications "Status Pages".
  *
  * Built once: BasicForm folds the fields next to each other that carry the
  * same section.
@@ -121,6 +122,44 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       required: false,
     },
   ];
+
+  /*
+   * Owners and labels, folded under Advanced at the end of the Event step.
+   * The view page lists the owners in a card of its own, so its Edit leaves
+   * them out.
+   */
+  if (!data.isViewPage) {
+    fields = fields.concat([
+      // ScheduledMaintenanceTemplateService adds them as the template's owners.
+      getOwnersFormField<ScheduledMaintenanceTemplate>({
+        stepId: "event",
+        description:
+          "Who owns events scheduled from this template. They are notified when the event's status changes.",
+        collapsibleSection: advancedSection,
+      }),
+    ]);
+  }
+
+  fields = fields.concat([
+    {
+      field: {
+        labels: true,
+      },
+      title: "Labels ",
+      stepId: "event",
+      description:
+        "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+      collapsibleSection: advancedSection,
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: Label,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: false,
+      placeholder: "Labels",
+    },
+  ]);
 
   if (!data.excludeAffectedResources) {
     fields = fields.concat([
@@ -233,6 +272,95 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
           return false;
         },
       },
+    ]);
+  }
+
+  fields = fields.concat([
+    {
+      field: {
+        statusPages: true,
+      },
+      title: "Show event on these status pages ",
+      stepId: "resources-affected",
+      description: "Select status pages to show this event on",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: StatusPage,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: false,
+      placeholder: "Select Status Pages",
+    },
+    /*
+     * Folded to one line that says what happens; it opens by itself on a
+     * template that keeps subscribers quiet or sends reminders.
+     */
+    {
+      field: {
+        shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+      },
+      title: "When the event is scheduled",
+      stepId: "resources-affected",
+      collapsibleSection: subscriberNotificationsSection,
+      fieldType: FormFieldSchemaType.Checkbox,
+      defaultValue: true,
+      required: false,
+    },
+    {
+      field: {
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
+      },
+      title: "When the event starts",
+      stepId: "resources-affected",
+      collapsibleSection: subscriberNotificationsSection,
+      fieldType: FormFieldSchemaType.Checkbox,
+      defaultValue: true,
+      required: false,
+    },
+    {
+      field: {
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
+      },
+      title: "When the event ends",
+      stepId: "resources-affected",
+      collapsibleSection: subscriberNotificationsSection,
+      fieldType: FormFieldSchemaType.Checkbox,
+      defaultValue: true,
+      required: false,
+    },
+    {
+      field: {
+        sendSubscriberNotificationsOnBeforeTheEvent: true,
+      },
+      stepId: "resources-affected",
+      collapsibleSection: subscriberNotificationsSection,
+      title: "Reminders before the event",
+      description:
+        "Remind subscribers before the event starts, for example 1 day before.",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      // Starts with no reminders, and writes only the ones added.
+      customElementCanBeSkipped: true,
+      getCustomElement: (
+        value: FormValues<ScheduledMaintenanceTemplate>,
+        props: CustomElementProps,
+      ) => {
+        return (
+          <RecurringArrayFieldElement
+            {...props}
+            initialValue={
+              value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
+            }
+          />
+        );
+      },
+      required: false,
+    },
+  ]);
+
+  // Last on its step, folded: it changes the monitors' status while the event is ongoing.
+  if (!data.excludeAffectedResources) {
+    fields = fields.concat([
       {
         field: {
           changeMonitorStatusTo: true,
@@ -258,123 +386,6 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   }
 
   fields = fields.concat([
-    {
-      field: {
-        statusPages: true,
-      },
-      title: "Show event on these status pages ",
-      stepId: "notify",
-      description: "Select status pages to show this event on",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: StatusPage,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Select Status Pages",
-    },
-    /*
-     * Folded to one line that says what happens; it opens by itself on a
-     * template that keeps subscribers quiet or sends reminders.
-     */
-    {
-      field: {
-        shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-      },
-      title: "When the event is scheduled",
-      stepId: "notify",
-      collapsibleSection: subscriberNotificationsSection,
-      fieldType: FormFieldSchemaType.Checkbox,
-      defaultValue: true,
-      required: false,
-    },
-    {
-      field: {
-        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
-      },
-      title: "When the event starts",
-      stepId: "notify",
-      collapsibleSection: subscriberNotificationsSection,
-      fieldType: FormFieldSchemaType.Checkbox,
-      defaultValue: true,
-      required: false,
-    },
-    {
-      field: {
-        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
-      },
-      title: "When the event ends",
-      stepId: "notify",
-      collapsibleSection: subscriberNotificationsSection,
-      fieldType: FormFieldSchemaType.Checkbox,
-      defaultValue: true,
-      required: false,
-    },
-    {
-      field: {
-        sendSubscriberNotificationsOnBeforeTheEvent: true,
-      },
-      stepId: "notify",
-      collapsibleSection: subscriberNotificationsSection,
-      title: "Reminders before the event",
-      description:
-        "Remind subscribers before the event starts, for example 1 day before.",
-      fieldType: FormFieldSchemaType.CustomComponent,
-      // Starts with no reminders, and writes only the ones added.
-      customElementCanBeSkipped: true,
-      getCustomElement: (
-        value: FormValues<ScheduledMaintenanceTemplate>,
-        props: CustomElementProps,
-      ) => {
-        return (
-          <RecurringArrayFieldElement
-            {...props}
-            initialValue={
-              value.sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
-            }
-          />
-        );
-      },
-      required: false,
-    },
-  ]);
-
-  /*
-   * Owners and labels, folded under Advanced. The view page lists the
-   * owners in a card of its own, so its Edit leaves them out.
-   */
-  if (!data.isViewPage) {
-    fields = fields.concat([
-      // ScheduledMaintenanceTemplateService adds them as the template's owners.
-      getOwnersFormField<ScheduledMaintenanceTemplate>({
-        stepId: "notify",
-        description:
-          "Who owns events scheduled from this template. They are notified when the event's status changes.",
-        collapsibleSection: advancedSection,
-      }),
-    ]);
-  }
-
-  fields = fields.concat([
-    {
-      field: {
-        labels: true,
-      },
-      title: "Labels ",
-      stepId: "notify",
-      description:
-        "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-      collapsibleSection: advancedSection,
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
-    },
     {
       field: {
         isRecurringEvent: true,
@@ -455,15 +466,15 @@ type GetFormStepsFunction = (data: {
 }) => Array<FormStep<ScheduledMaintenanceTemplate>>;
 
 /*
- * Template Info, Event, Resources Affected, Notify & more, Recurring. The
- * view page's Edit has no Resources Affected step: the resources have a
- * card of their own there.
+ * Template Info, Event, Resources Affected, Recurring. The view page's Edit
+ * has no resources on its second step - they have a card of their own
+ * there - so that step is called after what it holds: Status Pages.
  */
 export const getFormSteps: GetFormStepsFunction = (data: {
   isViewPage: boolean;
   excludeAffectedResources?: boolean;
 }): Array<FormStep<ScheduledMaintenanceTemplate>> => {
-  const steps: Array<FormStep<ScheduledMaintenanceTemplate>> = [
+  return [
     {
       title: "Template Info",
       id: "template-info",
@@ -472,26 +483,17 @@ export const getFormSteps: GetFormStepsFunction = (data: {
       title: "Event",
       id: "event",
     },
-  ];
-
-  if (!data.excludeAffectedResources) {
-    steps.push({
-      title: "Resources Affected",
+    {
+      title: data.excludeAffectedResources
+        ? "Status Pages"
+        : "Resources Affected",
       id: "resources-affected",
-    });
-  }
-
-  steps.push({
-    title: "Notify & more",
-    id: "notify",
-  });
-
-  steps.push({
-    title: "Recurring",
-    id: "recurring",
-  });
-
-  return steps;
+    },
+    {
+      title: "Recurring",
+      id: "recurring",
+    },
+  ];
 };
 
 const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (

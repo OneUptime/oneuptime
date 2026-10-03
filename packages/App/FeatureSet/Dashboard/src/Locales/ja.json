@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "このインシデントで各ロールを誰が担当するか。プライマリと表示されたロールを空欄のままにすると、あなたが担当します。",
   "Ends At must be after Starts At.": "終了日時は開始日時より後にしてください。",
   "How often should this event recur?": "このイベントをどのくらいの頻度で繰り返しますか?",
-  "Notify & more": "通知とその他",
   "Remind subscribers before the event starts, for example 1 day before.": "イベントの開始前に購読者へリマインドします（例: 1 日前）。",
   "Reminders before the event": "イベント前のリマインダー",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "イベントのステータスページの購読者には、予定時・開始時・終了時のいずれにも通知されません。",

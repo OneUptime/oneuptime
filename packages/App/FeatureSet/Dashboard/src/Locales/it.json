@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Chi assume ciascun ruolo in questo incidente. Assumi tu ogni ruolo contrassegnato come Principale che lasci vuoto.",
   "Ends At must be after Starts At.": "La fine deve essere successiva all'inizio.",
   "How often should this event recur?": "Con quale frequenza desideri che questo evento si ripeta?",
-  "Notify & more": "Notifiche e altro",
   "Remind subscribers before the event starts, for example 1 day before.": "Invia un promemoria agli iscritti prima che l'evento inizi, ad esempio 1 giorno prima.",
   "Reminders before the event": "Promemoria prima dell'evento",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "Gli iscritti alle pagine di stato dell'evento non vengono notificati quando viene pianificato, inizia o termina.",

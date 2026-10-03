@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Who takes each role on this incident. You take any role marked Primary that you leave empty.",
   "Ends At must be after Starts At.": "Ends At must be after Starts At.",
   "How often should this event recur?": "How often should this event recur?",
-  "Notify & more": "Notify & more",
   "Remind subscribers before the event starts, for example 1 day before.": "Remind subscribers before the event starts, for example 1 day before.",
   "Reminders before the event": "Reminders before the event",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.",

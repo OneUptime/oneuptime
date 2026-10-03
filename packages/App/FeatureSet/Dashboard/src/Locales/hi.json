@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "इस घटना में हर भूमिका कौन निभाएगा। प्राथमिक चिह्नित कोई भी भूमिका जिसे आप खाली छोड़ते हैं, आप स्वयं निभाते हैं।",
   "Ends At must be after Starts At.": "समाप्ति का समय शुरू होने के समय के बाद होना चाहिए।",
   "How often should this event recur?": "आप इस इवेंट को कितनी बार दोहराना चाहेंगे?",
-  "Notify & more": "सूचना और अधिक",
   "Remind subscribers before the event starts, for example 1 day before.": "इवेंट शुरू होने से पहले सब्सक्राइबर्स को याद दिलाएँ, जैसे 1 दिन पहले।",
   "Reminders before the event": "इवेंट से पहले रिमाइंडर",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "इवेंट के स्थिति पृष्ठों के सब्सक्राइबर्स को उसके शेड्यूल होने, शुरू होने या समाप्त होने पर सूचित नहीं किया जाता।",

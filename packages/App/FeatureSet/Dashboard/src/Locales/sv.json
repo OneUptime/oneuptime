@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Vem som tar varje roll i den här incidenten. Du tar själv varje roll märkt Primär som du lämnar tom.",
   "Ends At must be after Starts At.": "Slutet måste ligga efter starten.",
   "How often should this event recur?": "Hur ofta vill du att den här händelsen ska upprepas?",
-  "Notify & more": "Avisera och mer",
   "Remind subscribers before the event starts, for example 1 day before.": "Påminn prenumeranter innan händelsen börjar, till exempel 1 dag före.",
   "Reminders before the event": "Påminnelser före händelsen",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "Prenumeranter på händelsens statussidor aviseras inte när den schemaläggs, börjar eller slutar.",

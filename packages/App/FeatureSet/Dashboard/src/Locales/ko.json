@@ -21428,7 +21428,6 @@
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다. 기본으로 표시된 역할을 비워 두면 본인이 맡습니다.",
   "Ends At must be after Starts At.": "종료 시간은 시작 시간 이후여야 합니다.",
   "How often should this event recur?": "이 이벤트가 얼마나 자주 반복되기를 원하십니까?",
-  "Notify & more": "알림 및 기타",
   "Remind subscribers before the event starts, for example 1 day before.": "이벤트 시작 전에 구독자에게 리마인더를 보냅니다(예: 1일 전).",
   "Reminders before the event": "이벤트 전 리마인더",
   "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "이벤트의 상태 페이지 구독자에게는 예약, 시작, 종료 시 알림이 전송되지 않습니다.",
