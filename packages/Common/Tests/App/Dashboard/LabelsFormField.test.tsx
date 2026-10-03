@@ -22,10 +22,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * THE LABELS FIELD OF EVERY FORM, FOLDED UNDER ADVANCED.
  *
  * Labels group resources and decide what a team restricted to labels can
- * see; most projects never restrict a team that way. Forty-one forms gave
- * the field a wizard step of its own - creating a host or renaming a status
- * page meant a Next for one optional field - and the rest showed it open
- * beside the name. Every form now asks with Dashboard
+ * see; most projects never restrict a team that way. Some forty forms
+ * walked a wizard step for the field - creating a host or renaming a status
+ * page meant a Next for one optional field - and most of the rest showed it
+ * open beside the name. Every form now asks with Dashboard
  * Utils/Form/LabelsFormField.ts's getLabelsFormField, and
  * LabelsFormFieldGuard holds the forms to it.
  *

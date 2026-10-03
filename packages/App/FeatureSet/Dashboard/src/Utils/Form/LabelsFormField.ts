@@ -14,10 +14,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * are restricted to labels (Settings > Teams, "Restrict by labels"): such a
  * team reaches only the resources that carry one of its labels. Most
  * projects never restrict a team that way, and the forms themselves called
- * the field "optional and an advanced feature". Yet 41 forms gave it a
- * wizard step of its own, so creating a host or renaming a status page
- * meant a Next for one optional field, and the rest showed it as an open
- * field beside the name.
+ * the field "optional and an advanced feature". Yet some forty forms
+ * walked a wizard step for it - 37 of them a step that held nothing else -
+ * so creating a host or renaming a status page meant a Next for one
+ * optional field, and most of the rest showed it open beside the name.
  *
  * Every form now asks for labels the same way: this field, at the end of
  * the step that holds the record's name, folded under the form's collapsed
