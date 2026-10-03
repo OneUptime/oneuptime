@@ -213,7 +213,10 @@ describe("EntityDropdown closes its menu when keyboard focus leaves it", () => {
     await user.click(screen.getByRole("option", { name: "Admins" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith("admins");
+    expect(onChange).toHaveBeenCalledWith("admins", {
+      selectedOptions: [{ value: "admins", label: "Admins" }],
+      previousOptions: [],
+    });
     expect(queryMenu()).toBeNull();
   });
 
@@ -230,7 +233,10 @@ describe("EntityDropdown closes its menu when keyboard focus leaves it", () => {
     await user.keyboard("{Enter}");
 
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith("admins");
+    expect(onChange).toHaveBeenCalledWith("admins", {
+      selectedOptions: [{ value: "admins", label: "Admins" }],
+      previousOptions: [],
+    });
     expect(queryMenu()).toBeNull();
   });
 
@@ -346,7 +352,13 @@ describe("a multi-select dropdown", () => {
 
     // A keyboard pick hands focus back to the input and leaves the menu open.
     await user.keyboard("{Enter}");
-    expect(onChange).toHaveBeenCalledWith(["members", "admins"]);
+    expect(onChange).toHaveBeenCalledWith(["members", "admins"], {
+      selectedOptions: [
+        { value: "members", label: "Members" },
+        { value: "admins", label: "Admins" },
+      ],
+      previousOptions: [{ value: "members", label: "Members" }],
+    });
     expect(getCombobox()).toHaveFocus();
     expect(queryMenu()).toBeInTheDocument();
 
@@ -410,7 +422,12 @@ describe("a multi-select dropdown", () => {
     await user.keyboard("{Enter}");
 
     await screen.findByRole("button", { name: `Remove ${MONITOR_NAME}` });
-    expect(onChange).toHaveBeenCalledWith([MONITOR_ID]);
+    expect(onChange).toHaveBeenCalledWith([MONITOR_ID], {
+      selectedOptions: [
+        expect.objectContaining({ value: MONITOR_ID, label: MONITOR_NAME }),
+      ],
+      previousOptions: [],
+    });
     expect(onLabelsBulkAdded).toHaveBeenCalledWith([
       { id: LABEL_ID, name: LABEL_NAME },
     ]);
