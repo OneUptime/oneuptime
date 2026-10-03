@@ -471,3 +471,148 @@ describe("BasicForm Advanced sections", () => {
     expect(await sectionButton()).toHaveAttribute("aria-expanded", "true");
   });
 });
+
+/*
+ * "Subscribers are notified when the event is scheduled, starts and ends" -
+ * a section whose defaults suit most people folds to the line that says
+ * what they are (FormFieldCollapsibleSection.getSummary), worked out from
+ * the form's values as they are now. The line takes the place of the
+ * "Configured" badge, which shows as before when there is no line.
+ */
+describe("BasicForm section summaries", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const NOTIFY: FormFieldCollapsibleSection<JSONObject> = {
+    id: "notify",
+    title: "Subscriber Notifications",
+    description: "Who hears about it.",
+    getSummary: (values: FormValues<JSONObject>): Array<string> => {
+      const sentences: Array<string> = [
+        values["whenStarted"] === false
+          ? "Subscribers are not told when it starts."
+          : "Subscribers are told when it starts.",
+      ];
+
+      if (values["reminder"]) {
+        sentences.push("They get a reminder.");
+      }
+
+      return sentences;
+    },
+  };
+
+  const NOTIFY_FIELDS: Fields<JSONObject> = [
+    {
+      field: { title: true },
+      title: "Title",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      dataTestId: "title",
+    },
+    {
+      field: { whenStarted: true },
+      title: "When it starts",
+      fieldType: FormFieldSchemaType.Checkbox,
+      defaultValue: true,
+      collapsibleSection: NOTIFY,
+    },
+    {
+      field: { reminder: true },
+      title: "Reminder",
+      fieldType: FormFieldSchemaType.Text,
+      dataTestId: "reminder",
+      collapsibleSection: NOTIFY,
+    },
+  ];
+
+  async function notifyButton(): Promise<HTMLElement> {
+    return screen.findByRole("button", { name: "Subscriber Notifications" });
+  }
+
+  test("folds to its line while what it holds is the default", async () => {
+    renderForm({ fields: NOTIFY_FIELDS, initialValues: {} });
+
+    const header: HTMLElement = await notifyButton();
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      "Subscribers are told when it starts.",
+    );
+    expect(header).toHaveAccessibleDescription(
+      "Subscribers are told when it starts.",
+    );
+    expect(screen.queryByText("Configured")).toBeNull();
+  });
+
+  test("follows what is set, one sentence after another, and never says Configured", async () => {
+    const { user }: RenderFormResult = renderForm({
+      fields: NOTIFY_FIELDS,
+      initialValues: {},
+    });
+
+    const header: HTMLElement = await notifyButton();
+
+    await user.click(header);
+    // Open, the fields and the description say it.
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+    expect(screen.getByText("Who hears about it.")).toBeVisible();
+
+    await user.click(screen.getByRole("checkbox", { name: "When it starts" }));
+    fireEvent.change(screen.getByTestId("reminder"), {
+      target: { value: "1 day before" },
+    });
+    await user.click(header);
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      "Subscribers are not told when it starts. They get a reminder.",
+    );
+    expect(screen.queryByText("Configured")).toBeNull();
+  });
+
+  test("opens by itself on a form that starts away from the defaults, like any section", async () => {
+    renderForm({
+      fields: NOTIFY_FIELDS,
+      initialValues: { title: "Database upgrade", whenStarted: false },
+    });
+
+    const header: HTMLElement = await notifyButton();
+
+    await waitFor(() => {
+      expect(header).toHaveAttribute("aria-expanded", "true");
+    });
+    expect(
+      screen.getByRole("checkbox", { name: "When it starts" }),
+    ).not.toBeChecked();
+  });
+
+  test("says Configured as before when it has nothing to say", async () => {
+    const quiet: FormFieldCollapsibleSection<JSONObject> = {
+      ...NOTIFY,
+      openWhenConfigured: false,
+      getSummary: (): Array<string> => {
+        return [];
+      },
+    };
+
+    renderForm({
+      fields: NOTIFY_FIELDS.map(
+        (candidate: Field<JSONObject>): Field<JSONObject> => {
+          return candidate.collapsibleSection
+            ? { ...candidate, collapsibleSection: quiet }
+            : candidate;
+        },
+      ),
+      initialValues: { title: "Database upgrade", reminder: "1 day" },
+    });
+
+    await notifyButton();
+
+    await waitFor(() => {
+      expect(screen.getByText("Configured")).toBeVisible();
+    });
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+  });
+});

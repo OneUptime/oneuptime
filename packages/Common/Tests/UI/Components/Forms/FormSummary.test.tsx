@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import FormSummary, {
+  getFormSummaryFields,
   isListedInFormSummary,
 } from "../../../../UI/Components/Forms/FormSummary";
 import Field, {
@@ -821,4 +822,188 @@ describe("FormSummary: folded sections", () => {
       ).toBe(listed);
     },
   );
+});
+
+/*
+ * Scheduling maintenance folds the three subscriber switches and the
+ * reminders into a Subscriber Notifications section that says in a line
+ * what will happen (FormFieldCollapsibleSection.getSummary). Left at their
+ * defaults they are exactly what someone confirming the form needs to read -
+ * who is told, and when - so the review shows that line: one row, titled
+ * with the section, in place of the section's fields, defaults included.
+ */
+describe("FormSummary: sections that say what they hold", () => {
+  const NOTIFY: FormFieldCollapsibleSection<JSONObject> = {
+    id: "subscriber-notifications",
+    title: "Subscriber Notifications",
+    getSummary: (values: FormValues<JSONObject>): Array<string> => {
+      const sentences: Array<string> = [
+        values["whenStarted"] === false
+          ? "Subscribers are not told when it starts."
+          : "Subscribers are told when it starts.",
+      ];
+
+      if (values["reminder"]) {
+        sentences.push("They get a reminder.");
+      }
+
+      return sentences;
+    },
+  };
+
+  const NOTIFY_STEPS: Array<FormStep<JSONObject>> = [
+    { title: "Event", id: "event" },
+    { title: "Resources Affected", id: "resources" },
+  ];
+
+  const SUMMARISED_FIELDS: Fields<JSONObject> = [
+    {
+      field: { title: true },
+      title: "Title",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "event",
+    },
+    {
+      field: { statusPages: true },
+      title: "Status Pages",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "resources",
+    },
+    {
+      field: { whenStarted: true },
+      title: "When it starts",
+      fieldType: FormFieldSchemaType.Checkbox,
+      defaultValue: true,
+      stepId: "resources",
+      collapsibleSection: NOTIFY,
+    },
+    // A field the form hides does not split the section in two.
+    {
+      field: { hiddenRegistration: true },
+      title: "",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "resources",
+      collapsibleSection: NOTIFY,
+      showIf: (): boolean => {
+        return false;
+      },
+    },
+    {
+      field: { reminder: true },
+      title: "Reminder",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "resources",
+      collapsibleSection: NOTIFY,
+    },
+    {
+      field: { changeMonitorStatusTo: true },
+      title: "Change Monitor Status to",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "resources",
+      collapsibleSection: getAdvancedFormSection<JSONObject>(),
+    },
+  ];
+
+  function rowTitles(values: JSONObject): Array<string> {
+    return getFormSummaryFields(
+      SUMMARISED_FIELDS,
+      values as FormValues<JSONObject>,
+    ).map((field: Field<JSONObject>): string => {
+      return field.title || "";
+    });
+  }
+
+  test("reviews the section by its line, in place of its fields, defaults included", () => {
+    renderSummary({
+      values: { title: "Database upgrade", whenStarted: true },
+      fields: SUMMARISED_FIELDS,
+      steps: NOTIFY_STEPS,
+    });
+
+    const summaries: Array<HTMLElement> = screen.getAllByTestId(
+      "form-summary-section-summary",
+    );
+
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toHaveTextContent(
+      "Subscribers are told when it starts.",
+    );
+    expect(screen.getByText("Subscriber Notifications")).toBeInTheDocument();
+    expect(screen.queryByText("When it starts")).toBeNull();
+    expect(screen.queryByText("Reminder")).toBeNull();
+  });
+
+  test("follows what is set, one sentence after another", () => {
+    renderSummary({
+      values: {
+        title: "Database upgrade",
+        whenStarted: false,
+        reminder: "1 day",
+      },
+      fields: SUMMARISED_FIELDS,
+      steps: NOTIFY_STEPS,
+    });
+
+    expect(
+      screen.getByTestId("form-summary-section-summary"),
+    ).toHaveTextContent(
+      "Subscribers are not told when it starts. They get a reminder.",
+    );
+  });
+
+  test("keeps every other row where it was: open fields listed, untouched Advanced ones left out", () => {
+    expect(rowTitles({ title: "Database upgrade" })).toEqual([
+      "Title",
+      "Status Pages",
+      "Subscriber Notifications",
+    ]);
+    expect(
+      rowTitles({ title: "Database upgrade", changeMonitorStatusTo: "x" }),
+    ).toEqual([
+      "Title",
+      "Status Pages",
+      "Subscriber Notifications",
+      "Change Monitor Status to",
+    ]);
+  });
+
+  test("falls back to its fields when the section has nothing to say", () => {
+    const quiet: FormFieldCollapsibleSection<JSONObject> = {
+      ...NOTIFY,
+      getSummary: (): Array<string> => {
+        return [" "];
+      },
+    };
+
+    const rows: Fields<JSONObject> = getFormSummaryFields(
+      SUMMARISED_FIELDS.map((field: Field<JSONObject>): Field<JSONObject> => {
+        return field.collapsibleSection === NOTIFY
+          ? { ...field, collapsibleSection: quiet }
+          : field;
+      }),
+      {
+        title: "Database upgrade",
+        reminder: "1 day",
+      } as FormValues<JSONObject>,
+    );
+
+    // Folded fields are then listed when they hold something of the user's.
+    expect(
+      rows.map((field: Field<JSONObject>): string => {
+        return field.title || "";
+      }),
+    ).toEqual(["Title", "Status Pages", "Reminder"]);
+  });
+
+  test("works on a form without steps too", () => {
+    renderSummary({
+      values: { title: "Database upgrade" },
+      fields: SUMMARISED_FIELDS,
+      steps: undefined,
+    });
+
+    expect(
+      screen.getByTestId("form-summary-section-summary"),
+    ).toHaveTextContent("Subscribers are told when it starts.");
+  });
 });

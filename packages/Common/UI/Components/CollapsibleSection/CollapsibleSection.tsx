@@ -12,7 +12,14 @@ export type CollapsibleSectionVariant = "default" | "card" | "bordered";
 
 export interface ComponentProps {
   title: string;
+  // Under the title while the section is open.
   description?: string | ReactElement | undefined;
+  /*
+   * Under the title while the section is folded: what is inside, or what it
+   * is set to, so the reader knows without opening it. It wraps rather than
+   * being cut off, and the header's button is described by it.
+   */
+  collapsedDescription?: string | ReactElement | undefined;
   children: ReactElement;
   isCollapsed?: boolean | undefined;
   onToggle?: ((isCollapsed: boolean) => void) | undefined;
@@ -52,6 +59,10 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
   const sectionId: string = React.useId();
   const collapsibleTitleId: string = `collapsible-title-${sectionId}`;
   const collapsibleBodyId: string = `collapsible-body-${sectionId}`;
+  const collapsedDescriptionId: string = `collapsible-summary-${sectionId}`;
+  const showCollapsedDescription: boolean = Boolean(
+    props.collapsedDescription && isCollapsed,
+  );
 
   const getContainerClassName: () => string = (): string => {
     const baseClassName: string = props.className || "";
@@ -106,6 +117,9 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
         aria-expanded={!isCollapsed}
         aria-controls={collapsibleBodyId}
         aria-labelledby={collapsibleTitleId}
+        aria-describedby={
+          showCollapsedDescription ? collapsedDescriptionId : undefined
+        }
       >
         <div className="flex items-center flex-1 min-w-0">
           <Icon
@@ -144,6 +158,15 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
             {props.description && !isCollapsed && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">
                 {translateValue(props.description)}
+              </p>
+            )}
+            {showCollapsedDescription && (
+              <p
+                id={collapsedDescriptionId}
+                data-testid="collapsible-section-summary"
+                className="text-sm text-gray-500 mt-0.5 break-words"
+              >
+                {translateValue(props.collapsedDescription)}
               </p>
             )}
           </div>
