@@ -1,10 +1,7 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import {
-  fetchAllNetworkSiteTypeOptions,
-  fetchParentNetworkSiteOptions,
-} from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import SiteStatusHero from "../../../Components/NetworkSite/SiteStatusHero";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
 import Route from "Common/Types/API/Route";
@@ -14,8 +11,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -26,6 +21,11 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * device counts), then the site's identity and place in the hierarchy.
  * Devices, child sites, endpoints, and status history live on their own
  * sub-pages in the side menu.
+ *
+ * The details are read here and edited in one place: the Site Settings
+ * card on the site's Settings page, which the "Edit in Settings" link
+ * opens. The same seven fields used to be edited here too, in a wizard of
+ * its own.
  */
 const NetworkSiteView: FunctionComponent<
   PageComponentProps
@@ -59,117 +59,16 @@ const NetworkSiteView: FunctionComponent<
           title: "Network Site Details",
           description:
             "Where this site sits in the hierarchy, and where it is on the map.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_SITE_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        isEditable={true}
-        formSteps={[
-          {
-            title: "Site Details",
-            id: "site-details",
-          },
-          {
-            title: "Hierarchy",
-            id: "hierarchy",
-          },
-          {
-            title: "Location",
-            id: "location",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              networkSiteType: true,
-            },
-            title: "Site Type",
-            stepId: "site-details",
-            description:
-              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
-            onChange: (
-              _value: unknown,
-              currentFormValues: FormValues<NetworkSite>,
-              setNewFormValues: (
-                currentFormValues: FormValues<NetworkSite>,
-              ) => void,
-            ): void => {
-              setNewFormValues({
-                ...currentFormValues,
-                parentSite: null,
-              });
-            },
-            required: true,
-            placeholder: "Select Site Type",
-          },
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "site-details",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Unit 1042 - Springfield",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "site-details",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Flagship location — two switches and a firewall.",
-          },
-          {
-            field: {
-              parentSite: true,
-            },
-            title: "Parent Site",
-            stepId: "hierarchy",
-            sectionTitle: "Place This Site",
-            sectionDescription:
-              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
-            description:
-              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
-              return fetchParentNetworkSiteOptions(values, modelId);
-            },
-            required: false,
-            placeholder: "No parent site (top level)",
-          },
-          {
-            field: {
-              address: true,
-            },
-            title: "Address",
-            stepId: "location",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "742 Evergreen Terrace, Springfield, IL",
-          },
-          {
-            field: {
-              latitude: true,
-            },
-            title: "Latitude",
-            stepId: "location",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "39.7817",
-          },
-          {
-            field: {
-              longitude: true,
-            },
-            title: "Longitude",
-            stepId: "location",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "-89.6501",
-          },
-        ]}
         modelDetailProps={{
           modelType: NetworkSite,
           id: "network-site-details",

@@ -151,7 +151,7 @@ const RumApplications: FunctionComponent<
             field: {
               appIdentifier: true,
             },
-            title: "App Identifier",
+            title: "App Name (service.name)",
             type: FieldType.Text,
           },
           {

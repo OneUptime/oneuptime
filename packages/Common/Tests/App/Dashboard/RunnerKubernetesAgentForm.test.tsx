@@ -26,8 +26,8 @@ import {
   getKubernetesAgentRunnerFormNote,
   getReservedRunnerNameError,
   getRunnerFormFields,
+  getRunnerCreateFormFields,
   getRunnerFormRestrictions,
-  getRunnerTableFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerFormFields";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -136,21 +136,6 @@ function renamedAgentRow(): Runner {
 function fieldKeys(fields: Fields<Runner>): Array<string> {
   return fields.map((field: Field<Runner>): string => {
     return Object.keys(field.field || {})[0] || "";
-  });
-}
-
-/*
- * What ModelTable hands its create / edit modal: the form fields filtered
- * by doNotShowWhenCreating / doNotShowWhenEditing (ModelTable.tsx).
- */
-function tableFormFor(
-  mode: "create" | "edit",
-  fields: Fields<Runner>,
-): Fields<Runner> {
-  return fields.filter((field: Field<Runner>): boolean => {
-    return mode === "create"
-      ? !field.doNotShowWhenCreating
-      : !field.doNotShowWhenEditing;
   });
 }
 
@@ -357,33 +342,20 @@ describe("the Runner form's fields", () => {
   });
 
   /*
-   * One ModelTable form serves Create and Edit. The create form is never
-   * restricted — a row a user creates is never an agent row — while the
-   * edit form follows the row being edited.
+   * The list page only creates Runners: a Runner is edited in one place,
+   * the Runner Details card on its own page, whose form follows the row
+   * (the tests above and below). The create form is never restricted - a
+   * row a user creates is never an agent row.
    */
-  test("the list page's create form is always whole, its edit form follows the row", () => {
-    const whenEditingAnAgent: Fields<Runner> = getRunnerTableFormFields(
-      getRunnerFormRestrictions(agentRow()),
-    );
+  test("the list page's form only creates, and is always whole", () => {
+    const createForm: Fields<Runner> = getRunnerCreateFormFields();
 
-    expect(fieldKeys(tableFormFor("create", whenEditingAnAgent))).toEqual(
-      FULL_FORM,
-    );
-    expect(fieldKeys(tableFormFor("edit", whenEditingAnAgent))).toEqual([
-      "description",
-      "canRunAiCommands",
-      "labels",
-    ]);
+    expect(fieldKeys(createForm)).toEqual(FULL_FORM);
 
-    const whenEditingAHost: Fields<Runner> = getRunnerTableFormFields(
-      getRunnerFormRestrictions(hostRow()),
-    );
-    expect(fieldKeys(tableFormFor("edit", whenEditingAHost))).toEqual(
-      FULL_FORM,
-    );
-    expect(fieldKeys(tableFormFor("create", whenEditingAHost))).toEqual(
-      FULL_FORM,
-    );
+    for (const field of createForm) {
+      expect(field.doNotShowWhenCreating).toBeFalsy();
+      expect(String(field.sectionDescription || "")).toBe("");
+    }
   });
 });
 
@@ -579,38 +551,6 @@ describe("the Runner pages, rendered", () => {
     );
   }
 
-  /*
-   * A row's actions are one button and a ⋯ menu holding the rest
-   * (RowActions). On this table "View" is the button, so "Edit" is in the
-   * menu. The menu is portalled to document.body so the table's scroller
-   * cannot clip it, which is why it is found through `screen` and not
-   * inside the row - and why only one menu is ever open to find.
-   */
-  async function clickRowMenuAction(
-    rowName: string,
-    action: string,
-  ): Promise<void> {
-    const cell: HTMLElement = await screen.findByText(
-      rowName,
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
-    const row: HTMLElement | null = cell.closest("tr");
-    if (!row) {
-      throw new Error(`"${rowName}" is not in a table row.`);
-    }
-    const trigger: HTMLElement | null = within(row).queryByTestId(
-      "row-actions-more-button",
-    );
-    if (!trigger) {
-      throw new Error(`"${rowName}" has no ⋯ menu on its row.`);
-    }
-    fireEvent.click(trigger);
-    fireEvent.click(
-      within(screen.getByRole("menu")).getByRole("menuitem", { name: action }),
-    );
-  }
-
   async function openDialog(firstField: string): Promise<HTMLElement> {
     const dialog: HTMLElement = await screen.findByRole(
       "dialog",
@@ -631,16 +571,42 @@ describe("the Runner pages, rendered", () => {
     );
   }
 
-  test("the list page's edit form on an agent row leaves out the name; create and the next edit do not", async () => {
+  /*
+   * A Runner is edited in one place, the Runner Details card on its own
+   * page: the list's rows offer View and Delete, never a second Edit form
+   * for the same fields.
+   */
+  test("the list page offers no Edit on a row, and its create form is whole", async () => {
     openRunnersPage();
 
-    await clickRowMenuAction("kubernetes-agent/prod-east", "Edit");
-    const editDialog: HTMLElement = await openDialog("Description");
-    expect(hasFieldTitled(editDialog, "Name")).toBe(false);
-    expect(editDialog).toHaveTextContent(AGENT_NOTE_START);
-    await closeDialog(editDialog);
+    /*
+     * A row's actions are one button and a ⋯ menu holding the rest
+     * (RowActions): View is the button, Delete is in the menu. The menu is
+     * portalled to document.body, so it is found through `screen`.
+     */
 
-    // Creating right after editing an agent row: the whole form.
+    const cell: HTMLElement = await screen.findByText(
+      "kubernetes-agent/prod-east",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    fireEvent.click(
+      within(cell.closest("tr") as HTMLElement).getByTestId(
+        "row-actions-more-button",
+      ),
+    );
+    const menu: HTMLElement = screen.getByRole("menu");
+    expect(
+      within(menu).queryByRole("menuitem", { name: "Edit" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Delete" }));
+    const deleteDialog: HTMLElement = await screen.findByRole(
+      "dialog",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    await closeDialog(deleteDialog);
+
     fireEvent.click(
       await screen.findByText("Create Runner", {}, { timeout: WAIT_TIMEOUT }),
     );
@@ -648,11 +614,5 @@ describe("the Runner pages, rendered", () => {
     expect(hasFieldTitled(createDialog, "Name")).toBe(true);
     expect(createDialog).not.toHaveTextContent(AGENT_NOTE_START);
     await closeDialog(createDialog);
-
-    // The next edit follows its own row: an ordinary Runner keeps its name.
-    await clickRowMenuAction("bash-runner", "Edit");
-    const hostDialog: HTMLElement = await openDialog("Description");
-    expect(hasFieldTitled(hostDialog, "Name")).toBe(true);
-    expect(hostDialog).not.toHaveTextContent(AGENT_NOTE_START);
   });
 });

@@ -2,9 +2,8 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -18,40 +17,30 @@ const PodmanHostSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<PodmanHost>
-        name="Host Settings"
-        cardProps={{
-          title: "Host Settings",
-          description: "Manage settings for this Podman host.",
+      <ResourceDetailsCard<PodmanHost>
+        modelType={PodmanHost}
+        modelId={modelId}
+        id="podman-host-details"
+        title="Podman Host Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Display Name",
+          description:
+            "Shown everywhere this resource appears. Telemetry is not matched by the display name, so renaming is safe.",
+          placeholder: "Production Podman host",
         }}
-        modelDetailProps={{
-          modelType: PodmanHost,
-          id: "podman-host-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostIdentifier: true,
-              },
-              title: "Host Identifier",
-              fieldType: FieldType.Text,
-            },
-          ],
+        descriptionField={{
+          placeholder: "Production Podman host running in US East",
         }}
+        identityFields={[
+          {
+            column: "hostIdentifier",
+            title: "Host Name (host.name)",
+            description:
+              "Telemetry is matched by this host name. Change it only when the host reports a new one: telemetry that still reports the old name creates a new host.",
+            placeholder: "podman-host-prod-1",
+          },
+        ]}
       />
       <TelemetryResourceRetentionSettings<PodmanHost>
         modelType={PodmanHost}

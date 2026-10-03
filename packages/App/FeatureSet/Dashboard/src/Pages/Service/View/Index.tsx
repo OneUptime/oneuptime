@@ -1,19 +1,14 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import TechStack from "Common/Types/Service/TechStack";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import Service from "Common/Models/DatabaseModels/Service";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -87,14 +82,6 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
   return sum / series.length;
 };
 
-/*
- * The Service Details card's Edit asks for the name and the description,
- * and folds the tech stack (also on the service's Settings page, and read
- * from its telemetry when left blank) and the labels under Advanced. Three
- * rows, so no steps.
- */
-const advancedSection: FormFieldCollapsibleSection<Service> =
-  getAdvancedFormSection<Service>();
 
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -665,68 +652,27 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
       </div>
 
-      {/* Service View  */}
+      {/*
+       * Service Details: read here, edited in one place - the name,
+       * description and labels in the same card at the top of the
+       * service's Settings page (ResourceDetailsCard), the tech stack in
+       * the Service Settings card under it.
+       */}
       <CardModelDetail<Service>
         name="Service > Service Details"
         cardProps={{
           title: "Service Details",
           description: "Here are more details for this service.",
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
-        onSaveSuccess={(): void => {
-          // Refresh the hero (name, tech stack → detected technology).
-          loadModel(false).catch((err: Error) => {
-            setError(API.getFriendlyMessage(err));
-          });
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Service Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              techStack: true,
-            },
-            title: "Tech Stack",
-            /*
-             * Optional, like the same field on Service > Settings and like
-             * the create form, which does not offer it at all. It used to be
-             * required here, which meant renaming a service that ingest had
-             * auto-created forced the editor to invent a language for it —
-             * and `detectServiceLanguage` then reported that guess as the
-             * service's detected "Technology", indistinguishable in the UI
-             * from a real telemetry.sdk.language reading.
-             */
-            description:
-              "Optional. The language or framework used to build this service. Leave blank to use the language detected from this service's telemetry.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: false,
-            placeholder: "Tech Stack",
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<Service>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: Service,
