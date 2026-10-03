@@ -24337,5 +24337,22 @@
   "You can add an email address or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.": "{{name}} のメールアドレスや WhatsApp 番号を追加したり、使わなくなった方法を削除したりできます。識別子は常にマスクされて表示されます。",
   "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.": "{{name}} のメールアドレスや電話番号を追加したり、使わなくなった方法を削除したりできます。識別子は常にマスクされて表示されます。",
   "Phone Calls": "音声通話",
-  "all": "すべて"
+  "all": "すべて",
+  "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "モニターグループは複数のモニターを 1 つのステータスにまとめ、ステータスページでは 1 行として表示できます。オフにしてもグループは削除されません。",
+  "Customer Support Access": "カスタマーサポートのアクセス",
+  "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "このプロジェクトを開くには、全員が SSO でサインインする必要があります。パスワードでのサインインでは開けません。",
+  "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "このプロジェクトのメンバーは、あなたも含め全員、プロジェクトを開くために SSO でサインインする必要があります。パスワードでサインインしている人は、SSO でサインインするまでプロジェクトから締め出されます。先に上のリンクで SSO をテストしてください。",
+  "Let OneUptime support access this project": "OneUptime サポートにこのプロジェクトへのアクセスを許可",
+  "Let OneUptime support into this project?": "OneUptime サポートにこのプロジェクトへのアクセスを許可しますか？",
+  "Let OneUptime's support team into this project when you want their help with it.": "OneUptime のサポートチームの助けが必要なときに、このプロジェクトへのアクセスを許可します。",
+  "Let support in": "サポートを許可",
+  "Members can open this project after signing in with a password or with SSO.": "メンバーは、パスワードまたは SSO でサインインした後にこのプロジェクトを開けます。",
+  "Monitor Groups is hidden from the Monitors menu.": "モニターグループは「モニター」メニューに表示されません。",
+  "Monitor Groups is in the Monitors menu.": "モニターグループは「モニター」メニューにあります。",
+  "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "OneUptime のサポートチームはこのプロジェクトを開き、その中のすべてを表示・変更できます。サポートが終わったらオフにしてください。",
+  "OneUptime's support team cannot open this project.": "OneUptime のサポートチームはこのプロジェクトを開けません。",
+  "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "オフにするまで、OneUptime のサポートチームはこのプロジェクトを開き、設定やデータを含むその中のすべてを表示・変更できるようになります。",
+  "Require SSO for this project?": "このプロジェクトで SSO を必須にしますか？",
+  "Test SSO with the link above before you require it.": "必須にする前に、上のリンクで SSO をテストしてください。",
+  "Turn optional features on or off for this project.": "このプロジェクトのオプション機能をオンまたはオフにします。"
 }

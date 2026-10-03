@@ -24337,5 +24337,22 @@
   "You can add an email address or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.": "Sie können eine E-Mail-Adresse oder WhatsApp-Nummer für {{name}} hinzufügen und jede Methode entfernen, die nicht mehr verwendet wird. Kennungen werden immer maskiert angezeigt.",
   "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.": "Sie können eine E-Mail-Adresse oder Telefonnummer für {{name}} hinzufügen und jede Methode entfernen, die nicht mehr verwendet wird. Kennungen werden immer maskiert angezeigt.",
   "Phone Calls": "Telefonanrufe",
-  "all": "alle"
+  "all": "alle",
+  "A monitor group rolls several monitors up into one status, which a status page can show as one row. Turning this off deletes no group.": "Eine Monitor-Gruppe fasst mehrere Monitore zu einem Status zusammen, den eine Statusseite als eine Zeile anzeigen kann. Das Ausschalten löscht keine Gruppe.",
+  "Customer Support Access": "Kundensupport-Zugriff",
+  "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.": "Alle müssen sich mit SSO anmelden, um dieses Projekt zu öffnen. Eine Anmeldung mit Passwort reicht nicht aus.",
+  "Everyone in this project, you included, will have to sign in with SSO to open it. Anyone signed in with a password is locked out of the project until they sign in with SSO, so test SSO with the link above first.": "Alle in diesem Projekt, Sie eingeschlossen, müssen sich mit SSO anmelden, um es zu öffnen. Wer mit einem Passwort angemeldet ist, wird aus dem Projekt ausgesperrt, bis er sich mit SSO anmeldet. Testen Sie SSO deshalb zuerst über den Link oben.",
+  "Let OneUptime support access this project": "OneUptime-Support Zugriff auf dieses Projekt gewähren",
+  "Let OneUptime support into this project?": "OneUptime-Support in dieses Projekt lassen?",
+  "Let OneUptime's support team into this project when you want their help with it.": "Lassen Sie das OneUptime-Supportteam in dieses Projekt, wenn Sie seine Hilfe möchten.",
+  "Let support in": "Support hereinlassen",
+  "Members can open this project after signing in with a password or with SSO.": "Mitglieder können dieses Projekt nach der Anmeldung mit Passwort oder mit SSO öffnen.",
+  "Monitor Groups is hidden from the Monitors menu.": "Monitor-Gruppen sind im Menü „Monitore“ ausgeblendet.",
+  "Monitor Groups is in the Monitors menu.": "Monitor-Gruppen stehen im Menü „Monitore“.",
+  "OneUptime's support team can open this project, and see and change everything in it. Turn this off once they have finished helping you.": "Das OneUptime-Supportteam kann dieses Projekt öffnen und darin alles sehen und ändern. Schalten Sie dies aus, sobald die Hilfe abgeschlossen ist.",
+  "OneUptime's support team cannot open this project.": "Das OneUptime-Supportteam kann dieses Projekt nicht öffnen.",
+  "OneUptime's support team will be able to open this project, and see and change everything in it, its settings and data included, until you turn this off.": "Das OneUptime-Supportteam kann dieses Projekt dann öffnen und darin alles sehen und ändern, einschließlich seiner Einstellungen und Daten, bis Sie dies wieder ausschalten.",
+  "Require SSO for this project?": "SSO für dieses Projekt vorschreiben?",
+  "Test SSO with the link above before you require it.": "Testen Sie SSO über den Link oben, bevor Sie es vorschreiben.",
+  "Turn optional features on or off for this project.": "Schalten Sie optionale Funktionen für dieses Projekt ein oder aus."
 }
