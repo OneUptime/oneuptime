@@ -2,8 +2,14 @@ import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import React, { ReactElement } from "react";
-import FormSummary from "../../../../UI/Components/Forms/FormSummary";
+import FormSummary, {
+  isListedInFormSummary,
+} from "../../../../UI/Components/Forms/FormSummary";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
+import { getAdvancedFormSection } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
@@ -577,6 +583,242 @@ describe("FormSummary: dropdowns", () => {
       });
 
       expect(screen.getAllByText("Alert Severity")).toHaveLength(1);
+    },
+  );
+});
+
+/*
+ * Declare Incident folds the options most declarations never touch -
+ * Declared At, Initial State, Labels, Private Incident - under one Advanced
+ * header. The review step listed every one of them anyway: four rows nobody
+ * touched ("No labels assigned.", "No"...), on the one screen meant to
+ * confirm what was chosen. A field folded into a section is now listed only
+ * when it holds something of the user's: a value other than empty or its
+ * default, a switch off its default. Fields outside a section are listed as
+ * before, set or not.
+ */
+describe("FormSummary: folded sections", () => {
+  const ADVANCED: FormFieldCollapsibleSection<JSONObject> =
+    getAdvancedFormSection<JSONObject>();
+
+  // Declared At starts at the moment the form opened.
+  const OPENED_AT: Date = new Date("2026-10-03T09:30:00.000Z");
+
+  const FOLDED_STEPS: Array<FormStep<JSONObject>> = [
+    { title: "Incident Details", id: "details" },
+    { title: "On-Call & Roles", id: "on-call" },
+  ];
+
+  const TITLE: Field<JSONObject> = {
+    field: { title: true },
+    title: "Title",
+    fieldType: FormFieldSchemaType.Text,
+    stepId: "details",
+  };
+
+  const DECLARED_AT: Field<JSONObject> = {
+    field: { declaredAt: true },
+    title: "Declared At",
+    fieldType: FormFieldSchemaType.DateTime,
+    stepId: "details",
+    defaultValue: OPENED_AT,
+    collapsibleSection: ADVANCED,
+  };
+
+  const LABELS: Field<JSONObject> = {
+    field: { labels: true },
+    title: "Labels",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    stepId: "details",
+    collapsibleSection: ADVANCED,
+    getSummaryElement: (item: FormValues<JSONObject>): ReactElement => {
+      return (
+        <span data-testid="labels-summary">
+          {((item["labels"] as Array<string>) || []).join(", ")}
+        </span>
+      );
+    },
+  };
+
+  const PRIVATE: Field<JSONObject> = {
+    field: { isPrivate: true },
+    title: "Private Incident",
+    fieldType: FormFieldSchemaType.Checkbox,
+    stepId: "details",
+    defaultValue: false,
+    collapsibleSection: ADVANCED,
+  };
+
+  const ON_CALL: Field<JSONObject> = {
+    field: { onCallDutyPolicies: true },
+    title: "On-Call Policy",
+    fieldType: FormFieldSchemaType.Text,
+    stepId: "on-call",
+    getSummaryElement: (): ReactElement => {
+      return <span>No on-call policies.</span>;
+    },
+  };
+
+  const FOLDED_FIELDS: Fields<JSONObject> = [
+    TITLE,
+    DECLARED_AT,
+    LABELS,
+    PRIVATE,
+    ON_CALL,
+  ];
+
+  // The values a declaration nobody opened Advanced on submits.
+  const UNTOUCHED: JSONObject = {
+    title: "Checkout is down",
+    declaredAt: OPENED_AT,
+    isPrivate: false,
+  };
+
+  function renderFolded(values: JSONObject): void {
+    renderSummary({
+      values,
+      fields: FOLDED_FIELDS,
+      steps: FOLDED_STEPS,
+    });
+  }
+
+  test("leaves out every folded field nobody touched", () => {
+    renderFolded(UNTOUCHED);
+
+    expect(screen.getByText("Title")).toBeInTheDocument();
+    expect(screen.getByText("Checkout is down")).toBeInTheDocument();
+
+    for (const title of ["Declared At", "Labels", "Private Incident"]) {
+      expect(screen.queryByText(title)).toBeNull();
+    }
+    expect(screen.queryByTestId("labels-summary")).toBeNull();
+  });
+
+  test("lists each folded field that holds something of the user's", () => {
+    renderFolded({
+      ...UNTOUCHED,
+      declaredAt: "2026-10-03T08:15",
+      labels: ["Payments", "EU"],
+      isPrivate: true,
+    });
+
+    for (const title of ["Declared At", "Labels", "Private Incident"]) {
+      expect(screen.getByText(title)).toBeInTheDocument();
+    }
+    expect(screen.getByTestId("labels-summary")).toHaveTextContent(
+      "Payments, EU",
+    );
+  });
+
+  test("lists only the folded fields that are set, under their own step", () => {
+    renderFolded({ ...UNTOUCHED, labels: ["Payments"] });
+
+    const details: HTMLElement = screen.getByRole("heading", {
+      name: "Incident Details",
+    }).parentElement as HTMLElement;
+
+    expect(within(details).getByText("Labels")).toBeInTheDocument();
+    expect(within(details).queryByText("Declared At")).toBeNull();
+    expect(within(details).queryByText("Private Incident")).toBeNull();
+  });
+
+  test("a field outside any section is listed whether it is set or not", () => {
+    renderFolded(UNTOUCHED);
+
+    expect(
+      screen.getByRole("heading", { name: "On-Call & Roles" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("On-Call Policy")).toBeInTheDocument();
+    expect(screen.getByText("No on-call policies.")).toBeInTheDocument();
+  });
+
+  test("a step whose fields are all folded and untouched leaves no heading behind", () => {
+    renderSummary({
+      values: UNTOUCHED,
+      fields: [TITLE, { ...LABELS, stepId: "on-call" }],
+      steps: FOLDED_STEPS,
+    });
+
+    expect(
+      screen.queryByRole("heading", { name: "On-Call & Roles" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "Incident Details" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a set folded field the form hides stays hidden", () => {
+    renderSummary({
+      values: { ...UNTOUCHED, labels: ["Payments"] },
+      fields: [
+        TITLE,
+        {
+          ...LABELS,
+          showIf: (): boolean => {
+            return false;
+          },
+        },
+      ],
+      steps: FOLDED_STEPS,
+    });
+
+    expect(screen.queryByText("Labels")).toBeNull();
+  });
+
+  test("a form without steps follows the same rule", () => {
+    renderSummary({
+      values: { ...UNTOUCHED, isPrivate: true },
+      fields: [TITLE, DECLARED_AT, LABELS, PRIVATE].map(
+        (field: Field<JSONObject>): Field<JSONObject> => {
+          return { ...field, stepId: undefined };
+        },
+      ),
+      steps: undefined,
+    });
+
+    expect(screen.getByText("Title")).toBeInTheDocument();
+    expect(screen.getByText("Private Incident")).toBeInTheDocument();
+    expect(screen.queryByText("Declared At")).toBeNull();
+    expect(screen.queryByText("Labels")).toBeNull();
+  });
+
+  test.each([
+    ["an open field, empty", true, TITLE, {}],
+    ["an open field, filled in", true, TITLE, { title: "x" }],
+    ["a folded date at its default", false, DECLARED_AT, UNTOUCHED],
+    [
+      "a folded date someone changed",
+      true,
+      DECLARED_AT,
+      { declaredAt: "2026-10-03T08:15" },
+    ],
+    ["a folded list left empty", false, LABELS, { labels: [] }],
+    ["a folded list with an entry", true, LABELS, { labels: ["EU"] }],
+    ["a folded switch at its default", false, PRIVATE, { isPrivate: false }],
+    ["a folded switch never touched", false, PRIVATE, {}],
+    ["a folded switch turned on", true, PRIVATE, { isPrivate: true }],
+    [
+      "an open field the form hides",
+      false,
+      {
+        ...TITLE,
+        showIf: (): boolean => {
+          return false;
+        },
+      },
+      { title: "x" },
+    ],
+  ] as Array<[string, boolean, Field<JSONObject>, JSONObject]>)(
+    "isListedInFormSummary: %s -> %s",
+    (
+      _case: string,
+      listed: boolean,
+      field: Field<JSONObject>,
+      values: JSONObject,
+    ) => {
+      expect(
+        isListedInFormSummary(field, values as FormValues<JSONObject>),
+      ).toBe(listed);
     },
   );
 });
