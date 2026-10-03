@@ -155,6 +155,13 @@ function listSources(directory: string): Array<string> {
   return found;
 }
 
+// Words a switch that reads on = it happens never needs.
+const ENABLE_OR_DISABLE: RegExp = /\b(enable|disable)/i;
+
+const PULL_REQUEST: RegExp = /pull request/;
+
+const CODE_FIXES_COLUMN: RegExp = /CodeFixes$/;
+
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
   ...AI_LANE_SWITCHES[AiLane.Incident],
   ...AI_LANE_SWITCHES[AiLane.Alert],
@@ -195,9 +202,7 @@ function newProjectAiDefaultColumns(): Array<string> {
 describe("every AI behaviour is a switch", () => {
   test("each per-feature AI switch a new project starts with has exactly one switch on a page", () => {
     const fromServer: Array<string> = newProjectAiDefaultColumns();
-    const onPages: Array<string> = Array.from(
-      new Set(columnsOf(ALL_SWITCHES)),
-    );
+    const onPages: Array<string> = Array.from(new Set(columnsOf(ALL_SWITCHES)));
 
     // A walk that found nothing would pass vacuously.
     expect(fromServer.length).toBeGreaterThanOrEqual(10);
@@ -239,9 +244,10 @@ describe("every AI behaviour is a switch", () => {
     const project: Project = new Project();
 
     for (const column of columnsOf(ALL_SWITCHES)) {
-      expect([column, project.getColumnAccessControlFor(column)?.update]).toEqual(
-        [column, [Permission.ProjectOwner, Permission.ProjectAdmin]],
-      );
+      expect([
+        column,
+        project.getColumnAccessControlFor(column)?.update,
+      ]).toEqual([column, [Permission.ProjectOwner, Permission.ProjectAdmin]]);
     }
 
     expect(project.getColumnAccessControlFor(ENABLE_AI_COLUMN)?.update).toEqual(
@@ -258,8 +264,10 @@ describe("every AI behaviour is a switch", () => {
 
   test("the switches read on = it happens, in plain words", () => {
     for (const definition of ALL_SWITCHES) {
-      expect([definition.title, /\b(enable|disable)/i.test(definition.title)])
-        .toEqual([definition.title, false]);
+      expect([
+        definition.title,
+        ENABLE_OR_DISABLE.test(definition.title),
+      ]).toEqual([definition.title, false]);
     }
 
     expect(
@@ -302,7 +310,11 @@ describe("every AI behaviour is a switch", () => {
     const sentences: Array<string> = [
       ...ALL_SWITCHES.flatMap(
         (definition: ProjectAiSwitchDefinition<string>): Array<string> => {
-          return [definition.title, definition.description, definition.note || ""];
+          return [
+            definition.title,
+            definition.description,
+            definition.note || "",
+          ];
         },
       ),
       AiInsightsSettingsCopy.cardDescription,
@@ -326,7 +338,7 @@ describe("every AI behaviour is a switch", () => {
 
   test("the fix pull request switches say what they need, and that nothing merges by itself", () => {
     for (const definition of ALL_SWITCHES) {
-      if (/pull request/.test(definition.title)) {
+      if (PULL_REQUEST.test(definition.title)) {
         expect([definition.title, definition.note]).toEqual([
           definition.title,
           expect.stringContaining("GitHub App"),
@@ -338,11 +350,13 @@ describe("every AI behaviour is a switch", () => {
       const codeFix: ProjectAiSwitchDefinition<string> | undefined =
         AI_LANE_SWITCHES[lane].find(
           (definition: ProjectAiSwitchDefinition<string>): boolean => {
-            return /CodeFixes$/.test(definition.column);
+            return CODE_FIXES_COLUMN.test(definition.column);
           },
         );
 
-      expect(codeFix?.description).toContain("Nothing is merged automatically.");
+      expect(codeFix?.description).toContain(
+        "Nothing is merged automatically.",
+      );
       expect(codeFix?.note).toContain("a Runner that can fix code");
     }
   });
@@ -440,9 +454,7 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
 
     expect(confirmation).toContain("if (isTurningOn) { return undefined; }");
-    expect(confirmation).toContain(
-      "submitButtonType: ButtonStyleType.DANGER",
-    );
+    expect(confirmation).toContain("submitButtonType: ButtonStyleType.DANGER");
   });
 
   test("the notice holds Enable AI's own switch, with the same confirmation, for those who may change it", () => {
@@ -471,7 +483,9 @@ describe("the pages draw switches first, and fold the limits", () => {
   test("readiness asks the project and the providers the chat uses, and hears Enable AI saved anywhere", () => {
     const readiness: string = readDashboard(READINESS);
 
-    expect(readiness).toContain('PROJECT_AI_PROVIDERS_PATH: string = "/ai-chat/providers"');
+    expect(readiness).toContain(
+      'PROJECT_AI_PROVIDERS_PATH: string = "/ai-chat/providers"',
+    );
     expect(readiness).toContain("select: { enableAi: true, }");
     expect(readiness).toContain("subscribeToModelSwitchSaved({");
     expect(readiness).toContain("column: ENABLE_AI_COLUMN");
@@ -694,10 +708,11 @@ describe("what folded Advanced says", () => {
   });
 
   test("once every card has read and nothing is set, it says what the defaults do", () => {
-    expect(getAiLaneAdvancedSummary(AiLane.Incident, read(AiLane.Incident, {})))
-      .toBe(
-        "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
-      );
+    expect(
+      getAiLaneAdvancedSummary(AiLane.Incident, read(AiLane.Incident, {})),
+    ).toBe(
+      "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
+    );
     expect(getAiLaneAdvancedSummary(AiLane.Alert, read(AiLane.Alert, {}))).toBe(
       "Every alert is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
     );

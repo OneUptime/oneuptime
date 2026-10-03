@@ -329,9 +329,9 @@ describe("ModelSwitchesCard reads the record once", () => {
     render(card());
     await loaded();
 
-    expect(
-      screen.getByTestId("switch-investigate-row"),
-    ).toHaveTextContent("OneUptime AI looks into each new incident.");
+    expect(screen.getByTestId("switch-investigate-row")).toHaveTextContent(
+      "OneUptime AI looks into each new incident.",
+    );
     expect(screen.getByTestId("switch-postmortem-row")).toHaveTextContent(
       "It never replaces a postmortem that already exists.",
     );
@@ -572,7 +572,9 @@ describe("ModelSwitchesCard: each switch saves its own column", () => {
     expect(dialog).toHaveTextContent("Turn off AI for this project?");
     expect(updateByIdMock).not.toHaveBeenCalled();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Turn off AI" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Turn off AI" }),
+    );
     await flush();
 
     expect(updateCall().data).toEqual({ enableAi: false });
@@ -588,6 +590,8 @@ describe("ModelSwitchesCard: each switch saves its own column", () => {
 
     render(card());
     await loaded();
+    // The rows listen from an effect, which runs after they are drawn.
+    await flush();
 
     act(() => {
       announceModelSwitchSaved({

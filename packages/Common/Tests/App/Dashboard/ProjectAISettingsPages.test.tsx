@@ -897,9 +897,9 @@ describe("Incidents → Settings → AI", () => {
       const postmortem: HTMLElement = await postmortemSwitch();
 
       expect(postmortem).toHaveAttribute("aria-disabled", "true");
-      expect(
-        screen.getByTestId(`${POSTMORTEM_TEST_ID}-row`),
-      ).toHaveTextContent("Project Owner, Project Admin");
+      expect(screen.getByTestId(`${POSTMORTEM_TEST_ID}-row`)).toHaveTextContent(
+        "Project Owner, Project Admin",
+      );
 
       await press(postmortem);
       expect(updateByIdSpy).not.toHaveBeenCalled();

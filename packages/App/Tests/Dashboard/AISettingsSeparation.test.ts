@@ -312,13 +312,19 @@ describe("incident and alert AI settings separation", () => {
 
   test("each lane's daily fix limit sits with its token limit, not with the switches", () => {
     expect(
-      getAiLaneAdvancedCardColumns(AiLane.Incident, AiLaneAdvancedCard.DailyLimits),
+      getAiLaneAdvancedCardColumns(
+        AiLane.Incident,
+        AiLaneAdvancedCard.DailyLimits,
+      ),
     ).toEqual([
       "incidentAiDailyAutonomousTokenLimit",
       "incidentAiDailyFixTaskLimit",
     ]);
     expect(
-      getAiLaneAdvancedCardColumns(AiLane.Alert, AiLaneAdvancedCard.DailyLimits),
+      getAiLaneAdvancedCardColumns(
+        AiLane.Alert,
+        AiLaneAdvancedCard.DailyLimits,
+      ),
     ).toEqual(["alertAiDailyAutonomousTokenLimit", "alertAiDailyFixTaskLimit"]);
   });
 

@@ -53,6 +53,10 @@ const REPOSITORY_ROOT: string = path.resolve(
 
 const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 
+// A page that draws its switches through the shared switch cards.
+const DRAWS_SWITCHES: RegExp =
+  /<ModelSwitchesCard<|<ModelSwitchCard<|<ProjectAiSwitchesCard\b/;
+
 export interface SwitchCardLeft {
   // Repository-relative, with "/".
   file: string;
@@ -330,11 +334,6 @@ describe("switches-only cards in the frontends", () => {
       "utf8",
     );
 
-    expect([
-      file,
-      /<ModelSwitchesCard<|<ModelSwitchCard<|<ProjectAiSwitchesCard\b/.test(
-        source,
-      ),
-    ]).toEqual([file, true]);
+    expect([file, DRAWS_SWITCHES.test(source)]).toEqual([file, true]);
   });
 });

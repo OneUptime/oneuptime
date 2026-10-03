@@ -218,9 +218,7 @@ function openAdvanced(): void {
 }
 
 async function cardOf(title: string): Promise<HTMLElement> {
-  return (await findText(title)).closest(
-    '[data-testid="card"]',
-  ) as HTMLElement;
+  return (await findText(title)).closest('[data-testid="card"]') as HTMLElement;
 }
 
 // A detail row's title, as ModelDetail renders it.

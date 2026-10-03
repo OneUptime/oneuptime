@@ -178,25 +178,24 @@ export interface AiLaneAdvancedColumns {
   dailyFixTasks: "incidentAiDailyFixTaskLimit" | "alertAiDailyFixTaskLimit";
 }
 
-export const AI_LANE_ADVANCED_COLUMNS: Record<AiLane, AiLaneAdvancedColumns> =
-  {
-    [AiLane.Incident]: {
-      minimumSeverity: "incidentInvestigationMinimumSeverity",
-      cooldown: "incidentInvestigationDedupeWindowMinutes",
-      maxConcurrent: "incidentAiMaxConcurrentInvestigations",
-      timeLimit: "incidentAiInvestigationTimeLimitInMinutes",
-      dailyTokens: "incidentAiDailyAutonomousTokenLimit",
-      dailyFixTasks: "incidentAiDailyFixTaskLimit",
-    },
-    [AiLane.Alert]: {
-      minimumSeverity: "alertInvestigationMinimumSeverity",
-      cooldown: "alertInvestigationDedupeWindowMinutes",
-      maxConcurrent: "alertAiMaxConcurrentInvestigations",
-      timeLimit: "alertAiInvestigationTimeLimitInMinutes",
-      dailyTokens: "alertAiDailyAutonomousTokenLimit",
-      dailyFixTasks: "alertAiDailyFixTaskLimit",
-    },
-  };
+export const AI_LANE_ADVANCED_COLUMNS: Record<AiLane, AiLaneAdvancedColumns> = {
+  [AiLane.Incident]: {
+    minimumSeverity: "incidentInvestigationMinimumSeverity",
+    cooldown: "incidentInvestigationDedupeWindowMinutes",
+    maxConcurrent: "incidentAiMaxConcurrentInvestigations",
+    timeLimit: "incidentAiInvestigationTimeLimitInMinutes",
+    dailyTokens: "incidentAiDailyAutonomousTokenLimit",
+    dailyFixTasks: "incidentAiDailyFixTaskLimit",
+  },
+  [AiLane.Alert]: {
+    minimumSeverity: "alertInvestigationMinimumSeverity",
+    cooldown: "alertInvestigationDedupeWindowMinutes",
+    maxConcurrent: "alertAiMaxConcurrentInvestigations",
+    timeLimit: "alertAiInvestigationTimeLimitInMinutes",
+    dailyTokens: "alertAiDailyAutonomousTokenLimit",
+    dailyFixTasks: "alertAiDailyFixTaskLimit",
+  },
+};
 
 // The three cards under Advanced, each a question with its own Edit.
 export enum AiLaneAdvancedCard {
@@ -218,7 +217,10 @@ export const AI_LANE_ADVANCED_CARDS: Array<AiLaneAdvancedCard> = [
 export const getAiLaneAdvancedCardColumns: (
   lane: AiLane,
   card: AiLaneAdvancedCard,
-) => Array<string> = (lane: AiLane, card: AiLaneAdvancedCard): Array<string> => {
+) => Array<string> = (
+  lane: AiLane,
+  card: AiLaneAdvancedCard,
+): Array<string> => {
   const columns: AiLaneAdvancedColumns = AI_LANE_ADVANCED_COLUMNS[lane];
 
   switch (card) {
@@ -471,7 +473,8 @@ export const EnableAiCopy: {
 export const ENABLE_AI_SWITCH_TEST_ID: string = "enable-ai-switch";
 
 // The data-testid of the Enable AI switch in the notice on the other pages.
-export const ENABLE_AI_NOTICE_SWITCH_TEST_ID: string = "enable-ai-notice-switch";
+export const ENABLE_AI_NOTICE_SWITCH_TEST_ID: string =
+  "enable-ai-notice-switch";
 
 /*
  * The notices at the top of the AI settings pages. They say only what is
@@ -565,30 +568,31 @@ export const getProjectAiNotices: (data: {
  * which investigations, postmortem drafts and insight triage all use), and
  * `providers` every provider the project could pick.
  */
-export const getProjectAiProviderState: (answer: unknown) => ProjectAiProviderState =
-  (answer: unknown): ProjectAiProviderState => {
-    if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
-      return ProjectAiProviderState.Unknown;
-    }
+export const getProjectAiProviderState: (
+  answer: unknown,
+) => ProjectAiProviderState = (answer: unknown): ProjectAiProviderState => {
+  if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
+    return ProjectAiProviderState.Unknown;
+  }
 
-    const data: Record<string, unknown> = answer as Record<string, unknown>;
+  const data: Record<string, unknown> = answer as Record<string, unknown>;
 
-    const defaultProviderId: unknown = data["defaultProviderId"];
+  const defaultProviderId: unknown = data["defaultProviderId"];
 
-    if (typeof defaultProviderId === "string" && defaultProviderId.length > 0) {
-      return ProjectAiProviderState.Usable;
-    }
+  if (typeof defaultProviderId === "string" && defaultProviderId.length > 0) {
+    return ProjectAiProviderState.Usable;
+  }
 
-    const providers: unknown = data["providers"];
+  const providers: unknown = data["providers"];
 
-    if (!Array.isArray(providers)) {
-      return ProjectAiProviderState.Unknown;
-    }
+  if (!Array.isArray(providers)) {
+    return ProjectAiProviderState.Unknown;
+  }
 
-    return providers.length > 0
-      ? ProjectAiProviderState.NoDefault
-      : ProjectAiProviderState.Missing;
-  };
+  return providers.length > 0
+    ? ProjectAiProviderState.NoDefault
+    : ProjectAiProviderState.Missing;
+};
 
 /*
  * Project.enableAi from a read of the project. The column is NOT NULL
@@ -677,7 +681,8 @@ export const ProjectAiNoticeCopy: {
 // The data-testids of the notices.
 export const PROJECT_AI_OFF_NOTICE_TEST_ID: string = "project-ai-off-notice";
 
-export const PROJECT_AI_OFF_SENTENCE_TEST_ID: string = "project-ai-off-sentence";
+export const PROJECT_AI_OFF_SENTENCE_TEST_ID: string =
+  "project-ai-off-sentence";
 
 export const PROJECT_AI_PROVIDER_NOTICE_TEST_ID: string =
   "project-ai-provider-notice";

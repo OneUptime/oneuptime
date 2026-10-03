@@ -485,7 +485,15 @@ describe("Incidents → Settings → AI", () => {
   });
 
   test.each([
-    ["a minimum severity", { incidentInvestigationMinimumSeverity: { name: "Critical", color: "#ff0000" } }],
+    [
+      "a minimum severity",
+      {
+        incidentInvestigationMinimumSeverity: {
+          name: "Critical",
+          color: "#ff0000",
+        },
+      },
+    ],
     ["a cooldown", { incidentInvestigationDedupeWindowMinutes: 30 }],
     ["a concurrency cap", { incidentAiMaxConcurrentInvestigations: 3 }],
     ["a time limit", { incidentAiInvestigationTimeLimitInMinutes: 15 }],
@@ -504,7 +512,9 @@ describe("Incidents → Settings → AI", () => {
         },
         { timeout: WAIT_TIMEOUT },
       );
-      expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      expect(
+        screen.getByTestId("collapsible-section-summary"),
+      ).toHaveTextContent(
         AI_LANE_PAGE_COPY[AiLane.Incident].advancedDescription,
       );
       expect(advancedHeader()).not.toHaveTextContent(
@@ -610,7 +620,9 @@ describe("Incidents → Settings → AI", () => {
         { timeout: WAIT_TIMEOUT },
       );
       expect(dialog).toHaveTextContent(title);
-      expect(within(dialog).queryByTestId("modal-footer-next-button")).toBeNull();
+      expect(
+        within(dialog).queryByTestId("modal-footer-next-button"),
+      ).toBeNull();
 
       // The form has read the project: its fields are drawn.
       await waitFor(
@@ -734,11 +746,9 @@ describe("Incidents → Settings → AI", () => {
 
       fireEvent.click(advancedHeader());
       const card: HTMLElement = await cardOf("Daily limits");
-      const edit: HTMLElement = (await within(card).findByText(
-        "Edit",
-        {},
-        { timeout: WAIT_TIMEOUT },
-      )).closest("button") as HTMLElement;
+      const edit: HTMLElement = (
+        await within(card).findByText("Edit", {}, { timeout: WAIT_TIMEOUT })
+      ).closest("button") as HTMLElement;
 
       expect(edit).toBeDisabled();
       fireEvent.click(edit);
@@ -898,9 +908,10 @@ describe("AI → Insights → Settings", () => {
       /quiet insights/i,
       /proactive telemetry watch/i,
     ]) {
-      expect([String(jargon), jargon.test(document.body.textContent || "")]).toEqual(
-        [String(jargon), false],
-      );
+      expect([
+        String(jargon),
+        jargon.test(document.body.textContent || ""),
+      ]).toEqual([String(jargon), false]);
     }
   });
 });
@@ -978,24 +989,27 @@ describe("Project Settings → AI Features", () => {
     [Permission.ProjectAdmin],
     [Permission.EditProject],
     [Permission.Viewer],
-  ])("%s sees it locked, naming who may change it", async (permission: Permission) => {
-    grant([...BASE_PERMISSIONS, permission]);
+  ])(
+    "%s sees it locked, naming who may change it",
+    async (permission: Permission) => {
+      grant([...BASE_PERMISSIONS, permission]);
 
-    openAiFeaturesPage();
+      openAiFeaturesPage();
 
-    const enableAi: HTMLElement = await findSwitch(ENABLE_AI_SWITCH_TEST_ID);
-    expect(enableAi).toHaveAttribute("aria-disabled", "true");
+      const enableAi: HTMLElement = await findSwitch(ENABLE_AI_SWITCH_TEST_ID);
+      expect(enableAi).toHaveAttribute("aria-disabled", "true");
 
-    const row: HTMLElement = screen.getByTestId(
-      `${ENABLE_AI_SWITCH_TEST_ID}-row`,
-    );
-    expect(row).toHaveTextContent("Project Owner");
-    expect(row).toHaveTextContent("Manage Billing");
+      const row: HTMLElement = screen.getByTestId(
+        `${ENABLE_AI_SWITCH_TEST_ID}-row`,
+      );
+      expect(row).toHaveTextContent("Project Owner");
+      expect(row).toHaveTextContent("Manage Billing");
 
-    await press(enableAi);
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(updateByIdSpy).not.toHaveBeenCalled();
-  });
+      await press(enableAi);
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(updateByIdSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("someone who manages billing may turn it off", async () => {
     grant([...BASE_PERMISSIONS, Permission.ManageProjectBilling]);
@@ -1186,6 +1200,8 @@ describe("the notice when Enable AI is off", () => {
     const enableAi: HTMLElement = await findSwitch(
       ENABLE_AI_NOTICE_SWITCH_TEST_ID,
     );
+    // The switch listens from an effect, which runs after it is drawn.
+    await flush();
 
     act(() => {
       announceModelSwitchSaved({
@@ -1198,9 +1214,9 @@ describe("the notice when Enable AI is off", () => {
     });
 
     expect(enableAi).toHaveAttribute("aria-checked", "true");
-    expect(
-      screen.getByTestId(PROJECT_AI_OFF_NOTICE_TEST_ID),
-    ).toHaveTextContent(ProjectAiNoticeCopy.aiOnDescription);
+    expect(screen.getByTestId(PROJECT_AI_OFF_NOTICE_TEST_ID)).toHaveTextContent(
+      ProjectAiNoticeCopy.aiOnDescription,
+    );
     expect(updateByIdSpy).not.toHaveBeenCalled();
   });
 
@@ -1222,9 +1238,10 @@ describe("the notice when Enable AI is off", () => {
       });
     });
 
-    expect(
-      screen.getByTestId(ENABLE_AI_NOTICE_SWITCH_TEST_ID),
-    ).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByTestId(ENABLE_AI_NOTICE_SWITCH_TEST_ID)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
   });
 
   test("a project that cannot be read says nothing", async () => {

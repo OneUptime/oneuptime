@@ -80,7 +80,9 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
 
       <ProjectAiSwitchesCard
         cardTitle={AI_LANE_PAGE_COPY[AiLane.Alert].switchesCardTitle}
-        cardDescription={AI_LANE_PAGE_COPY[AiLane.Alert].switchesCardDescription}
+        cardDescription={
+          AI_LANE_PAGE_COPY[AiLane.Alert].switchesCardDescription
+        }
         switches={AI_LANE_SWITCHES[AiLane.Alert]}
         dataTestId={AI_LANE_SWITCHES_TEST_ID[AiLane.Alert]}
       />
