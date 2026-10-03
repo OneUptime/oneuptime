@@ -109,9 +109,9 @@ Where severity does more than describe: on **Incidents → Rules → On-Call Rul
 
 There are four ways an incident changes state:
 
-- **The header buttons.** Open an incident. If its current state is before the acknowledged state, you get **Acknowledge** and **Resolve**; if it is between the two, you get **Resolve**. Each opens a confirmation modal — **Acknowledge Incident** or **Resolve Incident** — that also offers **Select Note Template**, **Public Note** and **Notify Status Page Subscribers**.
+- **The header buttons.** Open an incident. If its current state is before the acknowledged state, you get **Acknowledge** and **Resolve**; if it is between the two, you get **Resolve**. Each opens a short confirmation — **Acknowledge Incident** or **Resolve Incident** — with **Notify Status Page Subscribers** and, folded under **Add a public note**, the optional **Public Note** and its **Select Note Template** picker (when the project has note templates). Acknowledging also stops any on-call escalation for the incident.
 - **The state timeline.** Add a row by hand from the incident's **State Timeline** page with **Incident Status**, **Starts At** and **Notify Status Page Subscribers**.
-- **Bulk change.** The incidents list has a **Change State** bulk action for moving several incidents at once.
+- **Bulk change.** The incidents list has a **Change State** bulk action for moving several incidents at once: one page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.
 - **Automatically.** A monitor criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met, and the API can update the state through `/api/incident-state-timeline`.
 
 Every one of these writes a timeline row. A state change also does a few things you do not have to ask for: it posts an entry to the incident feed, assigns an Incident Commander if the incident does not have one yet, and updates the SLA clock. Reopening a resolved incident starts a fresh SLA record from the reopen time.
@@ -157,7 +157,7 @@ Notification is requested per timeline row by **Notify Status Page Subscribers**
 - **The status page has incidents turned off** (`showIncidentsOnStatusPage` is off). This one is per status page — other pages showing the same monitor still get notified.
 - **The status page is outside the incident's scope.** An incident limited to some status pages with **Limit to these status pages** notifies only those pages among the ones that list its monitors, and a page with **Only Show Incidents Scoped to This Page** on is never notified about an incident that is not limited to it. This is per status page too. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
-**One more thing that changes the outcome.** If you type a **Public Note** into the state-change modal, the timeline row is marked as already notified rather than queued. The note itself is what reaches subscribers, so they get one message instead of two. The event type behind the plain state-change message is `Subscriber Incident State Changed`.
+**One more thing that changes the outcome.** If you write a **Public Note** in the state-change modal (under **Add a public note**), the timeline row is marked as already notified rather than queued. The note itself is what reaches subscribers, so they get one message instead of two. The event type behind the plain state-change message is `Subscriber Incident State Changed`.
 
 **Sent means every subscriber was sent it.** The job waits for each message and counts it sent or failed, per status page and channel, and the row's status message lists those counts. One failed message, or a send that ran out of time or was interrupted, makes the row **Failed**. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 

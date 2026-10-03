@@ -67,7 +67,7 @@ Allez dans **Incidents → Paramètres → Modèles de notes** (`/dashboard/{pro
 
 Comme pour les modèles d'incident, les lignes se créent et se consultent plutôt qu'elles ne s'éditent en place ; ouvrez un modèle pour le modifier.
 
-Les modèles de notes apparaissent là où vous en avez réellement besoin : les fenêtres de confirmation **Acknowledge Incident** et **Resolve Incident** proposent toutes deux **Sélectionner le modèle de note** à côté du champ **Note publique**. Voyez [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed) pour la différence entre notes publiques et privées.
+Les modèles de notes apparaissent là où vous en avez réellement besoin : les fenêtres de confirmation **Prendre en compte l'incident** et **Résoudre l'incident** proposent toutes deux **Sélectionner le modèle de note** au-dessus du champ **Note publique**, repliés sous **Ajouter une note publique**. Voyez [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed) pour la différence entre notes publiques et privées.
 
 ## Modèles de post-mortem
 
