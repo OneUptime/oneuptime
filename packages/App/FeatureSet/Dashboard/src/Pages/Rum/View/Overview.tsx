@@ -800,7 +800,7 @@ const RumApplicationOverview: FunctionComponent<
     describeRecordingHealthRow(health);
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "App Identifier (service.name)", value: a.appIdentifier },
+    { label: "App Name (service.name)", value: a.appIdentifier },
     { label: "Client Type", value: a.clientType },
     { label: "SDK Language (telemetry.sdk.language)", value: a.sdkLanguage },
     { label: "SDK Version", value: a.agentVersion },
@@ -899,6 +899,7 @@ const RumApplicationOverview: FunctionComponent<
         }
         quickLinks={quickLinks}
         detailRows={detailRows}
+        settingsRoute={populate(PageMap.RUM_APPLICATION_VIEW_SETTINGS)}
         labels={a.labels}
       />
 

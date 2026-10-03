@@ -2,9 +2,8 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Host from "Common/Models/DatabaseModels/Host";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -18,40 +17,30 @@ const HostSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<Host>
-        name="Host Settings"
-        cardProps={{
-          title: "Host Settings",
-          description: "Manage settings for this host.",
+      <ResourceDetailsCard<Host>
+        modelType={Host}
+        modelId={modelId}
+        id="host-details"
+        title="Host Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Display Name",
+          description:
+            "Shown everywhere this resource appears. Telemetry is not matched by the display name, so renaming is safe.",
+          placeholder: "Production web server",
         }}
-        modelDetailProps={{
-          modelType: Host,
-          id: "host-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                hostIdentifier: true,
-              },
-              title: "Host Identifier",
-              fieldType: FieldType.Text,
-            },
-          ],
+        descriptionField={{
+          placeholder: "Production host running in US East",
         }}
+        identityFields={[
+          {
+            column: "hostIdentifier",
+            title: "Host Name (host.name)",
+            description:
+              "Telemetry is matched by this host name. Change it only when the host reports a new one: telemetry that still reports the old name creates a new host.",
+            placeholder: "host-prod-1",
+          },
+        ]}
       />
       <TelemetryResourceRetentionSettings<Host>
         modelType={Host}

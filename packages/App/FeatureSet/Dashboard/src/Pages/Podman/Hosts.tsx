@@ -241,7 +241,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               hostIdentifier: true,
             },
-            title: "Host Identifier",
+            title: "Host Name (host.name)",
             type: FieldType.Text,
           },
           {

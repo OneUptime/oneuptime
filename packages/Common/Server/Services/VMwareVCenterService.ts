@@ -20,6 +20,10 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceUpdate, {
+  MatchColumn,
+  matchedOnName,
+} from "../Utils/Telemetry/DiscoveredResourceUpdate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -55,9 +59,30 @@ export interface VMwareVCenterLastSeenExtras {
   datastoreUsedBytes?: number | undefined;
 }
 
+/*
+ * A vCenter is matched to its telemetry by its name (vmware.vcenter.name),
+ * so a rename is held to the rules a new vCenter is: no spaces around
+ * it, never blank, and never another vCenter's name
+ * (DiscoveredResourceUpdate).
+ */
+const VMWARE_VCENTER_MATCH_COLUMN: MatchColumn = matchedOnName({
+  resourceName: "vCenter",
+});
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdateUniqueCheck(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceUpdate.checkMatchColumn({
+      service: this,
+      updateBy,
+      matchColumn: VMWARE_VCENTER_MATCH_COLUMN,
+    });
   }
 
   @CaptureSpan()

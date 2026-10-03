@@ -604,7 +604,7 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: ServerlessPlatform) => {
         return topic.title === "The function is listed, but its tabs are empty";
       })?.markdown || "";
     expect(empty).toContain(
-      "whose `faas.name` equals its **Function Identifier** exactly",
+      "whose `faas.name` equals its **Function Name (faas.name)** exactly",
     );
     expect(empty).not.toContain("has no `faas.name` on its telemetry");
     expect(empty).not.toContain("add `faas.name`");

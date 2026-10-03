@@ -716,7 +716,7 @@ De meest voorkomende reden — vooral na een herinstallatie — is een **verkeer
 ### Geen metrieken zichtbaar
 
 1. Sluit eerst een geweigerde ingestion-sleutel uit — het is de meest voorkomende oorzaak en is vanaf de agent-kant makkelijk over het hoofd te zien. Zie [Agent toont "Disconnected"](#agent-toont-disconnected) hierboven (of voer gewoon het diagnosescript uit).
-2. Controleer of de cluster-identifier overeenkomt met de waarde die je hebt doorgegeven als `clusterName`
+2. Controleer of de **clusternaam (clusterName)** overeenkomt met de waarde die je hebt doorgegeven als `clusterName`. Die staat op de pagina **Settings** van het cluster, in **Cluster Details**; kies **Edit Details** en open **Advanced** om hem te corrigeren
 3. Verifieer de RBAC-permissies: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Controleer de OTel-collector-logs op export-fouten
 

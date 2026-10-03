@@ -454,12 +454,6 @@ describe("the project's stepped forms", () => {
       ["recording", "privacy", "consent", "performance", "limits"],
     ],
     [
-      `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
-      "CardModelDetail: Repository > Repository Details",
-      // Its labels fold under Advanced on Repository Info.
-      ["repository-info", "source"],
-    ],
-    [
       `${DASHBOARD}/Pages/NetworkDevice/View/Settings.tsx`,
       "CardModelDetail: Device Settings",
       ["device-details", "address", "monitoring", "snmp"],

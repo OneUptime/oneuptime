@@ -162,7 +162,7 @@ const ServerlessFunctions: FunctionComponent<
             field: {
               functionIdentifier: true,
             },
-            title: "Function Identifier",
+            title: "Function Name (faas.name)",
             type: FieldType.Text,
           },
           {

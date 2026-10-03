@@ -2,9 +2,9 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -18,40 +18,30 @@ const CephClusterSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<CephCluster>
-        name="Cluster Settings"
-        cardProps={{
-          title: "Cluster Settings",
-          description: "Manage settings for this Ceph cluster.",
+      <ResourceDetailsCard<CephCluster>
+        modelType={CephCluster}
+        modelId={modelId}
+        id="ceph-cluster-details"
+        title="Ceph Cluster Details"
+        description="How this resource is named, described and labelled everywhere it appears."
+        nameField={{
+          title: "Name",
+          description:
+            "Must match the ceph.cluster.name the Ceph Agent reports (its CEPH_CLUSTER_NAME). Telemetry is matched to this cluster by it: rename it on the agent too, or the agent's next report creates a new cluster.",
+          placeholder: "production-ceph-cluster",
         }}
-        modelDetailProps={{
-          modelType: CephCluster,
-          id: "ceph-cluster-settings",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              fieldType: FieldType.Text,
-            },
-            {
-              field: {
-                fsid: true,
-              },
-              title: "Cluster fsid",
-              fieldType: FieldType.Text,
-            },
-          ],
+        descriptionField={{
+          placeholder: "Production Ceph cluster running in US East",
         }}
+        detailFields={[
+          {
+            field: {
+              fsid: true,
+            },
+            title: "Cluster fsid",
+            fieldType: FieldType.Text,
+          },
+        ]}
       />
       <TelemetryResourceRetentionSettings<CephCluster>
         modelType={CephCluster}

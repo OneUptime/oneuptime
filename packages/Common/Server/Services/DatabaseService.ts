@@ -734,6 +734,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve();
   }
 
+  /*
+   * The same for an update: runs once the caller has passed the permission
+   * checks, with the query already narrowed to the rows they may write and
+   * before the data is serialized, so it may still adjust what is written.
+   * Unlike onBeforeUpdate - which runs before any check - a refusal here
+   * may say what exists (see DiscoveredResourceUpdate.checkMatchColumn).
+   * Skipped with ignoreHooks.
+   */
+  protected async onBeforeUpdateUniqueCheck(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
     createdItem: TBaseModel,
@@ -3641,6 +3656,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.data,
         beforeUpdateBy.props,
       );
+
+      // A service's own words for a clash, now the caller may make the write.
+      if (!updateBy.props.ignoreHooks) {
+        await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
+      }
 
       const data: PartialEntity<TBaseModel> =
         (await this.sanitizeCreateOrUpdate(
