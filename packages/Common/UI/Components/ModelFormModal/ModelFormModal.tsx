@@ -7,6 +7,7 @@ import ModelForm, {
   ComponentProps as ModelFormComponentProps,
   FormType,
   ModelFormOnBeforeCreate,
+  ModelFormOnBeforeUpdate,
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
@@ -31,6 +32,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   formProps: ModelFormComponentProps<TBaseModel>;
   modelIdToEdit?: ObjectID | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   footer?: ReactElement | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
 }
@@ -154,6 +156,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
               setError(error);
             }}
             onBeforeCreate={props.onBeforeCreate}
+            onBeforeUpdate={props.onBeforeUpdate}
           />
 
           {props.footer}
