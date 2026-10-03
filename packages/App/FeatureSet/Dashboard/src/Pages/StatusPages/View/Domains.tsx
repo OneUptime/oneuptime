@@ -1,15 +1,28 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  getStatusPageCustomDomainState,
+  STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
+  StatusPageCustomDomainCopy,
+} from "../../../Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
+import StatusPageDomainDnsSetupModal from "../../../Components/StatusPage/CustomDomain/StatusPageDomainDnsSetupModal";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, StatusPageCNameRecord } from "Common/UI/Config";
@@ -30,9 +43,24 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import CertificateReissueUtil from "Common/Utils/CertificateReissue";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
-const StatusPageDelete: FunctionComponent<PageComponentProps> = (
+/*
+ * The certificate options, folded: nearly every domain runs on the free
+ * certificate we issue and renew, and the folded header says so. Built once,
+ * so the fields in it are one section (FormStepsScan reads them that way).
+ */
+const certificateSection: FormFieldCollapsibleSection<StatusPageDomain> =
+  getAdvancedFormSection<StatusPageDomain>({
+    getSummary: (values: FormValues<StatusPageDomain>): Array<string> => {
+      return [
+        values.isCustomCertificate
+          ? StatusPageCustomDomainCopy.advancedSummaryUploadedCertificate
+          : StatusPageCustomDomainCopy.advancedSummaryFreeCertificate,
+      ];
+    },
+  });
+
+const StatusPageDomains: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
@@ -42,18 +70,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     OneUptimeDate.getCurrentDate().toString(),
   );
 
-  const [showCnameModal, setShowCnameModal] = useState<boolean>(false);
+  // The domain whose DNS Setup dialog is open.
+  const [dnsSetupDomain, setDnsSetupDomain] = useState<StatusPageDomain | null>(
+    null,
+  );
 
   const [selectedStatusPageDomain, setSelectedStatusPageDomain] =
     useState<StatusPageDomain | null>(null);
 
-  const [verifyCnameLoading, setVerifyCnameLoading] = useState<boolean>(false);
-
-  const [orderSslLoading, setOrderSslLoading] = useState<boolean>(false);
-
   const [error, setError] = useState<string>("");
-
-  const [showOrderSSLModal, setShowOrderSSLModal] = useState<boolean>(false);
 
   const [showReissueSSLModal, setShowReissueSSLModal] =
     useState<boolean>(false);
@@ -69,6 +94,51 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     selectedStatusPageDomain?.certificateReissueRequestedAt,
     OneUptimeDate.getCurrentDate(),
   );
+
+  const refreshTable: VoidFunction = (): void => {
+    setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+  };
+
+  /*
+   * Open DNS Setup on a domain that was just added: adding the record is
+   * the next step, and the only one its owner has to take. The create
+   * answer carries the new row; should it lack the domain's name (a role
+   * that may add domains but not read them), the row is read once more.
+   */
+  const openDnsSetupForNewDomain: (
+    createdDomain: StatusPageDomain,
+  ) => Promise<void> = async (
+    createdDomain: StatusPageDomain,
+  ): Promise<void> => {
+    if (createdDomain.fullDomain) {
+      setDnsSetupDomain(createdDomain);
+      return;
+    }
+
+    if (!createdDomain.id) {
+      return;
+    }
+
+    try {
+      const fetchedDomain: StatusPageDomain | null =
+        await ModelAPI.getItem<StatusPageDomain>({
+          modelType: StatusPageDomain,
+          id: createdDomain.id,
+          select: {
+            _id: true,
+            fullDomain: true,
+            subdomain: true,
+            isCustomCertificate: true,
+          },
+        });
+
+      if (fetchedDomain?.fullDomain) {
+        setDnsSetupDomain(fetchedDomain);
+      }
+    } catch {
+      // The row action opens it too; the new row is in the table already.
+    }
+  };
 
   return (
     <Fragment>
@@ -90,10 +160,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           isEditable={true}
           cardProps={{
             title: "Custom Domains",
-            description: translator.translateTemplate(
-              "Important: Please add {{cnameRecord}} as your CNAME for these domains for this to work.",
-              { cnameRecord: StatusPageCNameRecord },
-            ),
+            description: StatusPageCNameRecord
+              ? translator.translateTemplate(
+                  StatusPageCustomDomainCopy.cardDescription,
+                  { cnameRecord: StatusPageCNameRecord },
+                )
+              : StatusPageCustomDomainCopy.cardDescriptionNotEnabled,
           }}
           refreshToggle={refreshToggle}
           onBeforeCreate={(
@@ -106,17 +178,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             item.projectId = new ObjectID(props.currentProject._id);
             return Promise.resolve(item);
           }}
+          onCreateSuccess={async (
+            item: StatusPageDomain,
+            modalType?: ModalType,
+          ): Promise<StatusPageDomain> => {
+            if (modalType === ModalType.Create) {
+              await openDnsSetupForNewDomain(item);
+            }
+
+            return item;
+          }}
           actionButtons={[
             {
-              title: "Add CNAME",
+              title: StatusPageCustomDomainCopy.dnsSetupTitle,
               buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
-              icon: IconProp.Check,
+              icon: IconProp.Globe,
               isVisible: (item: StatusPageDomain): boolean => {
-                if (item["isCnameVerified"]) {
-                  return false;
-                }
-
-                return true;
+                return !item.isCnameVerified;
               },
               onClick: async (
                 item: StatusPageDomain,
@@ -124,42 +202,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 onError: ErrorFunction,
               ) => {
                 try {
-                  setShowCnameModal(true);
-                  setSelectedStatusPageDomain(item);
+                  setDnsSetupDomain(item);
                   onCompleteAction();
                 } catch (err) {
                   onCompleteAction();
-                  onError(err as Error);
-                }
-              },
-            },
-            {
-              title: "Order Free SSL",
-              buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
-              icon: IconProp.Check,
-              isVisible: (item: StatusPageDomain): boolean => {
-                if (
-                  !item.isCustomCertificate &&
-                  item["isCnameVerified"] &&
-                  !item.isSslOrdered
-                ) {
-                  return true;
-                }
-
-                return false;
-              },
-              onClick: async (
-                item: StatusPageDomain,
-                onCompleteAction: VoidFunction,
-                onError: ErrorFunction,
-              ) => {
-                try {
-                  setShowOrderSSLModal(true);
-                  setSelectedStatusPageDomain(item);
-                  onCompleteAction();
-                } catch (err) {
-                  onCompleteAction();
-                  setSelectedStatusPageDomain(null);
                   onError(err as Error);
                 }
               },
@@ -179,8 +225,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 /*
                  * Only where there is a Let's Encrypt certificate of ours to
                  * replace. A custom certificate is the customer's own upload,
-                 * and a domain that never ordered one still shows "Order Free
-                 * SSL" instead.
+                 * and a domain whose first certificate is not ordered yet
+                 * gets one on its own.
                  */
                 return Boolean(
                   !item.isCustomCertificate &&
@@ -208,6 +254,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           noItemsMessage={"No custom domains found."}
           viewPageRoute={Navigation.getCurrentRoute()}
           selectMoreFields={{
+            subdomain: true,
             isSslOrdered: true,
             isSslProvisioned: true,
             isCnameVerified: true,
@@ -215,16 +262,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             // Read by the reissue modal to show the cooldown before it is hit.
             certificateReissueRequestedAt: true,
           }}
-          formSteps={[
-            {
-              title: "Basic",
-              id: "basic",
-            },
-            {
-              title: "More",
-              id: "more",
-            },
-          ]}
           formFields={[
             {
               field: {
@@ -236,25 +273,46 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               placeholder: "status (leave blank for root)",
               description:
                 "Enter the subdomain label only (for example, status). Leave blank or enter @ to use the root/apex domain.",
-              stepId: "basic",
               disableSpellCheck: true,
+              /*
+               * The full domain is worked out when the domain is added and
+               * never again, so a subdomain changed afterwards would change
+               * nothing. A different subdomain is a different domain: add it.
+               */
+              doNotShowWhenEditing: true,
             },
             {
               field: {
                 domain: true,
               },
               title: "Domain",
-              description:
-                "Please select a verified domain from this list. If you do not see any domains in this list, please head over to More -> Project Settings -> Custom Domains to add one.",
+              description: StatusPageCustomDomainCopy.domainFieldDescription,
+              sideLink: {
+                text: StatusPageCustomDomainCopy.domainFieldSideLink,
+                url: RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
+                ),
+                openLinkInNewTab: true,
+              },
               fieldType: FormFieldSchemaType.Dropdown,
+              /*
+               * Verified domains only: the server refuses any other, so
+               * listing them only led to "This domain is not verified" after
+               * the form was filled in.
+               */
               dropdownModal: {
                 type: Domain,
                 labelField: "domain",
                 valueField: "_id",
+                query: {
+                  isVerified: true,
+                },
+                sort: {
+                  domain: SortOrder.Ascending,
+                },
               },
               required: true,
               placeholder: "Select domain",
-              stepId: "basic",
             },
             {
               field: {
@@ -264,9 +322,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               defaultValue: false,
-              stepId: "more",
               description:
                 "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
+              collapsibleSection: certificateSection,
             },
             {
               field: {
@@ -274,14 +332,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
               title: "Certificate",
               fieldType: FormFieldSchemaType.LongText,
-              required: false,
-              stepId: "more",
+              required: (item: FormValues<StatusPageDomain>): boolean => {
+                return Boolean(item.isCustomCertificate);
+              },
               placeholder:
                 "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
               disableSpellCheck: true,
               showIf: (item: FormValues<StatusPageDomain>): boolean => {
                 return Boolean(item.isCustomCertificate);
               },
+              collapsibleSection: certificateSection,
             },
             {
               field: {
@@ -289,14 +349,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               },
               title: "Certificate Private Key",
               fieldType: FormFieldSchemaType.LongText,
-              required: false,
+              required: (item: FormValues<StatusPageDomain>): boolean => {
+                return Boolean(item.isCustomCertificate);
+              },
               placeholder:
                 "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
-              stepId: "more",
               disableSpellCheck: true,
               showIf: (item: FormValues<StatusPageDomain>): boolean => {
                 return Boolean(item.isCustomCertificate);
               },
+              collapsibleSection: certificateSection,
             },
           ]}
           showRefreshButton={true}
@@ -335,56 +397,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               type: FieldType.Element,
 
               getElement: (item: StatusPageDomain): ReactElement => {
-                if (!item.isCnameVerified) {
-                  return (
-                    <span>
-                      <span className="font-semibold">
-                        {translator.translateText("Action Required:")}
-                      </span>{" "}
-                      {translator.translateText(
-                        "Please add your CNAME record.",
-                      )}
-                    </span>
-                  );
-                }
-
-                if (item.isCustomCertificate) {
-                  return (
-                    <span>
-                      {translator.translateText(
-                        "No action is required. Please allow 30 minutes for the certificate to be provisioned.",
-                      )}
-                    </span>
-                  );
-                }
-
-                if (!item.isSslOrdered) {
-                  return (
-                    <span>
-                      <span className="font-semibold">
-                        {translator.translateText("Action Required:")}
-                      </span>{" "}
-                      {translator.translateText(
-                        "Please order SSL certificate.",
-                      )}
-                    </span>
-                  );
-                }
-
-                if (!item.isSslProvisioned) {
-                  return (
-                    <span>
-                      {translator.translateText(
-                        "No action is required. This SSL certificate will be provisioned in 1 hour. If this does not happen. Please contact support.",
-                      )}
-                    </span>
-                  );
-                }
-
                 return (
                   <span>
                     {translator.translateText(
-                      "Certificate Provisioned. We will automatically renew this certificate. No action required.",
+                      STATUS_PAGE_CUSTOM_DOMAIN_STATUS[
+                        getStatusPageCustomDomainState(item)
+                      ],
                     )}
                   </span>
                 );
@@ -393,149 +411,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           ]}
         />
 
-        {selectedStatusPageDomain?.fullDomain && showCnameModal && (
-          <ConfirmModal
-            title={`Add CNAME`}
-            description={
-              StatusPageCNameRecord ? (
-                <div>
-                  <span>
-                    {translator.translateText(
-                      "Please add CNAME record to your domain. Details of the CNAME records are:",
-                    )}
-                  </span>
-                  <br />
-                  <br />
-                  <span>
-                    <b>{translator.translateText("Record Type:")} </b> CNAME
-                  </span>
-                  <br />
-                  <span>
-                    <b>{translator.translateText("Name:")} </b>
-                    {selectedStatusPageDomain?.fullDomain}
-                  </span>
-                  <br />
-                  <span>
-                    <b>{translator.translateText("Content:")} </b>
-                    {StatusPageCNameRecord}
-                  </span>
-                  <br />
-                  <br />
-                  <span>
-                    {translator.translateText(
-                      "Once you have done this, it should take 24 hours to automatically verify.",
-                    )}
-                  </span>
-                </div>
-              ) : (
-                <div>
-                  <span>
-                    <TranslatedSentence
-                      template="Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set statusPage.cnameRecord in the values.yaml file."
-                      slots={{ variable: <b>STATUS_PAGE_CNAME_RECORD</b> }}
-                    />
-                  </span>
-                </div>
-              )
-            }
-            submitButtonText={"Verify CNAME"}
+        {dnsSetupDomain ? (
+          <StatusPageDomainDnsSetupModal
+            domain={dnsSetupDomain}
             onClose={() => {
-              setShowCnameModal(false);
-              setError("");
-              return setSelectedStatusPageDomain(null);
+              setDnsSetupDomain(null);
             }}
-            isLoading={verifyCnameLoading}
-            error={error}
-            onSubmit={async () => {
-              try {
-                setVerifyCnameLoading(true);
-                setError("");
-
-                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.get<JSONObject>({
-                    url: URL.fromString(APP_API_URL.toString()).addRoute(
-                      `/${
-                        new StatusPageDomain().crudApiPath
-                      }/verify-cname/${selectedStatusPageDomain?.id?.toString()}`,
-                    ),
-                    data: {},
-                    headers: ModelAPI.getCommonHeaders(),
-                  });
-
-                if (response.isFailure()) {
-                  throw response;
-                }
-
-                setShowCnameModal(false);
-                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-                setSelectedStatusPageDomain(null);
-              } catch (err) {
-                setError(API.getFriendlyMessage(err));
-              }
-
-              setVerifyCnameLoading(false);
-            }}
+            onVerified={refreshTable}
           />
-        )}
-
-        {showOrderSSLModal && selectedStatusPageDomain && (
-          <ConfirmModal
-            title={`Order Free SSL Certificate for this Status Page`}
-            description={
-              StatusPageCNameRecord ? (
-                <div>
-                  {translator.translateText(
-                    "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <span>
-                    {translator.translateText(
-                      "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
-                    )}
-                  </span>
-                </div>
-              )
-            }
-            submitButtonText={"Order Free SSL"}
-            onClose={() => {
-              setShowOrderSSLModal(false);
-              setError("");
-              return setSelectedStatusPageDomain(null);
-            }}
-            isLoading={orderSslLoading}
-            error={error}
-            onSubmit={async () => {
-              try {
-                setOrderSslLoading(true);
-                setError("");
-
-                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.get<JSONObject>({
-                    url: URL.fromString(APP_API_URL.toString()).addRoute(
-                      `/${
-                        new StatusPageDomain().crudApiPath
-                      }/order-ssl/${selectedStatusPageDomain?.id?.toString()}`,
-                    ),
-                    data: {},
-                    headers: ModelAPI.getCommonHeaders(),
-                  });
-
-                if (response.isFailure()) {
-                  throw response;
-                }
-
-                setShowOrderSSLModal(false);
-                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-                setSelectedStatusPageDomain(null);
-              } catch (err) {
-                setError(API.getFriendlyMessage(err));
-              }
-
-              setOrderSslLoading(false);
-            }}
-          />
+        ) : (
+          <></>
         )}
 
         {showReissueSSLModal && selectedStatusPageDomain && (
@@ -601,7 +486,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }
 
                 setShowReissueSSLModal(false);
-                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+                refreshTable();
                 setSelectedStatusPageDomain(null);
               } catch (err) {
                 setError(API.getFriendlyMessage(err));
@@ -616,4 +501,4 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default StatusPageDelete;
+export default StatusPageDomains;

@@ -30,6 +30,7 @@ import Semaphore, {
 } from "../../../../Server/Infrastructure/Semaphore";
 import AcmeCertificate from "../../../../Models/DatabaseModels/AcmeCertificate";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 type LockCall = {
   key: string;
@@ -123,8 +124,8 @@ describe("CertificateOrder.orderIfMissing", () => {
   test("orders a name that has no certificate, and releases the lock", async () => {
     const locks: Locks = useInMemoryLocks();
     useCertificates(new Map());
-    const order: jest.Mock = jest.fn(async () => {});
-    const recordAsOrdered: jest.Mock = jest.fn(async () => {});
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+    const recordAsOrdered: Mock<() => Promise<void>> = jest.fn(async () => {});
 
     const outcome: CertificateOrderOutcome =
       await CertificateOrder.orderIfMissing({
@@ -149,8 +150,8 @@ describe("CertificateOrder.orderIfMissing", () => {
   test("a name that has a certificate is recorded as ordered, never ordered again", async () => {
     useInMemoryLocks();
     useCertificates(new Map([["status.acme.com", IN_SIXTY_DAYS]]));
-    const order: jest.Mock = jest.fn(async () => {});
-    const recordAsOrdered: jest.Mock = jest.fn(async () => {});
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+    const recordAsOrdered: Mock<() => Promise<void>> = jest.fn(async () => {});
 
     const outcome: CertificateOrderOutcome =
       await CertificateOrder.orderIfMissing({
@@ -167,7 +168,7 @@ describe("CertificateOrder.orderIfMissing", () => {
   test("a certificate row without an expiry is no certificate: the name is ordered", async () => {
     useInMemoryLocks();
     useCertificates(new Map([["status.acme.com", null]]));
-    const order: jest.Mock = jest.fn(async () => {});
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
 
     const outcome: CertificateOrderOutcome =
       await CertificateOrder.orderIfMissing({
@@ -227,8 +228,8 @@ describe("CertificateOrder.orderIfMissing", () => {
     const locks: Locks = useInMemoryLocks();
     const lookups: Array<Array<string>> = useCertificates(new Map());
     locks.held.add(`${CertificateOrder.LOCK_NAMESPACE}-status.acme.com`);
-    const order: jest.Mock = jest.fn(async () => {});
-    const recordAsOrdered: jest.Mock = jest.fn(async () => {});
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+    const recordAsOrdered: Mock<() => Promise<void>> = jest.fn(async () => {});
 
     const outcome: CertificateOrderOutcome =
       await CertificateOrder.orderIfMissing({
@@ -252,7 +253,7 @@ describe("CertificateOrder.orderIfMissing", () => {
   test("when the lock cannot be taken at all, nothing is ordered", async () => {
     useInMemoryLocks({ failWith: new Error("Redis client is not connected") });
     useCertificates(new Map());
-    const order: jest.Mock = jest.fn(async () => {});
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
 
     const outcome: CertificateOrderOutcome =
       await CertificateOrder.orderIfMissing({
@@ -348,10 +349,10 @@ describe("CertificateOrder.orderIfMissing", () => {
     const table: Map<string, Date | null> = new Map();
     useCertificates(table);
 
-    const order: jest.Mock = jest.fn(async () => {
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {
       table.set("status.acme.com", IN_SIXTY_DAYS);
     });
-    const recordAsOrdered: jest.Mock = jest.fn(async () => {});
+    const recordAsOrdered: Mock<() => Promise<void>> = jest.fn(async () => {});
 
     const first: CertificateOrderOutcome =
       await CertificateOrder.orderIfMissing({

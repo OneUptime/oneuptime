@@ -78,10 +78,6 @@ const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
     count: 3,
     why: '"{n} GB" twice and "{n} USD" (units, currency)',
   },
-  "Pages/StatusPages/View/Domains.tsx": {
-    count: 1,
-    why: '"CNAME" (DNS record type)',
-  },
 };
 
 type CountByFileFunction = (
