@@ -28,12 +28,6 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Team",
       "Permissions",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_BLOCK_PERMISSIONS, [
-      "Project",
-      "Teams",
-      "View Team",
-      "Block Permissions",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW_COMPLIANCE, [
       "Project",
       "Teams",

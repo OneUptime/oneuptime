@@ -1,6 +1,3 @@
-/**
- * @timezone America/New_York
- */
 import "@testing-library/jest-dom";
 import {
   act,
@@ -23,25 +20,28 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * CREATE API KEY, on the real Settings > API Keys page, with only the network
- * stubbed.
+ * CREATE TEAM, on the real Teams page, with only the network stubbed.
  *
- * A key used to be made from a name, a description and an expiry date the
- * user had to pick, and it could do nothing until someone found its page and
- * searched several hundred permissions. Now:
+ * A team used to be made from a name and a description, and it held no
+ * permissions: people invited to it could sign in and do nothing until
+ * someone opened the team, found Permissions and picked from some forty role
+ * cards. Now:
  *
  *   - the form asks Name and Access - Project Admin, Project Member, Viewer,
  *     or Choose permissions later, which is picked - with the description
- *     and Expires, a year from today, folded under Advanced;
- *   - the key is created exactly as before: nothing about its access goes
+ *     folded under Advanced;
+ *   - the team is created exactly as before: nothing about its access goes
  *     with it;
- *   - a role picked under Access becomes the key's first permission once the
- *     key exists, through the API key permission endpoint;
+ *   - a role picked under Access becomes the team's first permission once
+ *     the team exists, at scope All, through the team permission endpoint;
  *   - Choose permissions later adds nothing;
- *   - the new key opens on its page;
- *   - a role the server refuses leaves the key, says why, and links to it;
+ *   - a team with a role opens on Members, to invite people; one whose
+ *     permissions were left for later opens on Permissions, where Add Role
+ *     is;
+ *   - a role the server refuses leaves the team, says why, and links to its
+ *     Permissions page;
  *   - the user sees only the roles they may hand on, and is not asked
- *     without the right to give keys permissions.
+ *     without the right to add permissions to a team.
  */
 
 let allPermissionsForTest: Array<string> = [];
@@ -134,6 +134,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+// The team custom field definitions: this project has none.
+jest.mock("../../../UI/Utils/ModelListCache", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: async (): Promise<any> => {
+        return { data: [], count: 0, skip: 0, limit: 0 };
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
@@ -141,7 +153,7 @@ jest.mock("../../../UI/Utils/Project", () => {
       getCurrentProjectId: (): { toString: () => string } => {
         return {
           toString: (): string => {
-            return "0e000000-0000-4000-8000-000000000001";
+            return "0d000000-0000-4000-8000-000000000001";
           },
         };
       },
@@ -155,16 +167,15 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-import APIKeysPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/APIKeys";
+import TeamsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import { getDefaultApiKeyExpiry } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm";
 import { ROLE_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
-import ApiKey from "../../../Models/DatabaseModels/ApiKey";
-import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import { TEAM_ACCESS_NOTICE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccessNotice";
+import Team from "../../../Models/DatabaseModels/Team";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import Route from "../../../Types/API/Route";
-import OneUptimeDate from "../../../Types/Date";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import { JSONObject } from "../../../Types/JSON";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -176,11 +187,11 @@ import { getJestSpyOn } from "../../Spy";
 
 jest.setTimeout(30000);
 
-const PROJECT_ID: string = "0e000000-0000-4000-8000-000000000001";
-const NEW_KEY_ID: string = "0e000000-0000-4000-8000-000000000002";
+const PROJECT_ID: string = "0d000000-0000-4000-8000-000000000001";
+const NEW_TEAM_ID: string = "0d000000-0000-4000-8000-000000000002";
 
 const pageProps: PageComponentProps = {
-  pageRoute: RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+  pageRoute: RouteMap[PageMap.TEAMS] as Route,
   hasPaymentMethod: true,
   currentProject: null,
 } as unknown as PageComponentProps;
@@ -204,8 +215,8 @@ function holding(permissions: Array<Permission>): void {
   };
 }
 
-function keyRoute(keyId: string): string {
-  return `/dashboard/${PROJECT_ID}/settings/api-keys/${keyId}`;
+function teamRoute(teamId: string, page: "members" | "permissions"): string {
+  return `/dashboard/${PROJECT_ID}/teams/${teamId}/${page}`;
 }
 
 beforeEach(() => {
@@ -217,7 +228,7 @@ beforeEach(() => {
   window.history.replaceState(
     window.history.state,
     "",
-    `/dashboard/${PROJECT_ID}/settings/api-keys`,
+    `/dashboard/${PROJECT_ID}/teams`,
   );
 
   getJestSpyOn(Navigation, "navigate").mockImplementation(
@@ -227,15 +238,15 @@ beforeEach(() => {
   );
 
   getListMock.mockImplementation(async (): Promise<any> => {
-    // A project with no keys yet.
+    // A project with no teams of its own yet.
     return { data: [], count: 0, skip: 0, limit: 10 };
   });
 
-  // The server answers a create with the new key.
+  // The server answers a create with the new team.
   createOrUpdateMock.mockImplementation(async (data: any): Promise<any> => {
     return {
       data: {
-        _id: NEW_KEY_ID,
+        _id: NEW_TEAM_ID,
         name: data.model.name,
       },
     };
@@ -254,24 +265,21 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+function laterCard(modal: HTMLElement): HTMLElement | null {
+  return within(modal).queryByTestId(`card-select-option-${ROLE_ACCESS_LATER}`);
+}
+
 /*
  * BasicForm settles its fields and defaults in effects. Wait until it has:
- * on a busy machine one tick is not enough, and a form submitted before
- * Expires is filled in is refused for want of a date. A default that never
- * arrives - a form holding on to the last key's answers - still fails here.
+ * on a busy machine one tick is not enough. A default that never arrives -
+ * a form holding on to the last team's answers - still fails here.
  */
 async function waitForFormDefaults(modal: HTMLElement): Promise<void> {
-  await within(modal).findByPlaceholderText("API Key Name");
+  await within(modal).findByPlaceholderText("Team Name");
   await act(async (): Promise<void> => {});
 
   await waitFor(() => {
-    expect(within(modal).getByPlaceholderText("Expires at")).toHaveValue(
-      OneUptimeDate.asDateForDatabaseQuery(getDefaultApiKeyExpiry()),
-    );
-
-    const later: HTMLElement | null = within(modal).queryByTestId(
-      `card-select-option-${ROLE_ACCESS_LATER}`,
-    );
+    const later: HTMLElement | null = laterCard(modal);
 
     if (later) {
       expect(later).toHaveAttribute("aria-checked", "true");
@@ -279,19 +287,23 @@ async function waitForFormDefaults(modal: HTMLElement): Promise<void> {
   });
 }
 
+function createTeamButton(): HTMLElement | undefined {
+  return screen
+    .queryAllByTestId("card-button")
+    .find((candidate: HTMLElement): boolean => {
+      return (candidate.textContent || "").includes("Create Team");
+    });
+}
+
 async function openCreateForm(): Promise<HTMLElement> {
-  render(<APIKeysPage {...pageProps} />);
+  render(<TeamsPage {...pageProps} />);
 
   const createButton: HTMLElement = await waitFor(
     (): HTMLElement => {
-      const button: HTMLElement | undefined = screen
-        .getAllByTestId("card-button")
-        .find((candidate: HTMLElement): boolean => {
-          return (candidate.textContent || "").includes("Create API Key");
-        });
+      const button: HTMLElement | undefined = createTeamButton();
 
       if (!button) {
-        throw new Error("No Create API Key button yet");
+        throw new Error("No Create Team button yet");
       }
 
       return button;
@@ -309,7 +321,7 @@ async function openCreateForm(): Promise<HTMLElement> {
 }
 
 function typeName(modal: HTMLElement, name: string): void {
-  fireEvent.change(within(modal).getByPlaceholderText("API Key Name"), {
+  fireEvent.change(within(modal).getByPlaceholderText("Team Name"), {
     target: { value: name },
   });
 }
@@ -335,16 +347,14 @@ function advancedHeader(modal: HTMLElement): HTMLElement {
 
 async function submit(modal: HTMLElement): Promise<void> {
   await act(async (): Promise<void> => {
-    fireEvent.click(
-      within(modal).getByRole("button", { name: "Create API Key" }),
-    );
+    fireEvent.click(within(modal).getByRole("button", { name: "Create Team" }));
   });
 }
 
-function keyRequest(): any {
+function teamRequest(): any {
   const call: Array<any> | undefined = createOrUpdateMock.mock.calls.find(
     (args: Array<any>): boolean => {
-      return args[0].modelType === ApiKey;
+      return args[0].modelType === Team;
     },
   );
 
@@ -353,24 +363,23 @@ function keyRequest(): any {
   return call![0];
 }
 
-describe("the Create API Key form", () => {
-  test("asks Name and Access, with the rest folded under Advanced, and no steps", async () => {
+describe("the Create Team form", () => {
+  test("asks Name and Access, with the description folded under Advanced, and no steps", async () => {
     const modal: HTMLElement = await openCreateForm();
 
     expect(within(modal).getByText("Name")).toBeInTheDocument();
     expect(within(modal).getByText("Access")).toBeInTheDocument();
     expect(
       within(modal).getByText(
-        "What this key can do. You can change it on the key's page at any time.",
+        "What the team's members can do. You can change it on the team's page at any time.",
       ),
     ).toBeInTheDocument();
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
     expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
     expect(
-      within(modal).getByPlaceholderText("API Key Description"),
+      within(modal).getByPlaceholderText("Team Description"),
     ).not.toBeVisible();
-    expect(within(modal).getByPlaceholderText("Expires at")).not.toBeVisible();
 
     expect(
       within(modal).queryByRole("navigation", { name: "Progress" }),
@@ -401,93 +410,49 @@ describe("the Create API Key form", () => {
       expect(accessCard(modal, role)).toHaveAttribute("aria-checked", "false");
     }
 
+    // The team's own words for leaving it for later.
     expect(
-      within(modal).getByText("Choose permissions later"),
+      within(modal).getByText(
+        "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.",
+      ),
     ).toBeInTheDocument();
   });
 
-  test("Expires starts a year from today", async () => {
+  test("a description typed under Advanced makes the folded header say Configured", async () => {
     const modal: HTMLElement = await openCreateForm();
 
     fireEvent.click(advancedHeader(modal));
-
-    expect(within(modal).getByPlaceholderText("Expires at")).toBeVisible();
-    expect(within(modal).getByPlaceholderText("Expires at")).toHaveValue(
-      OneUptimeDate.asDateForDatabaseQuery(getDefaultApiKeyExpiry()),
-    );
-  });
-
-  test("folded, Advanced says the key expires a year from today", async () => {
-    const modal: HTMLElement = await openCreateForm();
-
-    const summary: HTMLElement = within(modal).getByTestId(
-      "collapsible-section-summary",
-    );
-
-    expect(summary).toHaveTextContent("The key expires a year from today.");
-    // Read out with the header, and on screen while it is folded.
-    expect(advancedHeader(modal)).toHaveAttribute(
-      "aria-describedby",
-      summary.id,
-    );
-    expect(summary).toBeVisible();
-    expect(advancedHeader(modal)).not.toHaveTextContent("Configured");
-  });
-
-  test("a description typed under Advanced keeps the line: the expiry is still the default", async () => {
-    const modal: HTMLElement = await openCreateForm();
-
-    fireEvent.click(advancedHeader(modal));
-    fireEvent.change(
-      within(modal).getByPlaceholderText("API Key Description"),
-      {
-        target: { value: "Manages our monitors." },
-      },
-    );
-    fireEvent.click(advancedHeader(modal));
-
     expect(
-      within(modal).getByTestId("collapsible-section-summary"),
-    ).toHaveTextContent("The key expires a year from today.");
-  });
+      within(modal).getByPlaceholderText("Team Description"),
+    ).toBeVisible();
 
-  test("another expiry date replaces the line with Configured", async () => {
-    const modal: HTMLElement = await openCreateForm();
-
-    fireEvent.click(advancedHeader(modal));
-    fireEvent.change(within(modal).getByPlaceholderText("Expires at"), {
-      target: { value: "2030-01-15" },
+    fireEvent.change(within(modal).getByPlaceholderText("Team Description"), {
+      target: { value: "Looks after the payment services." },
     });
     fireEvent.click(advancedHeader(modal));
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "false");
     expect(advancedHeader(modal)).toHaveTextContent("Configured");
-    expect(
-      within(modal).queryByTestId("collapsible-section-summary"),
-    ).toBeNull();
   });
 });
 
-describe("creating a key", () => {
-  test("with the defaults: the key as before, a year to live, no access, and its page opens", async () => {
+describe("creating a team", () => {
+  test("with the defaults: the team as before, no access, and its Permissions page opens", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     await submit(modal);
 
     await waitFor(() => {
-      expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+      expect(navigateCalls).toEqual([teamRoute(NEW_TEAM_ID, "permissions")]);
     });
 
-    const request: any = keyRequest();
+    const request: any = teamRequest();
 
     expect(request.formType).toBe(FormType.Create);
-    expect(request.model.name).toBe("Terraform");
-    expect(OneUptimeDate.fromString(request.model.expiresAt).getTime()).toBe(
-      getDefaultApiKeyExpiry().getTime(),
-    );
+    expect(request.model.name).toBe("Support");
 
-    // Nothing about access goes with the key, as a column or misc data.
+    // Nothing about access goes with the team, as a column or misc data.
     expect(request.miscDataProps).toEqual({});
     expect(
       (request.model as unknown as Record<string, unknown>)["access"],
@@ -497,10 +462,11 @@ describe("creating a key", () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  test("the key's page is the one the route map names", async () => {
+  test("the pages a new team opens on are the ones the route map names", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
+    fireEvent.click(accessCard(modal, Permission.Viewer));
     await submit(modal);
 
     await waitFor(() => {
@@ -508,10 +474,10 @@ describe("creating a key", () => {
     });
 
     expect(navigateCalls[0]).toBe(
-      (RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route)
+      (RouteMap[PageMap.TEAM_VIEW_MEMBERS] as Route)
         .toString()
         .replace(":projectId", PROJECT_ID)
-        .replace(":id", NEW_KEY_ID),
+        .replace(":id", NEW_TEAM_ID),
     );
   });
 
@@ -520,11 +486,11 @@ describe("creating a key", () => {
     [Permission.ProjectMember],
     [Permission.Viewer],
   ])(
-    "with %s picked, the key is made first and the role becomes its first permission",
+    "with %s picked, the team is made first, the role becomes its first permission, and Members opens",
     async (role: Permission) => {
       const modal: HTMLElement = await openCreateForm();
 
-      typeName(modal, "CI pipeline");
+      typeName(modal, "Frontend On-Call");
       fireEvent.click(accessCard(modal, role));
 
       expect(accessCard(modal, role)).toHaveAttribute("aria-checked", "true");
@@ -537,45 +503,49 @@ describe("creating a key", () => {
 
       const permissionRequest: any = createMock.mock.calls[0]![0];
 
-      expect(permissionRequest.modelType).toBe(ApiKeyPermission);
+      expect(permissionRequest.modelType).toBe(TeamPermission);
 
-      const row: ApiKeyPermission = permissionRequest.model;
+      const row: TeamPermission = permissionRequest.model;
 
+      expect(row).toBeInstanceOf(TeamPermission);
       expect(row.permission).toBe(role);
-      expect(row.apiKeyId?.toString()).toBe(NEW_KEY_ID);
+      expect(row.teamId?.toString()).toBe(NEW_TEAM_ID);
       expect(row.projectId?.toString()).toBe(PROJECT_ID);
       expect(row.isBlockPermission).toBe(false);
+      // Every resource in the project, as Add Role's Scope starts.
+      expect(row.scope).toBe(PermissionScope.All);
+      expect(row.labels).toBeUndefined();
 
-      // The key went first, and carried nothing of the role.
+      // The team went first, and carried nothing of the role.
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
       expect(createOrUpdateMock.mock.invocationCallOrder[0]!).toBeLessThan(
         createMock.mock.invocationCallOrder[0]!,
       );
-      expect(keyRequest().miscDataProps).toEqual({});
+      expect(teamRequest().miscDataProps).toEqual({});
 
       await waitFor(() => {
-        expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+        expect(navigateCalls).toEqual([teamRoute(NEW_TEAM_ID, "members")]);
       });
     },
   );
 
-  test("a role picked and then taken back adds nothing", async () => {
+  test("a role picked and then taken back adds nothing, and Permissions opens", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "CI pipeline");
+    typeName(modal, "Support");
     fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
     fireEvent.click(accessCard(modal, ROLE_ACCESS_LATER));
 
     await submit(modal);
 
     await waitFor(() => {
-      expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+      expect(navigateCalls).toEqual([teamRoute(NEW_TEAM_ID, "permissions")]);
     });
 
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  test("a second key does not inherit the first one's role", async () => {
+  test("a second team does not inherit the first one's role", async () => {
     const modal: HTMLElement = await openCreateForm();
 
     typeName(modal, "First");
@@ -585,19 +555,16 @@ describe("creating a key", () => {
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => {
+      expect(navigateCalls).toHaveLength(1);
+    });
 
     // The page stays mounted here (navigation is stubbed): make another.
-    const createButton: HTMLElement = screen
-      .getAllByTestId("card-button")
-      .find((candidate: HTMLElement): boolean => {
-        return (candidate.textContent || "").includes("Create API Key");
-      })!;
-
-    fireEvent.click(createButton);
+    fireEvent.click(createTeamButton()!);
 
     const secondModal: HTMLElement = await screen.findByTestId("modal");
 
-    // Back on Choose permissions later, not on the first key's Viewer.
+    // Back on Choose permissions later, not on the first team's Viewer.
     await waitForFormDefaults(secondModal);
 
     expect(accessCard(secondModal, Permission.Viewer)).toHaveAttribute(
@@ -619,27 +586,19 @@ describe("creating a key", () => {
       expect(navigateCalls).toHaveLength(2);
     });
 
+    // Only the first team was given a role.
     expect(createMock).toHaveBeenCalledTimes(1);
+    expect(navigateCalls[1]).toBe(teamRoute(NEW_TEAM_ID, "permissions"));
   });
 
-  test("the description and expiry typed under Advanced are saved with the key", async () => {
+  test("the description typed under Advanced is saved with the team", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     fireEvent.click(advancedHeader(modal));
-    fireEvent.change(
-      within(modal).getByPlaceholderText("API Key Description"),
-      {
-        target: { value: "Manages our monitors." },
-      },
-    );
-    fireEvent.change(within(modal).getByPlaceholderText("Expires at"), {
-      target: { value: "2030-01-15" },
+    fireEvent.change(within(modal).getByPlaceholderText("Team Description"), {
+      target: { value: "Answers customers." },
     });
-
-    // Folded again, the section says something in it is set.
-    fireEvent.click(advancedHeader(modal));
-    expect(advancedHeader(modal)).toHaveTextContent("Configured");
 
     await submit(modal);
 
@@ -647,27 +606,23 @@ describe("creating a key", () => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
 
-    const request: any = keyRequest();
-
-    expect(request.model.description).toBe("Manages our monitors.");
-    expect(OneUptimeDate.asDateForDatabaseQuery(request.model.expiresAt)).toBe(
-      "2030-01-15",
-    );
+    expect(teamRequest().model.name).toBe("Support");
+    expect(teamRequest().model.description).toBe("Answers customers.");
   });
 
-  test("a key that cannot be created stays on the form and adds no permission", async () => {
+  test("a team that cannot be created stays on the form and adds no permission", async () => {
     createOrUpdateMock.mockImplementation(async (): Promise<never> => {
-      throw new Error("A name is required.");
+      throw new Error("A team with this name already exists.");
     });
 
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     fireEvent.click(accessCard(modal, Permission.Viewer));
     await submit(modal);
 
     expect(
-      await within(modal).findByText("A name is required."),
+      await within(modal).findByText("A team with this name already exists."),
     ).toBeInTheDocument();
     expect(createMock).not.toHaveBeenCalled();
     expect(navigateCalls).toEqual([]);
@@ -678,66 +633,94 @@ describe("a role the server refuses", () => {
   beforeEach(() => {
     createMock.mockImplementation(async (): Promise<never> => {
       throw new Error(
-        "You cannot grant an API key permission beyond your own authority",
+        "You cannot grant ProjectAdmin because your own access does not include that permission at an equal or broader scope.",
       );
     });
   });
 
-  test("leaves the key, says why it has no access, and stays on the list", async () => {
+  test("leaves the team, says why it has no access, and stays on the list", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
     await submit(modal);
 
     const notice: HTMLElement = await screen.findByTestId(
-      "api-key-access-notice",
+      TEAM_ACCESS_NOTICE_TEST_ID,
     );
 
-    expect(notice).toHaveTextContent("Terraform was created without access.");
+    expect(notice).toHaveTextContent("Support was created without access.");
     expect(notice).toHaveTextContent(
-      "You cannot grant an API key permission beyond your own authority",
+      "You cannot grant ProjectAdmin because your own access does not include that permission at an equal or broader scope.",
     );
-    expect(notice).toHaveTextContent("Open the key to give it a role");
+    expect(notice).toHaveTextContent("Open the team to give it a role");
 
     expect(navigateCalls).toEqual([]);
-    // The key itself was made, once.
+    // The team itself was made, once.
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
   });
 
-  test("the notice opens the key", async () => {
+  test("the notice opens the team's Permissions page", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
     await submit(modal);
 
     const notice: HTMLElement = await screen.findByTestId(
-      "api-key-access-notice",
+      TEAM_ACCESS_NOTICE_TEST_ID,
     );
 
     fireEvent.click(notice);
 
-    expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+    expect(navigateCalls).toEqual([teamRoute(NEW_TEAM_ID, "permissions")]);
   });
 
   test("the notice can be closed", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
     await submit(modal);
 
     const notice: HTMLElement = await screen.findByTestId(
-      "api-key-access-notice",
+      TEAM_ACCESS_NOTICE_TEST_ID,
     );
 
     fireEvent.click(within(notice).getByRole("button", { name: "Close" }));
 
     await waitFor(() => {
-      expect(screen.queryByTestId("api-key-access-notice")).toBeNull();
+      expect(screen.queryByTestId(TEAM_ACCESS_NOTICE_TEST_ID)).toBeNull();
     });
     expect(navigateCalls).toEqual([]);
+  });
+
+  test("the next team that is given its role clears the notice", async () => {
+    const modal: HTMLElement = await openCreateForm();
+
+    typeName(modal, "Support");
+    fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
+    await submit(modal);
+
+    await screen.findByTestId(TEAM_ACCESS_NOTICE_TEST_ID);
+
+    createMock.mockImplementation(async (): Promise<any> => {
+      return { data: {} };
+    });
+
+    fireEvent.click(createTeamButton()!);
+
+    const secondModal: HTMLElement = await screen.findByTestId("modal");
+
+    await waitForFormDefaults(secondModal);
+    typeName(secondModal, "Auditors");
+    fireEvent.click(accessCard(secondModal, Permission.Viewer));
+    await submit(secondModal);
+
+    await waitFor(() => {
+      expect(navigateCalls).toEqual([teamRoute(NEW_TEAM_ID, "members")]);
+    });
+    expect(screen.queryByTestId(TEAM_ACCESS_NOTICE_TEST_ID)).toBeNull();
   });
 });
 
@@ -753,8 +736,23 @@ describe("who is asked what", () => {
     ]);
   });
 
-  test("someone who may create keys but not give them permissions is not asked", async () => {
-    holding([Permission.CreateProjectApiKey, Permission.ReadProjectApiKey]);
+  test("a permission editor is offered the roles they hold", async () => {
+    holding([
+      Permission.CreateProjectTeam,
+      Permission.EditProjectTeamPermissions,
+      Permission.Viewer,
+    ]);
+
+    const modal: HTMLElement = await openCreateForm();
+
+    expect(accessCardValues(modal)).toEqual([
+      Permission.Viewer,
+      ROLE_ACCESS_LATER,
+    ]);
+  });
+
+  test("someone who may create teams but not give them permissions is not asked, and the team opens on Members", async () => {
+    holding([Permission.CreateProjectTeam, Permission.ReadProjectTeam]);
 
     const modal: HTMLElement = await openCreateForm();
 
@@ -765,23 +763,23 @@ describe("who is asked what", () => {
     expect(within(modal).getByText("Name")).toBeInTheDocument();
     expect(advancedHeader(modal)).toBeInTheDocument();
 
-    typeName(modal, "Read-only export");
+    typeName(modal, "Support");
     await submit(modal);
 
     await waitFor(() => {
-      expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+      expect(navigateCalls).toEqual([teamRoute(NEW_TEAM_ID, "members")]);
     });
 
-    expect(keyRequest().miscDataProps).toEqual({});
+    expect(teamRequest().miscDataProps).toEqual({});
     expect(createMock).not.toHaveBeenCalled();
   });
 });
 
-describe("the request the key's create sends", () => {
+describe("the request the team's create sends", () => {
   test("is the same with or without a role picked", async () => {
     const modal: HTMLElement = await openCreateForm();
 
-    typeName(modal, "Terraform");
+    typeName(modal, "Support");
     fireEvent.click(accessCard(modal, Permission.Viewer));
     await submit(modal);
 
@@ -789,9 +787,9 @@ describe("the request the key's create sends", () => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
 
-    const json: JSONObject = ApiKey.toJSON(keyRequest().model, ApiKey);
+    const json: JSONObject = Team.toJSON(teamRequest().model, Team);
 
-    // A name and an expiry date: nothing the form added.
-    expect(Object.keys(json).sort()).toEqual(["expiresAt", "name"]);
+    // A name: nothing the form added.
+    expect(Object.keys(json).sort()).toEqual(["name"]);
   });
 });

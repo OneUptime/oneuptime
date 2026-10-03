@@ -13,6 +13,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Label from "Common/Models/DatabaseModels/Label";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -31,6 +32,17 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * A team's permissions: what its members may do, and - under the
+ * Permissions page's folded Advanced section - what they may never do.
+ *
+ * Both are added the same two ways: Add Role picks a ready-made set of
+ * permissions from cards (RoleCardSelectOptions, the list an API key's Add
+ * Role shows), Add Permission picks one permission from the full list. A new
+ * team created with Choose permissions later lands here with nothing, so the
+ * empty table repeats Add Role as the way forward.
+ */
+
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
   BlockPermissions = "BlockPermissions",
@@ -45,12 +57,15 @@ export interface ComponentProps {
   teamId: ObjectID;
   permissionType: PermissionType;
   currentProject: Project | null;
+  // How many rows the table holds after each load.
+  onPermissionCountChange?: ((count: number) => void) | undefined;
 }
 
 const TeamPermissionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { teamId, permissionType, currentProject } = props;
+  const isBlock: boolean = permissionType === PermissionType.BlockPermissions;
 
   const formRef: MutableRefObject<FormProps<FormValues<TeamPermission>>> =
     React.useRef<FormProps<FormValues<TeamPermission>>>() as MutableRefObject<
@@ -62,49 +77,60 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
 
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
 
-  let tableTitle: string = "Allow Permissions";
-
-  if (permissionType === PermissionType.BlockPermissions) {
-    tableTitle = "Block Permissions";
-  }
-
-  let tableDescription: string =
-    "Here you can manage allow permissions for this team.";
-
-  if (permissionType === PermissionType.BlockPermissions) {
-    tableDescription =
-      "Here you can manage block permissions for this team. This will override any allow permissions set for this team.";
-  }
-
   // The same role cards an API key's Add Role offers (RoleCardSelectOptions).
   const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
     getRoleCardSelectOptions();
 
+  type OpenCreateFormFunction = (type: CreatePermissionType) => void;
+
+  // Flipped off and on, so the same button opens the form a second time.
+  const openCreateForm: OpenCreateFormFunction = (
+    type: CreatePermissionType,
+  ): void => {
+    setCreatePermissionType(type);
+    setShowCreateForm(false);
+    setTimeout(() => {
+      setShowCreateForm(true);
+    }, 0);
+  };
+
+  /*
+   * Locked, with the missing permission as the tooltip, for someone who may
+   * not change what a team can do - as ModelTable does its own Create.
+   */
+  const gate: (button: CardButtonSchema) => Array<CardButtonSchema> = (
+    button: CardButtonSchema,
+  ): Array<CardButtonSchema> => {
+    const gated: CardButtonSchema | null = PermissionGate.gateCardButton(
+      button,
+      new TeamPermission(),
+      ModelAction.Create,
+    );
+
+    return gated ? [gated] : [];
+  };
+
   const createButtons: Array<CardButtonSchema> = [
-    {
+    ...gate({
       title: "Add Role",
-      icon: IconProp.User,
+      /*
+       * What the team can do: NORMAL with the Add icon, so the empty table
+       * repeats it as its way on. A block is rarer and keeps its own icon.
+       */
+      icon: isBlock ? IconProp.User : IconProp.Add,
       buttonStyle: ButtonStyleType.NORMAL,
       onClick: () => {
-        setCreatePermissionType(CreatePermissionType.RoleBased);
-        setShowCreateForm(false);
-        setTimeout(() => {
-          setShowCreateForm(true);
-        }, 0);
+        openCreateForm(CreatePermissionType.RoleBased);
       },
-    },
-    {
+    }),
+    ...gate({
       title: "Add Permission",
       icon: IconProp.Lock,
       buttonStyle: ButtonStyleType.OUTLINE,
       onClick: () => {
-        setCreatePermissionType(CreatePermissionType.Granular);
-        setShowCreateForm(false);
-        setTimeout(() => {
-          setShowCreateForm(true);
-        }, 0);
+        openCreateForm(CreatePermissionType.Granular);
       },
-    },
+    }),
   ];
 
   return (
@@ -138,16 +164,32 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
         }
         item.teamId = teamId;
         item.projectId = new ObjectID(currentProject._id);
-        item.isBlockPermission =
-          permissionType === PermissionType.BlockPermissions;
+        item.isBlockPermission = isBlock;
         return Promise.resolve(item);
       }}
-      cardProps={{
-        title: tableTitle,
-        description: tableDescription,
-        buttons: createButtons,
+      onFetchSuccess={(_data: Array<TeamPermission>, totalCount: number) => {
+        props.onPermissionCountChange?.(totalCount);
       }}
-      noItemsMessage={"No permissions created for this team so far."}
+      cardProps={
+        isBlock
+          ? {
+              title: "Block Permissions",
+              description:
+                "Blocks win over this team's roles and permissions. A block with labels applies only to resources that carry one of them.",
+              buttons: createButtons,
+            }
+          : {
+              title: "Permissions",
+              description:
+                "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.",
+              buttons: createButtons,
+            }
+      }
+      noItemsMessage={
+        isBlock
+          ? "Nothing is blocked for this team."
+          : "This team can do nothing yet. Add a role to give it access."
+      }
       formFields={
         createPermissionType === CreatePermissionType.RoleBased
           ? [

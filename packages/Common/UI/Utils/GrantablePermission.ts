@@ -115,6 +115,34 @@ export const canGrantPermission: CanGrantPermissionFunction = (data: {
   return holdsUnblocked(data);
 };
 
+type IsBlockedFromAnyFunction = (data: {
+  permissions: Array<Permission>;
+  rows: PermissionRows;
+}) => boolean;
+
+/*
+ * Whether a block takes a whole table away: a block with no labels on ANY
+ * permission a table accepts for an operation refuses that operation
+ * outright, whatever else the user holds - the server's table-level block
+ * check (TablePermission.checkTableLevelBlockPermissions), which every
+ * create runs before it weighs a grant. PermissionGate weighs only what the
+ * user is allowed, so a form that offers to add a permission asks this as
+ * well: someone blocked from ProjectOwner may not add a permission to a team
+ * at all, though they hold ProjectAdmin. A block with labels takes only part
+ * of the table away, so it does not count here.
+ */
+export const isBlockedFromAny: IsBlockedFromAnyFunction = (data: {
+  permissions: Array<Permission>;
+  rows: PermissionRows;
+}): boolean => {
+  return data.rows.block.some((row: UserPermission): boolean => {
+    return (
+      data.permissions.includes(row.permission) &&
+      (row.labelIds || []).length === 0
+    );
+  });
+};
+
 type ToPermissionRowsFunction = (data: {
   projectPermissions: UserTenantAccessPermission | null;
   globalPermissions: UserGlobalAccessPermission | null;
@@ -173,6 +201,24 @@ export default class GrantablePermission {
 
     return canGrantPermission({
       permission: permission,
+      rows: this.getCurrentUserPermissionRows(),
+    });
+  }
+
+  /*
+   * Whether a block the signed-in user holds refuses them a table whose
+   * operation accepts `permissions` (isBlockedFromAny). Never for a master
+   * admin, as on the server.
+   */
+  public static isCurrentUserBlockedFromAny(
+    permissions: Array<Permission>,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return false;
+    }
+
+    return isBlockedFromAny({
+      permissions: permissions,
       rows: this.getCurrentUserPermissionRows(),
     });
   }

@@ -19,10 +19,10 @@ import {
 
 /*
  * The role cards every "Add Role" shows - a team's permissions, an API key's
- * permissions - and the roles a new API key's Access offers
- * (Dashboard/src/Components/Permission/RoleCardSelectOptions). One list, so a
- * role reads and looks the same wherever it is picked. It moved out of the
- * team permission table unchanged; these pin what it was.
+ * permissions - and the roles the Access question of a new API key or team
+ * offers (Dashboard/src/Components/Permission/RoleCardSelectOptions). One
+ * list, so a role reads and looks the same wherever it is picked. It moved
+ * out of the team permission table unchanged; these pin what it was.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -191,14 +191,21 @@ describe("every Add Role uses this one list", () => {
     expect(source).not.toContain("cardSelectCollapsibleGroups");
   });
 
-  test("a new API key's Access", () => {
+  test("the Access question of a new API key or team", () => {
     const source: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components/ApiKey/ApiKeyAccess.ts"),
+      path.join(DASHBOARD_SRC, "Components/Permission/RoleAccess.ts"),
       "utf8",
     );
 
     expect(source).toContain("getRoleIcon(Permission.ProjectAdmin)");
     expect(source).toContain("getRoleIcon(Permission.ProjectMember)");
     expect(source).toContain("getRoleIcon(Permission.Viewer)");
+
+    // One Access question, shared: the key's own copy is gone.
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Components/ApiKey/ApiKeyAccess.ts"),
+      ),
+    ).toBe(false);
   });
 });
