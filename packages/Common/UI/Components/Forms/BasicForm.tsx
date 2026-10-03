@@ -52,6 +52,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -269,7 +270,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       setShownStepIds([...shownStepIds, currentFormStepId]);
     }
 
-    useEffect(() => {
+    /*
+     * A layout effect, as is the report below: a host that draws the
+     * buttons (a dialog's footer) learns where the form is in the same pass
+     * that moved it, before anything is painted. With a plain effect the
+     * footer said what the step before wanted for a frame - long enough for
+     * a quick second click to land on a button that had since changed
+     * meaning (Next one moment, the form's action the next).
+     */
+    useLayoutEffect(() => {
       if (props.onIsLastFormStep) {
         props.onIsLastFormStep(isOnLastFormStep);
       }
@@ -311,7 +320,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         onValidate: props.onValidate || undefined,
       });
 
-    useEffect(() => {
+    useLayoutEffect(() => {
       props.onCanFinishFromCurrentStep?.(canFinishFromCurrentStep);
     }, [canFinishFromCurrentStep]);
 
