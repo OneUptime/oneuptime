@@ -26,8 +26,8 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Scheduling maintenance takes three short steps, with sensible times and
- * notifications already set.
+ * Scheduling maintenance takes two short steps and a review, with sensible
+ * times and notifications already set.
  *
  * "The idea is to reduce decision / choice paralysis as much as possible:
  * show people as few options as possible (and hide those other 'advanced'
