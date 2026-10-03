@@ -20,6 +20,7 @@ import {
 } from "react-router-dom";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { isDashboardMasterPasswordRequired } from "Common/Types/Dashboard/DashboardAccess";
 import useAsyncEffect from "use-async-effect";
 
 // Lazy load page components
@@ -149,11 +150,16 @@ const App: () => JSX.Element = () => {
 
         setIsPublicDashboard(isPublic);
 
-        if (isPublic && enableMasterPassword) {
-          PublicDashboardUtil.setRequiresMasterPassword(true);
-        } else {
-          PublicDashboardUtil.setRequiresMasterPassword(false);
-        }
+        /*
+         * Whether visitors enter the password first, by the rule the server
+         * enforces and the Sharing page writes (DashboardAccess).
+         */
+        PublicDashboardUtil.setRequiresMasterPassword(
+          isDashboardMasterPasswordRequired({
+            isPublicDashboard: isPublic,
+            enableMasterPassword: enableMasterPassword,
+          }),
+        );
       }
 
       setIsLoading(false);

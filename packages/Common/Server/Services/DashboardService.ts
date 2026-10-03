@@ -29,6 +29,12 @@ import {
   DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
   DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/Dashboard/MasterPassword";
+import {
+  DashboardAccessState,
+  isDashboardLockedWithoutPassword,
+  isDashboardMasterPasswordRequired,
+  isDashboardPublic,
+} from "../../Types/Dashboard/DashboardAccess";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -159,11 +165,24 @@ export class Service extends DatabaseService<Model> {
       });
 
       /*
+       * Who can view it, by the one rule the Sharing page shows and writes
+       * (Types/Dashboard/DashboardAccess).
+       */
+      const accessState: DashboardAccessState = {
+        isPublicDashboard: dashboard?.isPublicDashboard,
+        enableMasterPassword: dashboard?.enableMasterPassword,
+        hasMasterPassword: Boolean(dashboard?.masterPassword),
+      };
+
+      /*
        * If dashboard is not public, deny access. An archived dashboard is
        * not public either, whatever its public setting says: the setting is
        * kept so unarchiving puts the public link back exactly as it was.
        */
-      if (dashboard && (!dashboard.isPublicDashboard || dashboard.isArchived)) {
+      if (
+        dashboard &&
+        (!isDashboardPublic(accessState) || dashboard.isArchived)
+      ) {
         return {
           hasReadAccess: false,
           error: new NotAuthenticatedException(
@@ -216,14 +235,16 @@ export class Service extends DatabaseService<Model> {
       }
 
       const shouldEnforceMasterPassword: boolean = Boolean(
-        dashboard &&
-          dashboard.isPublicDashboard &&
-          dashboard.enableMasterPassword,
+        dashboard && isDashboardMasterPasswordRequired(accessState),
       );
 
       if (shouldEnforceMasterPassword) {
-        // Fail closed if protection was enabled before a password was set.
-        if (!dashboard?.masterPassword) {
+        /*
+         * Fail closed if protection was enabled before a password was set.
+         * The Sharing page never writes this state (picking the password
+         * asks for one), but the API can, and so could the old page.
+         */
+        if (isDashboardLockedWithoutPassword(accessState)) {
           return {
             hasReadAccess: false,
             error: new MasterPasswordRequiredException(
@@ -253,7 +274,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       // Public dashboard without master password - grant access
-      if (dashboard && dashboard.isPublicDashboard) {
+      if (dashboard && isDashboardPublic(accessState)) {
         return {
           hasReadAccess: true,
         };

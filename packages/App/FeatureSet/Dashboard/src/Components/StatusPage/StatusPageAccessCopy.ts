@@ -8,12 +8,24 @@ import {
   StatusPageAccessState,
   STATUS_PAGE_MASTER_PASSWORD_COLUMN,
 } from "Common/Types/StatusPage/StatusPageAccess";
-import IP from "Common/Types/IP/IP";
+import IpAllowlistCopy from "../IpAllowlist/IpAllowlistCopy";
 import {
   PluralTemplate,
-  translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The IP allowlist's rules (which lines the server can match, and why a
+ * list cannot be saved) are shared with a dashboard's Sharing page, which
+ * has the same list: they live in Components/IpAllowlist and are exported
+ * from here as before.
+ */
+export {
+  getIpAllowlistEntries,
+  getIpAllowlistProblem,
+  isIpAllowlistEntryValid,
+  isIpAllowlistInForce,
+} from "../IpAllowlist/IpAllowlistCopy";
 
 /*
  * Who can see a status page, on Status Pages -> a page -> Security ->
@@ -192,26 +204,20 @@ export const StatusPageAccessCopy: {
   advancedSummaryConfigured: translationKey(
     "Only the IP addresses on the allowlist can open this status page.",
   ),
-  ipAllowlistTitle: translationKey("IP Allowlist"),
+  ipAllowlistTitle: IpAllowlistCopy.title,
   ipAllowlistDescription: translationKey(
     "Only visitors from these IP addresses or ranges can open this status page, whoever it is open to. Leave it empty to allow every address.",
   ),
-  ipAllowlistEditButton: translationKey("Edit IP Allowlist"),
-  ipAllowlistFieldDescription: translationKey(
-    "One per line: an IPv4 or IPv6 address, or an IPv4 range, for example 203.0.113.7 or 10.0.0.0/8.",
-  ),
+  ipAllowlistEditButton: IpAllowlistCopy.editButton,
+  ipAllowlistFieldDescription: IpAllowlistCopy.fieldDescription,
   ipAllowlistEmpty: translationKey(
     "Empty: every IP address can open this status page.",
   ),
   ipAllowlistNoAddress: translationKey(
     "The list holds no address, so no IP address can open this status page.",
   ),
-  ipAllowlistBlank: translationKey(
-    "Enter at least one IP address or range, or clear the list to allow every address.",
-  ),
-  ipAllowlistInvalidEntry: translationKey(
-    "{{entry}} is not an IP address or an IPv4 range such as 10.0.0.0/8.",
-  ),
+  ipAllowlistBlank: IpAllowlistCopy.blank,
+  ipAllowlistInvalidEntry: IpAllowlistCopy.invalidEntry,
   privateUsersPasswordNotice: translationKey(
     "Master password is enabled for this status page. Private users authentication is disabled while the master password is active.",
   ),
@@ -444,101 +450,6 @@ export const getStatusPageAccessSelect: () => {
     masterPassword: true,
     requireSsoForLogin: true,
   };
-};
-
-/*
- * The IP allowlist (the ipWhitelist column), one entry a line. The server
- * (StatusPageService.hasReadAccess) enforces it whenever the column holds
- * anything at all, whoever the page is open to, and lets a visitor in whose
- * address is one of its lines or falls in one of its IPv4 ranges. It skips
- * blank lines, and lines it cannot read. These read the column the same way.
- */
-export const isIpAllowlistInForce: (
-  ipAllowlist: string | null | undefined,
-) => boolean = (ipAllowlist: string | null | undefined): boolean => {
-  return Boolean(ipAllowlist && ipAllowlist.length > 0);
-};
-
-// The list's entries as the server reads them: trimmed, blank lines left out.
-export const getIpAllowlistEntries: (
-  ipAllowlist: string | null | undefined,
-) => Array<string> = (
-  ipAllowlist: string | null | undefined,
-): Array<string> => {
-  return (ipAllowlist || "")
-    .split("\n")
-    .map((line: string): string => {
-      return line.trim();
-    })
-    .filter((line: string): boolean => {
-      return line.length > 0;
-    });
-};
-
-const IPV4_PREFIX_PATTERN: RegExp = /^\d{1,2}$/;
-
-/*
- * Whether the server can match an entry: an IPv4 or IPv6 address, or an IPv4
- * range with a /0 to /32 prefix. It has no IPv6 ranges.
- */
-export const isIpAllowlistEntryValid: (entry: string) => boolean = (
-  entry: string,
-): boolean => {
-  if (IP.isIP(entry)) {
-    return true;
-  }
-
-  const parts: Array<string> = entry.split("/");
-
-  if (parts.length !== 2) {
-    return false;
-  }
-
-  const network: string = parts[0] || "";
-  const prefix: string = parts[1] || "";
-
-  if (
-    !IP.isIP(network) ||
-    !IP.fromString(network).isIPv4() ||
-    !IPV4_PREFIX_PATTERN.test(prefix)
-  ) {
-    return false;
-  }
-
-  return parseInt(prefix, 10) <= 32;
-};
-
-/*
- * Why the list cannot be saved as typed, in the reader's language, or null.
- * The server skips a line it cannot read, so a typo would quietly leave an
- * address out, and a list of blank lines would let nobody in at all.
- */
-export const getIpAllowlistProblem: (
-  ipAllowlist: string | null | undefined,
-) => string | null = (
-  ipAllowlist: string | null | undefined,
-): string | null => {
-  if (!isIpAllowlistInForce(ipAllowlist)) {
-    return null;
-  }
-
-  const entries: Array<string> = getIpAllowlistEntries(ipAllowlist);
-
-  if (entries.length === 0) {
-    return translateTemplate(StatusPageAccessCopy.ipAllowlistBlank);
-  }
-
-  const invalid: string | undefined = entries.find((entry: string): boolean => {
-    return !isIpAllowlistEntryValid(entry);
-  });
-
-  if (invalid !== undefined) {
-    return translateTemplate(StatusPageAccessCopy.ipAllowlistInvalidEntry, {
-      entry: invalid,
-    });
-  }
-
-  return null;
 };
 
 // What a status page the card read holds, for the rule.
