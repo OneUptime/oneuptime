@@ -52,6 +52,15 @@ import EvaluationLogList from "../../../../App/FeatureSet/Dashboard/src/Componen
 import ProbeAttemptsView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ProbeAttemptsView";
 import { describeOnCallExposure } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/NotificationMethod";
 import { getStaleTooltip } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
+import {
+  MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES,
+  MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES,
+  MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES,
+  MESSAGE_QUEUE_LIVE_WINDOW_MINUTES,
+  MessageQueueLivenessStatus,
+  getMessageQueueLivenessDescription,
+  getMessageQueueLivenessLabel,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 
 /*
  * Dashboard components from M to R (src/Components/M* to R*) in a German test
@@ -195,6 +204,10 @@ const GERMAN: Record<string, string> = {
   // NetworkDevice/DeviceStatusUtil.ts
   "No poll has been attempted in the last {{minutes}} minutes, so this verdict may be out of date — check that this device's probe is online and keeping up with its fleet.":
     "In den letzten {{minutes}} Minuten wurde keine Abfrage versucht; der Status kann veraltet sein.",
+  // MessageQueue/MessageQueueOverviewPresentation.ts
+  "Not seen recently": "Länger nicht gesehen",
+  "Seen recently: in the last {{liveWindow}} minutes, discovery found spans or broker metrics naming this queue. It runs every {{interval}} minutes over the last {{window}} minutes of telemetry, and over the last {{cloudWindow}} minutes of cloud monitoring metrics, which arrive late.":
+    "Kürzlich gesehen: In den letzten {{liveWindow}} Minuten hat die Erkennung Spans oder Broker-Metriken mit dieser Warteschlange gefunden. Sie läuft alle {{interval}} Minuten über die letzten {{window}} Minuten Telemetrie und über die letzten {{cloudWindow}} Minuten Cloud-Monitoring-Metriken, die verspätet eintreffen.",
 };
 
 beforeAll(async () => {
@@ -462,9 +475,7 @@ describe("the final schedule summary in German", () => {
       /^Abdeckungslücke: Von .+ bis .+ \(.+\) hat niemand Bereitschaft\.$/,
     );
     // One gap: the singular.
-    expect(normalizedText(container)).toContain(
-      "ohne Bereitschaft in 1 Lücke",
-    );
+    expect(normalizedText(container)).toContain("ohne Bereitschaft in 1 Lücke");
     expect(normalizedText(container)).toContain(
       "90 % der nächsten 2 Wochen abgedeckt",
     );
@@ -659,8 +670,16 @@ describe("a monitor's evaluation log in German", () => {
         met: true,
         message: "",
         filters: [
-          { checkOn: CheckOn.IsOnline, message: "Monitor is online", met: true },
-          { checkOn: CheckOn.IsOnline, message: "Monitor is online", met: true },
+          {
+            checkOn: CheckOn.IsOnline,
+            message: "Monitor is online",
+            met: true,
+          },
+          {
+            checkOn: CheckOn.IsOnline,
+            message: "Monitor is online",
+            met: true,
+          },
         ],
       },
       {
@@ -772,6 +791,15 @@ describe("plain helpers in German", () => {
   test("the stale-device tooltip fills its window into the German sentence", () => {
     expect(getStaleTooltip(15)).toBe(
       "In den letzten 15 Minuten wurde keine Abfrage versucht; der Status kann veraltet sein.",
+    );
+  });
+
+  test("a queue's liveness pill and its hover text are German, with discovery's windows filled in", () => {
+    expect(
+      getMessageQueueLivenessLabel(MessageQueueLivenessStatus.NotSeenRecently),
+    ).toBe("Länger nicht gesehen");
+    expect(getMessageQueueLivenessDescription()).toBe(
+      `Kürzlich gesehen: In den letzten ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} Minuten hat die Erkennung Spans oder Broker-Metriken mit dieser Warteschlange gefunden. Sie läuft alle ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} Minuten über die letzten ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} Minuten Telemetrie und über die letzten ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} Minuten Cloud-Monitoring-Metriken, die verspätet eintreffen.`,
     );
   });
 });

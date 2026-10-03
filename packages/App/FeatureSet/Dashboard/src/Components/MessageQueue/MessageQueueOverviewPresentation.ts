@@ -22,7 +22,10 @@ import {
   getMessagingBrokerMetricsSource,
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -98,11 +101,11 @@ export function getMessageQueueLivenessLabel(
 ): string {
   switch (status) {
     case MessageQueueLivenessStatus.SeenRecently:
-      return "Seen recently";
+      return translateText("Seen recently");
     case MessageQueueLivenessStatus.NotSeenRecently:
-      return "Not seen recently";
+      return translateText("Not seen recently");
     default:
-      return "Never seen";
+      return translateText("Never seen");
   }
 }
 
@@ -124,9 +127,20 @@ export function getMessageQueueLivenessTone(
 
 /*
  * The pill's hover text: what "seen" means — when discovery last found the
- * queue, not when the telemetry that named it was produced.
+ * queue, not when the telemetry that named it was produced. Built when it is
+ * shown, so it reads in the reader's language.
  */
-export const MESSAGE_QUEUE_LIVENESS_DESCRIPTION: string = `Seen recently: in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes, discovery found spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late.`;
+export function getMessageQueueLivenessDescription(): string {
+  return translateTemplate(
+    "Seen recently: in the last {{liveWindow}} minutes, discovery found spans or broker metrics naming this queue. It runs every {{interval}} minutes over the last {{window}} minutes of telemetry, and over the last {{cloudWindow}} minutes of cloud monitoring metrics, which arrive late.",
+    {
+      liveWindow: MESSAGE_QUEUE_LIVE_WINDOW_MINUTES,
+      interval: MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES,
+      window: MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES,
+      cloudWindow: MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES,
+    },
+  );
+}
 
 // ---- docs ------------------------------------------------------------------
 

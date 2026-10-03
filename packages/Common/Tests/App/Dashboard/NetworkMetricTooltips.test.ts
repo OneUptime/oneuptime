@@ -943,7 +943,7 @@ describe("the site list and site Devices texts match what those columns draw", (
     const sites: string = readDashboard("Pages", "NetworkSite", "Sites.tsx");
 
     expect(sites).toContain(
-      'if (!item.currentMonitorStatus) { return <span className="text-sm text-gray-400">No Data</span>; }',
+      'if (!item.currentMonitorStatus) { return ( <span className="text-sm text-gray-400"> {translator.translateText("No Data")} </span> ); }',
     );
     expect(SITE.siteStatus).toContain(
       "No Data means nothing below it has reported yet",
