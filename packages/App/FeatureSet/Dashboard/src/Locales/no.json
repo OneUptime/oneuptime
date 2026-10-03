@@ -13754,7 +13754,7 @@
   "No resources match your search": "No resources match your search",
   "No resources tagged with this label.": "No resources tagged with this label.",
   "No resources.": "No resources.",
-  "No responders are assigned": "No responders are assigned",
+  "No responders are assigned": "Ingen mottakere er tildelt",
   "No responders are attached to any on-call policy in this project yet.": "No responders are attached to any on-call policy in this project yet.",
   "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "No responders assigned. No one will be notified at this level — edit this rule to add responders.",
   "No responders match these filters.": "No responders match these filters.",
@@ -17888,7 +17888,6 @@
   "This part of the recording could not be loaded: the chunk is listed in the index but came back empty, and there is no later snapshot to resume from.": "This part of the recording could not be loaded: the chunk is listed in the index but came back empty, and there is no later snapshot to resume from.",
   "This pattern does not match the sample line. Logs that do not match are left unchanged.": "This pattern does not match the sample line. Logs that do not match are left unchanged.",
   "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.": "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.",
-  "This policy will not page anyone when it is triggered. Add on-call schedules, teams, or users on the Escalation tab.": "This policy will not page anyone when it is triggered. Add on-call schedules, teams, or users on the Escalation tab.",
   "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.": "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.",
   "This project has no single sign-on provider you can use to log in. Ask a project admin to enable one.": "This project has no single sign-on provider you can use to log in. Ask a project admin to enable one.",
   "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.": "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.",
@@ -20062,5 +20061,10 @@
   "Search schedules, teams or people...": "Søk etter vaktplaner, team eller personer ...",
   "Showing {{selected}} of {{total}} event types": "Viser {{selected}} av {{total}} hendelsestyper",
   "Unknown schedule": "Ukjent vaktplan",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "Hvem som varsles på dette nivået, og hvor lenge det ventes på en bekreftelse før det eskaleres."
+  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "Hvem som varsles på dette nivået, og hvor lenge det ventes på en bekreftelse før det eskaleres.",
+  "Go to Escalation Rules": "Gå til Eskaleringsregler",
+  "Paged as soon as this policy is triggered. You can add more escalation levels later.": "Varsles så snart denne policyen utløses. Du kan legge til flere eskaleringsnivåer senere.",
+  "This policy has no escalation rules yet, so triggering it will not page anyone.": "Denne policyen har ingen eskaleringsregler ennå, så ingen blir varslet når den utløses.",
+  "This policy will not page anyone when it is triggered.": "Denne policyen varsler ingen når den utløses.",
+  "Who gets paged first?": "Hvem varsles først?"
 }

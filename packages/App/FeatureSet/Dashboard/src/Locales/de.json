@@ -17888,7 +17888,6 @@
   "This part of the recording could not be loaded: the chunk is listed in the index but came back empty, and there is no later snapshot to resume from.": "Dieser Teil der Aufzeichnung konnte nicht geladen werden: Der Abschnitt ist im Index aufgeführt, kam aber leer zurück, und es gibt keine spätere Momentaufnahme, von der aus fortgesetzt werden kann.",
   "This pattern does not match the sample line. Logs that do not match are left unchanged.": "Dieses Muster passt nicht auf die Beispielzeile. Nicht passende Protokolle bleiben unverändert.",
   "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.": "Dadurch werden die Ebene, ihre Benutzer und ihre Rotation dauerhaft aus diesem Plan entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
-  "This policy will not page anyone when it is triggered. Add on-call schedules, teams, or users on the Escalation tab.": "Diese Richtlinie alarmiert niemanden, wenn sie ausgelöst wird. Fügen Sie im Tab „Eskalation“ Bereitschaftspläne, Teams oder Benutzer hinzu.",
   "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.": "Dieses Projekt hat keine Bereitschaftsrichtlinien. Diese Monitore zeichnen auf, was passiert ist, aber niemand wird alarmiert. Sie können später eine Richtlinie hinzufügen und diese Monitore bearbeiten.",
   "This project has no single sign-on provider you can use to log in. Ask a project admin to enable one.": "Dieses Projekt hat keinen Single-Sign-On-Anbieter, mit dem Sie sich anmelden können. Bitten Sie einen Projektadministrator, einen zu aktivieren.",
   "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.": "In diesem Projekt sind keine Standorttypen konfiguriert, daher kann keine Zeile importiert werden. Fügen Sie sie zuerst unter Netzwerk > Einstellungen > Standorttypen hinzu.",
@@ -20062,5 +20061,10 @@
   "Search schedules, teams or people...": "Bereitschaftspläne, Teams oder Personen suchen...",
   "Showing {{selected}} of {{total}} event types": "{{selected}} von {{total}} Ereignistypen werden angezeigt",
   "Unknown schedule": "Unbekannter Bereitschaftsplan",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "Wer auf dieser Stufe benachrichtigt wird und wie lange auf eine Bestätigung gewartet wird, bevor eskaliert wird."
+  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "Wer auf dieser Stufe benachrichtigt wird und wie lange auf eine Bestätigung gewartet wird, bevor eskaliert wird.",
+  "Go to Escalation Rules": "Zu den Eskalationsregeln",
+  "Paged as soon as this policy is triggered. You can add more escalation levels later.": "Wird alarmiert, sobald diese Richtlinie ausgelöst wird. Weitere Eskalationsstufen können Sie später hinzufügen.",
+  "This policy has no escalation rules yet, so triggering it will not page anyone.": "Diese Richtlinie hat noch keine Eskalationsregeln und alarmiert daher niemanden, wenn sie ausgelöst wird.",
+  "This policy will not page anyone when it is triggered.": "Diese Richtlinie alarmiert niemanden, wenn sie ausgelöst wird.",
+  "Who gets paged first?": "Wer wird zuerst alarmiert?"
 }
