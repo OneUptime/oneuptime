@@ -2426,12 +2426,24 @@ jobs:
       # every attempt before it actually ran and failed, and the last one is
       # not `continue-on-error` — a genuine, persistent failure still fails the
       # job.
+      #
+      # `commit` is where the tag will point. A draft has no tag: GitHub cuts
+      # it when finalize-github-release publishes the draft, from the
+      # release's target_commitish, and without `commit` that is the default
+      # branch. So every tag landed on whatever master was at publish time:
+      # 14.0.11 on a master merge carrying 18 commits the release was not
+      # built from, 14.0.12 on one merged two minutes before the publish -
+      # and the release page's source archives followed the tag. github.sha
+      # is the commit this run stamps into its images (--git-sha). The action
+      # sends `commit` when it updates a draft as well as when it creates
+      # one, so a draft an earlier run left behind is corrected too.
       - name: Create draft release
         id: draft_release_1
         continue-on-error: true
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2450,6 +2462,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2466,6 +2479,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: ${{ github.sha }}
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -2550,6 +2564,15 @@ jobs:
           bash ./Scripts/GHA/generate_sboms.sh \
             --version "${{needs.read-version.outputs.major_minor}}"
 
+      # target_commitish is for the draft softprops/action-gh-release may
+      # keep. Its lookup by tag skips drafts, so it creates a draft of its
+      # own, then switches to the oldest draft for the tag -
+      # draft-github-release's, which it leaves untouched - and deletes its
+      # own. If that switch finds nothing (it reads the newest 200 releases,
+      # three times a second apart), it uploads to the draft it created and
+      # keeps it, and that draft targets the default branch unless this says
+      # otherwise. finalize-github-release could then publish it. The other
+      # upload steps pass it for the same reason.
       - name: Attach SBOMs to release
         uses: softprops/action-gh-release@v2
         with:
@@ -2559,6 +2582,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
 
   infrastructure-agent-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
@@ -2603,7 +2627,8 @@ jobs:
       - name: Release MSI Images
         run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
 
-      # Upload binaries to github release
+      # Upload binaries to github release. target_commitish: see "Attach
+      # SBOMs to release".
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -2613,6 +2638,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{needs.read-version.outputs.major_minor}}
+          target_commitish: ${{ github.sha }}
 
 
   # Build Android release APK and attach to GitHub Release.
@@ -2664,6 +2690,7 @@ jobs:
       - name: Rename APK
         run: mv packages/MobileApp/android/app/build/outputs/apk/release/*.apk packages/MobileApp/android/app/build/outputs/apk/release/oneuptime-on-call-android-app.apk
 
+      # target_commitish: see "Attach SBOMs to release".
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -2672,6 +2699,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{ needs.read-version.outputs.major_minor }}
+          target_commitish: ${{ github.sha }}
 
   # Build iOS release IPA and attach to GitHub Release.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
@@ -2800,6 +2828,7 @@ jobs:
       - name: Rename IPA
         run: mv ${{ runner.temp }}/build/*.ipa ${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa
 
+      # target_commitish: see "Attach SBOMs to release".
       - name: Upload IPA to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -2808,6 +2837,7 @@ jobs:
           draft: true
           prerelease: false
           tag_name: ${{ needs.read-version.outputs.major_minor }}
+          target_commitish: ${{ github.sha }}
 
       - name: Cleanup keychain
         if: always()
@@ -2863,6 +2893,11 @@ jobs:
                 throw new Error(`Release with tag ${tag} not found in repository ${context.repo.owner}/${context.repo.repo}`);
               }
 
+              // Publishing is when GitHub cuts the tag, from target_commitish.
+              // draft-github-release's `commit` has set it already; naming it
+              // again here holds whichever draft this finds to the run's own
+              // commit, including one an upload step created and kept (see
+              // "Attach SBOMs to release"). context.sha is github.sha.
               await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -2870,6 +2905,7 @@ jobs:
                 draft: false,
                 prerelease: false,
                 make_latest: 'true',
+                target_commitish: context.sha,
               });
             };
 
