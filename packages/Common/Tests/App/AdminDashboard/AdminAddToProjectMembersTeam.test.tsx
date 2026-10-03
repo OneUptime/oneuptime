@@ -15,7 +15,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import React, { ReactElement, ReactNode } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
  * ADMIN DASHBOARD: ADDING SOMEONE TO A PROJECT STARTS ON ITS MEMBERS TEAM,
@@ -949,7 +949,7 @@ describe.each([
   (provider: {
     name: string;
     path: string;
-    Page: () => ReactElement;
+    Page: FunctionComponent;
     table: string;
     modelType: { new (): BaseModel };
     providerColumn: string;
