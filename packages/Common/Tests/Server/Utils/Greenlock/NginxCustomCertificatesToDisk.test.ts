@@ -19,6 +19,12 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import StatusPageDomainService from "../../../../Server/Services/StatusPageDomainService";
+import DashboardDomainService from "../../../../Server/Services/DashboardDomainService";
+import LocalFile from "../../../../Server/Utils/LocalFile";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
+import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "../../../../Utils/CronTime";
+import WriteCustomCertsToDiskJob from "../../../../../Nginx/Jobs/WriteCustomCertsToDisk";
 
 type CronProps = {
   jobName: string;
@@ -28,6 +34,7 @@ type CronProps = {
 
 const mockRegisteredCrons: Array<CronProps> = [];
 
+// Hoisted above the imports; the job reads the cron only when init() runs.
 jest.mock("../../../../Server/Utils/BasicCron", () => {
   return {
     __esModule: true,
@@ -36,13 +43,6 @@ jest.mock("../../../../Server/Utils/BasicCron", () => {
     },
   };
 });
-
-import StatusPageDomainService from "../../../../Server/Services/StatusPageDomainService";
-import DashboardDomainService from "../../../../Server/Services/DashboardDomainService";
-import LocalFile from "../../../../Server/Utils/LocalFile";
-import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
-import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "../../../../Utils/CronTime";
-import WriteCustomCertsToDiskJob from "../../../../../Nginx/Jobs/WriteCustomCertsToDisk";
 
 const CERTS_DIRECTORY: string = "/etc/nginx/certs/StatusPageCerts";
 

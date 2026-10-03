@@ -8,7 +8,6 @@ import AcmeChallengeService from "../../Services/AcmeChallengeService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
@@ -55,6 +54,29 @@ export default class GreenlockUtil {
   public static readonly RENEW_CONCURRENCY: number = 5;
 
   /*
+   * Lookups by domain name (an owner asked which domains are its own, the
+   * certificates of a list of domains) take at most this many names at once,
+   * so a long list becomes several short IN (...) lookups rather than one
+   * statement with thousands of parameters.
+   */
+  public static readonly DOMAIN_LOOKUP_CHUNK_SIZE: number = 500;
+
+  /*
+   * A certificate nobody owns is deleted once it has been expired this long,
+   * at most REMOVE_UNOWNED_MAX_PER_RUN per run.
+   *
+   * Such certificates are left behind when a project, status page, dashboard
+   * or parent domain is deleted: those deletes remove the domain rows through
+   * the database's ON DELETE CASCADE, which skips the hook that removes the
+   * certificate. An expired certificate serves nobody, and every owner orders
+   * a fresh one when its own is missing, so deleting one cannot take a
+   * working domain down. The month of grace is for a domain that is deleted
+   * and added back.
+   */
+  public static readonly REMOVE_UNOWNED_AFTER_EXPIRY_IN_DAYS: number = 30;
+  public static readonly REMOVE_UNOWNED_MAX_PER_RUN: number = 100;
+
+  /*
    * Stable per-domain lead time, somewhere in the range above. Same domain,
    * same answer, on every run and every replica.
    */
@@ -75,6 +97,98 @@ export default class GreenlockUtil {
   }
 
   /*
+   * Whether this certificate has reached its own renewal lead time. Expired
+   * certificates are due too.
+   */
+  public static isDueForRenewal(
+    certificate: { domain?: string | undefined; expiresAt?: Date | undefined },
+    now: Date,
+  ): boolean {
+    if (!certificate.domain || !certificate.expiresAt) {
+      return false;
+    }
+
+    const renewAt: Date = OneUptimeDate.addRemoveDays(
+      certificate.expiresAt,
+      -GreenlockUtil.getRenewalLeadTimeInDays(certificate.domain),
+    );
+
+    return !OneUptimeDate.isAfter(renewAt, now);
+  }
+
+  /*
+   * The items a capped sweep works on in this run: at most max of them, a
+   * different window every run, so an item whose work keeps failing cannot
+   * hold a slot the others are waiting for. Items are taken in a stable order
+   * (by key) and the window moves on by max every run, which makes it a round
+   * robin that needs no state: every item gets its turn within
+   * ceil(items / max) runs, on every replica alike.
+   */
+  public static takeThisRunsTurn<T>(data: {
+    items: Array<T>;
+    max: number;
+    now: Date;
+    getKey: (item: T) => string;
+    runIntervalInMinutes?: number | undefined;
+  }): Array<T> {
+    const max: number = Math.max(Math.floor(data.max), 0);
+
+    const ordered: Array<T> = [...data.items].sort((a: T, b: T) => {
+      const keyA: string = data.getKey(a);
+      const keyB: string = data.getKey(b);
+
+      if (keyA === keyB) {
+        return 0;
+      }
+
+      return keyA < keyB ? -1 : 1;
+    });
+
+    if (ordered.length <= max) {
+      return ordered;
+    }
+
+    const runIntervalInMs: number = OneUptimeDate.convertMinutesToMilliseconds(
+      data.runIntervalInMinutes || 15,
+    );
+
+    const runNumber: number = Math.floor(data.now.getTime() / runIntervalInMs);
+    const start: number = (runNumber * max) % ordered.length;
+
+    return Array.from({ length: max }, (_value: unknown, index: number): T => {
+      return ordered[(start + index) % ordered.length] as T;
+    });
+  }
+
+  /*
+   * Ask one owner which of these domains are its own, a chunk at a time.
+   */
+  private static async getOwnedAmong(data: {
+    domains: Array<string>;
+    getOwnedDomains: (domains: Array<string>) => Promise<Array<string>>;
+  }): Promise<Set<string>> {
+    const owned: Set<string> = new Set<string>();
+    const domains: Array<string> = Array.from(new Set<string>(data.domains));
+
+    for (
+      let offset: number = 0;
+      offset < domains.length;
+      offset += GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = domains.slice(
+        offset,
+        offset + GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE,
+      );
+
+      for (const domain of await data.getOwnedDomains(chunk)) {
+        owned.add(domain);
+      }
+    }
+
+    return owned;
+  }
+
+  /*
    * Renew the caller's certificates that are due, at most maxPerRun of them
    * per run (RENEW_MAX_PER_RUN unless the caller asks for fewer).
    *
@@ -88,10 +202,13 @@ export default class GreenlockUtil {
    * its lead time came before CoreSSL's 30-day renewal) as a status page
    * whose CNAME had stopped validating, and deleted it.
    *
-   * getOwnedDomains is handed every due domain and returns the ones the
-   * caller owns. Ownership is settled before the cap, so a backlog that
-   * belongs to someone else cannot take this caller's slots. A certificate
-   * nobody claims is left exactly as it is: neither renewed nor removed.
+   * getOwnedDomains is handed the due domains (a chunk at a time) and
+   * returns the ones the caller owns. Every due certificate is read, not a
+   * first page of them, and ownership is settled before the cap, so neither
+   * another owner's backlog nor a pile of expired certificates nobody owns
+   * can take this caller's slots. A certificate nobody claims is left exactly
+   * as it is: neither renewed nor removed
+   * (removeExpiredCertificatesNobodyOwns cleans those up once they are dead).
    */
   @CaptureSpan()
   public static async renewAllCertsWhichAreExpiringSoon(data: {
@@ -108,7 +225,7 @@ export default class GreenlockUtil {
        * keep only the domains whose own lead time has actually been reached.
        */
       const certificates: AcmeCertificate[] =
-        await AcmeCertificateService.findBy({
+        await AcmeCertificateService.findAllBy({
           query: {
             expiresAt: QueryHelper.lessThanEqualTo(
               OneUptimeDate.addRemoveDays(
@@ -117,7 +234,6 @@ export default class GreenlockUtil {
               ),
             ),
           },
-          limit: LIMIT_MAX,
           skip: 0,
           select: {
             domain: true,
@@ -133,18 +249,23 @@ export default class GreenlockUtil {
 
       const now: Date = OneUptimeDate.getCurrentDate();
 
+      /*
+       * One renewal per name: a name can have more than one row, and rows
+       * that expire at the same moment can come back on two pages.
+       */
+      const dueDomains: Set<string> = new Set<string>();
+
       const dueCertificates: AcmeCertificate[] = certificates.filter(
         (certificate: AcmeCertificate) => {
-          if (!certificate.domain || !certificate.expiresAt) {
+          if (
+            !GreenlockUtil.isDueForRenewal(certificate, now) ||
+            dueDomains.has(certificate.domain as string)
+          ) {
             return false;
           }
 
-          const renewAt: Date = OneUptimeDate.addRemoveDays(
-            certificate.expiresAt,
-            -GreenlockUtil.getRenewalLeadTimeInDays(certificate.domain),
-          );
-
-          return !OneUptimeDate.isAfter(renewAt, now);
+          dueDomains.add(certificate.domain as string);
+          return true;
         },
       );
 
@@ -153,16 +274,12 @@ export default class GreenlockUtil {
        * or removed: not knowing who owns a certificate is never a reason to
        * touch it.
        */
-      const ownedDomains: Set<string> =
-        dueCertificates.length > 0
-          ? new Set<string>(
-              await data.getOwnedDomains(
-                dueCertificates.map((certificate: AcmeCertificate) => {
-                  return certificate.domain as string;
-                }),
-              ),
-            )
-          : new Set<string>();
+      const ownedDomains: Set<string> = await GreenlockUtil.getOwnedAmong({
+        domains: dueCertificates.map((certificate: AcmeCertificate) => {
+          return certificate.domain as string;
+        }),
+        getOwnedDomains: data.getOwnedDomains,
+      });
 
       const ownedDueCertificates: AcmeCertificate[] = dueCertificates.filter(
         (certificate: AcmeCertificate) => {
@@ -211,6 +328,104 @@ export default class GreenlockUtil {
 
       throw e;
     }
+  }
+
+  /*
+   * Delete certificates that have been expired for more than
+   * REMOVE_UNOWNED_AFTER_EXPIRY_IN_DAYS and that no owner claims, at most
+   * REMOVE_UNOWNED_MAX_PER_RUN per run. Returns how many were deleted.
+   *
+   * owners must name every kind of certificate owner there is (see
+   * CertificateOwners). A certificate is deleted only when all of them have
+   * answered and none claims it; if any lookup fails, nothing is deleted.
+   * Rows are deleted by id, so a newer certificate for the same name is
+   * never touched.
+   */
+  @CaptureSpan()
+  public static async removeExpiredCertificatesNobodyOwns(data: {
+    owners: Array<{
+      name: string;
+      getOwnedDomains: (domains: Array<string>) => Promise<Array<string>>;
+    }>;
+  }): Promise<number> {
+    const expiredBefore: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      -GreenlockUtil.REMOVE_UNOWNED_AFTER_EXPIRY_IN_DAYS,
+    );
+
+    const expiredCertificates: Array<AcmeCertificate> =
+      await AcmeCertificateService.findAllBy({
+        query: {
+          expiresAt: QueryHelper.lessThan(expiredBefore),
+        },
+        select: {
+          _id: true,
+          domain: true,
+          expiresAt: true,
+        },
+        sort: {
+          expiresAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const candidates: Array<AcmeCertificate> = expiredCertificates.filter(
+      (certificate: AcmeCertificate) => {
+        return Boolean(certificate.domain) && Boolean(certificate.id);
+      },
+    );
+
+    if (candidates.length === 0) {
+      return 0;
+    }
+
+    const domains: Array<string> = candidates.map(
+      (certificate: AcmeCertificate) => {
+        return certificate.domain as string;
+      },
+    );
+
+    const ownedDomains: Set<string> = new Set<string>();
+
+    for (const owner of data.owners) {
+      const ownedByThisOwner: Set<string> = await GreenlockUtil.getOwnedAmong({
+        domains: domains,
+        getOwnedDomains: owner.getOwnedDomains,
+      });
+
+      for (const domain of ownedByThisOwner) {
+        ownedDomains.add(domain);
+      }
+    }
+
+    const abandoned: Array<AcmeCertificate> = candidates
+      .filter((certificate: AcmeCertificate) => {
+        return !ownedDomains.has(certificate.domain as string);
+      })
+      .slice(0, GreenlockUtil.REMOVE_UNOWNED_MAX_PER_RUN);
+
+    for (const certificate of abandoned) {
+      logger.debug(
+        `Deleting the certificate of ${certificate.domain}: it expired on ${certificate.expiresAt?.toISOString()} and no status page, dashboard or primary host claims it.`,
+        { domain: certificate.domain } as LogAttributes,
+      );
+
+      await AcmeCertificateService.deleteBy({
+        query: {
+          _id: certificate.id!.toString(),
+        },
+        limit: 1,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return abandoned.length;
   }
 
   /*

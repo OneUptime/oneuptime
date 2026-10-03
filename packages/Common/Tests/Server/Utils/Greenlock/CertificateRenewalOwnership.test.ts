@@ -52,11 +52,19 @@ type Certificate = {
   expiresAt: Date;
 };
 
+type UploadedCertificateState = {
+  isCustomCertificate: boolean;
+  customCertificate?: string;
+  customCertificateKey?: string;
+};
+
 type World = {
   // The shared AcmeCertificate table.
   certificates: Array<Certificate>;
   statusPageDomains: Array<string>;
   dashboardDomains: Array<string>;
+  // Domain rows (in either table) whose upload switch is on.
+  uploads: Map<string, UploadedCertificateState>;
   // Domains whose CNAME no longer validates. Every other owned domain does.
   brokenCnames: Set<string>;
   ordered: Array<string>;
@@ -102,11 +110,13 @@ function inList(operator: unknown): Array<string> {
 function setUpWorld(data: {
   certificates: Array<Certificate>;
   brokenCnames?: Array<string>;
+  uploads?: Array<[string, UploadedCertificateState]>;
 }): World {
   const world: World = {
     certificates: [...data.certificates],
     statusPageDomains: [...STATUS_PAGE_DOMAINS],
     dashboardDomains: [...DASHBOARD_DOMAINS],
+    uploads: new Map<string, UploadedCertificateState>(data.uploads || []),
     brokenCnames: new Set<string>(data.brokenCnames || []),
     ordered: [],
     deleted: [],
@@ -120,15 +130,22 @@ function setUpWorld(data: {
     return { inList: values.map(String) };
   }) as never);
 
-  jest.spyOn(AcmeCertificateService, "findBy").mockImplementation((async () => {
-    return [...world.certificates]
-      .sort((a: Certificate, b: Certificate) => {
-        return a.expiresAt.getTime() - b.expiresAt.getTime();
-      })
-      .map((certificate: Certificate) => {
-        return { ...certificate } as unknown as AcmeCertificate;
-      });
-  }) as never);
+  // Pages like the database: findAllBy walks it with skip and limit.
+  jest
+    .spyOn(AcmeCertificateService, "findBy")
+    .mockImplementation((async (call: { skip?: number; limit?: number }) => {
+      const skip: number = Number(call.skip || 0);
+      const limit: number = Number(call.limit || world.certificates.length);
+
+      return [...world.certificates]
+        .sort((a: Certificate, b: Certificate) => {
+          return a.expiresAt.getTime() - b.expiresAt.getTime();
+        })
+        .slice(skip, skip + limit)
+        .map((certificate: Certificate) => {
+          return { ...certificate } as unknown as AcmeCertificate;
+        });
+    }) as never);
 
   jest
     .spyOn(AcmeCertificateService, "deleteBy")
@@ -177,7 +194,11 @@ function setUpWorld(data: {
           return asked.includes(fullDomain);
         })
         .map((fullDomain: string) => {
-          return { fullDomain: fullDomain };
+          return {
+            fullDomain: fullDomain,
+            isCustomCertificate: false,
+            ...(world.uploads.get(fullDomain) || {}),
+          };
         });
     }) as never);
 
@@ -410,6 +431,100 @@ describe("a renewal run over the shared certificate table", () => {
     expect(sorted(world.ordered)).toEqual(sorted(DASHBOARD_DOMAINS));
     expect(world.deleted).toEqual([]);
   });
+
+  /*
+   * nginx serves the uploaded certificate for that name, so the Let's
+   * Encrypt one left from before the switch is nobody's to renew: renewing
+   * it only spends orders. It is not removed either - it is left to expire
+   * and to the cleanup of certificates nobody owns.
+   */
+  test("a domain serving its own uploaded certificate does not claim its leftover Let's Encrypt certificate", async () => {
+    const world: World = setUpWorld({
+      certificates: mixedDueCertificates(),
+      uploads: [
+        [
+          STATUS_PAGE_DOMAINS[1]!,
+          {
+            isCustomCertificate: true,
+            customCertificate: "-----BEGIN CERTIFICATE-----",
+            customCertificateKey: "-----BEGIN PRIVATE KEY-----",
+          },
+        ],
+        [
+          DASHBOARD_DOMAINS[1]!,
+          {
+            isCustomCertificate: true,
+            customCertificate: "-----BEGIN CERTIFICATE-----",
+            customCertificateKey: "-----BEGIN PRIVATE KEY-----",
+          },
+        ],
+      ],
+    });
+
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(sorted(world.ordered)).toEqual(
+      sorted([STATUS_PAGE_DOMAINS[0]!, DASHBOARD_DOMAINS[0]!]),
+    );
+    expect(world.deleted).toEqual([]);
+    expect(world.cnameChecks.statusPage).not.toContain(STATUS_PAGE_DOMAINS[1]);
+    expect(world.cnameChecks.dashboard).not.toContain(DASHBOARD_DOMAINS[1]);
+    expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
+  });
+
+  // Same test as nginx's: the switch alone, with nothing uploaded, serves nothing.
+  test("a domain with the upload switch on but no certificate uploaded still claims its Let's Encrypt certificate", async () => {
+    const world: World = setUpWorld({
+      certificates: mixedDueCertificates(),
+      uploads: [
+        [STATUS_PAGE_DOMAINS[1]!, { isCustomCertificate: true }],
+        [
+          DASHBOARD_DOMAINS[1]!,
+          {
+            isCustomCertificate: true,
+            customCertificate: "-----BEGIN CERTIFICATE-----",
+          },
+        ],
+      ],
+    });
+
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(sorted(world.ordered)).toEqual(
+      sorted([...STATUS_PAGE_DOMAINS, ...DASHBOARD_DOMAINS]),
+    );
+  });
+
+  /*
+   * The certificate table is read page by page, not a first page of it: a
+   * pile of dead certificates nobody owns - which sort first, being the
+   * oldest - must not push the caller's own out of the run.
+   */
+  test("thousands of expired certificates nobody owns cannot push the caller's due certificates out of the run", async () => {
+    const abandoned: Array<Certificate> = Array.from(
+      { length: 10050 },
+      (_value: unknown, index: number) => {
+        return expiringInDays(`gone${index}.example.com`, -60 - (index % 30));
+      },
+    );
+
+    const world: World = setUpWorld({
+      certificates: [
+        ...abandoned,
+        ...DASHBOARD_DOMAINS.map((domain: string) => {
+          return expiringInDays(domain, 3);
+        }),
+      ],
+    });
+
+    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(sorted(world.ordered)).toEqual(sorted(DASHBOARD_DOMAINS));
+    expect(world.deleted).toEqual([]);
+    expect(world.certificates).toHaveLength(abandoned.length + 2);
+  });
 });
 
 /*
@@ -589,6 +704,50 @@ describe("GreenlockUtil.renewAllCertsWhichAreExpiringSoon ownership mechanics", 
     expect(sorted(run.ordered)).toEqual([
       "due-a.example.com",
       "due-b.example.com",
+    ]);
+  });
+
+  test("asks an owner about at most DOMAIN_LOOKUP_CHUNK_SIZE domains at a time", async () => {
+    const chunk: number = GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE;
+
+    const run: Run = setUpRun(
+      Array.from(
+        { length: chunk * 2 + 7 },
+        (_value: unknown, index: number) => {
+          return expiringInDays(`d${index}.example.com`, 1);
+        },
+      ),
+    );
+
+    await renew(run, async () => {
+      return [];
+    });
+
+    expect(
+      run.ownershipQueries.map((query: Array<string>) => {
+        return query.length;
+      }),
+    ).toEqual([chunk, chunk, 7]);
+    expect(new Set(run.ownershipQueries.flat()).size).toBe(chunk * 2 + 7);
+  });
+
+  test("a name with more than one due row is renewed once", async () => {
+    const run: Run = setUpRun([
+      expiringInDays("twice.example.com", 1),
+      expiringInDays("twice.example.com", 2),
+      expiringInDays("once.example.com", 3),
+    ]);
+
+    await renew(run, async (domains: Array<string>) => {
+      return domains;
+    });
+
+    expect(sorted(run.ordered)).toEqual([
+      "once.example.com",
+      "twice.example.com",
+    ]);
+    expect(run.ownershipQueries).toEqual([
+      ["twice.example.com", "once.example.com"],
     ]);
   });
 
@@ -796,7 +955,21 @@ describe.each([
       props: Record<string, unknown>;
     }) => {
       findByCalls.push(call);
-      return [{ fullDomain: "owned.example.com" }, { fullDomain: "" }, {}];
+      return [
+        { fullDomain: "owned.example.com", isCustomCertificate: false },
+        { fullDomain: "" },
+        {},
+        {
+          fullDomain: "uploaded.example.com",
+          isCustomCertificate: true,
+          customCertificate: "-----BEGIN CERTIFICATE-----",
+          customCertificateKey: "-----BEGIN PRIVATE KEY-----",
+        },
+        {
+          fullDomain: "switch-only.example.com",
+          isCustomCertificate: true,
+        },
+      ];
     }) as never);
   });
 
@@ -814,11 +987,20 @@ describe.each([
       "owned.example.com",
       "foreign.example.com",
     ]);
-    expect(findByCalls[0]!.select).toEqual({ fullDomain: true });
+    expect(findByCalls[0]!.select).toEqual({
+      fullDomain: true,
+      isCustomCertificate: true,
+      customCertificate: true,
+      customCertificateKey: true,
+    });
     expect(findByCalls[0]!.props).toEqual({ isRoot: true });
 
-    // Rows without a domain are not ownership of anything.
-    expect(owned).toEqual(["owned.example.com"]);
+    /*
+     * Rows without a domain are not ownership of anything, and a domain
+     * serving its own uploaded certificate does not claim a Let's Encrypt
+     * one. The switch alone, with nothing uploaded, still claims it.
+     */
+    expect(owned).toEqual(["owned.example.com", "switch-only.example.com"]);
   });
 
   test("asked about nothing, it owns nothing and does not query", async () => {
@@ -849,7 +1031,7 @@ describe.each([
     expect(handedOver.getOwnedDomains).toBeDefined();
     await expect(
       handedOver.getOwnedDomains!(["owned.example.com", "foreign.example.com"]),
-    ).resolves.toEqual(["owned.example.com"]);
+    ).resolves.toEqual(["owned.example.com", "switch-only.example.com"]);
     expect(inList(findByCalls[0]!.query.fullDomain)).toEqual([
       "owned.example.com",
       "foreign.example.com",

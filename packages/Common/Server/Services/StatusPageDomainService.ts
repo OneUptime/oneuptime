@@ -822,11 +822,18 @@ export class Service extends DatabaseService<StatusPageDomain> {
   }
 
   /*
-   * Which of these certificate domains are status page domains. The renewal
-   * run renews - and removes - only the certificates this returns, so the
-   * certificates of dashboard domains and of the primary host, which share
-   * the AcmeCertificate table, are never mistaken for status page domains
-   * whose CNAME stopped validating.
+   * Which of these certificate domains are status page domains that use our
+   * Let's Encrypt certificate. The renewal run renews - and removes - only
+   * the certificates this returns, so the certificates of dashboard domains
+   * and of the primary host, which share the AcmeCertificate table, are
+   * never mistaken for status page domains whose CNAME stopped validating.
+   *
+   * A domain serving a certificate its owner uploaded does not claim the
+   * Let's Encrypt certificate it may have from before the switch: nginx
+   * serves the uploaded one for that name, so renewing the old one would
+   * only spend orders. Left unclaimed, it expires and is cleaned up. The
+   * test is the one nginx's WriteCustomCertsToDisk uses: the switch is on and
+   * both the certificate and its key are there.
    */
   @CaptureSpan()
   public async getOwnedDomains(domains: Array<string>): Promise<Array<string>> {
@@ -840,6 +847,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
       },
       select: {
         fullDomain: true,
+        isCustomCertificate: true,
+        customCertificate: true,
+        customCertificateKey: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -849,11 +859,19 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
 
     return statusPageDomains
-      .map((statusPageDomain: StatusPageDomain) => {
-        return statusPageDomain.fullDomain || "";
+      .filter((statusPageDomain: StatusPageDomain) => {
+        const servesUploadedCertificate: boolean = Boolean(
+          statusPageDomain.isCustomCertificate &&
+            statusPageDomain.customCertificate &&
+            statusPageDomain.customCertificateKey,
+        );
+
+        return (
+          Boolean(statusPageDomain.fullDomain) && !servesUploadedCertificate
+        );
       })
-      .filter((fullDomain: string) => {
-        return fullDomain.length > 0;
+      .map((statusPageDomain: StatusPageDomain) => {
+        return statusPageDomain.fullDomain as string;
       });
   }
 

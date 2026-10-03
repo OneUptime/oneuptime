@@ -151,6 +151,11 @@ import "./Jobs/StatusPageCerts/StatusPageCerts";
  */
 import "./Jobs/DashboardCerts/DashboardCerts";
 import "./Jobs/CoreSsl/ProvisionPrimaryDomain";
+/*
+ * Removes certificates that expired long ago and that nobody owns, which the
+ * renewal runs above leave alone.
+ */
+import "./Jobs/Certificates/RemoveExpiredUnownedCertificates";
 
 // Status Page Announcements
 import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";

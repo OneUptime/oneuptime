@@ -257,3 +257,129 @@ describe("Certificate renewal run", () => {
     expect(ordered).toContain("healthy.example.com");
   });
 });
+
+describe("GreenlockUtil.isDueForRenewal", () => {
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  test("a certificate inside its own lead time is due, an expired one too", () => {
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays("status.aleyant.com", 1),
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays("status.aleyant.com", -3),
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  test("a freshly issued certificate is not due", () => {
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays("status.aleyant.com", 89),
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  test("the boundary is the domain's own lead time", () => {
+    const domain: string = "status.aleyant.com";
+    const leadTime: number = GreenlockUtil.getRenewalLeadTimeInDays(domain);
+
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays(domain, leadTime - 1),
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays(domain, leadTime + 1),
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  test("a row without a domain or an expiry is never due", () => {
+    expect(GreenlockUtil.isDueForRenewal({ expiresAt: now }, now)).toBe(false);
+    expect(
+      GreenlockUtil.isDueForRenewal({ domain: "status.aleyant.com" }, now),
+    ).toBe(false);
+  });
+});
+
+/*
+ * The capped sweeps take turns: a domain whose order keeps failing must not
+ * hold a slot every run while the domains behind it never get one.
+ */
+describe("GreenlockUtil.takeThisRunsTurn", () => {
+  const FIFTEEN_MINUTES_IN_MS: number = 15 * 60 * 1000;
+  const firstRun: Date = new Date(1_800_000_000_000);
+
+  function nthRun(n: number): Date {
+    return new Date(firstRun.getTime() + n * FIFTEEN_MINUTES_IN_MS);
+  }
+
+  function turn(items: Array<string>, max: number, now: Date): Array<string> {
+    return GreenlockUtil.takeThisRunsTurn({
+      items: items,
+      max: max,
+      now: now,
+      getKey: (item: string): string => {
+        return item;
+      },
+    });
+  }
+
+  const items: Array<string> = Array.from(
+    { length: 12 },
+    (_value: unknown, index: number) => {
+      return "d" + String(index).padStart(2, "0") + ".example.com";
+    },
+  );
+
+  test("takes everything when everything fits", () => {
+    expect(turn(items.slice(0, 3), 5, firstRun)).toEqual(items.slice(0, 3));
+    expect(turn([], 5, firstRun)).toEqual([]);
+  });
+
+  test("takes at most max distinct items", () => {
+    const taken: Array<string> = turn(items, 5, firstRun);
+
+    expect(taken).toHaveLength(5);
+    expect(new Set(taken).size).toBe(5);
+  });
+
+  test("every item gets its turn within ceil(items / max) consecutive runs", () => {
+    const runs: number = Math.ceil(items.length / 5);
+    const taken: Set<string> = new Set<string>();
+
+    for (let run: number = 0; run < runs; run++) {
+      for (const item of turn(items, 5, nthRun(run))) {
+        taken.add(item);
+      }
+    }
+
+    expect([...taken].sort()).toEqual(items);
+  });
+
+  test("consecutive runs take different windows", () => {
+    expect(turn(items, 5, nthRun(0))).not.toEqual(turn(items, 5, nthRun(1)));
+  });
+
+  test("the same run takes the same window on every replica, whatever order the items arrive in", () => {
+    const reversed: Array<string> = [...items].reverse();
+
+    expect(turn(reversed, 5, nthRun(3))).toEqual(turn(items, 5, nthRun(3)));
+    expect(turn(items, 5, new Date(nthRun(3).getTime() + 60 * 1000))).toEqual(
+      turn(items, 5, nthRun(3)),
+    );
+  });
+
+  test("a max of zero takes nothing", () => {
+    expect(turn(items, 0, firstRun)).toEqual([]);
+  });
+});
