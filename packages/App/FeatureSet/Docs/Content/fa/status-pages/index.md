@@ -124,9 +124,7 @@
 
 - **Show Uptime History (in days)** (`showUptimeHistoryInDays`) — طول میله آپ‌تایم کنار هر منبع. پیش‌فرض ۹۰ و باید میان ۱ و ۹۰ باشد. هر گزینه **Show Uptime %** و **Show Status History Chart** روی منبعی یا گروهی همین عدد را می‌خواند.
 
-**Subscriber Settings**:
-
-- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — به‌طور پیش‌فرض روشن، به‌علاوه پنج کلید فعال‌سازی به ازای هر کانال. همان کلیدهای کانال روی صفحه اختصاصی **Subscriber Settings** زیر بخش **Subscribers** هم پدیدار می‌شوند؛ آن یکی را جای متعارف تنظیمشان بدانید.
+اینکه صفحه آیتم **Subscribe** را نشان بدهد یا نه (**Show Subscriber Page**، `showSubscriberPageOnStatusPage`، به‌طور پیش‌فرض روشن) و بازدیدکنندگان از راه کدام کانال‌ها بتوانند مشترک شوند، در این صفحه تنظیم نمی‌شود: هر دو در کارت **Channels** زیر **Subscribers → Subscriber Settings** هستند (ببینید [مشترکان و اعلامیه‌ها](/docs/status-pages/subscribers)).
 
 **Powered By OneUptime Branding**:
 

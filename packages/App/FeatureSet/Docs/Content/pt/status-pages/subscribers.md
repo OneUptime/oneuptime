@@ -8,19 +8,22 @@ Esta página cobre os dois lados: os cinco canais de inscrição e como os visit
 
 ## Canais de inscrição
 
-Uma página de status oferece cinco canais, cada um com sua própria chave na página. Vá em **Páginas de status → sua página → Assinantes → Configurações de assinantes**:
+Uma página de status oferece cinco canais. Eles e a página em que os visitantes se inscrevem são ligados em um só lugar: o cartão **Canais** em **Páginas de status → sua página → Assinantes → Configurações de assinantes**. Cada chave é salva assim que você a muda:
 
-- **Habilitar assinantes por e-mail** (`enableEmailSubscribers`) — ligado por padrão. Todo o resto fica desligado até você ligar.
-- **Habilitar assinantes por SMS** (`enableSmsSubscribers`) — desligado por padrão.
-- **Habilitar assinantes do Slack** (`enableSlackSubscribers`) — desligado por padrão.
-- **Habilitar assinantes do Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — desligado por padrão.
-- **Habilitar assinantes por webhook** (`enableWebhookSubscribers`) — desligado por padrão.
+- **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) — ligado por padrão. Coloca o item **Inscrever-se** na barra de navegação da página de status, onde os visitantes se inscrevem pelos canais abaixo.
+- **E-mail** (`enableEmailSubscribers`) — ligado por padrão. Todo o resto fica desligado até você ligar.
+- **SMS** (`enableSmsSubscribers`) — desligado por padrão. No OneUptime Cloud, cada SMS é pago com o saldo de SMS e chamadas do projeto, a menos que a página tenha sua própria **Configuração do Twilio**. Para ligá-lo, o projeto também precisa de **Habilitar notificações por SMS** ligado, em **Configurações do projeto > Notificações > Configurações de notificação**.
+- **Slack** (`enableSlackSubscribers`) — desligado por padrão.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — desligado por padrão.
+- **Webhook** (`enableWebhookSubscribers`) — desligado por padrão.
 
-Cada canal também ganha uma lista própria no menu lateral da página de status, sob **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do MS Teams** e **Assinantes de webhook**. É ali que você vê quem se cadastrou, adiciona alguém à mão ou deixa uma anotação em **Notas** (`internalNote`) sobre um assinante específico.
+As chaves decidem como os visitantes podem se inscrever por conta própria: a página de status recusa uma inscrição por um canal desligado. Elas não interrompem as notificações: os assinantes que sua equipe adiciona pelo painel, pela API ou por um workflow recebem as atualizações, quaisquer que sejam os canais ligados.
 
-**Uma chave sozinha não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) está ligado *e* pelo menos um canal está habilitado. Se você ligar **Habilitar assinantes por e-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
+No OneUptime Cloud, ao lado de uma chave que o seu plano não inclui aparece o nome do plano: **Growth** para **SMS** e **Mostrar página de assinantes**, **Scale** para **Slack**, **Microsoft Teams** e **Webhook**.
 
-As mesmas cinco chaves aparecem uma segunda vez dentro do cartão **Configurações de assinantes**, em **Configurações avançadas**, ao lado de **Mostrar página de assinantes**. São as mesmas colunas por baixo — escolha uma tela e fique nela, de preferência a página dedicada **Configurações de assinantes**, já que é lá que mora o restante da configuração de assinantes.
+Cada canal também ganha uma lista própria no menu lateral da página de status, sob **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do MS Teams** e **Assinantes de webhook**. É ali que você vê quem se cadastrou, adiciona alguém à mão ou deixa uma anotação em **Notas** (`internalNote`) sobre um assinante específico. Enquanto um canal está desligado, o topo da lista dele avisa, com a chave do canal ali mesmo, para você ligá-lo sem sair da lista.
+
+**Uma chave sozinha não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** está ligado *e* pelo menos um canal está ligado. Se você ligar **E-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
 
 ## O que um visitante vê na página Inscrever-se
 

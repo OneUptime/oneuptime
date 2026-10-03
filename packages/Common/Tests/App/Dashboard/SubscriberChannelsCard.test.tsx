@@ -176,7 +176,9 @@ afterEach(() => {
 
 async function renderCard(): Promise<void> {
   await act(async (): Promise<void> => {
-    render(<SubscriberChannelsCard statusPageId={new ObjectID(STATUS_PAGE_ID)} />);
+    render(
+      <SubscriberChannelsCard statusPageId={new ObjectID(STATUS_PAGE_ID)} />,
+    );
   });
 
   await waitFor(() => {
@@ -198,7 +200,9 @@ function rowFor(column: SubscriptionSwitchColumn): HTMLElement {
   return screen.getByTestId(`${getSubscriptionSwitchTestId(column)}-row`);
 }
 
-function channel(column: SubscriptionSwitchColumn): SubscriberChannelDefinition {
+function channel(
+  column: SubscriptionSwitchColumn,
+): SubscriberChannelDefinition {
   return SUBSCRIBER_CHANNELS.find(
     (candidate: SubscriberChannelDefinition): boolean => {
       return candidate.column === column;
@@ -379,9 +383,9 @@ describe("reading the status page", () => {
 
     await act(async () => {
       fireEvent.click(
-        within(screen.getByTestId(SUBSCRIBER_CHANNELS_CARD_TEST_ID)).getByTestId(
-          "refresh-button",
-        ),
+        within(
+          screen.getByTestId(SUBSCRIBER_CHANNELS_CARD_TEST_ID),
+        ).getByTestId("refresh-button"),
       );
     });
 
@@ -391,7 +395,11 @@ describe("reading the status page", () => {
 });
 
 describe("flipping a switch", () => {
-  test.each(SUBSCRIPTION_SWITCH_COLUMNS.map((column: string) => [column]))(
+  test.each(
+    SUBSCRIPTION_SWITCH_COLUMNS.map((column: string) => {
+      return [column];
+    }),
+  )(
     "%s saves that column of this page, at once, and nothing else",
     async (column: string) => {
       await renderCard();
@@ -510,7 +518,9 @@ describe("flipping a switch", () => {
 
   test("a refused save moves the switch back, and says why under it", async () => {
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("Please upgrade your plan to Scale to access this feature");
+      throw new Error(
+        "Please upgrade your plan to Scale to access this feature",
+      );
     });
 
     await renderCard();
@@ -574,7 +584,9 @@ describe("flipping a switch", () => {
     await waitFor(() => {
       expect(
         within(rowFor("enableSmsSubscribers")).getByRole("alert"),
-      ).toHaveTextContent("SMS notifications are not enabled for this project.");
+      ).toHaveTextContent(
+        "SMS notifications are not enabled for this project.",
+      );
     });
     expect(switchFor("enableSmsSubscribers")).toHaveAttribute(
       "aria-checked",
@@ -638,11 +650,13 @@ describe("what SMS costs", () => {
     await renderCard();
     await loaded();
 
-    expect(within(rowFor("enableSmsSubscribers")).getByText(
-      (content: string): boolean => {
-        return content.includes(SubscriberChannelsCopy.smsBalanceSentence);
-      },
-    )).toBeInTheDocument();
+    expect(
+      within(rowFor("enableSmsSubscribers")).getByText(
+        (content: string): boolean => {
+          return content.includes(SubscriberChannelsCopy.smsBalanceSentence);
+        },
+      ),
+    ).toBeInTheDocument();
 
     // Only the SMS row.
     for (const column of SUBSCRIPTION_SWITCH_COLUMNS) {
@@ -771,7 +785,9 @@ describe("plans", () => {
     await loaded();
 
     expect(
-      screen.getByRole("switch", { name: channel("enableSlackSubscribers").title }),
+      screen.getByRole("switch", {
+        name: channel("enableSlackSubscribers").title,
+      }),
     ).toBe(switchFor("enableSlackSubscribers"));
   });
 

@@ -8,19 +8,22 @@ Deze pagina behandelt beide: de vijf abonnementskanalen en hoe bezoekers zich aa
 
 ## Abonnementskanalen
 
-Een statuspagina ondersteunt vijf kanalen, elk met een eigen schakelaar op de statuspagina. Ga naar **Statuspagina's → jouw pagina → Abonnees → Abonneeinstellingen**:
+Een statuspagina ondersteunt vijf kanalen. Die en de pagina waarop bezoekers zich aanmelden, zet je op één plek aan: de kaart **Kanalen** onder **Statuspagina's → jouw pagina → Abonnees → Abonneeinstellingen**. Elke schakelaar wordt opgeslagen zodra je hem omzet:
 
-- **E-mailabonnees inschakelen** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
-- **SMS-abonnees inschakelen** (`enableSmsSubscribers`) — standaard uit.
-- **Slack-abonnees inschakelen** (`enableSlackSubscribers`) — standaard uit.
-- **Microsoft Teams-abonnees inschakelen** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
-- **Webhook-abonnees inschakelen** (`enableWebhookSubscribers`) — standaard uit.
+- **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) — standaard aan. Zet het item **Abonneren** in de navigatiebalk van de statuspagina, waar bezoekers zich aanmelden via de kanalen hieronder.
+- **E-mail** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
+- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft. Om het aan te zetten moet voor het project ook **SMS-meldingen inschakelen** aan staan, onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+- **Slack** (`enableSlackSubscribers`) — standaard uit.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
+- **Webhook** (`enableWebhookSubscribers`) — standaard uit.
 
-Elk kanaal krijgt bovendien een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **MS Teams-abonnees** en **Webhook-abonnees**. Daar zie je wie zich heeft aangemeld, voeg je iemand met de hand toe, of laat je bij een bepaalde abonnee onder **Notities** (`internalNote`) een aantekening voor jezelf achter.
+De schakelaars bepalen hoe bezoekers zich zelf kunnen aanmelden: de statuspagina weigert een aanmelding via een kanaal dat uit staat. Meldingen stoppen ze niet: abonnees die je team via het dashboard, de API of een workflow toevoegt, krijgen updates, welke kanalen ook aan staan.
 
-**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt pas wanneer **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) aan staat *én* er minstens één kanaal is ingeschakeld. Zet je **E-mailabonnees inschakelen** aan maar laat je **Abonneepagina weergeven** uit, dan kunnen bezoekers het formulier nergens bereiken.
+Op OneUptime Cloud staat naast een schakelaar die je abonnement niet bevat de naam van het abonnement: **Growth** voor **SMS** en **Abonneepagina weergeven**, **Scale** voor **Slack**, **Microsoft Teams** en **Webhook**.
 
-Dezelfde vijf schakelaars staan een tweede keer in de kaart **Abonneeinstellingen** op **Geavanceerde instellingen**, naast **Abonneepagina weergeven**. Eronder zitten dezelfde kolommen — kies één scherm en blijf daar, en houd het bij voorkeur op de aparte pagina **Abonneeinstellingen**, want daar staat de rest van de abonneeconfiguratie ook.
+Elk kanaal krijgt bovendien een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **MS Teams-abonnees** en **Webhook-abonnees**. Daar zie je wie zich heeft aangemeld, voeg je iemand met de hand toe, of laat je bij een bepaalde abonnee onder **Notities** (`internalNote`) een aantekening voor jezelf achter. Zolang een kanaal uit staat, staat dat bovenaan de lijst, met de schakelaar van het kanaal er direct bij, zodat je het aanzet zonder de lijst te verlaten.
+
+**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt pas wanneer **Abonneepagina weergeven** aan staat *én* er minstens één kanaal aan staat. Zet je **E-mail** aan maar laat je **Abonneepagina weergeven** uit, dan kunnen bezoekers het formulier nergens bereiken.
 
 ## Wat een bezoeker op de pagina Abonneren ziet
 

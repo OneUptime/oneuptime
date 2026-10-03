@@ -87,82 +87,81 @@ export const SubscriberChannelsCopy: {
  * In the order the side menu lists the subscriber pages, which is the order
  * the Subscribe page on the status page offers them.
  */
-export const SUBSCRIBER_CHANNELS: ReadonlyArray<SubscriberChannelDefinition> =
-  [
-    {
-      method: StatusPageSubscriberNotificationMethod.Email,
-      column: "enableEmailSubscribers",
-      title: translationKey("Email"),
-      description: translationKey(
-        "Visitors confirm their address from a link we send them, then get updates by email.",
-      ),
-      listSwitchTitle: translationKey("Email Subscriptions"),
-      listSwitchOffDescription: translationKey(
-        "Off for this status page: visitors can't subscribe by email. Subscribers your team adds here still get updates.",
-      ),
-      listSwitchOnDescription: translationKey(
-        "On: visitors can subscribe by email on the status page.",
-      ),
-    },
-    {
-      method: StatusPageSubscriberNotificationMethod.SMS,
-      column: "enableSmsSubscribers",
-      title: translationKey("SMS"),
-      description: translationKey("Visitors get updates by text message."),
-      listSwitchTitle: translationKey("SMS Subscriptions"),
-      listSwitchOffDescription: translationKey(
-        "Off for this status page: visitors can't subscribe by SMS. Subscribers your team adds here still get updates.",
-      ),
-      listSwitchOnDescription: translationKey(
-        "On: visitors can subscribe by SMS on the status page.",
-      ),
-    },
-    {
-      method: StatusPageSubscriberNotificationMethod.Slack,
-      column: "enableSlackSubscribers",
-      title: translationKey("Slack"),
-      description: translationKey(
-        "Visitors get updates in a Slack channel, through its incoming webhook.",
-      ),
-      listSwitchTitle: translationKey("Slack Subscriptions"),
-      listSwitchOffDescription: translationKey(
-        "Off for this status page: visitors can't subscribe with Slack. Subscribers your team adds here still get updates.",
-      ),
-      listSwitchOnDescription: translationKey(
-        "On: visitors can subscribe with Slack on the status page.",
-      ),
-    },
-    {
-      method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
-      column: "enableMicrosoftTeamsSubscribers",
-      title: translationKey("Microsoft Teams"),
-      description: translationKey(
-        "Visitors get updates in a Microsoft Teams channel, through its incoming webhook.",
-      ),
-      listSwitchTitle: translationKey("Microsoft Teams Subscriptions"),
-      listSwitchOffDescription: translationKey(
-        "Off for this status page: visitors can't subscribe with Microsoft Teams. Subscribers your team adds here still get updates.",
-      ),
-      listSwitchOnDescription: translationKey(
-        "On: visitors can subscribe with Microsoft Teams on the status page.",
-      ),
-    },
-    {
-      method: StatusPageSubscriberNotificationMethod.Webhook,
-      column: "enableWebhookSubscribers",
-      title: translationKey("Webhook"),
-      description: translationKey(
-        "Visitors get a JSON POST request at their own URL on every status page event.",
-      ),
-      listSwitchTitle: translationKey("Webhook Subscriptions"),
-      listSwitchOffDescription: translationKey(
-        "Off for this status page: visitors can't subscribe with a webhook. Subscribers your team adds here still get updates.",
-      ),
-      listSwitchOnDescription: translationKey(
-        "On: visitors can subscribe with a webhook on the status page.",
-      ),
-    },
-  ];
+export const SUBSCRIBER_CHANNELS: ReadonlyArray<SubscriberChannelDefinition> = [
+  {
+    method: StatusPageSubscriberNotificationMethod.Email,
+    column: "enableEmailSubscribers",
+    title: translationKey("Email"),
+    description: translationKey(
+      "Visitors confirm their address from a link we send them, then get updates by email.",
+    ),
+    listSwitchTitle: translationKey("Email Subscriptions"),
+    listSwitchOffDescription: translationKey(
+      "Off for this status page: visitors can't subscribe by email. Subscribers your team adds here still get updates.",
+    ),
+    listSwitchOnDescription: translationKey(
+      "On: visitors can subscribe by email on the status page.",
+    ),
+  },
+  {
+    method: StatusPageSubscriberNotificationMethod.SMS,
+    column: "enableSmsSubscribers",
+    title: translationKey("SMS"),
+    description: translationKey("Visitors get updates by text message."),
+    listSwitchTitle: translationKey("SMS Subscriptions"),
+    listSwitchOffDescription: translationKey(
+      "Off for this status page: visitors can't subscribe by SMS. Subscribers your team adds here still get updates.",
+    ),
+    listSwitchOnDescription: translationKey(
+      "On: visitors can subscribe by SMS on the status page.",
+    ),
+  },
+  {
+    method: StatusPageSubscriberNotificationMethod.Slack,
+    column: "enableSlackSubscribers",
+    title: translationKey("Slack"),
+    description: translationKey(
+      "Visitors get updates in a Slack channel, through its incoming webhook.",
+    ),
+    listSwitchTitle: translationKey("Slack Subscriptions"),
+    listSwitchOffDescription: translationKey(
+      "Off for this status page: visitors can't subscribe with Slack. Subscribers your team adds here still get updates.",
+    ),
+    listSwitchOnDescription: translationKey(
+      "On: visitors can subscribe with Slack on the status page.",
+    ),
+  },
+  {
+    method: StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+    column: "enableMicrosoftTeamsSubscribers",
+    title: translationKey("Microsoft Teams"),
+    description: translationKey(
+      "Visitors get updates in a Microsoft Teams channel, through its incoming webhook.",
+    ),
+    listSwitchTitle: translationKey("Microsoft Teams Subscriptions"),
+    listSwitchOffDescription: translationKey(
+      "Off for this status page: visitors can't subscribe with Microsoft Teams. Subscribers your team adds here still get updates.",
+    ),
+    listSwitchOnDescription: translationKey(
+      "On: visitors can subscribe with Microsoft Teams on the status page.",
+    ),
+  },
+  {
+    method: StatusPageSubscriberNotificationMethod.Webhook,
+    column: "enableWebhookSubscribers",
+    title: translationKey("Webhook"),
+    description: translationKey(
+      "Visitors get a JSON POST request at their own URL on every status page event.",
+    ),
+    listSwitchTitle: translationKey("Webhook Subscriptions"),
+    listSwitchOffDescription: translationKey(
+      "Off for this status page: visitors can't subscribe with a webhook. Subscribers your team adds here still get updates.",
+    ),
+    listSwitchOnDescription: translationKey(
+      "On: visitors can subscribe with a webhook on the status page.",
+    ),
+  },
+];
 
 // Every column the Channels card writes, the Subscribe page first.
 export const SUBSCRIPTION_SWITCH_COLUMNS: ReadonlyArray<SubscriptionSwitchColumn> =

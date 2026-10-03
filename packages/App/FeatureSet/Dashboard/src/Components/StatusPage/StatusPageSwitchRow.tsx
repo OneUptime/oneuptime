@@ -1,6 +1,8 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
-import SubscriptionPlan, { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "Common/Types/Billing/SubscriptionPlan";
 import { Yellow } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";

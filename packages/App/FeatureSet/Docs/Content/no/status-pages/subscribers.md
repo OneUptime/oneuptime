@@ -8,19 +8,22 @@ Denne siden dekker begge deler: de fem abonnementskanalene og hvordan besøkende
 
 ## Abonnementskanaler
 
-En statusside støtter fem kanaler, hver med sin egen bryter på statussiden. Gå til **Statussider → siden din → Abonnenter → Abonnentsinnstillinger**:
+En statusside støtter fem kanaler. De og siden der besøkende melder seg på, slås på ett sted: kortet **Kanaler** under **Statussider → siden din → Abonnenter → Abonnentsinnstillinger**. Hver bryter lagres så snart du slår den om:
 
-- **Aktiver e-postabonnenter** (`enableEmailSubscribers`) — på som standard. Alt annet er av til du slår det på.
-- **Aktiver SMS-abonnenter** (`enableSmsSubscribers`) — av som standard.
-- **Aktiver Slack-abonnenter** (`enableSlackSubscribers`) — av som standard.
-- **Aktiver Microsoft Teams-abonnenter** (`enableMicrosoftTeamsSubscribers`) — av som standard.
-- **Aktiver webhook-abonnenter** (`enableWebhookSubscribers`) — av som standard.
+- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — på som standard. Legger punktet **Abonner** i navigasjonslinjen på statussiden, der besøkende melder seg på via kanalene nedenfor.
+- **E-post** (`enableEmailSubscribers`) — på som standard. Alt annet er av til du slår det på.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betales hver SMS fra prosjektets saldo for SMS og anrop, med mindre siden har sin egen **Twilio-konfigurasjon**. For å slå den på må **Aktiver SMS-varsler** også være på for prosjektet, under **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+- **Slack** (`enableSlackSubscribers`) — av som standard.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
+- **Webhook** (`enableWebhookSubscribers`) — av som standard.
 
-Hver kanal får også sin egen liste i sidemenyen på statussiden under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som har meldt seg på, legger til noen manuelt, eller legger igjen en **Notater**-oppføring (`internalNote`) på en bestemt abonnent.
+Bryterne avgjør hvordan besøkende kan melde seg på selv: statussiden avviser en påmelding via en kanal som er av. De stopper ikke varsler: abonnenter som teamet ditt legger til i dashbordet, via API-et eller med en arbeidsflyt, får oppdateringer uansett hvilke kanaler som er på.
 
-**Én bryter er ikke nok.** Punktet **Abonner** i navigasjonslinjen på statussiden dukker bare opp når **Vis abonnentside** (`showSubscriberPageOnStatusPage`) er på *og* minst én kanal er aktivert. Slår du på **Aktiver e-postabonnenter**, men lar **Vis abonnentside** stå av, har de besøkende ingen vei fram til skjemaet.
+På OneUptime Cloud står navnet på planen ved siden av en bryter som planen din ikke inkluderer: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**.
 
-De samme fem bryterne dukker opp en gang til i kortet **Abonnentsinnstillinger** på **Avanserte innstillinger**, ved siden av **Vis abonnentside**. Det er de samme kolonnene under panseret — velg ett skjermbilde og hold deg der, og bruk helst den egne siden **Abonnentsinnstillinger**, siden det er der resten av abonnentoppsettet ligger.
+Hver kanal får også sin egen liste i sidemenyen på statussiden under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som har meldt seg på, legger til noen manuelt, eller legger igjen en **Notater**-oppføring (`internalNote`) på en bestemt abonnent. Så lenge en kanal er av, står det øverst i listen dens, med kanalens bryter rett ved siden av, så du kan slå den på uten å forlate listen.
+
+**Én bryter er ikke nok.** Punktet **Abonner** i navigasjonslinjen på statussiden dukker bare opp når **Vis abonnentside** er på *og* minst én kanal er på. Slår du på **E-post**, men lar **Vis abonnentside** stå av, har de besøkende ingen vei fram til skjemaet.
 
 ## Hva en besøkende ser på abonnementssiden
 

@@ -282,7 +282,9 @@ describe("turning it on from the list", () => {
     );
 
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error("Please upgrade your plan to Scale to access this feature");
+      throw new Error(
+        "Please upgrade your plan to Scale to access this feature",
+      );
     });
 
     await renderPanel(StatusPageSubscriberNotificationMethod.Slack, false);
