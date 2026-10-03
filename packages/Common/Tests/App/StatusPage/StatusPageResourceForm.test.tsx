@@ -13,6 +13,7 @@ import React from "react";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import type { Mock } from "jest-mock";
 
 /*
  * Status Page > Resources > Add Monitor, and Edit resource.
@@ -331,9 +332,14 @@ describe("the display name after a monitor is picked", () => {
   });
 });
 
+type SetNewFormValuesFunction = (
+  values: FormValues<StatusPageResource>,
+) => void;
+
 describe("the monitor picker's onChange", () => {
   test("writes the name and remembers it as the form's own", () => {
-    const setNewFormValues: jest.Mock = jest.fn();
+    const setNewFormValues: Mock<SetNewFormValuesFunction> =
+      jest.fn<SetNewFormValuesFunction>();
 
     followPickWithDisplayName(
       MONITOR_A_ID,
@@ -350,7 +356,8 @@ describe("the monitor picker's onChange", () => {
   });
 
   test("writes nothing over a name somebody typed", () => {
-    const setNewFormValues: jest.Mock = jest.fn();
+    const setNewFormValues: Mock<SetNewFormValuesFunction> =
+      jest.fn<SetNewFormValuesFunction>();
 
     followPickWithDisplayName(
       MONITOR_B_ID,
@@ -366,7 +373,8 @@ describe("the monitor picker's onChange", () => {
   });
 
   test("writes nothing when the form is handed no change at all", () => {
-    const setNewFormValues: jest.Mock = jest.fn();
+    const setNewFormValues: Mock<SetNewFormValuesFunction> =
+      jest.fn<SetNewFormValuesFunction>();
 
     followPickWithDisplayName(
       MONITOR_B_ID,
