@@ -122,8 +122,8 @@ De kaartkop heeft ook een menu **Acties**, zodat je kunt handelen zonder de tijd
 
 - **Execute Runbook** — start een [runbook](/docs/runbooks/index) op dit incident.
 - **Bereikbaarheidsdienstbeleid uitvoeren** — een beleid op verzoek pagen.
-- **Add Public Note** — dezelfde vier velden als de pagina Openbare notities, in een dialoog.
-- **Privénotitie toevoegen** — alleen notitietekst en bijlagen.
+- **Add Public Note** — het invoerveld van de pagina Openbare notities, in een dialoog: schrijf de notitie en kies dan **Post update**. Sjablonen, **Draft with AI**, bijlagen, **Notify status page subscribers** met wie de notitie bereikt, en **Preview notification** zijn er allemaal. De notitie wordt nu geplaatst; kies **Posted now** voor een eerder tijdstip.
+- **Privénotitie toevoegen** — het invoerveld van de pagina Privénotities, in een dialoog: schrijf de notitie en kies dan **Add note**.
 
 Al het andere zit achter de knop **⋯** ernaast, dezelfde knop **Meer opties** die de kaartkop van een tabel heeft, zodat de kop zo weinig mogelijk knoppen toont:
 

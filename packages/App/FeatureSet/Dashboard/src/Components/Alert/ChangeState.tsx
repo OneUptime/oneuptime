@@ -1,9 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -25,7 +23,11 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  BulkStateChangeNoteType,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 import EventStatusPanel, {
   EventPanelAction,
   EventStateAction,
@@ -474,13 +476,18 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           state: selectedStateName,
         });
 
+  /*
+   * One sentence on what the change does; the optional note is the folded
+   * "Add a private note" line under it. Acknowledging is what stops the
+   * alert's on-call escalation, so the confirm says so.
+   */
   const modalDescription: string = isAcknowledgeTarget
     ? translationKey(
-        "This records an acknowledgement on the alert timeline. You can add an optional private note for your team.",
+        "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
       )
     : isResolveTarget
       ? translationKey(
-          "This marks the alert as resolved on the alert timeline. You can add an optional private note for your team.",
+          "This marks the alert as resolved on the alert timeline.",
         )
       : translator.translateTemplate(
           "You are about to mark this alert as {{state}}.",
@@ -532,7 +539,6 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={AlertStateTimeline}
           name={"create-alert-state-timeline"}
           title={modalTitle}
@@ -571,65 +577,20 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             name: "create-alert-state-timeline",
             modelType: AlertStateTimeline,
             id: "create-alert-state-timeline",
-            fields: [
-              {
-                field: {
-                  privateNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<AlertNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<AlertStateTimeline>,
-                  ) => void,
-                ) => {
-                  // get note template by id
-                  const selectedTemplate: AlertNoteTemplate | undefined =
-                    alertNoteTemplates.find((template: AlertNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    });
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      privateNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: alertNoteTemplates.map(
-                  (template: AlertNoteTemplate) => {
-                    return {
-                      value: template.id!.toString(),
-                      label: template.templateName || "",
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return alertNoteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "privateNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  privateNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description:
-                  "Add an optional private note about this state change. Only your team can see it.",
-                title: "Private Note",
-                required: false,
-                overrideFieldKey: "privateNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-            ],
+            /*
+             * Nothing else decides an alert's state change: just the private
+             * note, folded under "Add a private note"
+             * (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<AlertStateTimeline>({
+              noteType: BulkStateChangeNoteType.Private,
+              noteDescription: translationKey(
+                "Add an optional private note about this state change. Only your team can see it.",
+              ),
+              noteTemplates: alertNoteTemplates.map(
+                toBulkStateChangeNoteTemplate,
+              ),
+            }),
             formType: FormType.Create,
           }}
         />

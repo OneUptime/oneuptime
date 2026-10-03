@@ -1,15 +1,28 @@
 import useTranslateValue from "../../Utils/Translation";
 import CollapsibleSection from "../CollapsibleSection/CollapsibleSection";
+import {
+  OpenFormSectionsContext,
+  ReportFormSectionOpenFunction,
+} from "./Utils/OpenFormSections";
 import React, {
   FunctionComponent,
   ReactElement,
+  useContext,
   useEffect,
+  useId,
+  useLayoutEffect,
   useState,
 } from "react";
 
 export interface ComponentProps {
   title: string;
   description?: string | undefined;
+  /*
+   * The section's id (FormFieldCollapsibleSection.id). The dialog the form
+   * is in is told when the section opens and folds, so it can grow to fit
+   * what opening it shows (Forms/Utils/OpenFormSections.ts).
+   */
+  sectionId?: string | undefined;
   isConfigured: boolean;
   /*
    * Whether being configured opens the section: when the form opens with a
@@ -39,6 +52,38 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     openWhenConfigured ? !props.isConfigured : true,
   );
+
+  const reportSectionOpen: ReportFormSectionOpenFunction | null = useContext(
+    OpenFormSectionsContext,
+  );
+  const instanceId: string = useId();
+
+  /*
+   * Before paint, so a dialog that grows for what the section shows is
+   * never drawn a frame too narrow - a section that starts open included.
+   * Folded again, or gone (another step, the dialog closing), it says so.
+   */
+  useLayoutEffect(() => {
+    if (!reportSectionOpen || !props.sectionId) {
+      return undefined;
+    }
+
+    const sectionId: string = props.sectionId;
+
+    reportSectionOpen({
+      instanceId: instanceId,
+      sectionId: sectionId,
+      isOpen: !isCollapsed,
+    });
+
+    return () => {
+      reportSectionOpen({
+        instanceId: instanceId,
+        sectionId: sectionId,
+        isOpen: false,
+      });
+    };
+  }, [isCollapsed, reportSectionOpen, props.sectionId, instanceId]);
 
   useEffect(() => {
     // Field defaults can arrive after the form has loaded its field definitions.

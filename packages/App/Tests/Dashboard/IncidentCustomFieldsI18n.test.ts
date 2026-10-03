@@ -193,13 +193,40 @@ describe("the pages render the shared strings and wiring", () => {
     },
   );
 
-  test.each([["PublicNote.tsx"], ["InternalNote.tsx"]])(
+  test.each([
+    ["getIncidentPublicNoteKind", "getIncidentPrivateNoteKind"],
+    ["getIncidentPrivateNoteKind", "export function"],
+  ])(
     "the incident's %s fills a picked template's placeholders",
+    (kindFunction: string, next: string) => {
+      /*
+       * The incident's note kinds, read by its Notes pages and by the
+       * Incident Feed's "Add ... Note" dialogs alike.
+       */
+      const source: string = readSource(
+        "Components",
+        "EventNotes",
+        "NoteKinds",
+        "IncidentNoteKinds.tsx",
+      );
+      const start: number = source.indexOf(`export function ${kindFunction}(`);
+      const end: number = source.indexOf(next, start + 1);
+      const kind: string = source.slice(start, end < 0 ? undefined : end);
+
+      expect(start).toBeGreaterThan(-1);
+      expect(kind).toContain(
+        "templateVariables: () => { return fetchIncidentNoteTemplateVariables(incidentId); },",
+      );
+    },
+  );
+
+  test.each([["PublicNote.tsx"], ["InternalNote.tsx"]])(
+    "the incident's %s page reads its note kind",
     (file: string) => {
       const source: string = readSource("Pages", "Incidents", "View", file);
 
-      expect(source).toContain(
-        "return fetchIncidentNoteTemplateVariables(modelId);",
+      expect(source).toMatch(
+        /\{\.\.\.getIncident(Public|Private)NoteKind\(\{ incidentId: modelId[ ,]/,
       );
     },
   );

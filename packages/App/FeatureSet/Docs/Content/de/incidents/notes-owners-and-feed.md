@@ -122,8 +122,8 @@ Der Kartenkopf hat außerdem ein Menü **Aktionen**, damit Sie handeln können, 
 
 - **Execute Runbook** – startet ein [Runbook](/docs/runbooks/index) für diesen Vorfall.
 - **Bereitschaftsdienst-Richtlinie ausführen** – alarmiert eine Richtlinie auf Zuruf.
-- **Add Public Note** – dieselben vier Felder wie auf der Seite Öffentliche Notizen, in einem Dialog.
-- **Private Notiz hinzufügen** – nur Notiztext und Anhänge.
+- **Add Public Note** – das Eingabefeld der Seite Öffentliche Notizen, in einem Dialog: Notiz schreiben, dann **Post update**. Vorlagen, **Draft with AI**, Anhänge, **Notify status page subscribers** samt wen die Notiz erreicht, und **Preview notification** sind alle dabei. Die Notiz wird jetzt veröffentlicht; für eine frühere Zeit **Posted now** wählen.
+- **Private Notiz hinzufügen** – das Eingabefeld der Seite Private Notizen, in einem Dialog: Notiz schreiben, dann **Add note**.
 
 Alles Weitere liegt hinter der Schaltfläche **⋯** daneben, derselben Schaltfläche **Weitere Optionen**, die auch der Kartenkopf einer Tabelle hat, damit der Kopf so wenige Schaltflächen wie möglich zeigt:
 

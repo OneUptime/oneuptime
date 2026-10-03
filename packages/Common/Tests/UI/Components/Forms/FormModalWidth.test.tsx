@@ -1,13 +1,15 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BasicFormModal from "../../../../UI/Components/FormModal/BasicFormModal";
 import { FormType } from "../../../../UI/Components/Forms/ModelForm";
-import Field from "../../../../UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   MARKDOWN_FORM_MODAL_WIDTH,
@@ -131,6 +133,24 @@ const markdownField: Field<JSONObject> = {
   stepId: "note",
 };
 
+/*
+ * An editor folded away in a collapsed section - the optional note of an
+ * Acknowledge or Resolve confirm - is not on screen until the section is
+ * opened.
+ */
+const NOTE_SECTION: FormFieldCollapsibleSection<JSONObject> = {
+  id: "note",
+  title: "Add a note",
+  openWhenConfigured: false,
+};
+
+const foldedMarkdownField: Field<JSONObject> = {
+  field: { note: true },
+  title: "Note",
+  fieldType: FormFieldSchemaType.Markdown,
+  collapsibleSection: NOTE_SECTION,
+};
+
 const STEPS: Array<{ title: string; id: string }> = [
   { title: "Info", id: "info" },
   { title: "Note", id: "note" },
@@ -182,6 +202,29 @@ describe("which forms count as having a Markdown editor", () => {
     expect(hasMarkdownField(undefined)).toBe(false);
     expect(hasMarkdownField(null)).toBe(false);
   });
+
+  test("one whose editor is folded away: only while its section is open", () => {
+    expect(hasMarkdownField([textField, foldedMarkdownField], [])).toBe(false);
+    expect(
+      hasMarkdownField([textField, foldedMarkdownField], ["advanced"]),
+    ).toBe(false);
+    expect(hasMarkdownField([textField, foldedMarkdownField], ["note"])).toBe(
+      true,
+    );
+  });
+
+  test("one with an editor that is not folded, whatever is open", () => {
+    expect(
+      hasMarkdownField([foldedMarkdownField, { ...markdownField }], []),
+    ).toBe(true);
+  });
+
+  test("one whose folded editor nobody tracks counts it, as before", () => {
+    expect(hasMarkdownField([textField, foldedMarkdownField])).toBe(true);
+    expect(hasMarkdownField([textField, foldedMarkdownField], undefined)).toBe(
+      true,
+    );
+  });
 });
 
 describe("the width of a form's dialog", () => {
@@ -197,6 +240,30 @@ describe("the width of a form's dialog", () => {
       expect(getFormModalWidth({ fields: [markdownField], width })).toBe(
         ModalWidth.Large,
       );
+    }
+  });
+
+  test("is what the page asked for while the only editor is folded, and wide once it is opened", () => {
+    for (const width of [
+      undefined,
+      ModalWidth.Normal,
+      ModalWidth.Medium,
+      ModalWidth.Large,
+    ]) {
+      expect(
+        getFormModalWidth({
+          fields: [textField, foldedMarkdownField],
+          width,
+          openSectionIds: [],
+        }),
+      ).toBe(width);
+      expect(
+        getFormModalWidth({
+          fields: [textField, foldedMarkdownField],
+          width,
+          openSectionIds: ["note"],
+        }),
+      ).toBe(ModalWidth.Large);
     }
   });
 
@@ -297,6 +364,174 @@ describe("BasicFormModal", () => {
       withSteps: true,
       modalWidth: ModalWidth.Normal,
     });
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
+  });
+});
+
+/*
+ * The confirm the state change dialogs are now: a short form with its
+ * editor folded. It opens at its own width and grows to the wide one when
+ * the editor is opened to be written - in a real dialog, with the section
+ * reporting itself.
+ */
+describe("a dialog whose Markdown editor is folded away", () => {
+  function noteFold(): HTMLElement {
+    return screen.getByRole("button", { name: "Add a note" });
+  }
+
+  test("BasicFormModal opens at its own width and grows wide while the note is open", () => {
+    renderBasicFormModal({
+      fields: [textField, foldedMarkdownField],
+      withSteps: false,
+    });
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
+    expect(noteFold()).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(noteFold());
+
+    expect(noteFold()).toHaveAttribute("aria-expanded", "true");
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Large]!);
+    expect(dialog()).not.toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
+
+    // Folded again, the dialog is the short one again.
+    fireEvent.click(noteFold());
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
+    expect(dialog()).not.toHaveClass(WIDTH_CLASS[ModalWidth.Large]!);
+  });
+
+  test("BasicFormModal keeps the width its page asked for until the note is opened", () => {
+    renderBasicFormModal({
+      fields: [textField, foldedMarkdownField],
+      withSteps: false,
+      modalWidth: ModalWidth.Medium,
+    });
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Medium]!);
+
+    fireEvent.click(noteFold());
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Large]!);
+  });
+
+  test("the editor is drawn while folded, hidden, so what was written is kept", () => {
+    renderBasicFormModal({
+      fields: [textField, foldedMarkdownField],
+      withSteps: false,
+    });
+
+    const toolbar: HTMLElement = screen.getByTestId("markdown-editor-toolbar");
+
+    expect(toolbar.closest("[hidden]")).not.toBeNull();
+
+    fireEvent.click(noteFold());
+
+    expect(toolbar.closest("[hidden]")).toBeNull();
+  });
+
+  test("an editor that is not folded still opens the dialog wide from the start", () => {
+    renderBasicFormModal({
+      fields: [textField, foldedMarkdownField, { ...longTextField }],
+      withSteps: false,
+    });
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
+    cleanup();
+
+    renderBasicFormModal({
+      fields: [
+        textField,
+        foldedMarkdownField,
+        { ...markdownField, field: { body: true }, title: "Body" },
+      ],
+      withSteps: false,
+    });
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Large]!);
+  });
+
+  test("a folded section that starts open - something in it, on an edit form - is wide from the first paint", () => {
+    render(
+      <BasicFormModal<JSONObject>
+        title="Edit Note"
+        submitButtonText="Save"
+        onClose={getJestMockFunction()}
+        onSubmit={getJestMockFunction()}
+        formProps={{
+          id: "form-modal-width-open-section",
+          disableAutofocus: true,
+          initialValues: { title: "Checkout outage", note: "Rolled back." },
+          fields: [
+            textField,
+            {
+              ...foldedMarkdownField,
+              // A section of details someone wrote opens to show them.
+              collapsibleSection: { id: "note", title: "Add a note" },
+            },
+          ].map((field: Field<JSONObject>) => {
+            const withoutStep: Field<JSONObject> = { ...field };
+            delete withoutStep.stepId;
+            return withoutStep;
+          }),
+        }}
+      />,
+    );
+
+    expect(noteFold()).toHaveAttribute("aria-expanded", "true");
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Large]!);
+  });
+
+  test("ModelFormModal opens a create form with a folded note short and grows wide when the note is opened", async () => {
+    render(
+      <ModelFormModal<IncidentNoteTemplate>
+        title="Create New Incident Note Template"
+        modelType={IncidentNoteTemplate}
+        onClose={getJestMockFunction()}
+        onSuccess={getJestMockFunction()}
+        submitButtonText="Create Incident Note Template"
+        formProps={{
+          id: "create-IncidentNoteTemplate-folded",
+          name: "create-IncidentNoteTemplate-folded",
+          modelType: IncidentNoteTemplate,
+          formType: FormType.Create,
+          fields: [
+            {
+              field: { templateName: true },
+              title: "Template Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+            },
+            {
+              field: { note: true },
+              title: "Note",
+              fieldType: FormFieldSchemaType.Markdown,
+              required: false,
+              collapsibleSection: {
+                id: "note",
+                title: "Add a note",
+                openWhenConfigured: false,
+              },
+            },
+          ],
+        }}
+      />,
+    );
+
+    // ModelForm draws its fields once it has prepared them.
+    const fold: HTMLElement = await screen.findByRole("button", {
+      name: "Add a note",
+    });
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
+
+    fireEvent.click(fold);
+
+    expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Large]!);
+    expect(screen.getByTestId("markdown-editor-toolbar")).toBeVisible();
+
+    fireEvent.click(noteFold());
+
     expect(dialog()).toHaveClass(WIDTH_CLASS[ModalWidth.Normal]!);
   });
 });

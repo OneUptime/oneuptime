@@ -96,13 +96,15 @@ const GUARDED_PAGES: Array<GuardedPage> = [
 ];
 
 /*
- * "Draft with AI" on the note pages of alerts, incidents and scheduled
- * maintenance events reaches its route through one shared helper,
- * Components/EventNotes/GenerateNoteWithAI.ts: each page hands getNoteGenerator
- * its route as `apiPath`, and the helper makes the one raw call, to
- * `<apiPath>/<eventId>`. The routes are written without the trailing slash the
- * helper adds, so the raw-call sweep above never sees them in a page; they are
- * checked through the helper instead, in the describe after it.
+ * "Draft with AI" on the notes of alerts, incidents and scheduled maintenance
+ * events - on their Notes pages and in their feeds' "Add ... Note" dialogs -
+ * reaches its route through one shared helper,
+ * Components/EventNotes/GenerateNoteWithAI.ts: each event's note kinds
+ * (Components/EventNotes/NoteKinds) hand getNoteGenerator its route as
+ * `apiPath`, and the helper makes the one raw call, to `<apiPath>/<eventId>`.
+ * The routes are written without the trailing slash the helper adds, so the
+ * raw-call sweep above never sees them in a kind; they are checked through
+ * the helper instead, in the describe after it.
  */
 const NOTE_GENERATOR_FILE: Array<string> = [
   "Components",
@@ -117,11 +119,9 @@ const NOTE_GENERATION_ROUTES: Array<string> = [
 ];
 
 const NOTE_GENERATOR_PAGES: Array<Array<string>> = [
-  ["Pages", "Alerts", "View", "InternalNote.tsx"],
-  ["Pages", "Incidents", "View", "InternalNote.tsx"],
-  ["Pages", "Incidents", "View", "PublicNote.tsx"],
-  ["Pages", "ScheduledMaintenanceEvents", "View", "InternalNote.tsx"],
-  ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
+  ["Components", "EventNotes", "NoteKinds", "AlertNoteKinds.ts"],
+  ["Components", "EventNotes", "NoteKinds", "IncidentNoteKinds.tsx"],
+  ["Components", "EventNotes", "NoteKinds", "ScheduledMaintenanceNoteKinds.ts"],
 ];
 
 interface RawApiCall {
@@ -489,7 +489,7 @@ describe("project-scoped routes reached through the shared note generator", () =
     );
   });
 
-  test("only the note pages name a note generation route, and only as the generator's apiPath", () => {
+  test("only the note kinds name a note generation route, and only as the generator's apiPath", () => {
     const pagesNamingRoutes: Array<string> = [];
 
     for (const file of listSourceFiles(DASHBOARD_SRC)) {
@@ -524,7 +524,7 @@ describe("project-scoped routes reached through the shared note generator", () =
     );
   });
 
-  test("every note generation route still has a page drafting through it", () => {
+  test("every note generation route still has a note kind drafting through it", () => {
     const pageText: string = NOTE_GENERATOR_PAGES.map(
       (page: Array<string>): string => {
         return squash(
