@@ -14,6 +14,7 @@
  */
 
 import WorkflowStatus from "../../../Types/Workflow/WorkflowStatus";
+import { translationKey } from "../../Utils/TranslateTemplate";
 
 /**
  * Statuses a run never moves on from. Waiting is not one of them — a Sleep
@@ -62,6 +63,49 @@ export const isFailedRunStatus: IsFailedRunStatusFunction = (
 export const MAX_RUN_WATCH_POLLS: number = 60;
 export const RUN_WATCH_POLL_INTERVAL_MS: number = 2000;
 
+/*
+ * What the strip says, one whole sentence per status: the builder's page
+ * shows it with translateText, so a language switch re-words it on the spot.
+ */
+export const RUN_STARTING_MESSAGE: string = translationKey("Starting run…");
+
+export const RUN_TAKING_A_WHILE_MESSAGE: string = translationKey(
+  "This run is taking a while. Open the Logs tab to follow it from there.",
+);
+
+export const RUN_SUCCEEDED_MESSAGE: string = translationKey(
+  "Run finished successfully.",
+);
+
+export const RUN_SLEEPING_MESSAGE: string = translationKey(
+  "This run is sleeping and will carry on by itself. Follow it in the Logs tab.",
+);
+
+// A status no message below names: one added after this was written.
+export const RUN_IN_PROGRESS_MESSAGE: string =
+  translationKey("Run in progress…");
+
+export const RUN_FAILED_MESSAGES: Partial<Record<WorkflowStatus, string>> = {
+  [WorkflowStatus.Error]: translationKey(
+    "Run error. Open the run log to see why.",
+  ),
+  [WorkflowStatus.Timeout]: translationKey(
+    "Run timeout. Open the run log to see why.",
+  ),
+  [WorkflowStatus.WorkflowCountExceeded]: translationKey(
+    "Run workflow count exceeded. Open the run log to see why.",
+  ),
+};
+
+export const RUN_FAILED_MESSAGE: string = translationKey(
+  "The run failed. Open the run log to see why.",
+);
+
+export const RUN_GOING_MESSAGES: Partial<Record<WorkflowStatus, string>> = {
+  [WorkflowStatus.Scheduled]: translationKey("Run scheduled…"),
+  [WorkflowStatus.Running]: translationKey("Run running…"),
+};
+
 export interface WatchedRun {
   runId: string;
   status: WorkflowStatus;
@@ -89,34 +133,32 @@ export const decideRunWatch: DecideRunWatchFunction = (params: {
   if (params.pollCount >= MAX_RUN_WATCH_POLLS) {
     return {
       shouldContinue: false,
-      message:
-        "This run is taking a while. Open the Logs tab to follow it from there.",
+      message: RUN_TAKING_A_WHILE_MESSAGE,
     };
   }
 
   if (!params.run) {
-    return { shouldContinue: true, message: "Starting run…" };
+    return { shouldContinue: true, message: RUN_STARTING_MESSAGE };
   }
 
   if (isTerminalRunStatus(params.run.status)) {
     return {
       shouldContinue: false,
       message: isFailedRunStatus(params.run.status)
-        ? `Run ${params.run.status.toLowerCase()}. Open the run log to see why.`
-        : "Run finished successfully.",
+        ? RUN_FAILED_MESSAGES[params.run.status] || RUN_FAILED_MESSAGE
+        : RUN_SUCCEEDED_MESSAGE,
     };
   }
 
   if (params.run.status === WorkflowStatus.Waiting) {
     return {
       shouldContinue: false,
-      message:
-        "This run is sleeping and will carry on by itself. Follow it in the Logs tab.",
+      message: RUN_SLEEPING_MESSAGE,
     };
   }
 
   return {
     shouldContinue: true,
-    message: `Run ${params.run.status.toLowerCase()}…`,
+    message: RUN_GOING_MESSAGES[params.run.status] || RUN_IN_PROGRESS_MESSAGE,
   };
 };

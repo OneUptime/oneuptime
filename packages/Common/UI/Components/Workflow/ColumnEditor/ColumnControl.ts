@@ -12,6 +12,10 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { ModelSchemaColumn } from "../ModelSchema";
 import { ModelColumnControl } from "./ColumnRow";
 import { ColumnUse, canUseColumnFor, isSystemColumn } from "./ColumnUse";
+import {
+  translateText,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
 
 /*
  * Spelled with the enum, never with string literals. The wire carries the
@@ -140,34 +144,31 @@ export type ColumnTypeLabelFunction = (
   column: ModelSchemaColumn | undefined,
 ) => string;
 
-/**
- * The one-word type shown under a field's name, so the builder can see what
- * kind of value is expected without opening the model's documentation.
- */
-export const columnTypeLabel: ColumnTypeLabelFunction = (
+// The type in English: the translation key columnTypeLabel looks up.
+const englishColumnTypeLabel: ColumnTypeLabelFunction = (
   column: ModelSchemaColumn | undefined,
 ): string => {
   if (!column) {
-    return "Unknown";
+    return translationKey("Unknown");
   }
 
   if (column.isRelation) {
-    return "Relation";
+    return translationKey("Relation");
   }
 
   switch (controlForColumn(column)) {
     case ModelColumnControl.Number:
-      return "Number";
+      return translationKey("Number");
     case ModelColumnControl.Boolean:
-      return "True or false";
+      return translationKey("True or false");
     case ModelColumnControl.Date:
-      return "Date and time";
+      return translationKey("Date and time");
     case ModelColumnControl.ObjectId:
-      return "ID";
+      return translationKey("ID");
     case ModelColumnControl.Color:
-      return "Color";
+      return translationKey("Color");
     case ModelColumnControl.LongText:
-      return "Long text";
+      return translationKey("Long text");
     case ModelColumnControl.Unsupported:
       /*
        * The raw column type is more use than the word "unsupported" here: it is
@@ -175,8 +176,21 @@ export const columnTypeLabel: ColumnTypeLabelFunction = (
        */
       return column.type;
     default:
-      return "Text";
+      return translationKey("Text");
   }
+};
+
+/**
+ * The one-word type shown under a field's name, so the builder can see what
+ * kind of value is expected without opening the model's documentation. In
+ * the reader's language; a raw column type is a name and stays as it is.
+ */
+export const columnTypeLabel: ColumnTypeLabelFunction = (
+  column: ModelSchemaColumn | undefined,
+): string => {
+  const label: string = englishColumnTypeLabel(column);
+
+  return translateText(label) ?? label;
 };
 
 export type LiteralFitsControlFunction = (

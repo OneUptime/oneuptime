@@ -342,13 +342,13 @@ const UI_LABELS: Record<string, Array<{ file: string; text: string }>> = {
   "Add a field": [
     {
       file: "Common/UI/Components/Workflow/ColumnEditor/ModelRecordForm.tsx",
-      text: 'triggerLabel="Add a field"',
+      text: 'triggerLabel={translationKey("Add a field")}',
     },
   ],
   "Compare as": [
     {
       file: "Common/UI/Components/Workflow/Condition/ConditionModel.ts",
-      text: 'COMPARE_AS_LABEL: string = "Compare as"',
+      text: 'COMPARE_AS_LABEL: string = translationKey("Compare as")',
     },
   ],
   "Project Settings → AI → LLM Providers": [
