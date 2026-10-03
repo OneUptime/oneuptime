@@ -521,4 +521,29 @@ describe("editing an OIDC provider", () => {
       "https://sso.example.com/metadata/openid-configuration",
     );
   });
+
+  /*
+   * A status page provider could be saved without a name claim, and sign-in
+   * reads an empty claim name as "name". Editing such a provider must not
+   * stop on a field nobody was asked for.
+   */
+  test("an older provider with no name claim saves without being asked for one", async () => {
+    recordToEdit = { ...STORED, nameClaimName: null };
+
+    await renderProviderForm({ formType: FormType.Update });
+
+    await waitFor(() => {
+      expect(input("Okta").value).toBe("Okta");
+    });
+
+    await type("Okta", "Okta Workforce");
+
+    const model: JSONObject = await submitWith(SAVE);
+
+    expect(model["name"]).toBe("Okta Workforce");
+    expect(model["nameClaimName"] ?? null).toBeNull();
+    expect(
+      screen.queryByText("Name Claim Name is required."),
+    ).not.toBeInTheDocument();
+  });
 });

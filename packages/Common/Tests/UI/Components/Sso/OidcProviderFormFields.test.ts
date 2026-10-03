@@ -290,14 +290,8 @@ describe("the fields each form gets", () => {
     );
   });
 
-  test("the folded values are required, so an edit can never blank one: the form keeps them filled", () => {
-    for (const key of [
-      "discoveryURL",
-      "scopes",
-      "emailClaimName",
-      "nameClaimName",
-      "description",
-    ]) {
+  test("the discovery URL and the description are required: the form keeps them filled, and a blank URL cannot be saved", () => {
+    for (const key of ["discoveryURL", "description"]) {
       expect([key, fieldFor(PROJECT_FIELDS, key).required]).toEqual([
         key,
         true,
@@ -307,6 +301,30 @@ describe("the fields each form gets", () => {
     expect(fieldFor(PROJECT_FIELDS, "discoveryURL").fieldType).toBe(
       FormFieldSchemaType.URL,
     );
+  });
+
+  test("the scopes and claim names are never required: an empty one is read as its usual value, which the placeholder shows", () => {
+    const usual: Record<string, string> = {
+      scopes: DEFAULT_OIDC_SCOPES,
+      emailClaimName: DEFAULT_OIDC_EMAIL_CLAIM_NAME,
+      nameClaimName: DEFAULT_OIDC_NAME_CLAIM_NAME,
+    };
+
+    for (const fields of [
+      PROJECT_FIELDS,
+      STATUS_PAGE_FIELDS,
+      GLOBAL_FIELDS,
+    ] as Array<Array<Field<unknown>>>) {
+      for (const key of Object.keys(usual)) {
+        const field: Field<unknown> = fieldFor(fields, key);
+
+        expect([key, field.required, field.placeholder]).toEqual([
+          key,
+          false,
+          usual[key],
+        ]);
+      }
+    }
   });
 
   test("the Global switches keep their columns' default (off)", () => {

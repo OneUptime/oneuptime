@@ -399,11 +399,20 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       disableSpellCheck: true,
       collapsibleSection: advancedSection,
     },
+    /*
+     * The scopes and the two claim names start at their usual values and
+     * are never required: sign-in reads an empty one as its usual value
+     * (Identity/API/OIDC, StatusPageOIDC, GlobalOIDC), and the services fill
+     * one left out of a new provider. A status page provider made before
+     * this may have no name claim at all, and editing it must not stop on a
+     * field nobody asked for. The placeholder shows the value an empty one
+     * stands for.
+     */
     {
       field: { scopes: true } as unknown as SelectFormFields<TEntity>,
       title: "Scopes",
       fieldType: FormFieldSchemaType.Text,
-      required: true,
+      required: false,
       description:
         "Space-separated list of OIDC scopes to request. Must include 'openid'.",
       placeholder: DEFAULT_OIDC_SCOPES,
@@ -419,7 +428,7 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       field: { emailClaimName: true } as unknown as SelectFormFields<TEntity>,
       title: "Email Claim Name",
       fieldType: FormFieldSchemaType.Text,
-      required: true,
+      required: false,
       description:
         "Name of the ID token / userinfo claim that contains the user's email address.",
       placeholder: DEFAULT_OIDC_EMAIL_CLAIM_NAME,
@@ -432,7 +441,7 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       field: { nameClaimName: true } as unknown as SelectFormFields<TEntity>,
       title: "Name Claim Name",
       fieldType: FormFieldSchemaType.Text,
-      required: true,
+      required: false,
       description:
         "Name of the ID token / userinfo claim that contains the user's display name.",
       placeholder: DEFAULT_OIDC_NAME_CLAIM_NAME,
