@@ -7,19 +7,36 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import React from "react";
 import SloNoticeBanner from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloNoticeBanner";
+import SloEvaluationSwitchCopy, {
+  TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID,
+  TURN_SLO_EVALUATION_ON_ERROR_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import Icon from "../../../UI/Components/Icon/Icon";
+import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 jest.mock("react-i18next", () => {
@@ -96,6 +113,17 @@ function serveSlo(fields: SloFields): ReturnType<typeof jest.spyOn> {
 
 async function findBanner(): Promise<HTMLElement> {
   return await screen.findByTestId(BANNER_TEST_ID);
+}
+
+// The viewer may switch the SLO's evaluation (or not, and why).
+function allowEvaluationSwitch(
+  result: PermissionGateResult = { isAllowed: true },
+): void {
+  jest
+    .spyOn(PermissionGate, "checkColumnUpdate")
+    .mockImplementation((): PermissionGateResult => {
+      return result;
+    });
 }
 
 function iconMarkup(icon: IconProp): string {
@@ -218,7 +246,8 @@ describe("SloNoticeBanner", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  test("explains a disabled SLO calmly and points at Settings", async () => {
+  test("explains a disabled SLO calmly, with the button that turns evaluation back on instead of a trip to Settings", async () => {
+    allowEvaluationSwitch();
     serveSlo({ isEnabled: false });
 
     render(<SloNoticeBanner sloId={SLO_ID} />);
@@ -227,10 +256,13 @@ describe("SloNoticeBanner", () => {
 
     expect(banner).toHaveAttribute("role", "status");
     expect(screen.getByText("This SLO is disabled")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Settings" })).toHaveAttribute(
-      "href",
-      SETTINGS_PATH,
-    );
+    expect(
+      screen.getByRole("button", {
+        name: SloEvaluationSwitchCopy.turnOnButton,
+      }),
+    ).toBe(screen.getByTestId(TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID));
+    expect(screen.queryByRole("link", { name: "Open Settings" })).toBeNull();
+    expect(screen.queryByText(/in Settings/)).toBeNull();
   });
 
   test("warns about a misconfigured SLO with no monitors and links to the Monitors page", async () => {
@@ -487,5 +519,220 @@ describe("SloNoticeBanner", () => {
       expect(screen.queryByTestId(BANNER_TEST_ID)).toBeNull();
     });
     expect(getItem).toHaveBeenCalledTimes(3);
+  });
+});
+
+/*
+ * "Turn evaluation on": a disabled SLO is turned back on from the banner on
+ * any of its pages, writing what the Evaluation card's switch on Settings
+ * writes, gated like it, and the banner and the switch follow each other.
+ */
+describe("SloNoticeBanner turns evaluation back on in place", () => {
+  function pressTurnOn(): void {
+    fireEvent.click(screen.getByTestId(TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID));
+  }
+
+  test("pressing it saves isEnabled on the SLO, and the banner reads again and goes", async () => {
+    allowEvaluationSwitch();
+    const getItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValueOnce(makeSlo({ ...MEASURING, isEnabled: false }))
+      .mockResolvedValueOnce(makeSlo(MEASURING));
+    const update: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+    pressTurnOn();
+
+    await waitFor(() => {
+      expect(update).toHaveBeenCalledWith({
+        modelType: ServiceLevelObjective,
+        id: SLO_ID,
+        data: { isEnabled: true },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(BANNER_TEST_ID)).toBeNull();
+    });
+    expect(getItem).toHaveBeenCalledTimes(2);
+  });
+
+  test("it is offered on the Settings page too, where the switch is", async () => {
+    goTo(SETTINGS_PATH);
+    allowEvaluationSwitch();
+    serveSlo({ isEnabled: false });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(
+      screen.getByTestId(TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID),
+    ).toBeInTheDocument();
+  });
+
+  test("someone who may not switch evaluation sees it locked, with why, and a press saves nothing", async () => {
+    allowEvaluationSwitch({
+      isAllowed: false,
+      disabledReason:
+        "You need one of these permissions to update this SLO: Edit Service Level Objective.",
+    });
+    serveSlo({ isEnabled: false });
+    const update: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ModelAPI,
+      "updateById",
+    );
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    const button: HTMLElement = screen.getByTestId(
+      TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID,
+    );
+    expect(button).toBeDisabled();
+
+    pressTurnOn();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test("before the permissions arrive there is no button, and no accusation", async () => {
+    allowEvaluationSwitch({ isAllowed: false });
+    serveSlo({ isEnabled: false });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(
+      screen.queryByTestId(TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(screen.getByText("This SLO is disabled")).toBeInTheDocument();
+  });
+
+  test("a refused save says why in the banner, and the banner stays", async () => {
+    allowEvaluationSwitch();
+    serveSlo({ isEnabled: false });
+    jest
+      .spyOn(ModelAPI, "updateById")
+      .mockRejectedValue(new Error("The SLO could not be saved."));
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+    pressTurnOn();
+
+    expect(
+      await screen.findByTestId(TURN_SLO_EVALUATION_ON_ERROR_TEST_ID),
+    ).toHaveTextContent("The SLO could not be saved.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The SLO could not be saved.",
+    );
+    expect(screen.getByText("This SLO is disabled")).toBeInTheDocument();
+  });
+
+  test("evaluation switched on elsewhere on the screen reads the SLO again", async () => {
+    allowEvaluationSwitch();
+    const getItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValueOnce(makeSlo({ ...MEASURING, isEnabled: false }))
+      .mockResolvedValueOnce(makeSlo(MEASURING));
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    await act(async () => {
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: SLO_ID,
+        column: "isEnabled",
+        value: true,
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(BANNER_TEST_ID)).toBeNull();
+    });
+    expect(getItem).toHaveBeenCalledTimes(2);
+  });
+
+  test("evaluation switched off elsewhere raises the banner without a reload", async () => {
+    allowEvaluationSwitch();
+    const getItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValueOnce(makeSlo(MEASURING))
+      .mockResolvedValueOnce(makeSlo({ ...MEASURING, isEnabled: false }));
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await waitFor(() => {
+      expect(getItem).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByTestId(BANNER_TEST_ID)).toBeNull();
+
+    await act(async () => {
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: SLO_ID,
+        column: "isEnabled",
+        value: false,
+      });
+    });
+
+    expect(await screen.findByText("This SLO is disabled")).toBeInTheDocument();
+  });
+
+  test("another SLO's or another column's save reads nothing", async () => {
+    allowEvaluationSwitch();
+    const getItem: ReturnType<typeof jest.spyOn> = serveSlo({
+      isEnabled: false,
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    await act(async () => {
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: new ObjectID("33333333-0000-4000-8000-0000000000ff"),
+        column: "isEnabled",
+        value: true,
+      });
+      announceModelSwitchSaved({
+        modelType: ServiceLevelObjective,
+        modelId: SLO_ID,
+        column: "isArchived",
+        value: false,
+      });
+    });
+
+    expect(getItem).toHaveBeenCalledTimes(1);
+  });
+
+  test("an archived SLO that is also disabled offers the way out of the archive, not the switch", async () => {
+    allowEvaluationSwitch();
+    serveSlo({ isArchived: true, isEnabled: false });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(
+      screen.queryByTestId(TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(screen.getByRole("link", { name: "Open Settings" })).toHaveAttribute(
+      "href",
+      SETTINGS_PATH,
+    );
   });
 });

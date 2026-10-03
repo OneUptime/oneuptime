@@ -34,7 +34,11 @@ import {
  * The monitor and status page areas are done: no card under the
  * Dashboard's Pages/Monitor may be listed, and under Pages/StatusPages only
  * the cards that decide who may see a status page, which the status page
- * access task turns into one choice.
+ * access task turns into one choice. So are incidents, alerts, episodes,
+ * scheduled maintenance, runbooks, SLOs and RUM: their reminders, privacy,
+ * status page visibility and on/off switches save on flip, and no card
+ * under those pages may be listed except an incident AI behaviour, which
+ * the AI settings task converts.
  *
  * Tables are not judged here: a table row's edit form with one switch (a
  * network interface's "Monitor this Interface") edits one row of many.
@@ -60,7 +64,6 @@ const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
  * the batch converts yet.
  */
 export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [
-  "event-and-runbook-switches-save-on-flip",
   "ai-settings-switches-first",
   "project-admin-one-switch-cards",
   "dashboard-sharing-one-choice",
@@ -81,70 +84,12 @@ export interface OneSwitchCardLeft {
   reason: string;
 }
 
-const EVENT_TASK: string = "event-and-runbook-switches-save-on-flip";
 const AI_TASK: string = "ai-settings-switches-first";
 const ADMIN_TASK: string = "project-admin-one-switch-cards";
 const STATUS_PAGE_ACCESS_TASK: string = "status-page-access-one-choice";
 const DASHBOARD_SHARING_TASK: string = "dashboard-sharing-one-choice";
 
 export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [
-  // Incidents, alerts, episodes, scheduled maintenance and runbooks.
-  {
-    file: `${DASHBOARD}/Pages/Alerts/View/Settings.tsx`,
-    column: "isPrivate",
-    card: "Alert Settings (Private Alert)",
-    task: EVENT_TASK,
-    reason:
-      "Alert privacy on an alert's Settings page. Its own task converts the event settings together, so an alert's, an incident's and a maintenance event's switches change in one go.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Alerts/View/Settings.tsx`,
-    column: "enableReminders",
-    card: "Reminders",
-    task: EVENT_TASK,
-    reason:
-      "An alert's reminders switch, converted with the incident and maintenance reminders.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Incidents/View/Settings.tsx`,
-    column: "enableReminders",
-    card: "Reminders",
-    task: EVENT_TASK,
-    reason:
-      "An incident's reminders switch, converted with the alert and maintenance reminders.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Incidents/EpisodeView/Settings.tsx`,
-    column: "isVisibleOnStatusPage",
-    card: "Episode Settings (Visible on Status Page)",
-    task: EVENT_TASK,
-    reason:
-      "Whether an episode shows on status pages, converted with the maintenance event's.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Settings.tsx`,
-    column: "isVisibleOnStatusPage",
-    card: "Scheduled Maintenance Settings (Visible on Status Page)",
-    task: EVENT_TASK,
-    reason:
-      "Whether a maintenance event shows on status pages, converted with the episode's.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Settings.tsx`,
-    column: "enableReminders",
-    card: "Reminders",
-    task: EVENT_TASK,
-    reason:
-      "A maintenance event's reminders switch, converted with the incident and alert reminders.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Runbook/View/Settings.tsx`,
-    column: "isEnabled",
-    card: "Runbook > Enable / Disable",
-    task: EVENT_TASK,
-    reason: "A runbook's on/off switch, converted with the event settings.",
-  },
-
   // AI.
   {
     file: `${DASHBOARD}/Pages/Settings/AIFeatures.tsx`,
@@ -266,24 +211,6 @@ export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [
     task: STATUS_PAGE_ACCESS_TASK,
     reason:
       "Requiring SSO for a status page's visitors is part of who can see it, and locks out anyone SSO does not let in.",
-  },
-
-  // No task in the batch converts these yet.
-  {
-    file: `${DASHBOARD}/Pages/Rum/Settings/SessionReplay.tsx`,
-    column: "isSessionReplayAllowed",
-    card: "Session Replay Availability",
-    task: "",
-    reason:
-      "Records what real people do on a site. As a switch it should ask before it turns recording on: the card says to confirm the masking policy first.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
-    column: "isEnabled",
-    card: "SLO Evaluation",
-    task: "",
-    reason:
-      "An SLO's Enabled switch, with a banner that says when it is off: the same shape as a monitor's Monitoring card, whose banner carries the switch that turns it back on.",
   },
 ];
 
@@ -558,7 +485,64 @@ describe("one-switch cards in the frontends", () => {
     }
   });
 
-  test("the cards the monitor and status page areas converted stay converted", () => {
+  /*
+   * Incidents, alerts, episodes, scheduled maintenance, runbooks, SLOs and
+   * RUM: every one-switch card there saves on flip now. The only card left
+   * under them is an incident AI behaviour, which the AI settings task
+   * converts with the rest of the AI settings pages.
+   */
+  test("the event, runbook, SLO and RUM pages have no one-switch card but what other tasks own", () => {
+    const areas: Array<{ directory: string; ownedBy: Array<string> }> = [
+      { directory: `${DASHBOARD}/Pages/Incidents/`, ownedBy: [AI_TASK] },
+      { directory: `${DASHBOARD}/Pages/Alerts/`, ownedBy: [] },
+      {
+        directory: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/`,
+        ownedBy: [],
+      },
+      { directory: `${DASHBOARD}/Pages/Runbook/`, ownedBy: [] },
+      { directory: `${DASHBOARD}/Pages/Slo/`, ownedBy: [] },
+      { directory: `${DASHBOARD}/Pages/Rum/`, ownedBy: [] },
+    ];
+
+    for (const area of areas) {
+      const unowned: Array<string> = cards
+        .filter((form: FormFacts): boolean => {
+          if (!form.file.startsWith(area.directory)) {
+            return false;
+          }
+
+          const entry: OneSwitchCardLeft | undefined =
+            ONE_SWITCH_CARDS_LEFT.find(
+              (candidate: OneSwitchCardLeft): boolean => {
+                return (
+                  candidate.file === form.file &&
+                  candidate.column === columnOf(form)
+                );
+              },
+            );
+
+          return !entry || !area.ownedBy.includes(entry.task);
+        })
+        .map(describeCard);
+
+      expect([area.directory, unowned]).toEqual([area.directory, []]);
+
+      const listed: Array<string> = ONE_SWITCH_CARDS_LEFT.filter(
+        (entry: OneSwitchCardLeft): boolean => {
+          return (
+            entry.file.startsWith(area.directory) &&
+            !area.ownedBy.includes(entry.task)
+          );
+        },
+      ).map((entry: OneSwitchCardLeft): string => {
+        return `${entry.file} (${entry.column})`;
+      });
+
+      expect([area.directory, listed]).toEqual([area.directory, []]);
+    }
+  });
+
+  test("the cards the monitor, status page, event, runbook, SLO and RUM areas converted stay converted", () => {
     const retired: Array<{ file: string; column: string }> = [
       {
         file: `${DASHBOARD}/Pages/Monitor/View/Settings.tsx`,
@@ -575,6 +559,42 @@ describe("one-switch cards in the frontends", () => {
       {
         file: `${DASHBOARD}/Pages/StatusPages/View/Mcp.tsx`,
         column: "enableMcpServer",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Incidents/View/Settings.tsx`,
+        column: "enableReminders",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Alerts/View/Settings.tsx`,
+        column: "isPrivate",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Alerts/View/Settings.tsx`,
+        column: "enableReminders",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Incidents/EpisodeView/Settings.tsx`,
+        column: "isVisibleOnStatusPage",
+      },
+      {
+        file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Settings.tsx`,
+        column: "isVisibleOnStatusPage",
+      },
+      {
+        file: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Settings.tsx`,
+        column: "enableReminders",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Runbook/View/Settings.tsx`,
+        column: "isEnabled",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
+        column: "isEnabled",
+      },
+      {
+        file: `${DASHBOARD}/Pages/Rum/Settings/SessionReplay.tsx`,
+        column: "isSessionReplayAllowed",
       },
     ];
 

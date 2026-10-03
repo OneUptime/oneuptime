@@ -61,7 +61,7 @@ Runbooks：      [Capture pre-incident state]
 
 ## 被禁用的 Runbook
 
-如果规则引用的 Runbook `isEnabled = false`，规则仍然会匹配但该 Runbook 的执行会被跳过。重新启用 Runbook 即可恢复。
+如果规则引用的 Runbook 已关闭（Runbook 的 **Settings** 页面上 **Run this runbook** 已关闭，`isEnabled = false`），规则仍然会匹配但该 Runbook 的执行会被跳过。重新打开该开关即可恢复。
 
 ## 测试规则
 

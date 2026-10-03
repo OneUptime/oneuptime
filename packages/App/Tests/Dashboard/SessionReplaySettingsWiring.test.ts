@@ -689,7 +689,12 @@ describe("Project replay settings page", () => {
   });
 
   test("keeps the master switch and the roster, drops the two panels, and points at the application page", () => {
-    expect(PROJECT_SETTINGS_PAGE).toContain("<CardModelDetail<Project>");
+    // The master switch saves when it is flipped (SessionReplayAllowedCard).
+    expect(PROJECT_SETTINGS_PAGE).toContain("<SessionReplayAllowedCard");
+    expect(PROJECT_SETTINGS_PAGE).toContain(
+      "projectId={ProjectUtil.getCurrentProjectId()!}",
+    );
+    expect(PROJECT_SETTINGS_PAGE).not.toContain("CardModelDetail");
     expect(PROJECT_SETTINGS_PAGE).toContain("<ModelTable<RumApplication>");
     expect(PROJECT_SETTINGS_PAGE).not.toContain("InstallationTestPanel");
     expect(PROJECT_SETTINGS_PAGE).not.toContain("TargetedCapturePanel");

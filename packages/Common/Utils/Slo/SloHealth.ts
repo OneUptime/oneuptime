@@ -107,11 +107,17 @@ export enum SloNoticeType {
  * carrying a route: this module is imported by plain-node tests and by the
  * dashboard SLO widget, and RouteMap reads `window` at module load. The
  * banner, which already lives in the Dashboard, turns a target into a link.
+ *
+ * One target is not a page: TurnEvaluationOn is done where the notice is.
+ * The banner draws it as a button that saves what the Evaluation card's
+ * switch on Settings saves, so a disabled SLO is turned back on in one
+ * press instead of a trip to Settings.
  */
 export enum SloNoticeActionTarget {
   Settings = "settings",
   Monitors = "monitors",
   MonitorRules = "monitor-rules",
+  TurnEvaluationOn = "turn-evaluation-on",
 }
 
 export interface SloNoticeAction {
@@ -206,10 +212,10 @@ export const getSloNotice: GetSloNoticeFunction = (
     return {
       type: SloNoticeType.Info,
       title: "This SLO is disabled",
-      body: "It is not being evaluated and its burn rate rules will not fire alerts. Turn evaluation back on in Settings to resume measuring.",
+      body: "It is not being evaluated and its burn rate rules will not fire alerts. Turn evaluation back on to resume measuring.",
       action: {
-        label: "Open Settings",
-        target: SloNoticeActionTarget.Settings,
+        label: "Turn evaluation on",
+        target: SloNoticeActionTarget.TurnEvaluationOn,
       },
     };
   }

@@ -61,7 +61,7 @@ Du ser alle regel-utløste kjøringer under **Runbooks → Kjøringer**, filtrer
 
 ## Deaktiverte runbooks
 
-Refererer en regel et runbook med `isEnabled = false`, matcher regelen fortsatt, men kjøringen hoppes over. Aktiver runbook'et igjen for å fortsette.
+Refererer en regel et runbook som er slått av (**Run this runbook** av på runbook'ets **Settings**-side, `isEnabled = false`), matcher regelen fortsatt, men kjøringen hoppes over. Slå bryteren på igjen for å fortsette.
 
 ## Test en regel
 
