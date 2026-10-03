@@ -12,6 +12,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  RenderResult,
   screen,
   waitFor,
   within,
@@ -235,6 +236,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  redrawPage = null;
   jest.restoreAllMocks();
 });
 
@@ -244,9 +246,35 @@ const PAGE_PROPS: PageComponentProps = {
   hasPaymentMethod: true,
 };
 
+// Draws the open page again, as it is: see runPendingEffects.
+let redrawPage: (() => void) | null = null;
+
 function openPage(element: ReactElement, path: string): void {
   goTo(path);
-  render(<MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>);
+
+  const page: ReactElement = (
+    <MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>
+  );
+  const view: RenderResult = render(page);
+
+  redrawPage = (): void => {
+    view.rerender(page);
+  };
+}
+
+/*
+ * Runs the effects React still owes the page. A part drawn when a read
+ * resolved (outside act) - the notice's switch, a card's rows - runs its
+ * effects on React's own schedule, and findBy can find it before they have
+ * run: a switch that has not yet subscribed to saves made elsewhere misses
+ * one announced now. Drawing the page again inside act makes React run
+ * every pending effect first, so a test that announces a save after this
+ * is heard by every switch on the page.
+ */
+async function runPendingEffects(): Promise<void> {
+  await act(async () => {
+    redrawPage?.();
+  });
 }
 
 function openIncidentPage(): void {
@@ -1201,7 +1229,7 @@ describe("the notice when Enable AI is off", () => {
       ENABLE_AI_NOTICE_SWITCH_TEST_ID,
     );
     // The switch listens from an effect, which runs after it is drawn.
-    await flush();
+    await runPendingEffects();
 
     act(() => {
       announceModelSwitchSaved({
@@ -1225,7 +1253,7 @@ describe("the notice when Enable AI is off", () => {
     await findSwitch(
       getProjectAiSwitchTestId("enableAutomaticIncidentInvestigation"),
     );
-    await flush();
+    await runPendingEffects();
     expect(screen.queryByTestId(PROJECT_AI_OFF_NOTICE_TEST_ID)).toBeNull();
 
     act(() => {

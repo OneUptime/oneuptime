@@ -588,10 +588,18 @@ describe("ModelSwitchesCard: each switch saves its own column", () => {
   test("a save of one of its columns made elsewhere on the screen moves that switch", async () => {
     stored = { enableAi: true, enableAutomaticPostmortemDraft: false };
 
-    render(card());
+    const view: RenderResult = render(card());
     await loaded();
-    // The rows listen from an effect, which runs after they are drawn.
-    await flush();
+
+    /*
+     * The rows listen from an effect. They were drawn when the read
+     * resolved, outside act, so React runs that effect on its own schedule
+     * and findBy can find them before it has run. Drawing the card again
+     * inside act makes React run every pending effect first.
+     */
+    await act(async () => {
+      view.rerender(card());
+    });
 
     act(() => {
       announceModelSwitchSaved({
