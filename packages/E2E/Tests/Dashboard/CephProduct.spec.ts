@@ -8,6 +8,7 @@ import {
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
 import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -41,8 +42,12 @@ test.describe.skip("Ceph Product Onboarding", () => {
       projectNamePrefix: "E2E Ceph Project",
     });
 
-    // Nav entry: Ceph is listed in the "Products" navbar menu.
+    /*
+     * Nav entry: Ceph is listed in the "Products" navbar menu, under
+     * Infrastructure, which the menu opens folded.
+     */
     await page.getByRole("button", { name: "Products" }).click();
+    await openProductsMenuSection(page, "Infrastructure");
     const cephNavOption: Locator = page
       .getByRole("option")
       .filter({ hasText: "Ceph" });

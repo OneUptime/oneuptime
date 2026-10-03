@@ -615,12 +615,19 @@ describe("the create-incident page", () => {
     );
   });
 
+  /*
+   * Without alert ids, a template is fetched or nothing is. The page no
+   * longer looks a first state up to prefill: an incident declared without
+   * one starts in the project's starting state, which the server picks.
+   */
   test("keeps the old flows when no alert ids are given", () => {
     const code: string = dense(CREATE_PAGE);
 
     expect(code).toContain(
-      "}elseif(incidentTemplateId){fetchIncidentTemplate(newObjectID(incidentTemplateId));}else{fetchFirstIncidentState();setIsLoading(false);}",
+      "}elseif(incidentTemplateId){fetchIncidentTemplate(newObjectID(incidentTemplateId));}else{setIsLoading(false);}},[]);",
     );
+    expect(code).not.toContain("fetchFirstIncidentState");
+    expect(code).not.toContain("getFirstIncidentStateId");
   });
 });
 

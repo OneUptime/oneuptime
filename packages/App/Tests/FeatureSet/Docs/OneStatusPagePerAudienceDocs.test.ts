@@ -732,7 +732,12 @@ describe("One Status Page per Audience docs", () => {
       );
     });
 
-    it("puts the picker on the declare form's Resources Affected step, and the summary on its More step", () => {
+    /*
+     * The More step went: the notify box, and the audience under it, sit
+     * right below the picker on Resources Affected, and Private Incident and
+     * Change Monitor Status to are folded under Advanced on their steps.
+     */
+    it("puts the picker and the notify box with its audience on the declare form's Resources Affected step", () => {
       const source: string = readDashboardSource("Pages/Incidents/Create.tsx");
 
       expect(source).toMatch(
@@ -741,7 +746,10 @@ describe("One Status Page per Audience docs", () => {
       expect(source).toMatch(
         /title:\s*"Resources Affected",\s*id:\s*"resources-affected"/,
       );
-      expect(source).toMatch(/title:\s*"More",\s*id:\s*"more"/);
+      expect(source).toMatch(
+        /title:\s*"Notify Status Page Subscribers",\s*stepId:\s*"resources-affected"/,
+      );
+      expect(source).not.toMatch(/id:\s*"more"/);
       expect(source).toContain("SubscriberAudienceSummary");
 
       for (const language of ALL_LANGUAGES) {
@@ -754,7 +762,8 @@ describe("One Status Page per Audience docs", () => {
 
         for (const name of [
           "Resources Affected",
-          "More",
+          "Incident Details",
+          "Advanced",
           "Labels",
           "Change Monitor Status to",
           "Private Incident",
