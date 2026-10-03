@@ -117,47 +117,71 @@ export default class GreenlockUtil {
   }
 
   /*
-   * The items a capped sweep works on in this run: at most max of them, a
-   * different window every run, so an item whose work keeps failing cannot
-   * hold a slot the others are waiting for. Items are taken in a stable order
-   * (by key) and the window moves on by max every run, which makes it a round
-   * robin that needs no state: every item gets its turn within
-   * ceil(items / max) runs, on every replica alike.
+   * The items a capped sweep works on in this run: at most max of them,
+   * chosen by a shuffle that is the same for every replica within one
+   * 15-minute window and different in the next, so an item whose work keeps
+   * failing cannot hold a slot run after run while the others wait. Every
+   * item has the same chance in every run, however the list grows, shrinks
+   * or is ordered, and whatever schedule the sweep runs on - a fixed
+   * rotation would skip items whenever earlier ones left the list.
    */
-  public static takeThisRunsTurn<T>(data: {
+  public static pickForThisRun<T>(data: {
     items: Array<T>;
     max: number;
     now: Date;
     getKey: (item: T) => string;
-    runIntervalInMinutes?: number | undefined;
   }): Array<T> {
     const max: number = Math.max(Math.floor(data.max), 0);
 
-    const ordered: Array<T> = [...data.items].sort((a: T, b: T) => {
-      const keyA: string = data.getKey(a);
-      const keyB: string = data.getKey(b);
-
-      if (keyA === keyB) {
-        return 0;
-      }
-
-      return keyA < keyB ? -1 : 1;
-    });
-
-    if (ordered.length <= max) {
-      return ordered;
-    }
-
-    const runIntervalInMs: number = OneUptimeDate.convertMinutesToMilliseconds(
-      data.runIntervalInMinutes || 15,
+    const window: number = Math.floor(
+      data.now.getTime() / OneUptimeDate.convertMinutesToMilliseconds(15),
     );
 
-    const runNumber: number = Math.floor(data.now.getTime() / runIntervalInMs);
-    const start: number = (runNumber * max) % ordered.length;
+    return data.items
+      .map((item: T) => {
+        const key: string = data.getKey(item);
 
-    return Array.from({ length: max }, (_value: unknown, index: number): T => {
-      return ordered[(start + index) % ordered.length] as T;
-    });
+        return {
+          item: item,
+          key: key,
+          rank:
+            data.items.length <= max
+              ? 0
+              : GreenlockUtil.hashText(`${window}:${key}`),
+        };
+      })
+      .sort(
+        (
+          a: { key: string; rank: number },
+          b: { key: string; rank: number },
+        ) => {
+          if (a.rank !== b.rank) {
+            return a.rank - b.rank;
+          }
+
+          if (a.key === b.key) {
+            return 0;
+          }
+
+          return a.key < b.key ? -1 : 1;
+        },
+      )
+      .slice(0, max)
+      .map((ranked: { item: T }) => {
+        return ranked.item;
+      });
+  }
+
+  // 32-bit FNV-1a: a stable, well-spread hash of a string.
+  private static hashText(text: string): number {
+    let hash: number = 0x811c9dc5;
+
+    for (let i: number = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+
+    return hash;
   }
 
   /*
@@ -250,8 +274,8 @@ export default class GreenlockUtil {
       const now: Date = OneUptimeDate.getCurrentDate();
 
       /*
-       * One renewal per name: a name can have more than one row, and rows
-       * that expire at the same moment can come back on two pages.
+       * One renewal per name: a name can have more than one row, and a row
+       * renewed between two page reads can come back on both.
        */
       const dueDomains: Set<string> = new Set<string>();
 
@@ -338,8 +362,11 @@ export default class GreenlockUtil {
    * owners must name every kind of certificate owner there is (see
    * CertificateOwners). A certificate is deleted only when all of them have
    * answered and none claims it; if any lookup fails, nothing is deleted.
-   * Rows are deleted by id, so a newer certificate for the same name is
-   * never touched.
+   *
+   * The delete names the row's id AND that it is still expired: orderCert
+   * renews a name by updating its row in place, so a row renewed between the
+   * checks above and the delete no longer matches and is kept. A newer row
+   * for the same name never matches either.
    */
   @CaptureSpan()
   public static async removeExpiredCertificatesNobodyOwns(data: {
@@ -407,15 +434,19 @@ export default class GreenlockUtil {
       })
       .slice(0, GreenlockUtil.REMOVE_UNOWNED_MAX_PER_RUN);
 
+    let removedCount: number = 0;
+
     for (const certificate of abandoned) {
       logger.debug(
         `Deleting the certificate of ${certificate.domain}: it expired on ${certificate.expiresAt?.toISOString()} and no status page, dashboard or primary host claims it.`,
         { domain: certificate.domain } as LogAttributes,
       );
 
-      await AcmeCertificateService.deleteBy({
+      const deletedCount: number = await AcmeCertificateService.deleteBy({
         query: {
           _id: certificate.id!.toString(),
+          domain: certificate.domain as string,
+          expiresAt: QueryHelper.lessThan(expiredBefore),
         },
         limit: 1,
         skip: 0,
@@ -423,9 +454,11 @@ export default class GreenlockUtil {
           isRoot: true,
         },
       });
+
+      removedCount += deletedCount;
     }
 
-    return abandoned.length;
+    return removedCount;
   }
 
   /*
@@ -679,30 +712,32 @@ export default class GreenlockUtil {
           },
         });
 
-      if (existingCertificate) {
-        logger.debug(
-          `Updating certificate for domain: ${domain}`,
-          orderLogAttributes,
-        );
+      /*
+       * The row can be removed between the look-up above and this write (a
+       * domain deleted meanwhile, or the cleanup of expired certificates
+       * nobody owned). Then the update finds nothing, and the certificate
+       * the CA has just issued is stored in a new row instead of being lost.
+       */
+      const updatedCount: number = existingCertificate
+        ? await AcmeCertificateService.updateBy({
+            query: {
+              domain: domain,
+            },
+            limit: 1,
+            skip: 0,
+            data: {
+              certificate: certificate.toString(),
+              certificateKey: certificateKey.toString(),
+              issuedAt: issuedAt,
+              expiresAt: expiresAt,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : 0;
 
-        // update the certificate
-        await AcmeCertificateService.updateBy({
-          query: {
-            domain: domain,
-          },
-          limit: 1,
-          skip: 0,
-          data: {
-            certificate: certificate.toString(),
-            certificateKey: certificateKey.toString(),
-            issuedAt: issuedAt,
-            expiresAt: expiresAt,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
+      if (updatedCount > 0) {
         logger.debug(
           `Certificate updated for domain: ${domain}`,
           orderLogAttributes,

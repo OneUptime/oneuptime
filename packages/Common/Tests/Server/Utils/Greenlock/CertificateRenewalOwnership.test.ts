@@ -433,12 +433,11 @@ describe("a renewal run over the shared certificate table", () => {
   });
 
   /*
-   * nginx serves the uploaded certificate for that name, so the Let's
-   * Encrypt one left from before the switch is nobody's to renew: renewing
-   * it only spends orders. It is not removed either - it is left to expire
-   * and to the cleanup of certificates nobody owns.
+   * nginx serves the uploaded certificate for that name (AcmeWriteCertificates
+   * skips it), but the Let's Encrypt one stays its owner's and stays
+   * renewed: switching back to it must never serve an expired certificate.
    */
-  test("a domain serving its own uploaded certificate does not claim its leftover Let's Encrypt certificate", async () => {
+  test("a domain serving its own uploaded certificate still claims, and renews, its Let's Encrypt certificate", async () => {
     const world: World = setUpWorld({
       certificates: mixedDueCertificates(),
       uploads: [
@@ -450,42 +449,7 @@ describe("a renewal run over the shared certificate table", () => {
             customCertificateKey: "-----BEGIN PRIVATE KEY-----",
           },
         ],
-        [
-          DASHBOARD_DOMAINS[1]!,
-          {
-            isCustomCertificate: true,
-            customCertificate: "-----BEGIN CERTIFICATE-----",
-            customCertificateKey: "-----BEGIN PRIVATE KEY-----",
-          },
-        ],
-      ],
-    });
-
-    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
-    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
-
-    expect(sorted(world.ordered)).toEqual(
-      sorted([STATUS_PAGE_DOMAINS[0]!, DASHBOARD_DOMAINS[0]!]),
-    );
-    expect(world.deleted).toEqual([]);
-    expect(world.cnameChecks.statusPage).not.toContain(STATUS_PAGE_DOMAINS[1]);
-    expect(world.cnameChecks.dashboard).not.toContain(DASHBOARD_DOMAINS[1]);
-    expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
-  });
-
-  // Same test as nginx's: the switch alone, with nothing uploaded, serves nothing.
-  test("a domain with the upload switch on but no certificate uploaded still claims its Let's Encrypt certificate", async () => {
-    const world: World = setUpWorld({
-      certificates: mixedDueCertificates(),
-      uploads: [
-        [STATUS_PAGE_DOMAINS[1]!, { isCustomCertificate: true }],
-        [
-          DASHBOARD_DOMAINS[1]!,
-          {
-            isCustomCertificate: true,
-            customCertificate: "-----BEGIN CERTIFICATE-----",
-          },
-        ],
+        [DASHBOARD_DOMAINS[1]!, { isCustomCertificate: true }],
       ],
     });
 
@@ -495,6 +459,8 @@ describe("a renewal run over the shared certificate table", () => {
     expect(sorted(world.ordered)).toEqual(
       sorted([...STATUS_PAGE_DOMAINS, ...DASHBOARD_DOMAINS]),
     );
+    expect(world.deleted).toEqual([]);
+    expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
   });
 
   /*
@@ -987,20 +953,18 @@ describe.each([
       "owned.example.com",
       "foreign.example.com",
     ]);
-    expect(findByCalls[0]!.select).toEqual({
-      fullDomain: true,
-      isCustomCertificate: true,
-      customCertificate: true,
-      customCertificateKey: true,
-    });
+    expect(findByCalls[0]!.select).toEqual({ fullDomain: true });
     expect(findByCalls[0]!.props).toEqual({ isRoot: true });
 
     /*
-     * Rows without a domain are not ownership of anything, and a domain
-     * serving its own uploaded certificate does not claim a Let's Encrypt
-     * one. The switch alone, with nothing uploaded, still claims it.
+     * Rows without a domain are not ownership of anything. A domain on an
+     * uploaded certificate still owns its Let's Encrypt one.
      */
-    expect(owned).toEqual(["owned.example.com", "switch-only.example.com"]);
+    expect(owned).toEqual([
+      "owned.example.com",
+      "uploaded.example.com",
+      "switch-only.example.com",
+    ]);
   });
 
   test("asked about nothing, it owns nothing and does not query", async () => {
@@ -1031,7 +995,11 @@ describe.each([
     expect(handedOver.getOwnedDomains).toBeDefined();
     await expect(
       handedOver.getOwnedDomains!(["owned.example.com", "foreign.example.com"]),
-    ).resolves.toEqual(["owned.example.com", "switch-only.example.com"]);
+    ).resolves.toEqual([
+      "owned.example.com",
+      "uploaded.example.com",
+      "switch-only.example.com",
+    ]);
     expect(inList(findByCalls[0]!.query.fullDomain)).toEqual([
       "owned.example.com",
       "foreign.example.com",

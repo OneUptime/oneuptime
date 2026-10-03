@@ -312,10 +312,11 @@ describe("GreenlockUtil.isDueForRenewal", () => {
 });
 
 /*
- * The capped sweeps take turns: a domain whose order keeps failing must not
- * hold a slot every run while the domains behind it never get one.
+ * The capped sweeps pick afresh every run: a domain whose order keeps
+ * failing must not hold a slot every run while the domains behind it never
+ * get one - however the list grows or shrinks between runs.
  */
-describe("GreenlockUtil.takeThisRunsTurn", () => {
+describe("GreenlockUtil.pickForThisRun", () => {
   const FIFTEEN_MINUTES_IN_MS: number = 15 * 60 * 1000;
   const firstRun: Date = new Date(1_800_000_000_000);
 
@@ -323,8 +324,8 @@ describe("GreenlockUtil.takeThisRunsTurn", () => {
     return new Date(firstRun.getTime() + n * FIFTEEN_MINUTES_IN_MS);
   }
 
-  function turn(items: Array<string>, max: number, now: Date): Array<string> {
-    return GreenlockUtil.takeThisRunsTurn({
+  function pick(items: Array<string>, max: number, now: Date): Array<string> {
+    return GreenlockUtil.pickForThisRun({
       items: items,
       max: max,
       now: now,
@@ -342,44 +343,65 @@ describe("GreenlockUtil.takeThisRunsTurn", () => {
   );
 
   test("takes everything when everything fits", () => {
-    expect(turn(items.slice(0, 3), 5, firstRun)).toEqual(items.slice(0, 3));
-    expect(turn([], 5, firstRun)).toEqual([]);
+    expect(pick(items.slice(0, 3), 5, firstRun)).toEqual(items.slice(0, 3));
+    expect(pick([], 5, firstRun)).toEqual([]);
   });
 
   test("takes at most max distinct items", () => {
-    const taken: Array<string> = turn(items, 5, firstRun);
+    const taken: Array<string> = pick(items, 5, firstRun);
 
     expect(taken).toHaveLength(5);
     expect(new Set(taken).size).toBe(5);
   });
 
-  test("every item gets its turn within ceil(items / max) consecutive runs", () => {
-    const runs: number = Math.ceil(items.length / 5);
-    const taken: Set<string> = new Set<string>();
-
-    for (let run: number = 0; run < runs; run++) {
-      for (const item of turn(items, 5, nthRun(run))) {
-        taken.add(item);
-      }
-    }
-
-    expect([...taken].sort()).toEqual(items);
+  test("a different pick in the next run", () => {
+    expect(pick(items, 5, nthRun(0))).not.toEqual(pick(items, 5, nthRun(1)));
   });
 
-  test("consecutive runs take different windows", () => {
-    expect(turn(items, 5, nthRun(0))).not.toEqual(turn(items, 5, nthRun(1)));
-  });
-
-  test("the same run takes the same window on every replica, whatever order the items arrive in", () => {
+  test("the same pick for the whole run, on every replica, whatever order the items arrive in", () => {
     const reversed: Array<string> = [...items].reverse();
 
-    expect(turn(reversed, 5, nthRun(3))).toEqual(turn(items, 5, nthRun(3)));
-    expect(turn(items, 5, new Date(nthRun(3).getTime() + 60 * 1000))).toEqual(
-      turn(items, 5, nthRun(3)),
+    expect(pick(reversed, 5, nthRun(3))).toEqual(pick(items, 5, nthRun(3)));
+    expect(pick(items, 5, new Date(nthRun(3).getTime() + 60 * 1000))).toEqual(
+      pick(items, 5, nthRun(3)),
     );
   });
 
+  test("every item is picked within a few runs, even when the items picked first keep failing", () => {
+    const picked: Set<string> = new Set<string>();
+
+    for (let run: number = 0; run < 12; run++) {
+      for (const item of pick(items, 5, nthRun(run))) {
+        picked.add(item);
+      }
+    }
+
+    expect([...picked].sort()).toEqual(items);
+  });
+
+  /*
+   * The case that broke a fixed rotation: items that succeed leave the list,
+   * so the ones behind them move up. Every item that is still waiting keeps
+   * its chance in every run.
+   */
+  test("every item is picked within a few runs while the list shrinks", () => {
+    let waiting: Array<string> = [...items];
+
+    for (let run: number = 0; run < 12 && waiting.length > 0; run++) {
+      const taken: Array<string> = pick(waiting, 5, nthRun(run));
+
+      // Two of every pick succeed and leave the list; the rest keep failing.
+      const succeeded: Set<string> = new Set<string>(taken.slice(0, 2));
+
+      waiting = waiting.filter((item: string) => {
+        return !succeeded.has(item);
+      });
+    }
+
+    expect(waiting).toEqual([]);
+  });
+
   test("a max of zero takes nothing", () => {
-    expect(turn(items, 0, firstRun)).toEqual([]);
+    expect(pick(items, 0, firstRun)).toEqual([]);
   });
 });

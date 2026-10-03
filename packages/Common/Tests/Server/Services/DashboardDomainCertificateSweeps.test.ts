@@ -89,7 +89,7 @@ function atRun(run: number): Date {
  * many days after FIRST_RUN.
  */
 function withCertificates(
-  expiringInDays: Record<string, number>,
+  expiringInDays: Record<string, number | null>,
 ): Array<CertificateQuery> {
   const queries: Array<CertificateQuery> = [];
 
@@ -103,12 +103,14 @@ function withCertificates(
         return expiringInDays[domain] !== undefined;
       })
       .map((domain: string) => {
+        const days: number | null | undefined = expiringInDays[domain];
+
         return {
           domain: domain,
-          expiresAt: OneUptimeDate.addRemoveDays(
-            FIRST_RUN,
-            expiringInDays[domain]!,
-          ),
+          expiresAt:
+            days === null || days === undefined
+              ? undefined
+              : OneUptimeDate.addRemoveDays(FIRST_RUN, days),
         };
       });
   }) as never);
@@ -243,7 +245,12 @@ describe("DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet", () =>
     expect(service.ordered).toEqual(["new.example.com"]);
   });
 
-  test("a domain whose certificate is due or expired is ordered", async () => {
+  /*
+   * The renewal run claims every dashboard certificate that is due and
+   * renews it in the same 15-minute tick; ordering it here as well would
+   * spend two orders on one name.
+   */
+  test("a domain whose certificate is due or expired is recorded too, and left to the renewal run", async () => {
     atRun(0);
     withCertificates({ "due.example.com": 2, "expired.example.com": -5 });
     const service: Service = setUpService({
@@ -252,10 +259,24 @@ describe("DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet", () =>
 
     await DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
 
-    expect(service.ordered.sort()).toEqual([
+    expect(service.ordered).toEqual([]);
+    expect(service.recordedAsOrdered.sort()).toEqual([
       "due.example.com",
       "expired.example.com",
     ]);
+  });
+
+  // It is never due, so nothing would ever replace it if it counted.
+  test("a certificate row without an expiry does not count: the domain is ordered", async () => {
+    atRun(0);
+    withCertificates({ "half-written.example.com": null });
+    const service: Service = setUpService({
+      rows: [makeDomain("half-written.example.com")],
+    });
+
+    await DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+
+    expect(service.ordered).toEqual(["half-written.example.com"]);
     expect(service.recordedAsOrdered).toEqual([]);
   });
 
@@ -305,17 +326,15 @@ describe("DashboardDomainService.orderSSLForDomainsWhichAreNotOrderedYet", () =>
 
   /*
    * Orders that keep failing - a CAA record, a per-name limit - leave the
-   * same domains waiting run after run. The batch moves on every run, so
-   * the domains behind them still get ordered.
+   * same domains waiting run after run. The batch is picked afresh every
+   * run, so the domains behind them still get ordered.
    */
-  test("domains take turns: within a few runs every waiting domain has been ordered", async () => {
+  test("picked afresh every run: within a few runs every waiting domain has been ordered", async () => {
     const rows: Array<DomainRow> = manyDomains(
       "d",
       DashboardDomainServiceClass.ORDER_MAX_PER_RUN * 2 + 2,
     );
-    const runs: number = Math.ceil(
-      rows.length / DashboardDomainServiceClass.ORDER_MAX_PER_RUN,
-    );
+    const runs: number = 12;
     const everOrdered: Set<string> = new Set<string>();
 
     for (let run: number = 0; run < runs; run++) {
@@ -432,14 +451,14 @@ describe("DashboardDomainService.checkOrderStatus", () => {
     ).toEqual([GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE, 3]);
   });
 
-  test("re-orders at most ORDER_MAX_PER_RUN per run, and every missing certificate gets its turn", async () => {
+  test("re-orders at most ORDER_MAX_PER_RUN per run, and every missing certificate is picked within a few runs", async () => {
     const rows: Array<DomainRow> = manyDomains(
       "missing",
       DashboardDomainServiceClass.ORDER_MAX_PER_RUN * 3,
     );
     const everOrdered: Set<string> = new Set<string>();
 
-    for (let run: number = 0; run < 3; run++) {
+    for (let run: number = 0; run < 12; run++) {
       atRun(run);
       withCertificates({});
       const service: Service = setUpService({

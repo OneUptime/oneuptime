@@ -733,7 +733,8 @@ export class Service extends DatabaseService<DashboardDomain> {
   /*
    * The certificate each of these domains has in AcmeCertificate, if any,
    * looked up a chunk at a time. Where a name has more than one row, the one
-   * that expires last.
+   * that expires last. A row without an expiry is no certificate at all: it
+   * is never due, so nothing would ever replace it if it counted as one.
    */
   private async findCertificatesByDomain(
     domains: Array<string>,
@@ -777,7 +778,7 @@ export class Service extends DatabaseService<DashboardDomain> {
       });
 
       for (const row of rows) {
-        if (!row.domain) {
+        if (!row.domain || !row.expiresAt) {
           continue;
         }
 
@@ -787,9 +788,7 @@ export class Service extends DatabaseService<DashboardDomain> {
 
         if (
           !existing ||
-          (row.expiresAt &&
-            (!existing.expiresAt ||
-              OneUptimeDate.isAfter(row.expiresAt, existing.expiresAt)))
+          OneUptimeDate.isAfter(row.expiresAt, existing.expiresAt as Date)
         ) {
           certificates.set(row.domain, row);
         }
@@ -806,13 +805,14 @@ export class Service extends DatabaseService<DashboardDomain> {
    * rest, and ordering one whose record is not in place would only fail the
    * CNAME check again.
    *
-   * A domain that still has a certificate with weeks to run is only recorded
-   * as ordered. That is the domain whose CNAME check failed for a moment -
-   * which marks it unordered - and then passed again; ordering for it would
-   * spend an order on a duplicate (Let's Encrypt allows five a week per
-   * name). The rest are ordered at most ORDER_MAX_PER_RUN per run, taking
-   * turns (GreenlockUtil.takeThisRunsTurn), so a domain whose order keeps
-   * failing cannot hold a slot the others are waiting for.
+   * A domain that already has a certificate is only recorded as ordered.
+   * That is the domain whose CNAME check failed for a moment - which marks it
+   * unordered - and then passed again. Ordering for it would spend an order
+   * on a duplicate (Let's Encrypt allows five a week per name), and if its
+   * certificate is due, the renewal run orders it in this same tick. The
+   * rest are ordered at most ORDER_MAX_PER_RUN per run, picked afresh every
+   * run (GreenlockUtil.pickForThisRun), so a domain whose order keeps failing
+   * cannot hold a slot the others are waiting for.
    */
   @CaptureSpan()
   public async orderSSLForDomainsWhichAreNotOrderedYet(): Promise<void> {
@@ -821,7 +821,7 @@ export class Service extends DatabaseService<DashboardDomain> {
       options: { attributes: {} },
       fn: async (span: Span): Promise<void> => {
         try {
-          const domains: Array<DashboardDomain> = await this.findBy({
+          const domains: Array<DashboardDomain> = await this.findAllBy({
             query: {
               isCnameVerified: true,
               isSslOrdered: false,
@@ -831,7 +831,6 @@ export class Service extends DatabaseService<DashboardDomain> {
               _id: true,
               fullDomain: true,
             },
-            limit: LIMIT_MAX,
             skip: 0,
             props: {
               isRoot: true,
@@ -854,14 +853,7 @@ export class Service extends DatabaseService<DashboardDomain> {
               continue;
             }
 
-            const certificate: AcmeCertificate | undefined = certificates.get(
-              domain.fullDomain,
-            );
-
-            if (
-              certificate &&
-              !GreenlockUtil.isDueForRenewal(certificate, now)
-            ) {
+            if (certificates.has(domain.fullDomain)) {
               try {
                 await this.updateOneById({
                   id: domain.id!,
@@ -884,7 +876,7 @@ export class Service extends DatabaseService<DashboardDomain> {
             domainsToOrder.push(domain);
           }
 
-          const batch: Array<DashboardDomain> = GreenlockUtil.takeThisRunsTurn({
+          const batch: Array<DashboardDomain> = GreenlockUtil.pickForThisRun({
             items: domainsToOrder,
             max: Service.ORDER_MAX_PER_RUN,
             now: now,
@@ -951,18 +943,16 @@ export class Service extends DatabaseService<DashboardDomain> {
   }
 
   /*
-   * Which of these certificate domains are dashboard domains that use our
-   * Let's Encrypt certificate. The renewal run renews - and removes - only
-   * the certificates this returns, so the certificates of status page domains
-   * and of the primary host, which share the AcmeCertificate table, are
-   * never mistaken for dashboard domains whose CNAME stopped validating.
+   * Which of these certificate domains are dashboard domains. The renewal
+   * run renews - and removes - only the certificates this returns, so the
+   * certificates of status page domains and of the primary host, which share
+   * the AcmeCertificate table, are never mistaken for dashboard domains
+   * whose CNAME stopped validating.
    *
-   * A domain serving a certificate its owner uploaded does not claim the
-   * Let's Encrypt certificate it may have from before the switch: nginx
-   * serves the uploaded one for that name, so renewing the old one would
-   * only spend orders. Left unclaimed, it expires and is cleaned up. The
-   * test is the one nginx's WriteCustomCertsToDisk uses: the switch is on and
-   * both the certificate and its key are there.
+   * A domain serving a certificate its owner uploaded still claims its
+   * Let's Encrypt certificate: nginx serves the uploaded one meanwhile (see
+   * AcmeWriteCertificates), and keeping the other renewed means switching
+   * back never serves an expired one.
    */
   @CaptureSpan()
   public async getOwnedDomains(domains: Array<string>): Promise<Array<string>> {
@@ -976,9 +966,6 @@ export class Service extends DatabaseService<DashboardDomain> {
       },
       select: {
         fullDomain: true,
-        isCustomCertificate: true,
-        customCertificate: true,
-        customCertificateKey: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -988,19 +975,11 @@ export class Service extends DatabaseService<DashboardDomain> {
     });
 
     return dashboardDomains
-      .filter((dashboardDomain: DashboardDomain) => {
-        const servesUploadedCertificate: boolean = Boolean(
-          dashboardDomain.isCustomCertificate &&
-            dashboardDomain.customCertificate &&
-            dashboardDomain.customCertificateKey,
-        );
-
-        return (
-          Boolean(dashboardDomain.fullDomain) && !servesUploadedCertificate
-        );
-      })
       .map((dashboardDomain: DashboardDomain) => {
-        return dashboardDomain.fullDomain as string;
+        return dashboardDomain.fullDomain || "";
+      })
+      .filter((fullDomain: string) => {
+        return fullDomain.length > 0;
       });
   }
 
@@ -1043,11 +1022,12 @@ export class Service extends DatabaseService<DashboardDomain> {
    * which until it learned to check ownership deleted every dashboard
    * certificate that came due for renewal while the domain kept saying
    * "ordered" - nginx then served the stale copy on disk until it expired.
-   * Domains take turns, for the same reason as the first-order sweep above.
+   * Domains are picked afresh every run, for the same reason as in the
+   * first-order sweep above.
    */
   @CaptureSpan()
   public async checkOrderStatus(): Promise<void> {
-    const domains: Array<DashboardDomain> = await this.findBy({
+    const domains: Array<DashboardDomain> = await this.findAllBy({
       query: {
         isSslOrdered: true,
         isCustomCertificate: false,
@@ -1056,7 +1036,6 @@ export class Service extends DatabaseService<DashboardDomain> {
         _id: true,
         fullDomain: true,
       },
-      limit: LIMIT_MAX,
       skip: 0,
       props: {
         isRoot: true,
@@ -1087,7 +1066,7 @@ export class Service extends DatabaseService<DashboardDomain> {
       },
     );
 
-    const batch: Array<DashboardDomain> = GreenlockUtil.takeThisRunsTurn({
+    const batch: Array<DashboardDomain> = GreenlockUtil.pickForThisRun({
       items: domainsWithoutCertificate,
       max: Service.ORDER_MAX_PER_RUN,
       now: OneUptimeDate.getCurrentDate(),

@@ -109,10 +109,22 @@ function setUpTable(rows: Array<Row>): Table {
   jest
     .spyOn(AcmeCertificateService, "deleteBy")
     .mockImplementation((async (deleteBy: {
-      query: { _id: string };
+      query: {
+        _id: string;
+        domain?: string;
+        expiresAt?: { lessThan: Date };
+      };
     }): Promise<number> => {
+      // Every condition of the delete must hold, as in SQL.
       const index: number = table.rows.findIndex((row: Row) => {
-        return row.id.toString() === deleteBy.query._id;
+        return (
+          row.id.toString() === deleteBy.query._id &&
+          (deleteBy.query.domain === undefined ||
+            row.domain === deleteBy.query.domain) &&
+          (deleteBy.query.expiresAt === undefined ||
+            row.expiresAt.getTime() <
+              deleteBy.query.expiresAt.lessThan.getTime())
+        );
       });
 
       if (index === -1) {
@@ -249,6 +261,73 @@ describe("GreenlockUtil.removeExpiredCertificatesNobodyOwns", () => {
 
     expect(table.deletedIds).toEqual([old.id.toString()]);
     expect(table.rows).toEqual([newer]);
+  });
+
+  /*
+   * orderCert renews a name by updating its row in place, keeping the id. A
+   * leftover whose domain is added back and re-ordered while this run is
+   * between its checks and its delete must keep its fresh certificate.
+   */
+  test("a certificate renewed in place after the checks is not deleted", async () => {
+    const leftover: Row = expiredDaysAgo("back.example.com", GRACE + 10);
+    const table: Table = setUpTable([leftover]);
+
+    const removed: number =
+      await GreenlockUtil.removeExpiredCertificatesNobodyOwns({
+        owners: [
+          {
+            name: "status page domains",
+            getOwnedDomains: async (): Promise<Array<string>> => {
+              // The domain is added back and re-ordered right now.
+              leftover.expiresAt = OneUptimeDate.addRemoveDays(
+                OneUptimeDate.getCurrentDate(),
+                90,
+              );
+              return [];
+            },
+          },
+        ],
+      });
+
+    expect(removed).toBe(0);
+    expect(table.deletedIds).toEqual([]);
+    expect(table.rows).toEqual([leftover]);
+  });
+
+  test("the delete names the row's id, its domain and that it is still expired", async () => {
+    const deletes: Array<Record<string, unknown>> = [];
+    const leftover: Row = expiredDaysAgo("gone.example.com", GRACE + 10);
+
+    setUpTable([leftover]);
+
+    jest
+      .spyOn(AcmeCertificateService, "deleteBy")
+      .mockImplementation((async (deleteBy: {
+        query: Record<string, unknown>;
+      }): Promise<number> => {
+        deletes.push(deleteBy.query);
+        return 1;
+      }) as never);
+
+    await GreenlockUtil.removeExpiredCertificatesNobodyOwns({
+      owners: [owner("status page domains", [])],
+    });
+
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0]!["_id"]).toBe(leftover.id.toString());
+    expect(deletes[0]!["domain"]).toBe("gone.example.com");
+
+    const expiredBefore: Date = (deletes[0]!["expiresAt"] as { lessThan: Date })
+      .lessThan;
+    const cutoff: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      -GRACE,
+    );
+
+    // The cut-off of this run, give or take the run's own duration.
+    expect(Math.abs(expiredBefore.getTime() - cutoff.getTime())).toBeLessThan(
+      60 * 1000,
+    );
   });
 
   test("deletes at most REMOVE_UNOWNED_MAX_PER_RUN in a run, the longest expired first", async () => {
