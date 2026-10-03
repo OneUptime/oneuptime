@@ -59,7 +59,10 @@ import {
   CustomDomainVerificationResult,
 } from "../../../Types/StatusPage/CustomDomainVerification";
 import { CustomDomainCertificate } from "../../../Types/StatusPage/CustomDomainCertificates";
-import { InMemoryRedis, useInMemoryRedis } from "../Utils/Greenlock/InMemoryRedis";
+import {
+  InMemoryRedis,
+  useInMemoryRedis,
+} from "../Utils/Greenlock/InMemoryRedis";
 import {
   afterEach,
   beforeEach,
@@ -198,9 +201,7 @@ function matches(row: DomainRow, query: Record<string, unknown>): boolean {
     }
 
     if (value instanceof Date) {
-      const current: unknown = (row as unknown as Record<string, unknown>)[
-        key
-      ];
+      const current: unknown = (row as unknown as Record<string, unknown>)[key];
 
       return current instanceof Date && current.getTime() === value.getTime();
     }
@@ -1438,9 +1439,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
     await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
 
     expect(world.deletedCertificates).toEqual([]);
-    expect(world.certificates.get("status.acme.com")?.certificate).toBe(
-      before,
-    );
+    expect(world.certificates.get("status.acme.com")?.certificate).toBe(before);
     expect(mockCaOrders).toEqual([]);
 
     world.dnsLive.add("status.acme.com");

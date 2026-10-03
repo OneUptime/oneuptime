@@ -46,7 +46,9 @@ describe("CertificateOrderLock", () => {
    * during a deploy keeps out a new one for the same name.
    */
   test("keeps the namespace and timeout CertificateOrder has always used", () => {
-    expect(CertificateOrder.LOCK_NAMESPACE).toBe(CertificateOrderLock.NAMESPACE);
+    expect(CertificateOrder.LOCK_NAMESPACE).toBe(
+      CertificateOrderLock.NAMESPACE,
+    );
     expect(CertificateOrder.LOCK_TIMEOUT_IN_MS).toBe(
       CertificateOrderLock.TIMEOUT_IN_MS,
     );
@@ -66,10 +68,12 @@ describe("CertificateOrderLock", () => {
 
     await CertificateOrderLock.release(first!);
 
-    expect(redis.heldLocks.has("CustomDomainCertificateOrder-status.acme.com")).toBe(
-      false,
-    );
-    expect(await CertificateOrderLock.tryLock("status.acme.com")).not.toBeNull();
+    expect(
+      redis.heldLocks.has("CustomDomainCertificateOrder-status.acme.com"),
+    ).toBe(false);
+    expect(
+      await CertificateOrderLock.tryLock("status.acme.com"),
+    ).not.toBeNull();
   });
 
   test("a handle holds its own name only, and only until it is released", async () => {
@@ -110,11 +114,11 @@ describe("CertificateOrderLock", () => {
     const lock: CertificateOrderLockHandle | null =
       await CertificateOrderLock.tryLock("status.acme.com");
 
-    jest
-      .spyOn(Semaphore, "release")
-      .mockImplementation((async (_mutex: SemaphoreMutex) => {
-        throw new Error("Valkey went away");
-      }) as never);
+    jest.spyOn(Semaphore, "release").mockImplementation((async (
+      _mutex: SemaphoreMutex,
+    ) => {
+      throw new Error("Valkey went away");
+    }) as never);
 
     await expect(CertificateOrderLock.release(lock!)).resolves.toBeUndefined();
     await expect(CertificateOrderLock.release(lock!)).resolves.toBeUndefined();

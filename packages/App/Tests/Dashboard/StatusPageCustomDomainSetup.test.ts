@@ -357,12 +357,7 @@ describe("where a custom domain is, with its certificate", () => {
       certificate({ expiresAt: IN_TWO_MONTHS, lastOrderError: ERROR }),
       false,
     ],
-    [
-      "served",
-      SERVED,
-      certificate({ expiresAt: IN_TWO_MONTHS }),
-      false,
-    ],
+    ["served", SERVED, certificate({ expiresAt: IN_TWO_MONTHS }), false],
     ["ordered, its certificate not known yet", SERVED, undefined, false],
     [
       "on an uploaded certificate",

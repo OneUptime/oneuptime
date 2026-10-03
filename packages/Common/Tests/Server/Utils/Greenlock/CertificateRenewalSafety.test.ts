@@ -98,7 +98,9 @@ function setUpRun(certificates: Record<string, number>): Run {
 
       return [...run.table.entries()]
         .filter(([domain]: [string, Date]) => {
-          return !call.query.domain || call.query.domain.inList.includes(domain);
+          return (
+            !call.query.domain || call.query.domain.inList.includes(domain)
+          );
         })
         .sort((a: [string, Date], b: [string, Date]) => {
           return a[1].getTime() - b[1].getTime();
@@ -249,9 +251,7 @@ describe("a renewal run", () => {
     // The run reads the due rows; a reissue renews the name; then the lookup under the lock.
     jest
       .spyOn(AcmeCertificateService, "findBy")
-      .mockImplementation((async (call: {
-        query: { domain?: unknown };
-      }) => {
+      .mockImplementation((async (call: { query: { domain?: unknown } }) => {
         if (call.query.domain) {
           run.table.set("status.acme.com", inDays(90));
         }

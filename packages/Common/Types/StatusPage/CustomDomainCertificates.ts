@@ -21,7 +21,9 @@ export interface CustomDomainCertificate {
 }
 
 export default class CustomDomainCertificates {
-  public static toJSON(certificates: Array<CustomDomainCertificate>): JSONObject {
+  public static toJSON(
+    certificates: Array<CustomDomainCertificate>,
+  ): JSONObject {
     return {
       domains: certificates.map(
         (certificate: CustomDomainCertificate): JSONObject => {

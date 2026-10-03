@@ -41,8 +41,9 @@ describe("CertificateOrderBudget limits", () => {
     const threeHoursInMinutes: number = 3 * 60;
 
     const windowsInThreeHours: number =
-      Math.ceil(threeHoursInMinutes / CertificateOrderBudget.WINDOW_IN_MINUTES) +
-      1;
+      Math.ceil(
+        threeHoursInMinutes / CertificateOrderBudget.WINDOW_IN_MINUTES,
+      ) + 1;
 
     expect(windowsInThreeHours * CertificateOrderBudget.ORDERS_PER_WINDOW).toBe(
       260,
@@ -56,18 +57,18 @@ describe("CertificateOrderBudget limits", () => {
   });
 
   test("renewals and the primary host may use the whole window, new certificates part of it", () => {
-    expect(CertificateOrderBudget.getLimit(CertificateOrderReason.Renewal)).toBe(
-      CertificateOrderBudget.ORDERS_PER_WINDOW,
-    );
+    expect(
+      CertificateOrderBudget.getLimit(CertificateOrderReason.Renewal),
+    ).toBe(CertificateOrderBudget.ORDERS_PER_WINDOW);
     expect(
       CertificateOrderBudget.getLimit(CertificateOrderReason.PrimaryHost),
     ).toBe(CertificateOrderBudget.ORDERS_PER_WINDOW);
     expect(
       CertificateOrderBudget.getLimit(CertificateOrderReason.FirstCertificate),
     ).toBe(CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW);
-    expect(CertificateOrderBudget.getLimit(CertificateOrderReason.Reissue)).toBe(
-      CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW,
-    );
+    expect(
+      CertificateOrderBudget.getLimit(CertificateOrderReason.Reissue),
+    ).toBe(CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW);
   });
 
   test("renewals always keep a share no flood of new certificates can take", () => {
@@ -200,16 +201,14 @@ describe("CertificateOrderBudget.takeSlot", () => {
       options: { limit: number; expiresInSeconds: number };
     }> = [];
 
-    jest
-      .spyOn(GlobalCache, "incrementIfBelow")
-      .mockImplementation((async (
-        namespace: string,
-        key: string,
-        options: { limit: number; expiresInSeconds: number },
-      ) => {
-        calls.push({ namespace, key, options });
-        return 1;
-      }) as never);
+    jest.spyOn(GlobalCache, "incrementIfBelow").mockImplementation((async (
+      namespace: string,
+      key: string,
+      options: { limit: number; expiresInSeconds: number },
+    ) => {
+      calls.push({ namespace, key, options });
+      return 1;
+    }) as never);
 
     await take(CertificateOrderReason.FirstCertificate);
     await take(CertificateOrderReason.Renewal);

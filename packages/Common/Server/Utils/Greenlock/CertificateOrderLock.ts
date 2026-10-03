@@ -118,7 +118,8 @@ export default class CertificateOrderLock {
 
   // Never throws: the lock expires on its own, and an order must not fail on it.
   public static async release(lock: CertificateOrderLockHandle): Promise<void> {
-    const mutex: SemaphoreMutex | undefined = CertificateOrderLock.held.get(lock);
+    const mutex: SemaphoreMutex | undefined =
+      CertificateOrderLock.held.get(lock);
 
     if (!mutex) {
       return;

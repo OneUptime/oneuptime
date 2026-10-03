@@ -191,13 +191,11 @@ describe("GreenlockUtil.orderCert", () => {
         redis.heldLocks.add(LOCK_KEY);
         const cname: ReturnType<typeof cnameCheck> = cnameCheck(true);
 
-        const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert(
-          {
-            domain: DOMAIN,
-            reason: reason,
-            validateCname: cname.check,
-          },
-        );
+        const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
+          domain: DOMAIN,
+          reason: reason,
+          validateCname: cname.check,
+        });
 
         expect(outcome).toBe(CertificateOrderOutcome.NotOrderedNow);
         expect(mockCaOrders).toEqual([]);
@@ -353,13 +351,11 @@ describe("GreenlockUtil.orderCert", () => {
           String(CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW),
         );
 
-        const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert(
-          {
-            domain: DOMAIN,
-            reason: reason,
-            validateCname: null,
-          },
-        );
+        const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
+          domain: DOMAIN,
+          reason: reason,
+          validateCname: null,
+        });
 
         expect(outcome).toBe(CertificateOrderOutcome.LimitReached);
         expect(mockCaOrders).toEqual([]);
@@ -409,7 +405,10 @@ describe("GreenlockUtil.orderCert", () => {
     );
 
     test("the next window has a new budget", async () => {
-      redis.cache.set(BUDGET_KEY, String(CertificateOrderBudget.ORDERS_PER_WINDOW));
+      redis.cache.set(
+        BUDGET_KEY,
+        String(CertificateOrderBudget.ORDERS_PER_WINDOW),
+      );
 
       jest
         .spyOn(OneUptimeDate, "getCurrentDate")

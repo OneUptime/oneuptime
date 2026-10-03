@@ -628,7 +628,9 @@ describe("the regression, with each service's real CNAME check", () => {
       jest
         .spyOn(GreenlockUtil, "orderCert")
         .mockImplementation(
-          async (order: { domain: string }): Promise<CertificateOrderOutcome> => {
+          async (order: {
+            domain: string;
+          }): Promise<CertificateOrderOutcome> => {
             ordered.push(order.domain);
             return CertificateOrderOutcome.Ordered;
           },

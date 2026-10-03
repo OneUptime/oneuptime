@@ -40,7 +40,9 @@ export default class CertificateReissueOrder {
     // Undoes that write: nothing was ordered.
     giveCooldownBack: () => Promise<void>;
     // Orders the certificate with the lock held.
-    order: (lock: CertificateOrderLockHandle) => Promise<CertificateOrderOutcome>;
+    order: (
+      lock: CertificateOrderLockHandle,
+    ) => Promise<CertificateOrderOutcome>;
   }): Promise<void> {
     const lock: CertificateOrderLockHandle | null =
       await CertificateOrderLock.tryLock(data.domain);

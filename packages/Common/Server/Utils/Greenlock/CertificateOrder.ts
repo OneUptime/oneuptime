@@ -63,7 +63,8 @@ export interface CustomDomainCertificateState {
  * under it.
  */
 export default class CertificateOrder {
-  public static readonly LOCK_NAMESPACE: string = CertificateOrderLock.NAMESPACE;
+  public static readonly LOCK_NAMESPACE: string =
+    CertificateOrderLock.NAMESPACE;
 
   public static readonly LOCK_TIMEOUT_IN_MS: number =
     CertificateOrderLock.TIMEOUT_IN_MS;

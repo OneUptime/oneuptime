@@ -59,9 +59,9 @@ describe("CustomDomainCertificates", () => {
       { domains: "nope" },
       { domains: [null, 42, "x", [], { expiresAt: "2026-12-30" }] },
     ]) {
-      expect(
-        CustomDomainCertificates.fromJSON(json as JSONObject).size,
-      ).toBe(0);
+      expect(CustomDomainCertificates.fromJSON(json as JSONObject).size).toBe(
+        0,
+      );
     }
   });
 

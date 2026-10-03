@@ -762,7 +762,10 @@ describe("certificates (the Status column)", () => {
     );
     expect(findArgs.props).toBe(callerProps);
     expect(findArgs.select).toEqual({ _id: true, fullDomain: true });
-    expect(states).toHaveBeenCalledWith(["Failing.Acme.com", "issued.acme.com"]);
+    expect(states).toHaveBeenCalledWith([
+      "Failing.Acme.com",
+      "issued.acme.com",
+    ]);
 
     expect(answered()).toEqual({
       domains: [

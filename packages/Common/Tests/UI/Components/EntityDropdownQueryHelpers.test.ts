@@ -68,9 +68,7 @@ describe("withSearch", () => {
     );
 
     expect(query[ENTITY_DROPDOWN_SEARCH_KEY]).toBe("the caller's");
-    expect(query[`_${ENTITY_DROPDOWN_SEARCH_KEY}`]).toBeInstanceOf(
-      MultiSearch,
-    );
+    expect(query[`_${ENTITY_DROPDOWN_SEARCH_KEY}`]).toBeInstanceOf(MultiSearch);
   });
 });
 
@@ -121,9 +119,9 @@ describe("canPickByLabel", () => {
     expect(canPickByLabel({})).toBe(true);
     expect(canPickByLabel({ labels: null })).toBe(true);
     expect(canPickByLabel({ labels: new Includes(["x"]) })).toBe(true);
-    expect(
-      canPickByLabel({ labels: new IncludesAnyOfGroups([["x"]]) }),
-    ).toBe(true);
+    expect(canPickByLabel({ labels: new IncludesAnyOfGroups([["x"]]) })).toBe(
+      true,
+    );
   });
 
   test("not with another kind of condition on labels", () => {

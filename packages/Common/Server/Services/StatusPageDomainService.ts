@@ -307,10 +307,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
           const domainToOrder: StatusPageDomain =
             await this.getDomainToOrder(statusPageDomain);
 
-          logger.debug(
-            "Ordering SSL for domain: " + domainToOrder.fullDomain,
-            { fullDomain: domainToOrder.fullDomain } as LogAttributes,
-          );
+          logger.debug("Ordering SSL for domain: " + domainToOrder.fullDomain, {
+            fullDomain: domainToOrder.fullDomain,
+          } as LogAttributes);
 
           const outcome: CertificateOrderOutcome =
             await GreenlockUtil.orderCert({

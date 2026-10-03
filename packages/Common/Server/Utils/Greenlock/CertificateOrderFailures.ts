@@ -144,10 +144,9 @@ export default class CertificateOrderFailures {
         },
       );
     } catch (err) {
-      logger.error(
-        `Could not record the failed certificate order of ${name}`,
-        { fullDomain: name } as LogAttributes,
-      );
+      logger.error(`Could not record the failed certificate order of ${name}`, {
+        fullDomain: name,
+      } as LogAttributes);
       logger.error(err, { fullDomain: name } as LogAttributes);
     }
   }

@@ -135,32 +135,30 @@ const setUpHarness: SetUpHarnessFunction = (data: {
       return data.claimedRowCount === undefined ? 1 : data.claimedRowCount;
     }) as never);
 
-  jest
-    .spyOn(data.service as never, "orderCert")
-    .mockImplementation((async (
-      domain: {
-        fullDomain?: string;
-      },
-      options?: {
-        reason?: CertificateOrderReason;
-        lock?: CertificateOrderLockHandle;
-      },
-    ): Promise<CertificateOrderOutcome> => {
-      calls.ordered.push(domain.fullDomain as string);
-      calls.orderOptions.push({
-        reason: options?.reason,
-        heldLock: CertificateOrderLock.isHeldFor(
-          options?.lock,
-          domain.fullDomain as string,
-        ),
-      });
+  jest.spyOn(data.service as never, "orderCert").mockImplementation((async (
+    domain: {
+      fullDomain?: string;
+    },
+    options?: {
+      reason?: CertificateOrderReason;
+      lock?: CertificateOrderLockHandle;
+    },
+  ): Promise<CertificateOrderOutcome> => {
+    calls.ordered.push(domain.fullDomain as string);
+    calls.orderOptions.push({
+      reason: options?.reason,
+      heldLock: CertificateOrderLock.isHeldFor(
+        options?.lock,
+        domain.fullDomain as string,
+      ),
+    });
 
-      if (data.orderCertThrows) {
-        throw data.orderCertThrows;
-      }
+    if (data.orderCertThrows) {
+      throw data.orderCertThrows;
+    }
 
-      return data.orderOutcome || CertificateOrderOutcome.Ordered;
-    }) as never);
+    return data.orderOutcome || CertificateOrderOutcome.Ordered;
+  }) as never);
 
   return calls;
 };

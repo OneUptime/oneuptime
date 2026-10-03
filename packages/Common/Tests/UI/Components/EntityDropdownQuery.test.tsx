@@ -383,9 +383,10 @@ describe("EntityDropdown query", () => {
     expect(byLabel.length).toBeGreaterThan(0);
 
     for (const request of byLabel) {
-      expect(
-        (request.query["labels"] as IncludesAnyOfGroups).groups,
-      ).toEqual([[callersLabel], [pickedLabel]]);
+      expect((request.query["labels"] as IncludesAnyOfGroups).groups).toEqual([
+        [callersLabel],
+        [pickedLabel],
+      ]);
     }
   });
 

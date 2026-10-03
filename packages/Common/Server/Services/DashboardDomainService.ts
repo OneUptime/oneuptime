@@ -285,10 +285,9 @@ export class Service extends DatabaseService<DashboardDomain> {
           const domainToOrder: DashboardDomain =
             await this.getDomainToOrder(dashboardDomain);
 
-          logger.debug(
-            "Ordering SSL for domain: " + domainToOrder.fullDomain,
-            { fullDomain: domainToOrder.fullDomain } as LogAttributes,
-          );
+          logger.debug("Ordering SSL for domain: " + domainToOrder.fullDomain, {
+            fullDomain: domainToOrder.fullDomain,
+          } as LogAttributes);
 
           const outcome: CertificateOrderOutcome =
             await GreenlockUtil.orderCert({
@@ -552,8 +551,7 @@ export class Service extends DatabaseService<DashboardDomain> {
         lock: CertificateOrderLockHandle,
       ): Promise<CertificateOrderOutcome> => {
         logger.debug(
-          "Reissuing SSL certificate for domain: " +
-            dashboardDomain.fullDomain,
+          "Reissuing SSL certificate for domain: " + dashboardDomain.fullDomain,
           { fullDomain: dashboardDomain.fullDomain } as LogAttributes,
         );
 

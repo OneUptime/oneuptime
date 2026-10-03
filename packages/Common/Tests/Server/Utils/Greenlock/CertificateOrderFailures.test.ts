@@ -24,7 +24,10 @@ function minutesAfter(date: Date, minutes: number): Date {
   return OneUptimeDate.addRemoveMinutes(date, minutes);
 }
 
-function failure(failures: number, failedAt: Date = NOW): CertificateOrderFailure {
+function failure(
+  failures: number,
+  failedAt: Date = NOW,
+): CertificateOrderFailure {
   return { error: "Unable to order certificate", failedAt, failures };
 }
 
@@ -137,12 +140,11 @@ describe("CertificateOrderFailures records", () => {
   });
 
   test("keeps a record for a week", async () => {
-    const setString: Mock<(...args: Array<unknown>) => Promise<void>> =
-      jest.fn(async (): Promise<void> => {});
+    const setString: Mock<(...args: Array<unknown>) => Promise<void>> = jest.fn(
+      async (): Promise<void> => {},
+    );
     jest.spyOn(GlobalCache, "getString").mockResolvedValue(null as never);
-    jest
-      .spyOn(GlobalCache, "setString")
-      .mockImplementation(setString as never);
+    jest.spyOn(GlobalCache, "setString").mockImplementation(setString as never);
 
     await CertificateOrderFailures.record({
       domain: "status.acme.com",
@@ -181,9 +183,9 @@ describe("CertificateOrderFailures records", () => {
     });
     await CertificateOrderFailures.clear("Status.Acme.com");
 
-    expect(
-      (await CertificateOrderFailures.get(["status.acme.com"])).size,
-    ).toBe(0);
+    expect((await CertificateOrderFailures.get(["status.acme.com"])).size).toBe(
+      0,
+    );
 
     // The next failure starts a new run of failures.
     await CertificateOrderFailures.record({
@@ -224,8 +226,10 @@ describe("CertificateOrderFailures records", () => {
       JSON.stringify({ error: 42, failedAt: "yesterday" }),
     );
 
-    const getStrings: SpyInstance<typeof GlobalCache.getStrings> =
-      jest.spyOn(GlobalCache, "getStrings");
+    const getStrings: SpyInstance<typeof GlobalCache.getStrings> = jest.spyOn(
+      GlobalCache,
+      "getStrings",
+    );
 
     const recorded: Map<string, CertificateOrderFailure> =
       await CertificateOrderFailures.get([...names, names[0]!, ""]);

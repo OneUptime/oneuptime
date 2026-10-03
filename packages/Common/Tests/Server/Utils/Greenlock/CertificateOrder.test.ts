@@ -517,9 +517,9 @@ describe("CertificateOrder.orderIfMissing and the order it places", () => {
 
     expect(heldDuringTheOrder).toBe(true);
     // Released once the order is done.
-    expect(
-      CertificateOrderLock.isHeldFor(handed!, "status.acme.com"),
-    ).toBe(false);
+    expect(CertificateOrderLock.isHeldFor(handed!, "status.acme.com")).toBe(
+      false,
+    );
   });
 
   test("answers with what the order answers: an order the account's budget refused is LimitReached", async () => {
