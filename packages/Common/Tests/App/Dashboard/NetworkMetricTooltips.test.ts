@@ -556,8 +556,12 @@ describe("latency and ping texts match what is fetched", () => {
       "DeviceDiagnosticsViewModel.ts",
     );
 
+    // A translated sentence: received first, then sent.
     expect(viewModel).toContain(
-      "(${result.pingResponse.packetsReceived}/${ result.pingResponse.packetsSent } received)",
+      '"{{percent}} ({{received}}/{{sent}} received)"',
+    );
+    expect(viewModel).toContain(
+      "received: result.pingResponse.packetsReceived, sent: result.pingResponse.packetsSent,",
     );
     expect(DEVICE.pingPacketLoss).toContain(
       "how many replies came back out of the pings sent",
@@ -1067,8 +1071,9 @@ describe("Network Map card texts match the children endpoint", () => {
     expect(card).toContain(
       "const downUnits: number = totalUnits - operationalUnits;",
     );
+    // Counted out of every unit, in the reader's plural form.
     expect(card).toContain(
-      "leadCaption = `of ${totalUnits} ${pluralUnits(totalUnits)} down`;",
+      'leadCaption = translator.translatePlural( { one: "of {{count}} unit down", other: "of {{count}} units down" }, totalUnits, );',
     );
 
     expect(SITE.siteCards).toContain("Units are unit-level sites");
@@ -1134,7 +1139,7 @@ describe("Network Map card texts match the children endpoint", () => {
     );
     expect(card).toContain("30d uptime");
     expect(card).toContain(
-      "{formatUptimePercent(site.dailyUptimePercent)} today",
+      'translator.translateTemplate("{{uptime}} today", { uptime: formatUptimePercent(site.dailyUptimePercent), })',
     );
 
     // 'today' quoted: the card's own label, not "as of today".
