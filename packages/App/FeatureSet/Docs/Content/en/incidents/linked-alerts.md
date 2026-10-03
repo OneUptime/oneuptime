@@ -92,7 +92,7 @@ Whichever you use, you land on the usual **Declare New Incident** form, with the
 
 "Most severe" follows your alert severity order: the first alert severity in the list is the most severe. With the severities every project starts with, a **High** alert becomes a **Critical Incident** and a **Low** alert a **Major Incident**.
 
-Everything is editable before you submit.
+Everything is editable before you submit. **Labels** and **Private Incident** are under **Advanced** on the form's first step, which says **Configured** while either is set.
 
 **An alert that already has an incident is flagged.** With **Declare Incident** on every alert's page, two responders paged by the same outage can each declare it. So the banner listing the alerts marks each alert that is already linked to an incident — "(already linked to Incident INC-42)", linking to that incident — and adds a note, worded by how many of the alerts are linked:
 
@@ -102,7 +102,7 @@ Everything is editable before you submit.
 
 The incident links open in a new tab, so you can check the existing incident without losing what you have filled in on the form. The note is a reminder, not a block, and only incidents you are allowed to see are named.
 
-**On-call policies are not copied.** The alerts ran their own on-call policies when they were created, so copying them onto the incident would page the same people a second time. The incident's on-call policies are whatever you pick on the **On-Call** step plus whatever your incident on-call rules add — exactly as for any other incident.
+**On-call policies are not copied.** The alerts ran their own on-call policies when they were created, so copying them onto the incident would page the same people a second time. The incident's on-call policies are whatever you pick on the **On-Call & Roles** step plus whatever your incident on-call rules add — exactly as for any other incident.
 
 **The alerts' monitors are prefilled as affected monitors.** As with any incident declared by hand, active monitoring on the incident's monitors pauses until the incident is resolved. Remove a monitor from **Resources Affected** before you submit if it should keep being checked.
 
@@ -124,7 +124,7 @@ Leave it ticked and, once the incident is declared and the alerts are linked:
 - **An alert episode keeps escalating.** If an alert belongs to an episode that pages through its own on-call policy, the episode keeps escalating until the episode itself is acknowledged.
 - **Alerts already acknowledged or resolved are left alone.** As everywhere else, states are compared by their order, so an alert in a custom state after **Acknowledged** counts as acknowledged, and nothing is ever moved backwards.
 
-Untick the box to declare without acknowledging. Whenever alerts will be left unacknowledged — the box is unticked or locked — the form says so: "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged." And if you acknowledge the alerts without choosing an on-call policy for the incident, the **On-Call** step's summary points out: "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page."
+Untick the box to declare without acknowledging. Whenever alerts will be left unacknowledged — the box is unticked or locked — the form says so: "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged." And if you acknowledge the alerts without choosing an on-call policy for the incident, the **On-Call & Roles** step's summary points out: "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page."
 
 **You need permission to acknowledge the alerts.** Acknowledging writes the alert's state timeline and changes the alert, so it takes **Create Alert State Timeline** and **Edit Alert**: Project Owner, Project Admin, Project Member, Alert Admin and Alert Member have both, while Incident Admin and Incident Member, who can declare incidents from alerts, have neither. Your label and owner scope on alerts must include each alert that will be acknowledged, too — only the ones not acknowledged yet are checked. Alerts that are already acknowledged or resolved need no permission and never block the declaration. Without the permissions the box is locked, with a tooltip naming the missing one, and you can still declare the incident. The server checks again before it creates anything, for each alert it will acknowledge: if you may not acknowledge one of them, no incident is created and the form says why — untick the box and submit again.
 

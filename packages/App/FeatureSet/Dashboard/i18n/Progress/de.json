@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 20026,
-    "untranslated": 0
+    "keys": 21384,
+    "untranslated": 1353
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -106,7 +106,6 @@
     "CPU.*high",
     "CSS",
     "Chat",
-    "Chat & Webhooks",
     "Checkout primary",
     "Chile",
     "China",

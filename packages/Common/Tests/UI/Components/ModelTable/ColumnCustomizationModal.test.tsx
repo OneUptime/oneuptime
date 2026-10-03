@@ -906,8 +906,9 @@ describe("ColumnCustomizationModal", () => {
     expect(view.getByTestId("column-move-down-name")).toBeDisabled();
     expect(view.getByTestId("column-customization-show-all")).toBeDisabled();
     expect(view.getByTestId("column-customization-hide-all")).toBeDisabled();
+    // The total picks the plural form: one column, not "1 of 1 columns".
     expect(view.getByTestId("column-customization-count")).toHaveTextContent(
-      "1 of 1 columns shown",
+      "1 of 1 column shown",
     );
   });
 

@@ -24,6 +24,8 @@ import React, {
   useId,
   useState,
 } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * A workflow step's "How to use" help (Types/Workflow/Documentation), drawn
@@ -131,6 +133,7 @@ interface ExampleProps {
 const Example: FunctionComponent<ExampleProps> = (
   props: ExampleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const example: ComponentDocumentationExample = props.example;
   const code: string | undefined = example.code;
 
@@ -145,7 +148,9 @@ const Example: FunctionComponent<ExampleProps> = (
             textToBeCopied={code}
             size="sm"
             variant="soft"
-            title={`Copy the example: ${example.title}`}
+            title={translator.translateTemplate("Copy the example: {{title}}", {
+              title: translatableTerm(example.title),
+            })}
             className="shrink-0"
           />
         ) : (
@@ -252,6 +257,7 @@ const Note: FunctionComponent<NoteProps> = (props: NoteProps): ReactElement => {
 const DocumentationViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const documentation: ComponentDocumentation = props.documentation;
   const [showMore, setShowMore] = useState<boolean>(false);
   const learnMoreId: string = useId();
@@ -333,7 +339,9 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
                 icon={showMore ? IconProp.ChevronDown : IconProp.ChevronRight}
                 className="h-4 w-4"
               />
-              {showMore ? "Show less" : "Learn more"}
+              {showMore
+                ? translator.translateText("Show less")
+                : translator.translateText("Learn more")}
             </button>
           ) : (
             <span />

@@ -38,6 +38,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export enum ValueSingleFieldKind {
   Number = "Number",
@@ -47,7 +49,9 @@ export enum ValueSingleFieldKind {
   DateTime = "DateTime",
 }
 
-export const TYPE_A_VALUE_LABEL: string = "Type a value instead";
+export const TYPE_A_VALUE_LABEL: string = translationKey(
+  "Type a value instead",
+);
 
 const INPUT_TYPE: Partial<Record<ValueSingleFieldKind, InputType>> = {
   [ValueSingleFieldKind.Number]: InputType.NUMBER,
@@ -82,6 +86,7 @@ export interface ValueSingleFieldProps {
 const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
   props: ValueSingleFieldProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
   const dataTestId: string = props.dataTestId || "value-single-field";
 
@@ -145,8 +150,8 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
           <button
             type="button"
             className="mt-1 shrink-0 rounded-md border border-gray-200 px-1.5 py-1 font-mono text-[11px] leading-none text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            aria-label={TYPE_A_VALUE_LABEL}
-            title={TYPE_A_VALUE_LABEL}
+            aria-label={translator.translateText(TYPE_A_VALUE_LABEL)}
+            title={translator.translateText(TYPE_A_VALUE_LABEL)}
             data-testid={`${dataTestId}-type-a-value`}
             onClick={() => {
               props.onChange(
@@ -169,8 +174,8 @@ const ValueSingleField: FunctionComponent<ValueSingleFieldProps> = (
           ? INSERT_VALUE_BUTTON_OPEN_CLASS
           : INSERT_VALUE_BUTTON_IDLE_CLASS
       }`}
-      aria-label={INSERT_VALUE_LABEL}
-      title={INSERT_VALUE_LABEL}
+      aria-label={translator.translateText(INSERT_VALUE_LABEL)}
+      title={translator.translateText(INSERT_VALUE_LABEL)}
       aria-haspopup="dialog"
       aria-expanded={isPopoverOpen}
       data-testid={`${dataTestId}-insert-value`}

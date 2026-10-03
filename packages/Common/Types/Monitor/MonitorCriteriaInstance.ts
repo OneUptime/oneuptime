@@ -133,7 +133,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
    * missing here falls through to `new MonitorCriteriaInstance()` and
    * ships an unnamed criteria whose "Is Online" filter no evaluator on
    * this path reads - a rule that can never fire and cannot be saved,
-   * since getValidationError requires a name and a description.
+   * since getValidationError requires a name.
    */
   public static isMetricBackedMonitorType(monitorType: MonitorType): boolean {
     return (
@@ -1748,16 +1748,24 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return `Monitor Step is required.`;
     }
 
+    /*
+     * The name is what the incidents and alerts a criteria opens say
+     * triggered them, so every criteria needs one. Nobody has to make one
+     * up: the criteria form names a criteria after its filters until the
+     * user types their own. Checked first, so the messages below always
+     * have a name to quote.
+     *
+     * The description is not checked. Nothing reads it but the dashboard,
+     * which shows it under the name when there is one, and Terraform has
+     * always treated it as optional; demanding it here stopped every new
+     * criteria at a field nobody needs.
+     */
+    if (!value.data.name?.trim()) {
+      return `Name is required for every criteria.`;
+    }
+
     if (value.data.filters.length === 0) {
       return `Filter is required for criteria "${value.data.name}"`;
-    }
-
-    if (!value.data.name) {
-      return `Name is required for criteria "${value.data.name}"`;
-    }
-
-    if (!value.data.description) {
-      return `Description is required for criteria "${value.data.name}"`;
     }
 
     /*
@@ -2133,7 +2141,8 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: Zod.array(CriteriaIncidentSchema),
         alerts: Zod.array(CriteriaAlertSchema),
         name: Zod.string(),
-        description: Zod.string(),
+        // Optional: a criteria needs a name, not a description.
+        description: Zod.string().optional(),
         changeMonitorStatus: Zod.boolean().optional(),
         createIncidents: Zod.boolean().optional(),
         createAlerts: Zod.boolean().optional(),

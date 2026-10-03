@@ -60,7 +60,11 @@ import IncidentRoleFormField, {
   RoleAssignment,
 } from "../../Components/Incident/IncidentRoleFormField";
 import FetchIncidentRoleAssignments from "../../Components/IncidentRole/FetchIncidentRoleAssignments";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import UserUtil from "Common/UI/Utils/User";
@@ -292,6 +296,48 @@ const getAudienceSummary: GetAudienceSummaryFunction = (
 };
 
 /*
+ * A private incident shows on no status page, not even the ones it is
+ * limited to. Said under Private Incident (in Advanced, on the first step)
+ * and under the status page picker (on the next): each says it on its own
+ * step, so whichever of the two is set second says it where it is set.
+ */
+type GetPrivateScopeWarningFunction = (
+  values: FormValues<Incident>,
+) => ReactElement | undefined;
+
+const getPrivateScopeWarning: GetPrivateScopeWarningFunction = (
+  values: FormValues<Incident>,
+): ReactElement | undefined => {
+  if (
+    (values as Record<string, unknown>)["isPrivate"] !== true ||
+    getIdsFromFormValue(values.statusPages).length === 0
+  ) {
+    return undefined;
+  }
+
+  return (
+    <TranslatedScopeNotice
+      text={IncidentStatusPageScopeCopy.privateIncidentWarning}
+      dataTestId="incident-create-private-scope-warning"
+    />
+  );
+};
+
+/*
+ * Declaring an incident asks for what it cannot be declared without - a
+ * title and a severity - and the description its status page shows. The
+ * options most declarations never touch are folded under one "Advanced"
+ * header at the end of their step: when it was declared, the state it starts
+ * in, its labels and whether it is private on Incident Details, and the
+ * monitor status to switch to on Resources Affected. Folded, the header says
+ * "Configured" when one of them holds something (a template's labels, a
+ * private alert's privacy), and it opens by itself when one fails
+ * validation. The review step lists a folded option only when it is set.
+ */
+const advancedSection: FormFieldCollapsibleSection<Incident> =
+  getAdvancedFormSection<Incident>();
+
+/*
  * Every resource type the "Resources Affected" step offers. The editor and
  * the review step's read-only picker both take this list, so the summary
  * names every type the editor lets the user pick.
@@ -467,6 +513,15 @@ const IncidentCreate: FunctionComponent<
     Map<string, Array<Incident>>
   >(new Map());
 
+  /*
+   * Declared At starts at the moment the page opened. Kept fixed rather than
+   * read again on every render, so the Advanced section can tell a time
+   * someone set (it says "Configured") from the one it started with.
+   */
+  const [formOpenedAt] = useState<Date>(() => {
+    return OneUptimeDate.getCurrentDate();
+  });
+
   useEffect(() => {
     loadCustomFieldDefinitions();
 
@@ -486,8 +541,10 @@ const IncidentCreate: FunctionComponent<
     } else if (incidentTemplateId) {
       fetchIncidentTemplate(new ObjectID(incidentTemplateId));
     } else {
-      // Fetch the first incident state to set as default
-      fetchFirstIncidentState();
+      /*
+       * Nothing to fetch: the state an incident starts in is left empty, and
+       * the server then uses the project's starting state.
+       */
       setIsLoading(false);
     }
   }, []);
@@ -502,52 +559,6 @@ const IncidentCreate: FunctionComponent<
       }
 
       setIsLoadingCustomFieldDefinitions(false);
-    };
-
-  const getFirstIncidentStateId: () => Promise<
-    string | null
-  > = async (): Promise<string | null> => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return null;
-    }
-
-    try {
-      const incidentStates: ListResult<IncidentState> =
-        await ModelAPI.getList<IncidentState>({
-          modelType: IncidentState,
-          query: {
-            projectId: projectId,
-          },
-          limit: 1,
-          skip: 0,
-          select: {
-            _id: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-        });
-
-      return incidentStates.data[0]?._id?.toString() || null;
-    } catch {
-      // Silently fail to avoid breaking the form
-      return null;
-    }
-  };
-
-  const fetchFirstIncidentState: () => Promise<void> =
-    async (): Promise<void> => {
-      const firstStateId: string | null = await getFirstIncidentStateId();
-
-      if (firstStateId) {
-        setInitialValuesForIncident((prev: JSONObject) => {
-          return {
-            ...prev,
-            currentIncidentState: firstStateId,
-          };
-        });
-      }
     };
 
   const fetchIncidentTemplate: (id: ObjectID) => Promise<void> = async (
@@ -591,12 +602,6 @@ const IncidentCreate: FunctionComponent<
       if (incidentTemplateId) {
         initialValues =
           (await getIncidentTemplateInitialValues(incidentTemplateId)) || {};
-      } else {
-        const firstStateId: string | null = await getFirstIncidentStateId();
-
-        if (firstStateId) {
-          initialValues["currentIncidentState"] = firstStateId;
-        }
       }
 
       const [
@@ -1411,32 +1416,6 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: {
-                    description: true,
-                  },
-                  title: "Description",
-                  stepId: "incident-details",
-                  fieldType: FormFieldSchemaType.Markdown,
-                  required: false,
-                  description: MarkdownUtil.getMarkdownCheatsheet(
-                    "Describe the incident details here",
-                  ),
-                },
-                {
-                  field: {
-                    declaredAt: true,
-                  },
-                  title: "Declared At",
-                  stepId: "incident-details",
-                  description: "When was this incident first declared?",
-                  fieldType: FormFieldSchemaType.DateTime,
-                  required: true,
-                  placeholder: "Pick date and time",
-                  getDefaultValue: () => {
-                    return OneUptimeDate.getCurrentDate();
-                  },
-                },
-                {
-                  field: {
                     incidentSeverity: true,
                   },
                   title: "Incident Severity",
@@ -1475,12 +1454,47 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: {
+                    description: true,
+                  },
+                  title: "Description",
+                  stepId: "incident-details",
+                  fieldType: FormFieldSchemaType.Markdown,
+                  required: false,
+                  description: MarkdownUtil.getMarkdownCheatsheet(
+                    "Describe the incident details here",
+                  ),
+                },
+                /*
+                 * Advanced: what most declarations leave alone. Declared At
+                 * starts at the moment the page opened; back-date it to
+                 * record an incident that began earlier.
+                 */
+                {
+                  field: {
+                    declaredAt: true,
+                  },
+                  title: "Declared At",
+                  stepId: "incident-details",
+                  description: "When was this incident first declared?",
+                  fieldType: FormFieldSchemaType.DateTime,
+                  required: true,
+                  placeholder: "Pick date and time",
+                  defaultValue: formOpenedAt,
+                  collapsibleSection: advancedSection,
+                },
+                /*
+                 * Left empty, the incident starts where every new incident
+                 * does - the project's starting state, or the template's -
+                 * which is what the server picks when it is not sent.
+                 */
+                {
+                  field: {
                     currentIncidentState: true,
                   },
-                  title: "Incident State",
+                  title: "Initial State",
                   stepId: "incident-details",
                   description:
-                    "Select the initial state for this incident to be in.",
+                    "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
@@ -1492,12 +1506,13 @@ const IncidentCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select Initial State",
+                  collapsibleSection: advancedSection,
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.currentIncidentState) {
                       return (
                         <p>
                           {translator.translateText(
-                            "Will use first available state by priority",
+                            "The usual starting state.",
                           )}
                         </p>
                       );
@@ -1514,6 +1529,76 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: {
+                    labels: true,
+                  },
+
+                  title: "Labels ",
+                  stepId: "incident-details",
+                  description:
+                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Labels",
+                  collapsibleSection: advancedSection,
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    if (!item.labels || !Array.isArray(item.labels)) {
+                      return (
+                        <p>{translator.translateText("No labels assigned.")}</p>
+                      );
+                    }
+
+                    const labelIds: Array<ObjectID> = [];
+
+                    for (const label of item.labels) {
+                      if (typeof label === "string") {
+                        labelIds.push(new ObjectID(label));
+                        continue;
+                      }
+
+                      if (label instanceof ObjectID) {
+                        labelIds.push(label);
+                        continue;
+                      }
+
+                      if (label instanceof Label) {
+                        labelIds.push(
+                          new ObjectID(label._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchLabels labelIds={labelIds} />
+                      </div>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    isPrivate: true,
+                  },
+                  title: "Private Incident",
+                  stepId: "incident-details",
+                  description:
+                    "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages.",
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  defaultValue: false,
+                  required: false,
+                  collapsibleSection: advancedSection,
+                  // Private wins over the status pages it is limited to.
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    return getPrivateScopeWarning(values);
+                  },
+                },
+                {
+                  field: {
                     monitors: true,
                   },
                   title: "Resources Affected",
@@ -1522,6 +1607,8 @@ const IncidentCreate: FunctionComponent<
                     "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
+                  // The picker writes only what is picked: the form can be finished without it.
+                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     values: FormValues<Incident>,
                     elementProps: CustomElementProps,
@@ -1662,6 +1749,7 @@ const IncidentCreate: FunctionComponent<
                         ) : (
                           <></>
                         )}
+                        {getPrivateScopeWarning(values)}
                       </>
                     );
                   },
@@ -1686,6 +1774,61 @@ const IncidentCreate: FunctionComponent<
                           },
                         )}
                       />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
+                      true,
+                  },
+
+                  title: "Notify Status Page Subscribers",
+                  stepId: "resources-affected",
+                  description:
+                    "Should status page subscribers be notified when this incident is created?",
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  defaultValue: true,
+                  required: false,
+                  // Who that is, before anything is sent.
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    return getAudienceSummary(values);
+                  },
+                  /*
+                   * On the last step: whether the box is ticked, as every
+                   * other box there says it; who that reaches; and what they
+                   * will be sent - each status page's email, from the
+                   * incident as declared here. There is nothing to preview
+                   * when nothing will be sent: notifying is off, the
+                   * incident will be private, or it is on no monitor.
+                   */
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    return (
+                      <>
+                        <BooleanValue
+                          value={isNotifyTicked(item)}
+                          dataTestId="incident-create-notify-subscribers-value"
+                        />
+                        {getAudienceSummary(item)}
+                        {isNotifyingSubscribers(item) && hasMonitors(item) ? (
+                          <SubscriberNotificationPreviewButton
+                            dataTestId="incident-create-preview-notification"
+                            getRequest={() => {
+                              return getIncidentCreatedPreviewRequest({
+                                values: item as Record<string, unknown>,
+                                customFields: packCustomFieldFormValues({
+                                  definitions: detailsStepDefinitions,
+                                  formValues: item as JSONObject,
+                                  startingCustomFields: startingCustomFields,
+                                  isShown: isAskedOnIncidentForm,
+                                }),
+                              });
+                            }}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </>
                     );
                   },
                 },
@@ -1754,52 +1897,69 @@ const IncidentCreate: FunctionComponent<
                     return false;
                   },
                 },
-                ...detailsStepFields,
                 {
-                  overrideField: {
-                    incidentRoles: true,
+                  field: {
+                    changeMonitorStatusTo: true,
                   },
-                  showEvenIfPermissionDoesNotExist: true,
-                  title: "Assign Incident Roles",
-                  stepId: "incident-roles",
+                  title: "Change Monitor Status to ",
+                  stepId: "resources-affected",
                   description:
-                    "Assign team members to incident roles. Some roles allow multiple users.",
-                  fieldType: FormFieldSchemaType.CustomComponent,
+                    "This will change the status of all the monitors attached to this incident.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: MonitorStatus,
+                    labelField: "name",
+                    valueField: "_id",
+                    sort: {
+                      priority: SortOrder.Ascending,
+                    },
+                  },
                   required: false,
-                  overrideFieldKey: "incidentRoles",
-                  getCustomElement: (
-                    _value: FormValues<Incident>,
-                    props: CustomElementProps,
-                  ) => {
+                  placeholder: "Monitor Status",
+                  collapsibleSection: advancedSection,
+                  /*
+                   * Monitor status is not scoped: every status page that
+                   * lists the monitor shows it.
+                   */
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    if (
+                      !values.changeMonitorStatusTo ||
+                      getIdsFromFormValue(values.statusPages).length === 0
+                    ) {
+                      return undefined;
+                    }
+
                     return (
-                      <IncidentRoleFormField
-                        initialValue={roleAssignmentsRef.current}
-                        onChange={(assignments: Array<RoleAssignment>) => {
-                          roleAssignmentsRef.current = assignments;
-                          if (props.onChange) {
-                            props.onChange(assignments);
-                          }
-                        }}
+                      <TranslatedScopeNotice
+                        text={
+                          IncidentStatusPageScopeCopy.changeMonitorStatusWarning
+                        }
+                        dataTestId="incident-create-monitor-status-scope-warning"
                       />
                     );
                   },
-                  getSummaryElement: (_item: FormValues<Incident>) => {
-                    if (roleAssignmentsRef.current.length === 0) {
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    if (!item.changeMonitorStatusTo) {
                       return (
                         <p>
                           {translator.translateText(
-                            "No incident roles assigned.",
+                            "Status of the monitors will not be changed when this incident is created.",
                           )}
                         </p>
                       );
                     }
+
                     return (
-                      <FetchIncidentRoleAssignments
-                        assignments={roleAssignmentsRef.current}
+                      <FetchMonitorStatuses
+                        monitorStatusIds={[
+                          new ObjectID(item.changeMonitorStatusTo.toString()),
+                        ]}
+                        shouldAnimate={false}
                       />
                     );
                   },
                 },
+                ...detailsStepFields,
                 {
                   field: {
                     onCallDutyPolicies: true,
@@ -1869,200 +2029,52 @@ const IncidentCreate: FunctionComponent<
                   },
                 },
                 {
-                  field: {
-                    changeMonitorStatusTo: true,
+                  overrideField: {
+                    incidentRoles: true,
                   },
-                  title: "Change Monitor Status to ",
-                  stepId: "resources-affected",
+                  showEvenIfPermissionDoesNotExist: true,
+                  title: "Assign Incident Roles",
+                  stepId: "on-call",
                   description:
-                    "This will change the status of all the monitors attached to this incident.",
-                  fieldType: FormFieldSchemaType.Dropdown,
-                  dropdownModal: {
-                    type: MonitorStatus,
-                    labelField: "name",
-                    valueField: "_id",
-                    sort: {
-                      priority: SortOrder.Ascending,
-                    },
-                  },
+                    "Who takes each role on this incident. You take any role marked Primary that you leave empty.",
+                  fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  placeholder: "Monitor Status",
                   /*
-                   * Monitor status is not scoped: every status page that
-                   * lists the monitor shows it.
+                   * Writes only the roles someone fills in; with none, the
+                   * person declaring takes the primary roles (onSuccess).
                    */
-                  getFooterElement: (values: FormValues<Incident>) => {
-                    if (
-                      !values.changeMonitorStatusTo ||
-                      getIdsFromFormValue(values.statusPages).length === 0
-                    ) {
-                      return undefined;
-                    }
-
+                  customElementCanBeSkipped: true,
+                  overrideFieldKey: "incidentRoles",
+                  getCustomElement: (
+                    _value: FormValues<Incident>,
+                    props: CustomElementProps,
+                  ) => {
                     return (
-                      <TranslatedScopeNotice
-                        text={
-                          IncidentStatusPageScopeCopy.changeMonitorStatusWarning
-                        }
-                        dataTestId="incident-create-monitor-status-scope-warning"
+                      <IncidentRoleFormField
+                        initialValue={roleAssignmentsRef.current}
+                        onChange={(assignments: Array<RoleAssignment>) => {
+                          roleAssignmentsRef.current = assignments;
+                          if (props.onChange) {
+                            props.onChange(assignments);
+                          }
+                        }}
                       />
                     );
                   },
-                  getSummaryElement: (item: FormValues<Incident>) => {
-                    if (!item.changeMonitorStatusTo) {
+                  getSummaryElement: (_item: FormValues<Incident>) => {
+                    // Nobody picked: the person declaring takes the primary roles.
+                    if (roleAssignmentsRef.current.length === 0) {
                       return (
                         <p>
                           {translator.translateText(
-                            "Status of the monitors will not be changed when this incident is created.",
+                            "Nobody picked. You take any role marked Primary.",
                           )}
                         </p>
                       );
                     }
-
                     return (
-                      <FetchMonitorStatuses
-                        monitorStatusIds={[
-                          new ObjectID(item.changeMonitorStatusTo.toString()),
-                        ]}
-                        shouldAnimate={false}
-                      />
-                    );
-                  },
-                },
-                {
-                  field: {
-                    labels: true,
-                  },
-
-                  title: "Labels ",
-                  stepId: "more",
-                  description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Labels",
-                  getSummaryElement: (item: FormValues<Incident>) => {
-                    if (!item.labels || !Array.isArray(item.labels)) {
-                      return (
-                        <p>{translator.translateText("No labels assigned.")}</p>
-                      );
-                    }
-
-                    const labelIds: Array<ObjectID> = [];
-
-                    for (const label of item.labels) {
-                      if (typeof label === "string") {
-                        labelIds.push(new ObjectID(label));
-                        continue;
-                      }
-
-                      if (label instanceof ObjectID) {
-                        labelIds.push(label);
-                        continue;
-                      }
-
-                      if (label instanceof Label) {
-                        labelIds.push(
-                          new ObjectID(label._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchLabels labelIds={labelIds} />
-                      </div>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-                      true,
-                  },
-
-                  title: "Notify Status Page Subscribers",
-                  stepId: "more",
-                  description:
-                    "Should status page subscribers be notified when this incident is created?",
-                  fieldType: FormFieldSchemaType.Checkbox,
-                  defaultValue: true,
-                  required: false,
-                  // Who that is, before anything is sent.
-                  getFooterElement: (values: FormValues<Incident>) => {
-                    return getAudienceSummary(values);
-                  },
-                  /*
-                   * On the last step: whether the box is ticked, as every
-                   * other box there says it; who that reaches; and what they
-                   * will be sent - each status page's email, from the
-                   * incident as declared here. There is nothing to preview
-                   * when nothing will be sent: notifying is off, the
-                   * incident will be private, or it is on no monitor.
-                   */
-                  getSummaryElement: (item: FormValues<Incident>) => {
-                    return (
-                      <>
-                        <BooleanValue
-                          value={isNotifyTicked(item)}
-                          dataTestId="incident-create-notify-subscribers-value"
-                        />
-                        {getAudienceSummary(item)}
-                        {isNotifyingSubscribers(item) && hasMonitors(item) ? (
-                          <SubscriberNotificationPreviewButton
-                            dataTestId="incident-create-preview-notification"
-                            getRequest={() => {
-                              return getIncidentCreatedPreviewRequest({
-                                values: item as Record<string, unknown>,
-                                customFields: packCustomFieldFormValues({
-                                  definitions: detailsStepDefinitions,
-                                  formValues: item as JSONObject,
-                                  startingCustomFields: startingCustomFields,
-                                  isShown: isAskedOnIncidentForm,
-                                }),
-                              });
-                            }}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                      </>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    isPrivate: true,
-                  },
-                  title: "Private Incident",
-                  stepId: "more",
-                  description:
-                    "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages.",
-                  fieldType: FormFieldSchemaType.Checkbox,
-                  defaultValue: false,
-                  required: false,
-                  // Private wins over the status pages it is limited to.
-                  getFooterElement: (values: FormValues<Incident>) => {
-                    if (
-                      (values as Record<string, unknown>)["isPrivate"] !==
-                        true ||
-                      getIdsFromFormValue(values.statusPages).length === 0
-                    ) {
-                      return undefined;
-                    }
-
-                    return (
-                      <TranslatedScopeNotice
-                        text={
-                          IncidentStatusPageScopeCopy.privateIncidentWarning
-                        }
-                        dataTestId="incident-create-private-scope-warning"
+                      <FetchIncidentRoleAssignments
+                        assignments={roleAssignmentsRef.current}
                       />
                     );
                   },
@@ -2078,17 +2090,10 @@ const IncidentCreate: FunctionComponent<
                   id: "resources-affected",
                 },
                 ...detailsSteps,
+                // Who is paged and who takes which role, on one step.
                 {
-                  title: "Incident Roles",
-                  id: "incident-roles",
-                },
-                {
-                  title: "On-Call",
+                  title: "On-Call & Roles",
                   id: "on-call",
-                },
-                {
-                  title: "More",
-                  id: "more",
                 },
               ]}
               onSuccess={async (createdItem: Incident) => {

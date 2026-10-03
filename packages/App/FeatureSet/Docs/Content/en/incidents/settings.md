@@ -32,7 +32,7 @@ Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rule
 
 An incident template is a saved skeleton of an incident. Instead of retyping the same title, the same monitor list and the same on-call policy every time the payments cluster wobbles, you save it once and declare from it.
 
-Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a six-step wizard, with two more steps when your project has incident custom fields:
+Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a six-step wizard, with two more steps when your project has incident custom fields. Only the first two ask for anything you have to answer: from **Incident Details** on, **Create Incident Template** is the main button, and **Next** walks the optional steps.
 
 - **Template Info** — **Template Name** and **Template Description**. These name the template itself; they never appear on the incident.
 - **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** and **Initial Incident State**. **Initial Incident State** is optional and starts empty; its options are listed in state order. Leave it blank and incidents from this template land in the project's created state.
@@ -267,7 +267,7 @@ Alerts and scheduled maintenance events have the same feature, at **Alerts → S
 
 ### Ready-made measurements
 
-The form opens on **What do you want to measure?**. Pick one of these and its name, description and both moments are filled in; choose **Next** to see them, then **Create**.
+The form opens on **What do you want to measure?**. Pick one of these and its name, description and both moments are filled in, so you can create it right away; choose **Next** to see the moments first.
 
 | Where                 | Measurement              | Starts when                           | Ends when                         |
 | --------------------- | ------------------------ | ------------------------------------- | --------------------------------- |
@@ -369,7 +369,7 @@ A new project starts with one role, **Incident Commander**, the person in charge
 
 Add the other roles your team uses, such as Responder, Communications Lead or Scribe, with **Create Incident Role**: a name and a description, then an icon and a colour. A role is held by one person per incident unless you turn on **Allow Multiple Users**, under **Advanced** on the first step. Projects created by earlier versions of OneUptime also started with Responder, Communications Lead and Observer. They keep them until you delete them.
 
-Roles are definitions only. You assign people to them per incident — the declare wizard has an **Incident Roles** step with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu.
+Roles are definitions only. You assign people to them per incident — the declare wizard asks on its **On-Call & Roles** step, with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu.
 
 ## Number prefixes
 
@@ -445,7 +445,7 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 - **Grouping** — **Group incidents by**: **Monitor**, **Everything Together**, **Severity**, **Title** or **Custom**. Custom adds a **Group By** step with the five switches underneath the answers (monitor, severity, incident title, incident labels and monitor labels; labels group by their exact set). **Only group incidents that arrive close together** is on by default: an incident joins an episode only if it arrives within the time window of the episode's previous incident. Turned off, matching incidents keep joining the open episode until it is resolved. **Name** follows the answer until you type your own, and **Enabled** is on.
 - **Which Incidents** — conditions that narrow the rule down. Leave it empty to group every new incident.
 
-**Show advanced settings** adds three steps: **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes), **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels) and **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, the default team and user, and episode role assignments). A rule that already uses any of them opens with them shown. The alert form has no status page or episode role settings.
+**Show advanced settings** adds three steps: **Episode Lifecycle** (reopen recently resolved episodes, wait before resolving an episode, and resolve quiet episodes — each a switch with its minutes), **Details** (the rule's description, the episode title and description templates, showing episodes on status pages, and episode labels) and **On-Call & Ownership** (the on-call policies to run when the rule opens an episode, the default team and user, and episode role assignments). A rule that already uses any of them opens with them shown. All three are optional, so a new rule can still be created from **Which Incidents**, and **Next** walks on to them. The alert form has no status page or episode role settings.
 
 The list's **Grouping** column says what each rule does — "One episode per monitor", "New incidents join while they arrive within 30 minutes of the last one" — with a note for each lifecycle setting that is on, for the on-call policies it runs and for showing episodes on status pages. **Match Criteria** shows which incidents it applies to, and **Status** whether it is on.
 
@@ -473,7 +473,7 @@ Severity is a match criterion here and nowhere else. There is no on-call field o
 
 ## Attaching on-call policies directly
 
-Rules are not the only route. Every incident carries an on-call policy list of its own, surfaced as the **On-Call Policy** field on the **On-Call** step of the declare wizard and on the **On-Call** step of an incident template. The field description says it plainly: these are the on-call duty policies to execute when this incident is created.
+Rules are not the only route. Every incident carries an on-call policy list of its own, surfaced as the **On-Call Policy** field on the **On-Call & Roles** step of the declare wizard and on the **On-Call** step of an incident template. The field description says it plainly: these are the on-call duty policies to execute when this incident is created.
 
 When an incident is created, OneUptime runs label rules, then on-call rules (which merge their matching policies into the incident's list), then runbook rules — and if the resulting list is non-empty, every policy in it is executed. Executions run in parallel and are settled independently, so one policy failing does not stop the others. Each execution is tagged with the incident that triggered it and with the incident-created notification event type.
 

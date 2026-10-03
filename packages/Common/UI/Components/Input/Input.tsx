@@ -392,7 +392,7 @@ const Input: FunctionComponent<ComponentProps> = (
           className="mt-1 text-sm text-red-400"
           role="alert"
         >
-          {props.error}
+          {translateString(props.error)}
         </p>
       )}
     </>

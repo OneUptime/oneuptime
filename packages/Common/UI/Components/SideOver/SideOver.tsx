@@ -210,11 +210,13 @@ const SideOver: FunctionComponent<ComponentProps> = (
                       props.onClose();
                     }}
                     type="button"
-                    title="Close panel"
+                    title={translateString("Close panel")}
                     data-testid="close-button"
                     className="rounded-md text-gray-400 transition-colors duration-150 ease-out hover:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                   >
-                    <span className="sr-only">Close panel</span>
+                    <span className="sr-only">
+                      {translateString("Close panel")}
+                    </span>
 
                     <Icon className="h-6 w-6" icon={IconProp.Close} />
                   </button>

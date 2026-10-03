@@ -34,7 +34,7 @@ Brug det, når: siden kun er intern eller stadig er under opsætning. Slå **All
 
 **Statussider → din side → Branding → Sidehoved** (`{id}/header-style`). Trods navnet i sidemenuen er det her, dine to største brandaktiver bor.
 
-Det første kort hedder **Logo, cover og favicon** og har en **Edit Images**-knap:
+Det første kort hedder **Logo og forsidebillede** og har en **Edit Images**-knap:
 
 - **Logo** — billedupload, pladsholder `Upload logo`.
 - **Logo Alt Text** — pladsholder `Logo of My Company`. Lader du den stå tom, bruges statussidens titel i stedet.
@@ -64,7 +64,7 @@ Links til jura, privatliv og vilkår hører til her. Links i sidehovedet er til 
 - **Standardbjælkefarve for historikdiagrammet** — **Edit Default Bar Color** åbner vælgeren **Standardbjælkefarve**, altså den farve der bruges, når ingen regel matcher.
 - **Samlet oppetidsprocent** — **Edit Settings** åbner kontakten **Vis samlet oppetidsprocent** og rullelisten **Vælg oppetidspræcision**, som er to decimaler som standard (`99.99% (Two Decimal)`).
 
-**Hvor mange dage diagrammet dækker, sættes ikke her.** Det er **Vis oppetidshistorik (i dage)** på **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), gyldig fra 1 til 90.
+**Hvor mange dage diagrammet dækker, sættes ikke her.** Det er **Oppetidshistorik** i kortet **Hvad din statusside viser** på **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), fra 1 til 90 dage.
 
 ## Brugerdefineret HTML, CSS og JavaScript
 
@@ -152,7 +152,7 @@ Bliver en række hængende på "Action Required: Please add your CNAME record." 
 
 ## Drevet af OneUptime
 
-Linjen "Powered by OneUptime" er ikke en indstilling i branding-sektionen. Den bor på **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), i kortet **Drevet af OneUptime-branding**, som én enkelt kontakt: **Skjul "Powered By OneUptime"-branding**. **Edit Settings** åbner den, ligesom på ethvert andet kort på den side.
+Linjen "Powered by OneUptime" er ikke en indstilling i branding-sektionen. Det er den sidste kontakt i kortet **Hvad din statusside viser** på **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`): **Vis "Powered By OneUptime"-branding**, slået til som standard. Slå den fra for at skjule linjen; det gemmes med det samme. På OneUptime Cloud kræver det planen **Scale** at skjule den.
 
 ## Hvor du kan læse videre
 

@@ -8,19 +8,22 @@ Deze pagina behandelt beide: de vijf abonnementskanalen en hoe bezoekers zich aa
 
 ## Abonnementskanalen
 
-Een statuspagina ondersteunt vijf kanalen, elk met een eigen schakelaar op de statuspagina. Ga naar **Statuspagina's → jouw pagina → Abonnees → Abonneeinstellingen**:
+Een statuspagina ondersteunt vijf kanalen. Die en de pagina waarop bezoekers zich aanmelden, zet je op één plek aan: de kaart **Kanalen** onder **Statuspagina's → jouw pagina → Abonnees → Abonneeinstellingen**. Elke schakelaar wordt opgeslagen zodra je hem omzet:
 
-- **E-mailabonnees inschakelen** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
-- **SMS-abonnees inschakelen** (`enableSmsSubscribers`) — standaard uit.
-- **Slack-abonnees inschakelen** (`enableSlackSubscribers`) — standaard uit.
-- **Microsoft Teams-abonnees inschakelen** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
-- **Webhook-abonnees inschakelen** (`enableWebhookSubscribers`) — standaard uit.
+- **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) — standaard aan. Zet het item **Abonneren** in de navigatiebalk van de statuspagina, waar bezoekers zich aanmelden via de kanalen hieronder.
+- **E-mail** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
+- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft. Om het aan te zetten moet voor het project ook **SMS-meldingen inschakelen** aan staan, onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+- **Slack** (`enableSlackSubscribers`) — standaard uit.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
+- **Webhook** (`enableWebhookSubscribers`) — standaard uit.
 
-Elk kanaal krijgt bovendien een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **MS Teams-abonnees** en **Webhook-abonnees**. Daar zie je wie zich heeft aangemeld, voeg je iemand met de hand toe, of laat je bij een bepaalde abonnee onder **Notities** (`internalNote`) een aantekening voor jezelf achter.
+De schakelaars bepalen hoe bezoekers zich zelf kunnen aanmelden: de statuspagina weigert een aanmelding via een kanaal dat uit staat. Meldingen stoppen ze niet: abonnees die je team via het dashboard, de API of een workflow toevoegt, krijgen updates, welke kanalen ook aan staan.
 
-**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt pas wanneer **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) aan staat *én* er minstens één kanaal is ingeschakeld. Zet je **E-mailabonnees inschakelen** aan maar laat je **Abonneepagina weergeven** uit, dan kunnen bezoekers het formulier nergens bereiken.
+Op OneUptime Cloud staat naast een schakelaar die je abonnement niet bevat de naam van het abonnement: **Growth** voor **SMS** en **Abonneepagina weergeven**, **Scale** voor **Slack**, **Microsoft Teams** en **Webhook**.
 
-Dezelfde vijf schakelaars staan een tweede keer in de kaart **Abonneeinstellingen** op **Geavanceerde instellingen**, naast **Abonneepagina weergeven**. Eronder zitten dezelfde kolommen — kies één scherm en blijf daar, en houd het bij voorkeur op de aparte pagina **Abonneeinstellingen**, want daar staat de rest van de abonneeconfiguratie ook.
+Elk kanaal krijgt bovendien een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **MS Teams-abonnees** en **Webhook-abonnees**. Daar zie je wie zich heeft aangemeld, voeg je iemand met de hand toe, of laat je bij een bepaalde abonnee onder **Notities** (`internalNote`) een aantekening voor jezelf achter. Zolang een kanaal uit staat, staat dat bovenaan de lijst, met de schakelaar van het kanaal er direct bij, zodat je het aanzet zonder de lijst te verlaten.
+
+**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt pas wanneer **Abonneepagina weergeven** aan staat *én* er minstens één kanaal aan staat. Zet je **E-mail** aan maar laat je **Abonneepagina weergeven** uit, dan kunnen bezoekers het formulier nergens bereiken.
 
 ## Wat een bezoeker op de pagina Abonneren ziet
 
@@ -127,14 +130,14 @@ Bijlagen worden geserveerd via `GET {statusPageCrudPath}/status-page-announcemen
 **Show At** (`showAnnouncementAt`) en **End At** (`endAnnouncementAt`) sturen alles aan, maar de overzichtspagina en de aankondigingenlijst stellen elk een andere vraag, en dat verschil laat mensen struikelen.
 
 - **De overzichtspagina** toont een aankondiging wanneer `showAnnouncementAt` in het verleden ligt en `endAnnouncementAt` in de toekomst ligt of leeg is.
-- **De lijst `/announcements`** toont aankondigingen waarvan `showAnnouncementAt` binnen **Aankondigingsgeschiedenis weergeven (in dagen)** (`showAnnouncementHistoryInDays`, standaard 14) valt, en splitst ze daarna aan de clientkant in actief en verlopen.
+- **De lijst `/announcements`** toont aankondigingen waarvan `showAnnouncementAt` binnen het geschiedenisvenster van de aankondigingen (`showAnnouncementHistoryInDays`, standaard 14) valt, en splitst ze daarna aan de clientkant in actief en verlopen.
 
 Twee gevolgen waarop je maar beter kunt anticiperen:
 
 - **Een aankondiging zonder einddatum verloopt nooit.** Laat **Stop met tonen aankondiging om** leeg en ze blijft onbeperkt boven aan de overzichtspagina staan. Zet een einddatum op alles wat tijdgebonden is.
 - **Een oude maar nog actieve aankondiging kan uit de lijst verdwijnen.** Is ze langer dan `showAnnouncementHistoryInDays` geleden begonnen, dan valt ze van `/announcements` af terwijl ze op het overzicht blijft staan. Verruim het geschiedenisvenster als je langlopende mededelingen gebruikt.
 
-Of aankondigingen überhaupt verschijnen, bepaalt de kaart **Aankondigingsinstellingen** op **Geavanceerde instellingen**: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en **Aankondigingsgeschiedenis weergeven (in dagen)** (standaard 14). Staat **Aankondigingen weergeven** uit, dan weigert het endpoint voor aankondigingen het verzoek regelrecht.
+Of aankondigingen überhaupt verschijnen, stel je in de kaart **Wat uw statuspagina toont** op **Geavanceerde instellingen** in: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en daaronder **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14). Staat **Aankondigingen weergeven** uit, dan weigert het endpoint voor aankondigingen het verzoek regelrecht.
 
 ## Aankondigingssjablonen
 

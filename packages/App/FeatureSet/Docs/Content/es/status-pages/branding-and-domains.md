@@ -34,7 +34,7 @@ Abre una página de estado y verás que la sección **Marca** del menú lateral 
 
 **Páginas de Estado → tu página → Marca → Encabezado** (`{id}/header-style`). A pesar del nombre en el menú lateral, aquí es donde viven tus dos mayores activos de marca.
 
-La primera tarjeta se titula **Logotipo, portada y favicon**, con un botón **Edit Images**:
+La primera tarjeta se titula **Logotipo e imagen de portada**, con un botón **Edit Images**:
 
 - **Logotipo** — subida de imagen, marcador de posición `Upload logo`.
 - **Logo Alt Text** — marcador de posición `Logo of My Company`. Si lo dejas en blanco, se usa el título de la página de estado.
@@ -64,7 +64,7 @@ Los enlaces legales, de privacidad y de términos van aquí. Los de la cabecera 
 - **Color de barra predeterminado del gráfico de historial** — **Edit Default Bar Color** abre el selector **Color de barra predeterminado**, el color que se usa cuando no coincide ninguna regla.
 - **Porcentaje de tiempo de actividad general** — **Edit Settings** abre el interruptor **Mostrar porcentaje de tiempo de actividad general** y un desplegable **Seleccionar precisión de tiempo de actividad**, que por defecto va a dos decimales (`99.99% (Two Decimal)`).
 
-**Cuántos días cubre el gráfico no se fija aquí.** Eso es **Mostrar historial de tiempo de actividad (en días)**, en **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados** (`{id}/settings`), válido de 1 a 90.
+**Cuántos días cubre el gráfico no se fija aquí.** Eso es **Historial de tiempo de actividad**, en la tarjeta **Lo que muestra su página de estado** de **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados** (`{id}/settings`), de 1 a 90 días.
 
 ## HTML, CSS y JavaScript personalizados
 
@@ -152,7 +152,7 @@ Si una fila se queda en "Action Required: Please add your CNAME record." mucho d
 
 ## Powered by OneUptime
 
-La línea "Powered by OneUptime" no es un ajuste de la sección de marca. Vive en **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados** (`{id}/settings`), en la tarjeta **Marca "Powered By OneUptime"**, como un único interruptor: **Ocultar la marca Powered By OneUptime**. **Edit Settings** lo abre, igual que en el resto de tarjetas de esa pantalla.
+La línea "Powered by OneUptime" no es un ajuste de la sección de marca. Es el último interruptor de la tarjeta **Lo que muestra su página de estado**, en **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados** (`{id}/settings`): **Mostrar la marca Powered By OneUptime**, activado de forma predeterminada. Desactívalo para ocultar la línea; se guarda al instante. En OneUptime Cloud, ocultarla necesita el plan **Scale**.
 
 ## Qué leer a continuación
 

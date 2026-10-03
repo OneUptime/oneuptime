@@ -355,6 +355,11 @@ test.describe("SLOs", () => {
     const submitButton: Locator = page.getByTestId(
       "modal-footer-submit-button",
     );
+    /*
+     * The plain Next beside Create Service Level Objective, once every step
+     * left is optional: it walks on without creating anything.
+     */
+    const nextButton: Locator = page.getByTestId("modal-footer-next-button");
     const currentStep: Locator = form.locator('[aria-current="step"]');
 
     /*
@@ -395,7 +400,14 @@ test.describe("SLOs", () => {
     // Seeded from SLO_CREATE_INITIAL_VALUES, the column's own default.
     await expect(form.getByLabel("At-Risk Threshold (%)")).toHaveValue("20");
     await form.getByLabel("Target (%)").fill("99.9");
-    await submitButton.click();
+
+    /*
+     * The target was the last thing the SLO needed: Period has its defaults
+     * and Labels is optional, so the main button creates from here. Next
+     * walks on to check them.
+     */
+    await expect(submitButton).toContainText("Create Service Level Objective");
+    await nextButton.click();
 
     /*
      * Step 3 - Period: window type and its conditional fields. Timezone only
@@ -418,10 +430,11 @@ test.describe("SLOs", () => {
     const windowDaysInput: Locator = form.getByLabel("Window (Days)");
     await expect(windowDaysInput).toHaveValue("30");
     await windowDaysInput.fill("30");
-    await submitButton.click();
+    await nextButton.click();
 
     // Step 4 - Labels is the optional final step, so its button performs the create.
     await expect(currentStep).toContainText("Labels");
+    await expect(nextButton).toHaveCount(0);
     await expect(
       form.getByRole("combobox", { name: "Labels (Optional)", exact: true }),
     ).toBeVisible();

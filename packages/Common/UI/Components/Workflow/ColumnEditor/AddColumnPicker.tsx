@@ -49,6 +49,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   /** Already filtered to what may be offered for this use, and to what is not on screen. */
@@ -83,6 +85,7 @@ interface PickerSection {
 const AddColumnPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const testId: string = props.dataTestId || "model-column-add";
   const idPrefix: string = useId();
   const listboxId: string = `${idPrefix}-listbox`;
@@ -318,7 +321,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
         }}
       >
         <Icon icon={IconProp.Add} className="h-4 w-4 text-gray-500" />
-        {props.triggerLabel}
+        {translator.translateText(props.triggerLabel)}
       </button>
     );
   }
@@ -377,9 +380,10 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const searchLabel: string = `Search ${props.columns.length} ${
-    props.columns.length === 1 ? "field" : "fields"
-  }`;
+  const searchLabel: string = translator.translatePlural(
+    { one: "Search {{count}} field", other: "Search {{count}} fields" },
+    props.columns.length,
+  );
 
   return (
     <div
@@ -431,7 +435,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
         />
         <button
           type="button"
-          aria-label="Close"
+          aria-label={translator.translateText("Close")}
           data-testid={`${testId}-close`}
           className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           onClick={() => {
@@ -445,7 +449,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
       <div
         id={listboxId}
         role="listbox"
-        aria-label={props.triggerLabel}
+        aria-label={translator.translateText(props.triggerLabel)}
         data-testid={`${testId}-list`}
         className="max-h-72 overflow-y-auto overflow-x-hidden py-1"
       >
@@ -454,7 +458,9 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
             className="px-3 py-6 text-center text-sm text-gray-500"
             data-testid={`${testId}-no-match`}
           >
-            No fields match &ldquo;{trimmedQuery}&rdquo;.
+            {translator.translateTemplate("No fields match “{{query}}”.", {
+              query: trimmedQuery,
+            })}
           </p>
         )}
 
@@ -480,11 +486,11 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
                   className="flex min-w-0 items-baseline gap-2 px-3 pb-1 pt-2"
                 >
                   <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                    {section.group.label}
+                    {translator.translateText(section.group.label)}
                   </span>
                   {section.group.hint && (
                     <span className="truncate text-[11px] text-gray-400">
-                      {section.group.hint}
+                      {translator.translateText(section.group.hint)}
                     </span>
                   )}
                 </div>
@@ -521,7 +527,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-baseline gap-2">
                         <span className="truncate text-sm font-medium text-gray-900">
-                          {column.title || column.id}
+                          {translator.translateText(column.title) || column.id}
                         </span>
                         {/*
                           flex-1 from a zero basis: the key only gets the room
@@ -537,9 +543,9 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
                       {isColumnDescriptionInformative(column) && (
                         <div
                           className="truncate text-xs text-gray-500"
-                          title={column.description}
+                          title={translator.translateText(column.description)}
                         >
-                          {column.description}
+                          {translator.translateText(column.description)}
                         </div>
                       )}
                     </div>
@@ -556,7 +562,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
 
       {props.allowCustomColumn && (
         <div className="border-t border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-500">
-          Not in the list?{" "}
+          {translator.translateText("Not in the list?")}{" "}
           <button
             type="button"
             data-testid={`${testId}-by-name`}
@@ -566,7 +572,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
             }}
             onClick={startNamingCustomColumn}
           >
-            Add a column by name
+            {translator.translateText("Add a column by name")}
           </button>
         </div>
       )}

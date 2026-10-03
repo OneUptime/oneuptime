@@ -1,4 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import { AttributesView } from "./AttributesJSONPreferences";
@@ -19,7 +25,7 @@ interface ViewOption {
 }
 
 const OPTIONS: ReadonlyArray<ViewOption> = [
-  { view: "list", label: "List" },
+  { view: "list", label: translationKey("List") },
   { view: "json", label: "JSON" },
 ];
 
@@ -27,12 +33,15 @@ const OPTIONS: ReadonlyArray<ViewOption> = [
 const AttributesViewToggle: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const subject: string = props.subject || "attributes";
 
   return (
     <div
       role="group"
-      aria-label={`Show ${subject} as`}
+      aria-label={translator.translateTemplate("Show {{subject}} as", {
+        subject: translatableTerm(subject),
+      })}
       className={`inline-flex h-6 flex-none items-center rounded-md bg-gray-100 p-0.5 ring-1 ring-inset ring-gray-200 ${props.className || ""}`}
       data-testid={props.dataTestId}
     >
@@ -68,7 +77,7 @@ const AttributesViewToggle: FunctionComponent<ComponentProps> = (
                 />
               )}
             </span>
-            {option.label}
+            {translator.translateText(option.label)}
           </button>
         );
       })}

@@ -5,7 +5,7 @@ import Navbar, {
 } from "../../../UI/Components/Navbar/NavBar";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -157,6 +157,113 @@ describe("Navbar", () => {
     expect(screen.getByTestId("mobile-nav-toggle")).toBeInTheDocument();
     expect(screen.getByText("Tasks")).toBeInTheDocument();
     expect(screen.queryByText("Home")).not.toBeInTheDocument();
+  });
+
+  describe("the phone menu", () => {
+    const projectId: string = "10000000-0000-4000-8000-000000000001";
+
+    const home: NavItem = {
+      id: "home-nav-bar-item",
+      title: "Home",
+      icon: IconProp.Home,
+      route: new Route(`/dashboard/${projectId}/home`),
+    };
+
+    const settings: NavItem = {
+      id: "user-settings-nav-bar-item",
+      title: "User Settings",
+      icon: IconProp.User,
+      route: new Route(`/dashboard/${projectId}/user-settings`),
+    };
+
+    const products: Array<MoreMenuItem> = [
+      {
+        title: "Monitors",
+        description: "Check uptime.",
+        icon: IconProp.AltGlobe,
+        route: new Route(`/dashboard/${projectId}/monitors`),
+        category: "Essentials",
+      },
+      {
+        title: "Logs",
+        description: "Search logs.",
+        icon: IconProp.Logs,
+        route: new Route(`/dashboard/${projectId}/logs`),
+        category: "Observability",
+      },
+      {
+        title: "Hosts",
+        description: "Watch servers.",
+        icon: IconProp.Server,
+        route: new Route(`/dashboard/${projectId}/hosts`),
+        category: "Infrastructure",
+      },
+    ];
+
+    function openPhoneMenu(props: Partial<ComponentProps>): Array<string> {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 375,
+      });
+      Navigation.setLocation({
+        pathname: `/dashboard/${projectId}/home`,
+        search: "",
+        hash: "",
+        state: null,
+        key: "test",
+      } as Location);
+      render(
+        <Navbar
+          items={[home]}
+          moreMenuItems={products}
+          rightElement={settings}
+          {...props}
+        />,
+      );
+      fireEvent.click(screen.getByTestId("mobile-nav-toggle"));
+      return screen.getAllByRole("link").map((link: HTMLElement): string => {
+        return `${link.id}:${link.textContent}`;
+      });
+    }
+
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    it("lists every product one after another when the menu names no categories to open on", () => {
+      expect(openPhoneMenu({})).toEqual([
+        "home-nav-bar-item:Home",
+        "more-monitors:Monitors",
+        "more-logs:Logs",
+        "more-hosts:Hosts",
+        "right-user-settings:User Settings",
+      ]);
+      expect(
+        screen.queryByRole("button", { name: "Observability" }),
+      ).toBeNull();
+    });
+
+    it("folds every category but the ones it opens on, like the desktop products menu", () => {
+      expect(
+        openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] }),
+      ).toEqual([
+        "home-nav-bar-item:Home",
+        "more-monitors:Monitors",
+        "right-user-settings:User Settings",
+      ]);
+      expect(
+        screen.getByRole("button", { name: "Observability" }),
+      ).toHaveAttribute("aria-expanded", "false");
+
+      fireEvent.click(screen.getByRole("button", { name: "Infrastructure" }));
+
+      expect(screen.getByRole("link", { name: "Hosts" })).toHaveAttribute(
+        "id",
+        "more-hosts",
+      );
+      expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    });
   });
 
   it("uses a product's section-wide active route in the desktop selector", () => {

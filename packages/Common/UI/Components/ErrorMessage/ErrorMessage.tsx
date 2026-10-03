@@ -48,7 +48,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
             }}
             className="underline cursor-pointer hover:text-gray-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            {translateString("Refresh?") ?? "Refresh?"}
+            {translateString("Refresh?")}
           </button>
         </div>
       ) : (

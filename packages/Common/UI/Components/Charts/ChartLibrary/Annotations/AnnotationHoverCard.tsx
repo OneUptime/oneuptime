@@ -3,6 +3,8 @@ import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import { AnnotationHover } from "./ChartAnnotationLayer";
 import { clampHoverCardLeft, getMarkerColor } from "./AnnotationLayout";
 import { cx } from "../Utils/Cx";
+import { Translator } from "../../../../Utils/TranslateTemplate";
+import useTranslator from "../../../../Utils/UseTranslator";
 
 /*
  * Wide enough for an incident title at 12px without wrapping to three
@@ -34,6 +36,7 @@ export interface AnnotationHoverCardProps {
 const AnnotationHoverCard: React.FunctionComponent<AnnotationHoverCardProps> = (
   props: AnnotationHoverCardProps,
 ): React.ReactElement => {
+  const translator: Translator = useTranslator();
   const { hover } = props;
 
   const left: number = clampHoverCardLeft({
@@ -96,7 +99,12 @@ const AnnotationHoverCard: React.FunctionComponent<AnnotationHoverCardProps> = (
           {hover.heading}
         </p>
         {rows.length > 1 ? (
-          <p className={cx("text-xs", "text-gray-500")}>{rows.length} events</p>
+          <p className={cx("text-xs", "text-gray-500")}>
+            {translator.translatePlural(
+              { one: "{{count}} event", other: "{{count}} events" },
+              rows.length,
+            )}
+          </p>
         ) : null}
         {regionSubtitle ? (
           <p className={cx("truncate text-xs", "text-gray-500")}>

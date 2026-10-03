@@ -43,6 +43,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   control: ModelColumnControl;
@@ -90,6 +92,7 @@ const TEXT_CONTROLS: Array<ModelColumnControl> = [
 const ColumnValueInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
   const isReference: boolean = props.valueMode === ColumnValueMode.Reference;
   const dataTestId: string = props.dataTestId || "model-column";
@@ -120,8 +123,8 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
   const insertValueButton: ReactElement | null = picker.isAvailable ? (
     <button
       type="button"
-      aria-label={INSERT_VALUE_LABEL}
-      title={INSERT_VALUE_LABEL}
+      aria-label={translator.translateText(INSERT_VALUE_LABEL)}
+      title={translator.translateText(INSERT_VALUE_LABEL)}
       aria-haspopup="dialog"
       aria-expanded={isPickerOpen}
       data-testid={`${dataTestId}-insert-value`}
@@ -142,8 +145,8 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
   const typeAValueButton: ReactElement = (
     <button
       type="button"
-      aria-label={TYPE_A_VALUE_LABEL}
-      title={TYPE_A_VALUE_LABEL}
+      aria-label={translator.translateText(TYPE_A_VALUE_LABEL)}
+      title={translator.translateText(TYPE_A_VALUE_LABEL)}
       data-testid={`${dataTestId}-type-a-value`}
       className="mt-0.5 shrink-0 rounded-md border border-gray-200 px-1.5 py-1 font-mono text-[11px] leading-none text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       onClick={() => {
@@ -188,7 +191,7 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
   if (props.operatorOption?.hidesValueInput) {
     return (
       <div className="flex h-9 items-center rounded-md border border-dashed border-gray-200 px-3 text-xs text-gray-400">
-        No value needed
+        {translator.translateText("No value needed")}
       </div>
     );
   }
@@ -391,6 +394,7 @@ interface BooleanSegmentsProps {
 const BooleanSegments: FunctionComponent<BooleanSegmentsProps> = (
   props: BooleanSegmentsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const segments: Array<{ label: string; value: string }> = [
     { label: "True", value: "true" },
     { label: "False", value: "false" },
@@ -422,7 +426,7 @@ const BooleanSegments: FunctionComponent<BooleanSegmentsProps> = (
               props.onChange(segment.value);
             }}
           >
-            {segment.label}
+            {translator.translateText(segment.label)}
           </button>
         );
       })}
@@ -447,6 +451,7 @@ interface MultiValueInputProps {
 const MultiValueInput: FunctionComponent<MultiValueInputProps> = (
   props: MultiValueInputProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [draft, setDraft] = React.useState<string>("");
 
   type CommitDraftFunction = () => void;
@@ -480,7 +485,12 @@ const MultiValueInput: FunctionComponent<MultiValueInputProps> = (
                 )}
                 <button
                   type="button"
-                  aria-label={`Remove ${value}`}
+                  aria-label={translator.translateTemplate(
+                    "Remove {{option}}",
+                    {
+                      option: value,
+                    },
+                  )}
                   className="text-gray-400 hover:text-gray-600"
                   onClick={() => {
                     props.onChange(
@@ -502,7 +512,10 @@ const MultiValueInput: FunctionComponent<MultiValueInputProps> = (
         value={draft}
         aria-labelledby={props.ariaLabelledby}
         data-testid={props.dataTestId}
-        placeholder={props.placeholder || "Type a value and press Enter"}
+        placeholder={
+          translator.translateText(props.placeholder) ||
+          translator.translateText("Type a value and press Enter")
+        }
         className="block w-full border-0 p-0 text-sm placeholder-gray-400 focus:outline-none focus:ring-0"
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
           const value: string = event.target.value;

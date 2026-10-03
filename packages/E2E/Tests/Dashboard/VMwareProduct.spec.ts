@@ -8,6 +8,7 @@ import {
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
 import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -42,8 +43,12 @@ test.describe.skip("VMware Product Onboarding", () => {
       projectNamePrefix: "E2E VMware Project",
     });
 
-    // Nav entry: VMware is listed in the "Products" navbar menu.
+    /*
+     * Nav entry: VMware is listed in the "Products" navbar menu, under
+     * Infrastructure, which the menu opens folded.
+     */
     await page.getByRole("button", { name: "Products" }).click();
+    await openProductsMenuSection(page, "Infrastructure");
     const vmwareNavOption: Locator = page
       .getByRole("option")
       .filter({ hasText: "VMware" });

@@ -2,6 +2,12 @@
 
 Een bereikbaarheidsbeleid roept mensen op in niveaus. Elke escalatieregel is één niveau: wie wordt opgeroepen en hoe lang er wordt gewacht tot iemand bevestigt voordat het volgende niveau wordt opgeroepen. De regels van een beleid staan op volgorde op de pagina **Escalatieregels** ervan.
 
+## Wie als eerste wordt opgeroepen
+
+Wanneer u op de pagina **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid maakt, vraagt het formulier om de **Naam** en **Wie wordt als eerste opgeroepen?**. De vraag gebruikt dezelfde kiezer als **Op de hoogte stellen**: bereikbaarheidsschema's, teams en personen, zoveel als nodig. Wie u kiest, vormt de eerste escalatieregel van het beleid, **Level 1**, die **30 minuten** op een bevestiging wacht voordat het volgende niveau wordt opgeroepen. Het nieuwe beleid opent daarna op de pagina **Escalatieregels** ervan, waar u meer niveaus kunt toevoegen.
+
+**Wie wordt als eerste opgeroepen?** is optioneel. Laat u het leeg, dan begint het beleid zonder escalatieregels: het roept niemand op totdat u er een toevoegt, en het overzicht ervan meldt dat. De beschrijving en de labels staan onder **Geavanceerd**. De vraag wordt alleen gesteld aan wie escalatieregels mag toevoegen.
+
 ## Een escalatieregel toevoegen
 
 Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu en klik op **Add Escalation Rule**. Het dialoogvenster is één korte pagina met twee vragen:
@@ -38,3 +44,4 @@ Escalatieregels zijn de resource `/api/on-call-duty-policy-escalation-rule`; de 
 - Een regel die zonder `name` wordt gemaakt, wordt net als in het dashboard naar zijn niveau genoemd: **Level 3** voor een regel die het derde niveau van zijn beleid wordt. De Terraform-resource voor escalatieregels vraagt nog steeds om een naam.
 - `escalateAfterInMinutes` heeft buiten het dashboard geen standaardwaarde. Een regel die zonder deze waarde wordt gemaakt, wacht niet: het volgende niveau wordt opgeroepen zodra dit niveau is uitgevoerd. Stel de waarde expliciet in — het dashboard stelt 30 voor.
 - Regels die naar hun niveau zijn genoemd, worden hernoemd wanneer u regels in het dashboard verplaatst of verwijdert. Wijzigt u `order` via de API of Terraform, dan verandert alleen de volgorde.
+- Een bereikbaarheidsbeleid dat via `/api/on-call-duty-policy` wordt gemaakt met `onCallSchedules`, `teams` of `users` (lijsten met id's) in de `miscDataProps`, krijgt net als in het dashboard zijn eerste escalatieregel: **Level 1**, die hen oproept, met een `escalateAfterInMinutes` van 30. Elke id moet bij het project horen en de aanroeper moet escalatieregels mogen maken; anders wordt het beleid niet gemaakt. Een beleid dat zonder deze lijsten wordt gemaakt, heeft zoals voorheen geen regels; de Terraform-resource voor beleid stuurt ze niet mee.

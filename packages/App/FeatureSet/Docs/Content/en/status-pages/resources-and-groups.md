@@ -66,7 +66,7 @@ The **Advanced** step is the same on the single-add form and the bulk modal. Eve
 
 ## Uptime percentages and history charts
 
-Both **Show Uptime %** and **Show Status History Chart** depend on a setting that lives somewhere else. The window they cover is **Show Uptime History (in days)** under **Status Pages → your page → Advanced → Advanced Settings**, in the **Uptime History Settings** card. It accepts 1 to 90 days and defaults to 90.
+Both **Show Uptime %** and **Show Status History Chart** depend on a setting that lives somewhere else. The window they cover is **Uptime History** in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings**. It accepts 1 to 90 days and defaults to 90.
 
 So the sequence is: turn the toggles on per resource, then set the window once for the whole page.
 

@@ -4,6 +4,8 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Card, { CardHeaderLayout } from "../Card/Card";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
@@ -71,6 +73,7 @@ interface ReassignState {
 const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
   const [isUnassigning, setIsUnassigning] = useState<ObjectID | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] =
@@ -279,11 +282,14 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               setReassignState({ member, role });
             }}
             className="ml-9 inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
-            title="Reassign"
-            aria-label={`Reassign ${role.name} from ${memberLabel}`}
+            title={translator.translateText("Reassign")}
+            aria-label={translator.translateTemplate(
+              "Reassign {{role}} from {{member}}",
+              { role: role.name, member: memberLabel },
+            )}
           >
             <Icon icon={IconProp.ArrowCircleRight} className="w-3.5 h-3.5" />
-            Reassign
+            {translator.translateText("Reassign")}
           </button>
         ) : (
           <button
@@ -293,8 +299,11 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
             }}
             disabled={isUnassigning?.toString() === member.memberId.toString()}
             className="ml-auto inline-flex flex-shrink-0 items-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-            title="Remove"
-            aria-label={`Remove ${memberLabel} from ${role.name}`}
+            title={translator.translateText("Remove")}
+            aria-label={translator.translateTemplate(
+              "Remove {{member}} from {{role}}",
+              { member: memberLabel, role: role.name },
+            )}
           >
             {isUnassigning?.toString() === member.memberId.toString() ? (
               <Icon icon={IconProp.Refresh} className="w-4 h-4 animate-spin" />
@@ -343,11 +352,13 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                 className="mx-auto h-12 w-12 text-gray-300"
               />
               <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No roles defined
+                {translator.translateText("No roles defined")}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                {props.emptyStateMessage ||
-                  "Configure roles in settings to start assigning team members."}
+                {translator.translateText(
+                  props.emptyStateMessage ||
+                    "Configure roles in settings to start assigning team members.",
+                )}
               </p>
             </div>
           ) : (
@@ -406,19 +417,23 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                             </span>
                             {role.isPrimaryRole && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                                Primary
+                                {translator.translateText("Primary")}
                               </span>
                             )}
                             {role.canAssignMultipleUsers && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                                Multiple
+                                {translator.translateText("Multiple")}
                               </span>
                             )}
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {members.length}{" "}
-                            {members.length === 1 ? "member" : "members"}{" "}
-                            assigned
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} member assigned",
+                                other: "{{count}} members assigned",
+                              },
+                              members.length,
+                            )}
                           </p>
                         </div>
                       </div>
@@ -433,7 +448,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                           className="ml-12 inline-flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                         >
                           <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
-                          {members.length === 0 ? "Assign" : "Add More"}
+                          {translator.translateText(
+                            members.length === 0 ? "Assign" : "Add More",
+                          )}
                         </button>
                       )}
                     </div>
@@ -444,7 +461,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         {availableUsers.length === 0 ? (
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="min-w-0 text-sm text-red-600">
-                              All users are already assigned to this role.
+                              {translator.translateText(
+                                "All users are already assigned to this role.",
+                              )}
                             </p>
                             <button
                               type="button"
@@ -454,7 +473,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                               }}
                               className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                             >
-                              Close
+                              {translator.translateText("Close")}
                             </button>
                           </div>
                         ) : (
@@ -508,7 +527,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                                   className="w-3.5 h-3.5 animate-spin"
                                 />
                               ) : (
-                                "Save"
+                                translator.translateText("Save")
                               )}
                             </button>
                             <button
@@ -519,7 +538,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                               }}
                               className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                             >
-                              Cancel
+                              {translator.translateText("Cancel")}
                             </button>
                           </div>
                         )}
@@ -530,7 +549,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                     <div className="px-4 py-2 bg-white">
                       {members.length === 0 ? (
                         <p className="text-sm text-gray-400 italic py-2">
-                          Not assigned
+                          {translator.translateText("Not assigned")}
                         </p>
                       ) : (
                         members.map((member: AssignedMember, index: number) => {
@@ -554,7 +573,14 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
       {showConfirmDelete && (
         <ConfirmModal
           title="Remove Member"
-          description={`Are you sure you want to remove ${showConfirmDelete.userName || showConfirmDelete.userEmail} from the ${showConfirmDelete.roleName} role?`}
+          description={translator.translateTemplate(
+            "Are you sure you want to remove {{member}} from the {{role}} role?",
+            {
+              member:
+                showConfirmDelete.userName || showConfirmDelete.userEmail || "",
+              role: showConfirmDelete.roleName || "",
+            },
+          )}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}
           onSubmit={() => {
@@ -588,9 +614,16 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
           }}
         >
           <p className="text-gray-500 text-sm mb-4">
-            Select a new user to reassign the {reassignState.role.name} role
-            from{" "}
-            {reassignState.member.userName || reassignState.member.userEmail}.
+            {translator.translateTemplate(
+              "Select a new user to reassign the {{role}} role from {{member}}.",
+              {
+                role: reassignState.role.name,
+                member:
+                  reassignState.member.userName ||
+                  reassignState.member.userEmail ||
+                  "",
+              },
+            )}
           </p>
           <Dropdown
             options={props.availableUsers

@@ -1,4 +1,5 @@
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import { translateTemplate } from "../../Utils/TranslateTemplate";
 import {
   TemplateVariable as EditorTemplateVariable,
   TemplateVariableGroup as EditorTemplateVariableGroup,
@@ -187,7 +188,10 @@ export default class TemplateVariablesCatalog {
       variables: keys.map((key: string): TemplateVariable => {
         return {
           key,
-          description: `Value of \`${key}\` for the series that breached the threshold.`,
+          description: translateTemplate(
+            "Value of `{{key}}` for the series that breached the threshold.",
+            { key: key },
+          ),
           example:
             key === "host.name"
               ? "prod-db-01"

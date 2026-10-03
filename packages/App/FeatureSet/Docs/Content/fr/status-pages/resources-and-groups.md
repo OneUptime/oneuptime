@@ -52,7 +52,7 @@ L'étape **Avancé** est identique dans le formulaire d'ajout unitaire et dans l
 
 ## Pourcentages de disponibilité et graphiques d'historique
 
-**Afficher le % de disponibilité** et **Afficher le graphique de l'historique des états** dépendent tous deux d'un réglage qui vit ailleurs. La fenêtre qu'ils couvrent est **Afficher l'historique de disponibilité (en jours)**, sous **Pages de statut → votre page → Avancé → Paramètres avancés**, dans la carte **Paramètres de l'historique de disponibilité**. Elle accepte de 1 à 90 jours et vaut 90 par défaut.
+**Afficher le % de disponibilité** et **Afficher le graphique de l'historique des états** dépendent tous deux d'un réglage qui vit ailleurs. La fenêtre qu'ils couvrent est **Historique de disponibilité**, dans la carte **Ce que montre votre page de statut**, sous **Pages de statut → votre page → Avancé → Paramètres avancés**. Elle accepte de 1 à 90 jours et vaut 90 par défaut.
 
 La séquence est donc : activez les bascules ressource par ressource, puis réglez la fenêtre une bonne fois pour toute la page.
 

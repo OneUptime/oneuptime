@@ -20,6 +20,12 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "./DictionaryFilterOperator";
+import {
+  translateNamedAction,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export enum ValueType {
   Text = "Text",
@@ -77,6 +83,7 @@ interface Item {
 const DictionaryForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const valueTypes: Array<ValueType> =
     props.valueTypes && props.valueTypes.length > 0
       ? props.valueTypes
@@ -609,7 +616,10 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
         })}
         <div className="-ml-3 mt-4">
           <Button
-            title={`Add ${props.addButtonSuffix || "Item"}`}
+            title={translateNamedAction(translator, {
+              template: "Add {{itemName}}",
+              itemName: props.addButtonSuffix || translationKey("Item"),
+            })}
             icon={IconProp.Add}
             buttonSize={ButtonSize.Small}
             onClick={() => {
