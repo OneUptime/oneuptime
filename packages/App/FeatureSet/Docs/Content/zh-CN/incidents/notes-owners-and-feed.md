@@ -122,8 +122,8 @@ OneUptime 把这两类读者分开。**公开备注** 会发布到状态页，�
 
 - **Execute Runbook** —— 针对这个事件启动一份 [runbook](/docs/runbooks/index)。
 - **执行值班策略** —— 按需呼叫某个策略。
-- **Add Public Note** —— 与公开备注页面相同的四个字段，只是放在对话框里。
-- **添加私密注释** —— 只有备注正文和附件。
+- **Add Public Note** —— 在对话框里打开公开备注页面的编辑框：写好备注，然后点 **Post update**。模板、**Draft with AI**、附件、显示会送达谁的 **Notify status page subscribers**，以及 **Preview notification** 都在。备注按现在的时间发布；要用更早的时间，点 **Posted now**。
+- **添加私密注释** —— 在对话框里打开私密备注页面的编辑框：写好备注，然后点 **Add note**。
 
 其余功能都在它旁边的 **⋯** 按钮里，与表格卡片头部的 **更多选项** 按钮是同一个，让头部显示尽可能少的按钮：
 
