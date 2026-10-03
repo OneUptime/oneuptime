@@ -71,11 +71,16 @@ jest.mock("../../../UI/Utils/Permission", () => {
 import GrantablePermission, {
   PermissionRows,
   canGrantPermission,
+  isBlockedFromAny,
   isUnrestrictedPermission,
   toPermissionRows,
 } from "../../../UI/Utils/GrantablePermission";
+import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import ApiKeyPermissionService from "../../../Server/Services/ApiKeyPermissionService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../Types/ObjectID";
@@ -607,4 +612,171 @@ describe("side by side with the server, for grants to the whole project", () => 
 
     expect(answers).toEqual(new Set<boolean>([true, false]));
   });
+});
+
+/*
+ * A block that takes a whole table away. The server refuses a create on a
+ * table when the user holds a block with no labels on any permission the
+ * table's create accepts (TablePermission.checkTableLevelBlockPermissions),
+ * before it weighs any grant. Create Team's and Create API Key's Access ask
+ * this too, so they never offer a role whose row the server would refuse.
+ */
+describe("a block that takes a whole table away", () => {
+  const TEAM_PERMISSION_CREATE: Array<Permission> =
+    new TeamPermission().getCreatePermissions();
+
+  test("a block with no labels on a permission the table accepts does", () => {
+    expect(
+      isBlockedFromAny({
+        permissions: TEAM_PERMISSION_CREATE,
+        rows: rowsOf([
+          row({
+            permission: Permission.ProjectAdmin,
+            scope: PermissionScope.All,
+          }),
+          row({ permission: Permission.ProjectOwner, isBlockPermission: true }),
+        ]),
+      }),
+    ).toBe(true);
+  });
+
+  test("a block with labels takes only part of it, so it does not", () => {
+    expect(
+      isBlockedFromAny({
+        permissions: TEAM_PERMISSION_CREATE,
+        rows: rowsOf([
+          row({
+            permission: Permission.ProjectAdmin,
+            scope: PermissionScope.All,
+          }),
+          row({
+            permission: Permission.ProjectOwner,
+            isBlockPermission: true,
+            labels: [LABEL_ID],
+          }),
+        ]),
+      }),
+    ).toBe(false);
+  });
+
+  test("a block on a permission the table does not accept does not", () => {
+    expect(
+      isBlockedFromAny({
+        permissions: TEAM_PERMISSION_CREATE,
+        rows: rowsOf([
+          row({
+            permission: Permission.ProjectAdmin,
+            scope: PermissionScope.All,
+          }),
+          row({
+            permission: Permission.AuthorizeMcpClient,
+            isBlockPermission: true,
+          }),
+        ]),
+      }),
+    ).toBe(false);
+  });
+
+  test("allows alone never do", () => {
+    expect(
+      isBlockedFromAny({
+        permissions: TEAM_PERMISSION_CREATE,
+        rows: rowsOf([
+          row({
+            permission: Permission.ProjectOwner,
+            scope: PermissionScope.All,
+          }),
+        ]),
+      }),
+    ).toBe(false);
+  });
+
+  test("reads the signed-in user's stored rows, and never holds back a master admin", () => {
+    projectPermissionsForTest = tenant([
+      row({ permission: Permission.ProjectAdmin, scope: PermissionScope.All }),
+      row({ permission: Permission.ProjectOwner, isBlockPermission: true }),
+    ]);
+    globalPermissionsForTest = global([Permission.Public, Permission.User]);
+
+    expect(
+      GrantablePermission.isCurrentUserBlockedFromAny(TEAM_PERMISSION_CREATE),
+    ).toBe(true);
+    expect(
+      GrantablePermission.isCurrentUserBlockedFromAny([
+        Permission.CreateProjectMonitor,
+      ]),
+    ).toBe(false);
+
+    isMasterAdminForTest = true;
+
+    expect(
+      GrantablePermission.isCurrentUserBlockedFromAny(TEAM_PERMISSION_CREATE),
+    ).toBe(false);
+  });
+
+  const BLOCK_CALLERS: Array<{ name: string; rows: Array<UserPermission> }> = [
+    ...CALLERS,
+    {
+      name: "an admin blocked from ProjectOwner",
+      rows: [
+        row({
+          permission: Permission.ProjectAdmin,
+          scope: PermissionScope.All,
+        }),
+        row({ permission: Permission.ProjectOwner, isBlockPermission: true }),
+      ],
+    },
+    {
+      name: "an admin blocked from ProjectOwner on some labels",
+      rows: [
+        row({
+          permission: Permission.ProjectAdmin,
+          scope: PermissionScope.All,
+        }),
+        row({
+          permission: Permission.ProjectOwner,
+          isBlockPermission: true,
+          labels: [LABEL_ID],
+        }),
+      ],
+    },
+    {
+      name: "an editor blocked from editing team permissions",
+      rows: [
+        row({
+          permission: Permission.ProjectAdmin,
+          scope: PermissionScope.All,
+        }),
+        row({
+          permission: Permission.EditProjectTeamPermissions,
+          isBlockPermission: true,
+        }),
+      ],
+    },
+  ];
+
+  for (const model of [new TeamPermission(), new ApiKeyPermission()]) {
+    for (const caller of BLOCK_CALLERS) {
+      test(`${caller.name}, adding a ${model.singularName}: the same answer as the server's block check`, () => {
+        let serverRefuses: boolean = false;
+
+        try {
+          TablePermission.checkTableLevelBlockPermissions(
+            model.constructor as typeof TeamPermission,
+            serverProps(caller.rows),
+            DatabaseRequestType.Create,
+          );
+        } catch {
+          serverRefuses = true;
+        }
+
+        expect(
+          isBlockedFromAny({
+            permissions: model.getCreatePermissions(),
+            rows: rowsOf(caller.rows),
+          }),
+        ).toBe(serverRefuses);
+      });
+    }
+  }
 });

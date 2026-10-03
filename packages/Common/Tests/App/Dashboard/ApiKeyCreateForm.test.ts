@@ -220,7 +220,7 @@ describe("the Access cards", () => {
     expect(
       values(
         getRoleAccessOptions({
-      holder: RoleAccessHolder.ApiKey,
+          holder: RoleAccessHolder.ApiKey,
           canGrant: (permission: Permission): boolean => {
             return permission === Permission.ProjectAdmin;
           },
@@ -233,7 +233,7 @@ describe("the Access cards", () => {
   test("are not offered at all without the right to give a key permissions", () => {
     expect(
       getRoleAccessOptions({
-      holder: RoleAccessHolder.ApiKey,
+        holder: RoleAccessHolder.ApiKey,
         canGrant: anyRole,
         canAddPermissions: false,
       }),
@@ -243,7 +243,7 @@ describe("the Access cards", () => {
   test("are not offered when no role may be handed on: there is nothing to choose", () => {
     expect(
       getRoleAccessOptions({
-      holder: RoleAccessHolder.ApiKey,
+        holder: RoleAccessHolder.ApiKey,
         canGrant: (): boolean => {
           return false;
         },
@@ -257,7 +257,9 @@ describe("the Access cards for the signed-in user", () => {
   test("a project owner gets every card", () => {
     holding([Permission.ProjectOwner]);
 
-    expect(values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey))).toEqual([
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
+    ).toEqual([
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
@@ -268,16 +270,17 @@ describe("the Access cards for the signed-in user", () => {
   test("a project admin gets the role they hold, as the server would allow", () => {
     holding([Permission.ProjectAdmin]);
 
-    expect(values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey))).toEqual([
-      Permission.ProjectAdmin,
-      ROLE_ACCESS_LATER,
-    ]);
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
+    ).toEqual([Permission.ProjectAdmin, ROLE_ACCESS_LATER]);
   });
 
   test("someone who may create keys but not give them permissions is not asked", () => {
     holding([Permission.CreateProjectApiKey, Permission.ReadProjectApiKey]);
 
-    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)).toEqual([]);
+    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)).toEqual(
+      [],
+    );
   });
 
   test("a permission editor who holds no role is not asked either", () => {
@@ -286,13 +289,17 @@ describe("the Access cards for the signed-in user", () => {
       Permission.CreateProjectApiKey,
     ]);
 
-    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)).toEqual([]);
+    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)).toEqual(
+      [],
+    );
   });
 
   test("a master admin gets every card", () => {
     isMasterAdminForTest = true;
 
-    expect(values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey))).toEqual([
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
+    ).toEqual([
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
@@ -437,7 +444,7 @@ describe("the date a new key expires on", () => {
 
 describe("the Create API Key form", () => {
   const accessOptions: Array<CardSelectOption> = getRoleAccessOptions({
-      holder: RoleAccessHolder.ApiKey,
+    holder: RoleAccessHolder.ApiKey,
     canGrant: (): boolean => {
       return true;
     },

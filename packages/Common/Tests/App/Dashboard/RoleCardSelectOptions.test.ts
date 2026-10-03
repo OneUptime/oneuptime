@@ -203,7 +203,9 @@ describe("every Add Role uses this one list", () => {
 
     // One Access question, shared: the key's own copy is gone.
     expect(
-      fs.existsSync(path.join(DASHBOARD_SRC, "Components/ApiKey/ApiKeyAccess.ts")),
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Components/ApiKey/ApiKeyAccess.ts"),
+      ),
     ).toBe(false);
   });
 });
