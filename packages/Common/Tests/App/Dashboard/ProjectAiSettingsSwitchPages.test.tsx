@@ -1297,7 +1297,7 @@ describe("the notice when there is no LLM provider to use", () => {
         { timeout: WAIT_TIMEOUT },
       ),
     ).toHaveTextContent(
-      "Until it has one, insights are still found, but none are triaged and no fix pull requests are opened.",
+      "Until it has one, insights are still found, but none are triaged.",
     );
   });
 

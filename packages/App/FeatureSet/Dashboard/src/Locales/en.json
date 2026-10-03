@@ -24348,7 +24348,6 @@
   "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.": "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
   "Every new alert is investigated unless you narrow it down here.": "Every new alert is investigated unless you narrow it down here.",
   "Every new incident is investigated unless you narrow it down here.": "Every new incident is investigated unless you narrow it down here.",
-  "Exceptions OneUptime AI finds are working as intended, such as refused sign-ins or plan limits, are archived so they stop showing as unresolved. You can bring them back from the Archived tab.": "Exceptions OneUptime AI finds are working as intended, such as refused sign-ins or plan limits, are archived so they stop showing as unresolved. You can bring them back from the Archived tab.",
   "How many fix pull requests OneUptime AI may start on for alerts each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.": "How many fix pull requests OneUptime AI may start on for alerts each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.",
   "How many fix pull requests OneUptime AI may start on for incidents each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.": "How many fix pull requests OneUptime AI may start on for incidents each day, whether someone asked for one or not. Leave empty for no limit, or set 0 to pause them.",
   "How much alert AI work may run each day (UTC). Ask AI is never limited.": "How much alert AI work may run each day (UTC). Ask AI is never limited.",
@@ -24370,7 +24369,6 @@
   "OneUptime AI looks into each new incident and posts the likely root cause, with the evidence for it, to the incident's timeline.": "OneUptime AI looks into each new incident and posts the likely root cause, with the evidence for it, to the incident's timeline.",
   "OneUptime AI opens a pull request with a proposed fix for your team to review. Nothing is merged automatically.": "OneUptime AI opens a pull request with a proposed fix for your team to review. Nothing is merged automatically.",
   "OneUptime AI writes a draft from the incident's timeline and telemetry for your team to review. It never replaces a postmortem that already exists.": "OneUptime AI writes a draft from the incident's timeline and telemetry for your team to review. It never replaces a postmortem that already exists.",
-  "OneUptime watches your telemetry for trouble before anything pages anyone. Insights never page anyone or open incidents.": "OneUptime watches your telemetry for trouble before anything pages anyone. Insights never page anyone or open incidents.",
   "Open a fix pull request when an insight points at your code": "Open a fix pull request when an insight points at your code",
   "Open a fix pull request when an investigation finds a code change": "Open a fix pull request when an investigation finds a code change",
   "Open a pull request that adds missing telemetry": "Open a pull request that adds missing telemetry",
@@ -24387,7 +24385,6 @@
   "Turn off AI for this project?": "Turn off AI for this project?",
   "Until it has one, alerts are not investigated.": "Until it has one, alerts are not investigated.",
   "Until it has one, incidents are not investigated and no postmortems are drafted.": "Until it has one, incidents are not investigated and no postmortems are drafted.",
-  "Until it has one, insights are still found, but none are triaged and no fix pull requests are opened.": "Until it has one, insights are still found, but none are triaged and no fix pull requests are opened.",
   "Until it has one, no AI feature in this project can run.": "Until it has one, no AI feature in this project can run.",
   "Watch telemetry for problems": "Watch telemetry for problems",
   "What OneUptime AI does": "What OneUptime AI does",
@@ -24397,5 +24394,8 @@
   "Which alerts are investigated, and limits on investigations and on AI work each day.": "Which alerts are investigated, and limits on investigations and on AI work each day.",
   "Which incidents are investigated": "Which incidents are investigated",
   "Which incidents are investigated, and limits on investigations and on AI work each day.": "Which incidents are investigated, and limits on investigations and on AI work each day.",
-  "all": "all"
+  "all": "all",
+  "OneUptime looks for trouble in your telemetry before a monitor catches it. Insights never page anyone or open incidents.": "OneUptime looks for trouble in your telemetry before a monitor catches it. Insights never page anyone or open incidents.",
+  "Until it has one, insights are still found, but none are triaged.": "Until it has one, insights are still found, but none are triaged.",
+  "When OneUptime AI finds that an exception is expected, such as a refused sign-in or a plan limit, it archives it so it stops showing as unresolved. You can bring it back from the Archived tab.": "When OneUptime AI finds that an exception is expected, such as a refused sign-in or a plan limit, it archives it so it stops showing as unresolved. You can bring it back from the Archived tab."
 }

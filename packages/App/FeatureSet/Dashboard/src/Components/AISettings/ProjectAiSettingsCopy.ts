@@ -412,7 +412,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     column: "autoArchiveNonActionableExceptions",
     title: translationKey("Archive exceptions that are expected"),
     description: translationKey(
-      "Exceptions OneUptime AI finds are working as intended, such as refused sign-ins or plan limits, are archived so they stop showing as unresolved. You can bring them back from the Archived tab.",
+      "When OneUptime AI finds that an exception is expected, such as a refused sign-in or a plan limit, it archives it so it stops showing as unresolved. You can bring it back from the Archived tab.",
     ),
   },
 ];
@@ -423,7 +423,7 @@ export const AiInsightsSettingsCopy: {
 } = {
   cardTitle: translationKey("AI Insights"),
   cardDescription: translationKey(
-    "OneUptime watches your telemetry for trouble before anything pages anyone. Insights never page anyone or open incidents.",
+    "OneUptime looks for trouble in your telemetry before a monitor catches it. Insights never page anyone or open incidents.",
   ),
 };
 
@@ -638,8 +638,13 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     aiOffDescription: translationKey(
       "OneUptime AI is off for this project. Insights are still found, but none are triaged and no fix pull requests are opened.",
     ),
+    /*
+     * Not "and no fix pull requests are opened": a trace latency insight's
+     * fix is routed without triage, and a fix task can use any provider the
+     * project owns, default or not.
+     */
     providerConsequence: translationKey(
-      "Until it has one, insights are still found, but none are triaged and no fix pull requests are opened.",
+      "Until it has one, insights are still found, but none are triaged.",
     ),
   },
   [ProjectAiNoticeContext.AiFeatures]: {
