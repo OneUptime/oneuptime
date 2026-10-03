@@ -14,6 +14,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import ObjectID from "Common/Types/ObjectID";
@@ -117,6 +119,7 @@ type EditableConfigKey = keyof DiscoveryScanSnmpConfig;
 const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [configs, setConfigs] = useState<Array<DiscoveryScanSnmpConfig>>(() => {
     return toEditableConfigs(props.initialValue);
   });
@@ -330,11 +333,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
     <div data-testid="snmp-config-list-editor">
       <FieldLabelElement
         title="SNMP Configs"
-        description={
-          "Credential sets tried against every host in the range, in order, until one answers. " +
-          "Add one per group of devices that share a version and community or v3 user - mixed subnets are normal. " +
-          "Each extra config costs another SNMP timeout on every address that answers nothing, so keep the list to what the range actually contains."
-        }
+        description="Credential sets tried against every host in the range, in order, until one answers. Add one per group of devices that share a version and community or v3 user - mixed subnets are normal. Each extra config costs another SNMP timeout on every address that answers nothing, so keep the list to what the range actually contains."
         required={true}
       />
 
@@ -572,7 +571,10 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
         />
         {configs.length >= MAX_SNMP_CONFIGS_PER_SCAN && (
           <div className="mt-2 text-xs text-gray-500">
-            {`A scan can try at most ${MAX_SNMP_CONFIGS_PER_SCAN} SNMP configs. Split the range into more scans if you need more.`}
+            {translator.translateTemplate(
+              "A scan can try at most {{max}} SNMP configs. Split the range into more scans if you need more.",
+              { max: MAX_SNMP_CONFIGS_PER_SCAN },
+            )}
           </div>
         )}
       </div>

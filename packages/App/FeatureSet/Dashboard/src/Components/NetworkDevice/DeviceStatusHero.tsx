@@ -31,6 +31,9 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -59,9 +62,11 @@ export interface DeviceHeroTileTitleProps {
 export const DeviceHeroTileTitle: FunctionComponent<
   DeviceHeroTileTitleProps
 > = (props: DeviceHeroTileTitleProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
-      <span>{props.title}</span>
+      <span>{translator.translateText(props.title)}</span>
       <InfoTooltip label={props.title} text={props.description} />
     </div>
   );
@@ -78,6 +83,7 @@ export const DeviceHeroTileTitle: FunctionComponent<
 const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [device, setDevice] = useState<NetworkDevice | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -307,8 +313,10 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       return (
         <span className="text-gray-500">
           {lastSnmpSeenAt
-            ? `OK, last walk ${OneUptimeDate.fromNow(lastSnmpSeenAt)}`
-            : "OK"}
+            ? translator.translateTemplate("OK, last walk {{time}}", {
+                time: OneUptimeDate.fromNow(lastSnmpSeenAt),
+              })
+            : translator.translateText("OK")}
         </span>
       );
     }
@@ -317,26 +325,37 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       return (
         <span className="font-medium text-amber-700">
           {lastSnmpSeenAt
-            ? `Failing since ${OneUptimeDate.fromNow(lastSnmpSeenAt)}`
-            : "Failing — no walk has succeeded yet"}
+            ? translator.translateTemplate("Failing since {{time}}", {
+                time: OneUptimeDate.fromNow(lastSnmpSeenAt),
+              })
+            : translator.translateText("Failing — no walk has succeeded yet")}
         </span>
       );
     }
 
     if (!lastPolledAt) {
-      return <span className="text-gray-400">Not polled yet</span>;
+      return (
+        <span className="text-gray-400">
+          {translator.translateText("Not polled yet")}
+        </span>
+      );
     }
 
     return (
       <span className="text-gray-500">
-        Not configured — add SNMP credentials in{" "}
-        <AppLink
-          to={settingsRoute}
-          className="font-medium text-indigo-600 hover:underline"
-        >
-          Settings
-        </AppLink>{" "}
-        for interfaces and inventory
+        <TranslatedSentence
+          template="Not configured — add SNMP credentials in {{settings}} for interfaces and inventory"
+          slots={{
+            settings: (
+              <AppLink
+                to={settingsRoute}
+                className="font-medium text-indigo-600 hover:underline"
+              >
+                {translator.translateText("Settings") || ""}
+              </AppLink>
+            ),
+          }}
+        />
       </span>
     );
   };
@@ -391,18 +410,26 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
             {isUnbound
-              ? "Nothing is bound to report on it yet"
+              ? translator.translateText("Nothing is bound to report on it yet")
               : isMonitorBacked
-                ? "Reported by the monitor bound to this device"
+                ? translator.translateText(
+                    "Reported by the monitor bound to this device",
+                  )
                 : lastSeenAt
-                  ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
-                  : isUnpolled
-                    ? "Nothing polls this device yet"
-                    : "Never answered a poll"}
+                  ? translator.translateTemplate("Last seen {{time}}", {
+                      time: OneUptimeDate.fromNow(lastSeenAt),
+                    })
+                  : translator.translateText(
+                      isUnpolled
+                        ? "Nothing polls this device yet"
+                        : "Never answered a poll",
+                    )}
           </div>
           {!isMonitorBacked && isPollNewerThanContact && lastPolledAt && (
             <div className="mt-0.5 text-xs text-gray-400">
-              {`Last polled ${OneUptimeDate.fromNow(lastPolledAt)}`}
+              {translator.translateTemplate("Last polled {{time}}", {
+                time: OneUptimeDate.fromNow(lastPolledAt),
+              })}
             </div>
           )}
           {!isMonitorBacked && (
@@ -410,7 +437,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
               data-testid="device-status-hero-snmp"
               className="mt-1.5 text-xs"
             >
-              <span className="font-medium text-gray-500">SNMP: </span>
+              <span className="font-medium text-gray-500">
+                {translator.translateText("SNMP:")}{" "}
+              </span>
               {getSnmpLine()}
             </div>
           )}
@@ -430,24 +459,28 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
               />
             ) : isUnbound ? (
               <div>
-                <div className="text-sm text-gray-400">No monitor bound</div>
+                <div className="text-sm text-gray-400">
+                  {translator.translateText("No monitor bound")}
+                </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
                   <AppLink
                     to={createPingMonitorRoute}
                     className="font-medium text-indigo-600 hover:underline"
                   >
-                    Create Ping monitor
+                    {translator.translateText("Create Ping monitor") || ""}
                   </AppLink>
                   <AppLink
                     to={settingsRoute}
                     className="font-medium text-indigo-600 hover:underline"
                   >
-                    Bind a monitor
+                    {translator.translateText("Bind a monitor") || ""}
                   </AppLink>
                 </div>
               </div>
             ) : (
-              <span className="text-sm text-gray-400">Not monitored</span>
+              <span className="text-sm text-gray-400">
+                {translator.translateText("Not monitored")}
+              </span>
             )}
           </div>
         </div>
@@ -466,21 +499,25 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           {isMonitorBacked ? (
             <div
               className="mt-1.5 text-sm text-gray-400"
-              title="Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device."
+              title={translator.translateText(
+                "Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device.",
+              )}
             >
-              Not collected
+              {translator.translateText("Not collected")}
             </div>
           ) : hasNoSnmpInventory(device) ? (
             <div
               className="mt-1.5 text-sm text-gray-400"
-              title={NO_SNMP_INTERFACES_LABEL.tooltip}
+              title={translator.translateText(NO_SNMP_INTERFACES_LABEL.tooltip)}
             >
-              {NO_SNMP_INTERFACES_LABEL.text}
+              {translator.translateText(NO_SNMP_INTERFACES_LABEL.text)}
             </div>
           ) : (
             <div className="mt-1.5 text-sm">
               <span className="font-semibold text-emerald-700">
-                {interfacesUp} up
+                {translator.translateTemplate("{{count}} up", {
+                  count: translator.formatNumber(interfacesUp),
+                })}
               </span>
               <span className="text-gray-400"> · </span>
               <span
@@ -490,14 +527,28 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                     : "text-gray-500"
                 }
               >
-                {interfacesDown} down
+                {translator.translateTemplate("{{count}} down", {
+                  count: translator.formatNumber(interfacesDown),
+                })}
               </span>
             </div>
           )}
           {!isMonitorBacked && interfacesTotal > 0 && (
             <div
               className="mt-2 flex h-1.5 w-full max-w-[10rem] overflow-hidden rounded-full bg-gray-100"
-              title={`${interfacesUp} up, ${interfacesDown} down, ${interfacesOther} disabled of ${interfacesTotal} interfaces`}
+              title={translator.translatePlural(
+                {
+                  one: "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interface",
+                  other:
+                    "{{up}} up, {{down}} down, {{disabled}} disabled of {{count}} interfaces",
+                },
+                interfacesTotal,
+                {
+                  up: interfacesUp,
+                  down: interfacesDown,
+                  disabled: interfacesOther,
+                },
+              )}
             >
               {interfacesUp > 0 && (
                 <div
@@ -525,7 +576,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.hardwareUptime}
           />
           <div className="mt-1.5 text-sm text-gray-900">
-            {uptimeText || <span className="text-gray-400">Unknown</span>}
+            {uptimeText || (
+              <span className="text-gray-400">
+                {translator.translateText("Unknown")}
+              </span>
+            )}
           </div>
         </div>
 
@@ -540,7 +595,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 {device.site.name}
               </AppLink>
             ) : (
-              <span className="text-gray-400">No site assigned</span>
+              <span className="text-gray-400">
+                {translator.translateText("No site assigned")}
+              </span>
             )}
           </div>
         </div>
@@ -556,13 +613,17 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                */
               <span
                 className="text-gray-400"
-                title="Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them."
+                title={translator.translateText(
+                  "Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them.",
+                )}
               >
-                Not polled
+                {translator.translateText("Not polled")}
               </span>
             ) : (
               device.probe?.name || (
-                <span className="text-gray-400">No probe</span>
+                <span className="text-gray-400">
+                  {translator.translateText("No probe")}
+                </span>
               )
             )}
           </div>

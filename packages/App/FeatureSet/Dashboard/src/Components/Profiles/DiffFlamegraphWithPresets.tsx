@@ -12,6 +12,9 @@ import DiffFlamegraph, { DiffFlamegraphNode } from "./DiffFlamegraph";
 import ProfileUtil from "../../Utils/ProfileUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface DiffFlamegraphWithPresetsProps {
   serviceIds?: Array<ObjectID> | undefined;
@@ -169,6 +172,7 @@ function computeFunctionShareDeltas(
 const DiffFlamegraphWithPresets: FunctionComponent<
   DiffFlamegraphWithPresetsProps
 > = (props: DiffFlamegraphWithPresetsProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const windowMinutes: number = props.windowMinutes ?? 60;
   const [preset, setPreset] = useState<PresetKey>("1h");
 
@@ -324,15 +328,30 @@ const DiffFlamegraphWithPresets: FunctionComponent<
             className="h-3.5 w-3.5 mt-0.5 text-gray-400 flex-shrink-0"
           />
           <div>
-            Diff compares the{" "}
-            <span className="font-medium text-gray-800">
-              {props.anchorTime
-                ? `${windowMinutes}-minute window around this capture`
-                : `last ${windowMinutes} minutes`}
-            </span>{" "}
-            against a baseline period. Red frames got slower, green got faster,
-            gray stayed the same. Use this to answer{" "}
-            <em>&ldquo;what regressed since the last deploy?&rdquo;</em>
+            <TranslatedSentence
+              template="Diff compares the {{window}} against a baseline period. Red frames got slower, green got faster, gray stayed the same. Use this to answer {{question}}"
+              slots={{
+                window: (
+                  <span className="font-medium text-gray-800">
+                    {props.anchorTime
+                      ? translator.translateTemplate(
+                          "{{minutes}}-minute window around this capture",
+                          { minutes: windowMinutes },
+                        )
+                      : translator.translateTemplate("last {{minutes}} minutes", {
+                          minutes: windowMinutes,
+                        })}
+                  </span>
+                ),
+                question: (
+                  <em>
+                    {translator.translateText(
+                      "“what regressed since the last deploy?”",
+                    )}
+                  </em>
+                ),
+              }}
+            />
           </div>
         </div>
       </div>
@@ -345,7 +364,7 @@ const DiffFlamegraphWithPresets: FunctionComponent<
               <button
                 key={p.key}
                 type="button"
-                title={p.description}
+                title={translator.translateText(p.description)}
                 onClick={() => {
                   setPreset(p.key);
                 }}
@@ -355,13 +374,13 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                {p.label}
+                {translator.translateText(p.label)}
               </button>
             );
           })}
         </div>
         <span className="text-xs text-gray-500">
-          {activePreset.description}
+          {translator.translateText(activePreset.description)}
         </span>
       </div>
 
@@ -379,9 +398,11 @@ const DiffFlamegraphWithPresets: FunctionComponent<
         <div className="mt-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-gray-900">
-              {deltaDirection === "regressed"
-                ? "Most regressed functions"
-                : "Most improved functions"}
+              {translator.translateText(
+                deltaDirection === "regressed"
+                  ? "Most regressed functions"
+                  : "Most improved functions",
+              )}
             </h3>
 
             <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
@@ -396,7 +417,7 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Most regressed
+                {translator.translateText("Most regressed")}
               </button>
               <button
                 type="button"
@@ -409,7 +430,7 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Most improved
+                {translator.translateText("Most improved")}
               </button>
             </div>
           </div>
@@ -417,9 +438,11 @@ const DiffFlamegraphWithPresets: FunctionComponent<
           <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
             {activeDeltaRows.length === 0 ? (
               <div className="p-6 text-center text-sm text-gray-500">
-                {deltaDirection === "regressed"
-                  ? "No functions regressed beyond the noise floor between these windows."
-                  : "No functions improved beyond the noise floor between these windows."}
+                {translator.translateText(
+                  deltaDirection === "regressed"
+                    ? "No functions regressed beyond the noise floor between these windows."
+                    : "No functions improved beyond the noise floor between these windows.",
+                )}
               </div>
             ) : (
               activeDeltaRows.map(
@@ -439,7 +462,8 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="font-mono text-sm text-gray-900 truncate">
-                            {row.functionName || "(anonymous)"}
+                            {row.functionName ||
+                              translator.translateText("(anonymous)")}
                           </div>
                           {row.fileName && (
                             <div className="text-[11px] text-gray-400 font-mono truncate">
@@ -461,8 +485,9 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                                 : "text-green-600"
                             }`}
                           >
-                            {row.deltaPercentagePoints >= 0 ? "+" : ""}
-                            {row.deltaPercentagePoints.toFixed(1)} pp
+                            {translator.translateTemplate("{{delta}} pp", {
+                              delta: `${row.deltaPercentagePoints >= 0 ? "+" : ""}${row.deltaPercentagePoints.toFixed(1)}`,
+                            })}
                           </div>
                         </div>
                       </div>
@@ -485,8 +510,9 @@ const DiffFlamegraphWithPresets: FunctionComponent<
           </div>
 
           <div className="mt-2 text-[11px] text-gray-500">
-            Share of total self time — immune to traffic volume changes between
-            the windows.
+            {translator.translateText(
+              "Share of total self time — immune to traffic volume changes between the windows.",
+            )}
           </div>
         </div>
       )}

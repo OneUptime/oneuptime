@@ -19,6 +19,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   planShortDeviceName,
   planShortDeviceNames,
@@ -66,8 +67,9 @@ export interface BulkShortenDeviceNamesResult {
   bulkActions: Array<BulkActionButtonSchema<NetworkDevice>>;
 }
 
-export const SHORTEN_DEVICE_NAMES_ACTION_TITLE: string =
-  "Shorten Names to Hostname";
+export const SHORTEN_DEVICE_NAMES_ACTION_TITLE: string = translationKey(
+  "Shorten Names to Hostname",
+);
 
 /*
  * How many "old → new" lines the confirmation shows. Enough to recognise what

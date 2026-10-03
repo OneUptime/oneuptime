@@ -31,6 +31,11 @@ import PageMap from "../../Utils/PageMap";
 import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The fleet-wide way out of "monitor-backed with nothing bound".
@@ -57,8 +62,9 @@ export interface BulkSwitchToProbePollingResult {
   modals: ReactElement;
 }
 
-export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string =
-  "Switch to Probe Polling";
+export const SWITCH_TO_PROBE_POLLING_ACTION_TITLE: string = translationKey(
+  "Switch to Probe Polling",
+);
 
 /*
  * The one no-op outcome, worded once so the tests and the page can pin it.
@@ -80,6 +86,7 @@ type SwitchToProbePollingFormData = {
 };
 
 function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<NetworkDevice> | null>(null);
@@ -274,7 +281,9 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
       const name: string = probe.name || probe._id?.toString() || "";
 
       return {
-        label: probe.isGlobalProbe ? `${name} (global)` : name,
+        label: probe.isGlobalProbe
+          ? translator.translateTemplate("{{name}} (global)", { name: name })
+          : name,
         value: probe._id?.toString() || "",
       };
     });
@@ -395,7 +404,7 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
             to={probesSettingsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Create a custom probe
+            {translator.translateText("Create a custom probe") || ""}
           </AppLink>
         </Modal>
       )}

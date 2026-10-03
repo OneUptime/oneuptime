@@ -30,6 +30,11 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The bulk half of SNMP credential profiles.
@@ -64,12 +69,13 @@ type SetSnmpCredentialProfileFormData = {
 };
 
 export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  "Set SNMP Credential Profile";
+  translationKey("Set SNMP Credential Profile");
 
 export const CLEAR_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  "Clear SNMP Credential Profile";
+  translationKey("Clear SNMP Credential Profile");
 
 function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActionsResult {
+  const translator: Translator = useTranslator();
   const [profiles, setProfiles] = useState<Array<NetworkSnmpCredentialProfile>>(
     [],
   );
@@ -363,7 +369,9 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
             onClose={closeSetModal}
             closeButtonText="Close"
           >
-            <p className="text-sm text-gray-500">No device has been changed.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No device has been changed.")}
+            </p>
           </Modal>
         ) : hasNoProfiles ? (
           <Modal
@@ -376,7 +384,9 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
               to={profilesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              Create an SNMP Credential Profile
+              {translator.translateText(
+                "Create an SNMP Credential Profile",
+              ) || ""}
             </AppLink>
           </Modal>
         ) : (

@@ -30,6 +30,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The bulk half of issue #3507.
@@ -68,6 +70,7 @@ interface ApplyOidTemplateData {
 }
 
 function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
+  const translator: Translator = useTranslator();
   const [templates, setTemplates] = useState<Array<NetworkDeviceOidTemplate>>(
     [],
   );
@@ -334,7 +337,9 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
               to={oidTemplatesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              Create an OID Collection Template
+              {translator.translateText(
+                "Create an OID Collection Template",
+              ) || ""}
             </AppLink>
           </Modal>
         ) : (
