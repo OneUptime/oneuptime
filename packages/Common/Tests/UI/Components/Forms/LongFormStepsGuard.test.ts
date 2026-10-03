@@ -131,6 +131,23 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "A subscriber managing a subscription from an email link: the contact field is read-only and only one of the three ever shows, the pickers open only when an 'all' box is unticked, and Unsubscribe must not be hidden behind a Next.",
   },
+  /*
+   * Adding monitors to a status page asks only for the monitors; what is
+   * shown beside them is folded under Advanced at its defaults. The status
+   * page resource forms were three and four steps before that.
+   */
+  {
+    file: `${DASHBOARD}/Pages/StatusPages/View/Resources.tsx`,
+    form: "ModelFormModal #1",
+    reason:
+      "The status page group form: the group's name and its parent group (filled in by 'Add a sub group'), then two folded headers that say what they hold - Layout ('List', or 'Grid', which opens by itself to show the axes a grid needs) and Advanced. Two rows to fill in and two to open if wanted; a step between them would only add a Next.",
+  },
+  {
+    file: `${DASHBOARD}/Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx`,
+    form: "BasicForm: Status Page > Add Multiple Monitors",
+    reason:
+      "Adding several monitors to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
+  },
 ];
 
 /*

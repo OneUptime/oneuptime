@@ -48,25 +48,13 @@ interface ListedForm {
   reason: string;
 }
 
-const STATUS_PAGE_RESOURCE_REASON: string =
-  "The display options of a status page resource or group (current status, uptime and its precision), on a step the resource panel, bulk add and the status page monitor rules share - their own tests walk it. Left for a pass over the status page resource forms as a whole, so the four keep one layout.";
-
+/*
+ * The status page resource forms (a resource, a group, Add Multiple
+ * Monitors and the status page monitor rules) left this list when their
+ * display options were folded: StatusPageResourceFormsGuard.test.ts pins
+ * where each one keeps them now.
+ */
 export const ADVANCED_STEPS_ALLOWED: Array<ListedForm> = [
-  {
-    file: `${DASHBOARD}/Pages/StatusPages/View/MonitorRules.tsx`,
-    form: "RuleTable: Status Page > Monitor Rules",
-    reason: STATUS_PAGE_RESOURCE_REASON,
-  },
-  {
-    file: `${DASHBOARD}/Components/StatusPage/BulkAddStatusPageMonitorsModal.tsx`,
-    form: "BasicForm: Status Page > Add Multiple Monitors",
-    reason: STATUS_PAGE_RESOURCE_REASON,
-  },
-  {
-    file: `${DASHBOARD}/Pages/StatusPages/View/Resources.tsx`,
-    form: "ModelFormModal #1",
-    reason: STATUS_PAGE_RESOURCE_REASON,
-  },
   ...[
     [
       `${DASHBOARD}/Components/Workflow/CreateOAuthWorkflowVariableModal.tsx`,
@@ -151,9 +139,10 @@ describe("rarely used options", () => {
   });
 
   /*
-   * The two wizards that had an Advanced step of their own: an LLM provider
-   * (Additional Parameters) and a dashboard data source (custom headers and
-   * per-type options). Their options are folded at the end of the step
+   * The wizards that had an Advanced step of their own: an LLM provider
+   * (Additional Parameters), a dashboard data source (custom headers and
+   * per-type options) and a status page monitor rule (what is shown beside
+   * the monitors it adds). Their options are folded at the end of the step
    * before - on the create form and on the record's own page.
    */
   test.each([
@@ -180,6 +169,21 @@ describe("rarely used options", () => {
       "CardModelDetail",
       "auth",
       ["additionalOptions"],
+    ],
+    /*
+     * A status page monitor rule: how each monitor it adds is shown, folded
+     * on the step that says where the monitors land.
+     */
+    [
+      `${DASHBOARD}/Pages/StatusPages/View/MonitorRules.tsx`,
+      "RuleTable",
+      "group",
+      [
+        "showCurrentStatus",
+        "showUptimePercent",
+        "uptimePercentPrecision",
+        "showStatusHistoryChart",
+      ],
     ],
   ])(
     "%s folds its options at the end of its last step",
