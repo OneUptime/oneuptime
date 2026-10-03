@@ -28,6 +28,8 @@ import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import EvaluationLogList from "./EvaluationLogList";
 import { MonitorSummaryProbeState } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -54,6 +56,18 @@ export interface ComponentProps {
 const SummaryInfo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  // "This probe has not reported...", naming the probe when it has a name.
+  const notReportedMessage: string = props.probeName
+    ? translator.translateTemplate(
+        "{{probe}} has not reported a result yet. Results usually appear within a few minutes of its next check.",
+        { probe: props.probeName },
+      )
+    : translator.translateTemplate(
+        "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.",
+      );
+
   type GetProbeableMonitorSummarysInfo = (
     probeMonitorResponse: ProbeMonitorResponse,
     key: number,
@@ -66,11 +80,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (!probeMonitorResponse) {
       return (
         <div key={key} className="space-y-6">
-          <ErrorMessage
-            message={`${
-              props.probeName || "This probe"
-            } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
-          />
+          <ErrorMessage message={notReportedMessage} />
         </div>
       );
     }
@@ -244,19 +254,22 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     ) {
       return (
         <ErrorMessage
-          message={`${
-            props.probeName || "This probe"
-          } is disabled for this monitor, so it is not collecting any data. Enable it under Probes.`}
+          message={
+            props.probeName
+              ? translator.translateTemplate(
+                  "{{probe}} is disabled for this monitor, so it is not collecting any data. Enable it under Probes.",
+                  { probe: props.probeName },
+                )
+              : translator.translateTemplate(
+                  "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.",
+                )
+          }
         />
       );
     }
 
     return (
-      <ErrorMessage
-        message={`${
-          props.probeName || "This probe"
-        } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
-      />
+      <ErrorMessage message={notReportedMessage} />
     );
   }
 

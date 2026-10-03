@@ -13,6 +13,11 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import { MonitorOverviewSetupKind } from "Common/Utils/Monitor/MonitorOverviewFamily";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -27,10 +32,17 @@ const WAITING_TITLE: Record<MonitorOverviewSetupKind, string> = {
   [MonitorOverviewSetupKind.ServerAgent]: "Waiting for the agent to report",
 };
 
-const SECRET_NOUN: Record<MonitorOverviewSetupKind, string> = {
-  [MonitorOverviewSetupKind.HeartbeatUrl]: "heartbeat URL",
-  [MonitorOverviewSetupKind.InboundEmail]: "email address",
-  [MonitorOverviewSetupKind.ServerAgent]: "install command",
+// Why the setup is hidden, one whole sentence per kind of setup.
+const HIDDEN_SETUP_DESCRIPTION: Record<MonitorOverviewSetupKind, string> = {
+  [MonitorOverviewSetupKind.HeartbeatUrl]: translationKey(
+    "The heartbeat URL contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.",
+  ),
+  [MonitorOverviewSetupKind.InboundEmail]: translationKey(
+    "The email address contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.",
+  ),
+  [MonitorOverviewSetupKind.ServerAgent]: translationKey(
+    "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.",
+  ),
 };
 
 export const getSetupSecretKey: (data: {
@@ -62,6 +74,7 @@ export const getSetupSecretKey: (data: {
 const MonitorSetupCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const secretKey: ObjectID | undefined = getSetupSecretKey({
     kind: props.kind,
     monitor: props.monitor,
@@ -75,7 +88,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           icon={IconProp.Lock}
           tone="neutral"
           title="Setup details are hidden"
-          description={`The ${SECRET_NOUN[props.kind]} contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.`}
+          description={HIDDEN_SETUP_DESCRIPTION[props.kind]}
         />
       </Card>
     );
@@ -103,7 +116,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="monitor-setup-heartbeat" className="space-y-4">
         <div>
-          <p className="text-xs font-medium text-gray-500">Heartbeat URL</p>
+          <p className="text-xs font-medium text-gray-500">{translator.translateText("Heartbeat URL")}</p>
           <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
             <span
               data-testid="monitor-setup-heartbeat-url"
@@ -115,7 +128,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Example</p>
+          <p className="text-xs font-medium text-gray-500">{translator.translateText("Example")}</p>
           <div className="mt-1">
             <CodeBlock
               language="bash"
@@ -125,9 +138,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-sm text-gray-500">
-          GET and POST both work. Headers and body are available to your
-          criteria.
-        </p>
+          {translator.translateText("GET and POST both work. Headers and body are available to your criteria.")}</p>
         <SloOverviewActionLink
           variant="text"
           title="Full setup instructions"

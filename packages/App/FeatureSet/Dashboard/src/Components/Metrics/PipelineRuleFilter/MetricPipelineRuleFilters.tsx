@@ -8,6 +8,8 @@ import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import MetricPipelineRuleFilterFormElement from "./MetricPipelineRuleFilter";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   value: Array<MetricPipelineRuleFilterCondition> | undefined;
@@ -19,6 +21,7 @@ export interface ComponentProps {
 const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [filters, setFilters] = React.useState<
     Array<MetricPipelineRuleFilterCondition>
   >(props.value || []);
@@ -33,9 +36,7 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
     <div>
       {filters.length === 0 && (
         <p className="text-sm text-gray-700 text-semibold">
-          If no filters are added, then this rule will apply to every metric
-          data point.
-        </p>
+          {translator.translateText("If no filters are added, then this rule will apply to every metric data point.")}</p>
       )}
 
       {filters.map(

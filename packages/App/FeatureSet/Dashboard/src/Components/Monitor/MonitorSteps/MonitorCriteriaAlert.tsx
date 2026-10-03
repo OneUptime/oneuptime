@@ -19,6 +19,8 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   alert: CriteriaAlert;
@@ -32,6 +34,7 @@ export interface ComponentProps {
 const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mt-4 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
       <Detail<CriteriaAlert>
@@ -166,7 +169,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
                 (item["labelIds"] as Array<ObjectID>) || [];
               if (labelIds.length === 0) {
                 return (
-                  <span className="text-gray-400">No labels assigned</span>
+                  <span className="text-gray-400">{translator.translateText("No labels assigned")}</span>
                 );
               }
               const labels: Array<Label> = props.labelOptions.filter(

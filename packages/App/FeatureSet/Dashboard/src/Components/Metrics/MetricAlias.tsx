@@ -8,6 +8,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import MetricUnitUtil, { UnitOption } from "Common/Utils/MetricUnitUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   data: MetricAliasData;
@@ -27,6 +29,7 @@ export interface ComponentProps {
 const MetricAlias: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const unitOptions: Array<UnitOption> = MetricUnitUtil.getCompatibleUnits(
     props.unitFamilyBasedOn,
   );
@@ -76,7 +79,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                 )
               )}
               <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                {props.isFormula ? "Formula" : "Display Settings"}
+                {translator.translateText(props.isFormula ? "Formula" : "Display Settings")}
               </span>
             </div>
           )}
@@ -85,8 +88,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              Title
-            </label>
+              {translator.translateText("Title")}</label>
             <Input
               value={props.data.title}
               onChange={(value: string) => {
@@ -101,8 +103,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              Description
-            </label>
+              {translator.translateText("Description")}</label>
             <Input
               value={props.data.description}
               onChange={(value: string) => {
@@ -121,8 +122,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              Legend
-            </label>
+              {translator.translateText("Legend")}</label>
             <Input
               value={props.data.legend}
               onChange={(value: string) => {
@@ -137,8 +137,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
-              Unit
-            </label>
+              {translator.translateText("Unit")}</label>
             {hasUnitFamily && unitOptions.length > 0 ? (
               <Dropdown
                 value={selectedUnitOption}

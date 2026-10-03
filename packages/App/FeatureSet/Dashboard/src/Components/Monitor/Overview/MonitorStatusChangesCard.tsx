@@ -14,6 +14,9 @@ import MonitorStatusHistoryUtil, {
   MonitorStatusChangeRow,
 } from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
 import React, { FunctionComponent, ReactElement } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -31,28 +34,47 @@ export interface ComponentProps {
 const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const rows: Array<MonitorStatusTimeline> | null = props.statusRows.value;
 
-  type GetDurationFunction = (row: MonitorStatusChangeRow) => ReactElement;
+  type GetTimeLineFunction = (row: MonitorStatusChangeRow) => ReactElement;
 
-  const getDuration: GetDurationFunction = (
+  // How long the status held, and when it started, as one sentence.
+  const getTimeLine: GetTimeLineFunction = (
     row: MonitorStatusChangeRow,
   ): ReactElement => {
+    const startedAt: ReactElement = <RelativeTime date={row.startsAt} />;
+
     if (row.isOngoing) {
       return (
-        <>
-          {"for "}
-          <LiveDuration startDate={row.startsAt} />
-          {" · "}
-        </>
+        <TranslatedSentence
+          template="for {{duration}} · started {{time}}"
+          slots={{
+            duration: <LiveDuration startDate={row.startsAt} />,
+            time: startedAt,
+          }}
+        />
       );
     }
 
     if (row.endsAt) {
-      return <>{`for ${getEventDurationText(row.startsAt, row.endsAt)} · `}</>;
+      return (
+        <TranslatedSentence
+          template="for {{duration}} · started {{time}}"
+          values={{
+            duration: getEventDurationText(row.startsAt, row.endsAt),
+          }}
+          slots={{ time: startedAt }}
+        />
+      );
     }
 
-    return <></>;
+    return (
+      <TranslatedSentence
+        template="started {{time}}"
+        slots={{ time: startedAt }}
+      />
+    );
   };
 
   type GetBodyFunction = () => ReactElement;
@@ -62,16 +84,17 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
       if (props.statusRows.status === "forbidden") {
         return (
           <p className="text-sm text-gray-500">
-            Status history is hidden: you need permission to read the status
-            timeline.
-          </p>
+            {translator.translateText("Status history is hidden: you need permission to read the status timeline.")}</p>
         );
       }
 
       if (props.statusRows.status === "error") {
         return (
           <p className="text-sm text-red-700">
-            {`Couldn't load status history. ${props.statusRows.error}`}
+            {translator.translateTemplate(
+              "Couldn't load status history. {{error}}",
+              { error: props.statusRows.error || "" },
+            )}
           </p>
         );
       }
@@ -79,7 +102,7 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
       return (
         <div
           role="status"
-          aria-label="Loading status changes"
+          aria-label={translator.translateText("Loading status changes")}
           className="space-y-2 animate-pulse"
         >
           <div className="h-4 w-5/6 rounded bg-gray-100"></div>
@@ -94,10 +117,10 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
     return (
       <div>
         {changeRows.length === 0 ? (
-          <p className="text-sm text-gray-500">No status recorded yet.</p>
+          <p className="text-sm text-gray-500">{translator.translateText("No status recorded yet.")}</p>
         ) : (
           <ul
-            aria-label="Recent status changes"
+            aria-label={translator.translateText("Recent status changes")}
             className="divide-y divide-gray-100"
           >
             {changeRows.map((row: MonitorStatusChangeRow) => {
@@ -115,9 +138,7 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
                     {row.isOngoing ? <CurrentlyActiveIndicator /> : <></>}
                   </div>
                   <p className="mt-0.5 text-xs text-gray-500">
-                    {getDuration(row)}
-                    {"started "}
-                    <RelativeTime date={row.startsAt} />
+                    {getTimeLine(row)}
                   </p>
                 </li>
               );
@@ -126,7 +147,10 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
         )}
         {props.statusRows.refreshError ? (
           <p className="mt-2 text-xs text-gray-500">
-            {`Couldn't refresh status history. ${props.statusRows.refreshError}`}
+            {translator.translateTemplate(
+              "Couldn't refresh status history. {{error}}",
+              { error: props.statusRows.refreshError || "" },
+            )}
           </p>
         ) : (
           <></>

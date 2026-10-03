@@ -24,6 +24,8 @@ import React, {
   useState,
 } from "react";
 import SummaryInfo from "./SummaryView/SummaryInfo";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The "Monitor Summary" card, as of the moment this incident / alert was
@@ -51,6 +53,7 @@ export interface ComponentProps {
 const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [snapshot, setSnapshot] = useState<MonitorSummarySnapshot | null>(null);
 
   const fetchSnapshot: PromiseVoidFunction = async (): Promise<void> => {
@@ -160,17 +163,12 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
 
           {snapshot.areScreenshotsOmitted && (
             <div className="text-sm text-gray-500">
-              Screenshots from this check were not stored because the capture
-              was too large. They are on the monitor page while the check is
-              still retained.
-            </div>
+              {translator.translateText("Screenshots from this check were not stored because the capture was too large. They are on the monitor page while the check is still retained.")}</div>
           )}
 
           {snapshot.isResponseBodyTruncated && (
             <div className="text-sm text-gray-500">
-              The response body shown above was truncated because the capture
-              was too large.
-            </div>
+              {translator.translateText("The response body shown above was truncated because the capture was too large.")}</div>
           )}
         </div>
       </Card>

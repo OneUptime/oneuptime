@@ -26,6 +26,7 @@ import AnalyticsModelAPI, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { isPublicDashboard } from "../../Dashboard/Utils/PublicDashboardContext";
@@ -315,11 +316,15 @@ export default function useEventTimeReferenceLines(input: {
           date: OneUptimeDate.fromString(
             incident.createdAt as unknown as string,
           ),
-          label: `Incident: ${truncateEventMarkerTitle(incident.title || "")}`,
+          label: translateTemplate("Incident: {{title}}", {
+            title: truncateEventMarkerTitle(incident.title || ""),
+          }),
           kind: ChartEventKind.Incident,
           subtitle: incident.incidentSeverity?.name
-            ? `Incident · ${incident.incidentSeverity.name}`
-            : "Incident",
+            ? translateTemplate("Incident · {{severity}}", {
+                severity: incident.incidentSeverity.name,
+              })
+            : translateTemplate("Incident"),
           color:
             incident.incidentSeverity?.color?.toString() ||
             INCIDENT_MARKER_COLOR,
@@ -336,11 +341,15 @@ export default function useEventTimeReferenceLines(input: {
         }
         markers.push({
           date: OneUptimeDate.fromString(alert.createdAt as unknown as string),
-          label: `Alert: ${truncateEventMarkerTitle(alert.title || "")}`,
+          label: translateTemplate("Alert: {{title}}", {
+            title: truncateEventMarkerTitle(alert.title || ""),
+          }),
           kind: ChartEventKind.Alert,
           subtitle: alert.alertSeverity?.name
-            ? `Alert · ${alert.alertSeverity.name}`
-            : "Alert",
+            ? translateTemplate("Alert · {{severity}}", {
+                severity: alert.alertSeverity.name,
+              })
+            : translateTemplate("Alert"),
           color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
           route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERT_VIEW]!, {
             modelId: alert.id,

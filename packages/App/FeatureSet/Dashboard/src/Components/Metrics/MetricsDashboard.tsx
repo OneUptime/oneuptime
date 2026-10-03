@@ -66,6 +66,13 @@ import {
   getMetricsScopeFallbackLabel,
   getMetricsUnnamedScopeIds,
 } from "../../Utils/MetricsEntityChipDisplay";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface MetricCategory {
   name: string;
@@ -160,14 +167,8 @@ const categorizeMetric: (name: string) => string = (name: string): string => {
   return "Custom";
 };
 
-function timeRangeLabel(range: RangeStartAndEndDateTime): string {
-  if (range.range === TimeRange.CUSTOM) {
-    return "the selected time range";
-  }
-  return `the ${(range.range as string).toLowerCase()}`;
-}
-
 const MetricsDashboard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The slice the Viewer tab handed over, read once on mount. Without this
    * the Insights tab silently widened back out to the whole project every
@@ -642,16 +643,31 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   const avgPerService: number =
     reportingServices > 0 ? Math.round(totalMetrics / reportingServices) : 0;
   const cataloguedTypes: number = metricTypes.length;
-  const rangeLabel: string = timeRangeLabel(timeRange);
+  /*
+   * The window, said inside whole sentences: "the past 1 hour", or "the
+   * selected time range" for a custom one, each its own sentence.
+   */
+  const isCustomRange: boolean = timeRange.range === TimeRange.CUSTOM;
+  const rangeTerm: TranslatableTerm = translatableTerm(
+    timeRange.range as string,
+    { inSentence: true },
+  );
 
   // -- Render --
 
   const headerBar: ReactElement = (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Insights</h2>
+        <h2 className="text-base font-semibold text-gray-900">{translator.translateText("Insights")}</h2>
         <p className="text-xs text-gray-500">
-          What your services are reporting in {rangeLabel}.
+          {isCustomRange
+            ? translator.translateTemplate(
+                "What your services are reporting in the selected time range.",
+              )
+            : translator.translateTemplate(
+                "What your services are reporting in the {{range}}.",
+                { range: rangeTerm },
+              )}
         </p>
         {(savedViewName || unappliedFiltersHint) && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -659,14 +675,20 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
               <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
                 <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
                 <span>
-                  Scoped by saved view{" "}
-                  <span className="font-medium">{savedViewName}</span>
+                  <TranslatedSentence
+                    template="Scoped by saved view {{name}}"
+                    slots={{
+                      name: (
+                        <span className="font-medium">{savedViewName}</span>
+                      ),
+                    }}
+                  />
                 </span>
                 <button
                   type="button"
                   className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
-                  title="Stop scoping by this saved view"
-                  aria-label="Stop scoping by this saved view"
+                  title={translator.translateText("Stop scoping by this saved view")}
+                  aria-label={translator.translateText("Stop scoping by this saved view")}
                   onClick={() => {
                     applyServiceSelection([]);
                   }}
@@ -725,10 +747,10 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             void loadDashboard();
           }}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
-          title="Refresh"
+          title={translator.translateText("Refresh")}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-          <span>Refresh</span>
+          <span>{translator.translateText("Refresh")}</span>
         </button>
       </div>
     </div>
@@ -771,14 +793,27 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             />
           </div>
           <h3 className="mt-5 text-lg font-semibold text-gray-900">
-            No metrics in {rangeLabel}
+            {isCustomRange
+              ? translator.translateTemplate(
+                  "No metrics in the selected time range",
+                )
+              : translator.translateTemplate("No metrics in the {{range}}", {
+                  range: rangeTerm,
+                })}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
             {cataloguedTypes > 0
-              ? `Your project has ${cataloguedTypes} catalogued metric ${
-                  cataloguedTypes === 1 ? "type" : "types"
-                }, but none reported during this window. Try widening the time range or check your collectors.`
-              : "Once your services start sending metrics via OpenTelemetry, you'll see coverage, categories, and per-service breakdowns here."}
+              ? translator.translatePlural(
+                  {
+                    one: "Your project has {{count}} catalogued metric type, but none reported during this window. Try widening the time range or check your collectors.",
+                    other:
+                      "Your project has {{count}} catalogued metric types, but none reported during this window. Try widening the time range or check your collectors.",
+                  },
+                  cataloguedTypes,
+                )
+              : translator.translateText(
+                  "Once your services start sending metrics via OpenTelemetry, you'll see coverage, categories, and per-service breakdowns here.",
+                )}
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
@@ -786,7 +821,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-              <span>Open Viewer</span>
+              <span>{translator.translateText("Open Viewer")}</span>
             </AppLink>
             <AppLink
               to={RouteUtil.populateRouteParams(
@@ -795,7 +830,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500"
             >
               <Icon icon={IconProp.Book} className="h-3.5 w-3.5" />
-              <span>Setup Guide</span>
+              <span>{translator.translateText("Setup Guide")}</span>
             </AppLink>
           </div>
         </div>
@@ -819,7 +854,15 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
         <StatCard
           label="Active metrics"
           value={totalMetrics}
-          subtext={`distinct names in ${rangeLabel}`}
+          subtext={
+            isCustomRange
+              ? translator.translateTemplate(
+                  "distinct names in the selected time range",
+                )
+              : translator.translateTemplate("distinct names in the {{range}}", {
+                  range: rangeTerm,
+                })
+          }
           icon={IconProp.ChartBar}
           tone="indigo"
         />
@@ -828,8 +871,14 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           value={reportingServices}
           subtext={
             scopedServiceCount > 0
-              ? `${reportingServices} of ${scopedServiceCount} services`
-              : "actively sending data"
+              ? translator.translateTemplate(
+                  "{{reporting}} of {{count}} services",
+                  {
+                    reporting: translator.formatNumber(reportingServices),
+                    count: translator.formatNumber(scopedServiceCount),
+                  },
+                )
+              : translator.translateTemplate("actively sending data")
           }
           icon={IconProp.CheckCircle}
           tone="emerald"
@@ -837,7 +886,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
         <StatCard
           label="Avg per service"
           value={avgPerService}
-          subtext="metrics per service"
+          subtext={translator.translateTemplate("metrics per service")}
           icon={IconProp.ChartBarSquare}
           tone="sky"
         />
@@ -845,7 +894,9 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           label={dormantServices > 0 ? "Quiet services" : "Coverage"}
           value={dormantServices > 0 ? dormantServices : reportingServices}
           subtext={
-            dormantServices > 0 ? "no metrics in range" : "all services covered"
+            dormantServices > 0
+              ? translator.translateTemplate("no metrics in range")
+              : translator.translateTemplate("all services covered")
           }
           icon={dormantServices > 0 ? IconProp.Alert : IconProp.Check}
           tone={dormantServices > 0 ? "amber" : "emerald"}
@@ -858,11 +909,15 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">
-                Metric categories
-              </h3>
+                {translator.translateText("Metric categories")}</h3>
               <p className="text-xs text-gray-500">
-                Distribution of {totalMetrics} active metric
-                {totalMetrics === 1 ? "" : "s"}
+                {translator.translatePlural(
+                  {
+                    one: "Distribution of {{count}} active metric",
+                    other: "Distribution of {{count}} active metrics",
+                  },
+                  totalMetrics,
+                )}
               </p>
             </div>
           </div>
@@ -909,17 +964,23 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
-            Services reporting metrics
-          </h3>
+            {translator.translateText("Services reporting metrics")}</h3>
           <p className="text-xs text-gray-500">
-            Coverage and instrumentation per service in {rangeLabel}
+            {isCustomRange
+              ? translator.translateTemplate(
+                  "Coverage and instrumentation per service in the selected time range",
+                )
+              : translator.translateTemplate(
+                  "Coverage and instrumentation per service in the {{range}}",
+                  { range: rangeTerm },
+                )}
           </p>
         </div>
         <AppLink
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
           to={viewerRoute}
         >
-          <span>Open Viewer</span>
+          <span>{translator.translateText("Open Viewer")}</span>
           <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
         </AppLink>
       </div>
@@ -958,13 +1019,11 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                   <div className="flex flex-wrap items-center gap-1.5">
                     {summary.hasSystemMetrics && (
                       <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                        System
-                      </span>
+                        {translator.translateText("System")}</span>
                     )}
                     {summary.hasAppMetrics && (
                       <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                        App
-                      </span>
+                        {translator.translateText("App")}</span>
                     )}
                   </div>
                 </div>
@@ -975,7 +1034,10 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                       {summary.metricCount}
                     </span>
                     <span className="mb-1 text-xs text-gray-400">
-                      metric{summary.metricCount === 1 ? "" : "s"}
+                      {translator.translatePlural(
+                        { one: "metric", other: "metrics" },
+                        summary.metricCount,
+                      )}
                     </span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -999,7 +1061,11 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                   })}
                   {summary.metricCount > summary.metricNames.length && (
                     <span className="inline-flex items-center rounded bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-400">
-                      +{summary.metricCount - summary.metricNames.length} more
+                      {translator.translateTemplate("+{{count}} more", {
+                        count: translator.formatNumber(
+                          summary.metricCount - summary.metricNames.length,
+                        ),
+                      })}
                     </span>
                   )}
                 </div>
@@ -1049,12 +1115,15 @@ const TONE_STYLES: Record<
 const StatCard: FunctionComponent<StatCardProps> = (
   props: StatCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const tone: { bg: string; text: string; valueText: string } =
     TONE_STYLES[props.tone];
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500">{props.label}</p>
+        <p className="text-sm font-medium text-gray-500">
+          {translator.translateText(props.label)}
+        </p>
         <div
           className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone.bg}`}
         >

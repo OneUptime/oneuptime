@@ -1,5 +1,10 @@
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   httpTimings: HttpPhaseTimings;
@@ -18,31 +23,32 @@ interface TimingPhase {
 const HttpTimingsView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const timings: HttpPhaseTimings = props.httpTimings;
 
   const phases: Array<TimingPhase> = [
     {
-      label: "DNS Lookup",
+      label: translationKey("DNS Lookup"),
       valueInMs: timings.dnsLookupInMs ?? -1,
       colorClassName: "bg-indigo-400",
     },
     {
-      label: "TCP Connect",
+      label: translationKey("TCP Connect"),
       valueInMs: timings.tcpConnectInMs ?? -1,
       colorClassName: "bg-sky-400",
     },
     {
-      label: "TLS Handshake",
+      label: translationKey("TLS Handshake"),
       valueInMs: timings.tlsHandshakeInMs ?? -1,
       colorClassName: "bg-teal-400",
     },
     {
-      label: "Waiting (TTFB)",
+      label: translationKey("Waiting (TTFB)"),
       valueInMs: timings.timeToFirstByteInMs ?? -1,
       colorClassName: "bg-amber-400",
     },
     {
-      label: "Download",
+      label: translationKey("Download"),
       valueInMs: timings.downloadInMs ?? -1,
       colorClassName: "bg-emerald-400",
     },
@@ -61,11 +67,9 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-md border-2 border-gray-100 p-4">
       <div className="text-sm font-medium text-gray-900 mb-1">
-        Request Phase Breakdown
-      </div>
+        {translator.translateText("Request Phase Breakdown")}</div>
       <div className="text-xs text-gray-500 mb-3">
-        Where this check spent its time, from DNS lookup to the last byte.
-      </div>
+        {translator.translateText("Where this check spent its time, from DNS lookup to the last byte.")}</div>
       <div className="space-y-2">
         {phases.map((phase: TimingPhase) => {
           const percent: number =
@@ -73,7 +77,9 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
 
           return (
             <div key={phase.label} className="flex items-center text-sm">
-              <div className="w-36 shrink-0 text-gray-700">{phase.label}</div>
+              <div className="w-36 shrink-0 text-gray-700">
+                {translator.translateText(phase.label)}
+              </div>
               <div className="flex-1 mx-2">
                 <div
                   className={`h-3 rounded ${phase.colorClassName}`}
@@ -81,7 +87,9 @@ const HttpTimingsView: FunctionComponent<ComponentProps> = (
                 ></div>
               </div>
               <div className="w-24 shrink-0 text-right text-gray-700 font-mono">
-                {Math.round(phase.valueInMs * 100) / 100} ms
+                {translator.translateTemplate("{{value}} ms", {
+                  value: Math.round(phase.valueInMs * 100) / 100,
+                })}
               </div>
             </div>
           );

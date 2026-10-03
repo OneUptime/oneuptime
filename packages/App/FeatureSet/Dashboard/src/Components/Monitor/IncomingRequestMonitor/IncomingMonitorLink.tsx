@@ -5,6 +5,8 @@ import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import Link from "Common/UI/Components/Link/Link";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   secretKey: ObjectID;
@@ -29,6 +31,7 @@ export function getHeartbeatUrl(secretKey: ObjectID): URL {
 const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const heartbeatUrl: URL = getHeartbeatUrl(props.secretKey);
 
   return (
@@ -37,7 +40,7 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
       description="Please send inbound heartbeat GET or POST requests to this URL."
     >
       <div data-testid="incoming-request-setup">
-        <p className="text-xs font-medium text-gray-500">Heartbeat URL</p>
+        <p className="text-xs font-medium text-gray-500">{translator.translateText("Heartbeat URL")}</p>
         <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <Link
             openInNewTab={true}

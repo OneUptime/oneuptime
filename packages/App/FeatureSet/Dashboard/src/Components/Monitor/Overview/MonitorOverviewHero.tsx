@@ -36,6 +36,12 @@ import {
 import { MonitorOverviewTarget } from "Common/Utils/Monitor/MonitorOverviewTargetUtil";
 import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -114,6 +120,7 @@ export const getLoadedAtText: (loadedAt: Date) => string = (
 const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const presentation: MonitorOverviewPresentation = props.presentation;
 
   const typeProps: MonitorTypeProps | undefined = useMemo(() => {
@@ -199,9 +206,12 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           <></>
         )}
         {extraStepCount > 0 ? (
-          <span>{`(+${extraStepCount} more step${
-            extraStepCount === 1 ? "" : "s"
-          })`}</span>
+          <span>
+            {translator.translatePlural(
+              { one: "(+{{count}} more step)", other: "(+{{count}} more steps)" },
+              extraStepCount,
+            )}
+          </span>
         ) : (
           <></>
         )}
@@ -224,12 +234,20 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
        * the time is unknown instead.
        */
       lastLine = (
-        <p className="text-xs text-gray-400">{`${pulse.label}: unavailable`}</p>
+        <p className="text-xs text-gray-400">
+          {translator.translateTemplate("{{label}}: unavailable", {
+            label: translatableTerm(pulse.label),
+          })}
+        </p>
       );
     } else if (pulse.label !== null && pulse.at) {
       lastLine = (
         <p className="text-xs text-gray-600">
-          {pulse.label} <RelativeTime date={pulse.at} />
+          <TranslatedSentence
+            template="{{label}} {{time}}"
+            values={{ label: translatableTerm(pulse.label) }}
+            slots={{ time: <RelativeTime date={pulse.at} /> }}
+          />
         </p>
       );
     }
@@ -242,9 +260,15 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid="monitor-overview-cadence"
             className="mt-1 text-xs text-gray-500"
           >
-            {pulse.cadenceText}
-            {pulse.nextAt ? " · next " : ""}
-            {pulse.nextAt ? <RelativeTime date={pulse.nextAt} /> : <></>}
+            {pulse.nextAt ? (
+              <TranslatedSentence
+                template="{{cadence}} · next {{time}}"
+                values={{ cadence: pulse.cadenceText }}
+                slots={{ time: <RelativeTime date={pulse.nextAt} /> }}
+              />
+            ) : (
+              pulse.cadenceText
+            )}
           </p>
         ) : (
           <></>
@@ -254,7 +278,9 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid="monitor-overview-overdue"
             className="mt-1 text-xs font-medium text-amber-700"
           >
-            {`Overdue by ${formatDurationCompact(pulse.overdueSeconds)}`}
+            {translator.translateTemplate("Overdue by {{duration}}", {
+              duration: formatDurationCompact(pulse.overdueSeconds),
+            })}
           </p>
         ) : (
           <></>
@@ -276,15 +302,14 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     if (!owners) {
       return (
         <span className="text-base font-semibold text-gray-400">
-          Unavailable
-        </span>
+          {translator.translateText("Unavailable")}</span>
       );
     }
 
     if (owners.length === 0) {
       return (
         <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
-          <span className="text-gray-500">No owners</span>
+          <span className="text-gray-500">{translator.translateText("No owners")}</span>
           <Link
             to={getMonitorOverviewRoute({
               key: "owners",
@@ -292,8 +317,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             })}
             className="font-medium text-indigo-600 hover:underline"
           >
-            Add owners
-          </Link>
+            {translator.translateText("Add owners")}</Link>
         </span>
       );
     }
@@ -312,8 +336,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             className="text-xs font-normal text-gray-500"
             title={props.owners.refreshError}
           >
-            List may be incomplete
-          </span>
+            {translator.translateText("List may be incomplete")}</span>
         </span>
       );
     }
@@ -397,7 +420,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      aria-label="Monitor status"
+      aria-label={translator.translateText("Monitor status")}
       data-testid="monitor-overview-hero"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
@@ -421,20 +444,26 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
                 data-testid="monitor-overview-headline"
                 className="mt-2 text-xl font-semibold tracking-tight text-gray-900"
               >
-                {presentation.headline.text}
                 {presentation.headline.since ? (
-                  <>
-                    {" for "}
-                    <span
-                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        presentation.headline.since,
-                      )}
-                    >
-                      <LiveDuration startDate={presentation.headline.since} />
-                    </span>
-                  </>
+                  <TranslatedSentence
+                    template="{{headline}} for {{duration}}"
+                    values={{ headline: presentation.headline.text }}
+                    slots={{
+                      duration: (
+                        <span
+                          title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            presentation.headline.since,
+                          )}
+                        >
+                          <LiveDuration
+                            startDate={presentation.headline.since}
+                          />
+                        </span>
+                      ),
+                    }}
+                  />
                 ) : (
-                  <></>
+                  presentation.headline.text
                 )}
               </h2>
               {presentation.explanation ? (
@@ -501,25 +530,31 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid="monitor-overview-refresh-error"
             className="mt-4 text-sm text-red-700"
           >
-            {"Couldn't refresh. Showing what loaded "}
             {props.lastLoadedAt ? (
-              <>
-                {"at "}
-                <time
-                  dateTime={OneUptimeDate.fromString(
-                    props.lastLoadedAt,
-                  ).toISOString()}
-                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    props.lastLoadedAt,
-                  )}
-                >
-                  {getLoadedAtText(props.lastLoadedAt)}
-                </time>
-              </>
+              <TranslatedSentence
+                template="Couldn't refresh. Showing what loaded at {{time}}. {{error}}"
+                values={{ error: props.refreshError }}
+                slots={{
+                  time: (
+                    <time
+                      dateTime={OneUptimeDate.fromString(
+                        props.lastLoadedAt,
+                      ).toISOString()}
+                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        props.lastLoadedAt,
+                      )}
+                    >
+                      {getLoadedAtText(props.lastLoadedAt)}
+                    </time>
+                  ),
+                }}
+              />
             ) : (
-              <>earlier</>
+              translator.translateTemplate(
+                "Couldn't refresh. Showing what loaded earlier. {{error}}",
+                { error: props.refreshError },
+              )
             )}
-            {`. ${props.refreshError}`}
           </p>
         ) : (
           <></>
@@ -527,7 +562,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       </div>
 
       <dl
-        aria-label="Monitor at a glance"
+        aria-label={translator.translateText("Monitor at a glance")}
         data-testid="monitor-overview-facts"
         className={`grid gap-5 rounded-b-xl border-t border-gray-100 bg-gray-50 px-5 py-4 sm:px-6 ${getFactGridClass(
           presentation.facts.length,

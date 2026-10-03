@@ -8,6 +8,8 @@ import DnssecMonitorResponse, {
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -17,6 +19,7 @@ export interface ComponentProps {
 const DnssecMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const dnssecResponse: DnssecMonitorResponse | undefined =
     props.probeMonitorResponse?.dnssecResponse;
 
@@ -121,24 +124,19 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
         dnssecResponse.resolverChecks.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              Resolver Checks
-            </h3>
+              {translator.translateText("Resolver Checks")}</h3>
             <div className="border rounded-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Resolver
-                    </th>
+                      {translator.translateText("Resolver")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      AD Flag
-                    </th>
+                      {translator.translateText("AD Flag")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      SERVFAIL on validate
-                    </th>
+                      {translator.translateText("SERVFAIL on validate")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Error
-                    </th>
+                      {translator.translateText("Error")}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -172,24 +170,19 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
         dnssecResponse.nameserverChecks.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              Nameserver Consistency
-            </h3>
+              {translator.translateText("Nameserver Consistency")}</h3>
             <div className="border rounded-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nameserver
-                    </th>
+                      {translator.translateText("Nameserver")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      SOA Serial
-                    </th>
+                      {translator.translateText("SOA Serial")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      RRSIG Expires
-                    </th>
+                      {translator.translateText("RRSIG Expires")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Error
-                    </th>
+                      {translator.translateText("Error")}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">

@@ -17,6 +17,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -78,6 +80,7 @@ export const mergeOpenWorkRows: (
 const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const incidents: OverviewSection<MonitorOpenWorkSide> =
     props.openWork.incidents;
   const alerts: OverviewSection<MonitorOpenWorkSide> = props.openWork.alerts;
@@ -264,7 +267,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
     } else if (rows.length > 0) {
       list = (
         <ul
-          aria-label="Open incidents and alerts"
+          aria-label={translator.translateText("Open incidents and alerts")}
           className="mt-4 divide-y divide-gray-100"
         >
           {rows.map((row: MonitorOpenWorkRow) => {
@@ -276,7 +279,7 @@ const MonitorOpenWorkCard: FunctionComponent<ComponentProps> = (
       list = (
         <div
           role="status"
-          aria-label="Loading open incidents and alerts"
+          aria-label={translator.translateText("Loading open incidents and alerts")}
           className="mt-4 space-y-2 animate-pulse"
         >
           <div className="h-4 w-5/6 rounded bg-gray-100"></div>

@@ -20,6 +20,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   source: RecordingRuleSource;
@@ -31,6 +34,7 @@ export interface ComponentProps {
 const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showFilter, setShowFilter] = useState<boolean>(
     Boolean(
       props.source.filterAttributeKey || props.source.filterAttributeValue,
@@ -67,14 +71,21 @@ const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
           </span>
           <div>
             <div className="text-sm font-semibold text-gray-900">
-              Source {props.source.alias}
+              {translator.translateTemplate("Source {{alias}}", {
+                alias: props.source.alias,
+              })}
             </div>
             <div className="text-xs text-gray-500">
-              Reference as{" "}
-              <code className="font-mono text-indigo-600">
-                {props.source.alias}
-              </code>{" "}
-              in the expression.
+              <TranslatedSentence
+                template="Reference as {{alias}} in the expression."
+                slots={{
+                  alias: (
+                    <code className="font-mono text-indigo-600">
+                      {props.source.alias}
+                    </code>
+                  ),
+                }}
+              />
             </div>
           </div>
         </div>
@@ -125,14 +136,12 @@ const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               return setShowFilter(true);
             }}
           >
-            + Add attribute filter (optional)
-          </button>
+            {translator.translateText("+ Add attribute filter (optional)")}</button>
         ) : (
           <div className="rounded-md bg-gray-50 border border-gray-200 p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-                Attribute Filter
-              </span>
+                {translator.translateText("Attribute Filter")}</span>
               <button
                 type="button"
                 className="text-xs font-medium text-gray-500 hover:text-gray-700"
@@ -141,8 +150,7 @@ const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                   clearAttributeFilter();
                 }}
               >
-                Remove
-              </button>
+                {translator.translateText("Remove")}</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
@@ -167,9 +175,14 @@ const MetricRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Only data points where{" "}
-              <code className="font-mono">attribute = value</code> are included
-              in this source.
+              <TranslatedSentence
+                template="Only data points where {{condition}} are included in this source."
+                slots={{
+                  condition: (
+                    <code className="font-mono">attribute = value</code>
+                  ),
+                }}
+              />
             </p>
           </div>
         )}

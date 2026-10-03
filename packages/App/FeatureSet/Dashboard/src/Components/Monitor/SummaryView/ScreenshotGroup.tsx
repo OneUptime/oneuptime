@@ -4,6 +4,8 @@ import Screenshots, {
 } from "Common/Types/Monitor/SyntheticMonitors/Screenshot";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   screenshots: Screenshots | undefined;
@@ -12,9 +14,10 @@ export interface ComponentProps {
 const SummaryScreenshotGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div>
-      <div className="mt-2 mb-2">Screenshots:</div>
+      <div className="mt-2 mb-2">{translator.translateText("Screenshots:")}</div>
       <div className="space-y-5">
         {!props.screenshots || Object.keys(props.screenshots).length === 0 ? (
           <ErrorMessage message="No screenshots available." />

@@ -16,6 +16,12 @@ import MonitorUptimeSummaryUtil, {
   MonitorUptimeCaveat,
   UptimeWindowPresentation,
 } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -137,14 +143,6 @@ export const getUptimeTileContent: (data: {
   };
 };
 
-const pluralize: (count: number, singular: string, plural: string) => string = (
-  count: number,
-  singular: string,
-  plural: string,
-): string => {
-  return count === 1 ? singular : plural;
-};
-
 /*
  * "Open now": the stat bar's answer to "is anything on fire". A side that
  * could not be read shows "—" in place of its count, never 0. A side whose
@@ -154,10 +152,13 @@ const pluralize: (count: number, singular: string, plural: string) => string = (
 export const getOpenNowTileContent: (data: {
   monitorId: ObjectID;
   openWork: MonitorOpenWork;
+  translator: Translator;
 }) => TileContent = (data: {
   monitorId: ObjectID;
   openWork: MonitorOpenWork;
+  translator: Translator;
 }): TileContent => {
+  const translator: Translator = data.translator;
   const incidents: OverviewSection<MonitorOpenWorkSide> =
     data.openWork.incidents;
   const alerts: OverviewSection<MonitorOpenWorkSide> = data.openWork.alerts;
@@ -188,19 +189,20 @@ export const getOpenNowTileContent: (data: {
     !isAlertsStale
   ) {
     return {
-      value: <span className="text-emerald-700">Nothing open</span>,
+      value: <span className="text-emerald-700">{translator.translateText("Nothing open")}</span>,
       description: "No unresolved incidents or alerts",
     };
   }
 
+  // English translation keys, translated as the description is drawn.
   const notes: Array<string> = [];
 
   if (isIncidentsStale && isAlertsStale) {
-    notes.push("Couldn't refresh · showing earlier counts");
+    notes.push(translationKey("Couldn't refresh · showing earlier counts"));
   } else if (isIncidentsStale) {
-    notes.push("Couldn't refresh incidents · showing the earlier count");
+    notes.push(translationKey("Couldn't refresh incidents · showing the earlier count"));
   } else if (isAlertsStale) {
-    notes.push("Couldn't refresh alerts · showing the earlier count");
+    notes.push(translationKey("Couldn't refresh alerts · showing the earlier count"));
   }
 
   const isIncidentsForbidden: boolean =
@@ -209,26 +211,28 @@ export const getOpenNowTileContent: (data: {
     !alerts.value && alerts.status === "forbidden";
 
   if (isIncidentsForbidden && isAlertsForbidden) {
-    notes.push("Incidents and alerts hidden: no access");
+    notes.push(translationKey("Incidents and alerts hidden: no access"));
   } else if (isIncidentsForbidden) {
-    notes.push("Incidents hidden: no access");
+    notes.push(translationKey("Incidents hidden: no access"));
   } else if (isAlertsForbidden) {
-    notes.push("Alerts hidden: no access");
+    notes.push(translationKey("Alerts hidden: no access"));
   }
 
   if (!incidents.value && incidents.status === "error") {
-    notes.push("Couldn't load open incidents");
+    notes.push(translationKey("Couldn't load open incidents"));
   }
 
   if (!alerts.value && alerts.status === "error") {
-    notes.push("Couldn't load open alerts");
+    notes.push(translationKey("Couldn't load open alerts"));
   }
 
   const incidentsPart: ReactElement =
     incidentCount === null ? (
       <span>
-        {getUnknownValue()}
-        {" incidents"}
+        <TranslatedSentence
+          template="{{count}} incidents"
+          slots={{ count: getUnknownValue() }}
+        />
       </span>
     ) : (
       <Link
@@ -240,15 +244,20 @@ export const getOpenNowTileContent: (data: {
           incidentCount > 0 ? "text-red-700" : "text-gray-900"
         }`}
       >
-        {`${incidentCount} ${pluralize(incidentCount, "incident", "incidents")}`}
+        {translator.translatePlural(
+          { one: "{{count}} incident", other: "{{count}} incidents" },
+          incidentCount,
+        )}
       </Link>
     );
 
   const alertsPart: ReactElement =
     alertCount === null ? (
       <span>
-        {getUnknownValue()}
-        {" alerts"}
+        <TranslatedSentence
+          template="{{count}} alerts"
+          slots={{ count: getUnknownValue() }}
+        />
       </span>
     ) : (
       <Link
@@ -260,7 +269,10 @@ export const getOpenNowTileContent: (data: {
           alertCount > 0 ? "text-amber-700" : "text-gray-900"
         }`}
       >
-        {`${alertCount} ${pluralize(alertCount, "alert", "alerts")}`}
+        {translator.translatePlural(
+          { one: "{{count}} alert", other: "{{count}} alerts" },
+          alertCount,
+        )}
       </Link>
     );
 
@@ -273,7 +285,13 @@ export const getOpenNowTileContent: (data: {
       </span>
     ),
     description:
-      notes.length > 0 ? notes.join(" · ") : "Unresolved on this monitor",
+      notes.length > 0
+        ? notes
+            .map((note: string): string => {
+              return translator.translateText(note) || note;
+            })
+            .join(" · ")
+        : "Unresolved on this monitor",
   };
 };
 
@@ -285,9 +303,11 @@ export const getOpenNowTileContent: (data: {
 const MonitorOverviewStatBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const openNow: TileContent = getOpenNowTileContent({
     monitorId: props.monitorId,
     openWork: props.openWork,
+    translator: translator,
   });
 
   return (

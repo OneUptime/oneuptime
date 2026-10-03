@@ -7,6 +7,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import IncomingEmailMonitorAddress from "Common/Utils/Monitor/IncomingEmailMonitorAddress";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   secretKey: ObjectID;
@@ -50,6 +52,7 @@ export function getIncomingEmailAddress(
 const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const emailAddress: string | null = getIncomingEmailAddress(
     props.secretKey,
     props.customLocalPart,
@@ -61,8 +64,9 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
         <ErrorMessage
           message={
             <span>
-              Inbound email is not configured. Please ask your OneUptime
-              administrator to set up the inbound email environment variables.{" "}
+              {translator.translateText(
+                "Inbound email is not configured. Please ask your OneUptime administrator to set up the inbound email environment variables.",
+              )}{" "}
               <Link
                 to={Route.fromString(
                   "/docs/self-hosted/sendgrid-inbound-email",
@@ -70,8 +74,7 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
                 openInNewTab={true}
                 className="underline"
               >
-                View Setup Documentation
-              </Link>
+                {translator.translateText("View Setup Documentation")}</Link>
             </span>
           }
         />
@@ -86,7 +89,7 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="incoming-email-setup" className="space-y-4">
         <div>
-          <p className="text-xs font-medium text-gray-500">Email address</p>
+          <p className="text-xs font-medium text-gray-500">{translator.translateText("Email address")}</p>
           <div className="mt-1 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
             <span
               data-testid="incoming-email-address"
@@ -103,16 +106,15 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-sm text-gray-500">
-          Some services, such as Azure Monitor action groups, send a
-          verification email before they deliver any alerts. It shows up on this
-          monitor&apos;s Overview page like any other email.{" "}
+          {translator.translateText(
+            "Some services, such as Azure Monitor action groups, send a verification email before they deliver any alerts. It shows up on this monitor's Overview page like any other email.",
+          )}{" "}
           <Link
             to={Route.fromString(VERIFY_ADDRESS_DOCS_ROUTE)}
             openInNewTab={true}
             className="underline"
           >
-            How to verify the address
-          </Link>
+            {translator.translateText("How to verify the address")}</Link>
         </p>
       </div>
     </Card>

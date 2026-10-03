@@ -16,6 +16,8 @@ import API from "Common/UI/Utils/API/API";
 import OneUptimeDate from "Common/Types/Date";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorStepSecurityEventsMonitor:
@@ -39,6 +41,7 @@ export interface ComponentProps {
 const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -112,9 +115,9 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
   if (count === null) {
     return (
       <div className="text-sm text-gray-500">
-        {isOverview
+        {translator.translateText(isOverview
           ? "This monitor has no filters yet."
-          : "Configure the filters above to preview matching security events."}
+          : "Configure the filters above to preview matching security events.")}
       </div>
     );
   }
@@ -131,9 +134,31 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
         {count.toLocaleString()}
       </div>
       <div className="mt-1 text-sm text-gray-500">
-        {count === 1 ? "security event matches" : "security events match"}{" "}
-        {isOverview ? "this monitor's filters" : "the filters above"}
-        {windowText ? ` in the last ${windowText}` : ""}.
+        {translator.translatePlural(
+          isOverview
+            ? windowText
+              ? {
+                  one: "security event matches this monitor's filters in the last {{window}}.",
+                  other:
+                    "security events match this monitor's filters in the last {{window}}.",
+                }
+              : {
+                  one: "security event matches this monitor's filters.",
+                  other: "security events match this monitor's filters.",
+                }
+            : windowText
+              ? {
+                  one: "security event matches the filters above in the last {{window}}.",
+                  other:
+                    "security events match the filters above in the last {{window}}.",
+                }
+              : {
+                  one: "security event matches the filters above.",
+                  other: "security events match the filters above.",
+                },
+          count,
+          { window: windowText },
+        )}
       </div>
     </div>
   );

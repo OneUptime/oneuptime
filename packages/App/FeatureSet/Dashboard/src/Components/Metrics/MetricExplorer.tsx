@@ -79,6 +79,8 @@ import {
   TimeRangeZoomProvider,
   TimeRangeZoomScope,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
   "metric-explorer-auto-refresh-interval";
@@ -130,6 +132,7 @@ const getDefaultEmptyQueryConfig: GetDefaultEmptyQueryConfigFunction =
   };
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const metricQueriesFromUrl: Array<SerializedMetricQuery> =
     getMetricQueriesFromQuery();
 
@@ -745,38 +748,38 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               />
               <div
                 className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
-                aria-label="Related telemetry signals"
+                aria-label={translator.translateText("Related telemetry signals")}
               >
                 <Tooltip text="Open the logs explorer scoped to this time window and filters">
                   <button
                     type="button"
-                    aria-label="View logs for this time window and filters"
+                    aria-label={translator.translateText("View logs for this time window and filters")}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
                       void navigateToSignalWithCurrentWindow(PageMap.LOGS);
                     }}
                   >
                     <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
-                    <span>Logs</span>
+                    <span>{translator.translateText("Logs")}</span>
                   </button>
                 </Tooltip>
                 <Tooltip text="Open the traces explorer scoped to this time window and filters">
                   <button
                     type="button"
-                    aria-label="View traces for this time window and filters"
+                    aria-label={translator.translateText("View traces for this time window and filters")}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
                       void navigateToSignalWithCurrentWindow(PageMap.TRACES);
                     }}
                   >
                     <Icon icon={IconProp.Layers} className="h-3.5 w-3.5" />
-                    <span>Traces</span>
+                    <span>{translator.translateText("Traces")}</span>
                   </button>
                 </Tooltip>
                 <Tooltip text="Investigate this window in a side panel — logs, traces, exceptions">
                   <button
                     type="button"
-                    aria-label="Investigate this time window in a side panel"
+                    aria-label={translator.translateText("Investigate this time window in a side panel")}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                     onClick={() => {
                       const investigatedWindow: InBetween<Date> | null =
@@ -799,7 +802,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                       icon={IconProp.MagnifyingGlassPlus}
                       className="h-3.5 w-3.5"
                     />
-                    <span>Investigate</span>
+                    <span>{translator.translateText("Investigate")}</span>
                   </button>
                 </Tooltip>
                 <Tooltip
@@ -811,7 +814,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 >
                   <button
                     type="button"
-                    aria-label="Toggle incident and alert markers"
+                    aria-label={translator.translateText("Toggle incident and alert markers")}
                     aria-pressed={showEvents}
                     onClick={toggleShowEvents}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
@@ -821,7 +824,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                     }`}
                   >
                     <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
-                    <span>Events</span>
+                    <span>{translator.translateText("Events")}</span>
                     {showEvents && eventMarkerCount > 0 ? (
                       <span className="rounded-full bg-indigo-100 px-1.5 text-[11px] font-semibold text-indigo-700">
                         {eventMarkerCount}
@@ -838,7 +841,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 >
                   <button
                     type="button"
-                    aria-label="Toggle compare with previous period"
+                    aria-label={translator.translateText("Toggle compare with previous period")}
                     aria-pressed={showCompare}
                     onClick={toggleShowCompare}
                     className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
@@ -851,7 +854,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                       icon={IconProp.ArrowUturnLeft}
                       className="h-3.5 w-3.5"
                     />
-                    <span>Compare</span>
+                    <span>{translator.translateText("Compare")}</span>
                   </button>
                 </Tooltip>
               </div>
@@ -900,7 +903,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                       icon={IconProp.More}
                       className="h-4 w-4 text-gray-500"
                     />
-                    <span>Actions</span>
+                    <span>{translator.translateText("Actions")}</span>
                     <Icon
                       icon={IconProp.ChevronDown}
                       className="h-3 w-3 text-gray-400"

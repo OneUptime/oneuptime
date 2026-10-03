@@ -54,6 +54,8 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricViewTimeRange from "./Utils/MetricViewTimeRange";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -270,6 +272,7 @@ const getNextUnusedVariable: (input: {
 const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   props: MetricViewBodyInternalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
   const [
@@ -925,7 +928,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
           icon={IconProp.Refresh}
           className="h-3 w-3 animate-spin text-gray-400"
         />
-        Refreshing
+        {translator.translateText("Refreshing")}
       </div>
     );
   };
@@ -947,8 +950,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
             <div className="-mt-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Time Range
-                </span>
+                  {translator.translateText("Time Range")}</span>
               </div>
               <StartAndEndDate
                 type={StartAndEndDateType.DateTime}
@@ -970,7 +972,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
         {!props.hideQueryElements && (
           <div>
             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              <span>Queries</span>
+              <span>{translator.translateText("Queries")}</span>
               {props.data.queryConfigs.length > 1 && (
                 <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
                   {props.data.queryConfigs.length}
@@ -1262,7 +1264,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 }}
               >
                 <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
-                <span>Add Metric</span>
+                <span>{translator.translateText("Add Metric")}</span>
               </button>
               <button
                 type="button"
@@ -1280,7 +1282,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 }}
               >
                 <Icon icon={IconProp.Calculator} className="h-3.5 w-3.5" />
-                <span>Add Formula</span>
+                <span>{translator.translateText("Add Formula")}</span>
               </button>
             </div>
           </div>
@@ -1319,12 +1321,11 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                 />
               </div>
               <p className="mt-4 text-sm font-medium text-gray-900">
-                Select a metric to get started
-              </p>
+                {translator.translateText("Select a metric to get started")}</p>
               <p className="mt-1 text-xs text-gray-500">
-                {props.hideQueryElements
+                {translator.translateText(props.hideQueryElements
                   ? "No metric is configured for this view."
-                  : "Pick a metric in the query editor above and its chart will appear here."}
+                  : "Pick a metric in the query editor above and its chart will appear here.")}
               </p>
               {!props.hideQueryElements && (
                 <div className="mt-4 flex justify-center">
@@ -1356,7 +1357,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
             <div>
               {!props.hideQueryElements && (
                 <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  <span>Charts</span>
+                  <span>{translator.translateText("Charts")}</span>
                   {/*
                    * Panel count, not result count: a query flagged
                    * overlayWithPreviousQuery draws on the previous query's
@@ -1411,8 +1412,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     className="h-4 w-4 shrink-0 text-red-500"
                   />
                   <span>
-                    Couldn&apos;t refresh — showing previously loaded data.{" "}
-                    {metricResultsError}
+                    {translator.translateTemplate(
+                      "Couldn't refresh — showing previously loaded data. {{error}}",
+                      { error: metricResultsError },
+                    )}
                   </span>
                 </div>
               )}

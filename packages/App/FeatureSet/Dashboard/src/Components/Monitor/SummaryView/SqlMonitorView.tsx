@@ -5,6 +5,8 @@ import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorRespon
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -14,6 +16,7 @@ export interface ComponentProps {
 const SqlMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const sqlResponse: SqlMonitorResponse | undefined =
     props.probeMonitorResponse?.sqlQueryMonitorResponse;
 
@@ -112,17 +115,15 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
       {sqlResponse?.firstRow &&
         Object.keys(sqlResponse.firstRow).length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">First Row</h3>
+            <h3 className="text-sm font-medium text-gray-700">{translator.translateText("First Row")}</h3>
             <div className="border rounded-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Column
-                    </th>
+                      {translator.translateText("Column")}</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Value
-                    </th>
+                      {translator.translateText("Value")}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">

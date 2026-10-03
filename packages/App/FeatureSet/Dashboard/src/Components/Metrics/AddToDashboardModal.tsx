@@ -16,6 +16,8 @@ import {
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -67,6 +69,7 @@ const mapMetricChartTypeToDashboardChartType: MapChartTypeFunction = (
 const AddToDashboardModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [addedToDashboard, setAddedToDashboard] = useState<Dashboard | null>(
@@ -235,9 +238,16 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
     return (
       <ConfirmModal
         title="Chart Added"
-        description={`The chart was added to the ${
-          addedToDashboard.name || "selected"
-        } dashboard.`}
+        description={
+          addedToDashboard.name
+            ? translator.translateTemplate(
+                "The chart was added to the {{dashboard}} dashboard.",
+                { dashboard: addedToDashboard.name },
+              )
+            : translator.translateTemplate(
+                "The chart was added to the selected dashboard.",
+              )
+        }
         submitButtonText="Open Dashboard"
         closeButtonText="Close"
         onClose={props.onClose}

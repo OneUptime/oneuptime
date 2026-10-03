@@ -9,6 +9,8 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import HintChip from "./HintChip";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   data: MetricFormulaData;
@@ -19,6 +21,7 @@ export interface ComponentProps {
 const MetricFormulaInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const availableVariables: Array<string> = useMemo(() => {
     return (props.availableVariables || []).filter((v: string): boolean => {
       return Boolean(v);
@@ -51,7 +54,7 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
 
           {availableVariables.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <span className="text-xs text-gray-500">Available:</span>
+              <span className="text-xs text-gray-500">{translator.translateText("Available:")}</span>
               {availableVariables.map((variable: string) => {
                 return (
                   <span
@@ -82,9 +85,7 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
             </div>
           ) : (
             <p className="mt-1 text-xs text-gray-400">
-              Tip: reference variables with or without a leading &quot;$&quot;
-              (e.g. &quot;a + b&quot; or &quot;$A + $B&quot;).
-            </p>
+              {translator.translateText("Tip: reference variables with or without a leading \"$\" (e.g. \"a + b\" or \"$A + $B\").")}</p>
           )}
         </div>
       </div>

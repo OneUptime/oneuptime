@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement, useCallback } from "react";
 import { SparkAreaChart } from "Common/UI/Components/Charts/ChartLibrary/SparkChart/SparkChart";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface SparklinePoint {
   time: string;
@@ -23,6 +25,7 @@ export interface MetricSparklineProps {
 const MetricSparkline: FunctionComponent<MetricSparklineProps> = (
   props: MetricSparklineProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const width: string = props.widthClassName || "w-40";
   const height: string = props.heightClassName || "h-10";
 
@@ -78,8 +81,7 @@ const MetricSparkline: FunctionComponent<MetricSparklineProps> = (
       <div
         className={`${width} ${height} flex items-center justify-center rounded-md border border-dashed border-gray-200 text-[10px] text-gray-300`}
       >
-        no data
-      </div>
+        {translator.translateText("no data")}</div>
     );
   }
 

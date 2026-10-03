@@ -21,6 +21,8 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
 import Icon from "Common/UI/Components/Icon/Icon";
 import HintChip from "./HintChip";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   data: MetricQueryData;
@@ -72,6 +74,7 @@ const COUNTER_LIKE_NAME_SUFFIXES: Array<string> = [
 const MetricFilter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
     props.defaultShowAdvancedFilters || false,
   );
@@ -219,8 +222,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[240px] flex-1">
           <label className="mb-1 block text-xs font-medium text-gray-500">
-            Metric
-          </label>
+            {translator.translateText("Metric")}</label>
           <Dropdown
             options={metricNameOptions}
             value={selectedMetricNameOption}
@@ -236,8 +238,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
         </div>
         <div className="w-full sm:w-44">
           <label className="mb-1 block text-xs font-medium text-gray-500">
-            Aggregate by
-          </label>
+            {translator.translateText("Aggregate by")}</label>
           <Dropdown
             options={aggregationOptions}
             value={selectedAggregationOption}
@@ -263,7 +264,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className="rounded font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title="Plot this metric as a per-second rate of change"
+              title={translator.translateText("Plot this metric as a per-second rate of change")}
               onClick={(): void => {
                 props.onEnableRateTransform?.();
               }}
@@ -272,9 +273,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             </button>
             <button
               type="button"
-              aria-label="Dismiss rate hint"
+              aria-label={translator.translateText("Dismiss rate hint")}
               className="inline-flex h-4 w-4 items-center justify-center rounded text-amber-500 transition-colors hover:bg-amber-100 hover:text-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title="Dismiss"
+              title={translator.translateText("Dismiss")}
               onClick={(): void => {
                 setRateHintDismissedForMetric(selectedMetricName);
               }}
@@ -299,7 +300,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             }
             className="h-3 w-3"
           />
-          <span>Filters &amp; grouping</span>
+          <span>{translator.translateText("Filters & grouping")}</span>
           {!showAdvancedFilters &&
           (activeFilterCount > 0 || selectedGroupByKeys.length > 0) ? (
             <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -311,11 +312,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
         <div className="mt-2 space-y-4 border-l-2 border-gray-100 pl-3">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Filter by attributes
-            </label>
+              {translator.translateText("Filter by attributes")}</label>
             <p className="mt-1 text-xs text-gray-500">
-              Only chart series whose attributes match these conditions.
-            </p>
+              {translator.translateText("Only chart series whose attributes match these conditions.")}</p>
             {props.attributesError ? (
               <div className="py-2">
                 <ErrorMessage
@@ -356,13 +355,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Group by
-            </label>
+              {translator.translateText("Group by")}</label>
             <p className="mt-1 text-xs text-gray-500">
-              Split this query into one series per unique value (e.g. one line
-              per host). Leave empty to aggregate everything into a single
-              series.
-            </p>
+              {translator.translateText("Split this query into one series per unique value (e.g. one line per host). Leave empty to aggregate everything into a single series.")}</p>
             <div className="mt-2">
               <Dropdown
                 options={groupByOptions}

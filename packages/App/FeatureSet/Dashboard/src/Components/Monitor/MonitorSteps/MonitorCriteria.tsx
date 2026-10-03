@@ -1,7 +1,6 @@
 import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
-import Text from "Common/Types/Text";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -10,6 +9,40 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * The order a criteria is checked in, as the word the sentence uses. A
+ * translation key each, so a locale words its own ordinals; past the
+ * twentieth the sentence names the position as a number instead.
+ */
+const CRITERIA_ORDINALS: Array<string> = [
+  translationKey("first"),
+  translationKey("second"),
+  translationKey("third"),
+  translationKey("fourth"),
+  translationKey("fifth"),
+  translationKey("sixth"),
+  translationKey("seventh"),
+  translationKey("eighth"),
+  translationKey("ninth"),
+  translationKey("tenth"),
+  translationKey("eleventh"),
+  translationKey("twelfth"),
+  translationKey("thirteenth"),
+  translationKey("fourteenth"),
+  translationKey("fifteenth"),
+  translationKey("sixteenth"),
+  translationKey("seventeenth"),
+  translationKey("eighteenth"),
+  translationKey("nineteenth"),
+  translationKey("twentieth"),
+];
 
 export interface ComponentProps {
   monitorCriteria: MonitorCriteria;
@@ -26,6 +59,7 @@ export interface ComponentProps {
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mt-4">
       <ul role="list" className="space-y-6">
@@ -47,16 +81,27 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       isCriteriaDisabled ? "text-gray-500" : "text-gray-900"
                     }`}
                   >
-                    {i.data?.name || "Criteria"}
+                    {i.data?.name || translator.translateText("Criteria")}
                   </span>{" "}
                   {isCriteriaDisabled && (
                     <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-                      Disabled
-                    </span>
+                      {translator.translateText("Disabled")}</span>
                   )}{" "}
                   {isCriteriaDisabled
-                    ? "This criteria is disabled and will not be evaluated."
-                    : `This criteria will be checked ${Text.convertNumberToWords(index + 1)}.`}
+                    ? translator.translateText(
+                        "This criteria is disabled and will not be evaluated.",
+                      )
+                    : CRITERIA_ORDINALS[index]
+                      ? translator.translateTemplate(
+                          "This criteria will be checked {{ordinal}}.",
+                          {
+                            ordinal: translatableTerm(CRITERIA_ORDINALS[index]!),
+                          },
+                        )
+                      : translator.translateTemplate(
+                          "This criteria will be checked at position {{position}}.",
+                          { position: index + 1 },
+                        )}
                   <div className="mt-10 mb-10" key={index}>
                     <MonitorCriteriaInstanceElement
                       monitorStatusOptions={props.monitorStatusOptions}

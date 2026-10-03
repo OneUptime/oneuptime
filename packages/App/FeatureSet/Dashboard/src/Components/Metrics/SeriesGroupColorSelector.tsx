@@ -4,6 +4,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SeriesColorSelector, {
   SERIES_COLOR_SWATCHES,
 } from "./SeriesColorSelector";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   // Attribute keys the query groups by (e.g. ["service.name"]).
@@ -41,6 +43,7 @@ const UNSET_VALUE: string = "(unset)";
 const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const idPrefix: string = React.useId();
   // Per-key text buffer for the "add value" input.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -99,16 +102,16 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
     <div className="space-y-3">
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">
-          Group colors
-        </label>
+          {translator.translateText("Group colors")}</label>
         <p className="text-xs text-gray-400">
-          {props.description ||
-            "Pin a color to specific group values. Unpinned groups use the series color or theme palette."}
+          {translator.translateText(
+            props.description ||
+              "Pin a color to specific group values. Unpinned groups use the series color or theme palette.",
+          )}
         </p>
         {props.groupByKeys.length > 1 && (
           <p className="text-xs text-gray-400 mt-1">
-            A pin on one attribute value applies to every series containing it.
-          </p>
+            {translator.translateText("A pin on one attribute value applies to every series containing it.")}</p>
         )}
       </div>
 
@@ -139,7 +142,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 {key}
               </span>
               {isLoading && (
-                <span className="text-xs text-gray-400">loading values…</span>
+                <span className="text-xs text-gray-400">{translator.translateText("loading values…")}</span>
               )}
             </div>
 
@@ -162,8 +165,13 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                       </div>
                       <button
                         type="button"
-                        title={`Remove ${val}`}
-                        aria-label={`Remove ${val}`}
+                        title={translator.translateTemplate("Remove {{value}}", {
+                          value: val,
+                        })}
+                        aria-label={translator.translateTemplate(
+                          "Remove {{value}}",
+                          { value: val },
+                        )}
                         onClick={() => {
                           setSegment(segment, undefined);
                         }}
@@ -177,8 +185,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
               </div>
             ) : (
               <p className="text-xs italic text-gray-400 mb-2">
-                No pinned values yet.
-              </p>
+                {translator.translateText("No pinned values yet.")}</p>
             )}
 
             <div className="flex items-center gap-2">
@@ -187,9 +194,9 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 list={datalistId}
                 value={drafts[key] || ""}
                 placeholder={
-                  suggestions.length > 0
+                  translator.translateText(suggestions.length > 0
                     ? "Pick or type a value…"
-                    : "Type a group value…"
+                    : "Type a group value…")
                 }
                 spellCheck={false}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,7 +226,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
               >
                 <Icon icon={IconProp.Add} className="h-3 w-3" />
-                Add
+                {translator.translateText("Add")}
               </button>
             </div>
           </div>
