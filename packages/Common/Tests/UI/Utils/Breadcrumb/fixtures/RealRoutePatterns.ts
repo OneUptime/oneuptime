@@ -716,7 +716,6 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/teams/:id",
   "/dashboard/:projectId/teams/:id/members",
   "/dashboard/:projectId/teams/:id/permissions",
-  "/dashboard/:projectId/teams/:id/block-permissions",
   "/dashboard/:projectId/teams/:id/compliance",
   "/dashboard/:projectId/teams/:id/on-call-schedules",
   "/dashboard/:projectId/teams/:id/custom-fields",

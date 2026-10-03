@@ -198,15 +198,17 @@ describe("the checkbox is not offered where the server would ignore it", () => {
   );
 });
 
-describe("User > Projects - the stepped form", () => {
+describe("User > Projects - one page", () => {
   const source: string = readSource(
     "AdminDashboard/src/Pages/Users/View/Projects.tsx",
   );
 
-  test("the checkbox is assigned to a step", () => {
+  test("the checkbox sits on the one page, under the project and its team", () => {
     /*
-     * This form has steps. BasicForm filters fields by the current step id, so
-     * a field with no stepId is never rendered at all - the checkbox would be
+     * Add to Project is one page: the project, the team (its members team as
+     * soon as the project is picked) and this box. A stepId left on the box
+     * would name a step the form no longer declares, and BasicForm never
+     * renders a field whose step it does not walk - the checkbox would be
      * invisible rather than misplaced.
      */
     const declaration: RegExpMatchArray | null = source.match(CHECKBOX_FIELD);
@@ -218,11 +220,12 @@ describe("User > Projects - the stepped form", () => {
       source.indexOf(declaration![0]) + declaration![0].length + 200,
     );
 
-    expect(tail).toContain('stepId: "team"');
+    expect(tail).not.toContain("stepId");
   });
 
-  test("the step it is on is one the form declares", () => {
-    expect(source).toMatch(/id:\s*"team",/);
+  test("the form declares no steps for it to be on", () => {
+    expect(source).not.toMatch(/\bsteps:\s*\[/);
+    expect(source).not.toContain("stepId");
   });
 
   test("it asks for its labels through i18n, like the fields around it", () => {

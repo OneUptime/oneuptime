@@ -21,7 +21,6 @@ import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
 import GlobalSSOProject from "Common/Models/DatabaseModels/GlobalSsoProject";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import ProjectScopedTeamsPicker, {
@@ -238,24 +237,17 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           noItemsMessage={"No projects attached to this provider."}
           showRefreshButton={true}
           filters={[]}
-          formSteps={
-            [
-              {
-                id: "project",
-                title: "Select Project",
-              },
-              {
-                id: "teams",
-                title: "Select Teams",
-              },
-            ] as Array<FormStep<GlobalSSOProject>>
-          }
+          /*
+           * One page: the project, then its teams under it. The teams picker
+           * lists the teams of the project picked above it and starts on that
+           * project's members team, so people who sign in for the first time
+           * join the project as members unless other teams are picked.
+           */
           formFields={[
             {
               field: {
                 project: true,
               },
-              stepId: "project",
               title: "Project",
               description:
                 "The project federated users are provisioned into for this provider.",
@@ -272,7 +264,6 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               field: {
                 teams: true,
               },
-              stepId: "teams",
               title: "Teams",
               description:
                 "Users are added to these teams (from the project selected above) when they sign in.",

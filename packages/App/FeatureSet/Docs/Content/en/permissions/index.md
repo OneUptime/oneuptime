@@ -34,7 +34,7 @@ A user account is global to the OneUptime instance — the same login works acro
 A user is "in" a project when they are a member of **at least one team** in it. There is no separate "add user to project" step: inviting somebody to a project invites them to a team.
 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
-- **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team.
+- **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. Things assigned to them by name, such as incident roles and resource ownership, stay assigned until you reassign them.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
@@ -57,7 +57,18 @@ The **Owners** and **Admin** teams are deliberately locked: their permissions ca
 
 Create as many additional teams as you like — "Frontend On-Call", "Support", "Read-Only Auditors" — and give each the permissions it needs.
 
-Where to find it: **Settings → Teams**. Open a team to reach **Members**, **Permissions** and **Block Permissions**.
+**Creating a team** asks for a name and its **Access**, what the team's members can do:
+
+| Access | What the team's members can do |
+| --- | --- |
+| Project Admin | Create, change and delete anything in the project, its settings included. Not billing, and not deleting the project. |
+| Project Member | Create, change and delete monitors, incidents, status pages and the project's other resources. |
+| Viewer | Read everything in the project, and change nothing. |
+| Choose permissions later | Nothing yet. Picked to start with. |
+
+The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. The description is under **Advanced**. A team with a role opens on its **Members** page, ready for you to invite people; with **Choose permissions later** it opens on its **Permissions** page, where you add a narrower role such as `IncidentMember`, or single permissions. If the role cannot be added, the team is still created and a notice above the list links to it.
+
+Where to find it: **Settings → Teams**. Open a team to reach **Members** and **Permissions**; **Block Permissions** are under **Advanced** at the bottom of the Permissions page, which says **Configured** while the team has any.
 
 ## Permissions
 
@@ -89,6 +100,8 @@ Each team has two lists:
 
 - **Permissions** (allow) — what this team can do.
 - **Block Permissions** — what this team can never do, regardless of any allow entry.
+
+Both are on the team's **Permissions** page. Few teams need a block, so block permissions are folded under **Advanced** at the bottom of the page.
 
 **Block always wins.** A block entry with no labels removes that capability outright for the team. A block entry with labels removes it only for resources carrying those labels — useful for "this team can edit monitors, except the ones labelled Production".
 
@@ -175,11 +188,11 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 ## Recipes
 
-**A team that only watches.** Create the team, add the `Viewer` role, or the per-area `*Viewer` roles for just the areas they should see.
+**A team that only watches.** Create the team with **Viewer** under **Access**. For just some areas, pick **Choose permissions later** and add the per-area `*Viewer` roles they should see.
 
 **On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors it runs.
 
-**Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** for the sensitive capabilities, restricted to the `Production` label.
+**Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **Advanced** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
 
 **A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 

@@ -12,7 +12,10 @@ import {
   isFormFieldValueSet,
 } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { API_KEY_ACCESS_FIELD_KEY, API_KEY_ACCESS_LATER } from "./ApiKeyAccess";
+import {
+  RoleAccessHolder,
+  getRoleAccessFormField,
+} from "../Permission/RoleAccess";
 
 /*
  * CREATE API KEY: A NAME, WHAT THE KEY MAY DO, AND THE REST FOLDED AWAY.
@@ -22,8 +25,9 @@ import { API_KEY_ACCESS_FIELD_KEY, API_KEY_ACCESS_LATER } from "./ApiKeyAccess";
  *
  *   - Name.
  *   - Access: Project Admin, Project Member, Viewer or Choose permissions
- *     later (ApiKeyAccess.ts), with Choose permissions later picked. Not
- *     asked of someone who may not give a key permissions.
+ *     later (Permission/RoleAccess.ts, the same question Create Team asks),
+ *     with Choose permissions later picked. Not asked of someone who may not
+ *     give a key permissions.
  *   - Advanced, folded: the description, and Expires - a year from today,
  *     already filled in. Folded, the section says so ("The key expires a
  *     year from today."): a key that stops working is a default nobody
@@ -101,7 +105,7 @@ export const getApiKeyAdvancedSummary: (
 
 export interface ApiKeyCreateFormOptions {
   /*
-   * The Access cards this user may pick from (getApiKeyAccessOptions). Empty
+   * The Access cards this user may pick from (getRoleAccessOptions). Empty
    * leaves the question out: the key starts with no access, as it always
    * did, and its page is where access is added.
    */
@@ -131,30 +135,16 @@ export const getApiKeyCreateFormFields: (
         minLength: 2,
       },
     },
+    /*
+     * Not a column of the key: the page adds the role once the key exists
+     * (RoleAccess.giveRoleAccess), so nothing of it is sent with the key.
+     */
     ...(options.accessOptions.length > 0
       ? [
-          {
-            /*
-             * Not a column of the key: the page adds the role once the key
-             * exists (ApiKeyAccess.giveApiKeyAccess), so nothing of it is
-             * sent with the key.
-             */
-            overrideField: {
-              [API_KEY_ACCESS_FIELD_KEY]: true,
-            },
-            overrideFieldKey: API_KEY_ACCESS_FIELD_KEY,
-            formOnly: true,
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Access",
-            description:
-              "What this key can do. You can change it on the key's page at any time.",
-            fieldType: FormFieldSchemaType.CardSelect,
-            cardSelectOptions: options.accessOptions,
-            cardSelectSingleColumn: true,
-            required: true,
-            defaultValue: API_KEY_ACCESS_LATER,
-            dataTestId: "api-key-access",
-          } as ModelField<ApiKey>,
+          getRoleAccessFormField<ApiKey>({
+            holder: RoleAccessHolder.ApiKey,
+            accessOptions: options.accessOptions,
+          }),
         ]
       : []),
     {

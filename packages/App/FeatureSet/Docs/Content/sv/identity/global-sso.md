@@ -39,7 +39,7 @@ Hur en global leverantör beter sig beror på om du ansluter några projekt till
 
 - **Inga projekt anslutna (default-all / invite-first):** Användare kan logga in med leverantören och nå **alla projekt de redan är medlemmar i**. Nya användare skapas **inte** automatiskt — en användare måste först bjudas in till ett projekt. Använd detta för företagsövergripande SSO där medlemskap hanteras på annat håll.
 
-- **Projekt anslutna (auto-provisionering):** Öppna leverantören och använd tabellen **Attached Projects** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **auto-provisioneras** in i dessa projekt och läggs till i standardteamen vid första inloggningen. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, radera den och lägg till den igen.
+- **Projekt anslutna (auto-provisionering):** Öppna leverantören och använd tabellen **Attached Projects** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **auto-provisioneras** in i dessa projekt och läggs till i standardteamen vid första inloggningen. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, radera den och lägg till den igen.
 
 Om du vill förhindra all automatisk kontoskapande även när projekt är anslutna, aktivera **Disable Sign Up with SSO** på leverantören — användare måste då bjudas in innan de kan logga in.
 

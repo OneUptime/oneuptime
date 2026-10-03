@@ -56,7 +56,7 @@ Teamsene **Owners** og **Admin** er bevidst låst: deres tilladelser kan ikke re
 
 Opret så mange ekstra teams, du vil — "Frontend-vagt", "Support", "Skrivebeskyttede revisorer" — og giv hvert enkelt de tilladelser, det har brug for.
 
-Hvor du finder det: **Indstillinger → Teams**. Åbn et team for at nå **Members**, **Permissions** og **Block Permissions**.
+Hvor du finder det: **Indstillinger → Teams**. Åbn et team for at nå **Members** og **Permissions**; **Block Permissions** ligger under **Advanced** nederst på siden Permissions.
 
 ## Tilladelser
 

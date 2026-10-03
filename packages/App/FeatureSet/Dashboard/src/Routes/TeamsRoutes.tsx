@@ -7,7 +7,6 @@ import TeamsViewLayout from "../Pages/Teams/View/Layout";
 import TeamsViewIndex from "../Pages/Teams/View/Index";
 import TeamsViewMembers from "../Pages/Teams/View/Members";
 import TeamsViewPermissions from "../Pages/Teams/View/Permissions";
-import TeamsViewBlockPermissions from "../Pages/Teams/View/BlockPermissions";
 import TeamsViewCompliance from "../Pages/Teams/View/Compliance";
 import TeamsViewOnCallSchedules from "../Pages/Teams/View/OnCallSchedules";
 import TeamsViewCustomFields from "../Pages/Teams/View/CustomFields";
@@ -21,6 +20,16 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import TeamModel from "Common/Models/DatabaseModels/Team";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+
+/*
+ * Where a team's Block Permissions page used to be, relative to the team's
+ * own URL. Block permissions are on the Permissions page now, folded under
+ * Advanced at the bottom, so nothing in the RouteMap points here any more;
+ * the URL is kept only so a bookmark or a link in a wiki still arrives
+ * somewhere.
+ */
+export const MOVED_TEAM_BLOCK_PERMISSIONS_PATH: string = "block-permissions";
 
 const TeamsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -60,14 +69,9 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.TEAM_VIEW_BLOCK_PERMISSIONS,
-          )}
+          path={MOVED_TEAM_BLOCK_PERMISSIONS_PATH}
           element={
-            <TeamsViewBlockPermissions
-              {...props}
-              pageRoute={RouteMap[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS] as Route}
-            />
+            <MovedPageRedirect pageMap={PageMap.TEAM_VIEW_PERMISSIONS} />
           }
         />
         <PageRoute

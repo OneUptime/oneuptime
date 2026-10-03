@@ -56,7 +56,7 @@ Les équipes **Owners** et **Admin** sont volontairement verrouillées : leurs a
 
 Créez autant d'équipes supplémentaires que vous voulez — « Astreinte Frontend », « Support », « Auditeurs en lecture seule » — et donnez à chacune les autorisations dont elle a besoin.
 
-Où le trouver : **Paramètres → Équipes**. Ouvrez une équipe pour accéder à **Members**, **Permissions** et **Block Permissions**.
+Où le trouver : **Paramètres → Équipes**. Ouvrez une équipe pour accéder à **Members** et **Permissions** ; **Block Permissions** se trouve sous **Advanced**, en bas de la page Permissions.
 
 ## Autorisations
 

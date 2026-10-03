@@ -160,7 +160,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getDefaultApiKeyExpiry } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm";
-import { API_KEY_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyAccess";
+import { ROLE_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import Route from "../../../Types/API/Route";
@@ -270,7 +270,7 @@ async function waitForFormDefaults(modal: HTMLElement): Promise<void> {
     );
 
     const later: HTMLElement | null = within(modal).queryByTestId(
-      `card-select-option-${API_KEY_ACCESS_LATER}`,
+      `card-select-option-${ROLE_ACCESS_LATER}`,
     );
 
     if (later) {
@@ -385,10 +385,10 @@ describe("the Create API Key form", () => {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
 
-    expect(accessCard(modal, API_KEY_ACCESS_LATER)).toHaveAttribute(
+    expect(accessCard(modal, ROLE_ACCESS_LATER)).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -564,7 +564,7 @@ describe("creating a key", () => {
 
     typeName(modal, "CI pipeline");
     fireEvent.click(accessCard(modal, Permission.ProjectAdmin));
-    fireEvent.click(accessCard(modal, API_KEY_ACCESS_LATER));
+    fireEvent.click(accessCard(modal, ROLE_ACCESS_LATER));
 
     await submit(modal);
 
@@ -604,7 +604,7 @@ describe("creating a key", () => {
       "aria-checked",
       "false",
     );
-    expect(accessCard(secondModal, API_KEY_ACCESS_LATER)).toHaveAttribute(
+    expect(accessCard(secondModal, ROLE_ACCESS_LATER)).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -749,7 +749,7 @@ describe("who is asked what", () => {
 
     expect(accessCardValues(modal)).toEqual([
       Permission.ProjectAdmin,
-      API_KEY_ACCESS_LATER,
+      ROLE_ACCESS_LATER,
     ]);
   });
 

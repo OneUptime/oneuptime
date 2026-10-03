@@ -129,10 +129,7 @@
       "bulkAddToProject": "परियोजना में जोड़ें",
       "bulkAddToProjectTitle": "उपयोगकर्ताओं को परियोजना में जोड़ें",
       "bulkAddToProjectDescription": "कोई परियोजना और उसकी एक टीम चुनें। जब तक वे निमंत्रण स्वीकार नहीं करते, तब तक सभी {{userCount}} चयनित उपयोगकर्ताओं को उस टीम में लंबित सदस्य के रूप में जोड़ा जाएगा — जब तक कि आप उनकी ओर से निमंत्रण स्वीकार न करें।",
-      "bulkAddToProjectNext": "अगला",
       "bulkAddToProjectSubmit": "परियोजना में जोड़ें",
-      "bulkAddToProjectStepProject": "परियोजना चुनें",
-      "bulkAddToProjectStepTeam": "टीम चुनें",
       "bulkAddToProjectFieldProject": "परियोजना",
       "bulkAddToProjectFieldProjectDescription": "वह परियोजना जिसमें आप चयनित उपयोगकर्ताओं को जोड़ना चाहते हैं।",
       "bulkAddToProjectFieldProjectPlaceholder": "परियोजना चुनें",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "टीम सदस्यताएँ",
       "teamsCardDescription": "सभी परियोजनाओं में इस उपयोगकर्ता की टीमें। किसी पंक्ति को हटाने पर उन्हें केवल उसी टीम से हटाया जाएगा।",
       "teamsNoItems": "यह उपयोगकर्ता किसी भी टीम का सदस्य नहीं है।",
-      "stepProject": "परियोजना चुनें",
-      "stepTeam": "टीम चुनें",
       "fieldProject": "परियोजना",
       "fieldProjectDescription": "वह परियोजना जिसमें आप इस उपयोगकर्ता को जोड़ना चाहते हैं।",
       "fieldProjectPlaceholder": "परियोजना चुनें",
@@ -385,7 +380,8 @@
       "inviteUser": "उपयोगकर्ता को आमंत्रित करें",
       "inviteUserTitle": "नए उपयोगकर्ता को आमंत्रित करें",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "आमंत्रित करें"
+      "inviteUserSubmit": "आमंत्रित करें",
+      "inviteTeamDescriptionWithDefault": "उनकी टीम तय करती है कि वे इस प्रोजेक्ट में क्या कर सकते हैं। शुरुआत में {{teamName}} चुनी गई है; उन्हें अलग एक्सेस देने के लिए कोई दूसरी टीम चुनें।"
     },
     "projectUserView": {
       "title": "Project User",
