@@ -5,6 +5,7 @@ import {
 } from "./Helpers/ProductOnboarding";
 import {
   clickCreateUntilMonitorView,
+  clickNext,
   createMonitor,
   fillDestination,
   selectMonitorLabels,
@@ -246,11 +247,18 @@ test.describe("First run: a brand-new project", () => {
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill(websiteMonitorName);
     await selectMonitorTypeCard({ page, cardValue: "Website" });
-    await page.getByTestId("Create Monitor").click();
+    await clickNext({ page });
 
     await waitForCriteriaStepReady({ page });
     await fillDestination({ page, value: "https://example.com" });
-    await page.getByTestId("Create Monitor").click();
+    /*
+     * Every step after the criteria is optional - the monitor could be
+     * created from here - so Next walks on to look at the interval.
+     */
+    await expect(page.getByTestId("Create Monitor")).toHaveText(
+      "Create Monitor",
+    );
+    await clickNext({ page });
 
     // The step opens on the default: nothing to choose.
     const interval: Locator = page.getByRole("combobox", {
@@ -263,7 +271,7 @@ test.describe("First run: a brand-new project", () => {
       }),
     ).toBeVisible();
 
-    await page.getByTestId("Create Monitor").click();
+    await clickNext({ page });
     await selectMonitorLabels({ page });
     await clickCreateUntilMonitorView({ page, projectId });
 

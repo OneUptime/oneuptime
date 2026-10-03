@@ -59,6 +59,12 @@ import { RULE_ENABLED_COLUMN } from "../../UI/Components/RuleRun/RuleEnabledFiel
  *   - a declared step no field is on is an empty page in the wizard - and,
  *     on a ModelTable, so is a step whose every field the Edit form leaves
  *     out.
+ *
+ * And, for the "finish from any step" guard (FinishFromAnyStepGuard.test.ts),
+ * what a custom element draws: the components its getCustomElement renders
+ * (following a render helper in the same file), where each is declared, and
+ * whether it fills in a value of its own when it is drawn - an effect in it
+ * that calls onChange (see CustomElementComponentFacts).
  */
 
 export const LONG_FORM_FIELD_LIMIT: number = 3;
@@ -146,6 +152,22 @@ export const FORM_HOSTS: Record<FormHostName, HostSpec> = {
   DuplicateModel: { fields: "fieldsToChange" },
 };
 
+/*
+ * A component a custom element draws (Field.getCustomElement).
+ */
+export interface CustomElementComponentFacts {
+  // The name the field draws it by: the JSX tag.
+  name: string;
+  // Where it is declared, repository-relative; null when it is not followed.
+  file: string | null;
+  /*
+   * It writes a value of its own when it is drawn: an effect in it
+   * (useEffect, useLayoutEffect, useAsyncEffect) calls onChange, directly or
+   * through a function of its own. Null when it is not followed.
+   */
+  fillsInOnShow: boolean | null;
+}
+
 export interface FormFieldFacts {
   // The column or override key the field writes, when it is written down.
   key: string;
@@ -182,6 +204,10 @@ export interface FormFieldFacts {
    * text are one folded section.
    */
   collapsibleSection: string | undefined;
+  // customElementCanBeSkipped written true (Forms/Utils/FinishFromAnyStep).
+  customElementCanBeSkipped: boolean;
+  // What its getCustomElement draws; empty when it has none.
+  customElementComponents: Array<CustomElementComponentFacts>;
   file: string;
   line: number;
 }
@@ -1755,6 +1781,7 @@ export class FormStepsScanner {
     }
 
     const title: ts.Node | null = initializerOf("title");
+    const getCustomElement: ts.Node | null = initializerOf("getCustomElement");
     const defaultValue: ts.Node | null = initializerOf("defaultValue");
     const hasDefaultValue: boolean = Boolean(
       defaultValue &&
@@ -1824,6 +1851,10 @@ export class FormStepsScanner {
               .getText(collapsibleSection.getSourceFile())
               .replace(/\s+/g, "")
           : undefined,
+      customElementCanBeSkipped: isTrue("customElementCanBeSkipped"),
+      customElementComponents: getCustomElement
+        ? this.readDrawnComponents(getCustomElement)
+        : [],
       file: toRepositoryPath(
         this.repositoryRoot,
         call ? call.getSourceFile().fileName : parsed.file,
@@ -1834,6 +1865,114 @@ export class FormStepsScanner {
           .getLineAndCharacterOfPosition(
             position.getStart(position.getSourceFile()),
           ).line + 1,
+    };
+  }
+
+  /*
+   * The components a getCustomElement draws: every JSX tag in it that names
+   * a component, and in a function of the same file it calls to draw them
+   * (renderMinutesSetting(...)), a few calls deep.
+   */
+  private readDrawnComponents(
+    getCustomElement: ts.Node,
+  ): Array<CustomElementComponentFacts> {
+    const owner: ParsedFile | null = this.parse(
+      getCustomElement.getSourceFile().fileName,
+    );
+
+    if (!owner) {
+      return [];
+    }
+
+    const found: Map<string, CustomElementComponentFacts> = new Map<
+      string,
+      CustomElementComponentFacts
+    >();
+    const followed: Set<ts.Node> = new Set<ts.Node>();
+
+    const visit: (node: ts.Node, depth: number) => void = (
+      node: ts.Node,
+      depth: number,
+    ): void => {
+      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const tag: string = node.tagName.getText(owner.sourceFile);
+
+        if (
+          COMPONENT_TAG.test(tag) &&
+          !tag.includes(".") &&
+          tag !== "Fragment" &&
+          !found.has(tag)
+        ) {
+          found.set(tag, this.describeComponentIn(owner, tag));
+        }
+      }
+
+      if (
+        depth < 3 &&
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression)
+      ) {
+        const declared: ts.Node | undefined = owner.declarations.get(
+          node.expression.text,
+        );
+
+        if (
+          declared &&
+          ts.isFunctionLike(declared) &&
+          !followed.has(declared)
+        ) {
+          followed.add(declared);
+          visit(declared, depth + 1);
+        }
+      }
+
+      ts.forEachChild(node, (child: ts.Node): void => {
+        visit(child, depth);
+      });
+    };
+
+    visit(getCustomElement, 0);
+
+    return Array.from(found.values());
+  }
+
+  /*
+   * Where a component a file uses is declared, and whether it fills in a
+   * value of its own when it is drawn. Public so a guard can ask about a
+   * component no form field in the scanned tree draws directly (a rule's
+   * conditions builder, which ModelForm puts in itself).
+   */
+  public describeComponent(
+    filePath: string,
+    name: string,
+  ): CustomElementComponentFacts {
+    const parsed: ParsedFile | null = this.parse(filePath);
+
+    if (!parsed) {
+      return { name, file: null, fillsInOnShow: null };
+    }
+
+    return this.describeComponentIn(parsed, name);
+  }
+
+  private describeComponentIn(
+    parsed: ParsedFile,
+    name: string,
+  ): CustomElementComponentFacts {
+    const declared: { parsed: ParsedFile; node: ts.Node } | null = this.lookup(
+      parsed,
+      name,
+      0,
+    );
+
+    if (!declared) {
+      return { name, file: null, fillsInOnShow: null };
+    }
+
+    return {
+      name,
+      file: toRepositoryPath(this.repositoryRoot, declared.parsed.file),
+      fillsInOnShow: fillsInOnShow(declared.node),
     };
   }
 
@@ -1885,6 +2024,133 @@ export function isSwitchFieldType(fieldType: string): boolean {
     fieldType === "FormFieldSchemaType.Toggle" ||
     fieldType === "FormFieldSchemaType.Checkbox"
   );
+}
+
+// A JSX tag that names a component rather than an HTML element.
+const COMPONENT_TAG: RegExp = /^[A-Z]/;
+
+const EFFECT_HOOKS: ReadonlySet<string> = new Set<string>([
+  "useEffect",
+  "useLayoutEffect",
+  "useAsyncEffect",
+]);
+
+// `onChange(...)`, `props.onChange(...)`, `props.onChange?.(...)`.
+function isOnChangeCall(node: ts.Node): boolean {
+  if (!ts.isCallExpression(node)) {
+    return false;
+  }
+
+  const callee: ts.Node = unwrap(node.expression);
+
+  return (
+    (ts.isIdentifier(callee) && callee.text === "onChange") ||
+    (ts.isPropertyAccessExpression(callee) && callee.name.text === "onChange")
+  );
+}
+
+function containsNode(
+  root: ts.Node,
+  test: (node: ts.Node) => boolean,
+): boolean {
+  let isFound: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (isFound) {
+      return;
+    }
+
+    if (test(node)) {
+      isFound = true;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(root);
+
+  return isFound;
+}
+
+/*
+ * Whether a component writes a value of its own when it is drawn: an effect
+ * hook in it whose callback calls onChange - directly, or through a
+ * function declared in the component that does. A value it only writes
+ * when the user does something (an event handler) does not count.
+ */
+export function fillsInOnShow(component: ts.Node): boolean {
+  // The component's own functions that call onChange.
+  const callers: Set<string> = new Set<string>();
+
+  const collect: (node: ts.Node) => void = (node: ts.Node): void => {
+    // A function, or one wrapped in useCallback.
+    const initializer: ts.Node | undefined =
+      ts.isVariableDeclaration(node) && node.initializer
+        ? unwrap(node.initializer)
+        : undefined;
+
+    const isFunction: boolean = Boolean(
+      initializer &&
+        (ts.isFunctionLike(initializer) ||
+          (ts.isCallExpression(initializer) &&
+            ts.isIdentifier(initializer.expression) &&
+            initializer.expression.text === "useCallback" &&
+            initializer.arguments[0] &&
+            ts.isFunctionLike(unwrap(initializer.arguments[0])))),
+    );
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      initializer &&
+      isFunction &&
+      containsNode(initializer, isOnChangeCall)
+    ) {
+      callers.add(node.name.text);
+    }
+
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      containsNode(node, isOnChangeCall)
+    ) {
+      callers.add(node.name.text);
+    }
+
+    ts.forEachChild(node, collect);
+  };
+
+  collect(component);
+
+  return containsNode(component, (node: ts.Node): boolean => {
+    if (!ts.isCallExpression(node)) {
+      return false;
+    }
+
+    const callee: ts.Node = unwrap(node.expression);
+    const hookName: string = ts.isIdentifier(callee)
+      ? callee.text
+      : ts.isPropertyAccessExpression(callee)
+        ? callee.name.text
+        : "";
+
+    if (!EFFECT_HOOKS.has(hookName) || !node.arguments[0]) {
+      return false;
+    }
+
+    return containsNode(node.arguments[0], (inner: ts.Node): boolean => {
+      if (isOnChangeCall(inner)) {
+        return true;
+      }
+
+      return (
+        ts.isCallExpression(inner) &&
+        ts.isIdentifier(unwrap(inner.expression)) &&
+        callers.has((unwrap(inner.expression) as ts.Identifier).text)
+      );
+    });
+  });
 }
 
 function isConstantFalseFunction(node: ts.Node): boolean {

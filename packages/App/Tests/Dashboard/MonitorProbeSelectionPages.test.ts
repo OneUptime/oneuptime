@@ -219,12 +219,42 @@ describe("Probe view page makes an edit saveable and visible", () => {
         "const isEditFormWithSteps: boolean = hasSteps && props.formProps.formType === FormType.Update;",
       ),
     );
+    /*
+     * The buttons come from getSteppedFormFooter: an edit form saves from
+     * any step, its action ("Save") on the main button of every one.
+     */
+    expect(modal).toContain(squash("savesFromAnyStep: isEditFormWithSteps,"));
     expect(modal).toContain(
-      squash(
-        'isEditFormWithSteps || isOnLastFormStep ? props.submitButtonText || "Save" : "Next";',
-      ),
+      squash('actionText: props.submitButtonText || "Save",'),
+    );
+    expect(modal).toContain(
+      squash("submitButtonText={footer.primaryButtonText}"),
     );
     expect(modal).toContain("submitAllSteps()");
+
+    const footer: string = squash(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Components",
+          "Forms",
+          "Utils",
+          "FinishFromAnyStep.ts",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(footer).toContain(
+      squash(
+        "if (data.savesFromAnyStep) { return { primaryButtonText: data.actionText, primaryButtonSubmitsAllSteps: true, showNextButton: !data.isOnLastStep, }; }",
+      ),
+    );
   });
 
   test("the card displays the auto-enable toggle the form edits", () => {

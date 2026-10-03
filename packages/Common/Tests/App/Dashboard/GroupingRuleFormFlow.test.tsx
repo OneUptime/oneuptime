@@ -280,8 +280,15 @@ async function clickSubmit(): Promise<void> {
   });
 }
 
+/*
+ * Walks on with the one button that reads Next: the main button while a later
+ * step still asks for something, the plain one beside the action once every
+ * step left is optional.
+ */
 async function goToStep(title: string): Promise<void> {
-  await clickSubmit();
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Next" }));
+  });
   await waitFor(
     () => {
       expect(activeStep()).toBe(title);
@@ -610,7 +617,11 @@ describe("creating a grouping rule", () => {
     });
 
     await goToStep("Which Incidents");
-    expect(submitButton()).toHaveTextContent("Next");
+    // Every advanced step is optional: the rule can be created from here.
+    expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
+    expect(
+      within(dialog()).getByTestId("modal-footer-next-button"),
+    ).toHaveTextContent("Next");
     await goToStep("Episode Lifecycle");
 
     expect(switchNamed("Reopen recently resolved episodes")).toHaveAttribute(
@@ -660,6 +671,38 @@ describe("creating a grouping rule", () => {
       }),
     );
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
+  });
+
+  test("with advanced settings shown, the rule is created from Which Incidents, the advanced steps at their defaults", async () => {
+    await openIncidentCreateForm();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Show advanced settings"));
+    });
+
+    await waitFor(() => {
+      expect(stepTitles()).toContain("Episode Lifecycle");
+    });
+
+    // Which Incidents draws the conditions builder: it has to be shown first.
+    expect(submitButton()).toHaveTextContent("Next");
+    expect(
+      within(dialog()).queryByTestId("modal-footer-next-button"),
+    ).not.toBeInTheDocument();
+
+    await goToStep("Which Incidents");
+
+    await waitFor(() => {
+      expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
+    });
+
+    await clickSubmit();
+    await waitForSave();
+
+    expect(activeStep()).toBe("Which Incidents");
+    expect(submitted()["enableReopenWindow"]).not.toBe(true);
+    expect(submitted()["enableResolveDelay"]).not.toBe(true);
+    expect(submitted()["enableInactivityTimeout"]).not.toBe(true);
   });
 
   test("the alert form asks about alerts and saves the alert switches", async () => {

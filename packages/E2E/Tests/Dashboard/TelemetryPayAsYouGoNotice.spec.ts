@@ -59,14 +59,22 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
 
   const advanceToBilling: () => Promise<void> = async (): Promise<void> => {
     const modal: Locator = ctx.page.getByTestId("modal");
-    const nextButton: Locator = modal.getByTestId("modal-footer-submit-button");
+    /*
+     * The one button that reads Next. Until the Billing step has been read
+     * it is the main button; once it has, the main button creates the key
+     * and a plain Next sits beside it - never a way past the pricing unread.
+     */
+    const nextButton: Locator = modal.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
     await modal
       .getByPlaceholder("Ingestion Key Name", { exact: true })
       .fill(draftName);
     await modal
       .getByPlaceholder("Ingestion Key Description", { exact: true })
       .fill(draftDescription);
-    await expect(nextButton).toHaveText("Next");
+    await expect(nextButton).toHaveCount(1);
     await nextButton.click();
     await expect(
       modal.getByTestId("card-select-option-Server"),
@@ -349,8 +357,43 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
       modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
     ).toBeVisible();
     await expect(modal.getByRole("checkbox")).toHaveCount(0);
+    /*
+     * The pricing read, only the summary is left: the key can be created
+     * from here, or the summary reviewed first.
+     */
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Create Ingestion Key",
+    );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveText(
+      "Next",
+    );
+  });
+
+  test("a fresh dialog cannot create a key before the pricing has been read", async () => {
+    const modal: Locator = ctx.page.getByTestId("modal");
+    await modal.getByTestId("modal-footer-close-button").click();
+    await expect(modal).toBeHidden();
+
+    await ctx.page
+      .getByRole("button", { name: "Create Ingestion Key", exact: true })
+      .click();
+    await expect(modal).toBeVisible();
+    await modal
+      .getByPlaceholder("Ingestion Key Name", { exact: true })
+      .fill(draftName);
+
+    // Details and Key Type walk on: the Billing step is still to be read.
     await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
       "Next",
     );
+    await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(0);
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect(
+      modal.getByTestId("card-select-option-Server"),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Next",
+    );
+    await modal.getByTestId("modal-footer-close-button").click();
   });
 });

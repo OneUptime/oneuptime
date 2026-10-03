@@ -220,17 +220,27 @@ const renderModal: RenderModalFunction = (
 
 type GoToLastStepFunction = (view: ReturnType<typeof render>) => Promise<void>;
 
-// The form has the same "Monitor Details" then "Advanced" steps as the single resource form.
+/*
+ * The form has the same "Monitor Details" then "Advanced" steps as the single
+ * resource form. The monitors are all it asks for, so its main button adds
+ * them from the first step; the plain Next beside it walks on to Advanced.
+ */
 const goToLastStep: GoToLastStepFunction = async (
   view: ReturnType<typeof render>,
 ): Promise<void> => {
-  fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+  await waitFor(() => {
+    expect(view.getByTestId("modal-footer-next-button")).toBeInTheDocument();
+  });
+  fireEvent.click(view.getByTestId("modal-footer-next-button"));
 
   await waitFor(() => {
-    expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-      "Add Monitors",
-    );
+    expect(
+      view.queryByTestId("modal-footer-next-button"),
+    ).not.toBeInTheDocument();
   });
+  expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+    "Add Monitors",
+  );
 };
 
 const callOrder: Array<string> = [];
@@ -285,6 +295,65 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     expect(within(steps).getByText("Advanced")).toBeVisible();
     expect(view.queryByText("Display Name")).not.toBeInTheDocument();
     expect(view.queryByText("Description")).not.toBeInTheDocument();
+  });
+
+  test("offers Add Monitors from the first step, with a plain Next to the Advanced options", async () => {
+    const view: ReturnType<typeof render> = renderModal();
+
+    await waitFor(() => {
+      expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+        "Add Monitors",
+      );
+    });
+    expect(view.getByTestId("modal-footer-next-button")).toHaveTextContent(
+      "Next",
+    );
+  });
+
+  test("adds the selected monitors from the first step, the Advanced options at their defaults", async () => {
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await waitFor(() => {
+      expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+        "Add Monitors",
+      );
+    });
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockBulkAdd).toHaveBeenCalledTimes(1);
+    });
+
+    const options: BulkAddStatusPageMonitorsOptions =
+      mockBulkAdd.mock.calls[0]![0];
+
+    expect(
+      options.monitors.map((monitor: Monitor) => {
+        return monitor.name;
+      }),
+    ).toEqual(["Billing Worker", "Checkout API"]);
+    expect(options.resourceOptions).toEqual({
+      displayTooltip: undefined,
+      showCurrentStatus: true,
+      showUptimePercent: false,
+      uptimePercentPrecision: undefined,
+      showStatusHistoryChart: true,
+    });
+  });
+
+  test("Next to Advanced still asks for the monitors first", async () => {
+    const view: ReturnType<typeof render> = renderModal();
+
+    await waitFor(() => {
+      expect(view.getByTestId("modal-footer-next-button")).toBeInTheDocument();
+    });
+    fireEvent.click(view.getByTestId("modal-footer-next-button"));
+
+    await waitFor(() => {
+      expect(view.getByText("Monitors is required.")).toBeVisible();
+    });
+    expect(mockBulkAdd).not.toHaveBeenCalled();
   });
 
   test("requires at least one monitor before the bulk add runs", async () => {
