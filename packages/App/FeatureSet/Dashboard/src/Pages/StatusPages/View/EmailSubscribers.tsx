@@ -5,7 +5,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
@@ -40,6 +39,8 @@ import React, {
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberChannelOffPanel from "../../../Components/StatusPage/SubscriberChannelOffPanel";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -62,7 +63,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   const [isEmailSubscribersEnabled, setIsEmailSubscribersEnabled] =
     React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  /*
+   * Loading from the first render: the list, and the channel's switch
+   * above it, are drawn once the status page has said whether the channel
+   * is on - not first as off, for a frame, on a page where it is on.
+   */
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -304,19 +310,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         stepId: "subscriber-info",
         title: "Email",
-        description: "Status page updates will be sent to this email.",
+        /*
+         * Every notification can be unsubscribed from without signing in, so
+         * one reader of a shared address can take it off this page for
+         * everyone who reads it.
+         */
+        description: SubscriberUnsubscribeCopy.sharedAddressAdvice,
         fieldType: FormFieldSchemaType.Email,
         required: true,
         placeholder: "subscriber@company.com",
         disableSpellCheck: true,
-        footerElement: (
-          <Alert
-            type={AlertType.WARNING}
-            className="mt-2"
-            dataTestId="add-subscriber-shared-address-warning"
-            title={SubscriberUnsubscribeCopy.sharedAddressWarning}
-          />
-        ),
       },
       {
         field: {
@@ -444,12 +447,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
       {!error && !isLoading ? (
         <>
-          {!isEmailSubscribersEnabled && (
-            <Alert
-              type={AlertType.DANGER}
-              title="Email subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
-            />
-          )}
+          {/*
+           * The channel's own switch while it is off, where a red
+           * "not enabled" banner used to send people to another page.
+           */}
+          <SubscriberChannelOffPanel
+            statusPageId={modelId}
+            method={StatusPageSubscriberNotificationMethod.Email}
+            isEnabled={isEmailSubscribersEnabled}
+          />
           <SubscriberNotificationWarnings statusPageId={modelId} />
           <TeamAddedSubscribersUnsubscribedNotice
             statusPageId={modelId}
@@ -643,25 +649,27 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     field: { emails: true },
                     stepId: "subscriber-info",
                     title: "Emails",
-                    description:
-                      "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+                    /*
+                     * How to paste them, then the shared-address advice:
+                     * every notification can be unsubscribed from without
+                     * signing in, so one reader of a mailing list added here
+                     * can take everyone on it off this page. Two sentences,
+                     * each looked up whole.
+                     */
+                    description: (
+                      <>
+                        {translator.translateText(
+                          "One email per line (or separated by commas, semicolons, or spaces). Invalid or duplicate entries will be skipped.",
+                        )}{" "}
+                        {translator.translateText(
+                          SubscriberUnsubscribeCopy.sharedAddressAdvice,
+                        )}
+                      </>
+                    ),
                     fieldType: FormFieldSchemaType.LongText,
                     required: true,
                     placeholder:
                       "user1@example.com\nuser2@example.com\nuser3@example.com",
-                    /*
-                     * Every notification can be unsubscribed from without
-                     * signing in, so one reader of a mailing list added here
-                     * can take everyone on it off this page.
-                     */
-                    footerElement: (
-                      <Alert
-                        type={AlertType.WARNING}
-                        className="mt-2"
-                        dataTestId="bulk-add-shared-address-warning"
-                        title={SubscriberUnsubscribeCopy.sharedAddressWarning}
-                      />
-                    ),
                   },
                   {
                     field: { isSubscriptionConfirmed: true },
