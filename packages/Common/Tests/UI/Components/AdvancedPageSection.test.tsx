@@ -150,6 +150,19 @@ describe("AdvancedPageSection", () => {
     );
   });
 
+  test("frames the cards in it with its own padding, not their page margins", () => {
+    renderSection();
+
+    const cards: HTMLElement = screen.getByTestId("block-permissions-card")
+      .parentElement as HTMLElement;
+
+    // A card's margin under it is for the next card on the page.
+    expect(cards).toHaveClass("[&_[data-testid=card]]:mb-0");
+    // Two cards in here still sit a card's gap apart.
+    expect(cards).toHaveClass("space-y-5");
+    expect(body()).toContainElement(cards);
+  });
+
   test("takes a test id of its own for a page with more than one", () => {
     renderSection({ dataTestId: "api-key-advanced-section" });
 

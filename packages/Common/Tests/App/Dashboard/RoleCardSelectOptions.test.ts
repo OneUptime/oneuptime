@@ -156,6 +156,9 @@ describe("every Add Role uses this one list", () => {
     );
 
     expect(source).toContain("getRoleCardSelectOptions()");
+    expect(source).toContain(
+      'cardSelectSearchPlaceholder: translationKey("Search roles")',
+    );
     // No list of its own left behind.
     expect(source).not.toContain("roleIconMap");
     expect(source).not.toContain("getRolePermissionProps");
@@ -168,6 +171,9 @@ describe("every Add Role uses this one list", () => {
     );
 
     expect(source).toContain("cardSelectOptions: getRoleCardSelectOptions()");
+    expect(source).toContain(
+      'cardSelectSearchPlaceholder: translationKey("Search roles")',
+    );
   });
 
   test("a new API key's Access", () => {

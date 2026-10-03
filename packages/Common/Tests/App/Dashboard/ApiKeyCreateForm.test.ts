@@ -184,16 +184,16 @@ describe("the Access cards", () => {
     });
 
     expect(options[0]!.description).toBe(
-      "Create, change and delete anything in this project, its settings included. Cannot manage billing or delete the project.",
+      "Create, change and delete anything, settings included. Billing and deleting the project are left out.",
     );
     expect(options[1]!.description).toBe(
-      "Create, change and delete monitors, incidents, status pages and other resources, as a project member can.",
+      "Create, change and delete monitors, incidents, status pages and other resources.",
     );
     expect(options[2]!.description).toBe(
-      "Read everything in this project. Cannot create, change or delete anything.",
+      "Read everything in the project. Change nothing.",
     );
     expect(options[3]!.description).toBe(
-      "The key can do nothing until you add a role or permissions on its page. Pick a narrower role there, such as Incident Member.",
+      "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.",
     );
   });
 

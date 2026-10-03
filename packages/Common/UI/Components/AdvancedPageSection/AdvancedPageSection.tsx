@@ -60,7 +60,14 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
             : undefined
         }
       >
-        <div>{props.children}</div>
+        {/*
+         * A card keeps a margin under it for the next card on the page.
+         * In here the section's padding frames the cards, so their own
+         * margins go, and the gap between two cards is set once.
+         */}
+        <div className="space-y-5 [&_[data-testid=card]]:mb-0">
+          {props.children}
+        </div>
       </CollapsibleSection>
     </div>
   );

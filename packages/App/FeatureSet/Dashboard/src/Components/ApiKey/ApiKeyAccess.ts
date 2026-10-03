@@ -51,29 +51,28 @@ export const API_KEY_ACCESS_ROLES: Array<Permission> = [
 
 /*
  * What each choice means for a key, in the key's terms rather than a
- * person's. Written out one by one so the extractor finds every sentence
- * (src/Locales/README.md).
+ * person's, short enough to compare at a glance. Written out one by one so
+ * the extractor finds every sentence (src/Locales/README.md).
  */
 const ROLE_OPTIONS: Array<CardSelectOption> = [
   {
     value: Permission.ProjectAdmin,
     title: "Project Admin",
     description:
-      "Create, change and delete anything in this project, its settings included. Cannot manage billing or delete the project.",
+      "Create, change and delete anything, settings included. Billing and deleting the project are left out.",
     icon: getRoleIcon(Permission.ProjectAdmin),
   },
   {
     value: Permission.ProjectMember,
     title: "Project Member",
     description:
-      "Create, change and delete monitors, incidents, status pages and other resources, as a project member can.",
+      "Create, change and delete monitors, incidents, status pages and other resources.",
     icon: getRoleIcon(Permission.ProjectMember),
   },
   {
     value: Permission.Viewer,
     title: "Viewer",
-    description:
-      "Read everything in this project. Cannot create, change or delete anything.",
+    description: "Read everything in the project. Change nothing.",
     icon: getRoleIcon(Permission.Viewer),
   },
 ];
@@ -82,7 +81,7 @@ export const API_KEY_ACCESS_LATER_OPTION: CardSelectOption = {
   value: API_KEY_ACCESS_LATER,
   title: "Choose permissions later",
   description:
-    "The key can do nothing until you add a role or permissions on its page. Pick a narrower role there, such as Incident Member.",
+    "No access yet. Add a narrower role, such as Incident Member, or single permissions on the key's page.",
   icon: IconProp.Clock,
 };
 

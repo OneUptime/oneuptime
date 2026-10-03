@@ -24,6 +24,7 @@ import {
 } from "Common/UI/Components/CardSelect/CardSelect";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -173,6 +174,9 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
                   "Select a role to assign to this team. Roles provide a predefined set of permissions.",
                 fieldType: FormFieldSchemaType.CardSelect,
                 cardSelectOptions: roleCardSelectOptions,
+                // Some forty roles: a search box finds one by name or area.
+                cardSelectSearchable: true,
+                cardSelectSearchPlaceholder: translationKey("Search roles"),
                 required: true,
                 placeholder: "Select a role",
               },
