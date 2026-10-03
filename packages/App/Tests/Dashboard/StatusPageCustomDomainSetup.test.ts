@@ -1,14 +1,18 @@
 import {
   DNS_SETUP_TEST_IDS,
+  getStatusPageCustomDomainCertificateError,
   getStatusPageCustomDomainState,
+  isStatusPageCustomDomainDnsSetupAvailable,
   STATUS_PAGE_CUSTOM_DOMAIN_RECORD_TYPE,
   STATUS_PAGE_CUSTOM_DOMAIN_STATUS,
   STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT,
+  STATUS_TEST_IDS,
   StatusPageCustomDomainCopy,
   StatusPageCustomDomainState,
   StatusPageCustomDomainStateInput,
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
 import { CustomDomainCertificateStatus } from "Common/Types/StatusPage/CustomDomainVerification";
+import { CustomDomainCertificate } from "Common/Types/StatusPage/CustomDomainCertificates";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -159,7 +163,7 @@ describe("where a custom domain is on its way to HTTPS", () => {
     },
   );
 
-  test("the Status column reads the brief's four sentences", () => {
+  test("the Status column reads one sentence per state: the brief's four, and three that say what failed", () => {
     expect(STATUS_PAGE_CUSTOM_DOMAIN_STATUS).toEqual({
       [StatusPageCustomDomainState.WaitingForDns]:
         "Waiting for DNS: add the CNAME record.",
@@ -167,14 +171,226 @@ describe("where a custom domain is on its way to HTTPS", () => {
         "Uses your uploaded certificate.",
       [StatusPageCustomDomainState.IssuingCertificate]:
         "Issuing a free certificate, usually within 15 minutes.",
+      [StatusPageCustomDomainState.CertificateFailed]:
+        "Could not issue a free certificate yet. We keep trying.",
+      [StatusPageCustomDomainState.CertificateExpired]:
+        "Certificate expired. We keep trying to renew it.",
       [StatusPageCustomDomainState.CertificateIssued]:
         "Certificate issued, renews automatically.",
+      [StatusPageCustomDomainState.RenewalFailed]:
+        "Certificate issued, but renewing it failed. We keep trying.",
     });
   });
 
   test("Check now has a sentence for every certificate status the server answers", () => {
     expect(Object.keys(STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT).sort()).toEqual(
       Object.values(CustomDomainCertificateStatus).sort(),
+    );
+  });
+
+  /*
+   * A failing domain is no longer retried every 15 minutes - it waits longer
+   * after each failure - so the dialog no longer promises that timing.
+   */
+  test("a failed order says the certificate is retried automatically, without promising a timing", () => {
+    const failed: string =
+      STATUS_PAGE_CUSTOM_DOMAIN_VERIFIED_NEXT[
+        CustomDomainCertificateStatus.Failed
+      ];
+
+    expect(failed).toBe(
+      "We could not issue a free SSL certificate for {{domain}} yet. We keep trying automatically.",
+    );
+    expect(failed).not.toMatch(/\d+ (?:minutes?|hours?)/);
+  });
+});
+
+/*
+ * What the domain row cannot say comes from the certificates route: the
+ * certificate's expiry and the last failed order. Without it - not loaded
+ * yet, or the request failed - the row alone decides, as it always did.
+ */
+describe("where a custom domain is, with its certificate", () => {
+  const NOW: Date = new Date("2026-10-03T12:00:00.000Z");
+  const IN_TWO_MONTHS: Date = new Date("2026-12-03T12:00:00.000Z");
+  const YESTERDAY: Date = new Date("2026-10-02T12:00:00.000Z");
+  const ERROR: string = "Unable to order certificate for status.acme.com.";
+
+  const VERIFIED: StatusPageCustomDomainStateInput = { isCnameVerified: true };
+  const SERVED: StatusPageCustomDomainStateInput = {
+    isCnameVerified: true,
+    isSslOrdered: true,
+    isSslProvisioned: true,
+  };
+
+  function certificate(
+    data: Partial<CustomDomainCertificate>,
+  ): CustomDomainCertificate {
+    return { domainId: "domain-id", ...data };
+  }
+
+  test.each([
+    [
+      "verified, no certificate, and its last order failed",
+      VERIFIED,
+      certificate({ lastOrderError: ERROR }),
+      StatusPageCustomDomainState.CertificateFailed,
+    ],
+    [
+      "verified, no certificate, nothing failed",
+      VERIFIED,
+      certificate({}),
+      StatusPageCustomDomainState.IssuingCertificate,
+    ],
+    [
+      "its certificate has expired",
+      SERVED,
+      certificate({ expiresAt: YESTERDAY }),
+      StatusPageCustomDomainState.CertificateExpired,
+    ],
+    [
+      "its certificate has expired, and its renewal failed",
+      SERVED,
+      certificate({ expiresAt: YESTERDAY, lastOrderError: ERROR }),
+      StatusPageCustomDomainState.CertificateExpired,
+    ],
+    [
+      "served, and its last renewal failed",
+      SERVED,
+      certificate({ expiresAt: IN_TWO_MONTHS, lastOrderError: ERROR }),
+      StatusPageCustomDomainState.RenewalFailed,
+    ],
+    [
+      "served, nothing failed",
+      SERVED,
+      certificate({ expiresAt: IN_TWO_MONTHS }),
+      StatusPageCustomDomainState.CertificateIssued,
+    ],
+    [
+      "a certificate not written out yet",
+      { isCnameVerified: true, isSslOrdered: true },
+      certificate({ expiresAt: IN_TWO_MONTHS }),
+      StatusPageCustomDomainState.IssuingCertificate,
+    ],
+    [
+      "not verified, whatever its certificate",
+      { isCnameVerified: false },
+      certificate({ expiresAt: YESTERDAY, lastOrderError: ERROR }),
+      StatusPageCustomDomainState.WaitingForDns,
+    ],
+    [
+      "on an uploaded certificate, whatever the free one",
+      { isCnameVerified: true, isCustomCertificate: true },
+      certificate({ expiresAt: YESTERDAY, lastOrderError: ERROR }),
+      StatusPageCustomDomainState.UsesUploadedCertificate,
+    ],
+  ])(
+    "%s",
+    (
+      _name: string,
+      domain: StatusPageCustomDomainStateInput,
+      domainCertificate: CustomDomainCertificate,
+      state: StatusPageCustomDomainState,
+    ) => {
+      expect(
+        getStatusPageCustomDomainState(domain, domainCertificate, NOW),
+      ).toBe(state);
+    },
+  );
+
+  test("the failure is shown under the states that are about one, and only there", () => {
+    const failed: CustomDomainCertificate = certificate({
+      lastOrderError: ERROR,
+    });
+
+    for (const state of [
+      StatusPageCustomDomainState.CertificateFailed,
+      StatusPageCustomDomainState.CertificateExpired,
+      StatusPageCustomDomainState.RenewalFailed,
+    ]) {
+      expect(getStatusPageCustomDomainCertificateError(state, failed)).toBe(
+        ERROR,
+      );
+    }
+
+    for (const state of [
+      StatusPageCustomDomainState.WaitingForDns,
+      StatusPageCustomDomainState.UsesUploadedCertificate,
+      StatusPageCustomDomainState.IssuingCertificate,
+      StatusPageCustomDomainState.CertificateIssued,
+    ]) {
+      expect(
+        getStatusPageCustomDomainCertificateError(state, failed),
+      ).toBeUndefined();
+    }
+
+    expect(
+      getStatusPageCustomDomainCertificateError(
+        StatusPageCustomDomainState.CertificateExpired,
+        certificate({ expiresAt: YESTERDAY }),
+      ),
+    ).toBeUndefined();
+  });
+
+  /*
+   * DNS Setup, whose Check now orders the certificate, is the retry path of
+   * a domain whose free certificate is not in place.
+   */
+  test.each([
+    ["not verified", { isCnameVerified: false }, undefined, true],
+    ["verified, not ordered yet", VERIFIED, undefined, true],
+    [
+      "ordered, its order failing (the certificate went missing)",
+      { isCnameVerified: true, isSslOrdered: true },
+      certificate({ lastOrderError: ERROR }),
+      true,
+    ],
+    [
+      "ordered, its certificate expired",
+      SERVED,
+      certificate({ expiresAt: YESTERDAY }),
+      true,
+    ],
+    [
+      "served, its last renewal failed: renewal retries on its own",
+      SERVED,
+      certificate({ expiresAt: IN_TWO_MONTHS, lastOrderError: ERROR }),
+      false,
+    ],
+    [
+      "served",
+      SERVED,
+      certificate({ expiresAt: IN_TWO_MONTHS }),
+      false,
+    ],
+    ["ordered, its certificate not known yet", SERVED, undefined, false],
+    [
+      "on an uploaded certificate",
+      { isCnameVerified: true, isCustomCertificate: true },
+      certificate({ lastOrderError: ERROR }),
+      false,
+    ],
+  ])(
+    "DNS Setup when %s: %s",
+    (
+      _name: string,
+      domain: StatusPageCustomDomainStateInput,
+      domainCertificate: CustomDomainCertificate | undefined,
+      offered: boolean,
+    ) => {
+      expect(
+        isStatusPageCustomDomainDnsSetupAvailable(
+          domain,
+          domainCertificate,
+          NOW,
+        ),
+      ).toBe(offered);
+    },
+  );
+
+  test("the Status column's test ids are distinct", () => {
+    expect(new Set(Object.values(STATUS_TEST_IDS)).size).toBe(
+      Object.values(STATUS_TEST_IDS).length,
     );
   });
 });
@@ -224,8 +440,13 @@ describe("the copy", () => {
     }
   });
 
-  test("brings 24 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(24);
+  /*
+   * 24 came with the flow; custom-domain-ssl-hardening added the three
+   * Status sentences about a failure, the expired-certificate intro of DNS
+   * Setup, and the failed order's sentence without a timing.
+   */
+  test("brings 28 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(28);
   });
 
   test.each(OTHER_LOCALES)(
@@ -278,6 +499,13 @@ describe("the Custom Domains page", () => {
     expect(page).toContain("onCreateSuccess");
     expect(page).toContain("modalType === ModalType.Create");
     expect(page).toContain("StatusPageDomainDnsSetupModal");
+  });
+
+  test("reads each domain's certificate whenever the table loads its rows", () => {
+    expect(page).toContain("onFetchSuccess");
+    expect(page).toContain("/certificates/");
+    expect(page).toContain("StatusPageCustomDomainStatus");
+    expect(page).toContain("isStatusPageCustomDomainDnsSetupAvailable");
   });
 
   test("the dialog asks verify-cname, the one call it makes", () => {

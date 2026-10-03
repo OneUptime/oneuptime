@@ -108,7 +108,12 @@ export default class CustomDomainCertificates {
     return certificates;
   }
 
+  // An ISO string as sent, or a Date if the client's JSON reader made one.
   private static readDate(value: unknown): Date | undefined {
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? undefined : value;
+    }
+
     if (typeof value !== "string" || !value) {
       return undefined;
     }

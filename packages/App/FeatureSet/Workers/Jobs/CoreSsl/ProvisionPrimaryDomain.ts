@@ -80,11 +80,10 @@ RunCron(
       );
 
       /*
-       * The installation's own host: there is no CNAME to check. The order
-       * takes the host's order lock - every worker replica runs this job on
-       * startup, so after a deploy they all reach it at once - and counts
-       * against the installation's Let's Encrypt budget with a renewal's
-       * priority.
+       * The installation's own host: there is no CNAME to check. Like every
+       * order, it takes the name's order lock and one unit of the
+       * installation's Let's Encrypt budget, with a renewal's priority: the
+       * installation's own certificate comes before new custom domains.
        */
       const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
         domain: hostnameOnly,
