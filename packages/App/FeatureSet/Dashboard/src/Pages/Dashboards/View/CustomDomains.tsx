@@ -28,10 +28,14 @@ import OneUptimeDate from "Common/Types/Date";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CertificateReissueUtil from "Common/Utils/CertificateReissue";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -86,7 +90,10 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
           isEditable={true}
           cardProps={{
             title: "Custom Domains",
-            description: `Important: Please add a CNAME record pointing to ${DashboardCNameRecord} for these domains for this to work.`,
+            description: translator.translateTemplate(
+              "Important: Please add a CNAME record pointing to {{cnameRecord}} for these domains for this to work.",
+              { cnameRecord: DashboardCNameRecord },
+            ),
           }}
           refreshToggle={refreshToggle}
           onBeforeCreate={(item: DashboardDomain): Promise<DashboardDomain> => {
@@ -329,8 +336,12 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (!item.isCnameVerified) {
                   return (
                     <span>
-                      <span className="font-semibold">Action Required:</span>{" "}
-                      Please add your CNAME record.
+                      <span className="font-semibold">
+                        {translator.translateText("Action Required:")}
+                      </span>{" "}
+                      {translator.translateText(
+                        "Please add your CNAME record.",
+                      )}
                     </span>
                   );
                 }
@@ -338,8 +349,9 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (item.isCustomCertificate) {
                   return (
                     <span>
-                      No action is required. Please allow 30 minutes for the
-                      certificate to be provisioned.
+                      {translator.translateText(
+                        "No action is required. Please allow 30 minutes for the certificate to be provisioned.",
+                      )}
                     </span>
                   );
                 }
@@ -347,8 +359,12 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (!item.isSslOrdered) {
                   return (
                     <span>
-                      <span className="font-semibold">Action Required:</span>{" "}
-                      Please order SSL certificate.
+                      <span className="font-semibold">
+                        {translator.translateText("Action Required:")}
+                      </span>{" "}
+                      {translator.translateText(
+                        "Please order SSL certificate.",
+                      )}
                     </span>
                   );
                 }
@@ -356,17 +372,18 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 if (!item.isSslProvisioned) {
                   return (
                     <span>
-                      No action is required. This SSL certificate will be
-                      provisioned in 1 hour. If this does not happen. Please
-                      contact support.
+                      {translator.translateText(
+                        "No action is required. This SSL certificate will be provisioned in 1 hour. If this does not happen. Please contact support.",
+                      )}
                     </span>
                   );
                 }
 
                 return (
                   <span>
-                    Certificate Provisioned. We will automatically renew this
-                    certificate. No action required.{" "}
+                    {translator.translateText(
+                      "Certificate Provisioned. We will automatically renew this certificate. No action required.",
+                    )}
                   </span>
                 );
               },
@@ -381,41 +398,40 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
               DashboardCNameRecord ? (
                 <div>
                   <span>
-                    Please add CNAME record to your domain. Details of the CNAME
-                    records are:
+                    {translator.translateText(
+                      "Please add CNAME record to your domain. Details of the CNAME records are:",
+                    )}
                   </span>
                   <br />
                   <br />
                   <span>
-                    <b>Record Type: </b> CNAME
+                    <b>{translator.translateText("Record Type:")} </b> CNAME
                   </span>
                   <br />
                   <span>
-                    <b>Name: </b>
+                    <b>{translator.translateText("Name:")} </b>
                     {selectedDashboardDomain?.fullDomain}
                   </span>
                   <br />
                   <span>
-                    <b>Content: </b>
+                    <b>{translator.translateText("Content:")} </b>
                     {DashboardCNameRecord}
                   </span>
                   <br />
                   <br />
                   <span>
-                    Once you have done this, it should take 24 hours to
-                    automatically verify.
+                    {translator.translateText(
+                      "Once you have done this, it should take 24 hours to automatically verify.",
+                    )}
                   </span>
                 </div>
               ) : (
                 <div>
                   <span>
-                    Custom Domains not enabled for this OneUptime installation.
-                    Please contact your server admin to enable this feature. To
-                    enable this feature, if you are using Docker compose, the
-                    <b>DASHBOARD_CNAME_RECORD</b> environment variable must be
-                    set when starting the OneUptime cluster. If you are using
-                    Helm and Kubernetes then set dashboard.cnameRecord in the
-                    values.yaml file.
+                    <TranslatedSentence
+                      template="Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set dashboard.cnameRecord in the values.yaml file."
+                      slots={{ variable: <b>DASHBOARD_CNAME_RECORD</b> }}
+                    />
                   </span>
                 </div>
               )
@@ -466,16 +482,16 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
             description={
               DashboardCNameRecord ? (
                 <div>
-                  Please click on the button below to order SSL for this domain.
-                  We will use LetsEncrypt to order a certificate. This process
-                  is secure and completely free. The certificate takes 3 hours
-                  to provision after its been ordered.
+                  {translator.translateText(
+                    "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
+                  )}
                 </div>
               ) : (
                 <div>
                   <span>
-                    Custom Domains not enabled for this OneUptime installation.
-                    Please contact your server admin to enable this feature.
+                    {translator.translateText(
+                      "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
+                    )}
                   </span>
                 </div>
               )
@@ -527,8 +543,9 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
               !DashboardCNameRecord ? (
                 <div>
                   <span>
-                    Custom Domains not enabled for this OneUptime installation.
-                    Please contact your server admin to enable this feature.
+                    {translator.translateText(
+                      "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
+                    )}
                   </span>
                 </div>
               ) : isReissueCoolingDown ? (
@@ -540,18 +557,15 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                 </div>
               ) : (
                 <div>
-                  We will ask Let&apos;s Encrypt for a brand new certificate for
-                  this domain, and replace the one we currently serve with it.
-                  Your dashboard stays online on the existing certificate while
-                  this happens, and the new certificate is served within 15
-                  minutes.
+                  {translator.translateText(
+                    "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your dashboard stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.",
+                  )}
                   <br />
                   <br />
-                  Certificates renew automatically well before they expire, so
-                  you do not need to do this to stay online. Because Let&apos;s
-                  Encrypt rate limits how often the same domain can be issued, a
-                  reissue can only be requested once every{" "}
-                  {CertificateReissueUtil.COOLDOWN_IN_HOURS} hours.
+                  {translator.translateTemplate(
+                    "Certificates renew automatically well before they expire, so you do not need to do this to stay online. Because Let's Encrypt rate limits how often the same domain can be issued, a reissue can only be requested once every {{hours}} hours.",
+                    { hours: CertificateReissueUtil.COOLDOWN_IN_HOURS },
+                  )}
                 </div>
               )
             }

@@ -247,7 +247,9 @@ function readSubjectName(expression: string, code: string): string | null {
   const literal: RegExpMatchArray | null =
     expression.match(/^"([^"]*)"$/) ||
     expression.match(/^'([^']*)'$/) ||
-    expression.match(/^`([^`$]*)`$/);
+    expression.match(/^`([^`$]*)`$/) ||
+    // A literal handed to translation stays readable: translationKey("labels").
+    expression.match(/^translationKey\(\s*"([^"]*)",?\s*\)$/);
 
   if (literal !== null) {
     return literal[1]!;

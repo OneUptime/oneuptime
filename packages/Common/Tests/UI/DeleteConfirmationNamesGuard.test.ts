@@ -44,8 +44,12 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 const SHARED_FALLBACK_FILE: string =
   "packages/Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage.tsx";
 
-// "delete this ${", "remove this ${": a sentence about a kind, not a record.
-const NAMELESS_TEMPLATE_PATTERN: RegExp = /\b(delete|remove) this \$\{/i;
+/*
+ * "delete this ${", "remove this ${": a sentence about a kind, not a record -
+ * written as a template literal, or as a translation template with a
+ * {{placeholder}} for the kind.
+ */
+const NAMELESS_TEMPLATE_PATTERN: RegExp = /\b(delete|remove) this (\$\{|\{\{)/i;
 
 const NAMELESS_SENTENCE_PATTERN: RegExp = /\b(delete|remove) this\b/i;
 
@@ -87,9 +91,15 @@ interface AllowedNamelessTemplate {
 const ALLOWED_NAMELESS_TEMPLATES: Array<AllowedNamelessTemplate> = [
   {
     file: "packages/App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods.tsx",
-    text: "title={`Remove this ${methodToDelete.methodType} method?`}",
+    text: '"Remove this {{methodType}} method?",',
     reason:
       "Only the title asks about the kind of method. The body, getDeletionDescription, names it by its masked address or number and the user it belongs to, and counts the notification rules that go with it.",
+  },
+  {
+    file: "packages/Common/UI/Utils/PermissionGate.ts",
+    text: '"You do not have permission to delete this {{itemName}}.",',
+    reason:
+      "Not a confirmation: the tooltip on a Delete action the reader may not use, which is about the kind of record by design.",
   },
 ];
 

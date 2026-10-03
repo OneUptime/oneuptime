@@ -1444,7 +1444,7 @@ describe("the attention row's three mutually exclusive lines", () => {
     const downAt: number = overviewSource.indexOf("device.isDown ?");
     const snmpAt: number = overviewSource.indexOf("device.isSnmpFailing ?");
     const interfacesAt: number = overviewSource.indexOf(
-      "{device.interfacesDown} interface",
+      'one: "{{count}} interface down"',
     );
 
     expect(downAt).toBeGreaterThan(-1);

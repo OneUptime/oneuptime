@@ -265,7 +265,7 @@ describe.each([
       for (const title of ["Client IOPS", "Client Throughput"]) {
         const section: string = between(
           source,
-          `<div className="group/zoomhint"> <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700"> ${title} <InfoTooltip`,
+          `<div className="group/zoomhint"> <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700"> {translator.translateText("${title}")} <InfoTooltip`,
           "<CephRateChart",
         );
         expect([title, section.includes(`/> ${HINT} </div> `)]).toEqual([

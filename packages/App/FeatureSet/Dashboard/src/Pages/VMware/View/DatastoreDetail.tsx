@@ -45,6 +45,8 @@ import {
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Window for the client-side linear growth fit — same 24 h window as
@@ -59,6 +61,7 @@ const DATASTORE_CRITICAL_PERCENT: number = 90;
 const VMwareVCenterDatastoreDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../vmware/:modelId/datastores/:subModelId — subModelId
    * is the percent-encoded inventory externalId
@@ -259,7 +262,10 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "datastore_used",
       title: "Datastore Usage",
-      description: `vcenter.datastore.disk.usage{disk_state=used} for ${datastoreName} — space consumed over time.`,
+      description: translator.translateTemplate(
+        "vcenter.datastore.disk.usage{disk_state=used} for {{datastoreName}} — space consumed over time.",
+        { datastoreName: datastoreName },
+      ),
       legend: "Used",
       legendUnit: "",
     },
@@ -281,7 +287,10 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "datastore_available",
       title: "Datastore Free Space",
-      description: `vcenter.datastore.disk.usage{disk_state=available} for ${datastoreName}.`,
+      description: translator.translateTemplate(
+        "vcenter.datastore.disk.usage{disk_state=available} for {{datastoreName}}.",
+        { datastoreName: datastoreName },
+      ),
       legend: "Free",
       legendUnit: "",
     },
@@ -303,7 +312,14 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "datastore_utilization",
       title: "Datastore Utilization",
-      description: `vcenter.datastore.disk.utilization for ${datastoreName} — already a percentage. The built-in alert templates warn at ${DATASTORE_WARN_PERCENT}% and go critical at ${DATASTORE_CRITICAL_PERCENT}%.`,
+      description: translator.translateTemplate(
+        "vcenter.datastore.disk.utilization for {{datastoreName}} — already a percentage. The built-in alert templates warn at {{warnPercent}}% and go critical at {{criticalPercent}}%.",
+        {
+          datastoreName: datastoreName,
+          warnPercent: DATASTORE_WARN_PERCENT,
+          criticalPercent: DATASTORE_CRITICAL_PERCENT,
+        },
+      ),
       legend: "Used",
       legendUnit: "%",
     },
@@ -446,7 +462,10 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Datastore Metrics: ${datastoreName}`}
+          title={translator.translateTemplate(
+            "Datastore Metrics: {{datastoreName}}",
+            { datastoreName: datastoreName },
+          )}
           description="Usage, free space and utilization for this datastore over the selected time range."
         >
           <ResourceMetricsTab

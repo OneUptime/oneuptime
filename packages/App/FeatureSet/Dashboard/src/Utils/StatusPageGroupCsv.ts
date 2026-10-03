@@ -1,6 +1,7 @@
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure CSV parsing + import planning for the Status Page > Groups bulk
@@ -228,9 +229,13 @@ function parseHeader(
     if (!canonical) {
       errors.push({
         line: record.line,
-        message: `Unknown column "${cell.trim()}" in header. Expected columns: ${STATUS_PAGE_GROUP_CSV_COLUMNS.join(
-          ", ",
-        )}.`,
+        message: translateTemplate(
+          'Unknown column "{{column}}" in header. Expected columns: {{columns}}.',
+          {
+            column: cell.trim(),
+            columns: STATUS_PAGE_GROUP_CSV_COLUMNS.join(", "),
+          },
+        ),
       });
       hasErrors = true;
       return;
@@ -238,7 +243,9 @@ function parseHeader(
     if (headerIndex.has(canonical)) {
       errors.push({
         line: record.line,
-        message: `Duplicate column "${canonical}" in header.`,
+        message: translateTemplate('Duplicate column "{{column}}" in header.', {
+          column: canonical,
+        }),
       });
       hasErrors = true;
       return;
@@ -250,7 +257,10 @@ function parseHeader(
     if (!headerIndex.has(required)) {
       errors.push({
         line: record.line,
-        message: `Missing required column "${required}" in header.`,
+        message: translateTemplate(
+          'Missing required column "{{column}}" in header.',
+          { column: required },
+        ),
       });
       hasErrors = true;
     }
@@ -400,7 +410,13 @@ export function parseStatusPageGroupCsv(
     if (record.cells.length > headerRecord.cells.length) {
       errors.push({
         line: record.line,
-        message: `Row has ${record.cells.length} values but the header has ${headerRecord.cells.length} columns.`,
+        message: translateTemplate(
+          "Row has {{values}} values but the header has {{columns}} columns.",
+          {
+            values: record.cells.length,
+            columns: headerRecord.cells.length,
+          },
+        ),
       });
       continue;
     }

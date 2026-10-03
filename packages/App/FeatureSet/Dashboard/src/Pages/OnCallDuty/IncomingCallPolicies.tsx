@@ -43,10 +43,13 @@ import {
   type CompactPhoneNumberSummary,
   type IncomingCallPolicyPhoneNumbersByPolicyId,
 } from "../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [phoneNumbersByPolicyId, setPhoneNumbersByPolicyId] =
     useState<IncomingCallPolicyPhoneNumbersByPolicyId>({});
   const [isLoadingPhoneNumbers, setIsLoadingPhoneNumbers] =
@@ -356,12 +359,16 @@ const IncomingCallPoliciesPage: FunctionComponent<
                 }
 
                 if (isLoadingPhoneNumbers) {
-                  return <span className="text-gray-500">Loading…</span>;
+                  return (
+                    <span className="text-gray-500">
+                      {translator.translateText("Loading…")}
+                    </span>
+                  );
                 }
 
                 return (
                   <span className="text-red-600" title={phoneNumbersError}>
-                    Unavailable
+                    {translator.translateText("Unavailable")}
                   </span>
                 );
               }
@@ -381,7 +388,10 @@ const IncomingCallPoliciesPage: FunctionComponent<
                     </span>
                     {summary.additionalPhoneNumbersCount > 0 ? (
                       <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        +{summary.additionalPhoneNumbersCount} more
+                        {translator.translatePlural(
+                          { one: "+{{count}} more", other: "+{{count}} more" },
+                          summary.additionalPhoneNumbersCount,
+                        )}
                       </span>
                     ) : (
                       <></>
@@ -396,7 +406,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
                     className="h-4 w-4 text-yellow-500"
                   />
                   <span className="text-yellow-600 font-medium">
-                    Setup Needed
+                    {translator.translateText("Setup Needed")}
                   </span>
                 </div>
               );

@@ -38,6 +38,8 @@ import {
   getProfileEntityDisplay,
   isKnownProfileEntityType,
 } from "../../../Utils/ProfilesEntityDisplay";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
@@ -268,6 +270,7 @@ interface ExplainerCardProps {
 const ExplainerCard: FunctionComponent<ExplainerCardProps> = (
   props: ExplainerCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50/50 p-3">
       <div className="flex items-start gap-2">
@@ -276,8 +279,10 @@ const ExplainerCard: FunctionComponent<ExplainerCardProps> = (
           className="h-4 w-4 mt-0.5 text-gray-400 flex-shrink-0"
         />
         <div className="text-xs text-gray-600 leading-relaxed">
-          <span className="font-medium text-gray-800">{props.title}. </span>
-          {props.description}
+          <span className="font-medium text-gray-800">
+            {translator.translateText(props.title)}.{" "}
+          </span>
+          {translator.translateText(props.description)}
         </div>
       </div>
     </div>
@@ -297,6 +302,7 @@ interface ProfileSummaryCardProps {
 const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   props: ProfileSummaryCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const p: Profile = props.profile;
   const type: string = p.profileType || "";
   const displayName: string = ProfileUtil.getProfileTypeDisplayName(type);
@@ -374,7 +380,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
 
         <div>
           <div className="text-[10px] uppercase tracking-wider text-gray-400">
-            Type
+            {translator.translateText("Type")}
           </div>
           <span
             className={`inline-flex items-center mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${badge}`}
@@ -385,7 +391,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
 
         <div>
           <div className="text-[10px] uppercase tracking-wider text-gray-400">
-            Duration
+            {translator.translateText("Duration")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
             {durationLabel}
@@ -394,7 +400,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
 
         <div>
           <div className="text-[10px] uppercase tracking-wider text-gray-400">
-            Samples
+            {translator.translateText("Samples")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
             {(p.sampleCount ? Number(p.sampleCount) : 0).toLocaleString()}
@@ -403,7 +409,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
 
         <div>
           <div className="text-[10px] uppercase tracking-wider text-gray-400">
-            Captured
+            {translator.translateText("Captured")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
             {p.startTime
@@ -425,7 +431,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 ring-1 ring-gray-300 transition-colors"
           >
             <Icon icon={IconProp.Download} className="h-3.5 w-3.5" />
-            Download pprof
+            {translator.translateText("Download pprof")}
           </a>
 
           {traceId && (
@@ -436,7 +442,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 ring-1 ring-indigo-200 transition-colors"
             >
               <Icon icon={IconProp.Link} className="h-3.5 w-3.5" />
-              Open linked trace
+              {translator.translateText("Open linked trace")}
             </Link>
           )}
         </div>

@@ -36,10 +36,13 @@ import SubscriberTemplateVariablesFooter, {
 import SubscriberTemplateVariablesCopy from "../../../Components/StatusPage/SubscriberTemplateVariablesCopy";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const SubscriberNotificationTemplateView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [eventType, setEventType] = useState<
     StatusPageSubscriberNotificationEventType | undefined
@@ -445,7 +448,11 @@ const SubscriberNotificationTemplateView: FunctionComponent<
             getElement: (
               item: StatusPageSubscriberNotificationTemplateStatusPage,
             ): ReactElement => {
-              return <span>{item.statusPage?.name || "Unknown"}</span>;
+              return (
+                <span>
+                  {item.statusPage?.name || translator.translateText("Unknown")}
+                </span>
+              );
             },
           },
           {

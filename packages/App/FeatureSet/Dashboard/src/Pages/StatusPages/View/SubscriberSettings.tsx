@@ -39,10 +39,13 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useAsyncEffect from "use-async-effect";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageSubscriberSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
@@ -668,7 +671,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
               return (
                 <span>
                   {item.statusPageSubscriberNotificationTemplate
-                    ?.templateName || "Unknown"}
+                    ?.templateName || translator.translateText("Unknown")}
                 </span>
               );
             },
@@ -687,7 +690,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
               return (
                 <span>
                   {item.statusPageSubscriberNotificationTemplate?.eventType ||
-                    "Unknown"}
+                    translator.translateText("Unknown")}
                 </span>
               );
             },

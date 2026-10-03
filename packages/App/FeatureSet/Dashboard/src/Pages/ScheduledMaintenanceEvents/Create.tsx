@@ -51,6 +51,8 @@ import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Every resource type the "Resources Affected" step offers. The editor and
@@ -71,6 +73,7 @@ const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -440,8 +443,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (!hasResources) {
                       return (
                         <p>
-                          No resources affected by this scheduled maintenance
-                          event.
+                          {translator.translateText(
+                            "No resources affected by this scheduled maintenance event.",
+                          )}
                         </p>
                       );
                     }
@@ -570,8 +574,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (!item.changeMonitorStatusTo) {
                       return (
                         <p>
-                          Status of the monitors will not be changed when this
-                          scheduled maintenance event starts.
+                          {translator.translateText(
+                            "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+                          )}
                         </p>
                       );
                     }
@@ -607,8 +612,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (!item.statusPages || !Array.isArray(item.statusPages)) {
                       return (
                         <p>
-                          No status pages selected for this scheduled
-                          maintenance event.
+                          {translator.translateText(
+                            "No status pages selected for this scheduled maintenance event.",
+                          )}
                         </p>
                       );
                     }
@@ -726,7 +732,13 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         item.sendSubscriberNotificationsOnBeforeTheEvent
                           .length === 0)
                     ) {
-                      return <p>No reminders set for subscribers.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No reminders set for subscribers.",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -760,7 +772,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
                     if (!item.labels || !Array.isArray(item.labels)) {
-                      return <p>No labels assigned.</p>;
+                      return (
+                        <p>{translator.translateText("No labels assigned.")}</p>
+                      );
                     }
 
                     const labelIds: Array<ObjectID> = [];

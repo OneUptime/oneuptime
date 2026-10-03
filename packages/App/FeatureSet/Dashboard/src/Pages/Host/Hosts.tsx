@@ -38,6 +38,8 @@ import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface ResourceSummary {
   cores: number | undefined;
@@ -112,6 +114,7 @@ const parseIpString: (ipString: string) => Array<string> = (
 const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
   ipString: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (!props.ipString) {
@@ -143,7 +146,10 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
           }}
           className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
         >
-          +{rest.length} more
+          {translator.translatePlural(
+            { one: "+{{count}} more", other: "+{{count}} more" },
+            rest.length,
+          )}
         </button>
       )}
       {rest.length > 0 && isExpanded && (
@@ -163,7 +169,7 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
             }}
             className="mt-0.5 self-start text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
           >
-            Show less
+            {translator.translateText("Show less")}
           </button>
         </div>
       )}
@@ -172,6 +178,7 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
 };
 
 const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hostCount, setHostCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -485,7 +492,9 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span className="capitalize">{osType || "unknown"}</span>
+                  <span className="capitalize">
+                    {osType || translator.translateText("unknown")}
+                  </span>
                   {arch && (
                     <span className="ml-1.5 text-xs font-mono text-gray-500">
                       {arch}
@@ -545,7 +554,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <div>{parts.join(" · ") || "—"}</div>
                   {summary.processes !== undefined && (
                     <div className="text-xs text-gray-500">
-                      {summary.processes} processes
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} process",
+                          other: "{{count}} processes",
+                        },
+                        summary.processes,
+                      )}
                     </div>
                   )}
                 </div>

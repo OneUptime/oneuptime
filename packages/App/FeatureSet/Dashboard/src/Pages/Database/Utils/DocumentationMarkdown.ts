@@ -35,6 +35,7 @@ import {
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The in-app install guide for the OneUptime Database Agent — the product
@@ -320,7 +321,9 @@ export function getDatabaseDocumentationHeading(
 
   if (getDatabaseAgentEngine(database.dbSystem)) {
     return {
-      title: `Connect ${engineLabel} engine metrics`,
+      title: translateTemplate("Connect {{engine}} engine metrics", {
+        engine: engineLabel,
+      }),
       description:
         "Install the OneUptime Database Agent next to this database to add its engine metrics. Every value below is prefilled for this database, including its id.",
     };
@@ -331,13 +334,18 @@ export function getDatabaseDocumentationHeading(
     "embedded"
   ) {
     return {
-      title: `Monitor ${engineLabel}`,
-      description: `${engineLabel} runs inside your application's process, so this database's page fills in from the traces of the applications that use it.`,
+      title: translateTemplate("Monitor {{engine}}", { engine: engineLabel }),
+      description: translateTemplate(
+        "{{engine}} runs inside your application's process, so this database's page fills in from the traces of the applications that use it.",
+        { engine: engineLabel },
+      ),
     };
   }
 
   return {
-    title: `Connect ${engineLabel} engine metrics`,
+    title: translateTemplate("Connect {{engine}} engine metrics", {
+      engine: engineLabel,
+    }),
     description:
       "Send this database's engine metrics from your own OpenTelemetry Collector. Every value below is prefilled for this database, including its id.",
   };
@@ -1725,7 +1733,13 @@ function getAgentAdvancedTopics(data: {
 
   topics.push({
     title: "What the agent collects",
-    summary: `The ${engineLabel} metrics the collector's ${getCollectorReceiverComponentName(data.engine)} receiver reads.`,
+    summary: translateTemplate(
+      "The {{engine}} metrics the collector's {{receiver}} receiver reads.",
+      {
+        engine: engineLabel,
+        receiver: getCollectorReceiverComponentName(data.engine),
+      },
+    ),
     markdown: agentIntroParagraph(data.engine, engineLabel),
   });
 
@@ -2442,13 +2456,21 @@ function getOwnCollectorStepHeading(recipe: OwnCollectorRecipe): {
 } {
   if (recipe.source.kind === "receiver" && recipe.collector?.receiverName) {
     return {
-      title: `Add the ${recipe.collector.receiverName} receiver to your collector`,
-      description: `One config: the ${recipe.collector.receiverName} receiver, this database's identity and the exporter to OneUptime.`,
+      title: translateTemplate(
+        "Add the {{receiver}} receiver to your collector",
+        { receiver: recipe.collector.receiverName },
+      ),
+      description: translateTemplate(
+        "One config: the {{receiver}} receiver, this database's identity and the exporter to OneUptime.",
+        { receiver: recipe.collector.receiverName },
+      ),
     };
   }
   if (recipe.source.kind === "prometheus") {
     return {
-      title: `Scrape ${recipe.engineLabel}'s metrics endpoint`,
+      title: translateTemplate("Scrape {{engine}}'s metrics endpoint", {
+        engine: recipe.engineLabel,
+      }),
       description:
         "One config: the Prometheus scrape, this database's identity and the exporter to OneUptime.",
     };

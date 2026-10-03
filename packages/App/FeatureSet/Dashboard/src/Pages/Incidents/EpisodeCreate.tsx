@@ -41,10 +41,13 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import UserUtil from "Common/UI/Utils/User";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const EpisodeCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error] = useState<string>("");
   const roleAssignmentsRef: React.MutableRefObject<Array<RoleAssignment>> =
@@ -165,7 +168,13 @@ const EpisodeCreate: FunctionComponent<
                   placeholder: "Incident Severity",
                   getSummaryElement: (item: FormValues<IncidentEpisode>) => {
                     if (!item.incidentSeverity) {
-                      return <p>No incident severity selected.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No incident severity selected.",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -198,7 +207,13 @@ const EpisodeCreate: FunctionComponent<
                   placeholder: "Select Initial State",
                   getSummaryElement: (item: FormValues<IncidentEpisode>) => {
                     if (!item.currentIncidentState) {
-                      return <p>Will use first available state by priority</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "Will use first available state by priority",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -240,7 +255,13 @@ const EpisodeCreate: FunctionComponent<
                   },
                   getSummaryElement: (_item: FormValues<IncidentEpisode>) => {
                     if (roleAssignmentsRef.current.length === 0) {
-                      return <p>No episode roles assigned.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No episode roles assigned.",
+                          )}
+                        </p>
+                      );
                     }
                     return (
                       <FetchIncidentRoleAssignments
@@ -272,8 +293,9 @@ const EpisodeCreate: FunctionComponent<
                     ) {
                       return (
                         <p>
-                          No on-call policies will be executed when this episode
-                          is created.
+                          {translator.translateText(
+                            "No on-call policies will be executed when this episode is created.",
+                          )}
                         </p>
                       );
                     }
@@ -329,7 +351,9 @@ const EpisodeCreate: FunctionComponent<
                   placeholder: "Labels",
                   getSummaryElement: (item: FormValues<IncidentEpisode>) => {
                     if (!item.labels || !Array.isArray(item.labels)) {
-                      return <p>No labels assigned.</p>;
+                      return (
+                        <p>{translator.translateText("No labels assigned.")}</p>
+                      );
                     }
 
                     const labelIds: Array<ObjectID> = [];

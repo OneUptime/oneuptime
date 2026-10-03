@@ -12,6 +12,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The SLO form's field list and its client-side validators, kept in a plain
@@ -93,10 +94,12 @@ export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
  * describe the same choice differently.
  */
 export const SLO_WINDOW_TYPE_DESCRIPTIONS: Record<SloWindowType, string> = {
-  [SloWindowType.Rolling]:
+  [SloWindowType.Rolling]: translationKey(
     "The last N days, recovering continuously as old downtime ages out of the window.",
-  [SloWindowType.CalendarMonth]:
+  ),
+  [SloWindowType.CalendarMonth]: translationKey(
     "Each calendar month on its own. The whole error budget resets on the 1st.",
+  ),
 };
 
 export type GetSloWindowTypeDropdownOptionsFunction =

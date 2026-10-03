@@ -18,10 +18,13 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorDependencies: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -123,7 +126,13 @@ const MonitorDependencies: FunctionComponent<
                   item.suppressAlertsWhenParentMonitorStatuses || [];
 
                 if (statuses.length === 0) {
-                  return <p>Any status flagged offline (default).</p>;
+                  return (
+                    <p>
+                      {translator.translateText(
+                        "Any status flagged offline (default).",
+                      )}
+                    </p>
+                  );
                 }
 
                 return (

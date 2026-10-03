@@ -40,10 +40,13 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const cronJobName: string = Navigation.getLastParamAsString();
 
@@ -135,7 +138,10 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cronjob_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pods in cronjob ${cronJobName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for pods in cronjob {{cronJobName}}",
+        { cronJobName: cronJobName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -163,7 +169,10 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cronjob_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pods in cronjob ${cronJobName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pods in cronjob {{cronJobName}}",
+        { cronJobName: cronJobName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -286,7 +295,10 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`CronJob Metrics: ${cronJobName}`}
+          title={translator.translateTemplate(
+            "CronJob Metrics: {{cronJobName}}",
+            { cronJobName: cronJobName },
+          )}
           description="CPU and memory usage for pods in this cronjob over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />

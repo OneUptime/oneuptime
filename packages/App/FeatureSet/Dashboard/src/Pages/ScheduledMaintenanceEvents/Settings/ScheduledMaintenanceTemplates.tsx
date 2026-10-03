@@ -29,6 +29,8 @@ import Recurring from "Common/Types/Events/Recurring";
 import OneUptimeDate from "Common/Types/Date";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
@@ -486,6 +488,7 @@ export const getFormSteps: GetFormStepsFunction = (data: {
 const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceTemplate>
@@ -559,12 +562,16 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
             type: FieldType.Element,
             getElement: (item: ScheduledMaintenanceTemplate) => {
               return !item.scheduleNextEventAt ? (
-                <span>No</span>
+                <span>{translator.translateText("No")}</span>
               ) : (
                 <span>
-                  Next event will be scheduled at{" "}
-                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    item.scheduleNextEventAt,
+                  {translator.translateTemplate(
+                    "Next event will be scheduled at {{date}}",
+                    {
+                      date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        item.scheduleNextEventAt,
+                      ),
+                    },
                   )}
                 </span>
               );

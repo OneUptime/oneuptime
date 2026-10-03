@@ -26,10 +26,13 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import URL from "Common/Types/API/URL";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageEmbeddedStatus: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = useMemo(() => {
     return Navigation.getLastParamAsObjectID(1);
   }, []);
@@ -224,13 +227,15 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
               <HiddenText text={token} isCopyable={true} />
             ) : (
               <p className="text-sm text-gray-500">
-                No token has been generated yet. Enable the embedded badge and
-                use &ldquo;Regenerate Token&rdquo; to create one.
+                {translator.translateText(
+                  "No token has been generated yet. Enable the embedded badge and use “Regenerate Token” to create one.",
+                )}
               </p>
             )}
             <p className="text-sm text-gray-500">
-              Regenerating the token will invalidate any existing embedded
-              badges.
+              {translator.translateText(
+                "Regenerating the token will invalidate any existing embedded badges.",
+              )}
             </p>
           </>
         </Card>
@@ -245,17 +250,21 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
               badgeUrlWithToken ? (
                 <img
                   src={badgeUrlWithToken}
-                  alt="Status Badge"
+                  alt={translator.translateText("Status Badge")}
                   className="max-h-24 rounded"
                 />
               ) : (
                 <p className="text-sm text-gray-500 text-center">
-                  Generate a security token to see the live preview.
+                  {translator.translateText(
+                    "Generate a security token to see the live preview.",
+                  )}
                 </p>
               )
             ) : (
               <p className="text-sm text-gray-500 text-center">
-                Enable the embedded status badge to view the live preview.
+                {translator.translateText(
+                  "Enable the embedded status badge to view the live preview.",
+                )}
               </p>
             )}
           </div>

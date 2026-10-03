@@ -19,13 +19,17 @@ import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { translatePlural } from "Common/UI/Utils/TranslateTemplate";
 
 export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
     const keys: Array<string> = Object.keys(EvaluateOverTimeMinutes);
     return keys.map((key: string) => {
       return {
-        label: `${(EvaluateOverTimeMinutes as any)[key].toString()} Minutes`,
+        label: translatePlural(
+          { one: "{{count}} Minute", other: "{{count}} Minutes" },
+          Number((EvaluateOverTimeMinutes as any)[key]),
+        ),
         value: (EvaluateOverTimeMinutes as any)[key]!.toString(),
       };
     });
