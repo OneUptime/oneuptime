@@ -148,6 +148,17 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "Adding several monitors to a status page: the monitors, then the folded Advanced options. 'Keep this group in sync' shows only after monitors are picked by label and never on a grid group, and the row and column only on a grid group, where they are the one cell every picked monitor goes in - so it is never more than four rows, and usually two.",
   },
+  /*
+   * A discovered resource's create form asks for what its telemetry is
+   * matched on, with the display name following it under Advanced
+   * (DiscoveredResourceCreateFormsGuard).
+   */
+  {
+    file: `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
+    form: "ModelTable: Cloud Environments",
+    reason:
+      "Adding a cloud environment by hand: the three values ingest matches an environment on - its platform, account and region, joined into the key - and one folded Advanced header with the display name (it follows the three, as a discovered environment is named), the description and the labels. The three must match the telemetry together, so they stay side by side on one page; the Details step that held only the optional name went away.",
+  },
 ];
 
 /*

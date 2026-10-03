@@ -11,6 +11,11 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  namedAfterCloudEnvironment,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -27,9 +32,46 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "cloud-resource-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+/*
+ * An environment is matched to its telemetry by its key (cloud.platform |
+ * cloud.account.id | cloud.region), and named after them - "AWS ECS ·
+ * us-east-1 · 123456789012" - unless somebody gives it a display name of
+ * their own (DiscoveredResourceCreate).
+ */
+const CLOUD_ENVIRONMENT_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterCloudEnvironment<Model>();
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // Named the way ingest names it when nobody gave it a name.
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    DiscoveredResourceCreate.fillName({
+      createBy,
+      naming: CLOUD_ENVIRONMENT_NAMING,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * An environment that is already there - discovered from its telemetry or
+   * added before - is refused as that environment, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: CLOUD_ENVIRONMENT_NAMING,
+    });
   }
 
   @CaptureSpan()

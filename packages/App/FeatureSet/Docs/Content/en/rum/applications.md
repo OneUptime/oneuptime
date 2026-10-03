@@ -14,7 +14,7 @@ Consequences worth knowing before you pick names:
 - Use one `service.name` per deployable app, not per environment. Distinguish environments with a label (`oneuptime.label.env=production`) so both stay under one application with one history.
 - The **Name** shown in the dashboard is editable and starts out equal to the identifier. Editing the name never changes the identifier, so renaming for readability is safe.
 
-You can also create an application by hand from **Resources → Real User Monitoring → Create**, which is useful when you want owners, labels and session-replay settings configured *before* the first real user hits it. Set **App Identifier** to the `service.name` your app will report.
+You can also create an application by hand from **Resources → Real User Monitoring → Create**, which is useful when you want owners, labels and session-replay settings configured *before* the first real user hits it. The form asks for one thing, **App Name (service.name)**: the `service.name` your app will report, exactly. The application is named after it, the way a discovered one is; to show another name, open **Advanced** and type a **Display Name** (the description and labels are there too). If the project already has an application with that `service.name` — discovered, added before, or archived — the form says so instead of creating a second one.
 
 ## Connection status
 
