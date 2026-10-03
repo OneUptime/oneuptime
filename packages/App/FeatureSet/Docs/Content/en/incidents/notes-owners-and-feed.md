@@ -134,7 +134,7 @@ The actual message subscribers get is templated per status page and per channel 
 
 ## The incident feed
 
-The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. Items are sorted oldest first.
+The **Incident Feed** card sits at the bottom of the left column on the incident **Overview** page. It's the story of the incident in order: every item is an icon, the avatar and name of whoever caused it, a relative timestamp with the exact local time on hover, and a Markdown body. By default the newest items are at the top.
 
 Some items carry extra detail — an owner notification lists everyone who was mailed, for example, and a subscriber notification lists each status page it went to, with the number of messages sent and failed on each channel and the subject its email went out with, followed, when it sent any, by the custom field values it put into a message, under **Custom fields sent**. Those show a **More Information** button that opens a **More Information** panel.
 
@@ -145,7 +145,11 @@ The card header also has an **Actions** menu so you can act without leaving the 
 - **Add Public Note** — the same four fields as the Public Notes page, in a modal.
 - **Add Private Note** — note body and attachments only.
 
-Next to it, **Refresh** re-fetches the feed.
+Everything else is behind the **⋯** button next to it, the same **More options** button a table's card header has, so the header shows as few buttons as possible:
+
+- **Newest first** / **Oldest first** — the order the feed is read in. A tick marks the one in use, and your browser remembers the choice for every incident's feed.
+- **Filter by event type** — a dialog listing the feed's event types, each with the icon its items carry, and a search box when the list is long. Tick the ones to show and choose **Apply Filters**; with nothing ticked, every event type is shown. While the feed is filtered, a box above it says how many event types it shows, with a chip for each, **Edit Filters** and **Clear Filters**. The filter is not saved: leave the incident and its feed shows everything again.
+- **Refresh** — re-fetches the feed.
 
 **The feed is append-only, and it is not your audit log.** The API allows creating and reading feed items but not updating or deleting them, so nobody can quietly rewrite the history of an incident. It is not permanent either: on billed installations, feed rows older than three years are removed. For a durable record of who changed what, use **Audit → Audit Logs** in the incident side menu.
 

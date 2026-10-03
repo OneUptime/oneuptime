@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "提前公告计划内的工作，让客户和状态页面订阅者不会措手不及。",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "状态页面向客户展示哪些服务正常、哪些不正常——包括监视器的实时状态、事件和计划维护，页面可以设为公开或私有。",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "值班策略决定事件或警报发生时通知谁，以及没人确认时下一个通知谁。",
-  "Filter & Sort": "过滤和排序",
-  "Filter and sort feed": "过滤和排序信息流",
   "Sort by time": "按时间排序",
   "Newest first": "最新优先",
   "Oldest first": "最早优先",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "没有与“{{search}}”匹配的事件类型。",
   "This feed has no event types to filter by.": "此信息流没有可供过滤的事件类型。",
   "Reset to default": "重置为默认值",
-  "{{sortOrder}}, all event types": "{{sortOrder}}，所有事件类型",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}，{{total}} 个事件类型中的 {{selected}} 个",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}，{{total}} 个事件类型中的 {{selected}} 个",
   "No events in this feed match the selected event types.": "此信息流中没有与所选事件类型匹配的事件。",
   "Added to Episode": "已添加到片段",
   "Alert Added": "警报已添加",
@@ -20067,5 +20062,7 @@
   "Outdent": "减少缩进",
   "Upload Image": "上传图片",
   "Workflows are created switched off, so nothing runs until you turn them on.": "工作流创建后默认处于关闭状态，在你开启之前不会运行任何内容。",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} 需要先填写几项信息才能运行。这些信息会保存为工作流变量，之后无需编辑工作流本身即可修改。"
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} 需要先填写几项信息才能运行。这些信息会保存为工作流变量，之后无需编辑工作流本身即可修改。",
+  "Filter by event type": "按事件类型过滤",
+  "Showing {{selected}} of {{total}} event types": "正在显示 {{total}} 个事件类型中的 {{selected}} 个"
 }

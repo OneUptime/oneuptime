@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "पहले से तय काम की घोषणा समय से पहले करें, ताकि आपके ग्राहक और स्थिति पृष्ठ के सब्सक्राइबर अचानक हैरान न हों।",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "स्थिति पृष्ठ आपके ग्राहकों को दिखाते हैं कि क्या काम कर रहा है और क्या नहीं — मॉनिटर की लाइव स्थिति, घटनाएं और अनुसूचित रखरखाव, एक ऐसे पृष्ठ पर जिसे आप सार्वजनिक या निजी रख सकते हैं।",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "ऑन-कॉल नीतियाँ तय करती हैं कि कोई घटना या अलर्ट खुलने पर किसे सूचना मिले, और अगर कोई उसे स्वीकार न करे तो अगला कौन है।",
-  "Filter & Sort": "फ़िल्टर और क्रमबद्ध करें",
-  "Filter and sort feed": "फ़ीड फ़िल्टर और क्रमबद्ध करें",
   "Sort by time": "समय के अनुसार क्रमबद्ध करें",
   "Newest first": "नवीनतम पहले",
   "Oldest first": "सबसे पुराना पहले",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "कोई भी इवेंट प्रकार \"{{search}}\" से मेल नहीं खाता।",
   "This feed has no event types to filter by.": "इस फ़ीड में फ़िल्टर करने के लिए कोई इवेंट प्रकार नहीं है।",
   "Reset to default": "डिफ़ॉल्ट पर रीसेट करें",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, सभी इवेंट प्रकार",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{total}} में से {{selected}} इवेंट प्रकार",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{total}} में से {{selected}} इवेंट प्रकार",
   "No events in this feed match the selected event types.": "इस फ़ीड में कोई भी इवेंट चयनित इवेंट प्रकारों से मेल नहीं खाता।",
   "Added to Episode": "एपिसोड में जोड़ा गया",
   "Alert Added": "अलर्ट जोड़ा गया",
@@ -20067,5 +20062,7 @@
   "Outdent": "इंडेंट घटाएँ",
   "Upload Image": "छवि अपलोड करें",
   "Workflows are created switched off, so nothing runs until you turn them on.": "वर्कफ़्लो बंद अवस्था में बनाए जाते हैं, इसलिए जब तक आप उन्हें चालू नहीं करते, कुछ भी नहीं चलता।",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} को चलने से पहले कुछ जानकारी चाहिए। यह वर्कफ़्लो वेरिएबल के रूप में सहेजी जाती है, ताकि आप बाद में वर्कफ़्लो को एडिट किए बिना इसे बदल सकें।"
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} को चलने से पहले कुछ जानकारी चाहिए। यह वर्कफ़्लो वेरिएबल के रूप में सहेजी जाती है, ताकि आप बाद में वर्कफ़्लो को एडिट किए बिना इसे बदल सकें।",
+  "Filter by event type": "इवेंट प्रकार के अनुसार फ़िल्टर करें",
+  "Showing {{selected}} of {{total}} event types": "{{total}} में से {{selected}} इवेंट प्रकार दिखाए जा रहे हैं"
 }

@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "計画的な作業を前もってお知らせし、お客様やステータスページの購読者が驚かないようにします。",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "ステータスページは、何が正常で何が正常でないかをお客様に伝えます — モニターのリアルタイムの状態、インシデント、定期メンテナンスを、公開・非公開を選べるページに表示します。",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "オンコールポリシーは、インシデントやアラートが発生したときに誰に通知するか、誰も確認しなければ次は誰かを決めます。",
-  "Filter & Sort": "フィルターと並べ替え",
-  "Filter and sort feed": "フィードのフィルターと並べ替え",
   "Sort by time": "時間で並べ替え",
   "Newest first": "新しい順",
   "Oldest first": "古い順",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "「{{search}}」に一致するイベントタイプはありません。",
   "This feed has no event types to filter by.": "このフィードには絞り込みに使えるイベントタイプがありません。",
   "Reset to default": "デフォルトにリセット",
-  "{{sortOrder}}, all event types": "{{sortOrder}}、すべてのイベントタイプ",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}、{{total}} 件中 {{selected}} 件のイベントタイプ",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}、{{total}} 件中 {{selected}} 件のイベントタイプ",
   "No events in this feed match the selected event types.": "このフィードには、選択したイベントタイプに一致するイベントはありません。",
   "Added to Episode": "エピソードに追加済み",
   "Alert Added": "アラート追加済み",
@@ -20067,5 +20062,7 @@
   "Outdent": "インデント解除",
   "Upload Image": "画像をアップロード",
   "Workflows are created switched off, so nothing runs until you turn them on.": "ワークフローはオフの状態で作成されるため、オンにするまで何も実行されません。",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} を実行するには、いくつかの情報が必要です。入力した値はワークフロー変数として保存されるため、ワークフロー自体を編集しなくても後から変更できます。"
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} を実行するには、いくつかの情報が必要です。入力した値はワークフロー変数として保存されるため、ワークフロー自体を編集しなくても後から変更できます。",
+  "Filter by event type": "イベントタイプで絞り込む",
+  "Showing {{selected}} of {{total}} event types": "{{total}} 件中 {{selected}} 件のイベントタイプを表示中"
 }

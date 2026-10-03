@@ -6405,8 +6405,6 @@
   "Announce planned work ahead of time, so your customers and status page subscribers are not caught by surprise.": "Meddela planerat arbete i förväg, så att dina kunder och prenumeranter på statussidan inte blir överraskade.",
   "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.": "Statussidor visar dina kunder vad som fungerar och vad som inte gör det — aktuell status för övervakare, incidenter och schemalagt underhåll, på en sida som du kan göra offentlig eller privat.",
   "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.": "Jourpolicyer avgör vem som aviseras när en incident eller varning öppnas, och vem som är näst på tur om ingen bekräftar den.",
-  "Filter & Sort": "Filtrera och sortera",
-  "Filter and sort feed": "Filtrera och sortera flödet",
   "Sort by time": "Sortera efter tid",
   "Newest first": "Nyaste först",
   "Oldest first": "Äldsta först",
@@ -6418,9 +6416,6 @@
   "No event types match \"{{search}}\".": "Inga händelsetyper matchar \"{{search}}\".",
   "This feed has no event types to filter by.": "Det här flödet har inga händelsetyper att filtrera efter.",
   "Reset to default": "Återställ till standard",
-  "{{sortOrder}}, all event types": "{{sortOrder}}, alla händelsetyper",
-  "{{sortOrder}}, {{selected}} of {{total}} event types": "{{sortOrder}}, {{selected}} av {{total}} händelsetyper",
-  "{{sortOrder}}, {{selected}} of {{total}} event type": "{{sortOrder}}, {{selected}} av {{total}} händelsetyp",
   "No events in this feed match the selected event types.": "Inga händelser i det här flödet matchar de valda händelsetyperna.",
   "Added to Episode": "Tillagd i episod",
   "Alert Added": "Larm tillagt",
@@ -20067,5 +20062,7 @@
   "Outdent": "Minska indrag",
   "Upload Image": "Ladda upp bild",
   "Workflows are created switched off, so nothing runs until you turn them on.": "Arbetsflöden skapas avstängda, så ingenting körs förrän du slår på dem.",
-  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} behöver några uppgifter innan det kan köras. De sparas som arbetsflödesvariabler, så att du kan ändra dem senare utan att redigera själva arbetsflödet."
+  "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.": "{{templateName}} behöver några uppgifter innan det kan köras. De sparas som arbetsflödesvariabler, så att du kan ändra dem senare utan att redigera själva arbetsflödet.",
+  "Filter by event type": "Filtrera efter händelsetyp",
+  "Showing {{selected}} of {{total}} event types": "Visar {{selected}} av {{total}} händelsetyper"
 }

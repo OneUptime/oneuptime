@@ -114,7 +114,7 @@ Il messaggio che gli iscritti ricevono è modellato per pagina di stato e per ca
 
 ## Il feed dell'incidente
 
-La scheda **Incidente Feed** sta in fondo alla colonna sinistra nella pagina **Panoramica** dell'incidente. È la storia dell'incidente in ordine: ogni voce è un'icona, l'avatar e il nome di chi l'ha causata, un timestamp relativo con l'ora locale esatta al passaggio del mouse e un corpo in Markdown. Le voci sono ordinate dalla più vecchia.
+La scheda **Incidente Feed** sta in fondo alla colonna sinistra nella pagina **Panoramica** dell'incidente. È la storia dell'incidente in ordine: ogni voce è un'icona, l'avatar e il nome di chi l'ha causata, un timestamp relativo con l'ora locale esatta al passaggio del mouse e un corpo in Markdown. Per impostazione predefinita le voci più recenti sono in alto.
 
 Alcune voci portano dettagli in più — una notifica ai proprietari, per esempio, elenca tutti quelli a cui è stata inviata. Queste mostrano un pulsante **More Information** che apre un pannello **More Information**.
 
@@ -125,7 +125,11 @@ L'intestazione della scheda ha anche un menu **Azioni**, così potete agire senz
 - **Add Public Note** — gli stessi quattro campi della pagina Note pubbliche, in una finestra.
 - **Aggiungi nota privata** — solo corpo della nota e allegati.
 
-Accanto, **Aggiorna** ricarica il feed.
+Tutto il resto è dietro il pulsante **⋯** accanto, lo stesso pulsante **Altre opzioni** dell'intestazione della scheda di una tabella, così l'intestazione mostra meno pulsanti possibile:
+
+- **Prima i più recenti** / **Prima i meno recenti** — l'ordine in cui si legge il feed. Un segno di spunta indica quello in uso, e il browser ricorda la scelta per il feed di ogni incidente.
+- **Filtra per tipo di evento** — una finestra che elenca i tipi di evento del feed, ognuno con l'icona delle sue voci, e una casella di ricerca quando l'elenco è lungo. Spuntate quelli da mostrare e scegliete **Applica filtri**; senza spunte vengono mostrati tutti. Finché il feed è filtrato, un riquadro sopra indica quanti tipi di evento mostra, con un'etichetta per ciascuno, **Modifica filtri** e **Cancella filtri**. Il filtro non viene salvato: uscendo dall'incidente, il suo feed torna a mostrare tutto.
+- **Aggiorna** — ricarica il feed.
 
 **Il feed è in sola aggiunta, e non è il vostro registro di audit.** L'API consente di creare e leggere le voci di feed, ma non di aggiornarle o eliminarle, quindi nessuno può riscrivere di nascosto la storia di un incidente. Non è però permanente: sulle installazioni a pagamento, le righe di feed più vecchie di tre anni vengono rimosse. Per una traccia duratura di chi ha cambiato cosa, usate **Audit → Registri di audit** nel menu laterale dell'incidente.
 

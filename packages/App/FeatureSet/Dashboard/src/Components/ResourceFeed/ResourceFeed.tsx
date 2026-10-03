@@ -1,6 +1,5 @@
 import React, { ReactElement, useCallback } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -10,7 +9,6 @@ import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import User from "Common/Models/DatabaseModels/User";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -19,7 +17,7 @@ import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
 import {
   GetFeedEventTypeIconFunction,
   getFeedEventTypeQuery,
@@ -32,7 +30,7 @@ import {
  * resources and catalog services - and the SLO feed store the same shape:
  * markdown, a colour, the acting user and a posted-at. Only the two column
  * names differ (the foreign key back to the resource, and the event type
- * column), along with the list of event types the Filter & Sort checklist
+ * column), along with the list of event types the event type filter
  * offers, so the whole feed page is one component parameterised by those
  * rather than eleven copies that drift apart. A feed whose events the shared
  * icon rules do not cover passes its own `getIcon`.
@@ -54,8 +52,8 @@ export interface ComponentProps<TFeedModel extends ResourceFeedModel> {
   eventTypeColumn: string;
   /**
    * Every value of the feed model's event type enum, e.g.
-   * Object.values(KubernetesClusterFeedEventType) - the Filter & Sort
-   * checklist.
+   * Object.values(KubernetesClusterFeedEventType) - the checklist of the
+   * event type filter.
    */
   eventTypes: Array<string>;
   title: string;
@@ -169,7 +167,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
   };
 
   /*
-   * The checklist behind Filter & Sort shows each event type with the icon
+   * The event type filter's checklist shows each event type with the icon
    * its items carry. Memoised so the checklist is not rebuilt on every render.
    */
   const getEventTypeIcon: GetFeedEventTypeIconFunction = useCallback(
@@ -245,25 +243,11 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
   });
 
   return (
-    <Card
+    <FeedCard
       title={props.title}
       description={props.description}
-      buttons={[
-        <FeedOptionsButton
-          key="resource-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+      feedOptions={feedOptions}
+      onRefresh={refresh}
     >
       <div>
         {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
@@ -282,7 +266,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
         )}
         {loadMoreError && <ErrorMessage message={loadMoreError} />}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 
