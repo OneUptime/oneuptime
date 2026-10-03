@@ -358,6 +358,22 @@ describe("the create forms of resources that telemetry discovers", () => {
       "Exactly as the OneUptime Podman Agent reports it.",
     );
   });
+
+  test("the display name follows by the rule every name a form fills in follows", () => {
+    /*
+     * A status page resource's display name and a new ingestion key's name
+     * follow a pick the same way (Forms/Utils/FollowPickName), so a typed
+     * name is never overwritten here either.
+     */
+    const helper: string = readCode(
+      `${DASHBOARD}/Utils/Form/DiscoveredResourceFormFields.ts`,
+    );
+
+    expect(helper).toContain(
+      'import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";',
+    );
+    expect(helper).toContain("return getNameAfterPick({");
+  });
 });
 
 describe("every Dashboard form of a discovered resource", () => {

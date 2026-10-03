@@ -3,6 +3,7 @@ import type Field from "Common/UI/Components/Forms/Types/Field";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
 import {
   getCloudEnvironmentNameFromIdentity,
   getNameFromIdentity,
@@ -70,8 +71,11 @@ export type GetDefaultNameFunction<TEntity> = (
  * from the new values, while the display name is still the form's own -
  * empty, or the name made from the values before the change. Null when it
  * stays as it is: somebody typed a name of their own, or nothing changed.
- * Emptying the identifier empties a display name that followed it, so the
- * next identifier is followed again.
+ * The rule every name a form fills in follows (Forms/Utils/FollowPickName:
+ * a status page resource's display name, a new ingestion key's name), with
+ * one addition for a value that is typed rather than picked: emptying the
+ * identifier empties a display name that followed it, so the next
+ * identifier is followed again.
  */
 export const getDisplayNameAfterChange: (data: {
   // The display name the form holds now.
@@ -88,14 +92,22 @@ export const getDisplayNameAfterChange: (data: {
   const displayName: string =
     typeof data.displayName === "string" ? data.displayName : "";
 
-  const isTheFormsOwn: boolean =
-    displayName.trim().length === 0 || displayName === data.previousName;
-
-  if (!isTheFormsOwn || displayName === data.nextName) {
+  if (displayName === data.nextName) {
     return null;
   }
 
-  return data.nextName;
+  if (!data.nextName) {
+    const isTheFormsOwn: boolean =
+      displayName.trim().length === 0 || displayName === data.previousName;
+
+    return isTheFormsOwn ? "" : null;
+  }
+
+  return getNameAfterPick({
+    name: displayName,
+    pickedName: data.nextName,
+    filledInNames: [data.previousName],
+  });
 };
 
 /**

@@ -273,6 +273,26 @@ describe("the display name after what it is made from changes", () => {
     ).toBeNull();
   });
 
+  test("stays when somebody typed it over in another case, as every followed name does", () => {
+    expect(
+      getDisplayNameAfterChange({
+        displayName: "WEB-0",
+        previousName: "web-0",
+        nextName: "web-01",
+      }),
+    ).toBeNull();
+  });
+
+  test("keeps a typed name when the identifier is emptied", () => {
+    expect(
+      getDisplayNameAfterChange({
+        displayName: "Production web server",
+        previousName: "w",
+        nextName: "",
+      }),
+    ).toBeNull();
+  });
+
   test("is emptied with the identifier it followed, so the next one is followed too", () => {
     expect(
       getDisplayNameAfterChange({
