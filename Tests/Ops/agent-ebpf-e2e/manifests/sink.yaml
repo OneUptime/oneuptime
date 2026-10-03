@@ -1,0 +1,143 @@
+# Stand-in for OneUptime: an OpenTelemetry Collector that writes every OTLP
+# export the agent makes, verbatim, as OTLP/JSON lines -- traces.json,
+# metrics.json and profiles.json in /data. run.sh swaps the image below for
+# the contrib collector of the profiler image's own release, so the profiles
+# wire format is decoded by the pdata version that encoded it. In front of it,
+# sink-proxy.js serves OneUptime's /otlp/v1/profiles path (see that file).
+# The namespace is excluded from OBI discovery by the test's values file, so
+# the sink's own traffic never becomes spans.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sink
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sink-config
+  namespace: sink
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 127.0.0.1:4320
+            traces_url_path: /otlp/v1/traces
+            metrics_url_path: /otlp/v1/metrics
+            logs_url_path: /otlp/v1/logs
+    exporters:
+      file/traces:
+        path: /data/traces.json
+        format: json
+        flush_interval: 1s
+      file/metrics:
+        path: /data/metrics.json
+        format: json
+        flush_interval: 1s
+      file/profiles:
+        path: /data/profiles.json
+        format: json
+        flush_interval: 1s
+      nop: {}
+    service:
+      telemetry:
+        logs:
+          level: info
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [file/traces]
+        metrics:
+          receivers: [otlp]
+          exporters: [file/metrics]
+        logs:
+          receivers: [otlp]
+          exporters: [nop]
+        profiles:
+          receivers: [otlp]
+          exporters: [file/profiles]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sink
+  namespace: sink
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sink
+  template:
+    metadata:
+      labels:
+        app: sink
+    spec:
+      nodeSelector:
+        e2e.oneuptime.com/client: "true"
+      tolerations:
+        - operator: Exists
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: otelcol
+          image: otel/opentelemetry-collector-contrib:0.152.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config=/conf/config.yaml
+            - --feature-gates=+service.profilesSupport
+          # Root, to write into the hostPath below.
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 2Gi
+        - name: proxy
+          image: node:26-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/src/sink-proxy.js"]
+          ports:
+            - containerPort: 4318
+          readinessProbe:
+            tcpSocket:
+              port: 4318
+            periodSeconds: 2
+          volumeMounts:
+            - name: src
+              mountPath: /src
+      volumes:
+        - name: conf
+          configMap:
+            name: sink-config
+        - name: src
+          configMap:
+            name: e2e-src
+        # A directory on the node, which run.sh copies off the node itself
+        # (docker cp / cp): streaming tens of MB through `kubectl exec` or
+        # `kubectl cp` was cut short under load.
+        - name: data
+          hostPath:
+            path: /var/lib/agent-ebpf-e2e-sink
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sink
+  namespace: sink
+spec:
+  selector:
+    app: sink
+  ports:
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318

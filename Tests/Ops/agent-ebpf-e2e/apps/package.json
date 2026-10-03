@@ -1,0 +1,11 @@
+{
+  "name": "agent-ebpf-e2e-app",
+  "version": "14.0.13",
+  "private": true,
+  "description": "Workload of Tests/Ops/agent-ebpf-e2e: installed by the app pod's init container inside the test cluster, never by CI's npm.",
+  "dependencies": {
+    "express": "4.21.2",
+    "ioredis": "5.4.2",
+    "pg": "8.13.1"
+  }
+}
