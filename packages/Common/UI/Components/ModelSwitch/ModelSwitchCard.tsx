@@ -113,11 +113,6 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
    */
   const readRef: MutableRefObject<number> = useRef<number>(0);
 
-  // The latest props, for the subscription below.
-  const latestPropsRef: MutableRefObject<ComponentProps<TBaseModel>> =
-    useRef<ComponentProps<TBaseModel>>(props);
-  latestPropsRef.current = props;
-
   const modelIdString: string = props.modelId.toString();
 
   const fetchItem: (options?: ReadOptions) => Promise<void> = async (
@@ -127,22 +122,21 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
     readRef.current = read;
 
     const isQuiet: boolean = Boolean(options?.isQuiet);
-    const current: ComponentProps<TBaseModel> = latestPropsRef.current;
 
     if (!isQuiet) {
       setIsLoading(true);
       setError("");
     }
 
-    const modelAPI: typeof ModelAPI = current.modelAPI || ModelAPI;
+    const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
     try {
       const readItem: TBaseModel | null = await modelAPI.getItem<TBaseModel>({
-        modelType: current.modelType,
-        id: current.modelId,
+        modelType: props.modelType,
+        id: props.modelId,
         select: {
-          ...(current.select || {}),
-          [current.column]: true,
+          ...(props.select || {}),
+          [props.column]: true,
         } as Select<TBaseModel>,
       });
 
@@ -154,7 +148,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
         // The switch has the last word on where it is; the lines follow it.
         if (readItem) {
           setItem(readItem);
-          current.onLoaded?.(readItem);
+          props.onLoaded?.(readItem);
         }
 
         return;
@@ -167,20 +161,20 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
       } else {
         const value: boolean = isModelSwitchOn({
           stored: (readItem as unknown as Record<string, unknown>)[
-            current.column
+            props.column
           ],
           defaultValue: getColumnBooleanDefault(
-            new current.modelType(),
-            current.column,
+            new props.modelType(),
+            props.column,
           ),
-          isInverted: current.isInverted,
+          isInverted: props.isInverted,
         });
 
         setIsOn(value);
         setIsSwitchOn(value);
         setItem(readItem);
-        current.onLoaded?.(readItem);
-        current.onChange?.(value);
+        props.onLoaded?.(readItem);
+        props.onChange?.(value);
       }
     } catch (err) {
       if (read !== readRef.current || isQuiet) {
@@ -194,6 +188,12 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
 
     setIsLoading(false);
   };
+
+  // The latest render's read, for the subscription below.
+  const fetchItemRef: MutableRefObject<
+    (options?: ReadOptions) => Promise<void>
+  > = useRef<(options?: ReadOptions) => Promise<void>>(fetchItem);
+  fetchItemRef.current = fetchItem;
 
   useEffect(() => {
     void fetchItem();
@@ -220,7 +220,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
       modelId: props.modelId,
       column: props.column,
       onSaved: (): void => {
-        void fetchItem({ isQuiet: true });
+        void fetchItemRef.current({ isQuiet: true });
       },
     });
   }, [props.modelType, modelIdString, props.column, hasDetails]);

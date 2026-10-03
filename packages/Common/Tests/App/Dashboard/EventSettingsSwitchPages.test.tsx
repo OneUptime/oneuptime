@@ -15,7 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -183,7 +183,7 @@ async function flush(): Promise<void> {
 }
 
 async function renderPage(
-  Page: (props: PageComponentProps) => ReactElement,
+  Page: FunctionComponent<PageComponentProps>,
 ): Promise<void> {
   render(
     <MemoryRouter>
