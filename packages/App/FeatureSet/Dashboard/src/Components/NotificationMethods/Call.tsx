@@ -22,6 +22,18 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import {
+  isAddingOffered,
+  isCodeResendOffered,
+  ProjectChannelState,
+  useProjectChannelState,
+} from "./ProjectNotificationChannels";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+  ProjectNotificationChannel,
+} from "./ProjectNotificationChannelsCopy";
 
 const Call: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -39,6 +51,17 @@ const Call: () => JSX.Element = (): ReactElement => {
 
   const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
     useState<boolean>(false);
+
+  /*
+   * Whether the project has calls on. While they are off the server refuses
+   * a new number and a code sent again, so the list offers neither: the
+   * panel at its top says so, with the switch itself for those who may turn
+   * it on.
+   */
+  const channelState: ProjectChannelState = useProjectChannelState(
+    ProjectNotificationChannel.Call,
+  );
+  const isChannelOff: boolean = channelState === ProjectChannelState.Off;
 
   useEffect(() => {
     setError("");
@@ -118,7 +141,11 @@ const Call: () => JSX.Element = (): ReactElement => {
                 return false;
               }
 
-              return true;
+              // The server refuses to call with a code while calls are off.
+              return isCodeResendOffered(
+                ProjectNotificationChannel.Call,
+                channelState,
+              );
             },
             onClick: async (
               item: UserCall,
@@ -142,14 +169,23 @@ const Call: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > Call"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={isAddingOffered(channelState)}
+        topContent={
+          <NotificationChannelOffPanel
+            list={ChannelGatedMethodList.Call}
+            state={channelState}
+          />
+        }
         cardProps={{
           title: "Phone Numbers for Call Notifications",
           description:
             "Manage Phone Numbers that will receive call notifications for this project.",
         }}
         noItemsMessage={
-          "No phone numbers found. Please add one to receive notifications."
+          isChannelOff
+            ? getChannelGatedMethodList(ChannelGatedMethodList.Call)
+                .noItemsWhileOff
+            : "No phone numbers found. Please add one to receive notifications."
         }
         formFields={[
           {

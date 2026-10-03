@@ -1,4 +1,12 @@
 import NotificationMethodTabs from "../../../../Components/NotificationMethods/NotificationMethodTabs";
+import {
+  getProjectChannelState,
+  isCodeResendOffered,
+  ProjectChannelState,
+  ProjectNotificationChannels,
+  useProjectNotificationChannels,
+} from "../../../../Components/NotificationMethods/ProjectNotificationChannels";
+import { ProjectNotificationChannel } from "../../../../Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -113,6 +121,88 @@ const ADDABLE_CHANNELS: Array<DropdownOption> = [
   { value: AdminAddableChannel.WhatsApp, label: "WhatsApp" },
 ];
 
+/*
+ * The project switch each addable channel needs (Project Settings ->
+ * Notification Settings -> Notification Channels). Email has none.
+ */
+const ADDABLE_CHANNEL_SWITCHES: Record<
+  AdminAddableChannel,
+  ProjectNotificationChannel | null
+> = {
+  [AdminAddableChannel.Email]: null,
+  [AdminAddableChannel.SMS]: ProjectNotificationChannel.SMS,
+  [AdminAddableChannel.Call]: ProjectNotificationChannel.Call,
+  [AdminAddableChannel.WhatsApp]: ProjectNotificationChannel.WhatsApp,
+};
+
+const ALL_ADDABLE_CHANNELS: Array<AdminAddableChannel> = [
+  AdminAddableChannel.Email,
+  AdminAddableChannel.SMS,
+  AdminAddableChannel.Call,
+  AdminAddableChannel.WhatsApp,
+];
+
+/*
+ * The channels the Add form offers: email always, and SMS, calls and
+ * WhatsApp while the project has them on. A channel that is off is not
+ * offered, because the server refuses the method ("SMS notifications are
+ * disabled for this project") - the commonest action of this page would be
+ * a refusal on every new project, where all three start off.
+ *
+ * A channel is only left out when it is KNOWN to be off. While the answer
+ * is on its way, or when it could not be read, every channel is offered as
+ * before and the server has the last word.
+ */
+export const getOfferedAddableChannels: (
+  channels: ProjectNotificationChannels,
+) => Array<AdminAddableChannel> = (
+  channels: ProjectNotificationChannels,
+): Array<AdminAddableChannel> => {
+  return ALL_ADDABLE_CHANNELS.filter(
+    (addable: AdminAddableChannel): boolean => {
+      const channel: ProjectNotificationChannel | null =
+        ADDABLE_CHANNEL_SWITCHES[addable];
+
+      if (!channel) {
+        return true;
+      }
+
+      return (
+        getProjectChannelState(channels, channel) !== ProjectChannelState.Off
+      );
+    },
+  );
+};
+
+export const getOfferedAddableChannelOptions: (
+  channels: ProjectNotificationChannels,
+) => Array<DropdownOption> = (
+  channels: ProjectNotificationChannels,
+): Array<DropdownOption> => {
+  const offered: Array<AdminAddableChannel> =
+    getOfferedAddableChannels(channels);
+
+  return ADDABLE_CHANNELS.filter((option: DropdownOption): boolean => {
+    return offered.includes(option.value as AdminAddableChannel);
+  });
+};
+
+/*
+ * The project channel behind a listed method, for the methods whose
+ * verification code the server will not send again while it is off.
+ */
+const getMethodChannel: (
+  methodType: string,
+) => ProjectNotificationChannel | null = (
+  methodType: string,
+): ProjectNotificationChannel | null => {
+  const channels: Array<string> = Object.values(ProjectNotificationChannel);
+
+  return channels.includes(methodType)
+    ? (methodType as ProjectNotificationChannel)
+    : null;
+};
+
 interface AdminMethodWire {
   methodId: string;
   methodType: string;
@@ -214,6 +304,13 @@ const UserViewNotificationMethods: FunctionComponent<
   const context: UserOnCallContextValue = useUserOnCallContext();
 
   const { userId, firstName, displayName, isSelf, canManageMethods } = context;
+
+  /*
+   * Which of SMS, calls and WhatsApp the project has on, for what the Add
+   * form offers. The self view's own lists read it too, and share the read.
+   */
+  const projectChannels: ProjectNotificationChannels =
+    useProjectNotificationChannels();
 
   const [methods, setMethods] = useState<Array<AdminMethodWire>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -479,7 +576,24 @@ const UserViewNotificationMethods: FunctionComponent<
       icon: IconProp.Email,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (method: AdminMethodWire): boolean => {
-        return canManageMethods && !method.isVerified && method.isAdminAddable;
+        if (!canManageMethods || method.isVerified || !method.isAdminAddable) {
+          return false;
+        }
+
+        /*
+         * An SMS or call code is not sent again while the project has that
+         * channel off: the server refuses, so the row does not offer it.
+         */
+        const channel: ProjectNotificationChannel | null = getMethodChannel(
+          method.methodType,
+        );
+
+        return channel
+          ? isCodeResendOffered(
+              channel,
+              getProjectChannelState(projectChannels, channel),
+            )
+          : true;
       },
       onClick: (method: AdminMethodWire, onCompleteAction: () => void) => {
         onCompleteAction();
@@ -619,6 +733,52 @@ const UserViewNotificationMethods: FunctionComponent<
           );
         })}
       </ul>
+    );
+  };
+
+  const offeredChannels: Array<AdminAddableChannel> =
+    getOfferedAddableChannels(projectChannels);
+
+  const isPhoneNumberOffered: boolean =
+    offeredChannels.includes(AdminAddableChannel.SMS) ||
+    offeredChannels.includes(AdminAddableChannel.Call);
+
+  const isWhatsAppOffered: boolean = offeredChannels.includes(
+    AdminAddableChannel.WhatsApp,
+  );
+
+  const isAnyChannelOff: boolean =
+    offeredChannels.length < ALL_ADDABLE_CHANNELS.length;
+
+  /*
+   * What the admin can add, said as what they CAN do: only the channels the
+   * project has on (each sentence whole, so a locale can word it its way).
+   */
+  const getWhatCanBeAddedSentence: () => string = (): string => {
+    if (isPhoneNumberOffered && isWhatsAppOffered) {
+      return translator.translateTemplate(
+        "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+        { name: firstName },
+      );
+    }
+
+    if (isPhoneNumberOffered) {
+      return translator.translateTemplate(
+        "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+        { name: firstName },
+      );
+    }
+
+    if (isWhatsAppOffered) {
+      return translator.translateTemplate(
+        "You can add an email address or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+        { name: firstName },
+      );
+    }
+
+    return translator.translateTemplate(
+      "You can add an email address for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+      { name: firstName },
     );
   };
 
@@ -767,10 +927,7 @@ const UserViewNotificationMethods: FunctionComponent<
            */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <p className="text-sm leading-relaxed text-gray-700">
-              {translator.translateTemplate(
-                "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
-                { name: firstName },
-              )}
+              {getWhatCanBeAddedSentence()}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
               {translator.translateTemplate(
@@ -827,10 +984,11 @@ const UserViewNotificationMethods: FunctionComponent<
             /*
              * Email is preselected rather than leaving the dropdown empty. It
              * is the channel with no per-project switch behind it — SMS, Call
-             * and WhatsApp can each be disabled in Project Settings, and a
-             * default that lands on a disabled channel turns the commonest
-             * action into a refusal — and preselecting it means the ordinary
-             * case is one field, typed and submitted.
+             * and WhatsApp can each be switched off in Project Settings, and
+             * a default that lands on a channel that is off turns the
+             * commonest action into a refusal — and preselecting it means the
+             * ordinary case is one field, typed and submitted. A channel that
+             * is off is not offered at all (getOfferedAddableChannels).
              */
             initialValues: {
               methodType: AdminAddableChannel.Email,
@@ -841,23 +999,45 @@ const UserViewNotificationMethods: FunctionComponent<
                   methodType: true,
                 },
                 title: "Method",
+                /*
+                 * Only the channels the project has on. Said once, so a
+                 * missing SMS is not read as a bug.
+                 */
+                ...(isAnyChannelOff
+                  ? {
+                      description:
+                        "Channels that are off in this project are not offered. A project owner can turn them on in Project Settings → Notification Settings.",
+                    }
+                  : {}),
                 fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: ADDABLE_CHANNELS,
+                dropdownOptions:
+                  getOfferedAddableChannelOptions(projectChannels),
                 required: true,
                 placeholder: "Email",
               },
-              {
-                field: {
-                  value: true,
-                },
-                title: "Email address or phone number",
-                description:
-                  "Phone numbers need the country code, for example +15551234567.",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "you@company.com or +15551234567",
-                disableSpellCheck: true,
-              },
+              isPhoneNumberOffered || isWhatsAppOffered
+                ? {
+                    field: {
+                      value: true,
+                    },
+                    title: "Email address or phone number",
+                    description:
+                      "Phone numbers need the country code, for example +15551234567.",
+                    fieldType: FormFieldSchemaType.Text,
+                    required: true,
+                    placeholder: "you@company.com or +15551234567",
+                    disableSpellCheck: true,
+                  }
+                : {
+                    field: {
+                      value: true,
+                    },
+                    title: "Email address",
+                    fieldType: FormFieldSchemaType.Text,
+                    required: true,
+                    placeholder: "you@company.com",
+                    disableSpellCheck: true,
+                  },
             ],
           }}
         />

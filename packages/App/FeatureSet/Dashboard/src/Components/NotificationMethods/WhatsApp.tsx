@@ -22,6 +22,17 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import {
+  isAddingOffered,
+  ProjectChannelState,
+  useProjectChannelState,
+} from "./ProjectNotificationChannels";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+  ProjectNotificationChannel,
+} from "./ProjectNotificationChannelsCopy";
 
 const WhatsApp: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -40,6 +51,16 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
 
   const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
     useState<boolean>(false);
+
+  /*
+   * Whether the project has WhatsApp on. While it is off the server refuses
+   * a new number, so the list offers no Add button: the panel at its top
+   * says so, with the switch itself for those who may turn it on.
+   */
+  const channelState: ProjectChannelState = useProjectChannelState(
+    ProjectNotificationChannel.WhatsApp,
+  );
+  const isChannelOff: boolean = channelState === ProjectChannelState.Off;
 
   useEffect(() => {
     setVerificationError("");
@@ -151,14 +172,23 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > WhatsApp"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={isAddingOffered(channelState)}
+        topContent={
+          <NotificationChannelOffPanel
+            list={ChannelGatedMethodList.WhatsApp}
+            state={channelState}
+          />
+        }
         cardProps={{
           title: "WhatsApp Numbers for Notifications",
           description:
             "Manage WhatsApp numbers that will receive notifications for this project.",
         }}
         noItemsMessage={
-          "No WhatsApp numbers found. Please add one to receive notifications."
+          isChannelOff
+            ? getChannelGatedMethodList(ChannelGatedMethodList.WhatsApp)
+                .noItemsWhileOff
+            : "No WhatsApp numbers found. Please add one to receive notifications."
         }
         formFields={[
           {

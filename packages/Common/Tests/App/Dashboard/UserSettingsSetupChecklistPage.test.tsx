@@ -152,6 +152,8 @@ import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUser
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import SetupChecklist from "../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/SetupChecklist";
+import ProjectNotificationChannelsStore from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels";
+import { ProjectNotificationChannel } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -1181,6 +1183,46 @@ describe("setup checklist page - deliverable notification settings", () => {
     expect(
       screen.getByTestId("setup-checklist-step-deliverable-settings"),
     ).toHaveAttribute("data-status", "Complete");
+  });
+
+  /*
+   * The checklist reads the four switches through the definition the method
+   * lists use, in its one project read, and hands what it read to their
+   * shared store: the Notification Methods page it links to opens on the
+   * same answer, so the two never disagree about which channel is off.
+   */
+  test("reads the switches through the lists' shared definition, and shares what it read", async (): Promise<void> => {
+    ProjectNotificationChannelsStore.reset();
+    respondWithProject({ enableSms: true });
+
+    renderChecklist();
+    await settle();
+
+    const projectReads: Array<any> = getItemMock.mock.calls
+      .map((call: Array<any>): any => {
+        return call[0];
+      })
+      .filter((data: any): boolean => {
+        return data.modelType === Project;
+      });
+
+    expect(projectReads).toHaveLength(1);
+    expect(projectReads[0].select).toEqual({
+      disableOnCallNotificationFallback: true,
+      enableSmsNotifications: true,
+      enableCallNotifications: true,
+      enableWhatsAppNotifications: true,
+      enableTelegramNotifications: true,
+    });
+
+    expect(
+      ProjectNotificationChannelsStore.getChannels(PROJECT_ID).enabled,
+    ).toEqual({
+      [ProjectNotificationChannel.SMS]: true,
+      [ProjectNotificationChannel.Call]: false,
+      [ProjectNotificationChannel.WhatsApp]: false,
+      [ProjectNotificationChannel.Telegram]: false,
+    });
   });
 
   /*
