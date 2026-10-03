@@ -1,6 +1,7 @@
 import { Page, expect, test, Locator } from "@playwright/test";
 import Faker from "Common/Utils/Faker";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * The Inventory product, end to end.
@@ -35,6 +36,8 @@ test.describe.skip("Inventory Product", () => {
      * a block comment. A user could not reach the product at all.
      */
     await page.getByRole("button", { name: "Products" }).click();
+    // Inventory is under Resources, which the menu opens folded.
+    await openProductsMenuSection(page, "Resources");
 
     const inventoryNavOption: Locator = page
       .getByRole("option")

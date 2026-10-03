@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "资源和值班",
   "The usual starting state.": "通常的初始状态。",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "由谁担任此片段及其中每个事件的各个角色。标记为“主要”的角色如果留空，将由你担任。",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "由谁担任此事件的各个角色。标记为“主要”的角色如果留空，将由你担任。"
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "由谁担任此事件的各个角色。标记为“主要”的角色如果留空，将由你担任。",
+  "{{count}} products": "{{count}} 个产品",
+  "{{count}} products_one": "{{count}} 个产品"
 }

@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "संसाधन और ऑन-कॉल",
   "The usual starting state.": "सामान्य प्रारंभिक स्थिति।",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "इस एपिसोड और इसकी हर घटना में हर भूमिका कौन निभाएगा। प्राथमिक चिह्नित कोई भी भूमिका जिसे आप खाली छोड़ते हैं, आप स्वयं निभाते हैं।",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "इस घटना में हर भूमिका कौन निभाएगा। प्राथमिक चिह्नित कोई भी भूमिका जिसे आप खाली छोड़ते हैं, आप स्वयं निभाते हैं।"
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "इस घटना में हर भूमिका कौन निभाएगा। प्राथमिक चिह्नित कोई भी भूमिका जिसे आप खाली छोड़ते हैं, आप स्वयं निभाते हैं।",
+  "{{count}} products": "{{count}} उत्पाद",
+  "{{count}} products_one": "{{count}} उत्पाद"
 }

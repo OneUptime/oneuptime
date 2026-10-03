@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Middelen en bereikbaarheid",
   "The usual starting state.": "De gebruikelijke beginstatus.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Wie welke rol op zich neemt bij deze episode en bij elk incident erin. Elke als Primair gemarkeerde rol die je leeg laat, neem je zelf.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Wie welke rol op zich neemt bij dit incident. Elke als Primair gemarkeerde rol die je leeg laat, neem je zelf."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Wie welke rol op zich neemt bij dit incident. Elke als Primair gemarkeerde rol die je leeg laat, neem je zelf.",
+  "{{count}} products": "{{count}} producten",
+  "{{count}} products_one": "{{count}} product"
 }

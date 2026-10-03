@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "資源與待命",
   "The usual starting state.": "一般的初始狀態。",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "由誰擔任此片段及其中每個事件的各個角色。標示為「主要」的角色若留空，將由你擔任。",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "由誰擔任此事件的各個角色。標示為「主要」的角色若留空，將由你擔任。"
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "由誰擔任此事件的各個角色。標示為「主要」的角色若留空，將由你擔任。",
+  "{{count}} products": "{{count}} 個產品",
+  "{{count}} products_one": "{{count}} 個產品"
 }

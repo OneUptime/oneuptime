@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Ressurser og vakt",
   "The usual starting state.": "Den vanlige starttilstanden.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Hvem som tar hver rolle i denne episoden og i hver hendelse i den. Du tar selv enhver rolle merket Primær som du lar stå tom.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Hvem som tar hver rolle i denne hendelsen. Du tar selv enhver rolle merket Primær som du lar stå tom."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Hvem som tar hver rolle i denne hendelsen. Du tar selv enhver rolle merket Primær som du lar stå tom.",
+  "{{count}} products": "{{count}} produkter",
+  "{{count}} products_one": "{{count}} produkt"
 }

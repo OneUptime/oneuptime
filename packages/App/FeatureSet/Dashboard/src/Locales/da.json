@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Ressourcer og vagt",
   "The usual starting state.": "Den sædvanlige starttilstand.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Hvem der påtager sig hver rolle i denne episode og i hver af dens hændelser. Du påtager dig selv enhver rolle markeret som Primær, som du lader stå tom.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Hvem der påtager sig hver rolle i denne hændelse. Du påtager dig selv enhver rolle markeret som Primær, som du lader stå tom."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Hvem der påtager sig hver rolle i denne hændelse. Du påtager dig selv enhver rolle markeret som Primær, som du lader stå tom.",
+  "{{count}} products": "{{count}} produkter",
+  "{{count}} products_one": "{{count}} produkt"
 }
