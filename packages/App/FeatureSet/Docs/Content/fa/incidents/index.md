@@ -139,7 +139,7 @@
 - **Roles**، **On-Call Executions**، **Owners** — چه کسی رویش است، کدام سیاست‌ها شلیک کردند، و چه کسی خبردار می‌شود.
 - **Notification Logs**، **AI Logs**، **Audit Logs** — چه فرستاده شد و چه تغییر کرد.
 - **Private Notes** و **Public Notes** — زیر بخش **Notes** منوی کناری.
-- **Custom Fields**، **Settings**، **Delete Incident** — زیر **Advanced**. صفحه **Settings** گزینه‌های **Visible on Status Page**، **Private Incident** و کارت **Reminders** را نگه می‌دارد.
+- **Custom Fields**، **Settings**، **Delete Incident** — زیر **Advanced**. صفحه **Settings** گزینه‌های **Visible on Status Page**، **Private Incident** و کارت **Reminders** را نگه می‌دارد؛ کلید **Send reminders** این کارت همان لحظه که زده شود ذخیره می‌شود و زمان یادآوری بعدی را نشان می‌دهد.
 
 [یادداشت‌ها، مالکان و خوراک حادثه](/docs/incidents/notes-owners-and-feed) صفحه‌های همکاری را عمیق پوشش می‌دهد.
 

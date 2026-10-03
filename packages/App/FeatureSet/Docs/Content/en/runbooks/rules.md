@@ -93,7 +93,7 @@ You can see all rule-triggered runs under **Runbooks → Executions**, filtered 
 
 ## Disabled runbooks
 
-If a rule references a runbook that has `isEnabled = false`, the rule still matches but the runbook execution is skipped. Re-enable the runbook to resume.
+If a rule references a runbook that is turned off (**Run this runbook** off on the runbook's **Settings** page, `isEnabled = false`), the rule still matches but the runbook execution is skipped. Turn the switch back on to resume.
 
 ## Testing a rule
 

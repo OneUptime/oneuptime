@@ -61,7 +61,7 @@ Runbooks:        [Capture pre-incident state]
 
 ## 비활성화된 Runbook
 
-규칙이 `isEnabled = false`인 Runbook을 참조하면, 규칙은 일치해도 그 Runbook 실행은 건너뜁니다. Runbook을 다시 활성화하면 재개됩니다.
+규칙이 꺼진 Runbook(Runbook의 **Settings** 페이지에서 **Run this runbook**이 꺼짐, `isEnabled = false`)을 참조하면, 규칙은 일치해도 그 Runbook 실행은 건너뜁니다. 스위치를 다시 켜면 재개됩니다.
 
 ## 규칙 테스트
 

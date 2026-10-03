@@ -61,7 +61,7 @@ Alle regelgesteuerten Läufe sehen Sie unter **Runbooks → Ausführungen**, gef
 
 ## Deaktivierte Runbooks
 
-Wenn eine Regel auf ein Runbook mit `isEnabled = false` verweist, passt die Regel zwar weiterhin, aber die Runbook-Ausführung wird übersprungen. Aktivieren Sie das Runbook erneut, um fortzufahren.
+Wenn eine Regel auf ein Runbook verweist, das ausgeschaltet ist (**Run this runbook** auf der **Settings**-Seite des Runbooks aus, `isEnabled = false`), passt die Regel zwar weiterhin, aber die Runbook-Ausführung wird übersprungen. Schalten Sie den Schalter wieder ein, um fortzufahren.
 
 ## Eine Regel testen
 

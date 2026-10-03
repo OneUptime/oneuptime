@@ -61,7 +61,7 @@ Je ziet alle door regels getriggerde runs onder **Runbooks → Uitvoeringen**, g
 
 ## Uitgeschakelde runbooks
 
-Als een regel verwijst naar een runbook met `isEnabled = false`, matcht de regel nog steeds maar wordt de runbook-uitvoering overgeslagen. Schakel het runbook weer in om te hervatten.
+Als een regel verwijst naar een runbook dat uit staat (**Run this runbook** uit op de **Settings**-pagina van het runbook, `isEnabled = false`), matcht de regel nog steeds maar wordt de runbook-uitvoering overgeslagen. Zet de schakelaar weer aan om te hervatten.
 
 ## Een regel testen
 
