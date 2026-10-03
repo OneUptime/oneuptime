@@ -283,8 +283,11 @@ event back: a first run of this spec once delivered the second press 422 ms afte
 the first release, past the histogram's 250 ms single-click wait, and the first
 click zoomed into its bar before the `dblclick` came. So when the page receives the
 second press 230 ms or more after the first release, that run is not the
-double-click the test means: the scenario is run again on a fresh page, up to three
-times in all, and only then fails, naming each run's timing.
+double-click the test means, and nothing in it is judged, not even how the held data
+landed: the answers to the first click's own zoom may be held too and land with the
+drag's (the Logs explorer then drew that click's one bar instead of the zoom's
+twelve). The scenario is run again on a fresh page, up to three times in all, and
+only then fails, naming each run's timing.
 
 After every double-click the explorer must be back on "Past 1 Hour": the toolbar
 picker reads the preset, "Reset zoom" and "Double-click to reset" are gone, the

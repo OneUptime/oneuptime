@@ -1138,7 +1138,8 @@ async function expectBackOnInitialRange(
  * One run of a scenario on a fresh page: open the explorer, drag, hold the
  * zoom's answers, double-click with them landing at the scenario's moment.
  * Returns the request mark taken before the drag, and why the gesture the
- * page received was not a double-click (null when it was).
+ * page received was not a double-click (null when it was). Only a
+ * double-click's landing is judged.
  */
 async function doubleClickRightAfterDrag(
   page: Page,
@@ -1185,6 +1186,15 @@ async function doubleClickRightAfterDrag(
     },
   );
   const log: Array<PointerRecord> = await pointerLog(page);
+  /*
+   * A gesture the page did not receive in time is not judged, its landing
+   * included: its first click may have zoomed on its own, and that zoom's
+   * held answers then land too. The caller runs the scenario again.
+   */
+  const timingProblem: string | null = gestureTimingProblem(log);
+  if (timingProblem !== null) {
+    return { mark, timingProblem };
+  }
   expectLanding(landing, scenario.moment);
   if (landing) {
     expect(landing.shown, `the zoomed bars landed ${scenario.moment}`).toBe(
@@ -1199,7 +1209,7 @@ async function doubleClickRightAfterDrag(
       `under the pointer once the zoomed bars landed (${describePointerLog(log)})`,
     ).toMatch(scenario.spot === "bar" ? /^bar$/ : /^(empty|band)$/);
   }
-  return { mark, timingProblem: gestureTimingProblem(log) };
+  return { mark, timingProblem: null };
 }
 
 for (const subject of [TRACES_EXPLORER, LOGS_EXPLORER]) {
@@ -1558,7 +1568,8 @@ function overviewPicker(page: Page): Locator {
  * chart, hold the zoom's aggregates, double-click the line's path with them
  * landing during the second press. Returns the request mark taken before
  * the drag, the chart's index, and why the gesture the page received was
- * not a double-click (null when it was).
+ * not a double-click (null when it was). Only a double-click's landing is
+ * judged.
  */
 async function doubleClickLineRightAfterDrag(page: Page): Promise<{
   mark: number;
@@ -1645,12 +1656,21 @@ async function doubleClickLineRightAfterDrag(page: Page): Promise<{
     },
   );
   const log: Array<PointerRecord> = await pointerLog(page);
+  /*
+   * As on the explorers, a gesture the page did not receive in time is not
+   * judged, its landing included: its first click may have acted on its
+   * own. The caller runs it again.
+   */
+  const timingProblem: string | null = gestureTimingProblem(log);
+  if (timingProblem !== null) {
+    return { mark, chartIndex, timingProblem };
+  }
   expectLanding(landing, "second-press");
   expect(
     landing!.shown,
     `the zoomed ${LINE_CHART} chart landed during the second press (${describePointerLog(log)})`,
   ).toMatch(new RegExp(`^first x-axis label ${zoomedLabel.slice(1)}`));
-  return { mark, chartIndex, timingProblem: gestureTimingProblem(log) };
+  return { mark, chartIndex, timingProblem: null };
 }
 
 test.describe("Kubernetes cluster overview: a double-click on a line right after a drag", () => {
