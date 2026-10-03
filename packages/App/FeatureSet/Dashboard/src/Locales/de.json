@@ -24201,5 +24201,7 @@
   "Edit Languages": "Sprachen bearbeiten",
   "History chart colors, languages, and whether search engines may list this page.": "Farben des Verlaufsdiagramms, Sprachen und ob Suchmaschinen diese Seite aufführen dürfen.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Wird oben auf der Übersicht Ihrer Statusseite angezeigt, vor allem anderen. Markdown wird unterstützt.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "Die Sprache, die Erstbesucher sehen, und die Sprachen, zu denen sie in der Fußzeile wechseln können."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "Die Sprache, die Erstbesucher sehen, und die Sprachen, zu denen sie in der Fußzeile wechseln können.",
+  "Subscribers will be notified about this update as soon as you post it.": "Abonnenten werden über diese Aktualisierung benachrichtigt, sobald Sie sie veröffentlichen.",
+  "The update will appear on your status page without notifying subscribers.": "Die Aktualisierung erscheint auf Ihrer Statusseite, ohne dass Abonnenten benachrichtigt werden."
 }

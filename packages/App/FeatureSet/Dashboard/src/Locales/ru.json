@@ -24201,5 +24201,7 @@
   "Edit Languages": "Изменить языки",
   "History chart colors, languages, and whether search engines may list this page.": "Цвета графика истории, языки и разрешение поисковым системам показывать эту страницу.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Отображается вверху обзора вашей страницы статуса, над всем остальным. Поддерживается Markdown.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "Язык, который видят посетители при первом посещении, и языки, на которые они могут переключиться в нижнем колонтитуле."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "Язык, который видят посетители при первом посещении, и языки, на которые они могут переключиться в нижнем колонтитуле.",
+  "Subscribers will be notified about this update as soon as you post it.": "Подписчики получат уведомление об этом обновлении сразу после публикации.",
+  "The update will appear on your status page without notifying subscribers.": "Обновление появится на странице статуса без уведомления подписчиков."
 }

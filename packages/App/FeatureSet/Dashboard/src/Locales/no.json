@@ -24201,5 +24201,7 @@
   "Edit Languages": "Rediger språk",
   "History chart colors, languages, and whether search engines may list this page.": "Farger i historikkdiagrammet, språk og om søkemotorer kan vise denne siden.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Vises øverst i oversikten på statussiden din, før alt annet. Markdown støttes.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "Språket førstegangsbesøkende ser, og språkene de kan bytte til i bunnteksten."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "Språket førstegangsbesøkende ser, og språkene de kan bytte til i bunnteksten.",
+  "Subscribers will be notified about this update as soon as you post it.": "Abonnentene blir varslet om denne oppdateringen så snart du publiserer den.",
+  "The update will appear on your status page without notifying subscribers.": "Oppdateringen vises på statussiden din uten at abonnentene varsles."
 }

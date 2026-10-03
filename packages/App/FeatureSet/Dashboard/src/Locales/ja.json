@@ -24201,5 +24201,7 @@
   "Edit Languages": "言語を編集",
   "History chart colors, languages, and whether search engines may list this page.": "履歴チャートの色、言語、検索エンジンにこのページの掲載を許可するかどうか。",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "ステータスページの概要の一番上、ほかのすべての上に表示されます。Markdown を使用できます。",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "初めての訪問者に表示される言語と、フッターで切り替えられる言語。"
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "初めての訪問者に表示される言語と、フッターで切り替えられる言語。",
+  "Subscribers will be notified about this update as soon as you post it.": "投稿するとすぐに、この更新が購読者に通知されます。",
+  "The update will appear on your status page without notifying subscribers.": "更新はステータスページに表示されますが、購読者には通知されません。"
 }

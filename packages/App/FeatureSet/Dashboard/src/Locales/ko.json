@@ -24201,5 +24201,7 @@
   "Edit Languages": "언어 편집",
   "History chart colors, languages, and whether search engines may list this page.": "기록 차트 색상, 언어, 검색 엔진에 이 페이지 표시를 허용할지 여부.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "상태 페이지 개요의 맨 위, 다른 모든 내용보다 먼저 표시됩니다. Markdown을 지원합니다.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "처음 방문하는 사용자에게 표시되는 언어와 바닥글에서 전환할 수 있는 언어입니다."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "처음 방문하는 사용자에게 표시되는 언어와 바닥글에서 전환할 수 있는 언어입니다.",
+  "Subscribers will be notified about this update as soon as you post it.": "게시하는 즉시 구독자에게 이 업데이트에 대한 알림이 전송됩니다.",
+  "The update will appear on your status page without notifying subscribers.": "업데이트는 구독자에게 알리지 않고 상태 페이지에 표시됩니다."
 }

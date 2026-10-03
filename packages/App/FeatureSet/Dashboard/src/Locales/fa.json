@@ -24201,5 +24201,7 @@
   "Edit Languages": "ویرایش زبان‌ها",
   "History chart colors, languages, and whether search engines may list this page.": "رنگ‌های نمودار تاریخچه، زبان‌ها، و اینکه آیا موتورهای جستجو می‌توانند این صفحه را فهرست کنند.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "در بالای نمای کلی صفحه وضعیت شما، پیش از هر چیز دیگری نمایش داده می‌شود. از Markdown پشتیبانی می‌شود.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "زبانی که بازدیدکنندگان بار اول می‌بینند، و زبان‌هایی که می‌توانند در پاورقی به آن‌ها تغییر دهند."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "زبانی که بازدیدکنندگان بار اول می‌بینند، و زبان‌هایی که می‌توانند در پاورقی به آن‌ها تغییر دهند.",
+  "Subscribers will be notified about this update as soon as you post it.": "به‌محض انتشار این به‌روزرسانی، به مشترکان اطلاع داده می‌شود.",
+  "The update will appear on your status page without notifying subscribers.": "این به‌روزرسانی بدون اطلاع‌رسانی به مشترکان در صفحه وضعیت شما نمایش داده می‌شود."
 }

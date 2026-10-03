@@ -24201,5 +24201,7 @@
   "Edit Languages": "編輯語言",
   "History chart colors, languages, and whether search engines may list this page.": "歷史圖表顏色、語言，以及是否允許搜尋引擎列出此頁面。",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "顯示在狀態頁面概覽的最上方，位於所有其他內容之前。支援 Markdown。",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "首次造訪者看到的語言，以及他們可以在頁尾切換的語言。"
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "首次造訪者看到的語言，以及他們可以在頁尾切換的語言。",
+  "Subscribers will be notified about this update as soon as you post it.": "發布後，訂閱者將立即收到此更新的通知。",
+  "The update will appear on your status page without notifying subscribers.": "此更新將顯示在您的狀態頁面上，但不會通知訂閱者。"
 }
