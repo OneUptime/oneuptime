@@ -325,10 +325,29 @@ describe("the list is usable at estate scale", () => {
   });
 
   test("the empty state offers a way forward rather than a bare sentence", () => {
-    // The shared table empty state, with the setup guide as a way forward.
-    expect(code).toContain("emptyState={{");
-    expect(code).toContain("actions: [");
-    expect(code).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
+    /*
+     * The shared table empty state, with the setup guide as a way forward -
+     * on the main list. The archive has its own ("No archived items"):
+     * nothing the setup guide does puts an item in it.
+     */
+    const liveStart: number = code.indexOf(
+      ': { ...facetEmptyState, title: "Nothing here yet."',
+    );
+    const liveEnd: number = code.indexOf(
+      "return ( <Fragment> <ModelTable<InventoryItem>",
+    );
+
+    expect(liveStart).toBeGreaterThan(-1);
+    expect(liveEnd).toBeGreaterThan(liveStart);
+
+    const live: string = code.slice(liveStart, liveEnd);
+
+    expect(code).toContain("emptyState={emptyState}");
+    expect(code).toContain(
+      "const emptyState: EmptyStateOptions = isArchivedView ? {",
+    );
+    expect(live).toContain("actions: [");
+    expect(live).toContain("RouteMap[PageMap.INVENTORY_DOCUMENTATION]");
   });
 
   test("rows open the inventory detail page", () => {

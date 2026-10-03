@@ -5,6 +5,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { TableEmptyStateActionStyle } from "Common/UI/Components/Table/TableEmptyState";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import IconProp from "Common/Types/Icon/IconProp";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import { MANUAL_ENTITY_TYPES } from "Common/Types/Telemetry/EntityTypeGroups";
@@ -177,6 +178,47 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
    */
   const now: Date = new Date();
 
+  /*
+   * An empty inventory fills itself: items arrive with telemetry, so the
+   * way forward is the setup guide as much as the Create button. Under
+   * a facet that matched nothing the table says nothing matches instead
+   * (the chips reach it through facetEmptyState) - not "nothing here".
+   *
+   * The archive is empty until somebody archives an item, and neither
+   * telemetry nor the setup guide puts anything in it. It reads "No
+   * archived items", like every other Archived page, over the card's
+   * description (what archiving does and how to undo it), which the empty
+   * state shows in the header's place.
+   */
+  const emptyState: EmptyStateOptions = isArchivedView
+    ? {
+        ...facetEmptyState,
+        title: "No archived items.",
+        icon: IconProp.Archive,
+      }
+    : {
+        ...facetEmptyState,
+        title: "Nothing here yet.",
+        icon: IconProp.Cube,
+        description:
+          "Items appear here on their own as you send OpenTelemetry data and register infrastructure in OneUptime. You can also add something by hand — a vendor API or an appliance that will never report telemetry on its own.",
+        actions: [
+          {
+            title: "Read the setup guide",
+            icon: IconProp.Book,
+            style: TableEmptyStateActionStyle.Link,
+            dataTestId: "inventory-setup-guide",
+            onClick: () => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
+                ),
+              );
+            },
+          },
+        ],
+      };
+
   return (
     <Fragment>
       <ModelTable<InventoryItem>
@@ -228,34 +270,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           ...(props.query || {}),
         })}
         showRefreshButton={true}
-        /*
-         * An empty inventory fills itself: items arrive with telemetry, so the
-         * way forward is the setup guide as much as the Create button. Under
-         * a facet that matched nothing the table says nothing matches instead
-         * (the chips reach it through facetEmptyState) - not "nothing here".
-         */
-        emptyState={{
-          ...facetEmptyState,
-          title: "Nothing here yet.",
-          icon: IconProp.Cube,
-          description:
-            "Items appear here on their own as you send OpenTelemetry data and register infrastructure in OneUptime. You can also add something by hand — a vendor API or an appliance that will never report telemetry on its own.",
-          actions: [
-            {
-              title: "Read the setup guide",
-              icon: IconProp.Book,
-              style: TableEmptyStateActionStyle.Link,
-              dataTestId: "inventory-setup-guide",
-              onClick: () => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
-                  ),
-                );
-              },
-            },
-          ],
-        }}
+        emptyState={emptyState}
         /*
          * Only the fields a human owns. Type and key are absent on purpose:
          * the key is derived from (project, type, name) server-side, and
