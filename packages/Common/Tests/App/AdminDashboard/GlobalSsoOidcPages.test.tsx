@@ -313,6 +313,8 @@ import SettingsGlobalOIDCView from "../../../../App/FeatureSet/AdminDashboard/sr
 import SettingsGlobalSSO from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/Index";
 import SettingsGlobalSSOView from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/View";
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
+import ProjectScopedTeamsPicker from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/ProjectScopedTeamsPicker";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import GlobalOIDC from "../../../Models/DatabaseModels/GlobalOidc";
 import GlobalOIDCProject from "../../../Models/DatabaseModels/GlobalOidcProject";
 import GlobalSSO from "../../../Models/DatabaseModels/GlobalSso";
@@ -532,6 +534,67 @@ const stepsOf: (steps: unknown) => Array<string> = (
       return `${step.id}: ${step.title}`;
     },
   );
+};
+
+/*
+ * A provider's Attached Projects form is one page: the project, then its teams
+ * under it. The teams are the project picker's own (ProjectScopedTeamsPicker,
+ * several at once), and the picker starts on the project's members team as
+ * soon as a project is picked (its own suite and AdminAddToProjectMembersTeam
+ * drive that).
+ */
+const expectOnePageAttachForm: (table: MockProps) => void = (
+  table: MockProps,
+): void => {
+  expect(table["formSteps"]).toBeUndefined();
+
+  const fields: Array<MockProps> = table["formFields"] as Array<MockProps>;
+
+  for (const field of fields) {
+    expect(field["stepId"]).toBeUndefined();
+  }
+
+  const teamsField: MockProps = fields[1]!;
+
+  expect(teamsField["fieldType"]).toBe(FormFieldSchemaType.CustomComponent);
+  expect(teamsField["required"]).toBe(false);
+
+  const onChange: Mock<(value: unknown) => void> =
+    jest.fn<(value: unknown) => void>();
+  const projectId: string = "44444444-4444-4444-8444-444444444444";
+
+  const element: ReactElement = (
+    teamsField["getCustomElement"] as (
+      values: Record<string, unknown>,
+      props: { onChange: (value: unknown) => void },
+    ) => ReactElement
+  )({ project: projectId, teams: [] }, { onChange });
+
+  expect(element.type).toBe(ProjectScopedTeamsPicker);
+
+  const pickerProps: {
+    projectId?: ObjectID | undefined;
+    selectedTeamIds: Array<string>;
+    isMultiSelect?: boolean | undefined;
+    onChange: (teamIds: Array<string>) => void;
+  } = element.props as {
+    projectId?: ObjectID | undefined;
+    selectedTeamIds: Array<string>;
+    isMultiSelect?: boolean | undefined;
+    onChange: (teamIds: Array<string>) => void;
+  };
+
+  // The teams of the project picked above it, several at once.
+  expect(pickerProps.projectId?.toString()).toBe(projectId);
+  expect(pickerProps.selectedTeamIds).toEqual([]);
+  expect(pickerProps.isMultiSelect).not.toBe(false);
+
+  // What the picker reports is what the form holds: the list of team ids.
+  pickerProps.onChange(["55555555-5555-4555-8555-555555555555"]);
+
+  expect(onChange).toHaveBeenCalledWith([
+    "55555555-5555-4555-8555-555555555555",
+  ]);
 };
 
 /*
@@ -910,6 +973,7 @@ describe("the Global SSO provider page", () => {
       ((table["query"] as MockProps)["globalSsoId"] as ObjectID).toString(),
     ).toBe(PROVIDER_ID);
     expect(columnsOf(table["formFields"])).toEqual(["project", "teams"]);
+    expectOnePageAttachForm(table);
     expect(columnsOf(table["columns"])).toEqual([
       "project",
       "teams",
@@ -1014,6 +1078,7 @@ describe("the Global OIDC provider page", () => {
       ((table["query"] as MockProps)["globalOidcId"] as ObjectID).toString(),
     ).toBe(PROVIDER_ID);
     expect(columnsOf(table["formFields"])).toEqual(["project", "teams"]);
+    expectOnePageAttachForm(table);
     expect(columnsOf(table["columns"])).toEqual([
       "project",
       "teams",

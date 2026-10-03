@@ -15,7 +15,6 @@ import ObjectID from "../../Types/ObjectID";
 import AcmeCertificate from "../../Models/DatabaseModels/AcmeCertificate";
 import DomainModel from "../../Models/DatabaseModels/Domain";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
-import AcmeCertificateService from "./AcmeCertificateService";
 import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DashboardCNameRecord } from "../EnvironmentConfig";
@@ -731,74 +730,6 @@ export class Service extends DatabaseService<DashboardDomain> {
   }
 
   /*
-   * The certificate each of these domains has in AcmeCertificate, if any,
-   * looked up a chunk at a time. Where a name has more than one row, the one
-   * that expires last. A row without an expiry is no certificate at all: it
-   * is never due, so nothing would ever replace it if it counted as one.
-   */
-  private async findCertificatesByDomain(
-    domains: Array<string>,
-  ): Promise<Map<string, AcmeCertificate>> {
-    const certificates: Map<string, AcmeCertificate> = new Map<
-      string,
-      AcmeCertificate
-    >();
-
-    const uniqueDomains: Array<string> = Array.from(
-      new Set<string>(
-        domains.filter((domain: string) => {
-          return domain.length > 0;
-        }),
-      ),
-    );
-
-    for (
-      let offset: number = 0;
-      offset < uniqueDomains.length;
-      offset += GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE
-    ) {
-      const chunk: Array<string> = uniqueDomains.slice(
-        offset,
-        offset + GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE,
-      );
-
-      const rows: Array<AcmeCertificate> = await AcmeCertificateService.findBy({
-        query: {
-          domain: QueryHelper.any(chunk),
-        },
-        select: {
-          domain: true,
-          expiresAt: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      for (const row of rows) {
-        if (!row.domain || !row.expiresAt) {
-          continue;
-        }
-
-        const existing: AcmeCertificate | undefined = certificates.get(
-          row.domain,
-        );
-
-        if (
-          !existing ||
-          OneUptimeDate.isAfter(row.expiresAt, existing.expiresAt as Date)
-        ) {
-          certificates.set(row.domain, row);
-        }
-      }
-    }
-
-    return certificates;
-  }
-
-  /*
    * Order the first certificate for domains whose CNAME is verified.
    *
    * Only verified domains: verifyCnameWhoseCnameisNotVerified checks the
@@ -840,7 +771,7 @@ export class Service extends DatabaseService<DashboardDomain> {
           const now: Date = OneUptimeDate.getCurrentDate();
 
           const certificates: Map<string, AcmeCertificate> =
-            await this.findCertificatesByDomain(
+            await GreenlockUtil.findCertificatesByDomain(
               domains.map((domain: DashboardDomain) => {
                 return domain.fullDomain || "";
               }),
@@ -1056,7 +987,7 @@ export class Service extends DatabaseService<DashboardDomain> {
     }
 
     const certificates: Map<string, AcmeCertificate> =
-      await this.findCertificatesByDomain(fullDomains);
+      await GreenlockUtil.findCertificatesByDomain(fullDomains);
 
     const domainsWithoutCertificate: Array<DashboardDomain> = domains.filter(
       (domain: DashboardDomain) => {

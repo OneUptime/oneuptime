@@ -12,7 +12,7 @@ import nodePath from "path";
  * loudly:
  *
  *  - a `t("pages.users.bulkAddToProjectX")` whose key is missing from en.json
- *    renders the raw key as the modal's title, its step names or its button
+ *    renders the raw key as the modal's title, its field names or its button
  *    label;
  *  - a key present in en.json but missing from one of the other sixteen locale
  *    files falls back to English, so a French admin gets an English modal and
@@ -27,7 +27,8 @@ import nodePath from "path";
  *    no way out but a page reload;
  *  - and leaving a stale team id in the picker's form value after the admin
  *    switches project writes a membership whose team belongs to a different
- *    project than its projectId, which no server-side check rejects.
+ *    project than its projectId, which no server-side check rejects (the
+ *    picker puts that project's members team in its place).
  *
  * Source text rather than imports: these files render React and pull in
  * Common/UI, and the wirings they hold are invariants no runtime value
@@ -71,13 +72,19 @@ const bulkAddSource: string = readSource(
 );
 
 /*
- * The picker the modal's team step renders. Read here because the same
- * component also backs the single-user "Add to Project" form and the Global
- * SSO / OIDC attach forms, so the stale-selection guard asserted on below is a
- * four-call-site invariant rather than a detail of this modal.
+ * The picker the modal renders under its project field. Read here because the
+ * same component also backs the single-user "Add to Project" form and the
+ * Global SSO / OIDC attach forms, so the stale-selection guard and the members
+ * team default asserted on below are four-call-site invariants rather than a
+ * detail of this modal.
  */
 const teamsPickerSource: string = readSource(
   "Components/GlobalProvider/ProjectScopedTeamsPicker.tsx",
+);
+
+// Where the picker finds the project's members team, as a master admin.
+const defaultProjectTeamSource: string = readSource(
+  "Utils/DefaultProjectTeam.ts",
 );
 
 const LOCALES_DIR: string = nodePath.join(ADMIN_DASHBOARD_SRC, "Locales");
@@ -497,14 +504,22 @@ describe("Bulk add users to project memberships", () => {
 });
 
 describe("Bulk add users to project team picker", () => {
-  test("a selection that is not a team of this project is dropped", () => {
+  /*
+   * What the picker writes once the chosen project's teams are known is
+   * decided by getTeamIdsAfterTeamsLoad, which Common's
+   * ProjectScopedTeamsPicker.test.tsx drives case by case: a team of another
+   * project is dropped, and with nothing left the project's members team is
+   * picked. What only the source can show is that the picker really asks it,
+   * with the right inputs, at the right time - which is what this block pins.
+   */
+  test("a selection that is not a team of this project is dropped, and the members team picked in its place", () => {
     /*
-     * Switching project in the modal's first step leaves the previous project's
-     * team id in the form's `team` value. The dropdown stops showing it - it
-     * renders `options.filter(...)` against the newly fetched teams - so the
-     * box looks empty, while required-field validation reads the form value and
-     * passes. Nothing downstream catches it: TeamMemberService checks that the
-     * team exists and that the user is not already on it, never that the team
+     * Switching project leaves the previous project's team id in the form's
+     * `team` value. The dropdown stops showing it - it renders
+     * `options.filter(...)` against the newly fetched teams - so the box looks
+     * empty, while required-field validation reads the form value and passes.
+     * Nothing downstream catches it: TeamMemberService checks that the team
+     * exists and that the user is not already on it, never that the team
      * belongs to the project being written. The result is a membership whose
      * teamId is in a different project than its projectId, created here for
      * every user in the selection at once.
@@ -515,57 +530,91 @@ describe("Bulk add users to project team picker", () => {
      */
     const successHandler: string = arrowBodyAfter(teamsPickerSource, ".then(");
 
-    /* The allowed set is the fetch's own result, not some cached list. */
-    expect(successHandler).toMatch(/new Set<string>\(\s*fetchedOptions\.map\(/);
-
-    /* The current selection is filtered against it... */
-    expect(successHandler).toMatch(/props\.selectedTeamIds\.filter\(/);
-    expect(successHandler).toMatch(/availableTeamIds\.has\(teamId\)/);
-
-    /* ...and the survivors are pushed back into the form value. */
-    expect(successHandler).toMatch(/props\.onChange\(stillSelectableTeamIds\)/);
-
     /*
-     * Reported only when something was actually dropped. Calling `onChange`
-     * after every fetch would rewrite the form value on each project load,
-     * which marks a form the admin has not touched as dirty.
+     * The rule is asked with the fetch's own teams, not some cached list,
+     * with the selection as it is when they arrive (the ref, not the value the
+     * request went out with), and with the members team the lookup found.
      */
     expect(successHandler).toMatch(
-      /stillSelectableTeamIds\.length\s*!==\s*props\.selectedTeamIds\.length/,
+      /getTeamIdsAfterTeamsLoad\(\{\s*selectedTeamIds:\s*latestProps\.current\.selectedTeamIds,\s*availableTeamIds:\s*fetchedOptions\.map\(/,
+    );
+    expect(successHandler).toMatch(
+      /defaultTeamId:\s*defaultTeam\?\.id\s*\|\|\s*null,?\s*\}\)/,
     );
 
     /*
-     * The whole statement in one match, because each assertion above is
-     * satisfied by text that never runs. `if (false && stillSelectableTeamIds
-     * .length !== props.selectedTeamIds.length)` still contains the comparison
-     * and still contains the `onChange` call, and disables the guard
-     * completely - as would `===`, or an extra `&& isMultiSelect`. Pinning the
-     * condition as nothing but the length comparison is what makes "a stale
-     * selection is dropped" an assertion about behaviour rather than about
-     * which identifiers appear in the file.
+     * And its answer is written back - only when it has one. The rule answers
+     * null when the form already holds what it should; writing on every fetch
+     * would rewrite the value of a form the admin has not touched.
+     *
+     * The whole statement in one match, because each part alone is satisfied
+     * by text that never runs: `if (false && nextTeamIds)` still contains
+     * the call and disables the guard completely.
      */
     expect(successHandler).toMatch(
-      /\bif \(\s*stillSelectableTeamIds\.length\s*!==\s*props\.selectedTeamIds\.length\s*\)\s*\{\s*props\.onChange\(stillSelectableTeamIds\);\s*\}/,
+      /\bif \(\s*nextTeamIds\s*\)\s*\{\s*latestProps\.current\.onChange\(nextTeamIds\);\s*\}/,
     );
 
     /*
-     * And nothing bails out of the handler before it gets there. A bare
-     * `return;` after `setOptions` leaves the dropdown correctly repopulated
-     * and the stale id still in the form value, which is exactly the bug -
-     * visible nowhere, submits fine.
+     * Nothing bails out of the handler before it gets there. A bare `return;`
+     * after `setOptions` leaves the dropdown correctly repopulated and the
+     * stale id still in the form value, which is exactly the bug - visible
+     * nowhere, submits fine.
      */
-    const setOptionsToClearing: string = successHandler.slice(
+    const setOptionsToWriting: string = successHandler.slice(
       successHandler.indexOf("setOptions(fetchedOptions)"),
-      successHandler.indexOf("props.onChange("),
+      successHandler.indexOf("latestProps.current.onChange("),
     );
 
-    expect(setOptionsToClearing.length).toBeGreaterThan(0);
-    expect(setOptionsToClearing).not.toMatch(/\breturn\s*;/);
+    expect(setOptionsToWriting.length).toBeGreaterThan(0);
+    expect(setOptionsToWriting).not.toMatch(/\breturn\s*;/);
+
+    // The one early return is the cancelled check, before anything is read.
+    expect(successHandler).toMatch(/^\{\s*if \(cancelled\) \{\s*return;\s*\}/);
   });
 
-  test("nothing is dropped while the teams are still unknown", () => {
+  test("the rule drops what the project does not offer before it picks anything", () => {
     /*
-     * The counterpart to the test above, and the reason the clearing sits in
+     * getTeamIdsAfterTeamsLoad, as written: the selection is filtered against
+     * the project's teams, and the members team only fills a selection that
+     * came out empty - never one the admin picked, and never a team the
+     * project does not have.
+     */
+    const rule: string = arrowBodyAfter(
+      teamsPickerSource,
+      "export const getTeamIdsAfterTeamsLoad",
+    );
+
+    expect(rule).toMatch(
+      /const stillSelectableTeamIds: Array<string> = data\.selectedTeamIds\.filter\(\s*\(teamId: string\): boolean => \{\s*return availableTeamIds\.has\(teamId\);\s*\}/,
+    );
+    expect(rule).toMatch(
+      /stillSelectableTeamIds\.length === 0 &&\s*data\.defaultTeamId &&\s*availableTeamIds\.has\(data\.defaultTeamId\)\s*\?\s*\[data\.defaultTeamId\]\s*:\s*stillSelectableTeamIds/,
+    );
+    expect(rule).toMatch(/return isUnchanged \? null : nextTeamIds;/);
+  });
+
+  test("the members team is looked up as a master admin, through the admin API", () => {
+    /*
+     * The same rule as the Dashboard's Invite User, read through AdminModelAPI
+     * (a master admin works from outside every project) and with every team
+     * counting as one the admin may hand on - the server lets a master admin
+     * create a membership in any team.
+     */
+    expect(teamsPickerSource).toMatch(
+      /findProjectDefaultTeam\(\{\s*projectId:\s*props\.projectId\s*\}\)/,
+    );
+    expect(defaultProjectTeamSource).toMatch(
+      /findDefaultInviteTeam\(\{\s*projectId:\s*data\.projectId,\s*modelAPI:\s*AdminModelAPI,\s*canGrantAll:\s*masterAdminCanGrantAll,/,
+    );
+    expect(
+      blockAfter(defaultProjectTeamSource, "masterAdminCanGrantAll"),
+    ).toMatch(/^\{\s*return true;\s*\}$/);
+  });
+
+  test("nothing is written while the teams are still unknown", () => {
+    /*
+     * The counterpart to the test above, and the reason the writing sits in
      * `.then` rather than at the top of the effect or in `.finally`: until the
      * fetch succeeds the picker has no idea which teams the project has, so
      * every selected id looks unavailable. Clearing there would wipe a valid
@@ -579,13 +628,13 @@ describe("Bulk add users to project team picker", () => {
       ".finally(",
     );
 
-    expect(errorHandler).not.toContain("props.onChange");
-    expect(settledHandler).not.toContain("props.onChange");
+    expect(errorHandler).not.toContain("onChange");
+    expect(settledHandler).not.toContain("onChange");
 
     /*
      * Nor before the request goes out - the effect's early return for "no
-     * project chosen yet" runs on the first render of the modal's team step,
-     * before any project has been picked at all.
+     * project chosen yet" runs on the first render of the form, before any
+     * project has been picked at all.
      */
     const effectBody: string = arrowBodyAfter(teamsPickerSource, "useEffect(");
     const beforeFetch: string = effectBody.slice(
@@ -594,14 +643,17 @@ describe("Bulk add users to project team picker", () => {
     );
 
     expect(beforeFetch.length).toBeGreaterThan(0);
-    expect(beforeFetch).not.toContain("props.onChange");
+    expect(beforeFetch).not.toContain("onChange");
 
     /*
-     * Which leaves exactly one `props.onChange` in the whole fetch effect: the
+     * Which leaves exactly one onChange in the whole fetch effect: the
      * success handler's. The other one in this file is the Dropdown's own
-     * onChange prop, which is the admin typing, not the picker clearing.
+     * onChange prop, which is the admin picking, not the picker writing.
      */
-    expect(countOccurrences(effectBody, "props.onChange(")).toBe(1);
+    expect(countOccurrences(effectBody, "onChange(")).toBe(1);
+    expect(countOccurrences(effectBody, "latestProps.current.onChange(")).toBe(
+      1,
+    );
   });
 });
 

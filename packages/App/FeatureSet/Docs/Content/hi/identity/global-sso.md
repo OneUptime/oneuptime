@@ -39,7 +39,7 @@ Global SSO, पूरे instance के "Require SSO for Login" टॉगल �
 
 - **कोई project attached नहीं (default-all / invite-first):** उपयोगकर्ता provider से sign in कर सकते हैं और **किसी भी ऐसे project तक पहुँच सकते हैं जिसके वे पहले से ही member हैं**। नए उपयोगकर्ता स्वतः **नहीं** बनाए जाते — किसी उपयोगकर्ता को पहले किसी project में invite किया जाना चाहिए। इसका उपयोग company-wide SSO के लिए करें जहाँ memberships कहीं और प्रबंधित की जाती हैं।
 
-- **Projects attached (auto-provisioning):** provider खोलें और एक या अधिक projects attach करने के लिए **Attached Projects** table का उपयोग करें, प्रत्येक के लिए default teams के एक set के साथ। जो उपयोगकर्ता sign in करते हैं वे पहले login पर उन projects में **auto-provisioned** हो जाते हैं और default teams में जुड़ जाते हैं। list बनाने के लिए एक बार में एक project + teams जोड़ें; किसी attachment को बदलने के लिए, उसे delete करें और फिर से जोड़ें।
+- **Projects attached (auto-provisioning):** provider खोलें और एक या अधिक projects attach करने के लिए **Attached Projects** table का उपयोग करें, प्रत्येक के लिए default teams के एक set के साथ। जो उपयोगकर्ता sign in करते हैं वे पहले login पर उन projects में **auto-provisioned** हो जाते हैं और default teams में जुड़ जाते हैं। आप जो project attach करते हैं, वह शुरुआत में उसकी members team पर रहता है; अगर नए उपयोगकर्ताओं को अलग access से शुरू करना है तो दूसरी teams चुनें। list बनाने के लिए एक बार में एक project + teams जोड़ें; किसी attachment को बदलने के लिए, उसे delete करें और फिर से जोड़ें।
 
 यदि आप चाहते हैं कि projects attached होने पर भी किसी automatic account creation को रोका जाए, तो provider पर **Disable Sign Up with SSO** enable करें — फिर उपयोगकर्ताओं को sign in करने से पहले invite किया जाना चाहिए।
 

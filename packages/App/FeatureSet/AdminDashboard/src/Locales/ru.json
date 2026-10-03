@@ -129,10 +129,7 @@
       "bulkAddToProject": "Добавить в проект",
       "bulkAddToProjectTitle": "Добавить пользователей в проект",
       "bulkAddToProjectDescription": "Выберите проект и одну из его команд. Все выбранные пользователи ({{userCount}}) будут добавлены в эту команду как ожидающие участники, пока не примут приглашения, — если только вы не примете приглашения за них.",
-      "bulkAddToProjectNext": "Далее",
       "bulkAddToProjectSubmit": "Добавить в проект",
-      "bulkAddToProjectStepProject": "Выберите проект",
-      "bulkAddToProjectStepTeam": "Выберите команду",
       "bulkAddToProjectFieldProject": "Проект",
       "bulkAddToProjectFieldProjectDescription": "Проект, в который вы хотите добавить выбранных пользователей.",
       "bulkAddToProjectFieldProjectPlaceholder": "Выберите проект",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "Участие в командах",
       "teamsCardDescription": "Все команды, в которых состоит этот пользователь, во всех проектах. Удаление строки исключает его только из этой команды.",
       "teamsNoItems": "Этот пользователь не состоит ни в одной команде.",
-      "stepProject": "Выберите проект",
-      "stepTeam": "Выберите команду",
       "fieldProject": "Проект",
       "fieldProjectDescription": "Проект, в который вы хотите добавить этого пользователя.",
       "fieldProjectPlaceholder": "Выберите проект",
@@ -385,7 +380,8 @@
       "inviteUser": "Пригласить пользователя",
       "inviteUserTitle": "Пригласить нового пользователя",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Пригласить"
+      "inviteUserSubmit": "Пригласить",
+      "inviteTeamDescriptionWithDefault": "Команда определяет, что этот человек может делать в проекте. {{teamName}} выбрана заранее; выберите другую команду, чтобы дать другой доступ."
     },
     "projectUserView": {
       "title": "Project User",

@@ -247,11 +247,6 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
   },
 ];
 
-const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
-
-const PROJECT_THEN_TEAMS_REASON: string =
-  "Admin Dashboard: a project, then teams of that project. The teams picker lists the teams of the project picked on the first step (ProjectScopedTeamsPicker), so on one page it would have nothing to offer until a project is picked, and a team left over from another project must never be saved (BulkAddUsersToProjectModal.test). Folding the two onto one page - the project, then its teams under it, with its Members team picked for you - is the admin-add-to-project-members-team task, which takes these entries off this list.";
-
 /*
  * Forms of three rows or fewer that walk steps anyway, and why. Each one was
  * looked at; a form that loses its steps must leave this list (the guard
@@ -269,26 +264,6 @@ export const SHORT_FORMS_WITH_STEPS: Array<ListedForm> = [
     reason:
       "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like every other rule.",
   },
-  ...[
-    [
-      `${ADMIN_DASHBOARD}/Pages/Settings/GlobalOIDC/View.tsx`,
-      "ModelTable: Settings > Global OIDC > Attached Projects",
-    ],
-    [
-      `${ADMIN_DASHBOARD}/Pages/Settings/GlobalSSO/View.tsx`,
-      "ModelTable: Settings > Global SSO > Attached Projects",
-    ],
-    [
-      `${ADMIN_DASHBOARD}/Pages/Users/View/Projects.tsx`,
-      "ModelFormModal: Add User to Project",
-    ],
-    [
-      `${ADMIN_DASHBOARD}/Components/User/BulkAddUsersToProjectModal.tsx`,
-      "BasicForm: Admin > Users > Add to Project",
-    ],
-  ].map(([file, form]: Array<string>): ListedForm => {
-    return { file: file!, form: form!, reason: PROJECT_THEN_TEAMS_REASON };
-  }),
 ];
 
 const VIRTUAL_ROOT: string = "/repo";

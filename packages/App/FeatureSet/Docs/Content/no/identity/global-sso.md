@@ -39,7 +39,7 @@ Hvordan en global leverandør oppfører seg avhenger av om du knytter noen prosj
 
 - **Ingen prosjekter knyttet til (standard-alle / invitasjon-først):** Brukere kan logge inn med leverandøren og nå **ethvert prosjekt de allerede er medlem av**. Nye brukere opprettes **ikke** automatisk — en bruker må først inviteres til et prosjekt. Bruk dette for bedriftsomfattende SSO der medlemskap administreres et annet sted.
 
-- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Attached Projects** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
+- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Attached Projects** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
 
 Hvis du vil forhindre all automatisk kontoopprettelse selv når prosjekter er knyttet til, aktiver **Disable Sign Up with SSO** på leverandøren — brukere må da inviteres før de kan logge inn.
 

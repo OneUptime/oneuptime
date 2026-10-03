@@ -129,10 +129,7 @@
       "bulkAddToProject": "添加到项目",
       "bulkAddToProjectTitle": "将用户添加到项目",
       "bulkAddToProjectDescription": "选择一个项目及其一个团队。除非你代其接受邀请，否则所选的 {{userCount}} 位用户在接受邀请之前，都将以待处理成员的身份加入该团队。",
-      "bulkAddToProjectNext": "下一步",
       "bulkAddToProjectSubmit": "添加到项目",
-      "bulkAddToProjectStepProject": "选择项目",
-      "bulkAddToProjectStepTeam": "选择团队",
       "bulkAddToProjectFieldProject": "项目",
       "bulkAddToProjectFieldProjectDescription": "您要将所选用户添加到的项目。",
       "bulkAddToProjectFieldProjectPlaceholder": "选择项目",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "团队成员身份",
       "teamsCardDescription": "该用户在所有项目中所属的团队。删除某一行只会将其从该团队中移除。",
       "teamsNoItems": "该用户不属于任何团队。",
-      "stepProject": "选择项目",
-      "stepTeam": "选择团队",
       "fieldProject": "项目",
       "fieldProjectDescription": "您要将该用户添加到的项目。",
       "fieldProjectPlaceholder": "选择项目",
@@ -385,7 +380,8 @@
       "inviteUser": "邀请用户",
       "inviteUserTitle": "邀请新用户",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "邀请"
+      "inviteUserSubmit": "邀请",
+      "inviteTeamDescriptionWithDefault": "其所属团队决定了此人在此项目中可以做什么。默认选中 {{teamName}}；如需授予不同的访问权限，请选择其他团队。"
     },
     "projectUserView": {
       "title": "Project User",

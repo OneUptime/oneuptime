@@ -103,6 +103,71 @@ describe("GlobalCache.setString", () => {
   });
 });
 
+describe("GlobalCache.incrementWithExpiry", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue(3),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * INCR and the first EXPIRE in one evaluation: a separate EXPIRE after
+   * the INCR can be lost to a crash in between, leaving a counter that
+   * never expires.
+   */
+  test("adds one and sets the expiry in one atomic EVAL, returning the count", async () => {
+    const count: number = await GlobalCache.incrementWithExpiry("ns", "key", {
+      expiresInSeconds: 1800,
+    });
+
+    expect(count).toBe(3);
+    expect(client.eval).toHaveBeenCalledTimes(1);
+
+    const [script, keyCount, key, ttl] = client.eval.mock.calls[0] as [
+      string,
+      number,
+      string,
+      string,
+    ];
+
+    expect(script).toContain("INCR");
+    expect(script).toContain("EXPIRE");
+    expect(keyCount).toBe(1);
+    expect(key).toBe("ns-key");
+    expect(ttl).toBe("1800");
+    expect(client.expire).not.toHaveBeenCalled();
+  });
+
+  test("throws on a reply that is not a number", async () => {
+    client.eval.mockResolvedValue("not a number");
+
+    await expect(
+      GlobalCache.incrementWithExpiry("ns", "key", { expiresInSeconds: 60 }),
+    ).rejects.toThrow();
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(
+      GlobalCache.incrementWithExpiry("ns", "key", { expiresInSeconds: 60 }),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+});
+
 describe("GlobalCache.deleteKey", () => {
   let client: MockClient;
 
