@@ -1697,25 +1697,38 @@ export default class AnalyticsDatabaseService<
    * "Server Error").
    *
    * Weakening the tiebreaker would reintroduce the skip/repeat paging bug it
-   * was added to fix, so bound the input instead. `min(k)` over the top
-   * `skip + limit` values of the leading sort key `k` is a rank statistic of
-   * k's MULTISET: it does not depend on which of several tied rows the inner
-   * LIMIT happened to keep. Every row that could reach position `skip + limit`
-   * satisfies `k >= min(k)`, and every row tied at the boundary value is
-   * admitted — so the page is exactly the page the unbounded query returns.
-   * That is what makes this a pure cost change: every gate below is a
-   * performance gate, and getting one wrong can only make a query slower,
+   * was added to fix, so bound the input instead: admit only the rows whose
+   * leading sort key `k` holds one of the top `skip + limit` values of `k`
+   * (`k GLOBAL IN (SELECT k ... ORDER BY k DESC LIMIT skip + limit)`). That
+   * set is a function of k's MULTISET, so it does not depend on which of
+   * several tied rows the inner LIMIT happened to keep, and it admits exactly
+   * the rows `k >= min(set)` would: a row ranked above position
+   * `skip + limit` carries one of those values, and every row tied with one
+   * of them is let in. So the page is exactly the page the unbounded query
+   * returns. That is what makes this a pure cost change: every gate below is
+   * a performance gate, and getting one wrong can only make a query slower,
    * never lose or repeat a row.
    *
    * The inner pass reads one narrow key column in physical order and stops at
    * `skip + limit` rows, so it costs far less than the wide outer read it
    * saves.
    *
-   * `min()` is nested over a subquery rather than taken as the N-th value via
-   * `ORDER BY k DESC LIMIT 1 OFFSET n - 1` on purpose: on a final page with
-   * fewer than `skip + limit` matching rows the latter returns no row, the
-   * scalar is NULL, `k >= NULL` is NULL, and the page comes back empty.
-   * `min()` over the available rows degrades to the smallest matching value.
+   * The set, rather than the `k >= min(k)` range it is equivalent to,
+   * because the primary index prunes by it: the outer read skips every
+   * granule whose key range holds none of the values. With sparse matches —
+   * an attribute filter hitting a few rows spread over a long window — the
+   * range spans nearly the whole window and the outer read repeated most of
+   * the inner one; the set touches only the granules those rows sit in. With
+   * no matches the set is empty and the outer read is skipped, where `min()`
+   * over no rows returned the column default (1970) and the outer read
+   * repeated the whole scan. With fewer matches than `skip + limit` the set
+   * holds all of their values, so a short final page is not cut off.
+   *
+   * GLOBAL so the subquery runs once, on the initiator, and ships its result
+   * to the shards, as the scalar subquery this replaced did: a plain IN over
+   * a Distributed table inside a distributed query runs again on every shard
+   * or, under the default `distributed_product_mode = 'deny'`, is refused.
+   * On a table that is not Distributed, GLOBAL IN is a plain IN.
    */
   private toSortKeyBoundaryFilter(
     findBy: FindBy<TBaseModel>,
@@ -1764,9 +1777,9 @@ export default class AnalyticsDatabaseService<
     }
 
     /*
-     * A non-required column is `Nullable(...)` in the DDL, and `k >= NULL`
-     * is NULL — the predicate would DROP those rows rather than just
-     * narrowing the scan. Fail safe to today's behavior.
+     * A non-required column is `Nullable(...)` in the DDL, and
+     * `NULL IN (...)` is NULL — the predicate would DROP those rows rather
+     * than just narrowing the scan. Fail safe to today's behavior.
      */
     const leadingSortColumn: AnalyticsTableColumn | null =
       this.model.getTableColumn(leadingSortKey);
@@ -1814,14 +1827,8 @@ export default class AnalyticsDatabaseService<
     const boundaryWhereStatement: Statement =
       this.statementGenerator.toWhereStatement(findBy.query);
 
-    const boundaryStatement: Statement = SQL` AND ${leadingSortKey} `;
+    const boundaryStatement: Statement = SQL` AND ${leadingSortKey} GLOBAL IN (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `;
 
-    boundaryStatement.append(isDescending ? SQL`>=` : SQL`<=`);
-    boundaryStatement.append(
-      isDescending
-        ? SQL` (SELECT min(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `
-        : SQL` (SELECT max(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `,
-    );
     boundaryStatement.append(boundaryWhereStatement);
     boundaryStatement.append(this.getRetentionReadFilter());
     boundaryStatement.append(SQL` ORDER BY ${leadingSortKey} `);
@@ -1830,7 +1837,7 @@ export default class AnalyticsDatabaseService<
       SQL` LIMIT ${{
         value: boundaryRowCount,
         type: TableColumnType.Number,
-      }}))`,
+      }})`,
     );
 
     return boundaryStatement;
