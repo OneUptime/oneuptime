@@ -2213,9 +2213,22 @@ describe("queues.ejs", () => {
       "packages/App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueBrokerHealthSection.tsx",
     );
 
-    expect(section).toContain('BROKER_HEALTH_TITLE: string = "Broker health"');
+    /*
+     * The labels are translation keys, and a key is its English text:
+     * translationKey() returns its argument, so English shows exactly
+     * these words.
+     */
+    expect(section).toMatch(
+      /BROKER_HEALTH_TITLE: string = translationKey\("Broker health"\);/,
+    );
+    expect(section).toMatch(
+      /BROKER_HEALTH_CREATE_MONITOR_LABEL: string =\s*translationKey\("Create monitor"\);/,
+    );
     expect(section).toContain(
-      'BROKER_HEALTH_CREATE_MONITOR_LABEL: string = "Create monitor"',
+      "{translator.translateText(BROKER_HEALTH_TITLE)}",
+    );
+    expect(section).toMatch(
+      /translator\.translateText\(\s*BROKER_HEALTH_CREATE_MONITOR_LABEL,?\s*\)/,
     );
     expect(html).toContain(">Broker health</span>");
     expect(html).toContain(">Create monitor</div>");
@@ -2240,21 +2253,32 @@ describe("queues.ejs", () => {
       expect(overview).toContain(`sublabel: "${sublabel}"`);
     }
 
-    // The Errors tile counts failed spans, out of all of the queue's spans.
+    /*
+     * The Errors tile counts failed spans, out of all of the queue's spans:
+     * English reads "{{rate}} of {{count}} spans", the count being the
+     * queue's total.
+     */
     expect(html).toContain('data-queue-tile="Errors"');
     expect(overview).toContain('title: "Errors"');
-    expect(overview).toContain(" of ${formatMessageQueueCount(m.total)} spans");
+    expect(overview).toContain('other: "{{rate}} of {{count}} spans"');
+    expect(overview).toContain("count: formatMessageQueueCount(m.total)");
     expect(html).toMatch(/>[\d.]+% of [\d.]+M spans</);
 
-    for (const field of [
-      'title: "Producers"',
-      'title: "Consumers"',
-      'countHeader: "Published"',
-      'countHeader: "Consumed"',
-      'durationHeader: "p95 publish"',
-      'durationHeader: "p95 processing"',
-    ]) {
-      expect(servicesCard).toContain(field);
+    expect(servicesCard).toContain('title: "Producers"');
+    expect(servicesCard).toContain('title: "Consumers"');
+    // Translation keys, which are their English text.
+    for (const [field, label] of [
+      ["countHeader", "Published"],
+      ["countHeader", "Consumed"],
+      ["durationHeader", "p95 publish"],
+      ["durationHeader", "p95 processing"],
+    ] as Array<[string, string]>) {
+      expect(servicesCard).toContain(`${field}: translationKey("${label}")`);
+    }
+    for (const field of ["countHeader", "durationHeader"]) {
+      expect(servicesCard).toContain(
+        `{translator.translateText(copy.${field})}`,
+      );
     }
 
     for (const header of [
