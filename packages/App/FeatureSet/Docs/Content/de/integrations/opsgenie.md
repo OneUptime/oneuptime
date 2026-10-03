@@ -21,7 +21,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Schritt 2 — Den „Alarm erstellen"-Workflow erstellen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Opsgenie`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Opsgenie`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
 

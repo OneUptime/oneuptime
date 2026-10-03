@@ -22,7 +22,7 @@ Die Speicherung in einer Variablen ermöglicht es Ihnen, sie in mehreren Workflo
 
 ## Schritt 3 — Den Workflow erstellen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Discord`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Discord`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie eine **Discord**-Komponente verbunden mit dem Auslöser hinzu:
    - **Webhook-URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (oder direkt einfügen).
