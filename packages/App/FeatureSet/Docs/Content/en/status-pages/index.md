@@ -12,7 +12,7 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
 - **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
-- **Three ways to make it private.** Private users, a master password, or SAML SSO / OIDC — plus an IP whitelist.
+- **Who can see it is one choice.** Anyone with the link, only people who sign in (private users, SAML SSO or OIDC), or anyone with the password — on the page's **Access** screen, with an optional IP allowlist under **Advanced**.
 - **Subscribers get told automatically.** Email, SMS, Slack, Microsoft Teams and webhook subscribers can all follow a page, each channel behind its own toggle.
 
 ## Key terms
@@ -55,7 +55,7 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers.                                                                                          |
 | **Branding**          | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**.         |
-| **Security**          | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**.                                                                   |
+| **Security**          | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**.                                                             |
 | **AI**                | **MCP**.                                                                                                                                       |
 | **Developer**         | **Terraform**, **API**, **AI Assistants** — the page as code.                                                                                  |
 | **Advanced**          | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**.                            |
@@ -128,29 +128,33 @@ Behind the scenes, every public route has a preview twin under `/status-page/{st
 
 ## Restricting who can see the page
 
-Not every status page is for the public. All the controls sit under the **Security** section.
+Not every status page is for the public. Who can see a page is one choice, the first card on **Status Pages → your page → Security → Access**, **Who can see this status page**:
+
+- **Anyone with the link** — the page is public. Every new status page starts here.
+- **Only people who sign in** — visitors land on `/login` and sign in as a private user, or with your SSO or OIDC provider (see below). Under the choice, the card lists the sign-in set up for the page — how many private users it has, and whether SSO and OIDC are on, each linking to its screen — and, while it is the choice, says so when nobody can sign in yet.
+- **Anyone with the password** — visitors land on `/master-password` and unlock the page with one password you share with them. Nobody needs an account. Picking it asks for the password in the same dialog when the page has none; when it has one, you can keep it or type a new one. Afterwards **Change Password** under the choice replaces it. The password is stored as a hash and can't be shown again, and people who entered the old one can keep viewing the page for up to 7 days.
+
+Picking a choice asks you to confirm, saying what changes for visitors, and saves at once. There is no Edit button.
+
+**What it stores.** The choice is three columns, which the API and Terraform read and write as before: `isPublicStatusPage`, `enableMasterPassword` and `masterPassword`. Visitors are asked for the password only on a page that is not public, with `enableMasterPassword` on and a password set; a private page with the switch on but no password is a sign-in page. Picking **Anyone with the link** also turns `enableMasterPassword` off, since a public page never asks for it. The **Access** screen writes only the columns a choice changes.
+
+**Plans.** On OneUptime Cloud, making a page private, or public again, needs the **Growth** plan: on a lower plan those choices show the plan they need and can't be picked. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
 
 ### Private users
 
-Turn **Is Visible to Public** off on **Status Pages → your page → Security → Authentication Settings** (the `isPublicStatusPage` column). Visitors then land on `/login` and have to sign in.
-
 Add the people who may sign in on **Status Pages → your page → Security → Private Users**. There's an **Add in Bulk** action — paste a list of email addresses and each one gets an invitation email. Private users have their own forgot-password and reset-password flow, separate from your OneUptime project accounts.
 
-### Master password
-
-**Authentication Settings** also has a **Master Password** card with a **Require Master Password** toggle and the password itself. Visitors then hit `/master-password` and unlock the page with a single shared secret.
-
-**Master password and private users don't stack.** While the master password is on, private-user authentication is disabled, and the **Private Users** screen shows a banner telling you so.
+**Private users and the password don't stack.** While **Anyone with the password** is the choice, private users can't sign in — they enter the password too — and the **Private Users** screen says so, with a link back to **Access**.
 
 ### SSO and OIDC
 
 For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **Advanced**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **Advanced**. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
-An **SSO Settings** card exposes **Force SSO for Login** (`requireSsoForLogin`, off by default). Test your SSO configuration before you turn it on — if it doesn't work you will lock yourself out of the status page.
+Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Test SSO with the link on that screen before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice.
 
-### IP whitelist
+### IP allowlist
 
-**Authentication Settings** carries an **IP Whitelist** card as well, backed by the `ipWhitelist` column, for pages that should only answer from known networks.
+Under **Advanced** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. The folded **Advanced** section says **Configured** while the list is in force. On OneUptime Cloud, changing it needs the **Scale** plan.
 
 ## The embeddable badge and the RSS feed
 

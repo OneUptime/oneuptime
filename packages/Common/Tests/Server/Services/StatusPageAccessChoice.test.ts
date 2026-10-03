@@ -23,7 +23,9 @@ import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticated
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import { MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../../Types/StatusPage/MasterPassword";
 import {
   getStatusPageAccess,
@@ -108,31 +110,59 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
 const START_STATES: Array<[string, StatusPageAccessState]> = [
   [
     "a new, public page",
-    { isPublicStatusPage: true, enableMasterPassword: false, hasMasterPassword: false },
+    {
+      isPublicStatusPage: true,
+      enableMasterPassword: false,
+      hasMasterPassword: false,
+    },
   ],
   [
     "a public page with a password switched on and set",
-    { isPublicStatusPage: true, enableMasterPassword: true, hasMasterPassword: true },
+    {
+      isPublicStatusPage: true,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    },
   ],
   [
     "a public page with the switch on and no password",
-    { isPublicStatusPage: true, enableMasterPassword: true, hasMasterPassword: false },
+    {
+      isPublicStatusPage: true,
+      enableMasterPassword: true,
+      hasMasterPassword: false,
+    },
   ],
   [
     "a sign-in page",
-    { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: false },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: false,
+      hasMasterPassword: false,
+    },
   ],
   [
     "a sign-in page with a password set but switched off",
-    { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: true },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: false,
+      hasMasterPassword: true,
+    },
   ],
   [
     "a private page with the switch on and no password",
-    { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: false },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: true,
+      hasMasterPassword: false,
+    },
   ],
   [
     "a password page",
-    { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: true },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    },
   ],
 ];
 
@@ -449,9 +479,9 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it cha
          * would refuse: the plan pill and a locked choice, instead of a
          * dialog whose save fails.
          */
-        (
-          ProjectUtil.getCurrentPlan as unknown as jest.Mock
-        ).mockReturnValue(plan);
+        (ProjectUtil.getCurrentPlan as unknown as jest.Mock).mockReturnValue(
+          plan,
+        );
 
         const planNeeded: PlanType | null = getPlanNeededForAccess({
           from,

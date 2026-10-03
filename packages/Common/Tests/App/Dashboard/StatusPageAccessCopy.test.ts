@@ -188,7 +188,10 @@ describe("what a move can write", () => {
 
   test("the dialog requires a password only when the page has none", () => {
     expect(
-      isPasswordRequiredInDialog({ from: PUBLIC, to: StatusPageAccess.Password }),
+      isPasswordRequiredInDialog({
+        from: PUBLIC,
+        to: StatusPageAccess.Password,
+      }),
     ).toBe(true);
     expect(
       isPasswordRequiredInDialog({
@@ -328,9 +331,9 @@ describe("the IP allowlist, read as the server reads it", () => {
   });
 
   test("entries are its lines, trimmed, blank ones left out", () => {
-    expect(getIpAllowlistEntries(" 203.0.113.7 \r\n\n10.0.0.0/8\n  \n")).toEqual(
-      ["203.0.113.7", "10.0.0.0/8"],
-    );
+    expect(
+      getIpAllowlistEntries(" 203.0.113.7 \r\n\n10.0.0.0/8\n  \n"),
+    ).toEqual(["203.0.113.7", "10.0.0.0/8"]);
     expect(getIpAllowlistEntries(null)).toEqual([]);
   });
 
@@ -375,12 +378,12 @@ describe("the IP allowlist, read as the server reads it", () => {
 
   test("a valid range lets in the addresses in it, as the server does", () => {
     expect(isIpAllowlistEntryValid("10.0.0.0/8")).toBe(true);
-    expect(IP.isInWhitelist({ ip: "10.20.30.40", whitelist: ["10.0.0.0/8"] })).toBe(
-      true,
-    );
-    expect(IP.isInWhitelist({ ip: "11.0.0.1", whitelist: ["10.0.0.0/8"] })).toBe(
-      false,
-    );
+    expect(
+      IP.isInWhitelist({ ip: "10.20.30.40", whitelist: ["10.0.0.0/8"] }),
+    ).toBe(true);
+    expect(
+      IP.isInWhitelist({ ip: "11.0.0.1", whitelist: ["10.0.0.0/8"] }),
+    ).toBe(false);
   });
 
   test("an empty list saves: every address may open the page", () => {
@@ -389,7 +392,9 @@ describe("the IP allowlist, read as the server reads it", () => {
   });
 
   test("a list of readable entries saves", () => {
-    expect(getIpAllowlistProblem("203.0.113.7\n10.0.0.0/8\n2001:db8::1\n")).toBeNull();
+    expect(
+      getIpAllowlistProblem("203.0.113.7\n10.0.0.0/8\n2001:db8::1\n"),
+    ).toBeNull();
   });
 
   test("a list of blank lines does not: it would let nobody in", () => {

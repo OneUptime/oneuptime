@@ -212,7 +212,9 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
     expect(code).toContain(
       'import StatusPageRequireSsoCard from "../../../Components/StatusPage/StatusPageRequireSsoCard";',
     );
-    expect(code).toContain("<StatusPageRequireSsoCard statusPageId={modelId} />");
+    expect(code).toContain(
+      "<StatusPageRequireSsoCard statusPageId={modelId} />",
+    );
     expect(countOf(code, "isEditable={true}")).toBe(1);
     expect(code).not.toContain("CardModelDetail");
     expect(code).not.toContain("requireSsoForLogin");

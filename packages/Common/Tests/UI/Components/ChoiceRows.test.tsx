@@ -51,9 +51,10 @@ afterEach(() => {
   cleanup();
 });
 
-function renderRows(
-  props: Partial<ComponentProps<Who>> = {},
-): { onPick: MockFunction; rerender: (element: ReactElement) => void } {
+function renderRows(props: Partial<ComponentProps<Who>> = {}): {
+  onPick: MockFunction;
+  rerender: (element: ReactElement) => void;
+} {
   const onPick: MockFunction = getJestMockFunction();
 
   const element: ReactElement = (
@@ -228,7 +229,9 @@ describe("ChoiceRows", () => {
 
     expect(onPick).not.toHaveBeenCalled();
     // Locked for a moment, not for a reason worth a sentence.
-    expect(screen.queryByTestId("choices-locked-reason")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("choices-locked-reason"),
+    ).not.toBeInTheDocument();
   });
 
   test("someone who may not change it sees every choice locked, with why", () => {

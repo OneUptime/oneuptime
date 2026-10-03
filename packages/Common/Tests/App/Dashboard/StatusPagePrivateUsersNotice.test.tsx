@@ -188,19 +188,35 @@ describe("the Private Users notice", () => {
   test.each([
     [
       "a public page (the password does nothing there)",
-      { isPublicStatusPage: true, enableMasterPassword: true, hasMasterPassword: true },
+      {
+        isPublicStatusPage: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+      },
     ],
     [
       "a private page with the switch on but no password set (private users sign in)",
-      { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: false },
+      {
+        isPublicStatusPage: false,
+        enableMasterPassword: true,
+        hasMasterPassword: false,
+      },
     ],
     [
       "a private page with a password set but switched off",
-      { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: true },
+      {
+        isPublicStatusPage: false,
+        enableMasterPassword: false,
+        hasMasterPassword: true,
+      },
     ],
     [
       "a sign-in page",
-      { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: false },
+      {
+        isPublicStatusPage: false,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+      },
     ],
   ])("is not shown on %s", async (_label: string, page: Stored) => {
     stored = page;

@@ -301,9 +301,9 @@ async function cancelDialog(): Promise<void> {
 function passwordInput(): HTMLInputElement {
   const input: HTMLInputElement | null = within(
     screen.getByTestId("modal"),
-  ).getByPlaceholderText(StatusPageAccessCopy.passwordPlaceholder) as
-    | HTMLInputElement
-    | null;
+  ).getByPlaceholderText(
+    StatusPageAccessCopy.passwordPlaceholder,
+  ) as HTMLInputElement | null;
 
   if (!input) {
     throw new Error("No password box in the dialog.");
@@ -353,7 +353,9 @@ describe("what the card shows", () => {
   test("the card's title and its three choices, in order", async () => {
     await renderCard();
 
-    expect(screen.getByText(StatusPageAccessCopy.cardTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(StatusPageAccessCopy.cardTitle),
+    ).toBeInTheDocument();
 
     const group: HTMLElement = screen.getByRole("radiogroup", {
       name: StatusPageAccessCopy.cardTitle,
@@ -431,7 +433,9 @@ describe("what the card shows", () => {
     stored = { ...SIGN_IN_PAGE };
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Refresh|Try again/ }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /Refresh|Try again/ }),
+      );
     });
     await flush();
 
@@ -469,7 +473,9 @@ describe("moving to another choice", () => {
     expect(checkedChoices()).toEqual([StatusPageAccess.SignIn]);
     expect(choice(StatusPageAccess.Anyone)).toBeEnabled();
     expect(
-      screen.getByTestId(`${getAccessChoiceTestId(StatusPageAccess.SignIn)}-status`),
+      screen.getByTestId(
+        `${getAccessChoiceTestId(StatusPageAccess.SignIn)}-status`,
+      ),
     ).toHaveTextContent("Saved");
   });
 
@@ -530,9 +536,7 @@ describe("moving to another choice", () => {
     expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
       ACCESS_CONFIRMATION_COPY[StatusPageAccess.Password].title,
     );
-    expect(dialog).toHaveTextContent(
-      StatusPageAccessCopy.passwordFieldTitle,
-    );
+    expect(dialog).toHaveTextContent(StatusPageAccessCopy.passwordFieldTitle);
     expect(dialog).not.toHaveTextContent(
       StatusPageAccessCopy.keepPasswordDescription,
     );
@@ -572,7 +576,9 @@ describe("moving to another choice", () => {
 
     const dialog: HTMLElement = screen.getByTestId("modal");
 
-    expect(dialog).toHaveTextContent(StatusPageAccessCopy.newPasswordFieldTitle);
+    expect(dialog).toHaveTextContent(
+      StatusPageAccessCopy.newPasswordFieldTitle,
+    );
     expect(dialog).toHaveTextContent(
       StatusPageAccessCopy.keepPasswordDescription,
     );
@@ -619,7 +625,9 @@ describe("moving to another choice", () => {
   });
 
   test("a refused save keeps the dialog open with the server's reason, and saves nothing", async () => {
-    refusal = new Error("Please upgrade your plan to Growth to access this feature");
+    refusal = new Error(
+      "Please upgrade your plan to Growth to access this feature",
+    );
 
     await renderCard();
     await pick(StatusPageAccess.SignIn);
@@ -637,7 +645,9 @@ describe("moving to another choice", () => {
   });
 
   test("a refused password move keeps the page as it was", async () => {
-    refusal = new Error("You do not have permission to update this status page.");
+    refusal = new Error(
+      "You do not have permission to update this status page.",
+    );
 
     await renderCard();
     await pick(StatusPageAccess.Password);
@@ -821,7 +831,9 @@ describe("permissions", () => {
 
     expect(checkedChoices()).toEqual([StatusPageAccess.Password]);
     expect(
-      screen.getByTestId(`${STATUS_PAGE_ACCESS_CARD_TEST_ID}-choices-locked-reason`),
+      screen.getByTestId(
+        `${STATUS_PAGE_ACCESS_CARD_TEST_ID}-choices-locked-reason`,
+      ),
     ).toHaveTextContent("You need the Edit Status Page permission.");
     expect(
       screen.getByTestId(STATUS_PAGE_ACCESS_CHANGE_PASSWORD_TEST_ID),
@@ -888,11 +900,13 @@ describe("under Only people who sign in", () => {
 
     const queries: Array<[string, JSONObject]> = countMock.mock.calls.map(
       (call: Array<unknown>): [string, JSONObject] => {
-        const request: { modelType: { new (): { tableName?: string } }; query: JSONObject } =
-          call[0] as {
-            modelType: { new (): { tableName?: string } };
-            query: JSONObject;
-          };
+        const request: {
+          modelType: { new (): { tableName?: string } };
+          query: JSONObject;
+        } = call[0] as {
+          modelType: { new (): { tableName?: string } };
+          query: JSONObject;
+        };
 
         return [
           new request.modelType().tableName || "",
@@ -905,7 +919,10 @@ describe("under Only people who sign in", () => {
     );
 
     expect(queries).toEqual([
-      [new StatusPagePrivateUser().tableName!, { statusPageId: STATUS_PAGE_ID }],
+      [
+        new StatusPagePrivateUser().tableName!,
+        { statusPageId: STATUS_PAGE_ID },
+      ],
       [
         new StatusPageSSO().tableName!,
         { statusPageId: STATUS_PAGE_ID, isEnabled: true },
@@ -981,9 +998,9 @@ describe("under Only people who sign in", () => {
 
     await renderCard();
 
-    const warning: HTMLElement = within(row(StatusPageAccess.SignIn)).getByTestId(
-      STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID,
-    );
+    const warning: HTMLElement = within(
+      row(StatusPageAccess.SignIn),
+    ).getByTestId(STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID);
 
     expect(warning).toHaveTextContent(
       `Nobody can sign in yet. ${StatusPageAccessCopy.addPrivateUsers}`,
@@ -1012,7 +1029,9 @@ describe("under Only people who sign in", () => {
       "Nobody can sign in: SSO is required, and no SSO or OIDC provider is on.",
     );
     expect(
-      within(warning).getByRole("link", { name: StatusPageAccessCopy.setUpSso }),
+      within(warning).getByRole("link", {
+        name: StatusPageAccessCopy.setUpSso,
+      }),
     ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
@@ -1048,7 +1067,9 @@ describe("under Only people who sign in", () => {
     await pick(StatusPageAccess.SignIn);
 
     expect(
-      screen.getByTestId(`${STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID}-confirm`),
+      screen.getByTestId(
+        `${STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID}-confirm`,
+      ),
     ).toHaveTextContent(StatusPageAccessCopy.confirmNobodyCanSignIn);
 
     cleanup();
@@ -1059,7 +1080,9 @@ describe("under Only people who sign in", () => {
     await pick(StatusPageAccess.SignIn);
 
     expect(
-      screen.queryByTestId(`${STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID}-confirm`),
+      screen.queryByTestId(
+        `${STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID}-confirm`,
+      ),
     ).not.toBeInTheDocument();
   });
 });

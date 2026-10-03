@@ -71,27 +71,51 @@ type Row = [string, StatusPageAccessState];
 const STATES: Array<Row> = [
   [
     "public",
-    { isPublicStatusPage: true, enableMasterPassword: false, hasMasterPassword: false },
+    {
+      isPublicStatusPage: true,
+      enableMasterPassword: false,
+      hasMasterPassword: false,
+    },
   ],
   [
     "public, with a password switched on and set",
-    { isPublicStatusPage: true, enableMasterPassword: true, hasMasterPassword: true },
+    {
+      isPublicStatusPage: true,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    },
   ],
   [
     "private, signing in",
-    { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: false },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: false,
+      hasMasterPassword: false,
+    },
   ],
   [
     "private, a password set but switched off",
-    { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: true },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: false,
+      hasMasterPassword: true,
+    },
   ],
   [
     "private, the switch on and no password",
-    { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: false },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: true,
+      hasMasterPassword: false,
+    },
   ],
   [
     "private, the switch on and a password set",
-    { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: true },
+    {
+      isPublicStatusPage: false,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    },
   ],
 ];
 
@@ -175,7 +199,8 @@ describe("StatusPageAPI master-page: whether the page asks for the master passwo
       Response.sendJsonObjectResponse as jest.Mock
     ).mock.calls[0] as Array<unknown>;
 
-    const findCall: Array<unknown> = findOneById.mock.calls[0] as Array<unknown>;
+    const findCall: Array<unknown> = findOneById.mock
+      .calls[0] as Array<unknown>;
 
     return {
       payload: responseCall[2] as JSONObject,

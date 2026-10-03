@@ -128,9 +128,11 @@ describe("who can see a status page, read off its columns", () => {
     }
   });
 
-  test.each(ALL_STATES.map((state: StatusPageAccessState) => {
-    return [describeState(state), state];
-  }))(
+  test.each(
+    ALL_STATES.map((state: StatusPageAccessState) => {
+      return [describeState(state), state];
+    }),
+  )(
     "%s: the password is asked for exactly when the choice is the password",
     (_label: string, state: StatusPageAccessState) => {
       expect(isStatusPageMasterPasswordRequired(state)).toBe(
@@ -270,7 +272,10 @@ describe("moving a page to a choice", () => {
 
     expect(getStatusPageAccess(stale)).toBe(StatusPageAccess.SignIn);
     expect(
-      getStatusPageAccessChanges({ from: stale, to: StatusPageAccess.Password }),
+      getStatusPageAccessChanges({
+        from: stale,
+        to: StatusPageAccess.Password,
+      }),
     ).toEqual({});
     expect(
       isStatusPagePasswordNeededFor({
@@ -296,9 +301,11 @@ describe("moving a page to a choice", () => {
     }
   });
 
-  describe.each(ALL_STATES.map((state: StatusPageAccessState) => {
-    return [describeState(state), state];
-  }))("from %s", (_label: string, from: StatusPageAccessState) => {
+  describe.each(
+    ALL_STATES.map((state: StatusPageAccessState) => {
+      return [describeState(state), state];
+    }),
+  )("from %s", (_label: string, from: StatusPageAccessState) => {
     test.each(STATUS_PAGE_ACCESS_CHOICES)(
       "to %s: writes only what changes, and the server then enforces the choice made",
       (to: StatusPageAccess) => {

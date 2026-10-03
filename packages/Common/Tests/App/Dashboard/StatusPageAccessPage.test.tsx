@@ -432,7 +432,9 @@ describe("the IP allowlist card", () => {
       );
       cleanup();
       await renderPage();
-      expect(shown("")).toHaveTextContent(StatusPageAccessCopy.ipAllowlistEmpty);
+      expect(shown("")).toHaveTextContent(
+        StatusPageAccessCopy.ipAllowlistEmpty,
+      );
     });
 
     test("a list of blank lines says no address may", async () => {

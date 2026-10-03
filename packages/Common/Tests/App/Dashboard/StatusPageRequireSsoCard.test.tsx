@@ -131,12 +131,16 @@ describe("Require SSO for Login, on a status page", () => {
   test("is the SSO Settings card's one switch, reading the status page's own column", async () => {
     await renderCard();
 
-    expect(screen.getByText(StatusPageRequireSsoCopy.cardTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(StatusPageRequireSsoCopy.cardTitle),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(StatusPageRequireSsoCopy.cardDescription),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("switch", { name: StatusPageRequireSsoCopy.switchTitle }),
+      screen.getByRole("switch", {
+        name: StatusPageRequireSsoCopy.switchTitle,
+      }),
     ).toBe(theSwitch());
     expect(theSwitch()).toHaveAttribute("aria-checked", "false");
 
@@ -176,7 +180,9 @@ describe("Require SSO for Login, on a status page", () => {
       StatusPageRequireSsoCopy.confirmDescription,
     );
 
-    const submit: HTMLElement = screen.getByTestId("modal-footer-submit-button");
+    const submit: HTMLElement = screen.getByTestId(
+      "modal-footer-submit-button",
+    );
 
     expect(submit).toHaveTextContent(StatusPageRequireSsoCopy.confirmButton);
     expect(submit.className).toMatch(/red/);
