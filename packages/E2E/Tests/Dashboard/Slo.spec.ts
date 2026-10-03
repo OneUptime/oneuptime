@@ -1079,15 +1079,16 @@ test.describe("SLOs", () => {
       )
       .toEqual(["Basic Info", "Match Criteria"]);
 
-    // Step 1 - Basic Info. A rule is enabled by default.
+    /*
+     * Step 1 - Basic Info. A rule starts enabled, so the create form does not
+     * ask: the Enabled switch is on the rule's edit form only. The row below
+     * says Enabled once it is saved.
+     */
     await expect(currentStep).toContainText("Basic Info");
     await form
       .getByPlaceholder("Every production API monitor")
       .fill(ctx.monitorRuleName);
-    await expect(form.getByRole("switch")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(form.getByRole("switch")).toHaveCount(0);
     await submitButton.click();
 
     /*

@@ -425,6 +425,8 @@ The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pa
 
 Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, Auto Remediation, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
 
+**A new rule starts on.** Creating a rule does not ask whether it should be enabled: it starts enabled, exactly as one created through the API or Terraform does, and every other switch on the form starts the way the API would store it — **Notify Owners** on an owner rule is on, for example. To pause a rule without deleting it, switch **Enabled** off on its edit form; the list shows a green **Enabled** or red **Disabled** pill for each rule. Grouping rules are the exception: their create form shows the **Enabled** switch, already on.
+
 ## Incident grouping rules
 
 **Incidents → Rules → Grouping Rules** (`/dashboard/{projectId}/incidents/settings/grouping-rules`) puts related incidents into one episode. When a database goes down and 20 monitors open incidents within five minutes, a rule can put all 20 into one episode that your team acknowledges and resolves together. **Alerts → Rules → Grouping Rules** does the same for alerts.
@@ -453,7 +455,7 @@ The list's **Grouping** column says what each rule does — "One episode per mon
 
 The create form has three steps:
 
-- **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident), **Description**, and an **Enabled** toggle. The list renders a green **Enabled** or red **Disabled** pill per rule.
+- **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident) and **Description**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
 - **Match Criteria** — the rule's **Conditions**. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
 - **On-Call Policies** — the policies this rule executes.
 

@@ -228,6 +228,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: "Enabled",
           stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
         },
         {
