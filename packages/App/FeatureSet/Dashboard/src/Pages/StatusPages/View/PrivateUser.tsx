@@ -31,14 +31,29 @@ import React, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import {
+  getStatusPageAccess,
+  StatusPageAccess,
+} from "Common/Types/StatusPage/StatusPageAccess";
+import StatusPageAccessCopy, {
+  getStatusPageAccessState,
+  PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID,
+} from "../../../Components/StatusPage/StatusPageAccessCopy";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const [isMasterPasswordEnabled, setIsMasterPasswordEnabled] =
-    useState<boolean>(false);
+  /*
+   * Whether visitors enter the master password instead of signing in: the
+   * server then lets no private user sign in, so the page says so, with the
+   * way to Access, where who can see the page is chosen.
+   */
+  const [isPasswordRequired, setIsPasswordRequired] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
@@ -171,11 +186,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           modelType: StatusPage,
           id: modelId,
           select: {
+            isPublicStatusPage: true,
             enableMasterPassword: true,
+            masterPassword: true,
           },
         });
 
-        setIsMasterPasswordEnabled(Boolean(statusPage?.enableMasterPassword));
+        setIsPasswordRequired(
+          Boolean(
+            statusPage &&
+              getStatusPageAccess(getStatusPageAccessState(statusPage)) ===
+                StatusPageAccess.Password,
+          ),
+        );
         setFetchError(null);
       } catch (error) {
         const newErrorMessage: string =
@@ -194,11 +217,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       {fetchError && (
         <Alert className="mb-5" type={AlertType.DANGER} title={fetchError} />
       )}
-      {isMasterPasswordEnabled && (
+      {isPasswordRequired && (
         <Alert
           className="mb-5"
           type={AlertType.INFO}
-          title="Master password is enabled for this status page. Private users authentication is disabled while the master password is active."
+          title={StatusPageAccessCopy.privateUsersPasswordNotice}
+          textOnRight={StatusPageAccessCopy.privateUsersPasswordNoticeAction}
+          dataTestId={PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID}
+          onClick={() => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+                ] as Route,
+                { modelId },
+              ),
+            );
+          }}
         />
       )}
       <ModelTable<StatusPagePrivateUser>

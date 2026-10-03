@@ -2686,12 +2686,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getStatusPagesBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/status-pages/:id/authentication-settings",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Authentication Settings",
-    ],
+    titles: ["Project", "Status Pages", "View Status Page", "Access"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",

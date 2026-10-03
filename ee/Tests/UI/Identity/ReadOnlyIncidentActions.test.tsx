@@ -44,8 +44,9 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  *
  * The pages' own requests go through API.fetch, and only one to the license
  * route counts as asking for the license (mockLicenseFetch). The others -
- * the switch reading its project, Settings > OIDC looking up the members
- * team its new providers start on - get canned answers (mockServerFetch).
+ * the switches reading their project or status page, Settings > OIDC
+ * looking up the members team its new providers start on - get canned
+ * answers (mockServerFetch).
  */
 
 let billingEnabledForTest: boolean = false;
@@ -246,7 +247,12 @@ import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import RequireSsoForLoginSwitchCopy, {
   REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID,
 } from "@oneuptime/dashboard/Components/Project/RequireSsoForLoginSwitchCopy";
+import {
+  STATUS_PAGE_REQUIRE_SSO_SWITCH_TEST_ID,
+  StatusPageRequireSsoCopy,
+} from "@oneuptime/dashboard/Components/StatusPage/StatusPageAccessCopy";
 import Project from "Common/Models/DatabaseModels/Project";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -317,16 +323,24 @@ const SCIM_CASES: Array<ScimCase> = [
   },
 ];
 
+/*
+ * A page's "Require SSO for Login" switch, which saves on flip: the
+ * project's on Settings > SSO, the status page's on its SSO page.
+ */
+interface RequireSsoSwitchCase {
+  testId: string;
+  modelType: ModelType;
+  id: string;
+  confirmTitle: string;
+}
+
 interface SsoCase {
   name: string;
   render: () => ReactElement;
   path: string;
   table: string;
   viewAction: string;
-  // The status page's "SSO Settings" card ("Force SSO for Login").
-  hasForceSsoCard: boolean;
-  // The project's "Require SSO for Login" switch, which saves on flip.
-  hasRequireSsoSwitch: boolean;
+  requireSsoSwitch: RequireSsoSwitchCase | null;
 }
 
 const SSO_CASES: Array<SsoCase> = [
@@ -336,8 +350,12 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/settings/sso`,
     table: "sso-table",
     viewAction: "View SSO Config",
-    hasForceSsoCard: false,
-    hasRequireSsoSwitch: true,
+    requireSsoSwitch: {
+      testId: REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID,
+      modelType: Project,
+      id: PROJECT_ID,
+      confirmTitle: RequireSsoForLoginSwitchCopy.requireConfirmTitle,
+    },
   },
   {
     name: "Settings > OIDC",
@@ -345,8 +363,7 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/settings/oidc`,
     table: "oidc-table",
     viewAction: "View OIDC Config",
-    hasForceSsoCard: false,
-    hasRequireSsoSwitch: false,
+    requireSsoSwitch: null,
   },
   {
     name: "Status page > SSO",
@@ -354,8 +371,12 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/sso`,
     table: "sso-table",
     viewAction: "View SSO Config",
-    hasForceSsoCard: true,
-    hasRequireSsoSwitch: false,
+    requireSsoSwitch: {
+      testId: STATUS_PAGE_REQUIRE_SSO_SWITCH_TEST_ID,
+      modelType: StatusPage,
+      id: STATUS_PAGE_ID,
+      confirmTitle: StatusPageRequireSsoCopy.confirmTitle,
+    },
   },
   {
     name: "Status page > OIDC",
@@ -363,8 +384,7 @@ const SSO_CASES: Array<SsoCase> = [
     path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/oidc`,
     table: "oidc-table",
     viewAction: "View OIDC Config",
-    hasForceSsoCard: false,
-    hasRequireSsoSwitch: false,
+    requireSsoSwitch: null,
   },
 ];
 
@@ -444,6 +464,14 @@ const answerServer: (request: {
     return new HTTPResponse<JSONObject>(
       200,
       { _id: PROJECT_ID, requireSsoForLogin: false },
+      {},
+    );
+  }
+
+  if (url.endsWith(`/status-page/${STATUS_PAGE_ID}/get-item`)) {
+    return new HTTPResponse<JSONObject>(
+      200,
+      { _id: STATUS_PAGE_ID, requireSsoForLogin: false },
       {},
     );
   }
@@ -826,18 +854,18 @@ describe.each(SSO_CASES)(
         ).toBeInTheDocument();
       }
 
-      if (ssoCase.hasForceSsoCard) {
-        expect(
-          screen.getByTestId("card-model-detail-SSO Settings"),
-        ).toHaveAttribute("data-editable", "true");
-      }
+      // No page keeps an Edit dialog for requiring SSO.
+      expect(
+        screen.queryByTestId("card-model-detail-SSO Settings"),
+      ).not.toBeInTheDocument();
 
       /*
-       * The real "Require SSO for Login" switch: once it has read the
-       * project, it is unlocked - an expired license has no say in it.
+       * The real "Require SSO for Login" switch: once it has read its
+       * project or status page, it is unlocked - an expired license has no
+       * say in it.
        */
-      const requireSso: HTMLElement | null = ssoCase.hasRequireSsoSwitch
-        ? await screen.findByTestId(REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID)
+      const requireSso: HTMLElement | null = ssoCase.requireSsoSwitch
+        ? await screen.findByTestId(ssoCase.requireSsoSwitch.testId)
         : null;
 
       if (requireSso) {
@@ -854,20 +882,20 @@ describe.each(SSO_CASES)(
       expect(mockLicenseFetch).not.toHaveBeenCalled();
       expect(updateCalls).toEqual([]);
 
-      if (requireSso) {
+      if (requireSso && ssoCase.requireSsoSwitch) {
         // And it saves: requiring SSO asks first, then sends that column.
         fireEvent.click(requireSso);
 
         expect(screen.getByTestId("modal-title")).toHaveTextContent(
-          RequireSsoForLoginSwitchCopy.requireConfirmTitle,
+          ssoCase.requireSsoSwitch.confirmTitle,
         );
 
         await submit();
 
         expect(updateCalls).toEqual([
           {
-            modelType: Project,
-            id: PROJECT_ID,
+            modelType: ssoCase.requireSsoSwitch.modelType,
+            id: ssoCase.requireSsoSwitch.id,
             data: { requireSsoForLogin: true },
           },
         ]);
