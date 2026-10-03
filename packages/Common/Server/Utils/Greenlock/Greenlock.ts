@@ -15,6 +15,7 @@ import ServerException from "../../../Types/Exception/ServerException";
 import Text from "../../../Types/Text";
 import AcmeCertificate from "../../../Models/DatabaseModels/AcmeCertificate";
 import AcmeChallenge from "../../../Models/DatabaseModels/AcmeChallenge";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ArrayUtil from "../../../Utils/Array";
 import acme from "acme-client";
 import { Challenge } from "acme-client/types/rfc8555";
@@ -182,6 +183,80 @@ export default class GreenlockUtil {
     }
 
     return hash;
+  }
+
+  /*
+   * The certificate each of these domains has in AcmeCertificate, if any,
+   * looked up DOMAIN_LOOKUP_CHUNK_SIZE names at a time. Where a name has more
+   * than one row, the one that expires last. A row without an expiry is no
+   * certificate at all: it is never due, so nothing would ever replace it if
+   * it counted as one.
+   *
+   * The sweeps that order first certificates and re-order missing ones read
+   * this to tell a domain that needs an order from one that only needs to be
+   * recorded as ordered.
+   */
+  @CaptureSpan()
+  public static async findCertificatesByDomain(
+    domains: Array<string>,
+  ): Promise<Map<string, AcmeCertificate>> {
+    const certificates: Map<string, AcmeCertificate> = new Map<
+      string,
+      AcmeCertificate
+    >();
+
+    const uniqueDomains: Array<string> = Array.from(
+      new Set<string>(
+        domains.filter((domain: string) => {
+          return domain.length > 0;
+        }),
+      ),
+    );
+
+    for (
+      let offset: number = 0;
+      offset < uniqueDomains.length;
+      offset += GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = uniqueDomains.slice(
+        offset,
+        offset + GreenlockUtil.DOMAIN_LOOKUP_CHUNK_SIZE,
+      );
+
+      const rows: Array<AcmeCertificate> = await AcmeCertificateService.findBy({
+        query: {
+          domain: QueryHelper.any(chunk),
+        },
+        select: {
+          domain: true,
+          expiresAt: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const row of rows) {
+        if (!row.domain || !row.expiresAt) {
+          continue;
+        }
+
+        const existing: AcmeCertificate | undefined = certificates.get(
+          row.domain,
+        );
+
+        if (
+          !existing ||
+          OneUptimeDate.isAfter(row.expiresAt, existing.expiresAt as Date)
+        ) {
+          certificates.set(row.domain, row);
+        }
+      }
+    }
+
+    return certificates;
   }
 
   /*

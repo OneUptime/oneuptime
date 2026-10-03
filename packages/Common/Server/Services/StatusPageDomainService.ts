@@ -3,6 +3,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import GreenlockUtil from "../Utils/Greenlock/Greenlock";
+import CertificateOrder, {
+  CertificateOrderOutcome,
+} from "../Utils/Greenlock/CertificateOrder";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import DomainService from "./DomainService";
@@ -15,7 +18,6 @@ import ObjectID from "../../Types/ObjectID";
 import AcmeCertificate from "../../Models/DatabaseModels/AcmeCertificate";
 import DomainModel from "../../Models/DatabaseModels/Domain";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
-import AcmeCertificateService from "./AcmeCertificateService";
 import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { StatusPageCNameRecord } from "../EnvironmentConfig";
@@ -25,6 +27,11 @@ import OneUptimeDate from "../../Types/Date";
 import CertificateReissueUtil from "../../Utils/CertificateReissue";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Exception from "../../Types/Exception/Exception";
+import CustomDomainVerification, {
+  CustomDomainCertificateStatus,
+  CustomDomainVerificationResult,
+} from "../../Types/StatusPage/CustomDomainVerification";
 
 const STATUS_PAGE_DOMAIN_EGRESS_LABEL: string = "Status page domain";
 
@@ -37,6 +44,26 @@ export class Service extends DatabaseService<StatusPageDomain> {
    * shared infrastructure sitting in front of those domains.
    */
   public static readonly SSL_PROVISIONING_CHECK_CONCURRENCY: number = 10;
+
+  /*
+   * How many certificates one run of each sweep that orders them may order:
+   * the order for the domains the CNAME sweep has just verified, the order
+   * sweep for every verified domain still without a certificate, and the
+   * re-order of a certificate that has gone missing. Each picks afresh every
+   * run (GreenlockUtil.pickForThisRun), so a domain whose order keeps failing
+   * - a CAA record that leaves Let's Encrypt out, a name it has paused -
+   * cannot hold a slot the others are waiting for.
+   *
+   * Every order spends from the one Let's Encrypt account the whole
+   * installation shares, 300 new orders per three hours, renewals included.
+   * In a steady state these sweeps order a few certificates a day: a domain
+   * whose owner clicks Check now is ordered by that request. The cap is for
+   * a backlog, such as the domains the order sweep used to retry every 15
+   * minutes without any limit, which is now worked off a few domains a run
+   * the way the dashboard sweeps (DashboardDomainService.ORDER_MAX_PER_RUN)
+   * and renewals (GreenlockUtil.RENEW_MAX_PER_RUN) are.
+   */
+  public static readonly ORDER_MAX_PER_RUN: number = 5;
 
   public constructor() {
     super(StatusPageDomain);
@@ -324,12 +351,13 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     /*
-     * A domain that never ordered a certificate has nothing to reissue - the
-     * dashboard shows "Order Free SSL" for it, which is the correct button.
+     * A domain that never ordered a certificate has nothing to reissue. Its
+     * first certificate is ordered on its own once the CNAME is verified, and
+     * the dashboard shows Reissue SSL only after that.
      */
     if (!statusPageDomain.isSslOrdered) {
       throw new BadDataException(
-        "No SSL certificate has been ordered for this domain yet. Please order one first.",
+        "No SSL certificate has been ordered for this domain yet. One is ordered automatically once its CNAME record is verified.",
       );
     }
 
@@ -387,6 +415,246 @@ export class Service extends DatabaseService<StatusPageDomain> {
     );
 
     await this.orderCert(statusPageDomain);
+  }
+
+  /*
+   * Order this domain's free certificate unless it has one already, or one
+   * is being ordered for it right now (CertificateOrder.orderIfMissing): the
+   * one way a first certificate is ordered, whether by Check now, by the
+   * order sweeps or by the order-ssl API.
+   *
+   * The domain's CNAME should be verified; the order checks it once more.
+   * Throws what the order throws, so a caller can show why.
+   */
+  @CaptureSpan()
+  public async orderCertIfMissing(
+    statusPageDomain: StatusPageDomain,
+  ): Promise<CertificateOrderOutcome> {
+    if (!statusPageDomain.id) {
+      throw new BadDataException(
+        "Domain ID is required to order a certificate",
+      );
+    }
+
+    const domainId: ObjectID = statusPageDomain.id;
+
+    let domainToOrder: StatusPageDomain | null = statusPageDomain;
+
+    if (!domainToOrder.fullDomain) {
+      domainToOrder = await this.findOneBy({
+        query: {
+          _id: domainId.toString(),
+        },
+        select: {
+          _id: true,
+          fullDomain: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!domainToOrder || !domainToOrder.fullDomain) {
+      throw new BadDataException(
+        "Unable to order certificate because domain is null",
+      );
+    }
+
+    const orderedDomain: StatusPageDomain = domainToOrder;
+
+    return await CertificateOrder.orderIfMissing({
+      domain: orderedDomain.fullDomain as string,
+      recordAsOrdered: async (): Promise<void> => {
+        await this.updateOneById({
+          id: domainId,
+          data: {
+            isSslOrdered: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+      order: async (): Promise<void> => {
+        await this.orderCert(orderedDomain);
+      },
+    });
+  }
+
+  /*
+   * Called by verify-cname once it has found the domain's CNAME record:
+   * order the domain's free certificate now rather than at the next run of
+   * the order sweep, and say what happens to its certificate next.
+   *
+   * Whoever asked has just clicked Check now, so this waits for the order
+   * for at most waitInMs - an order usually takes a few seconds - and an
+   * order that takes longer carries on after the answer. An order that
+   * fails is logged and reported, and the sweeps order the certificate
+   * again; the record being found is what Check now asked about.
+   */
+  @CaptureSpan()
+  public async orderCertOnceCnameIsVerified(
+    statusPageDomain: StatusPageDomain,
+    options?: { waitInMs?: number | undefined },
+  ): Promise<CustomDomainVerificationResult> {
+    // Served with the certificate its owner uploaded: nothing to order.
+    if (statusPageDomain.isCustomCertificate) {
+      return {
+        certificateStatus: CustomDomainCertificateStatus.Uploaded,
+      };
+    }
+
+    // On order already; the sweeps look after it from here.
+    if (statusPageDomain.isSslOrdered) {
+      return {
+        certificateStatus: CustomDomainCertificateStatus.Issued,
+      };
+    }
+
+    const order: Promise<CustomDomainVerificationResult> =
+      this.orderCertIfMissing(statusPageDomain).then(
+        (outcome: CertificateOrderOutcome): CustomDomainVerificationResult => {
+          return {
+            certificateStatus:
+              outcome === CertificateOrderOutcome.AlreadyIssued
+                ? CustomDomainCertificateStatus.Issued
+                : CustomDomainCertificateStatus.Issuing,
+          };
+        },
+        (err: unknown): CustomDomainVerificationResult => {
+          logger.error(
+            "Cannot order cert for domain: " + statusPageDomain.fullDomain,
+            { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
+          );
+          logger.error(err, {
+            fullDomain: statusPageDomain.fullDomain,
+          } as LogAttributes);
+
+          return {
+            certificateStatus: CustomDomainCertificateStatus.Failed,
+            certificateError:
+              err instanceof Exception && err.message
+                ? err.message
+                : "We could not order an SSL certificate for this domain.",
+          };
+        },
+      );
+
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+    const stillOrdering: Promise<CustomDomainVerificationResult> =
+      new Promise<CustomDomainVerificationResult>(
+        (resolve: (result: CustomDomainVerificationResult) => void) => {
+          timer = setTimeout(() => {
+            resolve({
+              certificateStatus: CustomDomainCertificateStatus.Issuing,
+            });
+          }, options?.waitInMs ?? CustomDomainVerification.ORDER_WAIT_IN_MS);
+        },
+      );
+
+    try {
+      return await Promise.race([order, stillOrdering]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  /*
+   * Order the first certificate of each of these domains, whose CNAME is
+   * verified: at most ORDER_MAX_PER_RUN orders, picked afresh every run.
+   *
+   * A domain that already has a certificate is only recorded as ordered, and
+   * that does not use up an order slot. It is the domain whose CNAME check
+   * failed for a moment - which marks it unordered - and then passed again;
+   * its certificate is still good. Ordering it again spent an order on a
+   * duplicate (Let's Encrypt allows five a week per name), and could delete
+   * the certificate outright: the order checks the CNAME once more, and
+   * GreenlockUtil.orderCert removes the name's certificate when that check
+   * fails. If the certificate is due, the renewal run renews it.
+   */
+  private async orderCertsForVerifiedDomainsWithoutOne(
+    domains: Array<StatusPageDomain>,
+  ): Promise<void> {
+    const domainsWithName: Array<StatusPageDomain> = domains.filter(
+      (domain: StatusPageDomain) => {
+        return Boolean(domain.id) && Boolean(domain.fullDomain);
+      },
+    );
+
+    if (domainsWithName.length === 0) {
+      return;
+    }
+
+    const certificates: Map<string, AcmeCertificate> =
+      await GreenlockUtil.findCertificatesByDomain(
+        domainsWithName.map((domain: StatusPageDomain) => {
+          return CertificateOrder.normalizeDomain(domain.fullDomain as string);
+        }),
+      );
+
+    const domainsToOrder: Array<StatusPageDomain> = [];
+
+    for (const domain of domainsWithName) {
+      if (
+        !certificates.has(
+          CertificateOrder.normalizeDomain(domain.fullDomain as string),
+        )
+      ) {
+        domainsToOrder.push(domain);
+        continue;
+      }
+
+      if (domain.isSslOrdered) {
+        continue;
+      }
+
+      try {
+        await this.updateOneById({
+          id: domain.id!,
+          data: {
+            isSslOrdered: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.error(err, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
+      }
+    }
+
+    const batch: Array<StatusPageDomain> = GreenlockUtil.pickForThisRun({
+      items: domainsToOrder,
+      max: Service.ORDER_MAX_PER_RUN,
+      now: OneUptimeDate.getCurrentDate(),
+      getKey: (domain: StatusPageDomain): string => {
+        return domain.fullDomain || "";
+      },
+    });
+
+    for (const domain of batch) {
+      try {
+        logger.debug("Ordering SSL for domain: " + domain.fullDomain, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
+
+        await this.orderCertIfMissing(domain);
+      } catch (err) {
+        // one domain whose order fails must not stop the rest.
+        logger.error("Cannot order cert for domain: " + domain.fullDomain, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
+        logger.error(err, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
+      }
+    }
   }
 
   @CaptureSpan()
@@ -663,6 +931,26 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  /*
+   * Record whether this domain's certificate is being served yet.
+   *
+   * This never orders a certificate. It used to re-order whenever the HTTPS
+   * probe failed while the CNAME still checked out - and right after an
+   * order the probe fails as a rule, because nginx writes new certificates
+   * to disk every 15 minutes, so a new domain was ordered twice. The
+   * re-order could also delete a working certificate: it checks the CNAME
+   * once more, and GreenlockUtil.orderCert removes the name's certificate
+   * when that check fails, so a moment's DNS trouble between the two checks
+   * took the domain off HTTPS. The two cases that do need an order have
+   * capped sweeps of their own: checkOrderStatus re-orders a certificate
+   * that has gone missing, and the renewal run renews one that is about to
+   * expire or has expired.
+   *
+   * When the probe fails the CNAME is checked again, so a domain whose
+   * record was removed goes back to asking for it. The result is written
+   * only when it changes: this sweep visits every ordered domain every 15
+   * minutes.
+   */
   @CaptureSpan()
   public async updateSslProvisioningStatus(
     domain: StatusPageDomain,
@@ -679,6 +967,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
         _id: true,
         fullDomain: true,
         cnameVerificationToken: true,
+        isSslProvisioned: true,
       },
       props: {
         isRoot: true,
@@ -690,52 +979,25 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
 
     logger.debug(
-      `StatusPageCerts:RemoveCerts - Checking CNAME ${statusPageDomain.fullDomain}`,
+      `StatusPageCerts:CheckSslProvisioningStatus - Checking ${statusPageDomain.fullDomain}`,
       { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
     );
 
-    // Check CNAME validation and if that fails. Remove certs from Greenlock.
-    const isValid: boolean = await this.isSSLProvisioned(
+    const isProvisioned: boolean = await this.isSSLProvisioned(
       statusPageDomain.fullDomain!,
       statusPageDomain.cnameVerificationToken!,
     );
 
-    if (!isValid) {
-      // check if cname is valid.
+    if (!isProvisioned) {
+      // isCnameValid also records the result on the domain.
+      await this.isCnameValid(statusPageDomain.fullDomain!);
+    }
 
-      const isCnameValid: boolean = await this.isCnameValid(
-        statusPageDomain.fullDomain!,
-      );
-
+    if (Boolean(statusPageDomain.isSslProvisioned) !== isProvisioned) {
       await this.updateOneById({
         id: statusPageDomain.id!,
         data: {
-          isSslProvisioned: false,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (isCnameValid) {
-        try {
-          // if cname is valid then order cert again.
-          await this.orderCert(statusPageDomain);
-        } catch (err) {
-          logger.error(
-            "Cannot order cert for domain: " + statusPageDomain.fullDomain,
-            { fullDomain: statusPageDomain.fullDomain } as LogAttributes,
-          );
-          logger.error(err, {
-            fullDomain: statusPageDomain.fullDomain,
-          } as LogAttributes);
-        }
-      }
-    } else {
-      await this.updateOneById({
-        id: statusPageDomain.id!,
-        data: {
-          isSslProvisioned: true,
+          isSslProvisioned: isProvisioned,
         },
         props: {
           isRoot: true,
@@ -744,6 +1006,19 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  /*
+   * Order the first certificate of every verified domain that has none yet,
+   * at most ORDER_MAX_PER_RUN per run (orderCertsForVerifiedDomainsWithoutOne).
+   *
+   * Only verified domains. This sweep used to try every domain not marked
+   * ordered, verified or not, and without a limit: for a domain whose record
+   * was not in place that was one more failed CNAME check every 15 minutes,
+   * and for one whose check failed for a moment it was a duplicate order -
+   * or, if the check failed again during the order, the deletion of its
+   * working certificate. verifyCnameWhoseCnameisNotVerified checks the
+   * unverified domains, and orders each one's certificate the moment it is
+   * verified; this sweep is the fallback for the rest.
+   */
   @CaptureSpan()
   public async orderSSLForDomainsWhichAreNotOrderedYet(): Promise<void> {
     return Telemetry.startActiveSpan<Promise<void>>({
@@ -751,34 +1026,24 @@ export class Service extends DatabaseService<StatusPageDomain> {
       options: { attributes: {} },
       fn: async (span: Span): Promise<void> => {
         try {
-          const domains: Array<StatusPageDomain> = await this.findBy({
+          const domains: Array<StatusPageDomain> = await this.findAllBy({
             query: {
+              isCnameVerified: true,
               isSslOrdered: false,
               isCustomCertificate: false, // only order for non custom certificates.
             },
             select: {
               _id: true,
               fullDomain: true,
+              isSslOrdered: true,
             },
-            limit: LIMIT_MAX,
             skip: 0,
             props: {
               isRoot: true,
             },
           });
 
-          for (const domain of domains) {
-            try {
-              logger.debug("Ordering SSL for domain: " + domain.fullDomain, {
-                fullDomain: domain.fullDomain,
-              } as LogAttributes);
-              await this.orderCert(domain);
-            } catch (e) {
-              logger.error(e, {
-                fullDomain: domain.fullDomain,
-              } as LogAttributes);
-            }
-          }
+          await this.orderCertsForVerifiedDomainsWithoutOne(domains);
 
           Telemetry.endSpan(span);
         } catch (err) {
@@ -793,6 +1058,14 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
   }
 
+  /*
+   * Check every domain whose CNAME is not verified yet, at most
+   * SSL_PROVISIONING_CHECK_CONCURRENCY at a time, and order the certificate
+   * of each one that is verified now straight away rather than at the next
+   * run of the order sweep. So a domain is served on its own certificate
+   * within about 15 minutes of its record going live - nginx writes new
+   * certificates every 15 minutes - whether or not anyone clicked Check now.
+   */
   @CaptureSpan()
   public async verifyCnameWhoseCnameisNotVerified(): Promise<void> {
     const domains: Array<StatusPageDomain> = await this.findBy({
@@ -802,6 +1075,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
       select: {
         _id: true,
         fullDomain: true,
+        isCustomCertificate: true,
+        isSslOrdered: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -810,14 +1085,34 @@ export class Service extends DatabaseService<StatusPageDomain> {
       },
     });
 
-    for (const domain of domains) {
-      try {
-        await this.isCnameValid(domain.fullDomain as string); // this will also upate the status.
-      } catch (e) {
-        logger.error(e, {
-          fullDomain: domain.fullDomain as string,
-        } as LogAttributes);
-      }
+    const verifiedNow: Array<StatusPageDomain> = [];
+
+    await ArrayUtil.forEachWithConcurrency(
+      domains,
+      Service.SSL_PROVISIONING_CHECK_CONCURRENCY,
+      async (domain: StatusPageDomain): Promise<void> => {
+        try {
+          // isCnameValid also records the result on the domain.
+          const isVerified: boolean = await this.isCnameValid(
+            domain.fullDomain as string,
+          );
+
+          if (isVerified && !domain.isCustomCertificate) {
+            verifiedNow.push(domain);
+          }
+        } catch (e) {
+          logger.error(e, {
+            fullDomain: domain.fullDomain as string,
+          } as LogAttributes);
+        }
+      },
+    );
+
+    try {
+      await this.orderCertsForVerifiedDomainsWithoutOne(verifiedNow);
+    } catch (e) {
+      // The order sweep orders them on its next run.
+      logger.error(e);
     }
   }
 
@@ -894,9 +1189,18 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
   }
 
+  /*
+   * Re-order the certificate of a domain that says it has one ordered but
+   * whose certificate is gone, at most ORDER_MAX_PER_RUN per run, picked
+   * afresh every run. It used to look the certificates up one domain at a
+   * time and re-order every missing one in the same run, without a limit.
+   *
+   * The re-order goes through orderCertIfMissing like every first order, so
+   * it never races one that Check now or the order sweep is placing.
+   */
   @CaptureSpan()
   public async checkOrderStatus(): Promise<void> {
-    const domains: Array<StatusPageDomain> = await this.findBy({
+    const domains: Array<StatusPageDomain> = await this.findAllBy({
       query: {
         isSslOrdered: true,
         isCustomCertificate: false,
@@ -904,44 +1208,54 @@ export class Service extends DatabaseService<StatusPageDomain> {
       select: {
         _id: true,
         fullDomain: true,
-        cnameVerificationToken: true,
       },
-      limit: LIMIT_MAX,
       skip: 0,
       props: {
         isRoot: true,
       },
     });
 
-    for (const domain of domains) {
-      if (!domain.fullDomain) {
-        continue;
-      }
+    const domainsWithName: Array<StatusPageDomain> = domains.filter(
+      (domain: StatusPageDomain) => {
+        return Boolean(domain.id) && Boolean(domain.fullDomain);
+      },
+    );
 
-      //check if cert exists in AcmeCertificate.
-      const acmeCert: AcmeCertificate | null =
-        await AcmeCertificateService.findOneBy({
-          query: {
-            domain: domain.fullDomain,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+    if (domainsWithName.length === 0) {
+      return;
+    }
 
-      if (!acmeCert) {
-        try {
-          // order cert again.
-          await this.orderCert(domain);
-        } catch (err) {
-          logger.error("Cannot order cert for domain: " + domain.fullDomain, {
-            fullDomain: domain.fullDomain,
-          } as LogAttributes);
-          logger.error(err, { fullDomain: domain.fullDomain } as LogAttributes);
-        }
+    const certificates: Map<string, AcmeCertificate> =
+      await GreenlockUtil.findCertificatesByDomain(
+        domainsWithName.map((domain: StatusPageDomain) => {
+          return CertificateOrder.normalizeDomain(domain.fullDomain as string);
+        }),
+      );
+
+    const domainsWithoutCertificate: Array<StatusPageDomain> =
+      domainsWithName.filter((domain: StatusPageDomain) => {
+        return !certificates.has(
+          CertificateOrder.normalizeDomain(domain.fullDomain as string),
+        );
+      });
+
+    const batch: Array<StatusPageDomain> = GreenlockUtil.pickForThisRun({
+      items: domainsWithoutCertificate,
+      max: Service.ORDER_MAX_PER_RUN,
+      now: OneUptimeDate.getCurrentDate(),
+      getKey: (domain: StatusPageDomain): string => {
+        return domain.fullDomain || "";
+      },
+    });
+
+    for (const domain of batch) {
+      try {
+        await this.orderCertIfMissing(domain);
+      } catch (err) {
+        logger.error("Cannot order cert for domain: " + domain.fullDomain, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
+        logger.error(err, { fullDomain: domain.fullDomain } as LogAttributes);
       }
     }
   }
