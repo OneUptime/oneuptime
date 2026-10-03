@@ -2309,6 +2309,17 @@ export function toRepositoryPath(
   return path.relative(repositoryRoot, filePath).split(path.sep).join("/");
 }
 
+/*
+ * The fewest forms a walk over the project may find before a guard trusts it
+ * (each guard's "are really read" test). It proves that the scanner reads the
+ * project, not how many forms there should be, so it sits far below the real
+ * count, as do the guards' other floors on what the walk finds: CI runs
+ * without ee/ (568 forms there on 2026-10-03, 581 with it), and the counts
+ * keep falling as forms are merged, folded into others or turned into
+ * switches that save on their own.
+ */
+export const MIN_SCANNED_FORMS: number = 250;
+
 export function scanFormFiles(data: {
   repositoryRoot: string;
   files: Array<string>;

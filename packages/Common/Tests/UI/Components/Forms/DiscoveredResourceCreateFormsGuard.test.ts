@@ -8,6 +8,7 @@ import {
 import {
   FormFacts,
   FormFieldFacts,
+  MIN_SCANNED_FORMS,
   countFieldRows,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
@@ -399,7 +400,7 @@ describe("every Dashboard form of a discovered resource", () => {
   );
 
   test("are really read", () => {
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
   });
 
   test("that create one are the list pages' forms, pinned above", () => {
