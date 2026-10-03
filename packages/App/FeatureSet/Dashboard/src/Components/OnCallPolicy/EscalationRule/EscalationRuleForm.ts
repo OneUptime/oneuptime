@@ -122,9 +122,11 @@ export const countEscalationRuleResponders: (
 
 /*
  * The one Notify field: on-call schedules, teams and people in one picker.
- * Required - a level that pages nobody is the one way a rule can be useless -
- * and when nobody is picked it says what to do rather than "Notify is
- * required".
+ * Required unless the caller says otherwise - a level that pages nobody is
+ * the one way a rule can be useless - and when nobody is picked it says what
+ * to do rather than "Notify is required". A form that makes it optional
+ * (required: false, or a function) gets that check only when it is required;
+ * a form with a customValidation of its own keeps its own.
  */
 export const getEscalationRuleNotifyFormField: <TEntity>(
   options?: Omit<
@@ -137,24 +139,11 @@ export const getEscalationRuleNotifyFormField: <TEntity>(
     "field" | "fieldType" | "peoplePicker" | "formOnly"
   >,
 ): Field<TEntity> => {
-  return {
+  const field: Field<TEntity> = {
     title: "Notify",
     description:
       "On-call schedules page whoever is on call. Teams page every member.",
     required: true,
-    customValidation: (values: FormValues<TEntity>): string | null => {
-      if (
-        countEscalationRuleResponders(readEscalationRuleResponderIds(values)) >
-        0
-      ) {
-        return null;
-      }
-
-      return (
-        translateText(ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE) ||
-        ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE
-      );
-    },
     ...options,
     field: {
       [ESCALATION_RULE_NOTIFY_FIELD_KEY]: true,
@@ -163,6 +152,30 @@ export const getEscalationRuleNotifyFormField: <TEntity>(
     peoplePicker: getEscalationRuleNotifyPickerConfig(),
     formOnly: true,
   };
+
+  if (!options?.customValidation) {
+    field.customValidation = (values: FormValues<TEntity>): string | null => {
+      const isRequired: boolean =
+        typeof field.required === "function"
+          ? field.required(values)
+          : Boolean(field.required);
+
+      if (
+        !isRequired ||
+        countEscalationRuleResponders(readEscalationRuleResponderIds(values)) >
+          0
+      ) {
+        return null;
+      }
+
+      return (
+        translateText(ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE) ||
+        ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE
+      );
+    };
+  }
+
+  return field;
 };
 
 // The name a rule is saved with: what was typed, or its level's when blank.

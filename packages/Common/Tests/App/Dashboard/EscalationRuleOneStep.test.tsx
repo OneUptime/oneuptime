@@ -215,7 +215,15 @@ function list(data: Array<unknown>): JSONObject {
 
 // The ids an Includes query asks for, or every id when it asks for none.
 function wanted(value: unknown, id: string): boolean {
-  return !(value instanceof Includes) || value.values.includes(id);
+  if (!(value instanceof Includes)) {
+    return true;
+  }
+
+  return (value.values as Array<unknown>).some(
+    (candidate: unknown): boolean => {
+      return String(candidate) === id;
+    },
+  );
 }
 
 function servePage(fixture: PageFixture): void {
@@ -251,7 +259,10 @@ function servePage(fixture: PageFixture): void {
     if (params.modelType === OnCallDutyPolicyEscalationRuleUser) {
       return list(
         Object.entries(fixture.users || {}).flatMap(
-          ([ruleId, joins]: [string, Array<{ joinId: string; userId: string }>]) => {
+          ([ruleId, joins]: [
+            string,
+            Array<{ joinId: string; userId: string }>,
+          ]) => {
             return joins.map((join: { joinId: string; userId: string }) => {
               return {
                 id: new ObjectID(join.joinId),
@@ -825,7 +836,9 @@ describe("editing an escalation rule", () => {
     const cards: Array<HTMLElement> = await renderPage(TWO_LEVELS);
     await openEditDialog(cards[1]!);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Remove Sam Doe" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove Sam Doe" }),
+    );
 
     await submit("Save Changes");
 
@@ -978,11 +991,7 @@ describe("levels named after their place", () => {
       ],
     });
 
-    expect(within(cards[1]!).getByRole("heading")).toHaveTextContent(
-      "Level 2",
-    );
-    expect(within(cards[0]!).getByRole("heading")).toHaveTextContent(
-      "Primary",
-    );
+    expect(within(cards[1]!).getByRole("heading")).toHaveTextContent("Level 2");
+    expect(within(cards[0]!).getByRole("heading")).toHaveTextContent("Primary");
   });
 });

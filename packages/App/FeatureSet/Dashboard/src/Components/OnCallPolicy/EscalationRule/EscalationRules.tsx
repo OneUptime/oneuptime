@@ -801,7 +801,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
    */
   const renameRulesNamedAfterTheirLevel: (
     levelOrderAfter: Array<string>,
-  ) => Promise<void> = async (levelOrderAfter: Array<string>): Promise<void> => {
+  ) => Promise<void> = async (
+    levelOrderAfter: Array<string>,
+  ): Promise<void> => {
     const renames: Array<EscalationRuleNameEntry> = getEscalationRuleRenames({
       before: rules.map(
         (rule: OnCallDutyEscalationRule): EscalationRuleNameEntry => {

@@ -133,9 +133,9 @@ afterEach(() => {
 describe("the on-call schedule kind", () => {
   test("is a kind of its own, defined once", () => {
     expect(PeoplePickerKind.OnCallSchedule).toBe("onCallSchedule");
-    expect(PEOPLE_PICKER_KIND_DEFINITIONS[PeoplePickerKind.OnCallSchedule]).toBe(
-      SCHEDULES,
-    );
+    expect(
+      PEOPLE_PICKER_KIND_DEFINITIONS[PeoplePickerKind.OnCallSchedule],
+    ).toBe(SCHEDULES);
     expect(SCHEDULES.kind).toBe(PeoplePickerKind.OnCallSchedule);
   });
 
@@ -169,13 +169,14 @@ describe("the on-call schedule kind", () => {
   });
 
   test("related rows of several kinds become options in the kinds' order", () => {
-    const options: Array<PeoplePickerOption> =
-      getPeoplePickerOptionsFromModels([
+    const options: Array<PeoplePickerOption> = getPeoplePickerOptionsFromModels(
+      [
         {
           kind: PeoplePickerKind.OnCallSchedule,
           models: [makeSchedule(PRIMARY, "Primary")],
         },
-      ]);
+      ],
+    );
 
     expect(
       options.map((option: PeoplePickerOption): string => {
@@ -351,9 +352,9 @@ describe("on a plan without on-call schedules", () => {
 
 describe("telling a plan refusal from any other failure", () => {
   test("a 402 response or exception is one", () => {
-    expect(
-      isPaymentRequiredError(new HTTPErrorResponse(402, {}, {})),
-    ).toBe(true);
+    expect(isPaymentRequiredError(new HTTPErrorResponse(402, {}, {}))).toBe(
+      true,
+    );
     expect(isPaymentRequiredError(new PaymentRequiredException("x"))).toBe(
       true,
     );

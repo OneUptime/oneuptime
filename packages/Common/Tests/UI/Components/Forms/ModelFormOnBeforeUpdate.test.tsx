@@ -11,6 +11,7 @@ import {
 import React from "react";
 import { JSONObject } from "../../../../Types/JSON";
 import Permission from "../../../../Types/Permission";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
  * onBeforeUpdate: the Update form's twin of onBeforeCreate. It is handed the
@@ -254,7 +255,9 @@ describe("ModelForm's onBeforeUpdate", () => {
   });
 
   test("an Update form does not run onBeforeCreate", async () => {
-    const onBeforeCreate: jest.Mock = jest.fn(
+    const onBeforeCreate: MockFunction = getJestMockFunction();
+
+    onBeforeCreate.mockImplementation(
       async (
         item: OnCallDutyPolicyEscalationRule,
       ): Promise<OnCallDutyPolicyEscalationRule> => {
@@ -288,7 +291,7 @@ describe("ModelForm's onBeforeUpdate", () => {
 
 describe("ModelFormModal's onBeforeUpdate", () => {
   test("is handed to its form, which saves what it returns", async () => {
-    const onSuccess: jest.Mock = jest.fn();
+    const onSuccess: MockFunction = getJestMockFunction();
 
     await act(async (): Promise<void> => {
       render(

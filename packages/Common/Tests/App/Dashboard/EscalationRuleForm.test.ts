@@ -283,14 +283,61 @@ describe("the Notify picker", () => {
     ).toBe(ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE);
   });
 
-  test.each([
+  const ANSWERS: Array<[string, Record<string, Array<string>>]> = [
     ["an on-call schedule", { onCallSchedules: ["schedule-1"] }],
     ["a team", { teams: ["team-1"] }],
     ["a person", { users: ["user-1"] }],
-  ])("is answered by %s alone", (_label: string, picks: object) => {
+  ];
+
+  test.each(ANSWERS)(
+    "is answered by %s alone",
+    (_label: string, picks: Record<string, Array<string>>) => {
+      expect(
+        getEscalationRuleNotifyFormField().customValidation?.(
+          values({ ...picks }),
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("made optional, it accepts nobody", () => {
+    const notify: RuleField = getEscalationRuleNotifyFormField({
+      required: false,
+    });
+
+    expect(notify.customValidation?.(values({}))).toBeNull();
+  });
+
+  test("required only sometimes, it asks for a pick only then", () => {
+    const notify: RuleField = getEscalationRuleNotifyFormField({
+      required: (formValues: FormValues<OnCallDutyPolicyEscalationRule>) => {
+        return Boolean(
+          (formValues as unknown as Record<string, unknown>)["pageSomebody"],
+        );
+      },
+    });
+
+    expect(notify.customValidation?.(values({}))).toBeNull();
+    expect(notify.customValidation?.(values({ pageSomebody: true }))).toBe(
+      ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE,
+    );
     expect(
-      getEscalationRuleNotifyFormField().customValidation?.(values({ ...picks })),
+      notify.customValidation?.(
+        values({ pageSomebody: true, users: ["user-1"] }),
+      ),
     ).toBeNull();
+  });
+
+  test("a caller's own validation is kept", () => {
+    const notify: RuleField = getEscalationRuleNotifyFormField({
+      customValidation: (): string => {
+        return "Pick the first responders.";
+      },
+    });
+
+    expect(notify.customValidation?.(values({ users: ["user-1"] }))).toBe(
+      "Pick the first responders.",
+    );
   });
 
   test("a caller can make it optional or retitle it", () => {

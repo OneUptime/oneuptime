@@ -219,9 +219,9 @@ describe("the Escalation Rules docs page", () => {
   });
 
   it("gives the API routes the models really have", () => {
-    const routeOf: (model: { new (): { crudApiPath?: unknown } }) => string = (
-      model: { new (): { crudApiPath?: unknown } },
-    ): string => {
+    const routeOf: (model: {
+      new (): { crudApiPath?: unknown };
+    }) => string = (model: { new (): { crudApiPath?: unknown } }): string => {
       return `/api${String(new model().crudApiPath)}`;
     };
 
@@ -252,42 +252,50 @@ describe("the Escalation Rules docs page", () => {
   describe("in every docs language", () => {
     const englishOutline: Array<number> = headingOutline(PAGE);
 
-    it.each(SUPPORTED_DOCS_LANGUAGE_CODES)("%s has the page", (lang: string) => {
-      const page: string = readPage(lang);
-      const docsLocale: { navLinks: Record<string, string> } = JSON.parse(
-        fs.readFileSync(path.join(LOCALES_DIR, `${lang}.json`), "utf8"),
-      );
-      const dashboard: Record<string, string> = readDashboardLocale(lang);
+    it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+      "%s has the page",
+      (lang: string) => {
+        const page: string = readPage(lang);
+        const docsLocale: { navLinks: Record<string, string> } = JSON.parse(
+          fs.readFileSync(path.join(LOCALES_DIR, `${lang}.json`), "utf8"),
+        );
+        const dashboard: Record<string, string> = readDashboardLocale(lang);
 
-      expect(page.split("\n")[0]).toBe(`# ${docsLocale.navLinks[PAGE_TITLE]}`);
-      expect(headingOutline(page)).toEqual(englishOutline);
+        expect(page.split("\n")[0]).toBe(
+          `# ${docsLocale.navLinks[PAGE_TITLE]}`,
+        );
+        expect(headingOutline(page)).toEqual(englishOutline);
 
-      for (const label of [
-        "Escalation Rules",
-        "Notify",
-        "Add responder",
-        "Escalate after (in minutes)",
-        "Advanced",
-      ]) {
-        expect({ lang, label, found: page.includes(`**${dashboard[label]}**`) })
-          .toEqual({ lang, label, found: true });
-      }
+        for (const label of [
+          "Escalation Rules",
+          "Notify",
+          "Add responder",
+          "Escalate after (in minutes)",
+          "Advanced",
+        ]) {
+          expect({
+            lang,
+            label,
+            found: page.includes(`**${dashboard[label]}**`),
+          }).toEqual({ lang, label, found: true });
+        }
 
-      for (const fact of [
-        `**${DEFAULT_ESCALATE_AFTER_IN_MINUTES}`,
-        `**${getDefaultEscalationRuleName(1)}**`,
-        `**${getDefaultEscalationRuleName(2)}**`,
-        `**${getDefaultEscalationRuleName(3)}**`,
-        "`/api/on-call-duty-policy-escalation-rule`",
-        "`escalateAfterInMinutes`",
-      ]) {
-        expect({ lang, fact, found: page.includes(fact) }).toEqual({
-          lang,
-          fact,
-          found: true,
-        });
-      }
-    });
+        for (const fact of [
+          `**${DEFAULT_ESCALATE_AFTER_IN_MINUTES}`,
+          `**${getDefaultEscalationRuleName(1)}**`,
+          `**${getDefaultEscalationRuleName(2)}**`,
+          `**${getDefaultEscalationRuleName(3)}**`,
+          "`/api/on-call-duty-policy-escalation-rule`",
+          "`escalateAfterInMinutes`",
+        ]) {
+          expect({ lang, fact, found: page.includes(fact) }).toEqual({
+            lang,
+            fact,
+            found: true,
+          });
+        }
+      },
+    );
   });
 
   it("does not claim the API names or waits differently from the code", () => {
@@ -305,6 +313,8 @@ describe("the Escalation Rules docs page", () => {
     expect(
       new OnCallDutyPolicyEscalationRule().getRequiredColumns().columns,
     ).toContain("name");
-    expect(PAGE).toContain("Terraform's escalation rule resource still takes a name");
+    expect(PAGE).toContain(
+      "Terraform's escalation rule resource still takes a name",
+    );
   });
 });
