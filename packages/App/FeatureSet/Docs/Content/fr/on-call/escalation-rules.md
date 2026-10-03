@@ -2,6 +2,12 @@
 
 Une politique d'astreinte alerte les personnes par niveaux. Chaque règle d'escalade est un niveau : qui est alerté, et combien de temps attendre qu'une personne accuse réception avant d'alerter le niveau suivant. Les règles d'une politique sont listées, dans l'ordre, sur sa page **Règles d'escalade**.
 
+## Qui est alerté en premier
+
+Lorsque vous créez une politique d'astreinte sur la page **Politiques d'astreinte**, le formulaire demande son **Nom** et **Qui est alerté en premier ?**. La question utilise le même sélecteur que **Notifier** : plannings d'astreinte, équipes et personnes, autant qu'il en faut. Les personnes choisies forment la première règle d'escalade de la politique, **Level 1**, qui attend **30 minutes** un accusé de réception avant d'alerter le niveau suivant. La nouvelle politique s'ouvre ensuite sur sa page **Règles d'escalade**, où vous pouvez ajouter d'autres niveaux.
+
+**Qui est alerté en premier ?** est facultatif. Si vous le laissez vide, la politique démarre sans règles d'escalade : elle n'alerte personne tant que vous n'en ajoutez pas, et sa vue d'ensemble le signale. La description et les étiquettes se trouvent sous **Avancé**. La question n'est posée qu'aux personnes autorisées à ajouter des règles d'escalade.
+
 ## Ajouter une règle d'escalade
 
 Ouvrez la politique d'astreinte, choisissez **Règles d'escalade** dans son menu latéral et cliquez sur **Add Escalation Rule**. La boîte de dialogue est une seule page courte qui pose deux questions :
@@ -38,3 +44,4 @@ Les règles d'escalade sont la ressource `/api/on-call-duty-policy-escalation-ru
 - Une règle créée sans `name` porte le nom de son niveau, comme dans le tableau de bord : **Level 3** pour une règle qui devient le troisième niveau de sa politique. La ressource Terraform des règles d'escalade exige toujours un nom.
 - `escalateAfterInMinutes` n'a pas de valeur par défaut en dehors du tableau de bord. Une règle créée sans cette valeur n'attend pas : le niveau suivant est alerté dès que celui-ci s'est exécuté. Définissez-la explicitement — le tableau de bord suggère 30.
 - Les règles qui portent le nom de leur niveau sont renommées lorsque vous déplacez ou supprimez des règles dans le tableau de bord. Modifier `order` via l'API ou Terraform ne change que l'ordre.
+- Créer une politique d'astreinte via `/api/on-call-duty-policy` avec `onCallSchedules`, `teams` ou `users` (des listes d'identifiants) dans ses `miscDataProps` lui donne sa première règle d'escalade, comme dans le tableau de bord : **Level 1**, qui les alerte, avec un `escalateAfterInMinutes` de 30. Chaque identifiant doit appartenir au projet et l'appelant doit avoir le droit de créer des règles d'escalade, sinon la politique n'est pas créée. Une politique créée sans eux n'a aucune règle, comme avant ; la ressource Terraform des politiques ne les envoie pas.

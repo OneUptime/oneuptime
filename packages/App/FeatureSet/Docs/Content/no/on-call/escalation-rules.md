@@ -2,6 +2,12 @@
 
 En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en retningslinje står i rekkefølge på siden **Eskaleringsregler**.
 
+## Hvem som varsles først
+
+Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, utgjør den første eskaleringsregelen i retningslinjen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles. Den nye retningslinjen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
+
+**Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter retningslinjen uten eskaleringsregler: Den varsler ingen før du legger til en, og oversikten sier fra om det. Beskrivelsen og etikettene ligger under **Avansert**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.
+
 ## Legg til en eskaleringsregel
 
 Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen og klikk på **Add Escalation Rule**. Dialogen er én kort side med to spørsmål:
@@ -38,3 +44,4 @@ Eskaleringsregler er ressursen `/api/on-call-duty-policy-escalation-rule`; perso
 - En regel som opprettes uten `name`, får navn etter nivået sitt, slik som i dashbordet: **Level 3** for en regel som blir det tredje nivået i retningslinjen. Terraform-ressursen for eskaleringsregler krever fortsatt et navn.
 - `escalateAfterInMinutes` har ingen standardverdi utenfor dashbordet. En regel som opprettes uten den, venter ikke: neste nivå varsles så snart dette har kjørt. Angi den eksplisitt — dashbordet foreslår 30.
 - Regler som heter etter nivået sitt, får nye navn når du flytter eller sletter regler i dashbordet. Endrer du `order` via API-et eller Terraform, endres bare rekkefølgen.
+- Opprettes en vaktretningslinje via `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (lister med ID-er) i `miscDataProps`, får den sin første eskaleringsregel, slik som i dashbordet: **Level 1**, som varsler dem, med en `escalateAfterInMinutes` på 30. Hver ID må høre til prosjektet, og den som kaller, må ha lov til å opprette eskaleringsregler; ellers opprettes ikke retningslinjen. En retningslinje som opprettes uten dem, har ingen regler, som før; Terraform-ressursen for retningslinjer sender dem ikke.
