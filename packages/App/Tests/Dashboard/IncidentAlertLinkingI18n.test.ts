@@ -528,7 +528,7 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ),
       ),
       ...translatedPropLiterals(
-        sectionFrom(settingsPage, 'name="Linked Alerts"'),
+        sectionFrom(settingsPage, "<ModelSwitchesCard<Project>"),
       ),
     ]);
 

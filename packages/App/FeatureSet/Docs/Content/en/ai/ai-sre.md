@@ -35,12 +35,16 @@ Autonomous investigations are **on by default for new projects**. So is every ot
 1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits (Project Settings > AI Credits) or auto-recharge.
 2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Features > Enable AI.
 3. **Choose per signal type** (both on for new projects):
-   - Incidents: **Incidents > Settings > AI** — toggle _Automatically Investigate Incidents_.
-   - Alerts: **Alerts > Settings > AI** — toggle _Automatically Investigate Alerts_.
+   - Incidents: **Incidents > Settings > AI** — turn on _Investigate new incidents_.
+   - Alerts: **Alerts > Settings > AI** — turn on _Investigate new alerts_.
 
-Incidents and alerts are configured independently, so you can give each signal type its own concurrency cap, daily token budget, fix-task budget, and follow-up pull request policy. None of those limits applies until you set it — see **Cost controls** below. Changing an alert AI setting does not change the corresponding incident setting, or vice versa.
+Each AI behaviour on those pages is a switch that saves as soon as you flip it; there is no Save button. The incident page has four, under **What OneUptime AI does**: _Investigate new incidents_, _Draft a postmortem when an incident resolves_, _Open a fix pull request when an investigation finds a code change_ and _Open a pull request that adds missing telemetry_. The alert page has the same, without the postmortem. Project Owners and Project Admins can change them; for everyone else each switch is locked and says which permission it needs.
 
-One further setting builds on top of investigations: **Enable Automatic Code Fixes** (on for new projects and configured independently on each signal type's AI settings page) lets an investigation that confidently identifies a repository code change open a fix pull request automatically — see **Automatic code fixes** below.
+The pages say two things only when they are true. If **Enable AI** is off, nothing on them runs, and the page says so at the top with the Enable AI switch itself for those who may change it (Project Owners, and anyone with Manage Billing); everyone else is told who can. If the project has no LLM provider OneUptime AI can use — none at all, or providers but none set as the default — the page says that too, with a link to **Project Settings > AI > LLM Providers**. On OneUptime Cloud the global provider counts, so nothing is said there.
+
+Incidents and alerts are configured independently, so you can give each signal type its own concurrency cap, daily token budget, fix-task budget, and follow-up pull request policy. None of those limits applies until you set it — they are folded under **Advanced** at the bottom of each page; see **Cost controls** below. Changing an alert AI setting does not change the corresponding incident setting, or vice versa.
+
+One further setting builds on top of investigations: **Open a fix pull request when an investigation finds a code change** (on for new projects, a switch of its own on each signal type's AI settings page) lets an investigation that confidently identifies a repository code change open a fix pull request automatically — see **Automatic code fixes** below.
 
 ## Cluster access — let OneUptime AI run kubectl
 
@@ -160,7 +164,9 @@ Whether an analysis counts as confident is decided by a server-verified signal, 
 
 ## Automatic code fixes
 
-A confident analysis that recommends a repository code change can go one step further than notifying: it opens the fix. **Enable Automatic Code Fixes** is configured independently under **Incidents > Settings > AI** and **Alerts > Settings > AI** (both are **on by default for new projects**; a project created before this default keeps its setting). Nothing opens until the project has a GitHub-App-connected repository and a Runner with the code-fix capability. A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a pull request, ready for review. The button uses the same recommendation and is hidden for analyses whose remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive.
+A confident analysis that recommends a repository code change can go one step further than notifying: it opens the fix. The switch **Open a fix pull request when an investigation finds a code change** is set independently under **Incidents > Settings > AI** and **Alerts > Settings > AI** (both are **on by default for new projects**; a project created before this default keeps its setting). Nothing opens until the project has a GitHub-App-connected repository and a Runner with the code-fix capability. A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a pull request, ready for review. The button uses the same recommendation and is hidden for analyses whose remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive.
+
+A second switch beside it, **Open a pull request that adds missing telemetry**, is for the investigations that end inconclusive because the logs, traces or metrics they needed were missing: OneUptime AI opens a pull request that adds that instrumentation to the code paths involved, for your team to review. It needs a repository connected through the GitHub App, and is on for new projects too.
 
 The same constrained, server-verified classification that decides confidence also decides whether a repository change is appropriate. Only a positive code-fix classification offers or automatically opens the pull request. An investigation that gathered no server-verified evidence, recommends a non-code remedy, or whose classification failed never opens one — PR creation always fails toward doing nothing. Everything else matches the manual button: the pull request opens ready for review, needs a GitHub-App-connected repository and a Runner with the code-fix capability, counts against that signal type's daily fix-task limit and the repository's open-PR cap when either is set, and at most one fix task per incident or alert can be active at a time. The investigation itself stays read-only — the fix runs as a separate, fully-logged agent task. See [Fix Tasks](/docs/ai/ai-agent) for how fix pull requests work, including the build-and-test verification that runs before each pull request opens.
 
@@ -177,7 +183,9 @@ Auto-remediation does depend on **Enable AI** (Project Settings > AI > AI Featur
 
 ## Cost controls
 
-Every limit below is optional, and none applies until you set it: with automatic investigation on, every new incident and alert is investigated, whatever its severity, and nothing caps how many investigations or fix tasks run. Alert volume can be much higher than incident volume, so these are the controls to reach for when you want a ceiling:
+Every limit below is optional, and none applies until you set it: with automatic investigation on, every new incident and alert is investigated, whatever its severity, and nothing caps how many investigations or fix tasks run. Alert volume can be much higher than incident volume, so these are the controls to reach for when you want a ceiling.
+
+They are folded under **Advanced** at the bottom of each signal type's AI settings page, in three cards that each edit on one page: **Which incidents are investigated** (or alerts: the severity floor and the cooldown), **Investigation limits** (the concurrency cap and the time limit) and **Daily limits** (the token and fix-task limits). Folded, the section says what the defaults do — every incident (or alert) is investigated, whatever its severity, and nothing limits how much OneUptime AI does — or **Configured** once any limit is set.
 
 | Control                   | Behavior                                                                                                                                                                                                                                                                                                                                                                                                     | Where to configure                  |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
@@ -200,7 +208,7 @@ AI work outside incidents and alerts — insight triage, and fix tasks for excep
 
 ## Auto-postmortem
 
-Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem automatically when an incident resolves**, on the incident AI settings page (Incidents > Settings > AI) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
+Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem when an incident resolves**, on the incident AI settings page (Incidents > Settings > AI) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
 
 ## Insights — proactive detection
 
@@ -222,16 +230,19 @@ When an LLM provider is configured, each new insight also gets a **triage analys
 
 Optionally, OneUptime AI can also open a **fix pull request** for the insight types with the strongest evidence: new and spiking exceptions (through the existing exception-fix pipeline) and trace latency regressions (grounded in the span evidence recorded on the insight). Error-log spikes and metric drift are never auto-fixed. Every automatic fix PR opens ready for review and requires human review — auto-merge does not exist. AI work outside incidents and alerts has no daily fix-task limit, so the only cap these pull requests meet is the repository's open-PR cap, if you set one.
 
-Both settings are **on by default for new projects** (a project created before this default keeps its setting), at **AI > Insights > Settings**:
+All three settings are **on by default for new projects** (a project created before this default keeps its setting), at **AI > Insights > Settings**. Each is a switch that saves as soon as you flip it:
 
-1. **Enable AI Insights** — turns on the watch loop, the inbox, and triage.
-2. **Automatically open fix PRs from insights** — turns on fix-task creation for eligible insights. This needs the same setup as the manual "Fix with AI" flow: a GitHub-App-connected repository and an LLM provider.
+1. **Watch telemetry for problems** — turns on the watch loop, the inbox, and triage.
+2. **Open a fix pull request when an insight points at your code** — turns on fix-task creation for eligible insights. This needs the same setup as the manual "Fix with AI" flow: a GitHub-App-connected repository and an LLM provider.
+3. **Archive exceptions that are expected** — exception groups the triage classifies as expected denials (refused sign-ins, plan limits, scanners tripping intentional validation) are archived, so they stop showing as unresolved. User errors and infrastructure conditions never are, and you can bring an archived group back from the **Archived** tab.
+
+With **Enable AI** off, insights are still found (the detectors use no AI), but none is triaged, archived or fixed; the settings page says so at the top. Without an LLM provider OneUptime AI can use, it says that insights are not triaged.
 
 Every insight has **Confirm** and **Dismiss** buttons — use them even when you don't act on the finding. Your confirm/dismiss votes are how each detector's precision gets measured, and that measured precision is what decides which insight types earn more automation over time. Dismissing also keeps the same finding out of your inbox for the next 7 days.
 
 ## Requirements and limits
 
 - An LLM provider must be configured (project-specific or the cloud global provider).
-- Investigations trigger on **newly created** incidents and alerts only — enabling the toggles does not investigate historical signals.
+- Investigations trigger on **newly created** incidents and alerts only — turning the switches on does not investigate historical signals.
 - The `baseline_anomaly` check needs about two weeks of metric history before its hour-of-week baselines are reliable; before that it reports "insufficient baseline data" rather than guessing.
 - On OneUptime Cloud with the global provider, investigations consume metered AI tokens (see Project Settings > AI Credits). Bring your own provider key for unmetered usage.

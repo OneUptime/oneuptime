@@ -1,18 +1,17 @@
 import PageComponentProps from "../PageComponentProps";
+import { getEnableAiConfirmation } from "../../Components/AISettings/EnableAiConfirmation";
+import ProjectAiNotice from "../../Components/AISettings/ProjectAiNotice";
 import {
-  ProjectColumnsEditGate,
-  canUpdateProjectColumns,
-  getProjectColumnsEditGate,
-  getProjectColumnsPermissionMessage,
-  getProjectColumnsUpdatePermissions,
-} from "./ProjectColumnEditGate";
+  ENABLE_AI_COLUMN,
+  ENABLE_AI_SWITCH_TEST_ID,
+  EnableAiCopy,
+  ProjectAiNoticeContext,
+} from "../../Components/AISettings/ProjectAiSettingsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
-import Permission from "Common/Types/Permission";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import ObjectID from "Common/Types/ObjectID";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The project's AI switch, Enable AI, on a page every install shows. It used
@@ -22,91 +21,48 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * had switches of their own once, and both now follow it. Every message
  * that sends people to turn AI on names this page: "Project Settings → AI
  * Features".
+ *
+ * It is the switch itself, saving the moment it is flipped (the shared
+ * ModelSwitchCard). It used to sit behind "Edit AI Features" and a dialog.
+ * Turning it off stops every AI feature in the project at once, so that
+ * asks first; turning it on saves at once. Its column takes Project Owner
+ * or Manage Billing - narrower than the Project table, which also lets
+ * Project Admin and Edit Project in - so for everyone else the switch is
+ * locked and says which permission it needs.
+ *
+ * Under it, only when it is so: the project has no LLM provider for AI to
+ * use (ProjectAiNotice).
  */
-
-export const AI_FEATURES_CARD_TITLE: string = "AI Features";
-
-/*
- * The columns the card edits: Enable AI and nothing else. The form writes
- * all of them on save, so editing needs update permission on every one.
- */
-export const AI_FEATURE_FIELDS: Array<"enableAi"> = ["enableAi"];
-
-/*
- * Who may change the switch, read from the column's own update access
- * control rather than written out here, so the page follows the model. The
- * Project table's update list is wider (Project Admin, Edit Project) than
- * this column's, which is why the card cannot rely on CardModelDetail's
- * table-level gate: a Project Admin would get a working Edit button and a
- * save the server refuses.
- */
-export function getAiFeaturesUpdatePermissions(): Array<Permission> {
-  return getProjectColumnsUpdatePermissions(AI_FEATURE_FIELDS);
-}
-
-export function canEditAiFeatures(): boolean {
-  return canUpdateProjectColumns(AI_FEATURE_FIELDS);
-}
-
-export function getAiFeaturesPermissionMessage(): string {
-  return getProjectColumnsPermissionMessage(AI_FEATURE_FIELDS);
-}
-
 const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  /*
-   * The permission snapshot arrives on an API response header, so it can be
-   * empty on the first paint. Loading the card re-renders the page, which
-   * reads the permissions again.
-   */
-  const [, setIsLoaded] = useState<boolean>(false);
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const editGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
-    fields: AI_FEATURE_FIELDS,
-    buttonTitle: "Edit AI Features",
-  });
+  if (!projectId) {
+    return <></>;
+  }
 
   return (
-    <CardModelDetail<Project>
-      name={AI_FEATURES_CARD_TITLE}
-      cardProps={{
-        title: AI_FEATURES_CARD_TITLE,
-        description: "Turn OneUptime AI on or off for this project.",
-        buttons: editGate.lockedButtons,
-      }}
-      isEditable={editGate.isEditable}
-      editButtonText="Edit AI Features"
-      formFields={[
-        {
-          field: {
-            enableAi: true,
-          },
-          title: "Enable AI",
-          description:
-            "The master switch. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners. Auto-remediation and AI commands on Runners need no other project switch.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-      ]}
-      modelDetailProps={{
-        modelType: Project,
-        id: "ai-features",
-        onItemLoaded: () => {
-          setIsLoaded(true);
-        },
-        fields: [
-          {
-            field: {
-              enableAi: true,
-            },
-            fieldType: FieldType.Boolean,
-            title: "Enable AI",
-            description:
-              "The master switch for every AI feature in this project, auto-remediation and AI commands on Runners included.",
-          },
-        ],
-        modelId: ProjectUtil.getCurrentProjectId()!,
-      }}
-    />
+    <>
+      <ModelSwitchCard<Project>
+        modelType={Project}
+        modelId={projectId}
+        column={ENABLE_AI_COLUMN}
+        cardTitle={EnableAiCopy.cardTitle}
+        cardDescription={EnableAiCopy.cardDescription}
+        title={EnableAiCopy.switchTitle}
+        getDescription={(): string => {
+          return EnableAiCopy.switchDescription;
+        }}
+        getConfirmation={getEnableAiConfirmation}
+        dataTestId={ENABLE_AI_SWITCH_TEST_ID}
+      />
+
+      {/*
+       * Under the switch rather than above it: turning AI on can bring the
+       * provider notice up, and it must not push the switch away from the
+       * pointer that just pressed it.
+       */}
+      <ProjectAiNotice context={ProjectAiNoticeContext.AiFeatures} />
+    </>
   );
 };
 

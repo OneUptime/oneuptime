@@ -37,12 +37,13 @@ import {
  * access task turns into one choice. So are incidents, alerts, episodes,
  * scheduled maintenance, runbooks, SLOs and RUM: their reminders, privacy,
  * status page visibility and on/off switches save on flip, and no card
- * under those pages may be listed except an incident AI behaviour, which
- * the AI settings task converts. So are Project Settings and the admin
- * dashboard: customer support access, monitor groups, requiring SSO, sign
- * up, project creation and master admin save on flip, and nothing under
- * the Dashboard's Pages/Settings may be listed but the project's AI
- * switch, and nothing in the admin dashboard at all.
+ * under those pages may be listed. So are the AI settings pages: every AI
+ * behaviour there (Enable AI, investigating, drafting postmortems, opening
+ * fix pull requests, AI Insights) is a switch that saves on flip. So are
+ * Project Settings and the admin dashboard: customer support access,
+ * monitor groups, requiring SSO, sign up, project creation and master
+ * admin save on flip, and nothing under the Dashboard's Pages/Settings may
+ * be listed, and nothing in the admin dashboard at all.
  *
  * Tables are not judged here: a table row's edit form with one switch (a
  * network interface's "Monitor this Interface") edits one row of many.
@@ -68,7 +69,6 @@ const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
  * the batch converts yet.
  */
 export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [
-  "ai-settings-switches-first",
   "dashboard-sharing-one-choice",
   "status-page-access-one-choice",
   "",
@@ -87,28 +87,10 @@ export interface OneSwitchCardLeft {
   reason: string;
 }
 
-const AI_TASK: string = "ai-settings-switches-first";
 const STATUS_PAGE_ACCESS_TASK: string = "status-page-access-one-choice";
 const DASHBOARD_SHARING_TASK: string = "dashboard-sharing-one-choice";
 
 export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [
-  // AI.
-  {
-    file: `${DASHBOARD}/Pages/Settings/AIFeatures.tsx`,
-    column: "enableAi",
-    card: "AI Features (Enable AI)",
-    task: AI_TASK,
-    reason:
-      "The project's one AI switch. Its task redraws the AI settings pages switches first, and its column is narrower than the Project table (getProjectColumnsEditGate), which the shared row's column gate covers.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentAISettings.tsx`,
-    column: "enableAutomaticPostmortemDraft",
-    card: "Postmortem drafts (Draft a postmortem automatically when an incident resolves)",
-    task: AI_TASK,
-    reason: "An incident AI behaviour, converted with the AI settings pages.",
-  },
-
   // Who may see a dashboard.
   {
     file: `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
@@ -424,14 +406,13 @@ describe("one-switch cards in the frontends", () => {
   });
 
   /*
-   * Incidents, alerts, episodes, scheduled maintenance, runbooks, SLOs and
-   * RUM: every one-switch card there saves on flip now. The only card left
-   * under them is an incident AI behaviour, which the AI settings task
-   * converts with the rest of the AI settings pages.
+   * Incidents, alerts, episodes, scheduled maintenance, runbooks, SLOs, RUM
+   * and AI Insights: every one-switch card there saves on flip now, the
+   * incident and alert AI settings included, and none may be listed.
    */
-  test("the event, runbook, SLO and RUM pages have no one-switch card but what other tasks own", () => {
+  test("the event, runbook, SLO, RUM and AI pages have no one-switch card", () => {
     const areas: Array<{ directory: string; ownedBy: Array<string> }> = [
-      { directory: `${DASHBOARD}/Pages/Incidents/`, ownedBy: [AI_TASK] },
+      { directory: `${DASHBOARD}/Pages/Incidents/`, ownedBy: [] },
       { directory: `${DASHBOARD}/Pages/Alerts/`, ownedBy: [] },
       {
         directory: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/`,
@@ -440,6 +421,8 @@ describe("one-switch cards in the frontends", () => {
       { directory: `${DASHBOARD}/Pages/Runbook/`, ownedBy: [] },
       { directory: `${DASHBOARD}/Pages/Slo/`, ownedBy: [] },
       { directory: `${DASHBOARD}/Pages/Rum/`, ownedBy: [] },
+      { directory: `${DASHBOARD}/Pages/AIInsights/`, ownedBy: [] },
+      { directory: `${DASHBOARD}/Components/AISettings/`, ownedBy: [] },
     ];
 
     for (const area of areas) {
@@ -480,7 +463,7 @@ describe("one-switch cards in the frontends", () => {
     }
   });
 
-  test("the cards the monitor, status page, event, runbook, SLO and RUM areas converted stay converted", () => {
+  test("the cards the monitor, status page, event, runbook, SLO, RUM and AI areas converted stay converted", () => {
     const retired: Array<{ file: string; column: string }> = [
       {
         file: `${DASHBOARD}/Pages/Monitor/View/Settings.tsx`,
@@ -534,6 +517,46 @@ describe("one-switch cards in the frontends", () => {
         file: `${DASHBOARD}/Pages/Rum/Settings/SessionReplay.tsx`,
         column: "isSessionReplayAllowed",
       },
+      /*
+       * The AI settings pages: every AI behaviour is a switch that saves on
+       * flip (Components/AISettings), never a field of an Edit dialog again
+       * - the incident and alert pages' Advanced cards hold only limits.
+       */
+      {
+        file: `${DASHBOARD}/Pages/Settings/AIFeatures.tsx`,
+        column: "enableAi",
+      },
+      ...[
+        "enableAutomaticIncidentInvestigation",
+        "enableAutomaticPostmortemDraft",
+        "enableAutomaticIncidentCodeFixes",
+        "enableIncidentInstrumentationFixTasks",
+      ].map((column: string): { file: string; column: string } => {
+        return {
+          file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentAISettings.tsx`,
+          column,
+        };
+      }),
+      ...[
+        "enableAutomaticAlertInvestigation",
+        "enableAutomaticAlertCodeFixes",
+        "enableAlertInstrumentationFixTasks",
+      ].map((column: string): { file: string; column: string } => {
+        return {
+          file: `${DASHBOARD}/Pages/Alerts/Settings/AlertAISettings.tsx`,
+          column,
+        };
+      }),
+      ...[
+        "enableAiInsights",
+        "enableInsightFixTasks",
+        "autoArchiveNonActionableExceptions",
+      ].map((column: string): { file: string; column: string } => {
+        return {
+          file: `${DASHBOARD}/Pages/AIInsights/Settings.tsx`,
+          column,
+        };
+      }),
     ];
 
     for (const card of retired) {
@@ -559,15 +582,15 @@ describe("one-switch cards in the frontends", () => {
   /*
    * Project Settings and the admin dashboard: customer support access,
    * monitor groups, requiring SSO (the project's and the whole server's),
-   * sign up, project creation and master admin are switches that save on
-   * flip, asking first where one can lock people out. The only card left
-   * under the Dashboard's Pages/Settings is the project's AI switch, which
-   * the AI settings task converts; the admin dashboard has none, and
-   * neither may an Enterprise admin screen.
+   * sign up, project creation, master admin and Enable AI are switches
+   * that save on flip, asking first where one can lock people out or
+   * stop every AI feature. No card under the Dashboard's Pages/Settings
+   * may be listed, the admin dashboard has none, and neither may an
+   * Enterprise admin screen.
    */
-  test("Project Settings and the admin dashboard have no one-switch card but what the AI task owns", () => {
+  test("Project Settings and the admin dashboard have no one-switch card", () => {
     const areas: Array<{ directory: string; ownedBy: Array<string> }> = [
-      { directory: `${DASHBOARD}/Pages/Settings/`, ownedBy: [AI_TASK] },
+      { directory: `${DASHBOARD}/Pages/Settings/`, ownedBy: [] },
       { directory: `${ADMIN_DASHBOARD}/`, ownedBy: [] },
       { directory: "ee/AdminDashboard/", ownedBy: [] },
     ];
