@@ -12,14 +12,16 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import Recurring from "Common/Types/Events/Recurring";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import {
+  buildNewScheduleLayer,
+  getNewLayerName,
+} from "Common/Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import ScheduleShiftUtil, {
   ScheduleCoverageState,
   ScheduleCoverageStatus,
@@ -255,33 +257,25 @@ const Layers: FunctionComponent<ComponentProps> = (
       const newOrder: number = maxOrder + 1;
 
       /*
-       * Pick a "Layer N" name that is not already taken. maxOrder+1 alone is not
-       * enough: after deleting a middle layer the server re-sequences orders but
-       * leaves names untouched, so "Layer 3" can still exist while maxOrder is 2.
+       * The layer every new layer starts as (ScheduleLayerDefaults), the same
+       * the server adds when a schedule is created with people to take
+       * turns: on call from now, handing off once a week, around the clock.
+       * Its name is "Layer N", skipping names still taken: after deleting a
+       * middle layer the server re-sequences orders but leaves names
+       * untouched, so "Layer 3" can still exist while maxOrder is 2.
        */
-      const existingNames: Set<string> = new Set<string>(
-        layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
-          return layer.name?.toString() || "";
+      const newLayer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
+        onCallDutyPolicyScheduleId: props.onCallDutyPolicyScheduleId,
+        projectId: props.projectId,
+        name: getNewLayerName({
+          order: newOrder,
+          existingNames: layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
+            return layer.name?.toString() || "";
+          }),
         }),
-      );
-      let nameIndex: number = newOrder;
-      while (existingNames.has(`Layer ${nameIndex}`)) {
-        nameIndex++;
-      }
-
-      const newLayer: OnCallDutyPolicyScheduleLayer =
-        new OnCallDutyPolicyScheduleLayer();
-      newLayer.onCallDutyPolicyScheduleId = props.onCallDutyPolicyScheduleId;
-      newLayer.projectId = props.projectId;
-      newLayer.name = `Layer ${nameIndex}`;
-      newLayer.order = newOrder;
-      newLayer.startsAt = OneUptimeDate.getCurrentDate();
-      newLayer.handOffTime = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        1,
-      );
-      newLayer.rotation = Recurring.getDefault();
-      newLayer.restrictionTimes = RestrictionTimes.getDefault();
+        order: newOrder,
+        timezone: scheduleTimezone,
+      });
 
       const response: HTTPResponse<
         | OnCallDutyPolicyScheduleLayer

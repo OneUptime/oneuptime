@@ -78,12 +78,21 @@ export interface ComponentProps {
   onOptionChange?: ((option: string) => void) | undefined;
 
   /*
-   * Narrow the key picker to one kind of key for an option — a browser
-   * snippet must only ever be offered Browser keys.
+   * The kind of key an option's snippet works with: the key picker lists
+   * only those, and makes them without asking. Server when left out, or
+   * undefined for an option: an agent or a collector sends no Origin
+   * header, so a Browser key is refused on every export. A browser snippet
+   * must only ever be offered Browser keys.
    */
   getKeyTypeFilter?:
     | ((option: string | undefined) => TelemetryIngestionKeyType | undefined)
     | undefined;
+  /*
+   * What a key created from this guide is called until the reader renames
+   * it: what the guide is for, translationKey("Kubernetes key"). Numbered
+   * when the project already has a key of that name.
+   */
+  newKeyName: string;
   keyStepDescription?: string | undefined;
 
   getContent: (context: SetupGuideRenderContext) => SetupGuideContent;
@@ -175,8 +184,8 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
     hasApiKey: Boolean(secret),
   });
 
-  const keyTypeFilter: TelemetryIngestionKeyType | undefined =
-    props.getKeyTypeFilter ? props.getKeyTypeFilter(option) : undefined;
+  const keyTypeFilter: TelemetryIngestionKeyType =
+    props.getKeyTypeFilter?.(option) || TelemetryIngestionKeyType.Server;
 
   const keyStep: SetupGuideKeyStep = content.keyStep || {};
 
@@ -193,6 +202,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
           endpointValue={keyStep.endpointValue || oneuptimeUrl}
           endpointHint={keyStep.endpointHint}
           keyTypeFilter={keyTypeFilter}
+          newKeyName={props.newKeyName}
           onSelectedKeyChange={setSelectedKey}
         />
       ),

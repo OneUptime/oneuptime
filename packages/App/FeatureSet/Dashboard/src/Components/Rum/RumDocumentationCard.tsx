@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import SetupGuideCard, {
   SetupGuideRenderContext,
@@ -33,6 +34,7 @@ const RumDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Globe}
+      newKeyName={translationKey("RUM key")}
       optionsLabel="What are you instrumenting?"
       options={RUM_CLIENTS}
       initialOption={props.clientType}

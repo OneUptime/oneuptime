@@ -210,15 +210,25 @@ describe("What the section tells readers to click", () => {
       file: "Pages/Monitor/View/SideMenu.tsx",
       source: 'title: "Settings"',
     },
+    /*
+     * The Monitoring card's switch, which saves when it is flipped, and the
+     * banner's button that turns monitoring back on. They replaced "Disable
+     * Active Monitoring" behind an Edit Settings dialog.
+     */
     {
-      label: "Edit Settings",
-      file: "Pages/Monitor/View/Settings.tsx",
-      source: 'editButtonText="Edit Settings"',
+      label: "Monitoring",
+      file: "Components/Monitor/MonitoringSwitchCopy.ts",
+      source: 'cardTitle: translationKey("Monitoring")',
     },
     {
-      label: "Disable Active Monitoring",
-      file: "Pages/Monitor/View/Settings.tsx",
-      source: 'title: "Disable Active Monitoring"',
+      label: "Check this monitor",
+      file: "Components/Monitor/MonitoringSwitchCopy.ts",
+      source: 'switchTitle: translationKey("Check this monitor")',
+    },
+    {
+      label: "Turn monitoring on",
+      file: "Components/Monitor/MonitoringSwitchCopy.ts",
+      source: 'turnOnButton: translationKey("Turn monitoring on")',
     },
   ];
 
@@ -303,7 +313,7 @@ describe("The defaults the section quotes", () => {
     );
   });
 
-  test("a disabled monitor records the email but logs nothing, as it says", () => {
+  test("a monitor with monitoring off records the email but logs nothing, as it says", () => {
     /*
      * processIncomingEmailFromQueue writes the email to the monitor before
      * it checks whether the monitor is disabled, then returns before
@@ -334,13 +344,13 @@ describe("The defaults the section quotes", () => {
     expect(ingest.slice(skipsDisabled, evaluates)).toContain("return;");
 
     expect(section).toContain(
-      "A disabled monitor still records the email, and the **Monitor Summary** card still shows it.",
+      "A monitor with monitoring off still records the email, and the **Monitor Summary** card still shows it.",
     );
     expect(section).toContain(
       "It evaluates nothing, though, so the email gets no row in **Monitoring Logs**",
     );
     expect(summarySection).toContain(
-      "A disabled monitor evaluates nothing, so the emails it receives get no rows.",
+      "A monitor with monitoring turned off evaluates nothing, so the emails it receives get no rows.",
     );
   });
 });

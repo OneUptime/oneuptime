@@ -27,8 +27,7 @@ import React, {
   useState,
 } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import Project from "Common/Models/DatabaseModels/Project";
+import GlobalProbesOnNewMonitorsCard from "../../../Components/Probe/GlobalProbesOnNewMonitorsCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -368,59 +367,12 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         )}
       </>
 
-      <CardModelDetail
-        name="Global Probe Settings"
-        cardProps={{
-          title: "Global Probe Settings",
-          description:
-            "Configure settings related to the automatic addition of Global Probes to new monitors.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Settings"
-        formFields={[
-          {
-            field: {
-              doNotAddGlobalProbesByDefaultOnNewMonitors: true,
-            },
-            title: "Disable Global Probes on New Monitors",
-            description:
-              "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "global-probe-auto-add",
-          fields: [
-            {
-              field: {
-                doNotAddGlobalProbesByDefaultOnNewMonitors: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Global Probes on New Monitors",
-              description:
-                "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
-              placeholder: "New Monitors will have Global Probes by default",
-              getElement: (item: Project): ReactElement => {
-                return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
-                  <span>
-                    {translator.translateText(
-                      "Global probes disabled for new monitors. New monitors will not have Global Probes assigned by default.",
-                    )}
-                  </span>
-                ) : (
-                  <span>
-                    {translator.translateText(
-                      "Global probes enabled for new monitors. New monitors will have Global Probes assigned by default.",
-                    )}
-                  </span>
-                );
-              },
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
+      {/*
+       * Whether a new monitor starts with OneUptime's global probes: one
+       * switch that saves when it is flipped.
+       */}
+      <GlobalProbesOnNewMonitorsCard
+        projectId={ProjectUtil.getCurrentProjectId()!}
       />
     </Fragment>
   );

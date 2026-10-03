@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
@@ -28,6 +29,7 @@ const CephDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Ceph}
+      newKeyName={translationKey("Ceph key")}
       optionsLabel="How do you want to install the agent?"
       options={CEPH_INSTALL_METHODS}
       keyStepDescription="The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."

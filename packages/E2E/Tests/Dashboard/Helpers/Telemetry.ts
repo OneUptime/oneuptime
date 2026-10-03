@@ -23,9 +23,11 @@ const secretKeyRegex: RegExp = /^[0-9a-fA-F-]{36}$/;
 
 /*
  * Registers-nothing: assumes the caller already created a project. Navigates
- * to Settings > Telemetry Ingestion Keys, creates a key from the ModelTable
- * create modal, opens the key detail page, reveals the secret, and returns it
- * so the caller can use it as the OTLP ingestion token.
+ * to Settings > Telemetry Ingestion Keys and creates a key from the table's
+ * create dialog - one page for a Server key: the name (filled in as "Server
+ * key", replaced here), Server already picked - after which the new key
+ * opens on its own page. Reveals the secret there and returns it so the
+ * caller can use it as the OTLP ingestion token.
  */
 type CreateTelemetryIngestionKeyFunction = (data: {
   page: Page;
@@ -60,65 +62,46 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       ready: createButton,
     });
 
-    // Open the create modal and fill in the key name.
+    // Open the create dialog and name the key.
     await createButton.click();
-    await page.getByTestId("modal").waitFor({ state: "visible" });
-    await page
-      .locator("input[placeholder='Ingestion Key Name']")
-      .first()
-      .fill(data.keyName);
     const modal: Locator = page.getByTestId("modal");
-    const submitButton: Locator = modal.getByTestId(
-      "modal-footer-submit-button",
-    );
-    /*
-     * The one button that reads Next: the main button while a step to come
-     * still has to be shown (the Free plan's Billing step), the plain one
-     * beside Create Ingestion Key once every step left is optional.
-     */
-    const nextButton: Locator = modal.getByRole("button", {
-      name: "Next",
+    await modal.waitFor({ state: "visible" });
+    const nameInput: Locator = modal.getByPlaceholder("Ingestion Key Name", {
       exact: true,
     });
-    await nextButton.click();
+    await expect(nameInput).toHaveValue("Server key");
     await expect(
       modal.getByTestId("card-select-option-Server"),
     ).toHaveAttribute("aria-checked", "true");
+    await nameInput.fill(data.keyName);
 
+    const submitButton: Locator = modal.getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    /*
+     * On the Free plan the dialog walks on to a Billing step, whose pricing
+     * has to be shown before the key can be created: until then the main
+     * button reads Next. Everywhere else the first page creates the key.
+     */
     const billingStep: Locator = modal
       .getByRole("navigation", { name: "Progress" })
       .getByText("Billing", { exact: true });
     if ((await billingStep.count()) > 0) {
-      await nextButton.click();
+      await expect(submitButton).toHaveText("Next");
+      await submitButton.click();
       await expect(
         modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();
     }
 
-    // Only the summary is left: the main button creates the key.
     await expect(submitButton).toHaveText("Create Ingestion Key");
     await submitButton.click();
-    await page.getByTestId("modal").waitFor({ state: "hidden" });
 
-    /*
-     * The ModelTable stays on the list after create; the row exposes its
-     * detail page through a "View Ingestion Key" action button (singularName
-     * "Ingestion Key"). Scope to the row for our key, then open it.
-     */
+    // A new key opens on its own page, where its secret is.
     const keyDetailUrlRegex: RegExp = new RegExp(
       `/dashboard/${data.projectId}/settings/telemetry-ingestion-keys/[a-f0-9-]+`,
     );
-
-    if (!keyDetailUrlRegex.test(page.url())) {
-      const keyRow: Locator = page
-        .getByRole("row")
-        .filter({ hasText: data.keyName });
-      await keyRow
-        .getByRole("button", { name: "View Ingestion Key" })
-        .first()
-        .click();
-    }
-
     await expect(page).toHaveURL(keyDetailUrlRegex, { timeout: 60000 });
 
     // Reveal the secret key (HiddenText renders "Click to reveal" first).
