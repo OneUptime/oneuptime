@@ -139,12 +139,14 @@ describe("the Create Team form", () => {
       canAddPermissions: true,
     });
 
+    // The Access cards are plain options: no groups.
+    const offered: Array<CardSelectOption> = (fields(onlyAdmin)[1]!
+      .cardSelectOptions || []) as Array<CardSelectOption>;
+
     expect(
-      (fields(onlyAdmin)[1]!.cardSelectOptions || []).map(
-        (option: CardSelectOption): string => {
-          return option.value;
-        },
-      ),
+      offered.map((option: CardSelectOption): string => {
+        return option.value;
+      }),
     ).toEqual([Permission.ProjectAdmin, ROLE_ACCESS_LATER]);
   });
 
