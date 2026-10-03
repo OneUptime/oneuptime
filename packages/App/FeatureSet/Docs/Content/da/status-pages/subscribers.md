@@ -8,19 +8,22 @@ Denne side dækker begge dele: de fem abonnementskanaler og hvordan besøgende t
 
 ## Abonnementskanaler
 
-En statusside understøtter fem kanaler, hver med sin egen kontakt på statussiden. Gå til **Statussider → din side → Abonnenter → Abonnementsindstillinger**:
+En statusside understøtter fem kanaler. De og den side, besøgende tilmelder sig på, slås til ét sted: kortet **Kanaler** under **Statussider → din side → Abonnenter → Abonnementsindstillinger**. Hver kontakt gemmes, så snart du slår den om:
 
-- **Aktivér e-mailabonnenter** (`enableEmailSubscribers`) — slået til som standard. Alt det øvrige er slået fra, indtil du selv tænder for det.
-- **Aktivér SMS-abonnenter** (`enableSmsSubscribers`) — slået fra som standard.
-- **Aktivér Slack-abonnenter** (`enableSlackSubscribers`) — slået fra som standard.
-- **Aktivér Microsoft Teams-abonnenter** (`enableMicrosoftTeamsSubscribers`) — slået fra som standard.
-- **Aktivér webhook-abonnenter** (`enableWebhookSubscribers`) — slået fra som standard.
+- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — slået til som standard. Sætter punktet **Abonner** i statussidens navigationslinje, hvor besøgende tilmelder sig via kanalerne nedenfor.
+- **E-mail** (`enableEmailSubscribers`) — slået til som standard. Alt det øvrige er slået fra, indtil du selv tænder for det.
+- **SMS** (`enableSmsSubscribers`) — slået fra som standard. På OneUptime Cloud betales hver SMS af projektets saldo til SMS og opkald, medmindre siden har sin egen **Twilio-konfiguration**. For at slå den til skal **Aktivér SMS-notifikationer** også være slået til for projektet, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
+- **Slack** (`enableSlackSubscribers`) — slået fra som standard.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — slået fra som standard.
+- **Webhook** (`enableWebhookSubscribers`) — slået fra som standard.
 
-Hver kanal får også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er dér, du ser hvem der er tilmeldt, tilføjer nogen manuelt eller efterlader dig selv en **Noter**-note (`internalNote`) på en bestemt abonnent.
+Kontakterne bestemmer, hvordan besøgende selv kan tilmelde sig: statussiden afviser en tilmelding via en kanal, der er slået fra. De stopper ikke notifikationer: abonnenter, som dit team tilføjer i dashboardet, via API'et eller med et workflow, får opdateringer, uanset hvilke kanaler der er slået til.
 
-**Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationslinje dukker først op, når **Vis abonnentside** (`showSubscriberPageOnStatusPage`) er slået til *og* mindst én kanal er aktiveret. Slår du **Aktivér e-mailabonnenter** til, men lader **Vis abonnentside** stå slukket, har besøgende ingen vej til formularen.
+På OneUptime Cloud står planens navn ved siden af en kontakt, som din plan ikke omfatter: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**.
 
-De samme fem kontakter optræder en gang til i kortet **Abonnementsindstillinger** på **Avancerede indstillinger**, side om side med **Vis abonnentside**. Det er de samme kolonner nedenunder — vælg én skærm og bliv på den, og hold dig helst til den dedikerede side **Abonnementsindstillinger**, for det er dér, resten af abonnentopsætningen bor.
+Hver kanal får også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter** og **Webhook-abonnenter**. Det er dér, du ser hvem der er tilmeldt, tilføjer nogen manuelt eller efterlader dig selv en **Noter**-note (`internalNote`) på en bestemt abonnent. Så længe en kanal er slået fra, står det øverst i dens liste, med kanalens kontakt lige ved siden af, så du kan slå den til uden at forlade listen.
+
+**Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationslinje dukker først op, når **Vis abonnentside** er slået til *og* mindst én kanal er slået til. Slår du **E-mail** til, men lader **Vis abonnentside** stå slukket, har besøgende ingen vej til formularen.
 
 ## Hvad en besøgende ser på Abonner-siden
 

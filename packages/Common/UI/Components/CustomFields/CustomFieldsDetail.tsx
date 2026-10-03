@@ -37,6 +37,11 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import {
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   title: string;
@@ -87,6 +92,7 @@ export interface ComponentProps {
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [schemaList, setSchemaList] = useState<Array<BaseModel>>([]);
   /*
    * Read failures and write failures are kept apart because hideIfEmpty
@@ -456,7 +462,10 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
 
         {showModelForm && (
           <BasicFormModal
-            title={"Edit " + new props.modelType().singularName}
+            title={translateNamedAction(translator, {
+              template: "Edit {{itemName}}",
+              itemName: new props.modelType().singularName || "",
+            })}
             onClose={() => {
               return setShowModelForm(false);
             }}

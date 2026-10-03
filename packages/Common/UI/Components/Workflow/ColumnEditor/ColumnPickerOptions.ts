@@ -26,6 +26,7 @@
 import { ModelSchemaColumn } from "../ModelSchema";
 import { columnTypeLabel } from "./ColumnControl";
 import { ColumnUse, isSystemColumn } from "./ColumnUse";
+import { translationKey } from "../../../Utils/TranslateTemplate";
 
 export enum ColumnPickerGroupId {
   Required = "required",
@@ -119,7 +120,7 @@ const mainGroupHint: MainGroupHintFunction = (
    * not filled in deserves to know the step still works.
    */
   return use === ColumnUse.Create
-    ? "Filled in for you if you leave them out"
+    ? translationKey("Filled in for you if you leave them out")
     : undefined;
 };
 

@@ -3,6 +3,8 @@ import Pill from "../Pill/Pill";
 import { Black } from "../../../Types/BrandColors";
 import { Argument } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   arguments: Array<Argument>;
@@ -13,6 +15,7 @@ export interface ComponentProps {
 const ComponentArgumentViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mt-5 mb-5">
       <h2 className="text-base font-medium text-gray-500">{props.name}</h2>
@@ -42,8 +45,23 @@ const ComponentArgumentViewer: FunctionComponent<ComponentProps> = (
                       </span>
                     </p>
                     <p className="truncate text-sm text-gray-500">
-                      {argument.required ? "Required. " : "Optional. "}
-                      {argument.description}
+                      {argument.required
+                        ? translator.translateTemplate(
+                            "Required. {{description}}",
+                            {
+                              description: translatableTerm(
+                                argument.description,
+                              ),
+                            },
+                          )
+                        : translator.translateTemplate(
+                            "Optional. {{description}}",
+                            {
+                              description: translatableTerm(
+                                argument.description,
+                              ),
+                            },
+                          )}
                     </p>
                   </div>
                   <div>

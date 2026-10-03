@@ -2,6 +2,12 @@
 
 Una política de guardia avisa a las personas por niveles. Cada regla de escalación es un nivel: a quién se avisa y cuánto se espera a que alguien confirme antes de avisar al siguiente nivel. Las reglas de una política aparecen, en orden, en su página **Reglas de Escalación**.
 
+## A quién se avisa primero
+
+Cuando creas una política de guardia en la página **Políticas de Guardia**, el formulario pide su **Nombre** y **¿A quién se avisa primero?**. La pregunta usa el mismo selector que **Notificar**: horarios de guardia, equipos y personas, tantos como necesites. Quienes elijas forman la primera regla de escalación de la política, **Level 1**, que espera **30 minutos** a que alguien confirme antes de avisar al siguiente nivel. Después, la nueva política se abre en su página **Reglas de Escalación**, donde puedes añadir más niveles.
+
+**¿A quién se avisa primero?** es opcional. Si lo dejas vacío, la política empieza sin reglas de escalación: no avisa a nadie hasta que añadas una, y su resumen lo indica. La descripción y las etiquetas están en **Avanzado**. La pregunta solo se muestra a quien puede añadir reglas de escalación.
+
 ## Añadir una regla de escalación
 
 Abre la política de guardia, elige **Reglas de Escalación** en su menú lateral y haz clic en **Add Escalation Rule**. El diálogo es una sola página corta con dos preguntas:
@@ -38,3 +44,4 @@ Las reglas de escalación son el recurso `/api/on-call-duty-policy-escalation-ru
 - Una regla creada sin `name` se llama como su nivel, igual que en el panel: **Level 3** para una regla que pasa a ser el tercer nivel de su política. El recurso de Terraform para reglas de escalación sigue exigiendo un nombre.
 - `escalateAfterInMinutes` no tiene valor predeterminado fuera del panel. Una regla creada sin él no espera: se avisa al siguiente nivel en cuanto este se ha ejecutado. Indícalo de forma explícita: el panel sugiere 30.
 - Las reglas que se llaman como su nivel se renombran cuando mueves o eliminas reglas en el panel. Cambiar `order` mediante la API o Terraform solo cambia el orden.
+- Crear una política de guardia en `/api/on-call-duty-policy` con `onCallSchedules`, `teams` o `users` (listas de ids) en sus `miscDataProps` le da su primera regla de escalación, igual que en el panel: **Level 1**, que les avisa, con un `escalateAfterInMinutes` de 30. Cada id debe pertenecer al proyecto y quien llama debe poder crear reglas de escalación; si no, la política no se crea. Una política creada sin ellos no tiene reglas, como antes; el recurso de Terraform para políticas no los envía.

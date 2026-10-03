@@ -1,4 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import { SearchHelpRow } from "../types";
 
 export interface TelemetrySearchHelpProps {
@@ -10,11 +13,12 @@ export interface TelemetrySearchHelpProps {
 const TelemetrySearchHelp: FunctionComponent<TelemetrySearchHelpProps> = (
   props: TelemetrySearchHelpProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="absolute left-0 top-full z-50 mt-1 w-[36rem] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
       <div className="border-b border-gray-100 px-3 py-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-          Search syntax
+          {translator.translateText("Search syntax")}
         </span>
       </div>
 
@@ -34,12 +38,12 @@ const TelemetrySearchHelp: FunctionComponent<TelemetrySearchHelpProps> = (
               >
                 <td className="whitespace-nowrap py-1.5 pl-3 pr-2">
                   <code className="font-mono text-xs text-indigo-600">
-                    {row.syntax}
+                    {translator.translateText(row.syntax)}
                   </code>
                 </td>
                 <td className="px-2 py-1.5">
                   <span className="text-xs text-gray-500">
-                    {row.description}
+                    {translator.translateText(row.description)}
                   </span>
                 </td>
                 <td className="whitespace-nowrap py-1.5 pl-2 pr-3 text-right">
@@ -55,20 +59,29 @@ const TelemetrySearchHelp: FunctionComponent<TelemetrySearchHelpProps> = (
 
       <div className="border-t border-gray-100 px-3 py-1.5">
         <span className="text-[10px] text-gray-400">
-          Press{" "}
-          <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
-            Enter
-          </kbd>{" "}
-          to search
-          {props.combinedExample ? (
-            <>
-              {" "}
-              · Combine filters:{" "}
-              <code className="font-mono text-[10px] text-gray-500">
-                {props.combinedExample}
-              </code>
-            </>
-          ) : null}
+          <TranslatedSentence
+            template={
+              props.combinedExample
+                ? "Press {{key}} to search · Combine filters: {{example}}"
+                : "Press {{key}} to search"
+            }
+            slots={{
+              key: (
+                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
+                  Enter
+                </kbd>
+              ),
+              ...(props.combinedExample
+                ? {
+                    example: (
+                      <code className="font-mono text-[10px] text-gray-500">
+                        {props.combinedExample}
+                      </code>
+                    ),
+                  }
+                : {}),
+            }}
+          />
         </span>
       </div>
     </div>

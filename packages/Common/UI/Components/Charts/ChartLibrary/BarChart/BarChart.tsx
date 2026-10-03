@@ -43,6 +43,8 @@ import useChartAnnotations, {
   UseChartAnnotationsResult,
 } from "../Annotations/UseChartAnnotations";
 import { cx } from "../Utils/Cx";
+import { Translator } from "../../../../Utils/TranslateTemplate";
+import useTranslator from "../../../../Utils/UseTranslator";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import {
   PreparedTooltipEntries,
@@ -567,6 +569,8 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
   label,
   valueFormatter,
 }: ChartTooltipProps): React.ReactElement | null => {
+  const translator: Translator = useTranslator();
+
   if (active && payload && payload.length) {
     /*
      * Highest value at the hovered bucket first, capped — on a grouped
@@ -648,7 +652,13 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
           )}
           {overflowCount > 0 ? (
             <p className={cx("pt-1 text-xs", "text-gray-400")}>
-              +{overflowCount} more series — highest values shown
+              {translator.translatePlural(
+                {
+                  one: "+{{count}} more series — highest values shown",
+                  other: "+{{count}} more series — highest values shown",
+                },
+                overflowCount,
+              )}
             </p>
           ) : null}
         </div>

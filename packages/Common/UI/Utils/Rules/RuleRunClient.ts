@@ -13,6 +13,7 @@ import {
 import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import { APP_API_URL } from "../../Config";
 import API from "../API/API";
+import { translateTemplate, translateText } from "../TranslateTemplate";
 
 /*
  * The dashboard half of "Run now" for label, owner, privacy and status page
@@ -63,7 +64,9 @@ export default class RuleRunClient {
     if (!data.ruleId) {
       return {
         isSuccess: false,
-        message: "This rule has no id, so it cannot be run.",
+        message:
+          translateText("This rule has no id, so it cannot be run.") ||
+          "This rule has no id, so it cannot be run.",
         result: null,
       };
     }
@@ -94,9 +97,16 @@ export default class RuleRunClient {
 
       return {
         isSuccess: false,
-        message: `${message} The run stopped part-way. Before it stopped: ${RuleRunSummary.describe(
-          { ruleType: data.ruleType, result: partial },
-        )}`,
+        message: translateTemplate(
+          "{{message}} The run stopped part-way. Before it stopped: {{summary}}",
+          {
+            message: message,
+            summary: RuleRunSummary.describe({
+              ruleType: data.ruleType,
+              result: partial,
+            }),
+          },
+        ),
         result: partial,
       };
     };

@@ -1,4 +1,6 @@
 import HCaptcha from "@hcaptcha/react-hcaptcha";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React from "react";
 
 export interface CaptchaProps {
@@ -18,6 +20,7 @@ const Captcha: React.FC<CaptchaProps> = ({
   onBlur,
   className,
 }: CaptchaProps): JSX.Element => {
+  const translator: Translator = useTranslator();
   const captchaRef: React.MutableRefObject<HCaptcha | null> =
     React.useRef<HCaptcha | null>(null);
   const onTokenChangeRef: React.MutableRefObject<
@@ -43,7 +46,7 @@ const Captcha: React.FC<CaptchaProps> = ({
   if (!siteKey) {
     return (
       <div className={className || "text-center text-sm text-red-500"}>
-        Captcha is not configured.
+        {translator.translateText("Captcha is not configured.")}
       </div>
     );
   }

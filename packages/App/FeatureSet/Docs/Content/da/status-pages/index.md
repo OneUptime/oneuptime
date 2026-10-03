@@ -123,9 +123,7 @@ De fleste visningskontakter bor ét sted: **Statussider → din side → Avancer
 
 - **Vis oppetidshistorik (i dage)** (`showUptimeHistoryInDays`) — længden af oppetidsbjælken ved siden af hver ressource. Standard er 90 og skal ligge mellem 1 og 90. Hver eneste **Vis oppetid %**- og **Vis statushistorikdiagram**-indstilling på en ressource eller gruppe læser dette tal.
 
-**Abonnementsindstillinger**:
-
-- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — slået til som standard, plus de fem kontakter til de enkelte kanaler. De samme kanalkontakter findes også på den dedikerede skærm **Abonnementsindstillinger** under **Abonnenter**-sektionen; betragt den som det kanoniske sted at sætte dem.
+Om siden viser punktet **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, slået til som standard), og hvilke kanaler besøgende kan abonnere via, indstilles ikke på denne skærm: Begge dele findes i kortet **Kanaler** under **Abonnenter → Abonnementsindstillinger** (se [Abonnenter og meddelelser](/docs/status-pages/subscribers)).
 
 **Drevet af OneUptime-branding**:
 

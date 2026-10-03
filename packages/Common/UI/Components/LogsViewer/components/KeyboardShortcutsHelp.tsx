@@ -1,4 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import KeyboardShortcut, {
   KeyboardShortcutSize,
 } from "../../KeyboardShortcut/KeyboardShortcut";
@@ -35,6 +38,7 @@ export const KEYBOARD_SHORTCUTS_HELP_TEST_ID: string =
 const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
   props: KeyboardShortcutsHelpProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     /*
      * From md up this hangs off the trigger's right edge. Below md it spans
@@ -48,7 +52,7 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
     >
       <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-          Keyboard shortcuts
+          {translator.translateText("Keyboard shortcuts")}
         </span>
         <button
           type="button"
@@ -78,7 +82,9 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
               key={row.description}
               className="flex items-center justify-between px-3 py-1.5"
             >
-              <span className="text-xs text-gray-600">{row.description}</span>
+              <span className="text-xs text-gray-600">
+                {translator.translateText(row.description)}
+              </span>
               <KeyboardShortcut
                 keys={row.keys}
                 size={KeyboardShortcutSize.Small}
@@ -90,11 +96,16 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
 
       <div className="border-t border-gray-100 px-3 py-1.5">
         <span className="text-[10px] text-gray-400">
-          Press{" "}
-          <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
-            ?
-          </kbd>{" "}
-          to toggle this panel
+          <TranslatedSentence
+            template="Press {{key}} to toggle this panel"
+            slots={{
+              key: (
+                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
+                  ?
+                </kbd>
+              ),
+            }}
+          />
         </span>
       </div>
     </div>

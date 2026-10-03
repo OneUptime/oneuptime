@@ -2,6 +2,8 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Input, { InputType } from "../Input/Input";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useEffect } from "react";
 
 export enum StartAndEndDateType {
@@ -21,6 +23,7 @@ type DateFilterFunction = (props: ComponentProps) => ReactElement;
 const StartAndEndDate: DateFilterFunction = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [startDateError, setStartDateError] = React.useState<string>("");
   const [endDateError, setEndDateError] = React.useState<string>("");
 
@@ -128,7 +131,9 @@ const StartAndEndDate: DateFilterFunction = (
       <div>
         <div className="flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0 mt-1">
           <div className="w-full md:w-1/2">
-            <div className="text-xs text-gray-500">From:</div>
+            <div className="text-xs text-gray-500">
+              {translator.translateText("From:")}
+            </div>
             <div>
               <Input
                 error={startDateError}
@@ -165,7 +170,9 @@ const StartAndEndDate: DateFilterFunction = (
             </div>
           </div>
           <div className="w-full md:w-1/2">
-            <div className="text-xs text-gray-500">To:</div>
+            <div className="text-xs text-gray-500">
+              {translator.translateText("To:")}
+            </div>
             <div>
               <Input
                 error={endDateError}

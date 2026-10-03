@@ -5,6 +5,7 @@ import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentatio
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import CommonURL from "../../../Types/API/URL";
@@ -2581,7 +2582,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
                 } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
                 title={modeToggleTitle}
               >
-                {mode === "wysiwyg" ? "Markdown" : "Visual"}
+                {tx(mode === "wysiwyg" ? "Markdown" : "Visual")}
               </button>
             </>
           ) : null}
@@ -2674,7 +2675,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             {isDraggingOver && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-b-md bg-indigo-50/70">
                 <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-indigo-700 shadow-sm">
-                  Drop image to upload
+                  {tx("Drop image to upload")}
                 </span>
               </div>
             )}
@@ -2739,7 +2740,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             {isDraggingOver && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-b-md bg-indigo-50/70">
                 <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-indigo-700 shadow-sm">
-                  Drop image to upload
+                  {tx("Drop image to upload")}
                 </span>
               </div>
             )}
@@ -2813,43 +2814,60 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       <TinyFormDocumentation title={helpTitle}>
         <>
           <div>
-            Type directly in the visual editor — use the toolbar to format.
+            {tx(
+              "Type directly in the visual editor — use the toolbar to format.",
+            )}
           </div>
           <div>
-            Switch to <strong>Markdown</strong> to view or edit the raw source.
+            <TranslatedSentence
+              template="Switch to {{markdown}} to view or edit the raw source."
+              slots={{ markdown: <strong>{tx("Markdown")}</strong> }}
+            />
           </div>
           <div>
-            In a list, press{" "}
-            <strong>
-              {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])}
-            </strong>{" "}
-            to indent an item and{" "}
-            <strong>
-              {KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Shift,
-                KeyboardKey.Tab,
-              ])}
-            </strong>{" "}
-            to outdent it, or use the Indent and Outdent buttons. Outside a
-            list, {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])} moves to
-            the next field.
+            <TranslatedSentence
+              template="In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field."
+              slots={{
+                indentKey: (
+                  <strong>
+                    {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])}
+                  </strong>
+                ),
+                outdentKey: (
+                  <strong>
+                    {KeyboardKeyUtil.getDisplayLabel([
+                      KeyboardKey.Shift,
+                      KeyboardKey.Tab,
+                    ])}
+                  </strong>
+                ),
+              }}
+              values={{
+                tabKey: KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab]),
+              }}
+            />
           </div>
           <div>
-            Pasting keeps lists, links and formatting from Word, Outlook, web
-            pages and other notes. To paste plain text instead, press{" "}
-            <strong>
-              {KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Mod,
-                KeyboardKey.Shift,
-                "V",
-              ])}
-            </strong>
-            .
+            <TranslatedSentence
+              template="Pasting keeps lists, links and formatting from Word, Outlook, web pages and other notes. To paste plain text instead, press {{pasteKey}}."
+              slots={{
+                pasteKey: (
+                  <strong>
+                    {KeyboardKeyUtil.getDisplayLabel([
+                      KeyboardKey.Mod,
+                      KeyboardKey.Shift,
+                      "V",
+                    ])}
+                  </strong>
+                ),
+              }}
+            />
           </div>
           {allowImageUpload && (
             <div>
-              Tip: paste, drag &amp; drop, or click the image button to upload
-              screenshots inline.
+              {tx(
+                "Tip: paste, drag & drop, or click the image button to upload screenshots inline.",
+              )}
             </div>
           )}
         </>

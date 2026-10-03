@@ -18,6 +18,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   component: NodeDataProp;
@@ -28,6 +30,7 @@ export interface ComponentProps {
 const RunForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const formRef: any = useRef<FormProps<FormValues<JSONObject>>>(null);
   const [component, setComponent] = useState<NodeDataProp>(props.component);
   const [hasFormValidationErrors, setHasFormValidationErrors] =
@@ -73,7 +76,9 @@ const RunForm: FunctionComponent<ComponentProps> = (
     <div className="mt-3">
       <div className="mt-5">
         <h2 className="text-base font-medium text-gray-500">
-          Run {component.metadata.title}
+          {translator.translateTemplate("Run {{step}}", {
+            step: translatableTerm(component.metadata.title),
+          })}
         </h2>
         <p className="text-sm font-medium text-gray-400 mb-5">
           {component.metadata.description}

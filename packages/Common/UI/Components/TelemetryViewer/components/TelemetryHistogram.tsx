@@ -4,6 +4,8 @@ import React, {
   ReactNode,
   useMemo,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   BarChart,
   Bar,
@@ -98,6 +100,7 @@ function formatYAxisTick(value: number): string {
 const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
   props: TelemetryHistogramProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
     onTimeRangeSelect: props.onTimeRangeSelect,
     onZoomOut: props.onZoomOut,
@@ -186,18 +189,20 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-gray-100 px-4 py-2 md:flex-nowrap md:gap-x-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 md:flex-nowrap">
           <span className="text-xs font-medium text-gray-500">
-            {props.title || "Volume"}
+            {translator.translateText(props.title || "Volume")}
           </span>
           {props.onTimeRangeSelect && pivotedData.length > 0 && (
             <span className="text-[10px] text-gray-300">
-              {selection.canClickToZoom
-                ? "Click or drag to zoom"
-                : "Drag to zoom"}
+              {translator.translateText(
+                selection.canClickToZoom
+                  ? "Click or drag to zoom"
+                  : "Drag to zoom",
+              )}
             </span>
           )}
           {props.onZoomOut && (
             <span className="text-[10px] text-gray-300">
-              Double-click to reset
+              {translator.translateText("Double-click to reset")}
             </span>
           )}
         </div>
@@ -229,10 +234,12 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
         >
           {props.isLoading ? (
             <ComponentLoader />
-          ) : props.headerActions ? (
-            "No data for this metric in the selected range"
           ) : (
-            "No data in the selected range"
+            translator.translateText(
+              props.headerActions
+                ? "No data for this metric in the selected range"
+                : "No data in the selected range",
+            )
           )}
         </div>
       )}

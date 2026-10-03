@@ -441,9 +441,13 @@ describe("Declare Incident", () => {
     );
   });
 
+  /*
+   * The same box, on Resources Affected since the More step went: right
+   * under the monitors and status pages whose subscribers it reaches.
+   */
   test("the box under the summary is still the one the maintainer saw", () => {
     expect(source).toContain(
-      'title: "Notify Status Page Subscribers", stepId: "more", description: "Should status page subscribers be notified when this incident is created?", fieldType: FormFieldSchemaType.Checkbox, defaultValue: true,',
+      'title: "Notify Status Page Subscribers", stepId: "resources-affected", description: "Should status page subscribers be notified when this incident is created?", fieldType: FormFieldSchemaType.Checkbox, defaultValue: true,',
     );
   });
 });

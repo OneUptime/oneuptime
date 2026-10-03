@@ -2,6 +2,12 @@
 
 Una policy di reperibilità avvisa le persone per livelli. Ogni regola di escalation è un livello: chi viene avvisato e quanto attendere che qualcuno confermi prima di avvisare il livello successivo. Le regole di una policy sono elencate, in ordine, nella sua pagina **Regole di escalation**.
 
+## Chi viene avvisato per primo
+
+Quando crei una policy di reperibilità nella pagina **Policy di reperibilità**, il modulo chiede il suo **Nome** e **Chi viene avvisato per primo?**. La domanda usa lo stesso selettore di **Notifica**: pianificazioni di reperibilità, team e persone, quanti ne servono. Chi scegli forma la prima regola di escalation della policy, **Level 1**, che attende **30 minuti** una conferma prima di avvisare il livello successivo. La nuova policy si apre poi nella sua pagina **Regole di escalation**, dove puoi aggiungere altri livelli.
+
+**Chi viene avvisato per primo?** è facoltativo. Se lo lasci vuoto, la policy parte senza regole di escalation: non avvisa nessuno finché non ne aggiungi una, e la sua panoramica lo segnala. La descrizione e le etichette si trovano in **Avanzato**. La domanda viene posta solo a chi può aggiungere regole di escalation.
+
 ## Aggiungere una regola di escalation
 
 Apri la policy di reperibilità, scegli **Regole di escalation** nel menu laterale e fai clic su **Add Escalation Rule**. La finestra è un'unica pagina breve con due domande:
@@ -38,3 +44,4 @@ Le regole di escalation sono la risorsa `/api/on-call-duty-policy-escalation-rul
 - Una regola creata senza `name` prende il nome del suo livello, come nella dashboard: **Level 3** per una regola che diventa il terzo livello della sua policy. La risorsa Terraform per le regole di escalation richiede ancora un nome.
 - `escalateAfterInMinutes` non ha un valore predefinito al di fuori della dashboard. Una regola creata senza di esso non attende: il livello successivo viene avvisato appena questo è stato eseguito. Impostalo esplicitamente: la dashboard suggerisce 30.
 - Le regole che prendono il nome dal loro livello vengono rinominate quando sposti o elimini regole nella dashboard. Modificare `order` tramite l'API o Terraform cambia solo l'ordine.
+- Creare una policy di reperibilità tramite `/api/on-call-duty-policy` con `onCallSchedules`, `teams` o `users` (elenchi di ID) nei suoi `miscDataProps` le dà la sua prima regola di escalation, come nella dashboard: **Level 1**, che li avvisa, con un `escalateAfterInMinutes` di 30. Ogni ID deve appartenere al progetto e chi chiama deve poter creare regole di escalation, altrimenti la policy non viene creata. Una policy creata senza di essi non ha regole, come prima; la risorsa Terraform delle policy non li invia.

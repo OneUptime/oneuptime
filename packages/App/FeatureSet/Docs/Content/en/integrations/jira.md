@@ -49,7 +49,7 @@ The alert templates do the same jobs for alerts. There is one fewer, because ale
 | Add Jira comments to the alert as private notes                | Copies each comment on a linked issue onto the alert as a private note.                                                                                                   | Site URL, API token, and a Jira webhook for **Comment created** |
 | Add Jira issue changes to the alert as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the alert as a private note. Status changes are left to the template above.                | A Jira webhook for **Issue updated**                            |
 
-None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-5-more), or an alert marked **Private Alert**, to Jira — not the record, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
+None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-1-incident-details), or an alert marked **Private Alert**, to Jira — not the record, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
 
 ### What is different for alerts
 

@@ -2,6 +2,12 @@
 
 En jourpolicy larmar personer i nivåer. Varje eskaleringsregel är ett nivå: vem som larmas och hur länge man väntar på att någon kvitterar innan nästa nivå larmas. En policys regler står i ordning på dess sida **Eskaleringsregler**.
 
+## Vem som larmas först
+
+När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efter dess **Namn** och **Vem larmas först?**. Frågan använder samma väljare som **Avisera**: jourscheman, team och personer, så många du behöver. De du väljer blir policyns första eskaleringsregel, **Level 1**, som väntar **30 minuter** på en kvittering innan nästa nivå larmas. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
+
+**Vem larmas först?** är valfritt. Lämnar du det tomt startar policyn utan eskaleringsregler: den larmar ingen förrän du lägger till en, och dess översikt säger det. Beskrivningen och etiketterna finns under **Avancerad**. Frågan ställs bara till den som får lägga till eskaleringsregler.
+
 ## Lägg till en eskaleringsregel
 
 Öppna jourpolicyn, välj **Eskaleringsregler** i sidomenyn och klicka på **Add Escalation Rule**. Dialogen är en kort sida med två frågor:
@@ -38,3 +44,4 @@ Eskaleringsregler är resursen `/api/on-call-duty-policy-escalation-rule`; de pe
 - En regel som skapas utan `name` får namn efter sin nivå, precis som i instrumentpanelen: **Level 3** för en regel som blir den tredje nivån i sin policy. Terraform-resursen för eskaleringsregler kräver fortfarande ett namn.
 - `escalateAfterInMinutes` har inget standardvärde utanför instrumentpanelen. En regel som skapas utan det väntar inte: nästa nivå larmas så snart den här har körts. Ange det uttryckligen — instrumentpanelen föreslår 30.
 - Regler som heter som sin nivå byter namn när du flyttar eller tar bort regler i instrumentpanelen. Att ändra `order` via API:et eller Terraform ändrar bara ordningen.
+- Skapas en jourpolicy via `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (listor med id:n) i dess `miscDataProps` får den sin första eskaleringsregel, precis som i instrumentpanelen: **Level 1**, som larmar dem, med en `escalateAfterInMinutes` på 30. Varje id måste höra till projektet och anroparen måste få skapa eskaleringsregler, annars skapas inte policyn. En policy som skapas utan dem har inga regler, som tidigare; Terraform-resursen för policyer skickar dem inte.
