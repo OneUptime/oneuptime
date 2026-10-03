@@ -24566,5 +24566,7 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "リンクを知っている人は誰でも、サインインせずにこのダッシュボードとそのすべてのウィジェットを表示できます。",
   "Remove Password": "パスワードを削除",
   "Share Publicly": "公開して共有",
-  "Stop asking for the password?": "パスワードの入力を求めないようにしますか？"
+  "Stop asking for the password?": "パスワードの入力を求めないようにしますか？",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "{{domain}} がダッシュボードを指すように、DNS プロバイダーでこのレコードを追加してください。",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "このダッシュボードを独自のドメインで公開します。各ドメインの CNAME レコードを {{cnameRecord}} に向けると、SSL 証明書を発行し、自動で更新します。"
 }

@@ -24566,5 +24566,7 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle med linket kan se dette dashboard og alle dets widgets uden at logge ind.",
   "Remove Password": "Fjern adgangskode",
   "Share Publicly": "Del offentligt",
-  "Stop asking for the password?": "Holde op med at spørge om adgangskoden?"
+  "Stop asking for the password?": "Holde op med at spørge om adgangskoden?",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "Tilføj denne post hos din DNS-udbyder, så {{domain}} peger på dit dashboard.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "Vis dette dashboard på dit eget domæne. Peg hvert domænes CNAME-post på {{cnameRecord}}, så udsteder vi dets SSL-certifikat og fornyer det for dig."
 }

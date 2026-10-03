@@ -24566,5 +24566,7 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "هر کسی که پیوند را دارد، بدون ورود به سیستم، این داشبورد و همه ابزارک‌های آن را می‌بیند.",
   "Remove Password": "حذف رمز عبور",
   "Share Publicly": "اشتراک‌گذاری عمومی",
-  "Stop asking for the password?": "دیگر رمز عبور خواسته نشود؟"
+  "Stop asking for the password?": "دیگر رمز عبور خواسته نشود؟",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "این رکورد را نزد ارائه‌دهنده DNS خود اضافه کنید تا {{domain}} به داشبورد شما اشاره کند.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "این داشبورد را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید تا ما گواهی SSL آن را صادر و برایتان تمدید کنیم."
 }

@@ -24566,5 +24566,7 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Все, у кого есть ссылка, увидят эту панель со всеми её виджетами без входа в систему.",
   "Remove Password": "Удалить пароль",
   "Share Publicly": "Открыть общий доступ",
-  "Stop asking for the password?": "Больше не запрашивать пароль?"
+  "Stop asking for the password?": "Больше не запрашивать пароль?",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "Добавьте эту запись у вашего DNS-провайдера, чтобы {{domain}} указывал на вашу панель.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "Разместите эту панель на своём домене. Направьте CNAME-запись каждого домена на {{cnameRecord}}, а мы выпустим для него SSL-сертификат и будем его продлевать."
 }

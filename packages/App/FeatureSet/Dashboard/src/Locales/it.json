@@ -24566,5 +24566,7 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Chiunque abbia il link vedrà questa dashboard con tutti i suoi widget, senza accedere.",
   "Remove Password": "Rimuovi password",
   "Share Publicly": "Condividi pubblicamente",
-  "Stop asking for the password?": "Non chiedere più la password?"
+  "Stop asking for the password?": "Non chiedere più la password?",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "Aggiungi questo record presso il tuo provider DNS per far puntare {{domain}} alla tua dashboard.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "Pubblica questa dashboard sul tuo dominio. Fai puntare il record CNAME di ogni dominio a {{cnameRecord}}, e noi emettiamo il suo certificato SSL e lo rinnoviamo per te."
 }

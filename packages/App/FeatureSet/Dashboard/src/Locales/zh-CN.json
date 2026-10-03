@@ -24566,5 +24566,7 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "任何拥有链接的人无需登录即可看到此仪表板及其所有小组件。",
   "Remove Password": "移除密码",
   "Share Publicly": "公开共享",
-  "Stop asking for the password?": "不再要求输入密码吗？"
+  "Stop asking for the password?": "不再要求输入密码吗？",
+  "Add this record at your DNS provider to point {{domain}} to your dashboard.": "请在您的 DNS 服务商处添加此记录，使 {{domain}} 指向您的仪表板。",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.": "在您自己的域名上提供此仪表板。将每个域名的 CNAME 记录指向 {{cnameRecord}}，我们会为其签发 SSL 证书并为您续期。"
 }
