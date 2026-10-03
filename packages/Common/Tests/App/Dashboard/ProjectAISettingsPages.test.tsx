@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -17,19 +18,16 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import AIFeatures, {
-  AI_FEATURES_CARD_TITLE,
-  AI_FEATURE_FIELDS,
-  canEditAiFeatures,
-  getAiFeaturesPermissionMessage,
-  getAiFeaturesUpdatePermissions,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures";
+import AIFeatures from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures";
 import AICredits from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/AICredits";
 import SettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SideMenu";
-import IncidentAISettings, {
-  POSTMORTEM_DRAFT_CARD_TITLE,
-  POSTMORTEM_DRAFT_FIELDS,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
+import IncidentAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
+import {
+  ENABLE_AI_COLUMN,
+  ENABLE_AI_SWITCH_TEST_ID,
+  EnableAiCopy,
+  getProjectAiSwitchTestId,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
   ProjectColumnsEditGate,
   canUpdateProjectColumns,
@@ -43,13 +41,19 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getSettingsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SettingsBreadcrumbs";
 import Project from "../../../Models/DatabaseModels/Project";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import { JSONObject } from "../../../Types/JSON";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
 import {
   MenuLink,
@@ -108,13 +112,14 @@ jest.mock("../../../UI/Config", () => {
  * Features", first in the AI section of the menu and outside the billing
  * branch. It is the project's only AI switch: "Enable Auto-Remediation" and
  * "Enable AI Command Execution (for Runners)" once sat next to it and were
- * folded into it, so the card shows and saves Enable AI alone. The same
- * pages are rendered for real here, with the model API and the permission
- * snapshot stubbed.
+ * folded into it. The page is that one switch, saving the moment it is
+ * flipped (it used to sit behind "Edit AI Features" and a dialog), asking
+ * first before it turns AI off. The same pages are rendered for real here,
+ * with the model API and the permission snapshot stubbed.
  *
- * Also here: the incident AI settings page's new "Draft a postmortem
- * automatically when an incident resolves" switch, which is its own card so
- * it can never ride on (or be overwritten by) the investigation settings.
+ * Also here: the incident AI settings page's "Draft a postmortem when an
+ * incident resolves" switch, its own column, which no other switch or card
+ * on the page can ride on or overwrite.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -132,7 +137,7 @@ const ENABLE_AI_TITLE: string = "Enable AI";
 
 /*
  * The switches folded into Enable AI, by the titles the card gave them. The
- * page must never show either again, in the detail view or the form.
+ * page must never show either again.
  */
 const RETIRED_SWITCH_TITLES: Array<string> = [
   "Enable Auto-Remediation",
@@ -153,12 +158,13 @@ const RETIRED_SWITCH_WORDING: Array<RegExp> = [
 
 /*
  * Every Project column the page may read or write. Anything else on a
- * saved model is a field riding along.
+ * request is a field riding along.
  */
 const AI_FEATURES_COLUMNS: Array<string> = ["_id", "enableAi"];
 
 let project: Project;
 let getItemSpy: ReturnType<typeof jest.spyOn>;
+let updateByIdSpy: ReturnType<typeof jest.spyOn>;
 let createOrUpdateSpy: ReturnType<typeof jest.spyOn>;
 
 function grant(permissions: Array<Permission>, isMasterAdmin?: boolean): void {
@@ -199,6 +205,14 @@ async function findText(text: string | RegExp): Promise<HTMLElement> {
   return await screen.findByText(text, {}, { timeout: WAIT_TIMEOUT });
 }
 
+async function flush(): Promise<void> {
+  await act(async () => {
+    for (let i: number = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+  });
+}
+
 function itemRequests(): Array<{ select?: Record<string, unknown> }> {
   return getItemSpy.mock.calls.map(
     (call: Array<unknown>): { select?: Record<string, unknown> } => {
@@ -207,42 +221,27 @@ function itemRequests(): Array<{ select?: Record<string, unknown> }> {
   );
 }
 
-function postedProject(): Project {
-  return (createOrUpdateSpy.mock.calls[0]![0] as { model: Project }).model;
+// Every update the page sent, as the columns and values it wrote.
+function updates(): Array<Record<string, unknown>> {
+  return updateByIdSpy.mock.calls.map(
+    (call: Array<unknown>): Record<string, unknown> => {
+      return (call[0] as { data: Record<string, unknown> }).data;
+    },
+  );
 }
 
-/*
- * The Project columns a saved model carries a value for, sorted, leaving
- * out its id: the columns the save writes.
- */
-function writtenColumns(model: Project): Array<string> {
-  const values: Record<string, unknown> = model as unknown as Record<
-    string,
-    unknown
-  >;
-
-  return Object.keys(values)
-    .filter((key: string): boolean => {
-      return (
-        key !== "_id" && model.isTableColumn(key) && values[key] !== undefined
-      );
-    })
-    .sort();
+async function enableAiSwitch(): Promise<HTMLElement> {
+  return await screen.findByTestId(
+    ENABLE_AI_SWITCH_TEST_ID,
+    {},
+    { timeout: WAIT_TIMEOUT },
+  );
 }
 
 async function aiFeaturesCard(): Promise<HTMLElement> {
-  return (await findText(AI_FEATURES_CARD_TITLE)).closest(
+  return (await findText(EnableAiCopy.cardTitle)).closest(
     '[data-testid="card"]',
   ) as HTMLElement;
-}
-
-// The titles of a card's detail rows, in order.
-function detailTitlesIn(card: HTMLElement): Array<string> {
-  return Array.from(card.querySelectorAll("label > span")).map(
-    (title: Element): string => {
-      return title.textContent || "";
-    },
-  );
 }
 
 function expectNoRetiredSwitch(container: HTMLElement): void {
@@ -256,66 +255,15 @@ function expectNoRetiredSwitch(container: HTMLElement): void {
   }
 }
 
-// A detail row's title, as ModelDetail renders it.
-function detailTitle(title: string): HTMLElement {
-  return screen.getByText(title, { selector: "label > span" });
-}
-
-// The value a detail row shows, by its title.
-function detailValue(title: string): string {
-  const row: HTMLElement | null =
-    detailTitle(title).closest("div.space-y-1")?.parentElement || null;
-  return row?.textContent || "";
-}
-
-async function openEditModal(buttonText: string): Promise<HTMLElement> {
-  const button: HTMLElement = await findText(buttonText);
-  fireEvent.click(button);
-  return await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT });
-}
-
-/*
- * A form switch by its field title. The accessible name is the field label,
- * which also carries "(Optional)" for a field that is not required.
- */
-function switchName(title: string): RegExp {
-  return new RegExp(
-    `^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( \\(Optional\\))?$`,
-  );
-}
-
-async function waitForSwitch(
-  dialog: HTMLElement,
-  name: string,
-  checked: boolean,
-): Promise<HTMLElement> {
-  const toggle: HTMLElement = await within(dialog).findByRole(
-    "switch",
-    { name: switchName(name) },
-    { timeout: WAIT_TIMEOUT },
-  );
-  await waitFor(
-    () => {
-      expect(toggle).toHaveAttribute("aria-checked", String(checked));
-    },
-    { timeout: WAIT_TIMEOUT },
-  );
-  return toggle;
-}
-
-async function save(dialog: HTMLElement): Promise<void> {
-  fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-  await waitFor(
-    () => {
-      expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
-    },
-    { timeout: WAIT_TIMEOUT },
-  );
+async function press(control: HTMLElement): Promise<void> {
+  fireEvent.click(control);
+  await flush();
 }
 
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  PermissionGate.clearPermissionPropsCache();
   grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
 
   project = Object.assign(new Project(), {
@@ -344,11 +292,28 @@ beforeEach(() => {
     .mockImplementation(async (): Promise<number> => {
       return 0;
     });
+  updateByIdSpy = jest
+    .spyOn(ModelAPI, "updateById")
+    .mockImplementation(async (): Promise<never> => {
+      return {} as never;
+    });
   createOrUpdateSpy = jest
     .spyOn(ModelAPI, "createOrUpdate")
     .mockImplementation(async (): Promise<never> => {
       return { data: {} } as never;
     });
+  // The provider the project would use (the notice asks): a global one.
+  jest.spyOn(API, "post").mockImplementation(async (): Promise<never> => {
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        isAIEnabledForProject: true,
+        defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+        providers: [],
+      },
+      {},
+    ) as unknown as never;
+  });
 });
 
 afterEach(() => {
@@ -357,51 +322,43 @@ afterEach(() => {
   billingEnabledForTest = false;
 });
 
-describe("who may change the AI features", () => {
-  test("the card edits Enable AI and nothing else", () => {
-    expect(AI_FEATURE_FIELDS).toEqual(["enableAi"]);
+describe("who may change Enable AI", () => {
+  test("the page saves Enable AI and nothing else", () => {
+    expect(ENABLE_AI_COLUMN).toBe("enableAi");
   });
 
   test("follows Enable AI's own update permissions", () => {
-    expect(getAiFeaturesUpdatePermissions()).toEqual(
-      new Project().getColumnAccessControlFor("enableAi")?.update,
+    expect(new Project().getColumnAccessControlFor("enableAi")?.update).toEqual(
+      [Permission.ProjectOwner, Permission.ManageProjectBilling],
     );
-    expect(getAiFeaturesUpdatePermissions()).toEqual([
-      Permission.ProjectOwner,
-      Permission.ManageProjectBilling,
-    ]);
   });
 
   /*
-   * The folded switches are not Project columns any more. Were either name
-   * ever listed on the card again, the gate would find no update list for
-   * it and lock the card for everyone but a master admin.
+   * The folded switches are not Project columns any more: no switch could
+   * be drawn for either.
    */
   test.each([["enableAutoRemediation"], ["enableAiCommandExecution"]])(
-    "%s is no longer a column the card could list",
+    "%s is no longer a column a switch could save",
     (retiredField: string) => {
       expect(new Project().hasColumn(retiredField)).toBe(false);
       expect(new Project().getColumnAccessControlFor(retiredField)).toBeNull();
       expect(
-        getProjectColumnsUpdatePermissions([
-          ...AI_FEATURE_FIELDS,
-          retiredField,
-        ]),
+        getProjectColumnsUpdatePermissions([ENABLE_AI_COLUMN, retiredField]),
       ).toEqual([]);
     },
   );
 
   test("is narrower than the Project table's update list", () => {
-    // Why the card cannot rely on CardModelDetail's table-level gate.
+    // Why the switch is gated on its column, not on the table.
     expect(new Project().getUpdatePermissions()).toEqual(
       expect.arrayContaining([Permission.ProjectAdmin, Permission.EditProject]),
     );
-    expect(getAiFeaturesUpdatePermissions()).not.toContain(
-      Permission.ProjectAdmin,
-    );
-    expect(getAiFeaturesUpdatePermissions()).not.toContain(
-      Permission.EditProject,
-    );
+
+    const enableAiUpdate: Array<Permission> =
+      new Project().getColumnAccessControlFor("enableAi")?.update || [];
+
+    expect(enableAiUpdate).not.toContain(Permission.ProjectAdmin);
+    expect(enableAiUpdate).not.toContain(Permission.EditProject);
   });
 
   test.each([
@@ -411,26 +368,44 @@ describe("who may change the AI features", () => {
     [Permission.EditProject, false],
     [Permission.ProjectMember, false],
     [Permission.Viewer, false],
-  ])("%s may change them: %s", (permission: Permission, allowed: boolean) => {
+  ])("%s may change it: %s", (permission: Permission, allowed: boolean) => {
     grant([...BASE_PERMISSIONS, permission]);
-    expect(canEditAiFeatures()).toBe(allowed);
+
+    expect(
+      PermissionGate.checkColumnUpdate(new Project(), ENABLE_AI_COLUMN)
+        .isAllowed,
+    ).toBe(allowed);
   });
 
-  test("a master admin may change them", () => {
+  test("a master admin may change it", () => {
     grant([], true);
-    expect(canEditAiFeatures()).toBe(true);
+
+    expect(
+      PermissionGate.checkColumnUpdate(new Project(), ENABLE_AI_COLUMN)
+        .isAllowed,
+    ).toBe(true);
   });
 
-  test("the locked button's reason names the permissions", () => {
-    expect(getAiFeaturesPermissionMessage()).toBe(
-      "Changing these needs one of these permissions: Project Owner, Manage Billing.",
+  test("the locked switch's reason names the permissions it needs", () => {
+    grant([...BASE_PERMISSIONS, Permission.ProjectAdmin]);
+
+    const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+      new Project(),
+      ENABLE_AI_COLUMN,
+    );
+
+    expect(gate.disabledReason).toContain(
+      "You need one of these permissions: Project Owner, Manage Billing.",
     );
   });
 });
 
 /*
- * The shared gate the AI Features card and the postmortem draft card use in
- * place of CardModelDetail's table-level one.
+ * The shared gate the cards of Project settings use in place of
+ * CardModelDetail's table-level one: the AI limit cards under Advanced on
+ * Incidents and Alerts → Settings → AI, Linked Alerts and the number
+ * prefixes. (A switch gates itself the same way, on its own column:
+ * PermissionGate.checkColumnUpdate.)
  */
 describe("the Project column edit gate", () => {
   test("keeps the permissions every listed column allows, in the first column's order", () => {
@@ -528,88 +503,73 @@ describe("the Project column edit gate", () => {
 });
 
 describe("AI Features page", () => {
-  test("shows its one switch, Enable AI, with the project's value", async () => {
+  test("is Enable AI's switch, with the project's value", async () => {
     openAiFeatures();
 
-    expect(await findText(AI_FEATURES_CARD_TITLE)).toBeInTheDocument();
+    expect(await findText(EnableAiCopy.cardTitle)).toBeInTheDocument();
     expect(
       screen.getByText("Turn OneUptime AI on or off for this project."),
     ).toBeInTheDocument();
 
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Yes").length).toBe(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-    expect(screen.queryByText("No")).not.toBeInTheDocument();
+    const enableAi: HTMLElement = await enableAiSwitch();
 
-    expect(detailTitle(ENABLE_AI_TITLE)).toBeInTheDocument();
-    expect(detailValue(ENABLE_AI_TITLE)).toContain("Yes");
-    expect(
-      screen.getByText(
-        "The master switch for every AI feature in this project, auto-remediation and AI commands on Runners included.",
-      ),
-    ).toBeInTheDocument();
+    expect(enableAi).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: ENABLE_AI_TITLE })).toBe(
+      enableAi,
+    );
+    // The switch is the setting: no Edit button, no dialog.
+    expect(screen.queryByText("Edit AI Features")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  test("the card has exactly one detail row", async () => {
+  test("the card holds exactly one switch", async () => {
     openAiFeatures();
 
     const card: HTMLElement = await aiFeaturesCard();
-    await waitFor(
-      () => {
-        expect(within(card).getAllByText("Yes").length).toBe(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-    expect(detailTitlesIn(card)).toEqual([ENABLE_AI_TITLE]);
+    await enableAiSwitch();
+
+    expect(within(card).getAllByRole("switch")).toHaveLength(1);
   });
 
-  /*
-   * ModelDetail leaves out a row whose column the viewer may not read, and a
-   * column the model no longer has grants nobody. A master admin is shown
-   * every row the card lists, so the rows counted here are the card's own.
-   */
-  test("a master admin, who is shown every row the card lists, still sees one", async () => {
+  test("a master admin sees the one switch too", async () => {
     grant([], true);
     openAiFeatures();
 
     const card: HTMLElement = await aiFeaturesCard();
-    await waitFor(
-      () => {
-        expect(within(card).getAllByText("Yes").length).toBe(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-    expect(detailTitlesIn(card)).toEqual([ENABLE_AI_TITLE]);
+    await enableAiSwitch();
+
+    expect(within(card).getAllByRole("switch")).toHaveLength(1);
     expectNoRetiredSwitch(card);
   });
 
-  test("shows AI switched off as No", async () => {
+  test("shows AI switched off as off", async () => {
     project.enableAi = false;
     openAiFeatures();
 
-    await findText(AI_FEATURES_CARD_TITLE);
-    await waitFor(
-      () => {
-        expect(detailValue(ENABLE_AI_TITLE)).toContain("No");
-      },
-      { timeout: WAIT_TIMEOUT },
+    expect(await enableAiSwitch()).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("says what it covers", async () => {
+    openAiFeatures();
+    await enableAiSwitch();
+
+    const row: HTMLElement = screen.getByTestId(
+      `${ENABLE_AI_SWITCH_TEST_ID}-row`,
     );
-    expect(screen.queryByText("Yes")).not.toBeInTheDocument();
+
+    expect(row).toHaveTextContent(
+      /The master switch\. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners\./,
+    );
+    // Nothing else in the project has to be switched on as well.
+    expect(row).toHaveTextContent(
+      /Auto-remediation and AI commands on Runners need no other project switch\./,
+    );
+    expectNoRetiredSwitch(row);
   });
 
   test("never shows the switches folded into Enable AI", async () => {
     openAiFeatures();
-
-    await findText(AI_FEATURES_CARD_TITLE);
-    await waitFor(
-      () => {
-        expect(screen.getAllByText("Yes").length).toBe(1);
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
+    await enableAiSwitch();
 
     for (const title of RETIRED_SWITCH_TITLES) {
       expect(screen.queryByText(title)).not.toBeInTheDocument();
@@ -619,7 +579,7 @@ describe("AI Features page", () => {
 
   test("reads the project it is on, and only Enable AI", async () => {
     openAiFeatures();
-    await findText("Edit AI Features");
+    await enableAiSwitch();
 
     await waitFor(
       () => {
@@ -627,149 +587,115 @@ describe("AI Features page", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    const call: { id?: unknown; select?: Record<string, unknown> } = getItemSpy
-      .mock.calls[0]![0] as {
-      id?: unknown;
-      select?: Record<string, unknown>;
-    };
-    expect(String(call.id)).toBe(PROJECT_ID);
-    expect(call.select).toHaveProperty("enableAi");
-    for (const column of Object.keys(call.select || {})) {
-      expect(AI_FEATURES_COLUMNS).toContain(column);
+
+    for (const call of getItemSpy.mock.calls) {
+      const request: { id?: unknown; select?: Record<string, unknown> } =
+        call[0] as { id?: unknown; select?: Record<string, unknown> };
+
+      expect(String(request.id)).toBe(PROJECT_ID);
+      expect(request.select).toHaveProperty("enableAi");
+
+      for (const column of Object.keys(request.select || {})) {
+        expect(AI_FEATURES_COLUMNS).toContain(column);
+      }
     }
-    expect(call.select).not.toHaveProperty("enableAutoRemediation");
-    expect(call.select).not.toHaveProperty("enableAiCommandExecution");
-    expect(call.select).not.toHaveProperty("aiCurrentBalanceInUSDCents");
   });
 
-  test("the edit form holds one switch, Enable AI, and says what it covers", async () => {
+  test("a project owner turns AI off: it asks first, then saves exactly that switch", async () => {
     openAiFeatures();
 
-    const dialog: HTMLElement = await openEditModal("Edit AI Features");
-    await waitForSwitch(dialog, ENABLE_AI_TITLE, true);
+    await press(await enableAiSwitch());
 
-    expect(within(dialog).getAllByRole("switch")).toHaveLength(1);
-    for (const title of RETIRED_SWITCH_TITLES) {
-      expect(
-        within(dialog).queryByRole("switch", { name: switchName(title) }),
-      ).not.toBeInTheDocument();
-    }
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent(EnableAiCopy.turnOffConfirmTitle);
+    expect(updateByIdSpy).not.toHaveBeenCalled();
 
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: EnableAiCopy.turnOffConfirmButton,
+      }),
+    );
+    await flush();
+
+    expect(updates()).toEqual([{ enableAi: false }]);
     expect(
-      within(dialog).getByText(
-        /^The master switch\. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners\./,
-      ),
-    ).toBeInTheDocument();
-    // Nothing else in the project has to be switched on as well.
-    expect(
-      within(dialog).getByText(
-        /Auto-remediation and AI commands on Runners need no other project switch\.$/,
-      ),
-    ).toBeInTheDocument();
-    expectNoRetiredSwitch(dialog);
-  });
-
-  test("a project owner turns AI off and saves exactly that switch", async () => {
-    openAiFeatures();
-
-    const dialog: HTMLElement = await openEditModal("Edit AI Features");
-    const enableAi: HTMLElement = await waitForSwitch(
-      dialog,
-      ENABLE_AI_TITLE,
-      true,
-    );
-
-    fireEvent.click(enableAi);
-    await save(dialog);
-
-    const posted: Project = postedProject();
-    expect(posted.enableAi).toBe(false);
-    // Nothing else on the project rides along.
-    expect(writtenColumns(posted)).toEqual(["enableAi"]);
-    expect(posted).not.toHaveProperty("enableAutoRemediation");
-    expect(posted).not.toHaveProperty("enableAiCommandExecution");
-    expect(posted.aiCurrentBalanceInUSDCents).toBeUndefined();
-    expect(posted.enableAutomaticIncidentInvestigation).toBeUndefined();
-    expect(posted.enableAutomaticPostmortemDraft).toBeUndefined();
-  });
-
-  test("a project owner turns AI back on the same way", async () => {
-    project.enableAi = false;
-    openAiFeatures();
-
-    const dialog: HTMLElement = await openEditModal("Edit AI Features");
-    const enableAi: HTMLElement = await waitForSwitch(
-      dialog,
-      ENABLE_AI_TITLE,
-      false,
-    );
-
-    fireEvent.click(enableAi);
-    await save(dialog);
-
-    const posted: Project = postedProject();
-    expect(posted.enableAi).toBe(true);
-    expect(writtenColumns(posted)).toEqual(["enableAi"]);
-  });
-
-  test("someone with Manage Project Billing may edit", async () => {
-    grant([...BASE_PERMISSIONS, Permission.ManageProjectBilling]);
-    openAiFeatures();
-
-    const button: HTMLElement = await findText("Edit AI Features");
-    expect(button.closest("button")).not.toBeDisabled();
-  });
-
-  test("a master admin may edit", async () => {
-    grant([], true);
-    openAiFeatures();
-
-    const button: HTMLElement = await findText("Edit AI Features");
-    expect(button.closest("button")).not.toBeDisabled();
-  });
-
-  test.each([
-    [Permission.ProjectAdmin],
-    [Permission.ProjectMember],
-    [Permission.Viewer],
-  ])("is locked, with the reason, for %s", async (permission: Permission) => {
-    grant([...BASE_PERMISSIONS, permission]);
-    openAiFeatures();
-
-    await findText(AI_FEATURES_CARD_TITLE);
-    // Everyone who may read the project reads the switch.
-    await waitFor(
-      () => {
-        expect(detailValue(ENABLE_AI_TITLE)).toContain("Yes");
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-
-    const buttons: Array<HTMLElement> = screen
-      .getAllByText("Edit AI Features")
-      .map((text: HTMLElement): HTMLElement => {
-        return text.closest("button") as HTMLElement;
-      });
-    expect(buttons.length).toBe(1);
-    expect(buttons[0]).toBeDisabled();
-
-    fireEvent.click(buttons[0]!);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      String((updateByIdSpy.mock.calls[0]![0] as { id: unknown }).id),
+    ).toBe(PROJECT_ID);
+    // Nothing goes through a form, so nothing rides along.
     expect(createOrUpdateSpy).not.toHaveBeenCalled();
   });
 
-  test("offers no button at all before the permission snapshot has landed", async () => {
+  test("a project owner turns AI back on at once", async () => {
+    project.enableAi = false;
+    openAiFeatures();
+
+    await press(await enableAiSwitch());
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(updates()).toEqual([{ enableAi: true }]);
+    expect(
+      screen.getByTestId(`${ENABLE_AI_SWITCH_TEST_ID}-status`),
+    ).toHaveTextContent("Saved");
+  });
+
+  test("someone with Manage Project Billing may flip it", async () => {
+    grant([...BASE_PERMISSIONS, Permission.ManageProjectBilling]);
+    openAiFeatures();
+
+    expect(await enableAiSwitch()).not.toHaveAttribute("aria-disabled");
+  });
+
+  test("a master admin may flip it", async () => {
+    grant([], true);
+    openAiFeatures();
+
+    expect(await enableAiSwitch()).not.toHaveAttribute("aria-disabled");
+  });
+
+  /*
+   * A Project Admin may update the project, but not this column: the reason
+   * names the column's own permissions. A member or a viewer may not update
+   * the project at all, and is told so.
+   */
+  test.each([
+    [Permission.ProjectAdmin, "Project Owner, Manage Billing"],
+    [Permission.ProjectMember, "You do not have permission to update this"],
+    [Permission.Viewer, "You do not have permission to update this"],
+  ])(
+    "is locked, with the reason, for %s",
+    async (permission: Permission, reason: string) => {
+      grant([...BASE_PERMISSIONS, permission]);
+      openAiFeatures();
+
+      const enableAi: HTMLElement = await enableAiSwitch();
+
+      // Everyone who may read the project reads the switch.
+      expect(enableAi).toHaveAttribute("aria-checked", "true");
+      expect(enableAi).toHaveAttribute("aria-disabled", "true");
+      expect(
+        screen.getByTestId(`${ENABLE_AI_SWITCH_TEST_ID}-row`),
+      ).toHaveTextContent(reason);
+
+      await press(enableAi);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updateByIdSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("before the permission snapshot has landed it is locked, accusing nobody", async () => {
     grant([]);
     openAiFeatures();
 
+    const enableAi: HTMLElement = await enableAiSwitch();
+
     /*
      * Telling somebody they need a permission they may well hold is worse
-     * than briefly not offering the button: neither the card's own gate nor
-     * the locked copy renders until the snapshot lands.
+     * than briefly not letting the switch move.
      */
-    await findText(AI_FEATURES_CARD_TITLE);
-    await findText("Turn OneUptime AI on or off for this project.");
-    expect(screen.queryByText("Edit AI Features")).not.toBeInTheDocument();
+    expect(enableAi).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByTestId(`${ENABLE_AI_SWITCH_TEST_ID}-row`),
+    ).not.toHaveTextContent("You do not have permission");
   });
 });
 
@@ -878,7 +804,11 @@ describe("settings menu, route and breadcrumbs", () => {
 
 describe("Incidents → Settings → AI", () => {
   const POSTMORTEM_SWITCH: string =
-    "Draft a postmortem automatically when an incident resolves";
+    "Draft a postmortem when an incident resolves";
+
+  const POSTMORTEM_TEST_ID: string = getProjectAiSwitchTestId(
+    "enableAutomaticPostmortemDraft",
+  );
 
   function openIncidentAiSettings(): void {
     renderPage(
@@ -891,162 +821,110 @@ describe("Incidents → Settings → AI", () => {
     );
   }
 
-  test("has its own card for the postmortem draft, off in this project", async () => {
-    openIncidentAiSettings();
-
-    expect(await findText("Automatic Postmortem Draft")).toBeInTheDocument();
-    expect(
-      screen.getByText(/This is separate from automatic investigation\./),
-    ).toBeInTheDocument();
-    await waitFor(
-      () => {
-        expect(detailTitle(POSTMORTEM_SWITCH)).toBeInTheDocument();
-      },
+  async function postmortemSwitch(): Promise<HTMLElement> {
+    return await screen.findByTestId(
+      POSTMORTEM_TEST_ID,
+      {},
       { timeout: WAIT_TIMEOUT },
     );
-    await waitFor(
-      () => {
-        expect(detailValue(POSTMORTEM_SWITCH)).toContain("No");
-      },
-      { timeout: WAIT_TIMEOUT },
+  }
+
+  test("drafting a postmortem is its own switch, off in this project", async () => {
+    openIncidentAiSettings();
+
+    const postmortem: HTMLElement = await postmortemSwitch();
+
+    expect(screen.getByRole("switch", { name: POSTMORTEM_SWITCH })).toBe(
+      postmortem,
+    );
+    expect(postmortem).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByTestId(`${POSTMORTEM_TEST_ID}-row`)).toHaveTextContent(
+      "It never replaces a postmortem that already exists.",
     );
   });
 
-  test("the investigation card no longer says anything about postmortems", async () => {
+  test("the investigation switch says nothing about postmortems", async () => {
     openIncidentAiSettings();
+    await postmortemSwitch();
 
-    const investigationTitle: HTMLElement = await findText(
-      "Automatic Incident Investigation",
-    );
-    const card: HTMLElement | null = investigationTitle.closest(
-      '[data-testid="card"]',
-    );
-    expect(card).not.toBeNull();
-    expect(card!.textContent || "").not.toMatch(/postmortem/i);
+    expect(
+      screen.getByTestId(
+        `${getProjectAiSwitchTestId("enableAutomaticIncidentInvestigation")}-row`,
+      ).textContent || "",
+    ).not.toMatch(/postmortem/i);
   });
 
   test("turning the draft on saves only that switch", async () => {
     openIncidentAiSettings();
-    await findText("Automatic Postmortem Draft");
 
-    const card: HTMLElement = (
-      await findText("Automatic Postmortem Draft")
-    ).closest('[data-testid="card"]') as HTMLElement;
-    fireEvent.click(within(card).getByText("Update"));
-    const dialog: HTMLElement = await screen.findByRole(
-      "dialog",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
-    const toggle: HTMLElement = await waitForSwitch(
-      dialog,
-      POSTMORTEM_SWITCH,
-      false,
-    );
-    expect(
-      within(dialog).getByText(
-        /never replaces a postmortem that already exists/,
-      ),
-    ).toBeInTheDocument();
+    await press(await postmortemSwitch());
 
-    fireEvent.click(toggle);
-    await save(dialog);
-
-    const posted: Project = postedProject();
-    expect(posted.enableAutomaticPostmortemDraft).toBe(true);
-    expect(posted.enableAutomaticIncidentInvestigation).toBeUndefined();
-    expect(posted.incidentAiDailyAutonomousTokenLimit).toBeUndefined();
+    expect(updates()).toEqual([{ enableAutomaticPostmortemDraft: true }]);
+    expect(createOrUpdateSpy).not.toHaveBeenCalled();
   });
 
-  async function postmortemCard(): Promise<HTMLElement> {
-    return (await findText(POSTMORTEM_DRAFT_CARD_TITLE)).closest(
-      '[data-testid="card"]',
-    ) as HTMLElement;
-  }
-
-  test("the card is gated on exactly the column it writes", () => {
-    expect(POSTMORTEM_DRAFT_FIELDS).toEqual(["enableAutomaticPostmortemDraft"]);
-    expect(getProjectColumnsUpdatePermissions(POSTMORTEM_DRAFT_FIELDS)).toEqual(
+  test("the switch is gated on exactly the column it writes", () => {
+    expect(
       new Project().getColumnAccessControlFor("enableAutomaticPostmortemDraft")
         ?.update,
-    );
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
   });
 
   test.each([[Permission.ProjectOwner], [Permission.ProjectAdmin]])(
-    "%s gets a working Update button on the postmortem card",
+    "%s may flip it",
     async (permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       openIncidentAiSettings();
 
-      const card: HTMLElement = await postmortemCard();
-      const buttons: Array<HTMLElement> = within(card)
-        .getAllByText("Update")
-        .map((text: HTMLElement): HTMLElement => {
-          return text.closest("button") as HTMLElement;
-        });
-      expect(buttons.length).toBe(1);
-      expect(buttons[0]).not.toBeDisabled();
+      const postmortem: HTMLElement = await postmortemSwitch();
+      expect(postmortem).not.toHaveAttribute("aria-disabled");
 
-      fireEvent.click(buttons[0]!);
-      expect(
-        await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT }),
-      ).toBeInTheDocument();
+      await press(postmortem);
+      expect(updates()).toEqual([{ enableAutomaticPostmortemDraft: true }]);
     },
   );
 
   /*
    * The Project table's update list lets these two in, but the column does
-   * not: the card's own gate would give them a save the server refuses.
+   * not: the switch is locked, and says which permissions it needs.
    */
   test.each([[Permission.ManageProjectBilling], [Permission.EditProject]])(
-    "%s sees the postmortem card's Update button locked, with the reason",
+    "%s sees it locked, with the reason",
     async (permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       openIncidentAiSettings();
 
-      /*
-       * Neither role may read the column, so the card shows no value; the
-       * locked button is all there is to wait for.
-       */
-      const card: HTMLElement = await postmortemCard();
-      await within(card).findByText("Update", {}, { timeout: WAIT_TIMEOUT });
+      const postmortem: HTMLElement = await postmortemSwitch();
 
-      const buttons: Array<HTMLElement> = within(card)
-        .getAllByText("Update")
-        .map((text: HTMLElement): HTMLElement => {
-          return text.closest("button") as HTMLElement;
-        });
-      expect(buttons.length).toBe(1);
-      expect(buttons[0]).toBeDisabled();
+      expect(postmortem).toHaveAttribute("aria-disabled", "true");
+      expect(
+        screen.getByTestId(`${POSTMORTEM_TEST_ID}-row`),
+      ).toHaveTextContent("Project Owner, Project Admin");
 
-      fireEvent.click(buttons[0]!);
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(createOrUpdateSpy).not.toHaveBeenCalled();
+      await press(postmortem);
+      expect(updateByIdSpy).not.toHaveBeenCalled();
     },
   );
 
-  test("a viewer still reads the postmortem switch, behind a locked button", async () => {
+  test("a viewer still reads it, locked", async () => {
     grant([...BASE_PERMISSIONS, Permission.Viewer]);
     openIncidentAiSettings();
 
-    const card: HTMLElement = await postmortemCard();
-    await waitFor(
-      () => {
-        expect(detailValue(POSTMORTEM_SWITCH)).toContain("No");
-      },
-      { timeout: WAIT_TIMEOUT },
-    );
-    const button: HTMLElement | null = within(card)
-      .getByText("Update")
-      .closest("button");
-    expect(button).toBeDisabled();
+    const postmortem: HTMLElement = await postmortemSwitch();
+
+    expect(postmortem).toHaveAttribute("aria-checked", "false");
+    expect(postmortem).toHaveAttribute("aria-disabled", "true");
   });
 
-  test("the postmortem card offers no button before the permission snapshot has landed", async () => {
+  test("before the permission snapshot has landed it is locked, accusing nobody", async () => {
     grant([]);
     openIncidentAiSettings();
 
-    const card: HTMLElement = await postmortemCard();
-    expect(within(card).queryByText("Update")).not.toBeInTheDocument();
+    const postmortem: HTMLElement = await postmortemSwitch();
+
+    expect(postmortem).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByTestId(`${POSTMORTEM_TEST_ID}-row`),
+    ).not.toHaveTextContent("You do not have permission");
   });
 });
