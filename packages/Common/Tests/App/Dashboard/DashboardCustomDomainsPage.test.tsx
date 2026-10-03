@@ -19,6 +19,12 @@ import { MemoryRouter } from "react-router-dom";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import { ComponentProps as ConfirmModalProps } from "../../../UI/Components/Modal/ConfirmModal";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
+import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
+import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import Navigation from "../../../UI/Utils/Navigation";
+import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
  * Dashboards > <dashboard> > Custom Domains tells the truth about what
@@ -33,7 +39,9 @@ import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButton
  *
  * The ModelTable is replaced by a stand-in that renders the page's own Status
  * column and row actions for the rows given; the dialogs are the page's own,
- * with ConfirmModal reduced to its title, text and submit button.
+ * with ConfirmModal reduced to its title, text and submit button. The
+ * jest.mock calls below are hoisted above the imports; the stand-ins read
+ * mockRows only when they render.
  */
 
 jest.mock("react-i18next", () => {
@@ -81,7 +89,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
                 {(props.actionButtons || [])
                   .filter(
                     (action: ActionButtonSchema<DashboardDomain>): boolean => {
-                      return !action.isVisible || Boolean(action.isVisible(row));
+                      return (
+                        !action.isVisible || Boolean(action.isVisible(row))
+                      );
                     },
                   )
                   .map(
@@ -127,13 +137,6 @@ jest.mock("../../../UI/Components/Modal/ConfirmModal", () => {
     },
   };
 });
-
-import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
-import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
-import Route from "../../../Types/API/Route";
-import ObjectID from "../../../Types/ObjectID";
-import Navigation from "../../../UI/Utils/Navigation";
-import ProjectUtil from "../../../UI/Utils/Project";
 
 function domain(
   fullDomain: string,
@@ -215,7 +218,7 @@ describe("Dashboard Custom Domains page", () => {
       renderPage();
 
       expect(statusOf(VERIFIED)).toBe(
-        "No action is required. We will order a free SSL certificate for this domain within 15 minutes.",
+        "No action is required. We will order a free SSL certificate for this domain automatically, usually within 15 minutes.",
       );
       expect(statusOf(VERIFIED)).not.toContain("Action Required");
       expect(screen.queryByText(/Please order SSL certificate/)).toBeNull();
@@ -313,7 +316,7 @@ describe("Dashboard Custom Domains page", () => {
       });
 
       expect(dialog).toHaveTextContent(
-        "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting up to 15 minutes, click the button below. The certificate is served within 15 minutes of being ordered.",
+        "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting, click the button below. The certificate is served within 15 minutes of being ordered.",
       );
       expect(dialog).not.toHaveTextContent("3 hours");
       expect(

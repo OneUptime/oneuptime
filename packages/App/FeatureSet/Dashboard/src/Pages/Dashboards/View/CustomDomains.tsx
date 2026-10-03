@@ -364,7 +364,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                   return (
                     <span>
                       {translator.translateText(
-                        "No action is required. We will order a free SSL certificate for this domain within 15 minutes.",
+                        "No action is required. We will order a free SSL certificate for this domain automatically, usually within 15 minutes.",
                       )}
                     </span>
                   );
@@ -484,7 +484,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
               DashboardCNameRecord ? (
                 <div>
                   {translator.translateText(
-                    "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting up to 15 minutes, click the button below. The certificate is served within 15 minutes of being ordered.",
+                    "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting, click the button below. The certificate is served within 15 minutes of being ordered.",
                   )}
                 </div>
               ) : (
