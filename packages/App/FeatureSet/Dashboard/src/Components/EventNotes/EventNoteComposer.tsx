@@ -1,9 +1,4 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Query from "Common/Types/BaseDatabase/Query";
-import Select from "Common/Types/BaseDatabase/Select";
-import Sort from "Common/Types/BaseDatabase/Sort";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -16,13 +11,12 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -34,7 +28,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { EventNoteKind, NoteTemplateModel } from "./EventNoteKind";
+import { EventNoteKind } from "./EventNoteKind";
 import {
   NotesCopy,
   applyTemplateToDraft,
@@ -49,6 +43,7 @@ import NoteComposer, {
   NotifyOption,
 } from "./NoteComposer";
 import NoteTemplateMenu, { NoteTemplateOption } from "./NoteTemplateMenu";
+import { loadNoteTemplateOptions } from "./NoteTemplateOptions";
 
 /*
  * Where the composer is drawn.
@@ -378,35 +373,7 @@ function EventNoteComposer<TNote extends BaseModel>(
       return [];
     }
 
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    const result: ListResult<NoteTemplateModel> =
-      await ModelAPI.getList<NoteTemplateModel>({
-        modelType: kind.templates.modelType,
-        query: (projectId ? { projectId } : {}) as Query<NoteTemplateModel>,
-        select: {
-          _id: true,
-          templateName: true,
-          note: true,
-        } as Select<NoteTemplateModel>,
-        sort: {
-          templateName: SortOrder.Ascending,
-        } as Sort<NoteTemplateModel>,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
-    return result.data
-      .map((template: NoteTemplateModel): NoteTemplateOption => {
-        return {
-          id: template.id?.toString() || template._id?.toString() || "",
-          name: template.templateName || "",
-          note: template.note || "",
-        };
-      })
-      .filter((template: NoteTemplateOption) => {
-        return Boolean(template.id);
-      });
+    return loadNoteTemplateOptions(kind.templates.modelType);
   };
 
   /*
