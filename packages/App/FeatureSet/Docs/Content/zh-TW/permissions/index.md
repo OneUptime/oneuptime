@@ -56,7 +56,7 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 
 你可以建立任意多個額外團隊——「前端待命」、「支援」、「唯讀稽核」——並給每個團隊它需要的權限。
 
-位置：**設定 → 團隊**。開啟團隊即可進入 **Members**、**Permissions** 與 **Block Permissions**。
+位置：**設定 → 團隊**。開啟團隊即可進入 **Members** 與 **Permissions**；**Block Permissions** 位於 Permissions 頁面底部的 **Advanced** 中。
 
 ## 權限
 

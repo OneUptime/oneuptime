@@ -56,7 +56,7 @@ Los equipos **Owners** y **Admin** están bloqueados a propósito: sus permisos 
 
 Cree tantos equipos adicionales como quiera —«Guardia de Frontend», «Soporte», «Auditores de solo lectura»— y dé a cada uno los permisos que necesite.
 
-Dónde encontrarlo: **Configuración → Equipos**. Abra un equipo para llegar a **Members**, **Permissions** y **Block Permissions**.
+Dónde encontrarlo: **Configuración → Equipos**. Abra un equipo para llegar a **Members** y **Permissions**; **Block Permissions** está en **Advanced**, al final de la página Permissions.
 
 ## Permisos
 
