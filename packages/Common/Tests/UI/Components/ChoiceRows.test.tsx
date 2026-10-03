@@ -216,6 +216,22 @@ describe("ChoiceRows", () => {
 
       expect(onPick).not.toHaveBeenCalled();
     });
+
+    test("a screen reader hears the plan with the locked choice", () => {
+      renderRows({ value: "anyone", options: withPlan });
+
+      expect(radio("Only people who sign in")).toHaveAccessibleDescription(
+        "Visitors sign in first. Growth Plan",
+      );
+      // A choice without a sentence is described by its plan alone.
+      expect(radio("Anyone with the password")).toHaveAccessibleDescription(
+        "Growth Plan",
+      );
+      // A choice that can be picked has no plan to hear.
+      expect(radio("Anyone with the link")).toHaveAccessibleDescription(
+        "The page is public.",
+      );
+    });
   });
 
   test("while locked (a choice is being asked about or saved), nothing can be picked", () => {

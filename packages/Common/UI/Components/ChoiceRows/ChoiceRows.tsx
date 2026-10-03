@@ -106,9 +106,20 @@ const ChoiceRows: <TValue extends string>(
   ): ReactElement => {
     const inputId: string = `${groupId}-${index}`;
     const descriptionId: string = `${inputId}-description`;
+    const planId: string = `${inputId}-plan`;
     const isChecked: boolean = props.value === option.value;
     const isDisabled: boolean =
       isEveryChoiceLocked || Boolean(option.planNeeded);
+
+    // The sentence, and the plan a locked choice needs, read with the radio.
+    const describedBy: string = [
+      option.description ? descriptionId : "",
+      option.planNeeded ? planId : "",
+    ]
+      .filter((id: string): boolean => {
+        return id.length > 0;
+      })
+      .join(" ");
 
     return (
       <div
@@ -132,7 +143,7 @@ const ChoiceRows: <TValue extends string>(
               value={option.value}
               checked={isChecked}
               disabled={isDisabled}
-              aria-describedby={option.description ? descriptionId : undefined}
+              aria-describedby={describedBy || undefined}
               className={`mt-1 h-4 w-4 flex-shrink-0 accent-indigo-600 ${
                 isDisabled ? "cursor-not-allowed" : "cursor-pointer"
               }`}
@@ -191,7 +202,7 @@ const ChoiceRows: <TValue extends string>(
               {isChecked ? props.status : null}
             </span>
             {option.planNeeded ? (
-              <span className="mt-2 inline-flex sm:mt-0">
+              <span id={planId} className="mt-2 inline-flex sm:mt-0">
                 <Pill
                   text={getChoiceRowPlanPillText(translator, option.planNeeded)}
                   color={Yellow}
