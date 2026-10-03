@@ -84,11 +84,18 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
     actionText: props.submitButtonText || "Save",
   });
 
-  const formRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
-    props.formRef ||
-    (useRef<FormProps<FormValues<TBaseModel>>>(null) as MutableRefObject<
+  /*
+   * Made on every render and used when the caller passes no ref of its own.
+   * Calling useRef only when props.formRef was missing made the number of
+   * hooks depend on a prop, which React cannot survive changing.
+   */
+  const ownFormRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
+    useRef<FormProps<FormValues<TBaseModel>>>(null) as MutableRefObject<
       FormProps<FormValues<TBaseModel>>
-    >);
+    >;
+
+  const formRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
+    props.formRef || ownFormRef;
 
   const [error, setError] = useState<string>("");
 

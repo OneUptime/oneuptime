@@ -27,7 +27,7 @@ import { SpanKind } from "Common/Models/AnalyticsModels/Span";
  * when `attributes.select` asks for it), so a span carrying it, or the
  * older `peer.service`, is never receiving-side. Without it, the address
  * alone decides.
- * Verified against OBI v0.13.0 and main fb91a2e: tracesgen.go (messaging
+ * Verified against OBI v0.13.0 and v0.14.0: tracesgen.go (messaging
  * attributes, appendPeerService, spanKind), request/metric_attributes.go
  * (HostAsServer), transform/name_resolver.go (resolveNames) and
  * kube/store.go (ServiceNameNamespaceForIP).
@@ -47,8 +47,14 @@ import { SpanKind } from "Common/Models/AnalyticsModels/Span";
  * named `kafka`). Where the rule cannot hold the span keeps OBI's kind,
  * which is v0.14's behaviour, never worse: a pipeline that rewrote
  * `server.address` or `service.name` before ingest, a host-network broker
- * (its pod IP is the node's), or a discovery entry that names the service
- * itself.
+ * (its pod IP is the node's), a discovery entry that names the service
+ * itself, or the delivery OBI splits off a NATS broker's request/response
+ * pair (ebpf/common/tcp_detect_transform.go matchNATS: a MSG the broker
+ * wrote, answered on the same connection by a PUB such as a JetStream ack
+ * or a request-reply response). OBI types that span receiving-side but
+ * builds it from the unreversed event, so its `server.address` names the
+ * subscriber and it stays CONSUMER (v0.13 sent it as SERVER): the broker
+ * then counts as a consumer of the subject.
  */
 export const OBI_TELEMETRY_DISTRO_NAME: string =
   "opentelemetry-ebpf-instrumentation";

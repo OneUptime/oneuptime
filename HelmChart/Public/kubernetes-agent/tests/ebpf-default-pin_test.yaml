@@ -1,12 +1,11 @@
 # The chart's own OBI pin, rendered as an install without overrides gets it.
 #
-# The chart pins v0.13.0 until v0.14.0 is published, but already renders
-# what v0.14 needs. Those parts must be harmless on the pinned release:
-#   - the span-attribute selection is v0.14's list (a non-empty include list
-#     replaces OBI's defaults), so it is left out for an older OBI, which
-#     sends service.peer.name anyway;
-#   - OTEL_EBPF_BPF_POPULATE_TRACE_CONTEXT is unknown to v0.13 and ignored
-#     (v0.13 always fills the map the profiler reads).
+# The chart pins v0.14.0, the first release that identifies Node.js 26+ as
+# Node.js, and renders what it needs: the span-attribute selection (a
+# non-empty include list replaces OBI's defaults, so the list repeats them
+# next to service.peer.name, which v0.14 made opt-in). Pinning an older OBI
+# back must still work: it gets no selection and keeps its own defaults,
+# which send service.peer.name anyway.
 suite: the chart's default OBI pin gets a config it can run
 release:
   name: oneuptime-agent
@@ -24,14 +23,18 @@ tests:
       - template: templates/daemonset-ebpf.yaml
         equal:
           path: spec.template.spec.containers[0].image
-          value: otel/ebpf-instrument:v0.13.0
+          value: otel/ebpf-instrument:v0.14.0
 
-  - it: leaves span attributes to the pinned OBI's own defaults
+  - it: selects the span attributes on the pinned release
     asserts:
       - template: templates/configmap-ebpf.yaml
-        notMatchRegex:
+        matchRegex:
           path: data["obi-config.yaml"]
-          pattern: "(?m)^attributes:"
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n(?:        - \"[^\"]+\"\\n){10}$"
+      - template: templates/configmap-ebpf.yaml
+        matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n        - \"service\\.peer\\.name\"\\n"
 
   - it: still selects the instrumented processes and skips the excluded ones
     asserts:
@@ -44,11 +47,15 @@ tests:
           path: data["obi-config.yaml"]
           pattern: "\\n    - exe_path: \"\\*/clickhouse\"\\n"
 
-  - it: selects the span attributes once the tag moves to v0.14
+  - it: leaves span attributes to OBI's own defaults when pinned back to v0.13.0
     set:
-      ebpf.image.tag: v0.14.0
+      ebpf.image.tag: v0.13.0
     asserts:
+      - template: templates/daemonset-ebpf.yaml
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:v0.13.0
       - template: templates/configmap-ebpf.yaml
-        matchRegex:
+        notMatchRegex:
           path: data["obi-config.yaml"]
-          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n(?:        - \"[^\"]+\"\\n){10}$"
+          pattern: "(?m)^attributes:"

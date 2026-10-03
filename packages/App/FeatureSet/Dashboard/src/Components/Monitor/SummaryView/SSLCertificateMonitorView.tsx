@@ -44,17 +44,15 @@ export function sslStatusLabel(sslResponse: SslMonitorResponse): string {
     : translateTemplate("Signed by a CA");
 }
 
-const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  if (!props.probeMonitorResponse || !props.probeMonitorResponse.sslResponse) {
-    return (
-      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
-    );
-  }
+interface CertificateSummaryProps extends ComponentProps {
+  sslResponse: SslMonitorResponse;
+}
 
-  const sslResponse: SslMonitorResponse =
-    props.probeMonitorResponse.sslResponse;
+// Drawn by SSLCertificateMonitorView once there is a certificate to show.
+const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
+  props: CertificateSummaryProps,
+): ReactElement => {
+  const sslResponse: SslMonitorResponse = props.sslResponse;
 
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
@@ -244,6 +242,32 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
         )}
       </div>
     </div>
+  );
+};
+
+/*
+ * Whether there is a certificate to show calls no hook, so it is decided here
+ * and the "Show More Details" state lives in CertificateSummary: a probe
+ * whose certificate goes missing, or comes back, unmounts or mounts the
+ * summary. While that state sat below this check, the component called its
+ * hook on some renders and not on others: React dropped the state each time
+ * the certificate went missing, and would have thrown "Rendered more hooks
+ * than during the previous render" as soon as any hook ran above the check.
+ */
+const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  if (!props.probeMonitorResponse || !props.probeMonitorResponse.sslResponse) {
+    return (
+      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
+    );
+  }
+
+  return (
+    <CertificateSummary
+      {...props}
+      sslResponse={props.probeMonitorResponse.sslResponse}
+    />
   );
 };
 
