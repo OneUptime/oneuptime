@@ -59,9 +59,7 @@ const IncidentLinkedAlertsSettings: FunctionComponent<ComponentProps> = (
       switches={[
         {
           column: "acknowledgeLinkedAlertsWhenIncidentAcknowledged",
-          title: translationKey(
-            "Acknowledge Linked Alerts When Incident Is Acknowledged",
-          ),
+          title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
           getDescription: (): string => {
             return translationKey(
               "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
@@ -71,9 +69,7 @@ const IncidentLinkedAlertsSettings: FunctionComponent<ComponentProps> = (
         },
         {
           column: "resolveLinkedAlertsWhenIncidentResolved",
-          title: translationKey(
-            "Resolve Linked Alerts When Incident Is Resolved",
-          ),
+          title: "Resolve Linked Alerts When Incident Is Resolved",
           getDescription: (): string => {
             return translationKey(
               "When the incident is resolved, resolve every alert linked to it - except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
