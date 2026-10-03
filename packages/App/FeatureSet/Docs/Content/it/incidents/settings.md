@@ -60,10 +60,10 @@ La parte importante è la regola di fusione: **un modello riempie solo i campi c
 
 I modelli di note danno a chi risponde del testo già pronto per gli aggiornamenti, così un aggiornamento sulla pagina di stato alle 3 del mattino non viene scritto da zero da qualcuno mezzo addormentato.
 
-Andate su **Incidenti → Impostazioni → Modelli di note** (`/dashboard/{projectId}/incidents/settings/note-templates`). La scheda si intitola **Modelli di nota pubblica o privata per gli incidenti** — un'unica libreria serve entrambi i tipi di nota. Il modulo di creazione ha due passaggi:
+Andate su **Incidenti → Impostazioni → Modelli di note** (`/dashboard/{projectId}/incidents/settings/note-templates`). La scheda si intitola **Modelli di nota pubblica o privata per gli incidenti** — un'unica libreria serve entrambi i tipi di nota. Il modulo di creazione è una sola pagina:
 
-- **Informazioni del modello** — **Nome del modello** e **Descrizione del modello**, entrambi obbligatori.
-- **Dettagli della nota** — il corpo della nota, in Markdown, obbligatorio.
+- **Nome del modello** e **Descrizione del modello**, entrambi obbligatori.
+- Il corpo della nota, in Markdown, obbligatorio.
 
 Come per i modelli di incidente, le righe si creano e si consultano invece di modificarle sul posto; aprite un modello per cambiarlo.
 
@@ -73,10 +73,10 @@ I modelli di note compaiono dove servono davvero: le finestre di conferma **Rico
 
 Un modello post-mortem è lo scheletro del resoconto che scrivete dopo un incidente — i vostri titoli, i vostri spunti, le vostre domande di rito — così ogni revisione del progetto segue la stessa forma.
 
-Andate su **Incidenti → Impostazioni → Modelli post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La scheda si intitola **Modelli post-mortem**. Il modulo di creazione ha due passaggi:
+Andate su **Incidenti → Impostazioni → Modelli post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La scheda si intitola **Modelli post-mortem**. Il modulo di creazione è una sola pagina:
 
-- **Informazioni del modello** — **Nome del modello** e **Descrizione del modello**, entrambi obbligatori.
-- **Dettagli del postmortem** — **Modello di postmortem**, cioè il corpo vero e proprio, in Markdown, obbligatorio.
+- **Nome del modello** e **Descrizione del modello**, entrambi obbligatori.
+- **Modello di postmortem**, cioè il corpo vero e proprio, in Markdown, obbligatorio.
 
 Un modello si applica dall'incidente, non dalle impostazioni. Aprite un incidente, scegliete **Post-mortem** nel suo menu laterale (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) e usate **Applica modello**. Si apre una finestra **Applica modello di analisi post-incidente** con un menu a discesa **Seleziona modello**; sceglierne uno carica il corpo del modello nell'editor **Nota del postmortem**, dove lo modificate prima di salvare. Gli episodi di incidente hanno la stessa pagina **Post-mortem** e attingono alla stessa libreria di modelli.
 

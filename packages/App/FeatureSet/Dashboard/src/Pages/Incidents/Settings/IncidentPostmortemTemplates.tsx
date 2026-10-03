@@ -29,23 +29,17 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Postmortem Templates",
           description:
-            "Create reusable postmortem templates to accelerate consistent incident reviews.",
+            "The headings and questions every postmortem should answer. Apply one on an incident's or an episode's Postmortem page, then fill it in.",
         }}
         noItemsMessage="No postmortem templates found."
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Postmortem Details",
-            id: "postmortem-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then its body.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -53,7 +47,6 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -66,7 +59,6 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -78,8 +70,9 @@ const IncidentPostmortemTemplates: FunctionComponent<PageComponentProps> = (
               postmortemNote: true,
             },
             title: "Postmortem Template",
+            description:
+              "The postmortem's text when this template is applied. It can still be edited before it is saved.",
             fieldType: FormFieldSchemaType.Markdown,
-            stepId: "postmortem-details",
             required: true,
             validation: {
               minLength: 2,

@@ -29,23 +29,17 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
           title:
             "Public or Private Note Templates for Scheduled Maintenance Events",
           description:
-            "Here is a list of all the public and private note templates for scheduled maintenance.",
+            "Ready-made text for maintenance updates. Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
         }}
         noItemsMessage={"No note templates found."}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
-        formSteps={[
-          {
-            title: "Template Info",
-            id: "template-info",
-          },
-          {
-            title: "Note Details",
-            id: "note-details",
-          },
-        ]}
+        /*
+         * One page: the template's name and description, then the note.
+         * Three rows walk no steps (LongFormStepsGuard).
+         */
         formFields={[
           {
             field: {
@@ -53,7 +47,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
             },
             title: "Template Name",
             fieldType: FormFieldSchemaType.Text,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Name",
             validation: {
@@ -66,7 +59,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
             },
             title: "Template Description",
             fieldType: FormFieldSchemaType.LongText,
-            stepId: "template-info",
             required: true,
             placeholder: "Template Description",
             validation: {
@@ -80,7 +72,6 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
             title: NoteTemplateFormCopy.noteFieldTitle,
             description: NoteTemplateFormCopy.noteFieldDescription,
             fieldType: FormFieldSchemaType.Markdown,
-            stepId: "note-details",
             required: true,
             validation: {
               minLength: 2,

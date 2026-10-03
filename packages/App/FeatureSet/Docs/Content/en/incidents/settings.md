@@ -100,10 +100,10 @@ A field that is not listed follows its own settings, as with `Default`. A reques
 
 Note templates give responders canned text for incident updates, so a status page update at 3am is not written from scratch by someone half awake.
 
-Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). The card is titled **Public or Private Note Templates for Incidents** — one library serves both note types. The create form has two steps:
+Go to **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). The card is titled **Public or Private Note Templates for Incidents** — one library serves both note types. The create form is one page:
 
-- **Template Info** — **Template Name** and **Template Description**, both required.
-- **Note Details** — the **Note** itself, in Markdown, required: the text a note starts with when the template is picked.
+- **Template Name** and **Template Description**, both required.
+- The **Note** itself, in Markdown, required: the text a note starts with when the template is picked.
 
 Like incident templates, rows are created and viewed rather than edited inline; open a template to change it.
 
@@ -136,10 +136,10 @@ Note templates surface where you actually need them: the **Acknowledge Incident*
 
 A postmortem template is the skeleton of the write-up you produce after an incident — your headings, your prompts, your standing questions — so every review in the project follows the same shape.
 
-Go to **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). The card is titled **Postmortem Templates**. The create form has two steps:
+Go to **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). The card is titled **Postmortem Templates**. The create form is one page:
 
-- **Template Info** — **Template Name** and **Template Description**, both required.
-- **Postmortem Details** — **Postmortem Template**, the body itself, in Markdown, required.
+- **Template Name** and **Template Description**, both required.
+- **Postmortem Template**, the body itself, in Markdown, required.
 
 You apply one from the incident, not from settings. Open an incident, choose **Postmortem** in its side menu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), and use **Apply Template**. That opens an **Apply Postmortem Template** dialog with a **Select Template** dropdown; picking one loads the template body into the **Postmortem Note** editor, where you edit it before saving. Incident episodes have the same **Postmortem** page and draw on the same template library.
 

@@ -267,7 +267,11 @@ describe("forms with a Markdown editor", () => {
     );
 
     expect(noteTemplates).toBeDefined();
-    expect(noteTemplates?.hasSteps).toBe(true);
+    /*
+     * It walked two steps then; it is one page of three rows now (short
+     * forms fit on one page, LongFormStepsGuard), and still wide.
+     */
+    expect(noteTemplates?.hasSteps).toBe(false);
     // It asks for no width: the rule makes its dialog wide.
     expect(
       attributeText(hostTagOf(noteTemplates!), "createEditModalWidth"),

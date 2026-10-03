@@ -20,7 +20,9 @@
  * the reactive sweep spends from the same allowance.
  *
  * AcmeCertificateService.findBy is spied on, so no database is touched, and
- * orderCert is spied on so no ACME order is ever attempted.
+ * orderCert is spied on so no ACME order is ever attempted. Every run here
+ * owns every certificate it is shown; which certificates a run may touch at
+ * all is pinned in CertificateRenewalOwnership.test.ts.
  */
 
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
@@ -40,6 +42,11 @@ function certificateExpiringInDays(
       days,
     ),
   } as unknown as AcmeCertificate;
+}
+
+// The caller owns every domain it is asked about.
+async function ownsEveryDomain(domains: Array<string>): Promise<Array<string>> {
+  return domains;
 }
 
 /*
@@ -63,6 +70,7 @@ async function domainsRenewedFor(
     });
 
   await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
+    getOwnedDomains: ownsEveryDomain,
     validateCname: async (): Promise<boolean> => {
       return true;
     },
@@ -237,6 +245,7 @@ describe("Certificate renewal run", () => {
       });
 
     await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
+      getOwnedDomains: ownsEveryDomain,
       validateCname: async (): Promise<boolean> => {
         return true;
       },
@@ -246,5 +255,153 @@ describe("Certificate renewal run", () => {
     });
 
     expect(ordered).toContain("healthy.example.com");
+  });
+});
+
+describe("GreenlockUtil.isDueForRenewal", () => {
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  test("a certificate inside its own lead time is due, an expired one too", () => {
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays("status.aleyant.com", 1),
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays("status.aleyant.com", -3),
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  test("a freshly issued certificate is not due", () => {
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays("status.aleyant.com", 89),
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  test("the boundary is the domain's own lead time", () => {
+    const domain: string = "status.aleyant.com";
+    const leadTime: number = GreenlockUtil.getRenewalLeadTimeInDays(domain);
+
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays(domain, leadTime - 1),
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      GreenlockUtil.isDueForRenewal(
+        certificateExpiringInDays(domain, leadTime + 1),
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  test("a row without a domain or an expiry is never due", () => {
+    expect(GreenlockUtil.isDueForRenewal({ expiresAt: now }, now)).toBe(false);
+    expect(
+      GreenlockUtil.isDueForRenewal({ domain: "status.aleyant.com" }, now),
+    ).toBe(false);
+  });
+});
+
+/*
+ * The capped sweeps pick afresh every run: a domain whose order keeps
+ * failing must not hold a slot every run while the domains behind it never
+ * get one - however the list grows or shrinks between runs.
+ */
+describe("GreenlockUtil.pickForThisRun", () => {
+  const FIFTEEN_MINUTES_IN_MS: number = 15 * 60 * 1000;
+  const firstRun: Date = new Date(1_800_000_000_000);
+
+  function nthRun(n: number): Date {
+    return new Date(firstRun.getTime() + n * FIFTEEN_MINUTES_IN_MS);
+  }
+
+  function pick(items: Array<string>, max: number, now: Date): Array<string> {
+    return GreenlockUtil.pickForThisRun({
+      items: items,
+      max: max,
+      now: now,
+      getKey: (item: string): string => {
+        return item;
+      },
+    });
+  }
+
+  const items: Array<string> = Array.from(
+    { length: 12 },
+    (_value: unknown, index: number) => {
+      return "d" + String(index).padStart(2, "0") + ".example.com";
+    },
+  );
+
+  test("takes everything when everything fits", () => {
+    expect(pick(items.slice(0, 3), 5, firstRun)).toEqual(items.slice(0, 3));
+    expect(pick([], 5, firstRun)).toEqual([]);
+  });
+
+  test("takes at most max distinct items", () => {
+    const taken: Array<string> = pick(items, 5, firstRun);
+
+    expect(taken).toHaveLength(5);
+    expect(new Set(taken).size).toBe(5);
+  });
+
+  test("a different pick in the next run", () => {
+    expect(pick(items, 5, nthRun(0))).not.toEqual(pick(items, 5, nthRun(1)));
+  });
+
+  test("the same pick for the whole run, on every replica, whatever order the items arrive in", () => {
+    const reversed: Array<string> = [...items].reverse();
+
+    expect(pick(reversed, 5, nthRun(3))).toEqual(pick(items, 5, nthRun(3)));
+    expect(pick(items, 5, new Date(nthRun(3).getTime() + 60 * 1000))).toEqual(
+      pick(items, 5, nthRun(3)),
+    );
+  });
+
+  test("every item is picked within a few runs, even when the items picked first keep failing", () => {
+    const picked: Set<string> = new Set<string>();
+
+    for (let run: number = 0; run < 12; run++) {
+      for (const item of pick(items, 5, nthRun(run))) {
+        picked.add(item);
+      }
+    }
+
+    expect([...picked].sort()).toEqual(items);
+  });
+
+  /*
+   * The case that broke a fixed rotation: items that succeed leave the list,
+   * so the ones behind them move up. Every item that is still waiting keeps
+   * its chance in every run.
+   */
+  test("every item is picked within a few runs while the list shrinks", () => {
+    let waiting: Array<string> = [...items];
+
+    for (let run: number = 0; run < 12 && waiting.length > 0; run++) {
+      const taken: Array<string> = pick(waiting, 5, nthRun(run));
+
+      // Two of every pick succeed and leave the list; the rest keep failing.
+      const succeeded: Set<string> = new Set<string>(taken.slice(0, 2));
+
+      waiting = waiting.filter((item: string) => {
+        return !succeeded.has(item);
+      });
+    }
+
+    expect(waiting).toEqual([]);
+  });
+
+  test("a max of zero takes nothing", () => {
+    expect(pick(items, 0, firstRun)).toEqual([]);
   });
 });
