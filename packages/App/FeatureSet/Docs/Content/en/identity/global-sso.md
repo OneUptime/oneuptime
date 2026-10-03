@@ -22,7 +22,7 @@ Global SSO, including the instance-wide "Require SSO for Login" toggle, is part 
 
    - Click **Create Global SSO**.
    - For SAML: enter a **Name**, the **Sign On URL** and **Issuer** from your identity provider, and paste the **Public Certificate**. Choose the **Signature** and **Digest** methods (leave the defaults — `RSA-SHA256` / `SHA256` — if you are unsure).
-   - For OIDC: enter the **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (must include `openid`), and the **email** / **name** claim names.
+   - For OIDC: enter a **Name**, the **Issuer URL**, and the **Client ID** and **Client Secret** of the app you registered in your IdP. Pasting the IdP's discovery URL into **Issuer URL** works too. Everything else is filled in under **Advanced**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description (`Sign in with` and the name). Change them only if your IdP needs it. Saving opens the provider's page.
 
 3. **Copy the OneUptime URLs into your identity provider**
 

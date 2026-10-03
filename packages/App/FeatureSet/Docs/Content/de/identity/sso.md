@@ -126,6 +126,17 @@ OneUptime's SSO-Implementierung verwendet das SAML 2.0-Protokoll und sollte mit 
    - **Öffentliches Zertifikat** (X.509-Signierzertifikat)
 4. **Signaturalgorithmus** auf `RSA-SHA-256` und **Digest-Algorithmus** auf `SHA256` setzen
 
+## OpenID Connect (OIDC)
+
+Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Google Workspace, Okta, Microsoft Entra ID, Auth0 oder Keycloak.
+
+1. Registrieren Sie bei Ihrem Identity Provider eine App (einen OIDC-Client) und kopieren Sie deren **Aussteller-URL**, **Client-ID** und **Client-Secret**.
+2. Navigieren Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **OIDC** und klicken Sie auf **OIDC erstellen**.
+3. Geben Sie einen **Namen** (was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
+4. Im Schritt **Anmeldung** ist unter **Teams** bereits das Mitglieder-Team Ihres Projekts ausgewählt: Wer sich zum ersten Mal anmeldet, wird diesen Teams hinzugefügt. Alles andere wird unter **Erweitert** ausgefüllt: die **Discovery-URL** (der Aussteller gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung („Sign in with“ und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es erfordert.
+5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Tragen Sie sie bei den zulässigen Weiterleitungs-URIs Ihrer App ein. Ein neuer Anbieter ist zunächst deaktiviert; bearbeiten Sie ihn danach und schalten Sie **Aktiviert** ein.
+6. Melden Sie sich über den Link auf der Karte **OpenID Connect (OIDC) testen** mit dem Anbieter an, bevor Sie SSO für das Projekt verpflichtend machen.
+
 ## Hinweise zu SSO und Rollen
 
 OneUptime unterstützt derzeit keine Zuordnung von SAML-Rollen aus Ihrem Identity Provider. Die rollenbasierte Zugriffssteuerung muss separat innerhalb von OneUptime's **Projekteinstellungen** > **SSO** konfiguriert werden.

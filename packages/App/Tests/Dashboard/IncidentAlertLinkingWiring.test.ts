@@ -21,9 +21,9 @@ import path from "path";
  *     server through miscDataProps;
  *   - the lifecycle switches have a Settings page of their own
  *     (Incidents → Settings → Linked Alerts), reachable from the side menu,
- *     holding one card that writes nothing else (a CardModelDetail writes
- *     every field it holds on Update), with its Update button gated on the
- *     switches' own permissions; no other dashboard page edits them.
+ *     holding one card of two switches that each save their own column the
+ *     moment they are flipped, each locked by that column's own
+ *     permissions; no other dashboard page edits them.
  *
  * The behaviour behind these is covered by jsdom tests in Common
  * (IncidentAlertLinking*.test.tsx) and by IncidentFromAlerts.test.ts.
@@ -92,15 +92,6 @@ function sectionBetween(source: string, start: string, end: string): string {
   }
 
   return source.slice(from, to);
-}
-
-// Every `field: { <name>: ... }` in a chunk of dense source, in order.
-function fieldNames(denseSection: string): Array<string> {
-  return [...denseSection.matchAll(/field:\{([A-Za-z]+):/g)].map(
-    (match: RegExpMatchArray): string => {
-      return match[1]!;
-    },
-  );
 }
 
 // Every column title of a ModelTable's `columns={[...]}`, in order.
@@ -639,44 +630,38 @@ describe("the linked alerts lifecycle settings", () => {
 
   const PAGE_KEY: string = "INCIDENTS_SETTINGS_LINKED_ALERTS";
 
-  function cards(): Array<string> {
-    return dense(SETTINGS_PAGE).split("<CardModelDetail<Project>").slice(1);
+  // The columns the page's switches write, in the order they are drawn.
+  function switchColumns(code: string): Array<string> {
+    return [...code.matchAll(/\{column:"([A-Za-z]+)",/g)].map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
   }
 
-  test("are a page holding one card that edits exactly the two switches", () => {
-    const pageCards: Array<string> = cards();
+  test("are a page holding one card of the two switches, each saving on flip", () => {
+    const code: string = dense(SETTINGS_PAGE);
 
-    expect(pageCards).toHaveLength(1);
-
-    const card: string = pageCards[0]!;
-
-    expect(card.startsWith('name="LinkedAlerts"')).toBe(true);
-    expect(card).toContain('title:"LinkedAlerts"');
-    expect(
-      fieldNames(sectionBetween(card, "formFields={[", "modelDetailProps={{")),
-    ).toEqual(LIFECYCLE_FIELDS);
-    expect(
-      fieldNames(sectionBetween(card, "modelDetailProps={{", "modelId:")),
-    ).toEqual(LIFECYCLE_FIELDS);
-    expect(card).toContain("fieldType:FormFieldSchemaType.Toggle");
-    expect(card).toContain("fieldType:FieldType.Boolean");
+    expect(code.split("<ModelSwitchesCard<Project>").length - 1).toBe(1);
+    expect(code).toContain('cardTitle={translationKey("LinkedAlerts")}');
+    expect(switchColumns(code)).toEqual(LIFECYCLE_FIELDS);
+    // No Edit dialog: a card that writes every field it holds is gone.
+    expect(code).not.toContain("CardModelDetail");
+    expect(code).not.toContain("FormFieldSchemaType.Toggle");
   });
 
   /*
    * Both switches take Project Owner or Project Admin, while the Project
-   * table's update list - which CardModelDetail gates its own button on -
-   * also lets Edit Project and Manage Billing in, whose save is refused.
+   * table's update list also lets Edit Project and Manage Billing in, whose
+   * save is refused. Each switch gates itself on its own column
+   * (ModelSwitchRow, PermissionGate.checkColumnUpdate): the page never
+   * opens the table's gate for them.
    */
-  test("gate the Update button on the switches' own permissions", () => {
+  test("lock each switch on its own column's permissions, not the table's", () => {
     const code: string = dense(SETTINGS_PAGE);
 
-    expect(code).toContain(
-      'getProjectColumnsEditGate({fields:LINKED_ALERTS_FIELDS,buttonTitle:"Update",})',
-    );
-    expect(code).toContain("isEditable={editGate.isEditable}");
-    expect(code).toContain("buttons:editGate.lockedButtons");
-    expect(code).toContain('editButtonText={"Update"}');
-    expect(code).not.toContain("isEditable={true}");
+    expect(code).not.toContain("isEditable");
+    expect(code).not.toContain("getProjectColumnsEditGate");
     expect(code).toContain(
       `exportconstLINKED_ALERTS_FIELDS:Array<|"${LIFECYCLE_FIELDS[0]}"|"${LIFECYCLE_FIELDS[1]}">=["${LIFECYCLE_FIELDS[0]}","${LIFECYCLE_FIELDS[1]}",];`,
     );

@@ -20,6 +20,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The model tables are stand-ins; billing, the edition, the plan and the
  * license request are pinned in every test (CI's config.env sets
  * BILLING_ENABLED=true).
+ *
+ * Every request goes through API.fetch, and only one to the license route
+ * counts as asking for the license (mockLicenseFetch). The others - Settings
+ * > SSO's "Require SSO for Login" switch reading the project, Settings >
+ * OIDC looking up the members team its new providers start on - get canned
+ * answers (mockServerFetch).
  */
 
 let billingEnabledForTest: boolean = false;
@@ -61,13 +67,23 @@ jest.mock("Common/UI/Config", () => {
 });
 
 const mockLicenseFetch: jest.Mock = jest.fn();
+const mockServerFetch: jest.Mock = jest.fn();
 
 jest.mock("Common/UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
       fetch: (...args: Array<unknown>): unknown => {
-        return mockLicenseFetch(...args);
+        const request: { url?: unknown } | undefined = args[0] as
+          | { url?: unknown }
+          | undefined;
+
+        // GET /api/global-config/license, whoever asks for it.
+        if (String(request?.url).includes("/global-config/license")) {
+          return mockLicenseFetch(...args);
+        }
+
+        return mockServerFetch(...args);
       },
       getFriendlyMessage: (): string => {
         return "";
@@ -103,13 +119,55 @@ import StatusPageSCIMShell from "@oneuptime/dashboard/Pages/StatusPages/View/SCI
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import { getDashboardPlugins } from "@oneuptime/dashboard/Enterprise/Plugins";
 import DashboardPlugin from "../../../Dashboard/Index";
+import { fetchEnterpriseLicenseMode } from "../../../Dashboard/Identity/License/EnterpriseLicenseMode";
+import Project from "Common/Models/DatabaseModels/Project";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
+
+/*
+ * The canned answer to every request that is not the license request: the
+ * project, for the "Require SSO for Login" switch's read of
+ * requireSsoForLogin, and an empty list for a list read (Settings > OIDC
+ * looks up the members team its new providers start on).
+ */
+const answerServer: (request: {
+  method: unknown;
+  url: { toString: () => string };
+}) => Promise<HTTPResponse<JSONObject | JSONArray>> = async (request: {
+  method: unknown;
+  url: { toString: () => string };
+}): Promise<HTTPResponse<JSONObject | JSONArray>> => {
+  const url: string = request.url.toString();
+
+  if (url.endsWith(`/project/${PROJECT_ID}/get-item`)) {
+    return new HTTPResponse<JSONObject>(
+      200,
+      { _id: PROJECT_ID, requireSsoForLogin: false },
+      {},
+    );
+  }
+
+  if (url.endsWith("/get-list")) {
+    return new HTTPResponse<JSONArray>(
+      200,
+      { data: [], count: 0, skip: 0, limit: 0 },
+      {},
+    );
+  }
+
+  throw new Error(
+    `The fake server has no answer for ${String(request.method)} ${url}`,
+  );
+};
 
 interface IdentityPageCase {
   name: string;
@@ -206,6 +264,8 @@ beforeEach(() => {
     },
     data: { status: "valid", licenseValid: true },
   });
+  mockServerFetch.mockReset();
+  mockServerFetch.mockImplementation(answerServer as never);
   jest
     .spyOn(ProjectUtil, "getCurrentPlan")
     .mockImplementation((): PlanType | null => {
@@ -223,6 +283,18 @@ test("this suite really runs with the Enterprise plugin", () => {
   expect(getDashboardPlugins().buildMarker).toBe(
     "ONEUPTIME_EE_DASHBOARD_PLUGIN_v1",
   );
+});
+
+test("only a request to the license route counts as asking for the license", async () => {
+  await fetchEnterpriseLicenseMode();
+  await ModelAPI.getItem<Project>({
+    modelType: Project,
+    id: new ObjectID(PROJECT_ID),
+    select: { requireSsoForLogin: true },
+  });
+
+  expect(mockLicenseFetch).toHaveBeenCalledTimes(1);
+  expect(mockServerFetch).toHaveBeenCalledTimes(1);
 });
 
 describe.each(SSO_PAGES)(

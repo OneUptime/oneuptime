@@ -24,7 +24,9 @@ import { ADVANCED_FORM_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/
  *   - the header says "Configured" while something in it is set, and only
  *     while folded - open, the cards say it themselves;
  *   - its one-line description says what is in it, folded or open, and
- *     describes the folded header for a screen reader;
+ *     describes the folded header for a screen reader - unless the page
+ *     gives a summary of what its cards are set to, which the folded
+ *     header says instead;
  *   - it is a block of its own on the page, spaced like a card.
  */
 
@@ -167,6 +169,75 @@ describe("AdvancedPageSection", () => {
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       "Block permissions: what this key can never do.",
     );
+  });
+
+  /*
+   * A page can say, while it is folded, what the cards in it are set to -
+   * what the defaults do, on the AI settings pages: "Every incident is
+   * investigated, whatever its severity, and nothing limits how much
+   * OneUptime AI does."
+   */
+  test("folded, a summary says what its cards are set to, in place of what is in it", () => {
+    renderSection({
+      description: "Which incidents are investigated, and limits.",
+      summary: "Every incident is investigated, and nothing limits AI.",
+    });
+
+    const summary: HTMLElement = screen.getByTestId(
+      "collapsible-section-summary",
+    );
+
+    expect(summary).toHaveTextContent(
+      "Every incident is investigated, and nothing limits AI.",
+    );
+    expect(header()).not.toHaveTextContent(
+      "Which incidents are investigated, and limits.",
+    );
+    // Read out with the header, like the description it stands in for.
+    expect(header()).toHaveAttribute("aria-describedby", summary.id);
+  });
+
+  test("open, it says what is in it again, not the summary", () => {
+    renderSection({
+      description: "Which incidents are investigated, and limits.",
+      summary: "Every incident is investigated, and nothing limits AI.",
+    });
+
+    fireEvent.click(header());
+
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+    expect(
+      within(header()).getByText(
+        "Which incidents are investigated, and limits.",
+      ),
+    ).toBeInTheDocument();
+    expect(header()).not.toHaveTextContent(
+      "Every incident is investigated, and nothing limits AI.",
+    );
+  });
+
+  test("without a summary, folded it says what is in it", () => {
+    renderSection({
+      description: "Which incidents are investigated, and limits.",
+      summary: undefined,
+    });
+
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      "Which incidents are investigated, and limits.",
+    );
+  });
+
+  test("a summary can be an element, drawn as it is", () => {
+    renderSection({
+      description: "Which incidents are investigated, and limits.",
+      summary: <span data-testid="the-summary">Every incident.</span>,
+    });
+
+    expect(
+      within(screen.getByTestId("collapsible-section-summary")).getByTestId(
+        "the-summary",
+      ),
+    ).toHaveTextContent("Every incident.");
   });
 
   test("with no description, folded says nothing under its title", () => {

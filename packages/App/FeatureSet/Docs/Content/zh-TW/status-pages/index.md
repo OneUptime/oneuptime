@@ -142,7 +142,7 @@
 
 ### SSO 與 OIDC
 
-如果私人頁面要接上你的身分提供者，**狀態頁面 → 你的頁面 → 安全性 → SSO** 設定 SAML（登入網址、簽發者、x509 憑證、簽章與摘要方法），**狀態頁面 → 你的頁面 → 安全性 → OIDC** 設定 OpenID Connect（探索網址、簽發者、用戶端 ID 與密鑰、範圍、宣告名稱）。**SCIM** 則從 IdP 自動佈建私人使用者。在 OneUptime Cloud 上，這三項都需要 Scale 以上方案。在自架部署中，SSO 與 OIDC 屬於所有版本，SCIM 則需要 [Enterprise Edition](/docs/self-hosted/enterprise)。
+如果私人頁面要接上你的身分提供者，**狀態頁面 → 你的頁面 → 安全性 → SSO** 設定 SAML（登入網址、簽發者、x509 憑證、簽章與摘要方法），**狀態頁面 → 你的頁面 → 安全性 → OIDC** 設定 OpenID Connect（填寫簽發者、用戶端 ID 與密鑰即可，探索網址、範圍與宣告名稱會在**進階**中自動填好）。**SCIM** 則從 IdP 自動佈建私人使用者。在 OneUptime Cloud 上，這三項都需要 Scale 以上方案。在自架部署中，SSO 與 OIDC 屬於所有版本，SCIM 則需要 [Enterprise Edition](/docs/self-hosted/enterprise)。
 
 一張 **SSO 設定** 卡片提供 **強制使用 SSO 登入**（`requireSsoForLogin`，預設關閉）。開啟之前請先測試你的 SSO 設定——如果它不管用，你會把自己鎖在狀態頁面外面。
 

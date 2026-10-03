@@ -22,7 +22,7 @@ Global SSO（包括实例级的“Require SSO for Login”开关）属于 OneUpt
 
    - 点击 **Create Global SSO**。
    - 对于 SAML：输入 **名称**、来自身份提供商的 **Sign On URL** 和 **Issuer**，并粘贴 **Public Certificate**。选择 **Signature** 和 **Digest** 方法（如果不确定，请保留默认值 —— `RSA-SHA256` / `SHA256`）。
-   - 对于 OIDC：输入 **Discovery URL**、**Issuer**、**Client ID**、**Client Secret**、**Scopes**（必须包含 `openid`），以及 **email** / **name** 声明名称。
+   - 对于 OIDC：输入 **Name**、**Issuer URL**，以及您在 IdP 中注册的应用的 **Client ID** 和 **Client Secret**。也可以把 IdP 的发现 URL 直接粘贴到 **Issuer URL**。其余内容会在 **Advanced** 中自动填好：**Discovery URL**（颁发者后接 `/.well-known/openid-configuration`）、**Scopes**（`openid email profile`）、`email` 和 `name` 声明名称，以及描述（`Sign in with` 加名称）。仅当您的 IdP 需要时才更改它们。保存后会打开该提供商的页面。
 
 3. **将 OneUptime URL 复制到您的身份提供商**
 
