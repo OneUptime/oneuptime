@@ -25,9 +25,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  * On a self-hosted install (billing off) each page is the configuration
  * screen whatever the edition and whatever the Enterprise license says: the
  * provider table offers create, edit and delete, there is no "Disable" row
- * action and no license banner or notice, "Force SSO for Login" (on the two
- * SAML pages) is editable with its usual description, and the page never
- * asks the server for the license. On OneUptime Cloud (billing on) only the
+ * action and no license banner or notice, requiring SSO (on the two SAML
+ * pages) can always be changed - the project's "Require SSO for Login" is a
+ * switch that saves on flip and asks first, the status page's "Force SSO
+ * for Login" a card with its usual description - and the page never asks
+ * the server for the license. On OneUptime Cloud (billing on) only the
  * plan decides: a project below Scale, or one whose plan cannot be read,
  * sees the Scale plan upsell - never the Enterprise Edition one.
  *
@@ -36,8 +38,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * provider, so they are pinned byte for byte. The URL settings are pinned
  * too, so the expected values can be literal.
  *
- * ModelTable and CardModelDetail are stand-ins that print the props that
- * matter; everything else is real. Billing, the edition, the plan and the
+ * ModelTable, CardModelDetail and ModelSwitchCard are stand-ins that print
+ * the props that matter; everything else is real. Billing, the edition, the plan and the
  * license answer are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true.
  */
@@ -363,6 +365,54 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   };
 });
 
+interface MockSwitchConfirmation {
+  submitButtonType?: unknown;
+}
+
+jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
+  const buttonModule: { ButtonStyleType: Record<string, unknown> } =
+    jest.requireActual("../../../UI/Components/Button/Button") as {
+      ButtonStyleType: Record<string, unknown>;
+    };
+
+  return {
+    __esModule: true,
+    default: (props: {
+      modelType: { new (): { tableName?: string | undefined } };
+      modelId: { toString: () => string };
+      column: string;
+      cardTitle: string;
+      title: string;
+      getConfirmation?:
+        | ((isTurningOn: boolean) => MockSwitchConfirmation | undefined)
+        | undefined;
+      dataTestId: string;
+    }): ReactElement => {
+      const turningOn: MockSwitchConfirmation | undefined =
+        props.getConfirmation?.(true);
+      const turningOff: MockSwitchConfirmation | undefined =
+        props.getConfirmation?.(false);
+
+      return (
+        <div
+          data-testid={`model-switch-card-${props.dataTestId}`}
+          data-model={new props.modelType().tableName || ""}
+          data-model-id={props.modelId.toString()}
+          data-column={props.column}
+          data-card-title={props.cardTitle}
+          data-title={props.title}
+          data-asks-turning-on={String(Boolean(turningOn))}
+          data-asks-turning-off={String(Boolean(turningOff))}
+          data-danger-turning-on={String(
+            turningOn?.submitButtonType ===
+              buttonModule.ButtonStyleType["DANGER"],
+          )}
+        />
+      );
+    },
+  };
+});
+
 import SettingsSSOPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SSO";
 import SettingsOIDCPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/OIDC";
 import StatusPageSSOPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO";
@@ -383,6 +433,10 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID: string = mockProviderRow._id;
 
+// The project's "Require SSO for Login" switch card, as the stand-in draws it.
+const REQUIRE_SSO_SWITCH_CARD: string =
+  "model-switch-card-project-require-sso-switch";
+
 const FORCE_SSO_FORM_DESCRIPTION: string =
   "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.";
 
@@ -390,6 +444,11 @@ interface ForceSsoCard {
   model: string;
   modelId: string;
   detailDescription: string;
+}
+
+// The project's "Require SSO for Login" switch (RequireSsoForLoginCard).
+interface RequireSsoSwitch {
+  modelId: string;
 }
 
 interface PageCase {
@@ -404,6 +463,7 @@ interface PageCase {
   // The "test it before you force it" link, exactly.
   testLink: string;
   forceSsoCard: ForceSsoCard | null;
+  requireSsoSwitch: RequireSsoSwitch | null;
   // Columns the create / edit form writes.
   formFields: Array<string>;
   // Status pages attach new providers to the page and its project.
@@ -427,12 +487,8 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/identity/idp-login/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
-    forceSsoCard: {
-      model: "Project",
-      modelId: PROJECT_ID,
-      detailDescription:
-        "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-    },
+    forceSsoCard: null,
+    requireSsoSwitch: { modelId: PROJECT_ID },
     formFields: [
       "name",
       "description",
@@ -462,6 +518,7 @@ const PAGE_CASES: Array<PageCase> = [
     ],
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
     forceSsoCard: null,
+    requireSsoSwitch: null,
     // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
@@ -499,6 +556,7 @@ const PAGE_CASES: Array<PageCase> = [
       detailDescription:
         "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.",
     },
+    requireSsoSwitch: null,
     formFields: [
       "name",
       "description",
@@ -527,6 +585,7 @@ const PAGE_CASES: Array<PageCase> = [
     ],
     testLink: `https://oneuptime.example.com/status-page/${STATUS_PAGE_ID}/sso`,
     forceSsoCard: null,
+    requireSsoSwitch: null,
     formFields: [
       "name",
       "issuerURL",
@@ -640,6 +699,30 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
     ).not.toBeInTheDocument();
   }
 
+  if (pageCase.requireSsoSwitch) {
+    /*
+     * The project's switch: it saves when flipped, asks with a red button
+     * before it locks people out, and never asks to turn it off.
+     */
+    const requireSso: HTMLElement = screen.getByTestId(REQUIRE_SSO_SWITCH_CARD);
+
+    expect(requireSso).toHaveAttribute("data-model", "Project");
+    expect(requireSso).toHaveAttribute(
+      "data-model-id",
+      pageCase.requireSsoSwitch.modelId,
+    );
+    expect(requireSso).toHaveAttribute("data-column", "requireSsoForLogin");
+    expect(requireSso).toHaveAttribute("data-card-title", "SSO Settings");
+    expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+    expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
+    expect(requireSso).toHaveAttribute("data-danger-turning-on", "true");
+    expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
+  } else {
+    expect(
+      screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD),
+    ).not.toBeInTheDocument();
+  }
+
   for (const testId of LICENSE_TEST_IDS) {
     expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
   }
@@ -676,6 +759,7 @@ const expectPlanUpsell: (pageCase: PageCase) => void = (
   expect(
     screen.queryByTestId("card-model-detail-SSO Settings"),
   ).not.toBeInTheDocument();
+  expect(screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD)).not.toBeInTheDocument();
 };
 
 const pinCloud: (plan: string | null) => void = (plan: string | null): void => {

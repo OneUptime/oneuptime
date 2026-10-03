@@ -356,14 +356,15 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                   );
                 }
 
+                /*
+                 * The DashboardCerts worker orders it. "Order Free SSL" on the
+                 * row is only a shortcut for not waiting.
+                 */
                 if (!item.isSslOrdered) {
                   return (
                     <span>
-                      <span className="font-semibold">
-                        {translator.translateText("Action Required:")}
-                      </span>{" "}
                       {translator.translateText(
-                        "Please order SSL certificate.",
+                        "No action is required. We will order a free SSL certificate for this domain automatically, usually within 15 minutes.",
                       )}
                     </span>
                   );
@@ -421,7 +422,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
                   <br />
                   <span>
                     {translator.translateText(
-                      "Once you have done this, it should take 24 hours to automatically verify.",
+                      "We check for this record every 15 minutes and verify your domain automatically once it is live. To check right away, click Verify CNAME.",
                     )}
                   </span>
                 </div>
@@ -483,7 +484,7 @@ const DashboardCustomDomains: FunctionComponent<PageComponentProps> = (
               DashboardCNameRecord ? (
                 <div>
                   {translator.translateText(
-                    "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
+                    "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting, click the button below. The certificate is served within 15 minutes of being ordered.",
                   )}
                 </div>
               ) : (

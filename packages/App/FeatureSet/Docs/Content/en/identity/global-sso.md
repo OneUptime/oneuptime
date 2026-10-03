@@ -47,8 +47,8 @@ If you want to prevent any automatic account creation even when projects are att
 
 Configuring a global provider does not force anyone to use it; password login still works. To require SSO, use the **Require SSO for Login** controls:
 
-- **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global).
-- **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** toggle that forces SSO for every user across the instance. Master admins remain exempt so they cannot be locked out.
+- **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global). See [Requiring SSO for Your Project](/docs/identity/sso#requiring-sso-for-your-project).
+- **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.
 
 ## Related
 
