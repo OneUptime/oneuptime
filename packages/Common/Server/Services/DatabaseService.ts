@@ -723,6 +723,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve({ findBy, carryForward: null });
   }
 
+  /*
+   * Runs on a create once the caller has passed the permission checks, just
+   * before the @UniqueColumnBy and @UniqueColumnsTogether checks, which
+   * refuse a clash with an existing row as "<Model> with the same <column>
+   * already exists.". Override it to refuse a clash in words of your own:
+   * the caller may create the row, so a refusal may say what exists (see
+   * DiscoveredResourceCreate.refuseClash). Skipped with ignoreHooks.
+   */
+  protected async onBeforeCreateUniqueCheck(
+    _createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
     createdItem: TBaseModel,
@@ -1670,6 +1685,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.planListOrderForCreate(data);
 
     createBy.data = data;
+
+    // A service's own words for a clash, before the generic checks below.
+    if (!createBy.props.ignoreHooks) {
+      await this.onBeforeCreateUniqueCheck(createBy);
+    }
 
     // check uniqueColumns by:
     createBy = await this.checkUniqueColumnBy(createBy);

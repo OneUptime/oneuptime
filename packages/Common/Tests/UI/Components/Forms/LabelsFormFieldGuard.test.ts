@@ -615,6 +615,11 @@ interface FormShape {
    * pinned rows are still checked.
    */
   uncountable?: string | undefined;
+  /*
+   * A one-page form of more than three rows - listed, with the reason, in
+   * LongFormStepsGuard's LONG_FORMS_WITHOUT_STEPS: the rows it shows.
+   */
+  longOnePageRows?: number | undefined;
 }
 
 function onePage(
@@ -756,8 +761,9 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   ),
 
   /*
-   * Create forms of a resource matched by an identifier: the name and the
-   * identifier open, the description and the labels folded.
+   * Create forms of a resource matched by an identifier: the identifier
+   * open, and the display name (which follows it), the description and the
+   * labels folded (DiscoveredResourceCreateFormsGuard).
    */
   ...[
     ["Host/Hosts.tsx", "ModelTable: Hosts", "hostIdentifier"],
@@ -782,10 +788,20 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     return onePage(
       `${DASHBOARD}/Pages/${file}`,
       label!,
-      ["name", identifier!],
-      ["description", "labels"],
+      [identifier!],
+      ["name", "description", "labels"],
     );
   }),
+  // The same for a cloud environment, matched on its platform, account and region.
+  {
+    ...onePage(
+      `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
+      "ModelTable: Cloud Environments",
+      ["cloudPlatform", "cloudAccountId", "cloudRegion"],
+      ["name", "description", "labels"],
+    ),
+    longOnePageRows: 4,
+  },
   /*
    * Name and "Who takes turns?" (OnCallScheduleCreateForm.ts); how long each
    * turn lasts and the timezone fold with the description and the labels.
@@ -912,12 +928,6 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
         folded: LABELS_ONLY,
       },
     },
-  },
-  {
-    file: `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
-    label: "ModelTable: Cloud Environments",
-    steps: ["environment", "details"],
-    rows: { details: { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
   },
   {
     file: `${DASHBOARD}/Pages/Database/Databases.tsx`,
@@ -1129,7 +1139,9 @@ describe("labels on the project's forms", () => {
 
       if (shape.steps.length === 0) {
         expect(Object.keys(shape.rows)).toEqual([""]);
-        expect(form.visibleFieldCount).toBeLessThanOrEqual(3);
+        expect(form.visibleFieldCount).toBeLessThanOrEqual(
+          shape.longOnePageRows ?? 3,
+        );
       }
 
       const shown: Array<FormFieldFacts> = variantsOf(form)[0]!.fields;
