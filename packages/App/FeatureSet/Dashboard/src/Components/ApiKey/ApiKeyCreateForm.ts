@@ -123,8 +123,12 @@ export const getApiKeyCreateFormFields: (
       validation: {
         dateShouldBeInTheFuture: true,
       },
-      getDefaultValue: (): Date => {
-        return getDefaultApiKeyExpiry();
+      /*
+       * Held the way the date picker holds a picked date - its ISO string -
+       * so picking the same day again does not read as a change.
+       */
+      getDefaultValue: (): string => {
+        return OneUptimeDate.toString(getDefaultApiKeyExpiry());
       },
       collapsibleSection: advanced,
     },
