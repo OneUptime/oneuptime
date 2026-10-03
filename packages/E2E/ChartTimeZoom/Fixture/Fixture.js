@@ -2403,6 +2403,14 @@ function analyticsRows(modelType, query, kind) {
   });
 }
 
+/*
+ * POST <model>/get-list, answered the way BaseAnalyticsAPI answers it. The
+ * server skips COUNT(*): it reads one row past the page, says whether that
+ * row was there (hasMore), and sends a lower bound as `count`, the rows up
+ * to the page's last plus one while more follow. A page that ends the list
+ * so proves its own total, and an explorer only counts (below) when rows
+ * follow its page.
+ */
 AnalyticsModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   const skip = Number(options.skip || 0);
@@ -2417,22 +2425,20 @@ AnalyticsModelAPI.getList = async (options) => {
     skip,
     limit,
   });
-  const rows = analyticsRows(
-    options.modelType,
-    options.query,
-    "analytics.getList",
+  const records = sortRecords(
+    analyticsRows(options.modelType, options.query, "analytics.getList") || [],
+    options.sort,
   );
-  if (!rows) {
-    return { data: [], count: 0, skip, limit };
-  }
-  const records = sortRecords(rows, options.sort);
+  const page = records.slice(skip, skip + limit);
+  const hasMore = records.length > skip + limit;
   return {
-    data: records.slice(skip, skip + limit).map((item) => {
+    data: page.map((item) => {
       return projectRecord(options.modelType, item, options.select);
     }),
-    count: records.length,
+    count: skip + page.length + (hasMore ? 1 : 0),
     skip,
     limit,
+    hasMore,
   };
 };
 
@@ -2442,7 +2448,9 @@ AnalyticsModelAPI.getList = async (options) => {
  * ("2,120 spans") and ask for it exact (CountBy.exact): the very rows a list
  * with the same query pages through, never the server's estimate. The
  * fixture always counts exactly, which also answers a count that did not
- * ask to be exact.
+ * ask to be exact. Only the generated tables (the explorers' spans and
+ * logs) are counted: a count of any other table is not modelled and lands
+ * on `unhandled`, so a page that starts counting one finds out.
  */
 AnalyticsModelAPI.count = async (
   modelType,
@@ -2450,15 +2458,21 @@ AnalyticsModelAPI.count = async (
   _requestOptions,
   countOptions,
 ) => {
+  const modelName = tableName(modelType);
   const entry = record({
     kind: "analytics.count",
-    modelName: tableName(modelType),
+    modelName,
     query: serialize(query),
     window: windowOf(query),
     exact: Boolean(countOptions?.exact),
   });
-  const rows = analyticsRows(modelType, query, "analytics.count");
-  entry.count = rows ? rows.length : 0;
+  let rows = [];
+  if (GENERATED_TABLES[modelName]) {
+    rows = analyticsRows(modelType, query, "analytics.count");
+  } else {
+    fixture.unhandled.push({ kind: "analytics.count", modelName });
+  }
+  entry.count = rows.length;
   return entry.count;
 };
 
