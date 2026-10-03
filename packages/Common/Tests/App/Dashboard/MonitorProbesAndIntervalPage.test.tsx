@@ -433,6 +433,108 @@ describe("the Probes & Interval page", () => {
     expect(screen.getByText(/monitor not found/i)).toBeInTheDocument();
     expect(screen.queryByTestId("probes-table")).toBeNull();
   });
+
+  describe("moving to another monitor's page, which keeps the page mounted", () => {
+    const OTHER_MONITOR_ID: string = "8d8d8d8d-0000-4000-8000-0000000000e2";
+    const OTHER_PATH: string = `/dashboard/${PROJECT_ID}/monitors/${OTHER_MONITOR_ID}/probes`;
+
+    // Each monitor as the server holds it.
+    const monitors: Record<string, Partial<Monitor>> = {
+      [MONITOR_ID]: {
+        monitorType: MonitorType.API,
+        monitoringInterval: "*/10 * * * *",
+        minimumProbeAgreement: 2,
+      },
+      [OTHER_MONITOR_ID]: {
+        monitorType: MonitorType.Website,
+        monitoringInterval: "0 * * * *",
+        minimumProbeAgreement: 3,
+      },
+    };
+
+    function answer(id: string): Monitor {
+      const monitor: Monitor = new Monitor();
+      monitor._id = id;
+      Object.assign(monitor, monitors[id]);
+      return monitor;
+    }
+
+    function shown(): { interval: string; agreement: string } {
+      return {
+        interval:
+          screen.getByTestId(`${MONITORING_INTERVAL_TEST_ID}-card`)
+            .textContent || "",
+        agreement: (
+          screen.getByTestId(PROBE_AGREEMENT_TEST_ID) as HTMLInputElement
+        ).value,
+      };
+    }
+
+    test("reads the new monitor, and its cards start from what it has", async () => {
+      getItemMock.mockImplementation(
+        async (options: unknown): Promise<unknown> => {
+          return answer((options as { id: ObjectID }).id.toString());
+        },
+      );
+
+      const view: { rerender: (ui: ReactElement) => void } = render(
+        <MonitorProbesPage {...PAGE_PROPS} />,
+      );
+      await flush();
+
+      expect(shown()).toEqual({ interval: "Every 10 Minutes", agreement: "2" });
+
+      goTo(OTHER_PATH);
+      view.rerender(<MonitorProbesPage {...PAGE_PROPS} />);
+      await flush();
+
+      expect(
+        (getItemMock.mock.calls[1]![0] as { id: ObjectID }).id.toString(),
+      ).toBe(OTHER_MONITOR_ID);
+      expect(shown()).toEqual({ interval: "Every Hour", agreement: "3" });
+      expect(
+        (
+          tableProps[tableProps.length - 1]!["query"] as Record<string, unknown>
+        )["monitorId"],
+      ).toBe(OTHER_MONITOR_ID);
+    });
+
+    test("a late answer for the monitor it moved on from is dropped", async () => {
+      let answerFirst: () => void = (): void => {};
+
+      getItemMock.mockImplementation((options: unknown): Promise<unknown> => {
+        const id: string = (options as { id: ObjectID }).id.toString();
+
+        if (id === MONITOR_ID) {
+          return new Promise((resolve: (value: unknown) => void): void => {
+            answerFirst = (): void => {
+              resolve(answer(MONITOR_ID));
+            };
+          });
+        }
+
+        return Promise.resolve(answer(id));
+      });
+
+      const view: { rerender: (ui: ReactElement) => void } = render(
+        <MonitorProbesPage {...PAGE_PROPS} />,
+      );
+      await flush();
+
+      goTo(OTHER_PATH);
+      view.rerender(<MonitorProbesPage {...PAGE_PROPS} />);
+      await flush();
+
+      expect(shown()).toEqual({ interval: "Every Hour", agreement: "3" });
+
+      await act(async () => {
+        answerFirst();
+      });
+      await flush();
+
+      expect(shown()).toEqual({ interval: "Every Hour", agreement: "3" });
+    });
+  });
 });
 
 describe("the monitor's menu", () => {

@@ -34,7 +34,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -58,6 +60,11 @@ const MonitorProbes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  /*
+   * Keyed on the id's string, not the ObjectID: a new ObjectID is read from
+   * the address on every render.
+   */
+  const modelIdString: string = modelId.toString();
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<ProbeMonitorResponse>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -68,11 +75,21 @@ const MonitorProbes: FunctionComponent<
 
   const [monitor, setMonitor] = useState<Monitor | null>(null);
 
-  const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
-    // get item.
-    setIsLoading(true);
+  /*
+   * Bumped by every read. The page stays mounted when the reader follows a
+   * link from one monitor's page to another's, so it reads again for the new
+   * id, and an answer for a monitor it has moved on from is dropped.
+   */
+  const readRef: MutableRefObject<number> = useRef<number>(0);
 
+  const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
+    const read: number = readRef.current + 1;
+    readRef.current = read;
+
+    setIsLoading(true);
+    setMonitor(null);
     setError("");
+
     try {
       const item: Monitor | null = await ModelAPI.getItem({
         modelType: Monitor,
@@ -84,6 +101,10 @@ const MonitorProbes: FunctionComponent<
         },
       });
 
+      if (read !== readRef.current) {
+        return;
+      }
+
       if (!item) {
         setError(ExceptionMessages.MonitorNotFound);
         setIsLoading(false);
@@ -92,9 +113,17 @@ const MonitorProbes: FunctionComponent<
 
       const probes: Array<Probe> = await ProbeUtil.getAllProbes();
 
+      if (read !== readRef.current) {
+        return;
+      }
+
       setProbes(probes);
       setMonitor(item);
     } catch (err) {
+      if (read !== readRef.current) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err));
     }
     setIsLoading(false);
@@ -103,13 +132,13 @@ const MonitorProbes: FunctionComponent<
   const monitorType: MonitorType | undefined = monitor?.monitorType;
 
   useAsyncEffect(async () => {
-    // fetch the model
     await fetchItem();
-  }, []);
+  }, [modelIdString]);
 
   const getProbesTable: GetReactElementFunction = (): ReactElement => {
     return (
       <ModelTable<MonitorProbe>
+        key={modelIdString}
         modelType={MonitorProbe}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -325,6 +354,7 @@ const MonitorProbes: FunctionComponent<
     return (
       <Fragment>
         <MonitoringIntervalCard
+          key={`interval-${modelIdString}`}
           monitorId={modelId}
           monitorType={monitorType}
           initialInterval={monitor.monitoringInterval}
@@ -333,6 +363,7 @@ const MonitorProbes: FunctionComponent<
         {getProbesTable()}
 
         <ProbeAgreementCard
+          key={`agreement-${modelIdString}`}
           monitorId={modelId}
           initialValue={monitor.minimumProbeAgreement}
         />

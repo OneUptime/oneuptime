@@ -144,6 +144,13 @@ describe("the Probes & Interval page", () => {
     expect(page).toContain("initialValue={monitor.minimumProbeAgreement}");
   });
 
+  test("reads again for another monitor, since the page stays mounted when the reader moves to one", () => {
+    expect(page).toContain("}, [modelIdString]);");
+    expect(page).toContain("if (read !== readRef.current) { return; }");
+    expect(page).toContain("key={`interval-${modelIdString}`}");
+    expect(page).toContain("key={`agreement-${modelIdString}`}");
+  });
+
   test("is only for a monitor that probes check: any other is told why it has neither", () => {
     expect(page).toContain(
       "if (!MonitorTypeHelper.isProbableMonitor(monitorType)) {",
