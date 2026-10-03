@@ -220,28 +220,15 @@ export function getRunnerFormFields(
 }
 
 /*
- * The list page's form: one ModelTable form serves both Create and Edit,
- * so the create fields (never restricted: a new row is never an agent row,
- * and the name check refuses the reserved prefix) are shown only when
- * creating, and the edit fields — restricted by the row being edited — only
- * when editing.
+ * The list page's form, which only creates: a Runner is edited in one
+ * place, the Runner Details card on its own page (RunnerView), where the
+ * form follows the row being edited. A new row is never an agent row, and
+ * the name check refuses the reserved prefix, so this form is never
+ * restricted.
  */
-export function getRunnerTableFormFields(
-  editing: RunnerFormRestrictions,
-): Fields<Runner> {
-  const createFields: Fields<Runner> = getRunnerFormFields({
+export function getRunnerCreateFormFields(): Fields<Runner> {
+  return getRunnerFormFields({
     withSteps: true,
     restrictions: NO_RUNNER_FORM_RESTRICTIONS,
-  }).map((field: Field<Runner>): Field<Runner> => {
-    return { ...field, doNotShowWhenEditing: true };
   });
-
-  const editFields: Fields<Runner> = getRunnerFormFields({
-    withSteps: true,
-    restrictions: editing,
-  }).map((field: Field<Runner>): Field<Runner> => {
-    return { ...field, doNotShowWhenCreating: true };
-  });
-
-  return [...createFields, ...editFields];
 }

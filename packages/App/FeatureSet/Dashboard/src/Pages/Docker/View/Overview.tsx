@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
@@ -1626,6 +1627,16 @@ const DockerHostOverview: FunctionComponent<
         cardProps={{
           title: "Docker Host Details",
           description: "Overview of this Docker host.",
+          // Edited in one place: the same card on the host's Settings page.
+          buttons: [
+            <EditInSettingsLink
+              key="edit-in-settings"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.DOCKER_HOST_VIEW_SETTINGS] as Route,
+                { modelId: modelId },
+              )}
+            />,
+          ],
         }}
         modelDetailProps={{
           modelType: DockerHost,
@@ -1636,7 +1647,7 @@ const DockerHostOverview: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Name",
+              title: "Display Name",
               fieldType: FieldType.Text,
               showIf: (item: DockerHost): boolean => {
                 return Boolean(item.name);
@@ -1656,7 +1667,7 @@ const DockerHostOverview: FunctionComponent<
               field: {
                 hostIdentifier: true,
               },
-              title: "Host Identifier",
+              title: "Host Name (host.name)",
               fieldType: FieldType.Text,
               showIf: (item: DockerHost): boolean => {
                 return Boolean(item.hostIdentifier);

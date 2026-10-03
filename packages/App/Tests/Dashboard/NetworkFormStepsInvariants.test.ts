@@ -68,14 +68,16 @@ const DASHBOARD_SRC: string = path.join(
 const STEPPED_FORM_PAGES: Array<string> = [
   "Pages/NetworkDevice/Devices.tsx",
   "Pages/NetworkDevice/Discovery.tsx",
+  /*
+   * A device's and a site's details are edited on their Settings pages
+   * only: the Overview cards link there and carry no form.
+   */
   "Pages/NetworkDevice/View/Settings.tsx",
-  // The device Overview card's edit form, and the device and site links.
-  "Pages/NetworkDevice/View/Index.tsx",
+  // The device and site links.
   "Pages/NetworkDevice/Links.tsx",
   "Pages/NetworkSite/Links.tsx",
   "Pages/NetworkSite/Sites.tsx",
   "Pages/NetworkSite/View/Settings.tsx",
-  "Pages/NetworkSite/View/Index.tsx",
   "Pages/NetworkSite/View/ChildSites.tsx",
   "Components/Topology/AddNeighborToMonitoringModal.tsx",
 ];
