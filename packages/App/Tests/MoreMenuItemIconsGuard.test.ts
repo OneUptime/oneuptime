@@ -47,6 +47,16 @@ const SCAN_DIRS: Array<string> = [
   path.join(REPOSITORY_DIR, "ee", "AdminDashboard"),
 ];
 
+/*
+ * The App Test job deletes ee/ before it runs (core is the Community Edition
+ * by construction), so there only the core menus are read. The Enterprise
+ * Edition Test workflow (test.ee.yaml) runs this guard with ee/ present,
+ * which is where the enterprise dashboards' menus are held to it.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_DIR, "ee", "Dashboard"),
+);
+
 const SKIPPED_DIRECTORIES: Array<string> = [
   "node_modules",
   "build",
@@ -419,9 +429,12 @@ describe("every item in a More (⋯) menu has an icon", () => {
         "packages/App/FeatureSet/Dashboard/src/Components/Monitor/MonitorTable.tsx",
         "packages/App/FeatureSet/AdminDashboard/src/Pages/Users/Index.tsx",
         "packages/App/FeatureSet/PublicDashboard/src/Pages/DashboardView/DashboardViewPage.tsx",
-        "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
       ]),
     );
+    // The Community Edition checkout has no ee/, and must still pass.
+    expect(
+      files.includes("ee/Dashboard/Identity/Pages/Settings/SCIM.tsx"),
+    ).toBe(ENTERPRISE_PRESENT);
     expect(findActionObjects().length).toBeGreaterThan(150);
     expect(findMoreMenuItems().length).toBeGreaterThan(60);
   });

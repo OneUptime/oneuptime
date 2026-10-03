@@ -38,6 +38,16 @@ const SCAN_DIRS: Array<string> = [
   path.join(REPOSITORY_DIR, "ee", "AdminDashboard"),
 ];
 
+/*
+ * The App Test job deletes ee/ before it runs (core is the Community Edition
+ * by construction), so there only the core cards are read. The Enterprise
+ * Edition Test workflow (test.ee.yaml) runs this guard with ee/ present,
+ * which is where the enterprise dashboards' cards are held to it.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_DIR, "ee", "AdminDashboard"),
+);
+
 const SKIPPED_DIRECTORIES: Array<string> = [
   "node_modules",
   "build",
@@ -305,9 +315,14 @@ describe("the record's own ID on details cards", () => {
         "packages/App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewDetailsCard.tsx Monitor ID",
         "packages/App/FeatureSet/Dashboard/src/Pages/Users/View/Index.tsx User ID",
         "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Index.tsx Project ID",
-        "ee/AdminDashboard/EnterpriseLicenses/Pages/View/Index.tsx License ID",
       ]),
     );
+    // The Community Edition checkout has no ee/, and must still pass.
+    expect(
+      titlesByFile.includes(
+        "ee/AdminDashboard/EnterpriseLicenses/Pages/View/Index.tsx License ID",
+      ),
+    ).toBe(ENTERPRISE_PRESENT);
   });
 
   test("is an ObjectID field, so Detail draws it on the ID line instead of the grid", () => {
