@@ -161,6 +161,13 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
    */
   const isBusyRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
+  /*
+   * The change the dialog is asking about, taken by the first answer: a
+   * second press of its button before it closes finds nothing to save.
+   */
+  const pendingRef: MutableRefObject<PendingChange | null> =
+    useRef<PendingChange | null>(null);
+
   // The callbacks of the latest render, for the subscription below.
   const latestPropsRef: MutableRefObject<ComponentProps<TBaseModel>> =
     useRef<ComponentProps<TBaseModel>>(props);
@@ -273,7 +280,8 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
 
     if (confirmation) {
       isBusyRef.current = true;
-      setPending({ previous, value, confirmation });
+      pendingRef.current = { previous, value, confirmation };
+      setPending(pendingRef.current);
       setSaveState(ModelSwitchSaveState.Confirming);
       return;
     }
@@ -282,23 +290,28 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   };
 
   const cancelPending: () => void = (): void => {
-    if (!pending) {
+    const cancelled: PendingChange | null = pendingRef.current;
+
+    if (!cancelled) {
       return;
     }
 
+    pendingRef.current = null;
     isBusyRef.current = false;
-    setIsOn(pending.previous);
-    props.onChange?.(pending.previous);
+    setIsOn(cancelled.previous);
+    props.onChange?.(cancelled.previous);
     setPending(null);
     setSaveState(ModelSwitchSaveState.Idle);
   };
 
   const confirmPending: () => void = (): void => {
-    if (!pending) {
+    const confirmed: PendingChange | null = pendingRef.current;
+
+    if (!confirmed) {
       return;
     }
 
-    const confirmed: PendingChange = pending;
+    pendingRef.current = null;
     setPending(null);
     void save(confirmed.value, confirmed.previous);
   };

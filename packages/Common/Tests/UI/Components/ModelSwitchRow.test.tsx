@@ -622,6 +622,23 @@ describe("ModelSwitchRow asks first where a flip can lock people out", () => {
     expect(onSaved.mock.calls).toEqual([[true]]);
   });
 
+  test("its button pressed twice saves once", async () => {
+    render(mcpRow({ getConfirmation: askWhenTurningOn }));
+
+    await press();
+    const confirm: HTMLElement = within(screen.getByRole("dialog")).getByRole(
+      "button",
+      { name: "Require SSO" },
+    );
+    act(() => {
+      confirm.click();
+      confirm.click();
+    });
+    await flush();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+  });
+
   test("cancelled, the switch goes back and nothing is saved", async () => {
     const onChange: MockFunction = getJestMockFunction();
     render(mcpRow({ getConfirmation: askWhenTurningOn, onChange }));

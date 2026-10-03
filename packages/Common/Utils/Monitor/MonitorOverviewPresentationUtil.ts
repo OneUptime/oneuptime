@@ -71,16 +71,22 @@ export type MonitorOverviewLinkKey =
  */
 export type MonitorOverviewActionKey = "turnMonitoringOn";
 
-// The hero's call to action: a link to another page of the monitor.
+/*
+ * The hero's call to action: a link to another page of the monitor. Each
+ * kind names the other's key as never set, so `callToAction.linkKey` can
+ * still be read on either (undefined for an action).
+ */
 export interface MonitorOverviewLinkCallToAction {
   text: string;
   linkKey: MonitorOverviewLinkKey;
+  actionKey?: undefined;
 }
 
 // The hero's call to action: something it does in place.
 export interface MonitorOverviewActionCallToAction {
   text: string;
   actionKey: MonitorOverviewActionKey;
+  linkKey?: undefined;
 }
 
 export type MonitorOverviewCallToAction =
@@ -93,7 +99,7 @@ export const isMonitorOverviewActionCallToAction: (
 ) => callToAction is MonitorOverviewActionCallToAction = (
   callToAction: MonitorOverviewCallToAction,
 ): callToAction is MonitorOverviewActionCallToAction => {
-  return "actionKey" in callToAction;
+  return callToAction.actionKey !== undefined;
 };
 
 export type MonitorOverviewFactKey =
