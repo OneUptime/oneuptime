@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -111,6 +117,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
+/*
+ * What the API would answer if the page asked for the incident states. It
+ * no longer does: an incident left without a state starts in the project's
+ * starting state, which the server picks.
+ */
 const FIRST_STATE_ID: string = "55555555-5555-4555-8555-000000000001";
 const TEMPLATE_ID: string = "66666666-6666-4666-8666-000000000001";
 
@@ -278,6 +289,18 @@ const answerList: AnswerListFunction = async (
   return listResult([]);
 };
 
+type IncidentStateRequestsFunction = () => Array<any>;
+
+const incidentStateRequests: IncidentStateRequestsFunction = (): Array<any> => {
+  return getListMock.mock.calls
+    .map((call: Array<any>): any => {
+      return call[0];
+    })
+    .filter((request: any): boolean => {
+      return request.modelType === IncidentState;
+    });
+};
+
 type AlertRequestsFunction = () => Array<any>;
 
 const alertRequests: AlertRequestsFunction = (): Array<any> => {
@@ -372,13 +395,11 @@ describe("declaring an incident from alerts", () => {
       const form: CapturedFormProps = await openPage();
 
       /*
-       * Nothing from alerts. The form waits only for the project's incident
-       * custom fields (its Details step), so the first state may already be
-       * in by the time it renders.
+       * Nothing from alerts, and no state either: an incident declared
+       * without one starts in the project's starting state, which the
+       * server picks. Initial State waits, empty, under Advanced.
        */
-      expect([{}, { currentIncidentState: FIRST_STATE_ID }]).toContainEqual(
-        capturedForms[0]!.initialValues,
-      );
+      expect(capturedForms[0]!.initialValues).toEqual({});
       expect(alertRequests()).toHaveLength(0);
       expect(
         screen.queryByTestId("incident-create-alerts-to-link"),
@@ -387,12 +408,16 @@ describe("declaring an incident from alerts", () => {
         screen.queryByTestId("incident-create-alerts-not-found"),
       ).not.toBeInTheDocument();
 
-      // The first state still arrives the way it always did.
-      await waitFor(() => {
-        expect(capturedForms[capturedForms.length - 1]!.initialValues).toEqual({
-          currentIncidentState: FIRST_STATE_ID,
+      // Nothing arrives later either: the page never asks for a state.
+      await act(async () => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
         });
       });
+      expect(capturedForms[capturedForms.length - 1]!.initialValues).toEqual(
+        {},
+      );
+      expect(incidentStateRequests()).toEqual([]);
 
       expect(await miscDataSentBy(form)).toEqual({});
     });
@@ -446,7 +471,6 @@ describe("declaring an incident from alerts", () => {
       await openPage();
 
       const expected: Record<string, unknown> = {
-        currentIncidentState: FIRST_STATE_ID,
         title: "Database is down",
         description: [
           "- Alert #11: API latency is high",
@@ -594,9 +618,9 @@ describe("declaring an incident from alerts", () => {
       expect(
         screen.queryByTestId("incident-create-alerts-to-link"),
       ).not.toBeInTheDocument();
-      expect(form.initialValues).toEqual({
-        currentIncidentState: FIRST_STATE_ID,
-      });
+      // Nothing to prefill, and no state: the server picks the starting one.
+      expect(form.initialValues).toEqual({});
+      expect(incidentStateRequests()).toEqual([]);
       expect(await miscDataSentBy(form)).toEqual({});
     });
 

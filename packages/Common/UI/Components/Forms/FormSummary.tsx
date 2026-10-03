@@ -16,6 +16,7 @@ import {
   PeoplePickerFieldConfig,
   readPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
+import { isFormFieldValueSet } from "./Utils/AdvancedFormSection";
 
 type SummaryElementFn<T extends GenericObject> = (
   item: FormValues<T>,
@@ -208,6 +209,34 @@ const getPeoplePickerSummaryElement: <T extends GenericObject>(
   return PeoplePickerSummary;
 };
 
+/*
+ * Whether the review lists a field. A field folded into a collapsible
+ * section - the Advanced section most of all - is one the form kept out of
+ * the way, so the review lists it only when it holds something of the
+ * user's (isFormFieldValueSet: a value other than empty or its default, a
+ * switch off its default). Declare Incident's Advanced options left alone
+ * would otherwise come back as four rows nobody touched, on the one screen
+ * meant to confirm what was chosen. A field shown only under a condition
+ * follows that condition, as everywhere else.
+ */
+export const isListedInFormSummary: <T extends GenericObject>(
+  field: Field<T>,
+  formValues: FormValues<T>,
+) => boolean = <T extends GenericObject>(
+  field: Field<T>,
+  formValues: FormValues<T>,
+): boolean => {
+  if (field.showIf && !field.showIf(formValues)) {
+    return false;
+  }
+
+  if (field.collapsibleSection) {
+    return isFormFieldValueSet(field, formValues);
+  }
+
+  return true;
+};
+
 export interface ComponentProps<T> {
   formValues: FormValues<T>;
   formFields: Fields<T>;
@@ -290,10 +319,7 @@ const FormSummary: <T extends GenericObject>(
         return formStep.id === field.stepId;
       })
       .filter((formField: Field<T>) => {
-        if (!formField.showIf) {
-          return true;
-        }
-        return formField.showIf(formValues);
+        return isListedInFormSummary(formField, formValues);
       });
 
     if (formFields.length === 0) {
@@ -325,7 +351,12 @@ const FormSummary: <T extends GenericObject>(
     );
   }
 
-  return getDetailForFormFields(formValues, formFields);
+  return getDetailForFormFields(
+    formValues,
+    formFields.filter((field: Field<T>) => {
+      return isListedInFormSummary(field, formValues);
+    }),
+  );
 };
 
 export default FormSummary;

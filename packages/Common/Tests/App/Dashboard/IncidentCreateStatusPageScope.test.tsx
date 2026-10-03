@@ -870,7 +870,8 @@ describe("the audience on the last step", () => {
     expect(field.description).toBe(
       "Should status page subscribers be notified when this incident is created?",
     );
-    expect(field.stepId).toBe("more");
+    // On Resources Affected, with the monitors and pages it reaches.
+    expect(field.stepId).toBe("resources-affected");
   });
 });
 

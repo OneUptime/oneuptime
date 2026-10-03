@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -795,7 +796,6 @@ describe("acknowledging the alerts an incident is declared from", () => {
       expect(capturedForms[0]!.initialValues).toEqual(form.initialValues);
       expect(form.initialValues).toEqual(
         expect.objectContaining({
-          currentIncidentState: FIRST_INCIDENT_STATE_ID,
           title: "Alert 1 title",
           description: [
             "- Alert #1: Alert 1 title",
@@ -858,11 +858,14 @@ describe("acknowledging the alerts an incident is declared from", () => {
     test("does not read alert states or links, or send the key, when not declaring from alerts", async () => {
       await openPage();
 
-      await waitFor(() => {
-        expect(latestForm().initialValues).toEqual({
-          currentIncidentState: FIRST_INCIDENT_STATE_ID,
+      // Nothing to prefill: no alerts, and no state (the server picks it).
+      await act(async () => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
         });
       });
+      expect(latestForm().initialValues).toEqual({});
+      expect(requestsFor(IncidentState)).toHaveLength(0);
 
       expect(requestsFor(AlertState)).toHaveLength(0);
       expect(requestsFor(IncidentAlert)).toHaveLength(0);
