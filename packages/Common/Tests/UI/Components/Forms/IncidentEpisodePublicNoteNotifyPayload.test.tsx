@@ -12,41 +12,34 @@ import {
   cleanup,
   fireEvent,
   render,
-  RenderResult,
   screen,
-  waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { JSONObject } from "../../../../Types/JSON";
 import Permission from "../../../../Types/Permission";
 
 /*
- * "Notify Status Page Subscribers" on a new incident episode public note,
- * through the real ModelForm and the real IncidentEpisodePublicNote model,
- * down to the payload that would be POSTed.
+ * "Notify status page subscribers" on a new incident episode public note,
+ * through the real IncidentEpisodePublicNote model, down to the payload that
+ * would be POSTed.
  *
- * An episode created without notifying subscribers starts this box unticked.
- * The dashboard does that by seeding the flag as an initial value as well as
- * the field's default, because BasicForm only applies a truthy default: a
- * default of false leaves the value unset and the key never reaches the
- * server. The server would then decide from the episode rather than from what
- * the user saw in the form.
+ * An episode created without notifying subscribers starts this box unticked,
+ * and the note must then carry an explicit false: an unsent flag makes the
+ * server decide from the episode rather than from what the user saw.
+ *
+ * The dashboard writes these notes in two places, both through the Notes
+ * page's composer: the episode's Public Notes page, and the Episode Feed's
+ * "Add Public Note" dialog. Both are rendered here for real, editor and all.
+ * The first describes pin why neither asks for the flag through a ModelForm
+ * checkbox: a form drops a false default and the key never reaches the
+ * server.
  */
 
 let capturedPayload: JSONObject | null = null;
 
 // What the episode Public Notes page reads for its notify default.
 let pageEpisode: IncidentEpisode | null = null;
-
-interface CapturedModalProps {
-  title: string;
-  initialValues?: FormValues<IncidentEpisodePublicNote> | undefined;
-  formProps: {
-    fields: Fields<IncidentEpisodePublicNote>;
-  };
-}
-
-let modalRenders: Array<CapturedModalProps> = [];
 
 jest.mock("../../../../UI/Utils/Permission", () => {
   return {
@@ -79,6 +72,26 @@ jest.mock("../../../../UI/Utils/User", () => {
         return false;
       },
       getUserId: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
+// The feed's dialog saves the note in the project the dashboard is on.
+jest.mock("../../../../UI/Utils/Project", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCurrentProjectId: (): unknown => {
+        const ObjectIDClass: any = jest.requireActual(
+          "../../../../Types/ObjectID",
+        ) as any;
+        return new ObjectIDClass.default(
+          "66666666-6666-4666-8666-666666666666",
+        );
+      },
+      getCurrentProject: (): null => {
         return null;
       },
     },
@@ -147,21 +160,6 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-/*
- * The feed's modal is a prop recorder here: the tests take the notify field
- * and seeded values it is handed and run those through the real ModelForm.
- * The Public Notes page is rendered for real, composer and all.
- */
-jest.mock("../../../../UI/Components/ModelFormModal/ModelFormModal", () => {
-  return {
-    __esModule: true,
-    default: (props: CapturedModalProps): ReactElement => {
-      modalRenders.push(props);
-      return <div data-testid="note-modal" />;
-    },
-  };
-});
-
 jest.mock("../../../../UI/Components/Feed/Feed", () => {
   return {
     __esModule: true,
@@ -197,7 +195,7 @@ const NOTE_TEXT: string =
 const CHECKBOX_TITLE: string = "Notify Status Page Subscribers";
 const NOTIFYING_DESCRIPTION: string =
   "Should status page subscribers be notified?";
-const PUBLIC_NOTE_TITLE: string = "Add Public Note to this Episode";
+const PUBLIC_NOTE_DIALOG_TITLE: string = "Add Public Note";
 
 /*
  * A plain text note field, so the tests can type into it. The dashboard's own
@@ -300,27 +298,8 @@ async function submit(): Promise<JSONObject> {
   return capturedPayload;
 }
 
-function findNotifyField(
-  fields: Fields<IncidentEpisodePublicNote> | undefined,
-): Field<IncidentEpisodePublicNote> {
-  const field: Field<IncidentEpisodePublicNote> | undefined = (
-    fields || []
-  ).find((candidate: Field<IncidentEpisodePublicNote>): boolean => {
-    return Boolean(
-      (candidate.field as Record<string, unknown> | undefined)?.[NOTIFY_FIELD],
-    );
-  });
-
-  if (!field) {
-    throw new Error("The form has no notify subscribers field");
-  }
-
-  return field;
-}
-
 beforeEach(() => {
   window.localStorage.clear();
-  modalRenders = [];
   pageEpisode = null;
 });
 
@@ -419,11 +398,11 @@ describe("public note form on an episode that notified subscribers", () => {
   });
 });
 
-describe("why the dashboard seeds the notify flag as an initial value", () => {
+describe("why the dashboard never leaves the notify flag to a form default", () => {
   /*
-   * Documents the form behaviour the dashboard works around. If this starts
-   * failing because BasicForm now applies a false default, the initialValues
-   * seeding in the episode public note forms is no longer needed.
+   * Documents the form behaviour that made the old feed form seed the flag
+   * as an initial value, and that the composer avoids by always sending the
+   * flag it shows.
    */
   test("a false default alone leaves the box unticked but sends no notify flag, leaving the choice to the server", async () => {
     await renderNoteForm({ notifyByDefault: false, seedInitialValue: false });
@@ -451,15 +430,16 @@ describe("why the dashboard seeds the notify flag as an initial value", () => {
 });
 
 /*
- * The same round trip, but with the notify field and the seeded values the
- * dashboard itself builds: the episode feed's "Add Public Note" modal and the
- * episode Public Notes page's create form.
+ * The same round trip through what the dashboard itself draws: the Episode
+ * Feed's "Add Public Note" dialog and the episode's Public Notes page, both
+ * the Notes page composer, with the note typed in the real markdown editor's
+ * source mode.
  */
-describe("what the episode dashboard hands the form", () => {
+describe("what the episode dashboard posts", () => {
   async function renderWithFeedWiring(
     notifyStatusPageSubscribersByDefault: boolean,
-  ): Promise<void> {
-    const view: RenderResult = render(
+  ): Promise<HTMLElement> {
+    render(
       <IncidentEpisodeFeedElement
         incidentEpisodeId={new ObjectID(EPISODE_ID)}
         notifyStatusPageSubscribersByDefault={
@@ -477,20 +457,48 @@ describe("what the episode dashboard hands the form", () => {
       await screen.findByRole("menuitem", { name: "Add Public Note" }),
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId("note-modal")).toBeInTheDocument();
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: PUBLIC_NOTE_DIALOG_TITLE,
     });
 
-    const modal: CapturedModalProps = modalRenders[modalRenders.length - 1]!;
+    // One step: the composer, and no form fields or Next of the old modal.
+    expect(within(dialog).getByTestId("note-composer")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Next" })).toBeNull();
 
-    expect(modal.title).toBe(PUBLIC_NOTE_TITLE);
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog).getByTitle("Switch to markdown source"));
+    });
 
-    view.unmount();
+    return dialog;
+  }
 
-    await renderForm(
-      [noteField, findNotifyField(modal.formProps.fields)],
-      modal.initialValues,
-    );
+  function dialogNotifyCheckbox(dialog: HTMLElement): HTMLInputElement {
+    return within(dialog).getByRole("checkbox", {
+      name: "Notify status page subscribers",
+    }) as HTMLInputElement;
+  }
+
+  async function writeDialogNote(dialog: HTMLElement): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.change(
+        within(dialog)
+          .getByTestId("note-composer")
+          .querySelector("textarea") as HTMLTextAreaElement,
+        { target: { value: NOTE_TEXT } },
+      );
+    });
+  }
+
+  async function postDialogNote(dialog: HTMLElement): Promise<JSONObject> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+
+    if (!capturedPayload) {
+      throw new Error("The dialog did not post");
+    }
+
+    return capturedPayload;
   }
 
   /*
@@ -568,32 +576,48 @@ describe("what the episode dashboard hands the form", () => {
     return capturedPayload;
   }
 
-  test("the feed's form on a quiet episode sends an explicit false", async () => {
-    await renderWithFeedWiring(false);
+  test("the feed's dialog on a quiet episode sends an explicit false", async () => {
+    const dialog: HTMLElement = await renderWithFeedWiring(false);
 
-    expect(notifyCheckbox()).not.toBeChecked();
+    expect(dialogNotifyCheckbox(dialog)).not.toBeChecked();
     expect(
-      screen.getByText(
+      within(dialog).getByText(
         PublicNoteSubscriberNotificationDefault.quietIncidentEpisodeDescription,
       ),
     ).toBeInTheDocument();
 
-    await writeNote();
-    const payload: JSONObject = await submit();
+    await writeDialogNote(dialog);
+    const payload: JSONObject = await postDialogNote(dialog);
+
+    expect(payload["note"]).toBe(NOTE_TEXT);
+    expect(Object.keys(payload)).toContain(NOTIFY_FIELD);
+    expect(payload[NOTIFY_FIELD]).toBe(false);
+    expect(payload["incidentEpisodeId"]).toMatchObject({ value: EPISODE_ID });
+    expect(payload["projectId"]).toMatchObject({ value: PROJECT_ID });
+  });
+
+  test("the feed's dialog on an episode that notified sends true", async () => {
+    const dialog: HTMLElement = await renderWithFeedWiring(true);
+
+    expect(dialogNotifyCheckbox(dialog)).toBeChecked();
+
+    await writeDialogNote(dialog);
+    const payload: JSONObject = await postDialogNote(dialog);
+
+    expect(payload[NOTIFY_FIELD]).toBe(true);
+  });
+
+  test("unticking the feed dialog's box on an episode that notified sends false", async () => {
+    const dialog: HTMLElement = await renderWithFeedWiring(true);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(dialogNotifyCheckbox(dialog));
+    });
+    await writeDialogNote(dialog);
+    const payload: JSONObject = await postDialogNote(dialog);
 
     expect(Object.keys(payload)).toContain(NOTIFY_FIELD);
     expect(payload[NOTIFY_FIELD]).toBe(false);
-  });
-
-  test("the feed's form on an episode that notified sends true", async () => {
-    await renderWithFeedWiring(true);
-
-    expect(notifyCheckbox()).toBeChecked();
-
-    await writeNote();
-    const payload: JSONObject = await submit();
-
-    expect(payload[NOTIFY_FIELD]).toBe(true);
   });
 
   test("the Public Notes page's composer on a quiet episode sends an explicit false", async () => {

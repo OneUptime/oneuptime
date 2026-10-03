@@ -1,8 +1,11 @@
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import useAnchoredFieldPopup, {
+  AnchoredFieldPopup,
+} from "Common/UI/Types/UseAnchoredFieldPopup";
 import API from "Common/UI/Utils/API/API";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
@@ -11,6 +14,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 export interface NoteTemplateOption {
   id: string;
@@ -23,12 +27,20 @@ export interface ComponentProps {
   onPick: (template: NoteTemplateOption) => void;
   settingsRoute?: Route | undefined;
   isDisabled?: boolean | undefined;
-  // Opens the menu above the trigger, for a trigger near the bottom of a card.
+  /*
+   * Opens the menu above the trigger, for a trigger at the bottom of the
+   * composer: the menu then covers the note rather than what comes after it.
+   * Either way it goes to the other side when this one has no room for it.
+   */
   isOpeningUpwards?: boolean | undefined;
 }
 
 // Above this many templates the menu grows a filter box.
 export const TEMPLATE_FILTER_THRESHOLD: number = 6;
+
+// The menu's width (w-80), and its height with a filter box and a full list.
+export const TEMPLATE_MENU_WIDTH_PX: number = 320;
+export const TEMPLATE_MENU_MAX_HEIGHT_PX: number = 420;
 
 type TemplatePreviewFunction = (note: string) => string;
 
@@ -58,6 +70,12 @@ export const getTemplatePreview: TemplatePreviewFunction = (
  * note being written - no second dialog, and nothing already typed is lost.
  * Templates load the first time the menu opens, so a page nobody writes on
  * never asks for them.
+ *
+ * The menu is portalled and placed against its trigger (useAnchoredFieldPopup)
+ * rather than hung off it: the composer also sits in the scrolling body of
+ * the overview's "Add ... Note" dialog, which would cut off a menu hanging
+ * out of it, and on the Notes page a composer near the top of the screen has
+ * no room above it.
  */
 const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,8 +85,11 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
     return translateString(value) || value;
   };
 
-  const { ref, isComponentVisible, setIsComponentVisible } =
-    useComponentOutsideClick(false);
+  const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
+    popupWidth: TEMPLATE_MENU_WIDTH_PX,
+    popupMaxHeight: TEMPLATE_MENU_MAX_HEIGHT_PX,
+    preferredPlacement: props.isOpeningUpwards ? "above" : "below",
+  });
 
   const [templates, setTemplates] = useState<Array<NoteTemplateOption> | null>(
     null,
@@ -91,14 +112,31 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    if (isComponentVisible && templates === null && !isLoading && !error) {
+    if (popup.isPopupOpen && templates === null && !isLoading && !error) {
       load();
     }
 
-    if (!isComponentVisible) {
+    if (!popup.isPopupOpen) {
       setFilterText("");
     }
-  }, [isComponentVisible]);
+  }, [popup.isPopupOpen]);
+
+  /*
+   * Opened from the keyboard, the menu takes the focus while its templates
+   * may still be loading, with nothing in it to focus but itself. Once they
+   * arrive the focus moves on to the first of them (or the filter box, the
+   * retry, or the link to make one), so a keyboard user lands where they can
+   * pick. A pointer user's focus stays on the trigger and is left alone.
+   */
+  useEffect(() => {
+    const menu: HTMLDivElement | null = popup.popupRef.current;
+
+    if (!popup.isPopupOpen || !menu || document.activeElement !== menu) {
+      return;
+    }
+
+    menu.querySelector<HTMLElement>("input, button, [href]")?.focus();
+  }, [popup.isPopupOpen, popup.popupPosition, templates, isLoading, error]);
 
   const visibleTemplates: Array<NoteTemplateOption> = (templates || []).filter(
     (template: NoteTemplateOption) => {
@@ -187,7 +225,7 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
     return (
       <>
         {(templates?.length || 0) >= TEMPLATE_FILTER_THRESHOLD && (
-          <div className="border-b border-gray-100 p-2">
+          <div className="shrink-0 border-b border-gray-100 p-2">
             <input
               type="search"
               autoFocus={true}
@@ -201,7 +239,10 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
             />
           </div>
         )}
-        <ul className="max-h-72 overflow-y-auto py-1" role="listbox">
+        <ul
+          className="max-h-72 min-h-0 flex-1 overflow-y-auto py-1"
+          role="listbox"
+        >
           {visibleTemplates.map((template: NoteTemplateOption) => {
             const preview: string = getTemplatePreview(template.note);
 
@@ -212,7 +253,7 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
                   className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none"
                   onClick={() => {
                     props.onPick(template);
-                    setIsComponentVisible(false);
+                    popup.closePopup(false);
                   }}
                 >
                   <span className="w-full truncate text-sm font-medium text-gray-900">
@@ -234,7 +275,7 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
           )}
         </ul>
         {props.settingsRoute && (
-          <div className="border-t border-gray-100 px-3 py-2">
+          <div className="shrink-0 border-t border-gray-100 px-3 py-2">
             <Link
               to={props.settingsRoute}
               className="text-xs font-medium text-gray-500 hover:text-gray-700"
@@ -248,16 +289,18 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={popup.anchorRef}>
       <button
         type="button"
         disabled={props.isDisabled}
         aria-haspopup="listbox"
-        aria-expanded={isComponentVisible}
+        aria-expanded={popup.isPopupOpen}
+        aria-controls={popup.isPopupOpen ? popup.popupId : undefined}
         data-testid="note-template-menu-button"
         onClick={() => {
-          setIsComponentVisible(!isComponentVisible);
+          popup.togglePopup();
         }}
+        onKeyDown={popup.onTriggerKeyDown}
         className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Icon icon={IconProp.Template} className="h-4 w-4" />
@@ -268,19 +311,32 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
         />
       </button>
 
-      {isComponentVisible && (
-        <div
-          data-testid="note-template-menu"
-          className={`absolute left-0 z-30 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 ${
-            props.isOpeningUpwards ? "bottom-full mb-2" : "top-full mt-2"
-          }`}
-        >
-          <div className="border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {tx("Insert a template")}
-          </div>
-          {getBody()}
-        </div>
-      )}
+      {popup.isPopupOpen &&
+        popup.portalTarget &&
+        createPortal(
+          <div
+            ref={popup.popupRef}
+            id={popup.popupId}
+            data-testid="note-template-menu"
+            tabIndex={-1}
+            className="fixed flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
+            style={{
+              bottom: popup.popupPosition?.bottom,
+              left: popup.popupPosition?.left ?? 0,
+              maxHeight: popup.popupPosition?.maxHeight,
+              top: popup.popupPosition?.top,
+              visibility: popup.popupPosition ? "visible" : "hidden",
+              width: popup.popupPosition?.width ?? TEMPLATE_MENU_WIDTH_PX,
+              zIndex: DROPDOWN_MENU_Z_INDEX,
+            }}
+          >
+            <div className="shrink-0 border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {tx("Insert a template")}
+            </div>
+            {getBody()}
+          </div>,
+          popup.portalTarget,
+        )}
     </div>
   );
 };

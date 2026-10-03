@@ -298,15 +298,19 @@ describe("the dashboard renders the shared strings", () => {
   });
 
   test("the incident public note composer shows the audience", () => {
+    /*
+     * The incident's public note kind, read by its Public Notes page and the
+     * Incident Feed's "Add Public Note" dialog alike.
+     */
     const source: string = readSource(
-      "Pages",
-      "Incidents",
-      "View",
-      "PublicNote.tsx",
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentNoteKinds.tsx",
     );
 
     expect(source).toContain(
-      "audienceSummary: ( <SubscriberAudienceSummary request={{ incidentId: modelId }}",
+      "audienceSummary: ( <SubscriberAudienceSummary request={{ incidentId: incidentId }}",
     );
   });
 

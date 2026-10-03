@@ -26,6 +26,17 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import {
+  isAddingOffered,
+  ProjectChannelState,
+  useProjectChannelState,
+} from "./ProjectNotificationChannels";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+  ProjectNotificationChannel,
+} from "./ProjectNotificationChannelsCopy";
 
 interface VerificationInfo {
   verificationCode: string;
@@ -57,6 +68,16 @@ const Telegram: () => JSX.Element = (): ReactElement => {
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
   );
+
+  /*
+   * Whether the project has Telegram on. While it is off the server refuses
+   * a new account, so the list offers no Add button: the panel at its top
+   * says so, with the switch itself for those who may turn it on.
+   */
+  const channelState: ProjectChannelState = useProjectChannelState(
+    ProjectNotificationChannel.Telegram,
+  );
+  const isChannelOff: boolean = channelState === ProjectChannelState.Off;
 
   useEffect(() => {
     if (!showVerificationModal) {
@@ -234,14 +255,23 @@ const Telegram: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > Telegram"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={isAddingOffered(channelState)}
+        topContent={
+          <NotificationChannelOffPanel
+            list={ChannelGatedMethodList.Telegram}
+            state={channelState}
+          />
+        }
         cardProps={{
           title: "Telegram Accounts for Notifications",
           description:
             "Link your Telegram account to receive OneUptime notifications via our bot.",
         }}
         noItemsMessage={
-          "No Telegram accounts linked. Add one and scan the QR or open the deep link to connect."
+          isChannelOff
+            ? getChannelGatedMethodList(ChannelGatedMethodList.Telegram)
+                .noItemsWhileOff
+            : "No Telegram accounts linked. Add one and scan the QR or open the deep link to connect."
         }
         formFields={[
           {

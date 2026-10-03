@@ -12,7 +12,7 @@
 
 - **購読者ページを表示**（`showSubscriberPageOnStatusPage`）— 既定でオン。ステータスページのナビゲーションバーに **購読する** を表示し、訪問者はそこで下のチャネルを使って購読します。
 - **メール**（`enableEmailSubscribers`）— 既定でオン。ほかのチャネルは、自分でオンにするまですべてオフです。
-- **SMS**（`enableSmsSubscribers`）— 既定でオフ。OneUptime Cloud では、ページに独自の **Twilio設定** がない限り、SMS は 1 通ごとにプロジェクトの SMS・通話残高から支払われます。オンにするには、**プロジェクト設定 > 通知 > 通知設定** でプロジェクトの **SMS通知を有効化** もオンにしておく必要があります。
+- **SMS**（`enableSmsSubscribers`）— 既定でオフ。OneUptime Cloud では、ページに独自の **Twilio設定** がない限り、SMS は 1 通ごとにプロジェクトの SMS・通話残高から支払われます。オンにするには、**プロジェクト設定 > 通知 > 通知設定** の **通知チャネル** カードで、プロジェクトの **SMS** もオンにしておく必要があります。
 - **Slack**（`enableSlackSubscribers`）— 既定でオフ。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）— 既定でオフ。
 - **Webhook**（`enableWebhookSubscribers`）— 既定でオフ。

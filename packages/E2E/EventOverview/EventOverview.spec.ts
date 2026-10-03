@@ -8018,6 +8018,321 @@ test.describe("episode overviews", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Notes from the feed
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * "Add Public Note" and "Add Private Note" in a feed's Actions menu open the
+ * event's Notes page composer in a dialog: one step, with templates, Draft
+ * with AI and who the note reaches. They used to open a two-step form with a
+ * Summary page and a required Posted At.
+ */
+interface FeedNoteCase {
+  eventPage: EventPage;
+  action: "Add Public Note" | "Add Private Note";
+  modelName: string;
+  parentIdField: string;
+  feedModelName: string;
+  submitLabel: string;
+}
+
+const FEED_NOTES: ReadonlyArray<FeedNoteCase> = [
+  {
+    eventPage: INCIDENT_PAGE,
+    action: "Add Public Note",
+    modelName: "IncidentPublicNote",
+    parentIdField: "incidentId",
+    feedModelName: "IncidentFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: INCIDENT_PAGE,
+    action: "Add Private Note",
+    modelName: "IncidentInternalNote",
+    parentIdField: "incidentId",
+    feedModelName: "IncidentFeed",
+    submitLabel: "Add note",
+  },
+  {
+    eventPage: ALERT_PAGE,
+    action: "Add Private Note",
+    modelName: "AlertInternalNote",
+    parentIdField: "alertId",
+    feedModelName: "AlertFeed",
+    submitLabel: "Add note",
+  },
+  {
+    eventPage: SCHEDULED_MAINTENANCE_PAGE,
+    action: "Add Public Note",
+    modelName: "ScheduledMaintenancePublicNote",
+    parentIdField: "scheduledMaintenanceId",
+    feedModelName: "ScheduledMaintenanceFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: INCIDENT_EPISODE_PAGE,
+    action: "Add Public Note",
+    modelName: "IncidentEpisodePublicNote",
+    parentIdField: "incidentEpisodeId",
+    feedModelName: "IncidentEpisodeFeed",
+    submitLabel: "Post update",
+  },
+  {
+    eventPage: ALERT_EPISODE_PAGE,
+    action: "Add Private Note",
+    modelName: "AlertEpisodeInternalNote",
+    parentIdField: "alertEpisodeId",
+    feedModelName: "AlertEpisodeFeed",
+    submitLabel: "Add note",
+  },
+];
+
+async function openFeedNoteDialog(
+  page: Page,
+  noteCase: FeedNoteCase,
+): Promise<Locator> {
+  await card(page, noteCase.eventPage.feed)
+    .getByTestId("feed-actions-button")
+    .click();
+  await page
+    .getByRole("menuitem", { name: noteCase.action, exact: true })
+    .click();
+  const dialog: Locator = page.getByRole("dialog", { name: noteCase.action });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+async function feedReads(page: Page, modelName: string): Promise<number> {
+  return (await fixture(page)).listRequests.filter(
+    (request: RecordedModelRequest): boolean => {
+      return request.modelName === modelName;
+    },
+  ).length;
+}
+
+async function notesPosted(
+  page: Page,
+  modelName: string,
+): Promise<Array<RecordedWrite>> {
+  return (await fixture(page)).creates.filter(
+    (write: RecordedWrite): boolean => {
+      return write.modelName === modelName;
+    },
+  );
+}
+
+test.describe("notes from the feed", () => {
+  for (const noteCase of FEED_NOTES) {
+    test(`${noteCase.eventPage.name}: ${noteCase.action} is the Notes page composer, in one step`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, noteCase.eventPage);
+      const readsBefore: number = await feedReads(page, noteCase.feedModelName);
+
+      const dialog: Locator = await openFeedNoteDialog(page, noteCase);
+      const composer: Locator = dialog.getByTestId("note-composer");
+      const submit: Locator = dialog.getByTestId("modal-footer-submit-button");
+
+      await expect(composer).toBeVisible();
+      await expect(dialog.getByTestId("note-audience")).toContainText(
+        noteCase.action === "Add Public Note"
+          ? "Visible on your status page"
+          : "Only your team can see this",
+      );
+      // No wizard, no Summary page, no Posted At up front.
+      await expect(
+        dialog.getByRole("button", { name: "Next", exact: true }),
+      ).toHaveCount(0);
+      await expect(dialog.getByText("Summary", { exact: true })).toHaveCount(0);
+      await expect(dialog.getByTestId("note-posted-at-input")).toHaveCount(0);
+      await expect(submit).toHaveText(noteCase.submitLabel);
+      await expect(submit).toBeDisabled();
+
+      // The cursor is in the note.
+      const editor: Locator = composer.locator('[contenteditable="true"]');
+      await expect(editor).toBeFocused();
+      await page.keyboard.type("Rolled back the deploy; watching p95.");
+      await expect(submit).toBeEnabled();
+      await submit.click();
+
+      await expect(dialog).toHaveCount(0);
+
+      const posted: Array<RecordedWrite> = await notesPosted(
+        page,
+        noteCase.modelName,
+      );
+      expect(posted).toHaveLength(1);
+      expect(posted[0]!.data!["note"]).toBe(
+        "Rolled back the deploy; watching p95.",
+      );
+      expect(
+        JSON.stringify(posted[0]!.data![noteCase.parentIdField]),
+      ).toContain(noteCase.eventPage.recordId);
+
+      if (noteCase.action === "Add Public Note") {
+        // Always sent, never left to the server; posted now.
+        expect(
+          typeof posted[0]!.data![
+            "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
+          ],
+        ).toBe("boolean");
+        expect(posted[0]!.data!["postedAt"]).toBeTruthy();
+      } else {
+        expect(
+          posted[0]!.data![
+            "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
+          ],
+        ).toBeUndefined();
+      }
+
+      // The feed reads itself again, in place.
+      await expect
+        .poll(async (): Promise<number> => {
+          return feedReads(page, noteCase.feedModelName);
+        })
+        .toBeGreaterThan(readsBefore);
+    });
+  }
+
+  test("the incident's public note says who it reaches and can be previewed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+    await expect(dialog.getByTestId("note-notify-checkbox")).toBeVisible();
+    await expect(
+      dialog.getByTestId("incident-public-note-audience"),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("incident-public-note-preview-notification"),
+    ).toBeVisible();
+    expect(
+      (await apiRequestsTo(page, "/incident/subscriber-audience")).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("the template menu opens over the dialog, whole and inside the window", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[1]!);
+
+    await dialog.getByTestId("note-template-menu-button").click();
+    const menu: Locator = page.getByTestId("note-template-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu).toContainText("No note templates yet");
+
+    // Inside the window, top to bottom: nothing of it is cut off.
+    const edges: { top: number; bottom: number; windowHeight: number } =
+      await menu.evaluate(
+        (
+          element: Element,
+        ): { top: number; bottom: number; windowHeight: number } => {
+          const rect: DOMRect = element.getBoundingClientRect();
+          return {
+            top: rect.top,
+            bottom: rect.bottom,
+            windowHeight: window.innerHeight,
+          };
+        },
+      );
+    expect(edges.top).toBeGreaterThanOrEqual(0);
+    expect(edges.bottom).toBeLessThanOrEqual(edges.windowHeight);
+
+    // Nothing of the dialog paints over it.
+    const isOnTop: boolean = await menu.evaluate(
+      (element: Element): boolean => {
+        const rect: DOMRect = element.getBoundingClientRect();
+        const hit: Element | null = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        return Boolean(hit && element.contains(hit));
+      },
+    );
+    expect(isOnTop).toBe(true);
+
+    // Escape puts the menu away and leaves the note being written.
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+  });
+
+  test("Cancel with a draft asks before it is lost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[1]!);
+
+    await page.keyboard.type("Half a thought.");
+    await dialog.getByTestId("modal-footer-close-button").click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Discard this draft?",
+    });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Keep writing" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(dialog.locator('[contenteditable="true"]')).toContainText(
+      "Half a thought.",
+    );
+
+    await dialog.getByTestId("modal-footer-close-button").click();
+    await page
+      .getByRole("dialog", { name: "Discard this draft?" })
+      .getByRole("button", { name: "Discard draft" })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    expect(await notesPosted(page, "IncidentInternalNote")).toHaveLength(0);
+  });
+
+  test("someone who may not write incident notes sees them locked, with the reason", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Only the feed is waited for: an alert member does not see every card.
+    await openReady(page, INCIDENT_PAGE, "role=alert-member", [
+      "Rolling checkout-api back to 2026.09.14-1",
+    ]);
+
+    await card(page, "Incident Feed")
+      .getByTestId("feed-actions-button")
+      .click();
+    for (const action of ["Add Public Note", "Add Private Note"]) {
+      await expect(
+        page.getByRole("menuitem", { name: action, exact: true }),
+      ).toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the dialog fits the screen", async ({ page }: { page: Page }) => {
+      await openReady(page, INCIDENT_PAGE);
+      const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+      await expect(dialog.getByTestId("note-composer")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      const box: Box = await documentBox(dialog);
+      expect(box.width).toBeLessThanOrEqual(390);
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Navigation
  * ---------------------------------------------------------------------------
  */
@@ -8182,6 +8497,26 @@ test.describe("screenshots", () => {
     await openReady(page, INCIDENT_PAGE);
     await page.mouse.move(0, 0);
     await screenshotElement(investigationCard(page), "incident-ai-report");
+  });
+
+  // The feed's Add Public Note: the Notes page composer, in a dialog.
+  test("incident feed note dialog", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+    await page.keyboard.type("We have rolled back the deploy.");
+    await expect(
+      dialog.getByTestId("incident-public-note-audience"),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshot(page, "incident-feed-public-note-dialog", {
+      fullPage: false,
+    });
+
+    await dialog.getByTestId("note-template-menu-button").click();
+    await expect(page.getByTestId("note-template-menu")).toBeVisible();
+    await screenshot(page, "incident-feed-public-note-dialog-templates", {
+      fullPage: false,
+    });
   });
 
   // Every state of the card, for review: one flat card in each.

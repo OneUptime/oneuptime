@@ -50,12 +50,15 @@ const PAGES: Array<PageCase> = [
  * The public note pages of incidents, scheduled maintenance events and
  * incident episodes are thin wrappers around the shared notes feed
  * (Components/EventNotes), which owns the edit form, the notification badges
- * and their retries for all of them.
+ * and their retries for all of them. Each hands it the event's public note
+ * kind (Components/EventNotes/NoteKinds).
  */
 interface NotePageCase {
   name: string;
   file: Array<string>;
   modelType: string;
+  kindFile: Array<string>;
+  kindFunction: string;
 }
 
 const NOTE_PAGES: Array<NotePageCase> = [
@@ -63,16 +66,37 @@ const NOTE_PAGES: Array<NotePageCase> = [
     name: "Incident public notes",
     file: ["Pages", "Incidents", "View", "PublicNote.tsx"],
     modelType: "IncidentPublicNote",
+    kindFile: [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentNoteKinds.tsx",
+    ],
+    kindFunction: "getIncidentPublicNoteKind",
   },
   {
     name: "Scheduled maintenance public notes",
     file: ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
     modelType: "ScheduledMaintenancePublicNote",
+    kindFile: [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "ScheduledMaintenanceNoteKinds.ts",
+    ],
+    kindFunction: "getScheduledMaintenancePublicNoteKind",
   },
   {
     name: "Incident episode public notes",
     file: ["Pages", "Incidents", "EpisodeView", "PublicNote.tsx"],
     modelType: "IncidentEpisodePublicNote",
+    kindFile: [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentEpisodeNoteKinds.ts",
+    ],
+    kindFunction: "getIncidentEpisodePublicNoteKind",
   },
 ];
 
@@ -149,12 +173,15 @@ describe.each(PAGES)("$name", (page: PageCase) => {
 
 describe.each(NOTE_PAGES)("$name", (page: NotePageCase) => {
   const source: string = readSource(...page.file);
+  const kinds: string = readSource(...page.kindFile);
 
   test("renders the shared public notes feed, which owns the edit form", () => {
-    expect(source).toMatch(
-      new RegExp(
-        `<EventNotes<${page.modelType}> [^>]*modelType=\\{${page.modelType}\\} visibility="public"`,
-      ),
+    expect(source).toContain(
+      `<EventNotes<${page.modelType}> key={modelId.toString()} {...${page.kindFunction}({`,
+    );
+    expect(kinds).toContain(`export function ${page.kindFunction}(`);
+    expect(kinds).toContain(
+      `modelType: ${page.modelType}, visibility: "public",`,
     );
   });
 });
