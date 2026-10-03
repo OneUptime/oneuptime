@@ -697,6 +697,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         <CollapsibleSection
           title="Advanced"
           variant="card"
+          // The gap MonitorStep leaves between its own sections (space-y-6).
+          className="mt-6"
           isCollapsed={isAdvancedCollapsed}
           onToggle={(isCollapsed: boolean) => {
             setIsAdvancedCollapsed(isCollapsed);
