@@ -976,21 +976,36 @@ describe("core CI is the Community Edition by construction", () => {
       });
   });
 
+  /*
+   * There were 22 core jobs when this was written; the Compile workflow's core
+   * packages have since moved from a job each into four jobs (see the header
+   * of compile.yml), leaving 8. The check below runs per job, and per package
+   * in CompileWorkflow.test.js.
+   */
   test("there are core jobs to check", () => {
-    expect(coreJobs.length).toBeGreaterThan(15);
+    expect(coreJobs.length).toBeGreaterThan(5);
   });
 
   test("it can see their installs (an install it cannot read passes the check below)", () => {
     /*
      * When installs moved into ./.github/actions/npm-install, the step reader
      * saw two of the 22 core jobs' installs, and the check below passed the
-     * other 20 without looking at them.
+     * other 20 without looking at them. Every core job installs something, so
+     * the reader must see an install in every one of them.
      */
     const installing = coreJobs.filter(([, job]) => {
       return (job.steps || []).some(installsPackages);
     });
 
-    expect(installing.length).toBeGreaterThan(15);
+    expect(
+      installing.map(([label]) => {
+        return label;
+      }),
+    ).toEqual(
+      coreJobs.map(([label]) => {
+        return label;
+      }),
+    );
   });
 
   test.each(coreJobs)(

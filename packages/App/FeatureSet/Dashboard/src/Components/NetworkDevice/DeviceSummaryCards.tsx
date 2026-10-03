@@ -7,6 +7,11 @@ import {
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
   DeviceSummaryCounts,
   fetchDeviceSummary,
 } from "../Network/NetworkSummaryApi";
@@ -35,6 +40,7 @@ export interface ComponentProps {
 const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [counts, setCounts] = useState<DeviceSummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -124,8 +130,14 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
              */
             ariaLabel={
               isSelected
-                ? `${tile.label}: ${count}. Filtering the list below — activate to remove this filter.`
-                : `${tile.label}: ${count}. Activate to filter the list below by this.`
+                ? translator.translateTemplate(
+                    "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
+                    { label: translatableTerm(tile.label), count: count },
+                  )
+                : translator.translateTemplate(
+                    "{{label}}: {{count}}. Activate to filter the list below by this.",
+                    { label: translatableTerm(tile.label), count: count },
+                  )
             }
             value={
               isLoading ? (

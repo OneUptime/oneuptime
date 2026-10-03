@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorStepElement from "./MonitorStep";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -23,6 +24,9 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps extends CustomElementProps {
   monitorSteps: MonitorSteps;
@@ -32,6 +36,7 @@ export interface ComponentProps extends CustomElementProps {
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [monitorStatusOptions, setMonitorStatusOptions] = React.useState<
     Array<MonitorStatus>
   >([]);
@@ -79,8 +84,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             name: true,
             color: true,
             isOperationalState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       if (monitorStatusList.data) {
@@ -101,8 +109,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           select: {
             name: true,
             color: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         });
 
       const alertSeverityList: ListResult<AlertSeverity> =
@@ -114,8 +125,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           select: {
             name: true,
             color: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         });
 
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =
@@ -226,7 +240,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }
 
   if (!props.monitorSteps) {
-    return <div>Monitor Criteria not defined for this resource.</div>;
+    return (
+      <div>
+        {translator.translateText(
+          "Monitor Criteria not defined for this resource.",
+        )}
+      </div>
+    );
   }
 
   if (error) {
@@ -259,10 +279,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         <div className="flex">
           <Icon icon={IconProp.AltGlobe} className="h-5 w-5 text-gray-900" />
           <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-            <span className="font-medium text-gray-900">
-              Default Monitor Status
-            </span>{" "}
-            When no criteria is met, monitor status should be:
+            <TranslatedSentence
+              template="{{status}} When no criteria is met, monitor status should be:"
+              slots={{
+                status: (
+                  <span className="font-medium text-gray-900">
+                    {translator.translateText("Default Monitor Status")}
+                  </span>
+                ),
+              }}
+            />
             <div className="mt-3">
               {props.monitorSteps.data?.defaultMonitorStatusId && (
                 <Statusbubble

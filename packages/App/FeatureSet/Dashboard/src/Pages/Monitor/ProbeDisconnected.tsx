@@ -14,6 +14,7 @@ const DisabledMonitors: FunctionComponent<
       }}
       disableCreate={true}
       noItemsMessage="No monitors with disconnected probes. All your monitors are being monitored."
+      emptyState={{ isAllClear: true }}
       title="Monitors with all probes disconnected"
       description="Monitors whose probes are all disconnected, so nothing is checking them. Reconnect a probe, or add one that is connected, to start the checks again."
     />

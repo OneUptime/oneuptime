@@ -33,6 +33,8 @@ import {
 import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface ReadinessState {
   ready: boolean;
@@ -85,6 +87,7 @@ const getGatePresentation: GetGatePresentationFunction = (
 const ReadinessTile: FunctionComponent<{
   check: AIFixReadinessCheck;
 }> = (props: { check: AIFixReadinessCheck }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { check } = props;
   const presentation: GatePresentation | null = getGatePresentation(check.id);
 
@@ -148,13 +151,13 @@ const ReadinessTile: FunctionComponent<{
         )}
         {!check.ok && presentation && (
           <div className="mt-2 text-sm font-medium text-indigo-600 transition group-hover:text-indigo-700">
-            {presentation.actionTitle} →
+            {translator.translateText(presentation.actionTitle)} →
           </div>
         )}
       </div>
       {check.ok ? (
         <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-emerald-600">
-          Ready
+          {translator.translateText("Ready")}
         </span>
       ) : (
         <Icon
@@ -181,6 +184,7 @@ const ReadinessTile: FunctionComponent<{
  * A configured project sees one quiet line rather than a wall of chrome.
  */
 const AICodeFixReadiness: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [readiness, setReadiness] = useState<ReadinessState | undefined>(
     undefined,
   );
@@ -309,7 +313,11 @@ const AICodeFixReadiness: FunctionComponent = (): ReactElement => {
           icon={IconProp.CheckCircle}
           className="h-4 w-4 flex-shrink-0 text-emerald-600"
         />
-        <span>AI is ready to open fix pull requests on this project.</span>
+        <span>
+          {translator.translateText(
+            "AI is ready to open fix pull requests on this project.",
+          )}
+        </span>
         <Button
           title="Details"
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -363,7 +371,7 @@ const AICodeFixReadiness: FunctionComponent = (): ReactElement => {
           <ProgressBar
             count={okCount}
             totalCount={readiness.checks.length}
-            suffix="ready"
+            suffix={translationKey("ready")}
             size={ProgressBarSize.Small}
           />
         </div>

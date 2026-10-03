@@ -11,7 +11,13 @@ import {
   foldItems,
 } from "../../../../Server/Utils/EmailRollup/EmailRollupRenderer";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import Color from "../../../../Types/Color";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import { getContrastRatio, parseColor } from "../../../../Utils/ColorContrast";
+import EmailColorUtil, {
+  EMAIL_COLOR_SURFACE,
+  EMAIL_COLOR_TEXT_CONTRAST,
+} from "../../../../Utils/Email/EmailColorUtil";
 import RollupCategory, {
   ROLLUP_CATEGORY_LABEL,
   ROLLUP_CATEGORY_ORDER,
@@ -65,6 +71,12 @@ interface ItemInput {
   rollupCategory?: RollupCategory | undefined;
   severity?: string | undefined;
   currentState?: string | undefined;
+  /*
+   * A Color, the way the column comes back from Postgres, or a bare string,
+   * the way a row comes back from anything that skipped the transformer.
+   */
+  severityColor?: Color | string | undefined;
+  currentStateColor?: Color | string | undefined;
 }
 
 type MakeItemFunction = (input: ItemInput) => UserNotificationEmailRollupItem;
@@ -97,6 +109,14 @@ const makeItem: MakeItemFunction = (
 
   if (input.currentState !== undefined) {
     item.currentState = input.currentState;
+  }
+
+  if (input.severityColor !== undefined) {
+    item.severityColor = input.severityColor as Color;
+  }
+
+  if (input.currentStateColor !== undefined) {
+    item.currentStateColor = input.currentStateColor as Color;
   }
 
   return item;
@@ -637,6 +657,353 @@ describe("buildRollupEmail notification details", () => {
   );
 });
 
+/*
+ * THE CHIP COLOURS. Each chip paints its name in the severity's or state's
+ * own colour, so the colour has to fold exactly the way the name does - a
+ * row whose name came from the newest notification must not wear the colour
+ * of an older one - and, because it lands in a style attribute, only ever as
+ * a #rrggbb the renderer re-checked on its way out of the database.
+ */
+describe("foldItems notification colours", () => {
+  const link: string =
+    "https://oneuptime.example.com/dashboard/p1/incidents/i1";
+
+  test("a row carries the colours of its own severity and state", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(0),
+        subject: "Checkout is down",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Investigating",
+        severityColor: new Color("#DC2626"),
+        currentStateColor: new Color("#3b82f6"),
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      severityColor: "#dc2626",
+      currentStateColor: "#3b82f6",
+    });
+  });
+
+  test("the colours follow the newest notification, like the names, even when input is unsorted", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(120),
+        subject: "Recovered",
+        viewLink: link,
+        severity: "Low",
+        currentState: "Resolved",
+        severityColor: new Color("#facc15"),
+        currentStateColor: new Color("#22c55e"),
+      }),
+      makeItem({
+        createdAt: at(0),
+        subject: "Down",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Created",
+        severityColor: new Color("#dc2626"),
+        currentStateColor: new Color("#ef4444"),
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      severity: "Low",
+      severityColor: "#facc15",
+      currentState: "Resolved",
+      currentStateColor: "#22c55e",
+    });
+  });
+
+  test("the last notification wins the colours when timestamps tie", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(60),
+        subject: "First",
+        viewLink: link,
+        severity: "Critical",
+        severityColor: new Color("#dc2626"),
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "Second",
+        viewLink: link,
+        severity: "Warning",
+        severityColor: new Color("#f97316"),
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      severity: "Warning",
+      severityColor: "#f97316",
+    });
+  });
+
+  test("a newest notification without a colour clears the older colour rather than lending it", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(0),
+        subject: "Old",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Created",
+        severityColor: new Color("#dc2626"),
+        currentStateColor: new Color("#ef4444"),
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "New, queued before colours existed",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Resolved",
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      severity: "Critical",
+      severityColor: "",
+      currentState: "Resolved",
+      currentStateColor: "",
+    });
+  });
+
+  test("a colour never outlives its name", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(0),
+        subject: "A colour with nothing to paint",
+        severityColor: new Color("#dc2626"),
+        currentStateColor: new Color("#22c55e"),
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      severity: "",
+      severityColor: "",
+      currentState: "",
+      currentStateColor: "",
+    });
+  });
+
+  test("reads a colour that came back as a plain string", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(0),
+        subject: "Plain",
+        severity: "Critical",
+        severityColor: "rgb(220, 38, 38)",
+      }),
+    ]);
+
+    expect(rows[0]!.severityColor).toBe("#dc2626");
+  });
+
+  test.each([
+    "red",
+    "#fff; background-image: url(https://evil.example/t.gif)",
+    "rgb(1, 2, 3); position: fixed",
+    '#fff" onmouseover="alert(1)',
+  ])(
+    "drops the unsafe stored colour %p and keeps the name",
+    (stored: string) => {
+      const rows: Array<RollupRow> = foldItems([
+        makeItem({
+          createdAt: at(0),
+          subject: "Tampered row",
+          severity: "Critical",
+          currentState: "Investigating",
+          severityColor: new Color(stored),
+          currentStateColor: stored,
+        }),
+      ]);
+
+      expect(rows[0]).toMatchObject({
+        severity: "Critical",
+        severityColor: "",
+        currentState: "Investigating",
+        currentStateColor: "",
+      });
+    },
+  );
+
+  test("colours of null columns on older queued rows are empty", () => {
+    const item: UserNotificationEmailRollupItem = makeItem({
+      createdAt: at(0),
+      subject: "Legacy",
+      severity: "Critical",
+      currentState: "Resolved",
+    });
+
+    Object.assign(item, { severityColor: null, currentStateColor: null });
+
+    expect(foldItems([item])[0]).toMatchObject({
+      severityColor: "",
+      currentStateColor: "",
+    });
+  });
+});
+
+describe("buildRollupEmail notification colours", () => {
+  test("a coloured row hands the template the dot colour, a readable name colour and a 'true' flag", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Memory is high",
+        rollupCategory: RollupCategory.Alerts,
+        severity: "Low",
+        currentState: "Resolved",
+        severityColor: new Color("#facc15"),
+        currentStateColor: new Color("#22c55e"),
+      }),
+    ]);
+
+    expect(varRows(email)[0]).toMatchObject({
+      severityColor: "#facc15",
+      severityTextColor: EmailColorUtil.getColorPair("#facc15")!.textColor,
+      hasSeverityColor: "true",
+      currentStateColor: "#22c55e",
+      currentStateTextColor: EmailColorUtil.getColorPair("#22c55e")!.textColor,
+      hasCurrentStateColor: "true",
+    });
+  });
+
+  test("the name colour reads on the chip even for a pale colour, while the dot keeps the true colour", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Pale",
+        severity: "Low",
+        severityColor: new Color("#fde68a"),
+      }),
+    ]);
+    const row: JSONObject = varRows(email)[0]!;
+
+    expect(rowField(row, "severityColor")).toBe("#fde68a");
+    expect(rowField(row, "severityTextColor")).not.toBe("#fde68a");
+    expect(
+      getContrastRatio(
+        parseColor(rowField(row, "severityTextColor"))!,
+        EMAIL_COLOR_SURFACE,
+      ),
+    ).toBeGreaterThanOrEqual(EMAIL_COLOR_TEXT_CONTRAST);
+  });
+
+  test("a row without colours keeps the plain chip, with every colour field present and empty", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Queued before colours",
+        severity: "Critical",
+        currentState: "Investigating",
+      }),
+    ]);
+
+    expect(varRows(email)[0]).toMatchObject({
+      hasSeverity: "true",
+      hasCurrentState: "true",
+      severityColor: "",
+      severityTextColor: "",
+      hasSeverityColor: "false",
+      currentStateColor: "",
+      currentStateTextColor: "",
+      hasCurrentStateColor: "false",
+    });
+  });
+
+  test("a severity with a colour and a state without one are flagged independently", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Mixed",
+        severity: "Critical",
+        currentState: "Investigating",
+        severityColor: new Color("#dc2626"),
+      }),
+    ]);
+
+    expect(varRows(email)[0]).toMatchObject({
+      hasSeverityColor: "true",
+      hasCurrentStateColor: "false",
+      currentStateColor: "",
+    });
+  });
+
+  test("every row of a mixed email carries all six colour fields as strings", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Coloured incident",
+        viewLink: "https://oneuptime.example.com/dashboard/p1/incidents/i1",
+        severity: "Critical",
+        severityColor: new Color("#dc2626"),
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "Probe flapped",
+        rollupCategory: RollupCategory.Probes,
+      }),
+    ]);
+
+    for (const row of varRows(email)) {
+      for (const field of [
+        "severityColor",
+        "severityTextColor",
+        "hasSeverityColor",
+        "currentStateColor",
+        "currentStateTextColor",
+        "hasCurrentStateColor",
+      ]) {
+        expect(typeof row[field]).toBe("string");
+      }
+    }
+  });
+
+  test("a colour field is only ever empty or #rrggbb", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Tampered",
+        viewLink: "https://oneuptime.example.com/dashboard/p1/incidents/i1",
+        severity: "Critical",
+        currentState: "Investigating",
+        severityColor: new Color("#fff;x:y"),
+        currentStateColor: new Color("RGB(34, 197, 94)"),
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "Fine",
+        viewLink: "https://oneuptime.example.com/dashboard/p1/incidents/i2",
+        severity: "Low",
+        severityColor: new Color("#FACC15"),
+      }),
+    ]);
+
+    for (const row of varRows(email)) {
+      for (const field of [
+        "severityColor",
+        "severityTextColor",
+        "currentStateColor",
+        "currentStateTextColor",
+      ]) {
+        expect(rowField(row, field)).toMatch(/^(#[0-9a-f]{6})?$/);
+      }
+    }
+
+    expect(varRows(email)).toMatchObject([
+      { title: "Fine", severityColor: "#facc15", hasSeverityColor: "true" },
+      {
+        title: "Tampered",
+        severityColor: "",
+        hasSeverityColor: "false",
+        currentStateColor: "#22c55e",
+        hasCurrentStateColor: "true",
+      },
+    ]);
+  });
+});
+
 describe("buildRollupEmail category counts", () => {
   test("counts every item, not the rendered slice: 300 items, 100 rows, 300 counted", () => {
     const items: Array<UserNotificationEmailRollupItem> = [];
@@ -1119,10 +1486,14 @@ describe("buildRollupEmail variable set", () => {
     expect(Object.keys(varRows(email)[0]!).sort()).toEqual(
       [
         "currentState",
+        "currentStateColor",
+        "currentStateTextColor",
         "hasCurrentState",
+        "hasCurrentStateColor",
         "hasDetails",
         "hasLink",
         "hasSeverity",
+        "hasSeverityColor",
         "isSectionStart",
         "link",
         "metaLabel",
@@ -1130,6 +1501,8 @@ describe("buildRollupEmail variable set", () => {
         "sectionCount",
         "sectionLabel",
         "severity",
+        "severityColor",
+        "severityTextColor",
         "title",
       ].sort(),
     );

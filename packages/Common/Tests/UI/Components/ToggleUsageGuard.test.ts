@@ -40,7 +40,7 @@ const HAND_ROLLED_SWITCHES: Record<string, string> = {
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteGeoMap.tsx":
     "Rows of the map's layer menu, drawn as checkbox rows the way a menu of options is.",
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi.tsx":
-    "Skip idle, a whole transport-row chip at the player chrome's 32px scale; its small track is drawn the Toggle's way and takes its dark colours from the same Theme.css rules.",
+    "Skip idle, a whole transport-row chip at the player chrome's 32px scale; its small track is drawn the Toggle's way (the Toggle's grey and indigo fills, the same white knob) and takes its dark colours from the same Theme.css rules.",
 };
 
 interface ProjectScan {

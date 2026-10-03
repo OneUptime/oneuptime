@@ -9,6 +9,8 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -44,6 +46,7 @@ export interface ComponentProps {
 const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The value can be a legacy tz name the picker does not offer: a schedule
    * saved with "US/Pacific", or a "View as" zone seeded from the browser's
@@ -71,9 +74,12 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
       })
     : undefined;
 
+  // A timezone id is shown as it is; the words around it in the reader's language.
   const bubbleText: string = props.saving
-    ? "Saving…"
-    : currentValue || props.placeholder || "Select timezone";
+    ? translator.translateTemplate("Saving…")
+    : currentValue ||
+      translator.translateText(props.placeholder) ||
+      translator.translateTemplate("Select timezone");
 
   return (
     <React.Fragment>

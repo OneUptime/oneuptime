@@ -77,6 +77,9 @@ import {
   sumTimeSeries,
   TileText,
 } from "./OverviewHelpers";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -115,6 +118,7 @@ function getTimeRangeKey(timeRange: RangeStartAndEndDateTime): string {
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [rumApplication, setRumApplication] = useState<RumApplication | null>(
@@ -582,7 +586,9 @@ const RumApplicationOverview: FunctionComponent<
       sublabel: spanLookupFailed
         ? "could not load"
         : m
-          ? `${formatCompact(m.errors)} errored`
+          ? translator.translateTemplate("{{errors}} errored", {
+              errors: formatCompact(m.errors),
+            })
           : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
@@ -834,15 +840,13 @@ const RumApplicationOverview: FunctionComponent<
           strongTitle="Session replay is reporting, the RUM SDK is not"
           title={
             <span>
-              Recordings are arriving for this application, so the replay
-              snippet and your ingestion key are working. Page loads, events,
-              error rate, durations, exceptions and clients come from a
-              different install — the OpenTelemetry browser SDK — and nothing
-              has reported through it yet, which is why those tiles read zero.
-              Add the SDK with <code>service.name</code> set to{" "}
-              <code>{(a.appIdentifier as string) || ""}</code> to fill them in;
-              the steps are on this application&apos;s Documentation tab.
-              Session replay does not need it.
+              <TranslatedSentence
+                template="Recordings are arriving for this application, so the replay snippet and your ingestion key are working. Page loads, events, error rate, durations, exceptions and clients come from a different install — the OpenTelemetry browser SDK — and nothing has reported through it yet, which is why those tiles read zero. Add the SDK with {{attribute}} set to {{value}} to fill them in; the steps are on this application's Documentation tab. Session replay does not need it."
+                slots={{
+                  attribute: <code>service.name</code>,
+                  value: <code>{(a.appIdentifier as string) || ""}</code>,
+                }}
+              />
             </span>
           }
         />

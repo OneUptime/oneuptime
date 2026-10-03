@@ -20,8 +20,11 @@ import React, {
   useState,
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showVerificationModal, setShowVerificationModal] =
     useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -146,27 +149,32 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
       {showVerificationModal && currentVerificationDomain ? (
         <ConfirmModal
-          title={`Verify ${currentVerificationDomain["domain"]}`}
+          title={translator.translateTemplate("Verify {{domain}}", {
+            domain: currentVerificationDomain["domain"]?.toString() || "",
+          })}
           error={error}
           description={
             <div>
               <span>
-                Please add TXT record to your domain. Details of the TXT records
-                are:
+                {translator.translateText(
+                  "Please add TXT record to your domain. Details of the TXT records are:",
+                )}
               </span>
               <br />
               <br />
               <span>
-                <b>Record Type: </b> TXT
+                <b>{translator.translateText("Record Type:")} </b> TXT
               </span>
               <br />
               <span>
-                <b>Name: </b> @ or{" "}
-                {currentVerificationDomain["domain"]?.toString()}
+                <b>{translator.translateText("Name:")} </b>
+                {translator.translateTemplate("@ or {{domain}}", {
+                  domain: currentVerificationDomain["domain"]?.toString() || "",
+                })}
               </span>
               <br />
               <span>
-                <b>Content: </b>
+                <b>{translator.translateText("Content:")} </b>
                 {(currentVerificationDomain[
                   "domainVerificationText"
                 ] as string) || ""}
@@ -174,8 +182,9 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <br />
               <br />
               <span>
-                Please note: Some domain changes might take 72 hours to
-                propagate.
+                {translator.translateText(
+                  "Please note: Some domain changes might take 72 hours to propagate.",
+                )}
               </span>
             </div>
           }

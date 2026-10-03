@@ -226,6 +226,27 @@ describe(`${TEST_RELEASE}: a started run finishes, and builds only its own commi
       }
     },
   );
+
+  /*
+   * generate-build-number creates a tag through the API, which can be
+   * refused - it was, once, while a newer push changed the workflows - and
+   * every job waiting for it is skipped when it fails. Only a job that reads
+   * the number may wait for it, so a failed counter costs that job, not the
+   * run's images and e2e.
+   */
+  test.each(jobs)(
+    "%s waits for generate-build-number only if it reads the build number",
+    (_name, job) => {
+      const needs = needsOf(job);
+      const reads = JSON.stringify(job.steps || []).includes(
+        "needs.generate-build-number.outputs",
+      );
+
+      expect({
+        waits: needs.includes("generate-build-number"),
+      }).toEqual({ waits: reads });
+    },
+  );
 });
 
 describe("every CI job that runs prerun tells configure.sh it is in CI", () => {

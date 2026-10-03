@@ -12,6 +12,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * LAN endpoints discovered at this site — POS terminals, cameras,
@@ -20,6 +22,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteEndpoints: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -193,7 +196,11 @@ const NetworkSiteEndpoints: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: NetworkEndpoint): ReactElement => {
               if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">Never</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Never")}
+                  </span>
+                );
               }
 
               const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);

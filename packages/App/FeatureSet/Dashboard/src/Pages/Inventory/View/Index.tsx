@@ -36,6 +36,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * An inventory item at a glance: what it is, where it came from, whether it
@@ -51,6 +53,7 @@ import React, {
 const InventoryItemOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const { item, isLoading, error }: UseInventoryItemResult =
     useInventoryItem(modelId);
@@ -136,7 +139,7 @@ const InventoryItemOverview: FunctionComponent<
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                First seen
+                {translator.translateText("First seen")}
               </dt>
               <dd className="mt-1 text-sm text-gray-900">
                 {entity.firstSeenAt
@@ -148,7 +151,7 @@ const InventoryItemOverview: FunctionComponent<
             </div>
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Last seen
+                {translator.translateText("Last seen")}
               </dt>
               <dd className="mt-1 text-sm text-gray-900">
                 {entity.lastSeenAt
@@ -160,7 +163,7 @@ const InventoryItemOverview: FunctionComponent<
             </div>
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Identity key
+                {translator.translateText("Identity key")}
               </dt>
               <dd className="mt-1 flex items-center gap-x-2">
                 <span className="font-mono text-sm break-all text-gray-900">
@@ -180,7 +183,7 @@ const InventoryItemOverview: FunctionComponent<
           {entity.labels && entity.labels.length > 0 ? (
             <div>
               <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Labels
+                {translator.translateText("Labels")}
               </h3>
               <div className="mt-2 flex flex-wrap gap-1">
                 {entity.labels.map((label: string): ReactElement => {

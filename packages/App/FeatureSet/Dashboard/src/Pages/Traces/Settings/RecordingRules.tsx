@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { getGeneratedKeyFormField } from "Common/UI/Components/Forms/Fields/GeneratedKeyField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -7,17 +8,20 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingRuleOutputMetricName";
 import TraceRecordingRuleDefinition, {
   TraceRecordingRuleDefinitionUtil,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import TraceRecordingRuleDefinitionEditor from "../../../Components/Traces/RecordingRule/TraceRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Trace Recording Rules Work
 
-A Trace Recording Rule computes a new metric from span aggregations on a schedule. Every minute, the worker evaluates each enabled rule for the **previous 1-minute bucket** and writes the result into the metric store under your chosen **Output Metric Name**.
+A Trace Recording Rule computes a new metric from span aggregations on a schedule. Every minute, the worker evaluates each enabled rule for the **previous 1-minute bucket** and writes the result into the metric store under the rule's **Output Metric Name**. The output metric name is made from the rule's name - "HTTP error rate" writes \`http_error_rate\` - unless you choose **Edit** next to it and type your own.
 
 ### Definition
 
@@ -45,6 +49,7 @@ Every materialized row carries \`oneuptime.derived.trace_rule_id\` plus the grou
 const TraceRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * "Create metric…" in the traces analytics view deep-links here with a
    * `?prefill=<json definition>` param — open the create form with the
@@ -206,15 +211,22 @@ const TraceRecordingRules: FunctionComponent<
           placeholder: "e.g. HTTP error rate (from spans)",
           validation: { minLength: 2 },
         },
-        {
-          field: { description: true },
-          title: "Description",
+        /*
+         * On Create, made from the rule's name as it is typed (and by the
+         * server when the create leaves it out); never asked for. Right
+         * under the name it is made from.
+         */
+        getGeneratedKeyFormField<TraceRecordingRule>({
+          field: { outputMetricName: true },
+          nameField: "name",
+          title: "Output Metric Name",
           stepId: "basic-info",
-          description: "What this rule computes and why.",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this rule computes and why.",
-        },
+          makeKey: getOutputMetricNameFromRuleName,
+          placeholder: "e.g. http.server.error_rate",
+          description:
+            "Name of the new derived metric. Must be unique per project.",
+        }),
+        // On Edit, a rule's output metric can still be renamed.
         {
           field: { outputMetricName: true },
           title: "Output Metric Name",
@@ -224,6 +236,16 @@ const TraceRecordingRules: FunctionComponent<
           fieldType: FormFieldSchemaType.Text,
           required: true,
           placeholder: "e.g. http.server.error_rate",
+          doNotShowWhenCreating: true,
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "basic-info",
+          description: "What this rule computes and why.",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "What this rule computes and why.",
         },
         {
           field: { isEnabled: true },
@@ -292,7 +314,7 @@ const TraceRecordingRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

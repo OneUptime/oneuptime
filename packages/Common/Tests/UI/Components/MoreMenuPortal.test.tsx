@@ -24,6 +24,7 @@ import {
 } from "@jest/globals";
 import { Mock } from "jest-mock";
 import React, { ReactElement } from "react";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * MoreMenu's portalled mode, which every table row's ⋯ menu uses.
@@ -548,6 +549,7 @@ describe("MoreMenu, portalled", () => {
               actionButtons={[
                 {
                   title: "View User",
+                  icon: IconProp.Eye,
                   buttonStyleType: ButtonStyleType.NORMAL,
                   onClick: () => {
                     return undefined;
@@ -555,6 +557,7 @@ describe("MoreMenu, portalled", () => {
                 },
                 {
                   title: "Remove from Team",
+                  icon: IconProp.Trash,
                   buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
                   onClick: () => {
                     onRemove();

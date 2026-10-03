@@ -201,6 +201,14 @@ describe("the pure view-model", () => {
   const METRIC_DESCRIPTIONS_SPECIFIER: string =
     "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 
+  /*
+   * The translation helpers: plain functions over i18next, which reads no
+   * `window` at load, so the view-model's words can be in the reader's
+   * language without dragging the browser in.
+   */
+  const TRANSLATE_TEMPLATE_SPECIFIER: string =
+    "Common/UI/Utils/TranslateTemplate";
+
   test("imports nothing that reads window at load", () => {
     const specifiers: Array<string> = [];
     let match: RegExpExecArray | null = null;
@@ -216,13 +224,14 @@ describe("the pure view-model", () => {
       expect([
         specifier,
         specifier.startsWith("Common/Types/") ||
-          specifier === METRIC_DESCRIPTIONS_SPECIFIER,
+          specifier === METRIC_DESCRIPTIONS_SPECIFIER ||
+          specifier === TRANSLATE_TEMPLATE_SPECIFIER,
       ]).toEqual([specifier, true]);
       expect(BROWSER_BOUND_MODULE_PATTERN.test(specifier)).toBe(false);
     }
   });
 
-  test("the metric descriptions it reads import nothing at all", () => {
+  test("the metric descriptions it reads import only the translation-key marker", () => {
     const descriptions: string = readRaw(
       DASHBOARD_SRC,
       "Components",
@@ -230,7 +239,11 @@ describe("the pure view-model", () => {
       "NetworkDeviceMetricDescriptions.ts",
     );
 
-    expect(descriptions).not.toMatch(/\bimport\b/);
+    const imports: Array<string> = descriptions.match(/^import .*$/gm) || [];
+
+    expect(imports).toEqual([
+      `import { translationKey } from "${TRANSLATE_TEMPLATE_SPECIFIER}";`,
+    ]);
     expect(descriptions).not.toMatch(/\brequire\(/);
   });
 });

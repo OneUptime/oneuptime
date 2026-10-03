@@ -4,6 +4,7 @@ import DatabaseBaseModel, {
 import {
   ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE,
   toSentenceCaseName,
+  withIndefiniteArticle,
 } from "./ExampleValues";
 import { getTerraformTypeName } from "./TerraformSchema";
 
@@ -355,7 +356,7 @@ export function getAssistantPrompts(
 
     return [
       `List my ${plural} in OneUptime.`,
-      `Create a ${noun} in OneUptime called "Example ${noun}" and show me what you set.`,
+      `Create ${withIndefiniteArticle(noun)} in OneUptime called "Example ${noun}" and show me what you set.`,
     ];
   }
 
@@ -368,7 +369,7 @@ export function getAssistantPrompts(
       ]
     : [
         `List my ${plural} and summarize them in a table. ${apiNote}`,
-        `Create a ${noun} called "Example ${noun}" and show me what you set. ${apiNote}`,
+        `Create ${withIndefiniteArticle(noun)} called "Example ${noun}" and show me what you set. ${apiNote}`,
       ];
 
   if (terraformType) {

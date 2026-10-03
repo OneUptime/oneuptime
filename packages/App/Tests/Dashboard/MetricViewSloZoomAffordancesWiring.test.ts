@@ -98,7 +98,7 @@ describe("MetricView's own Reset zoom (Components/Metrics/MetricView.tsx)", () =
   test("with the query builder shown, it ends the Charts heading row, keeping that row's height and none of its capitals", () => {
     const headingRow: string = between(
       code,
-      '<div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400"> <span>Charts</span>',
+      '<div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400"> <span>{translator.translateText("Charts")}</span>',
       "{metricResultsError && (",
     );
 
@@ -173,7 +173,7 @@ describe("the bucket inspector (Components/Metrics/MetricCharts.tsx)", () => {
   test("until pressed afresh it ignores the rest of the double-click that opened it: no word selected, no button pressed", () => {
     const inspector: string = between(
       code,
-      'role="dialog" aria-label={`Values at',
+      'role="dialog" aria-label={translator.translateTemplate("Values at {{time}}"',
       "Investigate this moment",
     );
 
@@ -194,7 +194,7 @@ describe("the bucket inspector (Components/Metrics/MetricCharts.tsx)", () => {
   test("its chrome is not selectable; the window, the series names and the values are", () => {
     const inspector: string = between(
       code,
-      'role="dialog" aria-label={`Values at',
+      'role="dialog" aria-label={translator.translateTemplate("Values at {{time}}"',
       "Investigate this moment",
     );
 

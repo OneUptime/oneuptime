@@ -23,6 +23,8 @@ import AnalyticsModelAPI, {
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import Search from "Common/Types/BaseDatabase/Search";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -31,6 +33,7 @@ export interface ComponentProps {
 const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [customMetricNames, setCustomMetricNames] = useState<Array<string>>([]);
@@ -104,7 +107,12 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
             metricAliasData: {
               metricVariable: metricName,
               title: displayName,
-              description: `Custom metric: ${displayName}`,
+              description: translator.translateTemplate(
+                "Custom metric: {{name}}",
+                {
+                  name: displayName,
+                },
+              ),
               legend: displayName,
               legendUnit: "",
             },

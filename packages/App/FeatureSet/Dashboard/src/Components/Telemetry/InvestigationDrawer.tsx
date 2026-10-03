@@ -655,9 +655,13 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       size={SideOverSize.Large}
       onClose={props.onClose}
     >
-      {/* One wrapper element — SideOver divides its children. */}
+      {/*
+       * One wrapper element — SideOver divides its children. Top padding
+       * only: SideOver pads the bottom itself at every width, so a bottom
+       * padding here as well would leave twice the gap every other panel has.
+       */}
       <TimeRangeZoomProvider zoom={drawerZoom}>
-        <div className="space-y-5 py-5">
+        <div className="space-y-5 pt-5">
           {/* Scope strip */}
           <div className="flex flex-wrap items-center gap-1.5">
             {scopeChipsForEvidence.length > 0 ? (

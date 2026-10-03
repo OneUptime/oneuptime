@@ -855,7 +855,7 @@ describe("KubernetesContainersTab: the container cards explain their numbers", (
     (title: string, key: KubernetesResourceMetric) => {
       expect(code).toContain(
         compact(
-          `<span>${title}</span>
+          `<span>{translator.translateText("${title}")}</span>
            <InfoTooltip
              label="${title}"
              text={${REC}.${key}}

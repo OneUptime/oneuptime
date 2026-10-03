@@ -92,6 +92,7 @@ import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 type GetListCall = {
   query: Query<Monitor>;
@@ -297,6 +298,7 @@ describe("BaseModelTable bulk Select All", () => {
         buttons: [
           {
             title: "Archive",
+            icon: IconProp.Archive,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (): Promise<void> => {
               return Promise.resolve();

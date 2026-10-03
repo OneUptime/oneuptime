@@ -1,5 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -42,6 +45,7 @@ const MAX_TEXTAREA_HEIGHT_PX: number = 160;
 const ChatInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const textareaRef: React.RefObject<HTMLTextAreaElement> =
     useRef<HTMLTextAreaElement>(null);
 
@@ -81,12 +85,12 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             rows={1}
             value={props.value}
             autoFocus={true}
-            placeholder={
+            placeholder={translator.translateText(
               props.placeholder ||
-              (props.isWorking
-                ? "Type your next question — it can be sent when this answer finishes…"
-                : "Ask about your logs, traces, metrics, incidents…")
-            }
+                (props.isWorking
+                  ? "Type your next question — it can be sent when this answer finishes…"
+                  : "Ask about your logs, traces, metrics, incidents…"),
+            )}
             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
               props.onChange(event.target.value);
             }}
@@ -101,7 +105,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
           {props.isWorking && props.onStop ? (
             <button
               type="button"
-              title="Stop generating"
+              title={translator.translateText("Stop generating")}
               disabled={props.isStopping}
               onClick={() => {
                 props.onStop?.();
@@ -117,7 +121,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
           ) : (
             <button
               type="button"
-              title="Send (Enter)"
+              title={translator.translateText("Send (Enter)")}
               disabled={!isSendable}
               onClick={() => {
                 trySend();
@@ -145,12 +149,25 @@ const ChatInput: FunctionComponent<ComponentProps> = (
         {props.leading}
         <div className="flex items-center justify-between gap-2 text-[11px] text-gray-400">
           <span className="min-w-0 truncate">
-            <span className="font-medium text-gray-500">Enter</span> to send ·{" "}
-            <span className="font-medium text-gray-500">Shift + Enter</span> for
-            a new line
+            {/* The keys keep their names; the sentence is translated whole. */}
+            <TranslatedSentence
+              template="{{enter}} to send · {{shiftEnter}} for a new line"
+              slots={{
+                enter: (
+                  <kbd className="font-sans font-medium text-gray-500">
+                    Enter
+                  </kbd>
+                ),
+                shiftEnter: (
+                  <kbd className="font-sans font-medium text-gray-500">
+                    Shift + Enter
+                  </kbd>
+                ),
+              }}
+            />
           </span>
           <span className="max-sm:hidden flex-shrink-0 sm:inline">
-            Every answer cites its queries
+            {translator.translateText("Every answer cites its queries")}
           </span>
         </div>
       </div>

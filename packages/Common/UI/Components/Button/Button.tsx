@@ -283,7 +283,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   // For icon-only buttons, use title as aria-label for accessibility
   const computedAriaLabel: string | undefined =
-    ariaLabel ||
+    translateString(ariaLabel) ||
     (buttonStyle === ButtonStyleType.ICON ||
     buttonStyle === ButtonStyleType.ICON_LIGHT
       ? translatedTitle || translatedTooltip

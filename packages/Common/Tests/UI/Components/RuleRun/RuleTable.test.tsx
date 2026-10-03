@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, render, screen } from "@testing-library/react";
 import React from "react";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
  * Contract under test - RuleTable, the table every runnable rule is listed in.
@@ -87,6 +88,7 @@ function baseProps(): Record<string, any> {
     actionButtons: [
       {
         title: "Existing",
+        icon: IconProp.Play,
         buttonStyleType: ButtonStyleType.NORMAL,
         onClick: jest.fn(),
       },
@@ -255,6 +257,33 @@ describe("RuleTable", () => {
     expect(runNow.tooltip).toBe(
       "You need permission to edit monitor label rules.",
     );
+  });
+
+  it("starts every new rule on: the create form leaves the Enabled switch out", () => {
+    const enabledField: Record<string, unknown> = {
+      field: { isEnabled: true },
+      title: "Enabled",
+      fieldType: "Boolean",
+    };
+
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(baseProps() as any)}
+        modelType={MonitorLabelRule}
+        formFields={[...FORM_FIELDS, enabledField]}
+      />,
+    );
+
+    const fields: Array<Record<string, unknown>> =
+      lastTableProps()["formFields"];
+
+    expect(fields).toHaveLength(2);
+    // Every other field is handed on as it was.
+    expect(fields[0]).toBe(FORM_FIELDS[0]);
+    // The switch stays on the edit form only.
+    expect(fields[1]).toEqual({ ...enabledField, doNotShowWhenCreating: true });
+    expect(fields[1]!["doNotShowWhenEditing"]).toBeUndefined();
+    expect(enabledField["doNotShowWhenCreating"]).toBeUndefined();
   });
 
   it("renders the rule's view page, with the table's own form, when given a rule id", () => {

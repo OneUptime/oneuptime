@@ -1,6 +1,9 @@
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface InsightStatusBucket {
+  // English, translated when drawn.
   label: string;
   value: string;
   dotClassName: string;
@@ -23,11 +26,13 @@ export interface ComponentProps {
 const InsightStatusSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
       role="radiogroup"
-      aria-label="Filter insights by status"
+      aria-label={translator.translateText("Filter insights by status")}
     >
       {props.buckets.map((bucket: InsightStatusBucket) => {
         const isSelected: boolean = props.selectedValue === bucket.value;
@@ -51,7 +56,9 @@ const InsightStatusSummary: FunctionComponent<ComponentProps> = (
               <span
                 className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${bucket.dotClassName}`}
               />
-              <span className="truncate">{bucket.label}</span>
+              <span className="truncate">
+                {translator.translateText(bucket.label)}
+              </span>
             </span>
 
             {props.isLoading ? (

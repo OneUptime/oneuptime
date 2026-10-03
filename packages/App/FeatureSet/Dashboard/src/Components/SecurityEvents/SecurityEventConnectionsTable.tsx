@@ -223,6 +223,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Test connection",
+            icon: IconProp.Signal,
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
@@ -238,6 +239,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Run now",
+            icon: IconProp.Play,
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
@@ -254,6 +256,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Diagnostics",
+            icon: IconProp.WrenchScrewdriver,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: (
               item: SecurityEventConnection,

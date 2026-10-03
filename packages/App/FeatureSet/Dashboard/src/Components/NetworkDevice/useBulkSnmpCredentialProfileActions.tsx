@@ -30,6 +30,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The bulk half of SNMP credential profiles.
@@ -63,13 +65,15 @@ type SetSnmpCredentialProfileFormData = {
   snmpCredentialProfileId: string;
 };
 
-export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  "Set SNMP Credential Profile";
+export const SET_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string = translationKey(
+  "Set SNMP Credential Profile",
+);
 
 export const CLEAR_SNMP_CREDENTIAL_PROFILE_ACTION_TITLE: string =
-  "Clear SNMP Credential Profile";
+  translationKey("Clear SNMP Credential Profile");
 
 function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActionsResult {
+  const translator: Translator = useTranslator();
   const [profiles, setProfiles] = useState<Array<NetworkSnmpCredentialProfile>>(
     [],
   );
@@ -296,18 +300,23 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
     icon: IconProp.LinkSlash,
     isVisible: isProbePolledSelection,
     confirmTitle: (items: Array<NetworkDevice>): string => {
-      return `Clear the SNMP Credential Profile on ${items.length} ${
-        items.length === 1 ? "device" : "devices"
-      }?`;
+      return translator.translatePlural(
+        {
+          one: "Clear the SNMP Credential Profile on {{count}} device?",
+          other: "Clear the SNMP Credential Profile on {{count}} devices?",
+        },
+        items.length,
+      );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
-      return `${
-        items.length === 1 ? "This device" : "These devices"
-      } will fall back to ${
-        items.length === 1 ? "its" : "their"
-      } own credentials, then to the profile on ${
-        items.length === 1 ? "its" : "their"
-      } site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.`;
+      return translator.translatePlural(
+        {
+          one: "This device will fall back to its own credentials, then to the profile on its site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.",
+          other:
+            "These devices will fall back to their own credentials, then to the profile on their site. A device with neither is pinged only from its next poll — up or down, but no interfaces, inventory or health OIDs.",
+        },
+        items.length,
+      );
     },
     onClick: async (
       actionProps: BulkActionOnClickProps<NetworkDevice>,
@@ -363,7 +372,9 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
             onClose={closeSetModal}
             closeButtonText="Close"
           >
-            <p className="text-sm text-gray-500">No device has been changed.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No device has been changed.")}
+            </p>
           </Modal>
         ) : hasNoProfiles ? (
           <Modal
@@ -376,7 +387,8 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
               to={profilesSettingsRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              Create an SNMP Credential Profile
+              {translator.translateText("Create an SNMP Credential Profile") ||
+                ""}
             </AppLink>
           </Modal>
         ) : (

@@ -38,6 +38,16 @@ export interface FieldBase<T> {
         isCopyable?: boolean | undefined;
       }
     | undefined;
+  /*
+   * The record's own ID - a FieldType.ObjectID field on `_id` - is not drawn
+   * as a field: Detail puts it on one small "ID" line under the others, with
+   * a copy button (see DetailRecordId.ts). Set this on the few cards that
+   * exist to hand the ID over, where it stays a field like any other: the
+   * project ID on Project Settings, or a probe's and a runner's ID beside the
+   * key they are configured with. Every use is listed, with its reason, in
+   * App/Tests/RecordIdLineGuard.test.ts.
+   */
+  showIdAsField?: boolean | undefined;
 }
 
 export default interface Field<T> extends FieldBase<T> {

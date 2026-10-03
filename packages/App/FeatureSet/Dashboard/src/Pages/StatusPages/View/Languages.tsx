@@ -12,6 +12,8 @@ import {
   SUPPORTED_STATUS_PAGE_LANGUAGES,
 } from "Common/Types/StatusPage/StatusPageLanguage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const languageDropdownOptions: Array<DropdownOption> =
   SUPPORTED_STATUS_PAGE_LANGUAGES.map((language: StatusPageLanguage) => {
@@ -30,6 +32,7 @@ const codeToLabel: Record<string, string> = Object.fromEntries(
 const StatusPageLanguages: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -117,7 +120,11 @@ const StatusPageLanguages: FunctionComponent<PageComponentProps> = (
                 const enabled: Array<string> | undefined =
                   item.enabledLanguages;
                 if (!enabled || enabled.length === 0) {
-                  return <span>All supported languages</span>;
+                  return (
+                    <span>
+                      {translator.translateText("All supported languages")}
+                    </span>
+                  );
                 }
                 const labels: Array<string> = enabled.map((code: string) => {
                   return codeToLabel[code] || code;

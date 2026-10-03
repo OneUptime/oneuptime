@@ -151,12 +151,16 @@ describe("SubscriberNotificationResendCopy wiring", () => {
     ]) {
       expect(source).toContain(`SubscriberNotificationResendCopy.${key}`);
     }
+    /*
+     * Both always answer, "no one" included: who it reaches is what is
+     * being confirmed (saysWhenNobodyIsNotified).
+     */
     expect(source).toContain(
-      'SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-created-resend-audience"',
+      'SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-created-resend-audience" saysWhenNobodyIsNotified={true} />',
     );
     // Retry's own: without the pages already sent it in full.
     expect(source).toContain(
-      'SubscriberAudienceSummary request={{ incidentId: modelId, excludeStatusPagesNotifiedOnCreation: true, }} dataTestId="incident-created-retry-audience"',
+      'SubscriberAudienceSummary request={{ incidentId: modelId, excludeStatusPagesNotifiedOnCreation: true, }} dataTestId="incident-created-retry-audience" saysWhenNobodyIsNotified={true} />',
     );
     // 'Resend to all pages' is the server's request, not a guess.
     expect(source).toContain("IncidentCreatedResend.getMiscDataProps()");
@@ -171,8 +175,9 @@ describe("SubscriberNotificationResendCopy wiring", () => {
       "PublicNote.tsx",
     );
 
+    // It always answers, "no one" included.
     expect(source).toContain(
-      'resend: { audience: ( <SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-public-note-resend-audience" /> ), }',
+      'resend: { audience: ( <SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-public-note-resend-audience" saysWhenNobodyIsNotified={true} /> ), }',
     );
   });
 

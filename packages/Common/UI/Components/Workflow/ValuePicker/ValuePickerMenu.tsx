@@ -31,6 +31,9 @@ import {
   suggestionMatches,
 } from "./ValueSuggestion";
 import { NOT_SELECTED_BADGE } from "./StepValueSource";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import React, {
   ReactElement,
   forwardRef,
@@ -52,9 +55,10 @@ export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
 // How long "Copied!" stays on a note's Copy button.
 const COPIED_FEEDBACK_MS: number = 2000;
 
-export const HIDDEN_SAMPLE_TEXT: string = "hidden";
-export const HIDDEN_SAMPLE_TITLE: string =
-  "Not shown: it looks like a secret, or the run kept it hidden.";
+export const HIDDEN_SAMPLE_TEXT: string = translationKey("hidden");
+export const HIDDEN_SAMPLE_TITLE: string = translationKey(
+  "Not shown: it looks like a secret, or the run kept it hidden.",
+);
 
 export interface ValuePickerMenuHandle {
   /**
@@ -156,6 +160,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
     props: ValuePickerMenuProps,
     ref: React.ForwardedRef<ValuePickerMenuHandle>,
   ): ReactElement => {
+    const translator: Translator = useTranslator();
     const picker: ValuePickerContextValue = useValuePicker();
     const generatedId: string = useId();
     const listboxId: string = props.listboxId || `${generatedId}-values`;
@@ -458,7 +463,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
       if (!reference) {
         setPathError(
-          "Use names separated by dots, with [0] for a list item - for example title or alerts[0].status.",
+          translator.translateText(
+            "Use names separated by dots, with [0] for a list item - for example title or alerts[0].status.",
+          ) || "",
         );
         return;
       }
@@ -605,7 +612,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
             {option.description && (
               <div className="truncate text-xs text-gray-500">
-                {option.description}
+                {translator.translateText(option.description)}
               </div>
             )}
           </div>
@@ -616,12 +623,14 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           {option.isSampleHidden ? (
             <div
               className="mt-0.5 flex max-w-[45%] shrink-0 items-center gap-1 text-xs text-gray-400"
-              title={HIDDEN_SAMPLE_TITLE}
+              title={translator.translateText(HIDDEN_SAMPLE_TITLE)}
               data-testid="value-picker-sample"
               data-hidden="true"
             >
               <Icon icon={IconProp.Lock} className="h-3 w-3 shrink-0" />
-              <span className="truncate">{HIDDEN_SAMPLE_TEXT}</span>
+              <span className="truncate">
+                {translator.translateText(HIDDEN_SAMPLE_TEXT)}
+              </span>
             </div>
           ) : option.sample !== undefined ? (
             <span
@@ -634,7 +643,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           ) : null}
           {option.typeLabel && (
             <span className="mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-500">
-              {option.typeLabel}
+              {translator.translateText(option.typeLabel)}
             </span>
           )}
           {option.opens && (
@@ -649,8 +658,18 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             <button
               type="button"
               tabIndex={-1}
-              aria-label={`Use a field inside ${option.label}`}
-              title={`Use a field inside ${option.label}`}
+              aria-label={translator.translateTemplate(
+                "Use a field inside {{value}}",
+                {
+                  value: option.label,
+                },
+              )}
+              title={translator.translateTemplate(
+                "Use a field inside {{value}}",
+                {
+                  value: option.label,
+                },
+              )}
               data-testid="value-picker-look-inside"
               className="-my-0.5 flex shrink-0 items-center rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
@@ -697,7 +716,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               icon={IconProp.Info}
               className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400"
             />
-            <span>{note.text}</span>
+            <span>{translator.translateText(note.text)}</span>
           </div>
           {copyText || note.waitingText ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5">
@@ -724,7 +743,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                     icon={isCopied ? IconProp.Check : IconProp.Copy}
                     className="h-3.5 w-3.5"
                   />
-                  {isCopied ? "Copied!" : note.copyLabel || "Copy"}
+                  {translator.translateText(
+                    isCopied ? "Copied!" : note.copyLabel || "Copy",
+                  )}
                 </button>
               ) : null}
               {note.waitingText ? (
@@ -737,7 +758,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                     aria-hidden="true"
                     className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500"
                   />
-                  {note.waitingText}
+                  {translator.translateText(note.waitingText)}
                 </span>
               ) : null}
             </div>
@@ -764,13 +785,22 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               onClick={back}
             >
               <Icon icon={IconProp.ChevronLeft} className="h-3.5 w-3.5" />
-              Back
+              {translator.translateText("Back")}
             </button>
             <div className="min-w-0 truncate text-xs text-gray-500">
-              <span className="font-medium text-gray-900">
-                {drill.item.label}
-              </span>{" "}
-              from {drill.group.title}
+              <TranslatedSentence
+                template="{{value}} from {{source}}"
+                slots={{
+                  value: (
+                    <span className="font-medium text-gray-900">
+                      {drill.item.label}
+                    </span>
+                  ),
+                }}
+                values={{
+                  source: translator.translateText(drill.group.title) || "",
+                }}
+              />
             </div>
           </div>
         )}
@@ -794,12 +824,23 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 aria-activedescendant={activeOptionId}
                 aria-autocomplete="list"
                 aria-label={
-                  drill ? `Search ${drill.item.label}` : "Search values"
+                  drill
+                    ? translator.translateTemplate("Search {{value}}", {
+                        value: drill.item.label,
+                      })
+                    : translator.translateText("Search values")
                 }
                 placeholder={
                   drill
-                    ? `Search the fields of ${drill.item.label}`
-                    : props.searchPlaceholder || "Search values"
+                    ? translator.translateTemplate(
+                        "Search the fields of {{value}}",
+                        {
+                          value: drill.item.label,
+                        },
+                      )
+                    : translator.translateText(
+                        props.searchPlaceholder || "Search values",
+                      )
                 }
                 data-testid="value-picker-search"
                 spellCheck={false}
@@ -819,7 +860,13 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         <div
           id={listboxId}
           role="listbox"
-          aria-label={drill ? `Inside ${drill.item.label}` : "Values"}
+          aria-label={
+            drill
+              ? translator.translateTemplate("Inside {{value}}", {
+                  value: drill.item.label,
+                })
+              : translator.translateText("Values")
+          }
           className="min-h-0 flex-1 overflow-y-auto py-1"
         >
           {showNotConnected && (
@@ -832,8 +879,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400"
               />
               <span>
-                Only the trigger&apos;s values are listed until this step is
-                connected. Connect it after the steps whose values you need.
+                {translator.translateText(
+                  "Only the trigger's values are listed until this step is connected. Connect it after the steps whose values you need.",
+                )}
               </span>
             </div>
           )}
@@ -847,7 +895,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 icon={IconProp.Info}
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400"
               />
-              <span>{drillNote}</span>
+              <span>{translator.translateText(drillNote)}</span>
             </div>
           )}
 
@@ -873,11 +921,11 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                       />
                     )}
                     <span className="truncate text-xs font-semibold text-gray-700">
-                      {section.title}
+                      {translator.translateText(section.title)}
                     </span>
                     {section.subtitle && (
                       <span className="truncate text-[11px] text-gray-400">
-                        {section.subtitle}
+                        {translator.translateText(section.subtitle)}
                       </span>
                     )}
                   </div>
@@ -892,14 +940,21 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
           {drill && drillChildren?.status === ChildrenStatus.Loading && (
             <div className="px-3 py-2 text-xs text-gray-500">
-              Loading the fields of {drill.item.label}…
+              {translator.translateTemplate(
+                "Loading the fields of {{value}}…",
+                {
+                  value: drill.item.label,
+                },
+              )}
             </div>
           )}
 
           {drill && drillChildren?.status === ChildrenStatus.Failed && (
             <div className="px-3 py-2 text-xs text-amber-700">
-              Couldn&apos;t load the fields of {drill.item.label}:{" "}
-              {drillChildren.error}
+              {translator.translateTemplate(
+                "Couldn't load the fields of {{value}}: {{error}}",
+                { value: drill.item.label, error: drillChildren.error || "" },
+              )}
             </div>
           )}
 
@@ -908,7 +963,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               className="px-3 py-2 text-xs text-gray-500"
               data-testid="value-picker-no-match"
             >
-              No values match &ldquo;{query.trim()}&rdquo;.
+              {translator.translateTemplate("No values match “{{search}}”.", {
+                search: query.trim(),
+              })}
             </div>
           )}
 
@@ -920,16 +977,18 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 className="px-3 py-3 text-xs text-gray-500"
                 data-testid="value-picker-empty"
               >
-                {props.emptyMessage ||
-                  (picker.isTrigger
-                    ? "A trigger runs first, so there is nothing before it to use. Workflow and global variables show up here."
-                    : "Nothing to use yet. The values of the steps that run before this one, and the workflow's variables, show up here.")}
+                {translator.translateText(
+                  props.emptyMessage ||
+                    (picker.isTrigger
+                      ? "A trigger runs first, so there is nothing before it to use. Workflow and global variables show up here."
+                      : "Nothing to use yet. The values of the steps that run before this one, and the workflow's variables, show up here."),
+                )}
               </div>
             )}
 
           {!drill && picker.isLoading && (
             <div className="px-3 py-2 text-xs text-gray-500">
-              Loading variables…
+              {translator.translateText("Loading variables…")}
             </div>
           )}
 
@@ -937,7 +996,12 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             picker.loadErrors.map((error: string) => {
               return (
                 <div key={error} className="px-3 py-2 text-xs text-amber-700">
-                  Couldn&apos;t load the variables: {error}
+                  {translator.translateTemplate(
+                    "Couldn't load the variables: {{error}}",
+                    {
+                      error: error,
+                    },
+                  )}
                 </div>
               );
             })}
@@ -955,7 +1019,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               className="mb-1 block text-xs text-gray-600"
               htmlFor={`${listboxId}-path`}
             >
-              Or a field inside {drill.item.label}
+              {translator.translateTemplate("Or a field inside {{value}}", {
+                value: drill.item.label,
+              })}
             </label>
             <div className="flex gap-1.5">
               <input
@@ -983,7 +1049,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 className="shrink-0 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 data-testid="value-picker-path-insert"
               >
-                Insert
+                {translator.translateText("Insert")}
               </button>
             </div>
             {pathError && (

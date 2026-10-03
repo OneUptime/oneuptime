@@ -1,16 +1,49 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
+import {
+  IncidentRoleSettingsCopy,
+  canOfferAllowMultipleUsers,
+  getIncidentRoleDeleteLockedReason,
+  getPrimaryIncidentRoleIds,
+} from "../../../Components/IncidentRole/IncidentRoleSettings";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import RoleLabel from "Common/UI/Components/RoleLabel/RoleLabel";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
+/*
+ * A project starts with one role, Incident Commander, and adds the others it
+ * uses. The table shows what a role is - its name and description - and
+ * nothing about how it is assigned: whether a role takes more than one
+ * person lives in its form, folded under Advanced. See
+ * Components/IncidentRole/IncidentRoleSettings for the why.
+ */
 const IncidentRoles: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * Which of the listed roles are primary, so the form can leave Allow
+   * Multiple Users out of Incident Commander's Edit: the form only loads
+   * the fields it shows, and the flag is not one of them.
+   */
+  const [primaryRoleIds, setPrimaryRoleIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
+
+  const advancedSection: FormFieldCollapsibleSection<IncidentRole> =
+    getAdvancedFormSection<IncidentRole>();
+
   return (
     <Fragment>
       <ModelTable<IncidentRole>
@@ -28,26 +61,31 @@ const IncidentRoles: FunctionComponent<
         isEditable={true}
         isCreateable={true}
         cardProps={{
-          title: "Incident Roles",
-          description:
-            "Define roles that can be assigned to users during incident response (e.g., Incident Commander, Responder).",
+          title: IncidentRoleSettingsCopy.title,
+          description: IncidentRoleSettingsCopy.description,
         }}
-        noItemsMessage={"No incident roles found."}
+        noItemsMessage={IncidentRoleSettingsCopy.noItemsMessage}
         viewPageRoute={Navigation.getCurrentRoute()}
+        getDeleteDisabledReason={(role: IncidentRole): string | undefined => {
+          return getIncidentRoleDeleteLockedReason(role);
+        }}
+        onFetchSuccess={(roles: Array<IncidentRole>) => {
+          setPrimaryRoleIds(getPrimaryIncidentRoleIds(roles));
+        }}
         formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Appearance", id: "appearance" },
+          { title: IncidentRoleSettingsCopy.basicInfoStep, id: "basic-info" },
+          { title: IncidentRoleSettingsCopy.appearanceStep, id: "appearance" },
         ]}
         formFields={[
           {
             field: {
               name: true,
             },
-            title: "Name",
+            title: IncidentRoleSettingsCopy.nameFieldTitle,
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Incident Commander",
+            placeholder: IncidentRoleSettingsCopy.namePlaceholder,
             validation: {
               minLength: 2,
             },
@@ -56,49 +94,56 @@ const IncidentRoles: FunctionComponent<
             field: {
               description: true,
             },
-            title: "Description",
+            title: IncidentRoleSettingsCopy.descriptionFieldTitle,
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Primary decision maker during an incident.",
+            placeholder: IncidentRoleSettingsCopy.descriptionPlaceholder,
           },
           {
             field: {
               canAssignMultipleUsers: true,
             },
-            title: "Allow Multiple Users",
+            title: IncidentRoleSettingsCopy.allowMultipleUsersTitle,
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            description:
-              "Enable this to allow multiple users to be assigned to this role for the same incident.",
+            description: IncidentRoleSettingsCopy.allowMultipleUsersDescription,
+            collapsibleSection: advancedSection,
+            showIf: (values: FormValues<IncidentRole>): boolean => {
+              return canOfferAllowMultipleUsers({
+                values: values,
+                primaryRoleIds: primaryRoleIds,
+              });
+            },
           },
           {
             field: {
               roleIcon: true,
             },
-            title: "Role Icon",
+            title: IncidentRoleSettingsCopy.iconFieldTitle,
             stepId: "appearance",
             fieldType: FormFieldSchemaType.Icon,
             required: false,
-            placeholder: "Select an icon for this role",
+            placeholder: IncidentRoleSettingsCopy.iconPlaceholder,
           },
           {
             field: {
               color: true,
             },
-            title: "Role Color",
+            title: IncidentRoleSettingsCopy.colorFieldTitle,
             stepId: "appearance",
             fieldType: FormFieldSchemaType.Color,
             required: true,
-            placeholder: "Please select color for this role.",
+            placeholder: IncidentRoleSettingsCopy.colorPlaceholder,
           },
         ]}
         showRefreshButton={true}
         selectMoreFields={{
           color: true,
           roleIcon: true,
-          canAssignMultipleUsers: true,
+          isPrimaryRole: true,
+          isDeleteable: true,
         }}
         showViewIdButton={true}
         filters={[
@@ -107,14 +152,14 @@ const IncidentRoles: FunctionComponent<
               name: true,
             },
             type: FieldType.Text,
-            title: "Name",
+            title: IncidentRoleSettingsCopy.nameFieldTitle,
           },
           {
             field: {
               description: true,
             },
             type: FieldType.Text,
-            title: "Description",
+            title: IncidentRoleSettingsCopy.descriptionFieldTitle,
           },
         ]}
         columns={[
@@ -122,7 +167,7 @@ const IncidentRoles: FunctionComponent<
             field: {
               name: true,
             },
-            title: "Name",
+            title: IncidentRoleSettingsCopy.nameFieldTitle,
             type: FieldType.Text,
             getElement: (item: IncidentRole): ReactElement => {
               return (
@@ -140,15 +185,8 @@ const IncidentRoles: FunctionComponent<
               description: true,
             },
             noValueMessage: "-",
-            title: "Description",
+            title: IncidentRoleSettingsCopy.descriptionFieldTitle,
             type: FieldType.LongText,
-          },
-          {
-            field: {
-              canAssignMultipleUsers: true,
-            },
-            title: "Multiple Users",
-            type: FieldType.Boolean,
           },
         ]}
       />

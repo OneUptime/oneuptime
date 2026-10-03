@@ -176,7 +176,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description:
-      "Name of this measurement, shown on charts and on the scheduled maintenance event page",
+      "Human readable name of this measurement, such as Start Delay. This is what charts call it.",
     example: "Time to Start",
   })
   @Column({
@@ -205,13 +205,18 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Not required: a create without a key gets one made from the name
+   * (ScheduledMaintenanceMeasurementService.onBeforeCreate,
+   * MeasurementKeyAssigner). The column itself is never empty.
+   */
   @Index()
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     title: "Key",
     description:
-      "Stable machine-readable key for this measurement. It is part of the metric name, so it cannot be changed once the measurement is created.",
+      "Stable, machine readable identifier for this measurement, unique within the project: lowercase letters, numbers and hyphens. Leave it out and it is made from the name - Time to Start becomes time-to-start, with -2, -3 and so on added when another measurement already has it. It is part of the metric name, so it cannot be changed once the measurement is created; to rename a measurement, change the Name instead.",
     example: "time-to-start",
   })
   @Column({
@@ -704,7 +709,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Unit",
     description:
-      "The unit this measurement is displayed in. Values are always stored in seconds.",
+      "The unit this measurement's charts are in: seconds (the default), minutes, hours or days. Every value is worked out in seconds and stored that way on the scheduled maintenance event; each chart point is written in this unit, so a chart in hours reads 1.5 for an hour and a half. With seconds, charts show seconds, minutes, hours or days as the numbers grow. Changing it rewrites the measurement's chart points in the new unit. A value that is not a time unit charts in seconds.",
     defaultValue: "seconds",
     isDefaultValueColumn: true,
   })
@@ -743,7 +748,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Aggregation Type",
     description:
-      "The aggregation this measurement's chart defaults to. Summing durations across events produces a number with no meaning, so Sum is not offered.",
+      "How this measurement's chart sums up many scheduled maintenance events by default - Avg (the default), P50, P90, P95, P99, Max or Min. View Chart in the dashboard opens the chart this way. Sum is deliberately absent: adding durations up across scheduled maintenance events produces a number with no meaning.",
     defaultValue: MeasurementAggregationType.Avg,
     isDefaultValueColumn: true,
   })

@@ -12,6 +12,9 @@ import NotContains from "../../../Types/BaseDatabase/NotContains";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -120,6 +123,7 @@ const buildQueryValue: BuildQueryValueFunction = (
 const TextFilter: TextFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
 
   if (filter.filterDropdownOptions) {
@@ -200,7 +204,7 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               apply({ operator, value: e.target.value });
             }}
-            placeholder={`Filter by ${filter.title}`}
+            placeholder={getFilterPlaceholder(translator, filter.title)}
             className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           />
         </div>

@@ -10,6 +10,7 @@ import {
   ROLLUP_SUBJECT_MAX_LENGTH,
 } from "./EmailRollupConstants";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import Dictionary from "../../../Types/Dictionary";
@@ -24,6 +25,7 @@ import NotificationSettingEventType from "../../../Types/NotificationSetting/Not
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Text from "../../../Types/Text";
+import EmailColorUtil from "../../../Utils/Email/EmailColorUtil";
 
 /*
  * Why this file exists: it is the ONE place an owner notification email can be
@@ -135,6 +137,25 @@ function extractLabel(
   const label: string = value.trim();
 
   return label ? label.slice(0, ColumnLength.ShortText) : undefined;
+}
+
+/*
+ * The colour a producer sent beside a label - `incidentSeverityColor` beside
+ * `incidentSeverity`, `currentStateColor` beside `currentState` - re-checked
+ * here rather than trusted, because the row outlives the envelope and the
+ * rollup paints it into a style attribute. Only the #rrggbb EmailColorUtil
+ * writes is stored, which also fits the column.
+ */
+function extractColor(
+  value: string | JSONObject | undefined,
+): Color | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const color: string | null = EmailColorUtil.sanitize(value);
+
+  return color ? new Color(color) : undefined;
 }
 
 type IsAbsoluteLinkFunction = (
@@ -357,12 +378,32 @@ export default class EmailRollupWriter {
           data.emailEnvelope.vars?.["currentState"],
         );
 
+        /*
+         * A colour is kept only with its label: a chip is drawn for the name,
+         * and a colour with no name beside it has nothing to paint.
+         */
         if (severity !== undefined) {
           item.severity = severity;
+
+          const severityColor: Color | undefined = extractColor(
+            data.emailEnvelope.vars?.[`${severityVar}Color`],
+          );
+
+          if (severityColor) {
+            item.severityColor = severityColor;
+          }
         }
 
         if (currentState !== undefined) {
           item.currentState = currentState;
+
+          const currentStateColor: Color | undefined = extractColor(
+            data.emailEnvelope.vars?.["currentStateColor"],
+          );
+
+          if (currentStateColor) {
+            item.currentStateColor = currentStateColor;
+          }
         }
       }
 

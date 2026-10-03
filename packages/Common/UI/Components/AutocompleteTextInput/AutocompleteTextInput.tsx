@@ -9,6 +9,8 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   value?: string;
@@ -138,6 +140,7 @@ export function getMenuPosition(
 const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [inputValue, setInputValue] = useState<string>(props.value || "");
   const [isMenuVisible, setIsMenuVisible] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -413,7 +416,9 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
               d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
             ></path>
           </svg>
-          <span>{props.loadingMessage || "Loading..."}</span>
+          <span>
+            {translator.translateText(props.loadingMessage || "Loading...")}
+          </span>
         </div>
       )}
       {!isLoadingSuggestions &&
@@ -477,7 +482,7 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         onKeyDown={handleKeyDown}
-        placeholder={props.placeholder}
+        placeholder={translator.translateText(props.placeholder)}
         spellCheck={!props.disableSpellCheck}
         type="text"
         value={inputValue}

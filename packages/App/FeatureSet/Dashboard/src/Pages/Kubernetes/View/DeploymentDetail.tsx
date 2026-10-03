@@ -43,10 +43,13 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const deploymentName: string = Navigation.getLastParamAsString();
 
@@ -138,7 +141,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "deployment_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU usage as a percentage of node allocatable CPU for pods in deployment ${deploymentName}`,
+      description: translator.translateTemplate(
+        "CPU usage as a percentage of node allocatable CPU for pods in deployment {{deploymentName}}",
+        { deploymentName: deploymentName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -166,7 +172,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "deployment_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pods in deployment ${deploymentName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pods in deployment {{deploymentName}}",
+        { deploymentName: deploymentName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -230,7 +239,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
                 }
               />
               <span className="text-sm text-gray-600">
-                {ready}/{desired} ready
+                {translator.translateTemplate("{{ready}}/{{total}} ready", {
+                  ready: ready,
+                  total: desired,
+                })}
               </span>
             </div>
             <div className="w-32 bg-gray-100 rounded-full h-2">
@@ -327,7 +339,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Deployment Metrics: ${deploymentName}`}
+          title={translator.translateTemplate(
+            "Deployment Metrics: {{deploymentName}}",
+            { deploymentName: deploymentName },
+          )}
           description="CPU and memory usage for pods in this deployment over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />

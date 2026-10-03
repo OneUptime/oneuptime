@@ -202,11 +202,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           name: true,
           _id: true,
           color: true,
+          order: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
-          name: SortOrder.Ascending,
+          order: SortOrder.Ascending,
         },
       });
 
@@ -222,11 +223,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             name: true,
             _id: true,
             color: true,
+            order: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           sort: {
-            name: SortOrder.Ascending,
+            order: SortOrder.Ascending,
           },
         },
       );
@@ -243,11 +245,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             name: true,
             _id: true,
             color: true,
+            order: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           sort: {
-            name: SortOrder.Ascending,
+            order: SortOrder.Ascending,
           },
         });
 
@@ -262,11 +265,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           name: true,
           _id: true,
           color: true,
+          order: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
-          name: SortOrder.Ascending,
+          order: SortOrder.Ascending,
         },
       });
 
@@ -282,11 +286,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             name: true,
             _id: true,
             color: true,
+            order: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           sort: {
-            name: SortOrder.Ascending,
+            order: SortOrder.Ascending,
           },
         });
 
@@ -301,11 +306,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           name: true,
           _id: true,
           color: true,
+          priority: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: {
-          name: SortOrder.Ascending,
+          priority: SortOrder.Ascending,
         },
       });
 

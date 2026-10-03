@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -42,7 +43,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
@@ -50,6 +55,27 @@ import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getDefaultMaintenanceEndsAt,
+  getDefaultMaintenanceStartsAt,
+  getMaintenanceEndsAtError,
+  getSubscriberNotificationsSection,
+  moveMaintenanceEndWithStart,
+} from "../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+
+/*
+ * Two steps - Event and Resources Affected - and the review step (see
+ * Components/ScheduledMaintenance/ScheduledMaintenanceForm for why). Built
+ * once: BasicForm folds the fields next to each other that carry the same
+ * section.
+ */
+const advancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getAdvancedFormSection<ScheduledMaintenance>();
+
+const subscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getSubscriberNotificationsSection<ScheduledMaintenance>();
 
 /*
  * Every resource type the "Resources Affected" step offers. The editor and
@@ -70,6 +96,7 @@ const AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -269,32 +296,12 @@ const ScheduledMaintenanceCreate: FunctionComponent<
               id="create-scheduledMaintenance-form"
               steps={[
                 {
-                  title: "Event Info",
-                  id: "event-info",
-                },
-                {
-                  title: "Event Time",
-                  id: "event-time",
+                  title: "Event",
+                  id: "event",
                 },
                 {
                   title: "Resources Affected",
                   id: "resources-affected",
-                },
-                {
-                  title: "Status Pages",
-                  id: "status-pages",
-                },
-                {
-                  title: "Owners",
-                  id: "owners",
-                },
-                {
-                  title: "Subscribers",
-                  id: "subscribers",
-                },
-                {
-                  title: "Labels",
-                  id: "labels",
                 },
               ]}
               fields={[
@@ -303,7 +310,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     title: true,
                   },
                   title: "Title",
-                  stepId: "event-info",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
                   placeholder: "Event Title",
@@ -316,32 +323,118 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     description: true,
                   },
                   title: "Description",
-                  stepId: "event-info",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
                   description: MarkdownUtil.getMarkdownCheatsheet(
                     "Describe the scheduled maintenance event here",
                   ),
                 },
+                /*
+                 * The next full hour, for an hour: change them only when
+                 * they are wrong. Moving the start moves the end with it.
+                 */
                 {
                   field: {
                     startsAt: true,
                   },
-                  title: "Event Starts At",
-                  stepId: "event-time",
+                  title: "Starts At",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  getDefaultValue: (): string => {
+                    return getDefaultMaintenanceStartsAt();
+                  },
+                  onChange: moveMaintenanceEndWithStart,
                 },
                 {
                   field: {
                     endsAt: true,
                   },
                   title: "Ends At",
-                  stepId: "event-time",
+                  stepId: "event",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  getDefaultValue: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ): string => {
+                    return getDefaultMaintenanceEndsAt(values);
+                  },
+                  customValidation: (
+                    values: FormValues<ScheduledMaintenance>,
+                  ): string | null => {
+                    return getMaintenanceEndsAtError(values);
+                  },
+                },
+                /*
+                 * Owners and labels, folded under Advanced at the end of the
+                 * step, as Declare Incident folds its labels: owner and label
+                 * rules cover most events. People and teams in one picker,
+                 * kept in ownerUsers / ownerTeams: ScheduledMaintenanceService
+                 * adds them as the event's owners. The summary step lists
+                 * them by name.
+                 */
+                getOwnersFormField({
+                  stepId: "event",
+                  description:
+                    "Who owns this event. They are notified when its status changes.",
+                  collapsibleSection: advancedSection,
+                }),
+                {
+                  field: {
+                    labels: true,
+                  },
+                  title: "Labels ",
+                  stepId: "event",
+                  description:
+                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                  collapsibleSection: advancedSection,
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Labels",
+                  getSummaryElement: (
+                    item: FormValues<ScheduledMaintenance>,
+                  ) => {
+                    if (!item.labels || !Array.isArray(item.labels)) {
+                      return (
+                        <p>{translator.translateText("No labels assigned.")}</p>
+                      );
+                    }
+
+                    const labelIds: Array<ObjectID> = [];
+
+                    for (const label of item.labels) {
+                      if (typeof label === "string") {
+                        labelIds.push(new ObjectID(label));
+                        continue;
+                      }
+
+                      if (label instanceof ObjectID) {
+                        labelIds.push(label);
+                        continue;
+                      }
+
+                      if (label instanceof Label) {
+                        labelIds.push(
+                          new ObjectID(label._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchLabels labelIds={labelIds} />
+                      </div>
+                    );
+                  },
                 },
                 {
                   field: {
@@ -353,6 +446,8 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
+                  // The picker writes only what is picked: the form can be finished without it.
+                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     values: FormValues<ScheduledMaintenance>,
                     elementProps: CustomElementProps,
@@ -439,8 +534,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (!hasResources) {
                       return (
                         <p>
-                          No resources affected by this scheduled maintenance
-                          event.
+                          {translator.translateText(
+                            "No resources affected by this scheduled maintenance event.",
+                          )}
                         </p>
                       );
                     }
@@ -546,48 +642,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 {
                   field: {
-                    changeMonitorStatusTo: true,
-                  },
-                  title: "Change Monitor Status to ",
-                  stepId: "resources-affected",
-                  description:
-                    "This will change the status of all the monitors attached when the event starts.",
-                  fieldType: FormFieldSchemaType.Dropdown,
-                  dropdownModal: {
-                    type: MonitorStatus,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Monitor Status",
-                  getSummaryElement: (
-                    item: FormValues<ScheduledMaintenance>,
-                  ) => {
-                    if (!item.changeMonitorStatusTo) {
-                      return (
-                        <p>
-                          Status of the monitors will not be changed when this
-                          scheduled maintenance event starts.
-                        </p>
-                      );
-                    }
-
-                    return (
-                      <FetchMonitorStatuses
-                        monitorStatusIds={[
-                          new ObjectID(item.changeMonitorStatusTo.toString()),
-                        ]}
-                        shouldAnimate={false}
-                      />
-                    );
-                  },
-                },
-                {
-                  field: {
                     statusPages: true,
                   },
                   title: "Show event on these status pages ",
-                  stepId: "status-pages",
+                  stepId: "resources-affected",
                   description: "Select status pages to show this event on",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
@@ -603,8 +661,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (!item.statusPages || !Array.isArray(item.statusPages)) {
                       return (
                         <p>
-                          No status pages selected for this scheduled
-                          maintenance event.
+                          {translator.translateText(
+                            "No status pages selected for this scheduled maintenance event.",
+                          )}
                         </p>
                       );
                     }
@@ -638,25 +697,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 },
                 /*
-                 * People and teams in one picker, kept in ownerUsers /
-                 * ownerTeams: ScheduledMaintenanceService adds them as the
-                 * event's owners. The summary step lists them by name.
+                 * Folded to one line that says what happens. All three are
+                 * on, as on the model: subscribers hear when the event is
+                 * scheduled, starts and ends.
                  */
-                getOwnersFormField({
-                  stepId: "owners",
-                  description:
-                    "Who owns this event. They are notified when its status changes.",
-                }),
-
                 {
                   field: {
                     shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
                   },
-
-                  title: "Event Created: Notify Status Page Subscribers",
-                  stepId: "subscribers",
-                  description:
-                    "Should status page subscribers be notified when this event is created?",
+                  title: "When the event is scheduled",
+                  stepId: "resources-affected",
+                  collapsibleSection: subscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -666,11 +717,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
                       true,
                   },
-
-                  title: "Event Ongoing: Notify Status Page Subscribers",
-                  stepId: "subscribers",
-                  description:
-                    "Should status page subscribers be notified when this event state changes to ongoing?",
+                  title: "When the event starts",
+                  stepId: "resources-affected",
+                  collapsibleSection: subscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -680,11 +729,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
                       true,
                   },
-
-                  title: "Event Ended: Notify Status Page Subscribers",
-                  stepId: "subscribers",
-                  description:
-                    "Should status page subscribers be notified when this event state changes to ended?",
+                  title: "When the event ends",
+                  stepId: "resources-affected",
+                  collapsibleSection: subscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -693,11 +740,14 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   field: {
                     sendSubscriberNotificationsOnBeforeTheEvent: true,
                   },
-                  stepId: "subscribers",
-                  title: "Send reminders to subscribers before the event",
+                  stepId: "resources-affected",
+                  collapsibleSection: subscriberNotificationsSection,
+                  title: "Reminders before the event",
                   description:
-                    "Please add a list of notification options to notify subscribers before the event",
+                    "Remind subscribers before the event starts, for example 1 day before.",
                   fieldType: FormFieldSchemaType.CustomComponent,
+                  // Starts with no reminders, and writes only the ones added.
+                  customElementCanBeSkipped: true,
                   getCustomElement: (
                     value: FormValues<ScheduledMaintenance>,
                     props: CustomElementProps,
@@ -722,7 +772,13 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         item.sendSubscriberNotificationsOnBeforeTheEvent
                           .length === 0)
                     ) {
-                      return <p>No reminders set for subscribers.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No reminders set for subscribers.",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -730,60 +786,56 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         value={
                           item.sendSubscriberNotificationsOnBeforeTheEvent as Recurring[]
                         }
-                        postfix=" before the event is begins"
+                        postfix=" before the event begins"
                       />
                     );
                   },
                   required: false,
                 },
+                /*
+                 * Last on its step, folded: it changes the monitors' status
+                 * while the event is ongoing.
+                 */
                 {
                   field: {
-                    labels: true,
+                    changeMonitorStatusTo: true,
                   },
-                  title: "Labels ",
-                  stepId: "labels",
+                  title: "Change Monitor Status to ",
+                  stepId: "resources-affected",
                   description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                    "This will change the status of all the monitors attached when the event starts.",
+                  collapsibleSection: advancedSection,
+                  fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
-                    type: Label,
+                    type: MonitorStatus,
                     labelField: "name",
                     valueField: "_id",
+                    sort: {
+                      priority: SortOrder.Ascending,
+                    },
                   },
                   required: false,
-                  placeholder: "Labels",
+                  placeholder: "Monitor Status",
                   getSummaryElement: (
                     item: FormValues<ScheduledMaintenance>,
                   ) => {
-                    if (!item.labels || !Array.isArray(item.labels)) {
-                      return <p>No labels assigned.</p>;
-                    }
-
-                    const labelIds: Array<ObjectID> = [];
-
-                    for (const label of item.labels) {
-                      if (typeof label === "string") {
-                        labelIds.push(new ObjectID(label));
-                        continue;
-                      }
-
-                      if (label instanceof ObjectID) {
-                        labelIds.push(label);
-                        continue;
-                      }
-
-                      if (label instanceof Label) {
-                        labelIds.push(
-                          new ObjectID(label._id?.toString() || ""),
-                        );
-                        continue;
-                      }
+                    if (!item.changeMonitorStatusTo) {
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "Status of the monitors will not be changed when this scheduled maintenance event starts.",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
-                      <div>
-                        <FetchLabels labelIds={labelIds} />
-                      </div>
+                      <FetchMonitorStatuses
+                        monitorStatusIds={[
+                          new ObjectID(item.changeMonitorStatusTo.toString()),
+                        ]}
+                        shouldAnimate={false}
+                      />
                     );
                   },
                 },

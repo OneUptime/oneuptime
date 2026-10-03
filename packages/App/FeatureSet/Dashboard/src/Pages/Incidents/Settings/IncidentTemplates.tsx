@@ -24,10 +24,6 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
-import { StatusPagePickerAccessHint } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../../Components/Incident/useStatusPagePickerAccess";
 import React, {
   Fragment,
   FunctionComponent,
@@ -39,7 +35,6 @@ import React, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import {
   buildCustomFieldModelFormFields,
@@ -75,10 +70,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   const [createInitialValues, setCreateInitialValues] = useState<
     FormValues<IncidentTemplate>
   >({});
-
-  // Picking status pages needs status page read access (see the hint).
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
 
   /*
    * The project's incident custom fields, so a new template can set the
@@ -369,6 +360,9 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Incident Severity",
@@ -382,49 +376,20 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the initial state for incidents created from this template",
             fieldType: FormFieldSchemaType.Dropdown,
+            /*
+             * Listed in the order an incident moves through its states, each
+             * with its colour - as the severity above shows its own.
+             */
             dropdownModal: {
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Initial State",
-            fetchDropdownOptions: async () => {
-              const projectId: ObjectID | null =
-                ProjectUtil.getCurrentProjectId();
-              if (!projectId) {
-                return [];
-              }
-
-              try {
-                const incidentStates: ListResult<IncidentState> =
-                  await ModelAPI.getList<IncidentState>({
-                    modelType: IncidentState,
-                    query: {
-                      projectId: projectId,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                      _id: true,
-                      name: true,
-                    },
-                    sort: {
-                      order: SortOrder.Ascending,
-                    },
-                  });
-
-                return incidentStates.data.map((state: IncidentState) => {
-                  return {
-                    label: state.name || "",
-                    value: state._id?.toString() || "",
-                  };
-                });
-              } catch {
-                // Silently fail and return empty array
-                return [];
-              }
-            },
           },
           {
             field: {
@@ -436,6 +401,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
+            // The picker writes only what is picked: the form can be finished without it.
+            customElementCanBeSkipped: true,
             getCustomElement: (
               values: FormValues<IncidentTemplate>,
               elementProps: CustomElementProps,
@@ -497,9 +464,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
-            footerElement: (
-              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
-            ),
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
@@ -587,6 +551,9 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",

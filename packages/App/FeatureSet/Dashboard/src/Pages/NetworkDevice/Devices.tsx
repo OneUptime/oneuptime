@@ -127,6 +127,8 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import { getMacAddressFormField } from "./MacAddressFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -226,6 +228,7 @@ export function shouldOfferPingMonitor(): boolean {
 const NetworkDevices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -532,8 +535,8 @@ const NetworkDevices: FunctionComponent<
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
-    hasActiveFilters,
     facetSelections,
     facetOperators,
     setFacetSelection,
@@ -845,18 +848,11 @@ const NetworkDevices: FunctionComponent<
          */
         topContent={filterBar}
         /*
-         * "No network device" under a chip that matched nothing reads as an empty
-         * project. This says the fleet is there and the bar is what is hiding it.
-         *
-         * Only the chips — `hasActiveFilters` is the bar's own state, so a search
-         * term or a popup filter that matches nothing still falls through to the
-         * table's default copy.
+         * "No network devices yet" under a chip that matched nothing reads as
+         * an empty project. The chips are the bar's own state, so the table is
+         * told about them: it says nothing matches and offers to clear them.
          */
-        noItemsMessage={
-          hasActiveFilters
-            ? "No network device matches the filters above."
-            : undefined
-        }
+        emptyState={facetEmptyState}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
@@ -1012,9 +1008,13 @@ const NetworkDevices: FunctionComponent<
              */
             setPingMonitorNotice({
               type: AlertType.DANGER,
-              message: `${deviceName} was created and its probe polls it as usual, but its Ping monitor was not created: ${API.getFriendlyMessage(
-                err,
-              )} Nothing raises an incident for this device yet — open it and use Create Ping Monitor to try again.`,
+              message: translator.translateTemplate(
+                "{{deviceName}} was created and its probe polls it as usual, but its Ping monitor was not created: {{error}} Nothing raises an incident for this device yet — open it and use Create Ping Monitor to try again.",
+                {
+                  deviceName: deviceName,
+                  error: API.getFriendlyMessage(err),
+                },
+              ),
             });
           }
 
@@ -1534,9 +1534,11 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="No role assigned — worked out from the device's SNMP identity."
+                    title={translator.translateText(
+                      "No role assigned — worked out from the device's SNMP identity.",
+                    )}
                   >
-                    Auto
+                    {translator.translateText("Auto")}
                   </span>
                 );
               }
@@ -1607,9 +1609,11 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them."
+                    title={translator.translateText(
+                      "Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them.",
+                    )}
                   >
-                    Not polled
+                    {translator.translateText("Not polled")}
                   </span>
                 );
               }
@@ -1641,7 +1645,9 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device."
+                    title={translator.translateText(
+                      "Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device.",
+                    )}
                   >
                     —
                   </span>
@@ -1670,7 +1676,9 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Interfaces are collected by the first successful SNMP walk. This device has not been polled yet."
+                    title={translator.translateText(
+                      "Interfaces are collected by the first successful SNMP walk. This device has not been polled yet.",
+                    )}
                   >
                     —
                   </span>
@@ -1713,7 +1721,9 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Last contact is stamped by a probe's poll, which does not run on a monitor-backed device. Its status comes from the monitor bound to it."
+                    title={translator.translateText(
+                      "Last contact is stamped by a probe's poll, which does not run on a monitor-backed device. Its status comes from the monitor bound to it.",
+                    )}
                   >
                     —
                   </span>
@@ -1721,7 +1731,11 @@ const NetworkDevices: FunctionComponent<
               }
 
               if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">Never</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Never")}
+                  </span>
+                );
               }
 
               const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);

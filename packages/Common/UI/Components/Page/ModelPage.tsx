@@ -1,6 +1,8 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import Link from "../../../Types/Link";
@@ -51,6 +53,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Keyed on the id's string, not the ObjectID: layouts build a new ObjectID
    * from the route params on every render.
@@ -148,13 +151,16 @@ const ModelPage: <TBaseModel extends BaseModel>(
       });
 
       if (!item) {
-        const singularName: string = (
-          modelInstance.singularName || "item"
-        ).toLowerCase();
-
         header = {
           ...header,
-          error: `Cannot load ${singularName}. It could be because you don't have enough permissions to read this ${singularName}.`,
+          error: translator.translateTemplate(
+            "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.",
+            {
+              itemName: translatableTerm(modelInstance.singularName || "item", {
+                inSentence: true,
+              }),
+            },
+          ),
         };
       } else {
         let loadedLabels: Array<Label> = [];

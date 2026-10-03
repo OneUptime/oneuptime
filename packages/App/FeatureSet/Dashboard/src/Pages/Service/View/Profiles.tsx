@@ -14,6 +14,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /** Each selectable time-range chip above the aggregate flame graph. */
 interface TimeRange {
@@ -43,6 +45,7 @@ const FLAMEGRAPH_TITLE: string = "Where the time is going";
 const ServiceProfiles: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [rangeMinutes, setRangeMinutes] = useState<number>(
@@ -91,14 +94,15 @@ const ServiceProfiles: FunctionComponent<
               />
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
-              Every profile captured for this service in the window, merged into
-              one view. Click a frame to zoom in.
+              {translator.translateText(
+                "Every profile captured for this service in the window, merged into one view. Click a frame to zoom in.",
+              )}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-                Time window
+                {translator.translateText("Time window")}
               </div>
               <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
                 {TIME_RANGES.map((r: TimeRange) => {
@@ -124,7 +128,7 @@ const ServiceProfiles: FunctionComponent<
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-                What to analyze
+                {translator.translateText("What to analyze")}
               </div>
               <ProfileTypeSelector
                 selectedProfileType={profileType}

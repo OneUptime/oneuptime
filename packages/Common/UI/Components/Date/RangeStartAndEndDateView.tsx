@@ -8,6 +8,9 @@ import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import RangeStartAndEndDateEdit from "./RangeStartAndEndDateEdit";
 import Modal, { ModalWidth } from "../Modal/Modal";
+import { getTimeRangeLabel } from "./TimeRangePickerDropdown";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
@@ -17,6 +20,7 @@ export interface ComponentProps {
 const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [tempStartAndEndDate, setTempStartAndEndDate] =
     useState<RangeStartAndEndDateTime | null>(null);
   const [showTimeSelectModal, setShowTimeSelectModal] =
@@ -80,7 +84,11 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
       )}`;
     }
 
-    return props.dashboardStartAndEndDate.range;
+    return (
+      translator.translateText(
+        getTimeRangeLabel(props.dashboardStartAndEndDate.range),
+      ) || props.dashboardStartAndEndDate.range
+    );
   };
 
   const getContent: GetReactElementFunction = (): ReactElement => {

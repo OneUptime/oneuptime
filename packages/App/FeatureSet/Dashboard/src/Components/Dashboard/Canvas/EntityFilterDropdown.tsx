@@ -9,6 +9,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
+import Color from "Common/Types/Color";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ObjectID from "Common/Types/ObjectID";
@@ -33,6 +35,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
 
@@ -58,15 +62,63 @@ interface EntityModelDef<T extends BaseModel> {
   unpickableLabelSuffix?: string | undefined;
 }
 
-type ToDropdownOptionFunction = (item: BaseModel) => DropdownOption;
+type ToDropdownOptionFunction = (
+  item: BaseModel,
+  colorColumnName: string | null,
+) => DropdownOption;
 
+/*
+ * A severity, state or monitor status (and a label) is offered with its
+ * colour, the dot every other picker of them shows.
+ */
 const toDropdownOption: ToDropdownOptionFunction = (
   item: BaseModel,
+  colorColumnName: string | null,
 ): DropdownOption => {
-  return {
+  const option: DropdownOption = {
     value: ((item as unknown as { _id: string })._id as string) || "",
     label: ((item as unknown as { name: string }).name as string) || "Unnamed",
   };
+
+  const color: Color | undefined = colorColumnName
+    ? DropdownUtil.toOptionColor(
+        (item as unknown as Record<string, unknown>)[colorColumnName],
+      )
+    : undefined;
+
+  if (color) {
+    option.color = color;
+  }
+
+  return option;
+};
+
+type GetColorColumnNameFunction = (
+  modelType: ModelTypeOf<BaseModel>,
+) => string | null;
+
+// The model's colour column (a severity's, a state's), if it has one.
+const getColorColumnName: GetColorColumnNameFunction = (
+  modelType: ModelTypeOf<BaseModel>,
+): string | null => {
+  return new modelType().getFirstColorColumn();
+};
+
+type GetOptionSelectFunction = (
+  colorColumnName: string | null,
+) => Record<string, true>;
+
+// The columns an option is built from: the name, the id and any colour.
+const getOptionSelect: GetOptionSelectFunction = (
+  colorColumnName: string | null,
+): Record<string, true> => {
+  const select: Record<string, true> = { _id: true, name: true };
+
+  if (colorColumnName) {
+    select[colorColumnName] = true;
+  }
+
+  return select;
 };
 
 type GetSelectedIdsFunction = (
@@ -221,6 +273,7 @@ export interface EntityFilterDropdownProps {
 const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
   props: EntityFilterDropdownProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [options, setOptions] = useState<Array<DropdownOption>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -241,6 +294,10 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
           props.entityFilterModelType,
         );
 
+        const colorColumnName: string | null = getColorColumnName(
+          def.modelType,
+        );
+
         const listResult: ListResult<BaseModel> =
           await ModelAPI.getList<BaseModel>({
             modelType: def.modelType,
@@ -250,15 +307,18 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
             } as Query<BaseModel>,
             limit: 1000,
             skip: 0,
-            select: { _id: true, name: true } as Record<string, true>,
+            select: getOptionSelect(colorColumnName),
             sort: { [def.sortField]: def.sortOrder } as Record<
               string,
               SortOrder
             >,
           });
 
-        const newOptions: Array<DropdownOption> =
-          listResult.data.map(toDropdownOption);
+        const newOptions: Array<DropdownOption> = listResult.data.map(
+          (item: BaseModel): DropdownOption => {
+            return toDropdownOption(item, colorColumnName);
+          },
+        );
 
         /*
          * A saved selection can be missing from the list above: past its row
@@ -301,8 +361,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
                 skip: 0,
                 select: {
                   ...(def.unpickableSelect || {}),
-                  _id: true,
-                  name: true,
+                  ...getOptionSelect(colorColumnName),
                 } as Record<string, true>,
                 sort: { [def.sortField]: def.sortOrder } as Record<
                   string,
@@ -311,7 +370,10 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
               });
 
             for (const item of selectedResult.data) {
-              const option: DropdownOption = toDropdownOption(item);
+              const option: DropdownOption = toDropdownOption(
+                item,
+                colorColumnName,
+              );
 
               if (def.isUnpickable?.(item)) {
                 option.label = `${option.label}${def.unpickableLabelSuffix || ""}`;
@@ -342,7 +404,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
   if (isLoading) {
     return (
       <div className="text-xs text-gray-500 py-2 px-3 border border-gray-200 rounded-md bg-gray-50">
-        Loading options...
+        {translator.translateText("Loading options...")}
       </div>
     );
   }

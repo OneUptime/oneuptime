@@ -22,6 +22,11 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Fleet-health strip for the Sites page: how many sites exist, how many are
@@ -55,6 +60,7 @@ export interface ComponentProps {
 const SiteSummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [counts, setCounts] = useState<SiteSummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -148,20 +154,35 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     isSelected: boolean | undefined,
   ): string => {
     if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) {
-      return `${tile.label}: ${count}. Activate to open these on the device list.`;
+      return translator.translateTemplate(
+        "{{label}}: {{count}}. Activate to open these on the device list.",
+        { label: translatableTerm(tile.label), count: count },
+      );
     }
 
     if (tile.action === SiteSummaryTileAction.ClearFilters) {
       return isSelected
-        ? `${tile.label}: ${count}. The list below is unfiltered.`
-        : `${tile.label}: ${count}. Activate to clear the filters on the list below.`;
+        ? translator.translateTemplate(
+            "{{label}}: {{count}}. The list below is unfiltered.",
+            { label: translatableTerm(tile.label), count: count },
+          )
+        : translator.translateTemplate(
+            "{{label}}: {{count}}. Activate to clear the filters on the list below.",
+            { label: translatableTerm(tile.label), count: count },
+          );
     }
 
     if (isSelected) {
-      return `${tile.label}: ${count}. Filtering the list below — activate to remove this filter.`;
+      return translator.translateTemplate(
+        "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
+        { label: translatableTerm(tile.label), count: count },
+      );
     }
 
-    return `${tile.label}: ${count}. Activate to filter the list below by this.`;
+    return translator.translateTemplate(
+      "{{label}}: {{count}}. Activate to filter the list below by this.",
+      { label: translatableTerm(tile.label), count: count },
+    );
   };
 
   return (

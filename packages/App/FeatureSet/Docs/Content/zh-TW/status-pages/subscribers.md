@@ -8,19 +8,22 @@
 
 ## 訂閱管道
 
-狀態頁面支援五種管道，每一種在狀態頁面上都有自己的開關。前往 **狀態頁面 → 你的頁面 → 訂閱者 → 訂閱者設定**：
+狀態頁面支援五種管道。這些管道和訪客訂閱所在的頁面都在同一個地方開關：**狀態頁面 → 你的頁面 → 訂閱者 → 訂閱者設定** 裡的 **管道** 卡片。每個開關一切換就會儲存：
 
-- **啟用電子郵件訂閱者**（`enableEmailSubscribers`）——預設開啟。在你打開之前，其餘管道全都是關的。
-- **啟用 SMS 訂閱者**（`enableSmsSubscribers`）——預設關閉。
-- **啟用 Slack 訂閱者**（`enableSlackSubscribers`）——預設關閉。
-- **啟用 Microsoft Teams 訂閱者**（`enableMicrosoftTeamsSubscribers`）——預設關閉。
-- **啟用 Webhook 訂閱者**（`enableWebhookSubscribers`）——預設關閉。
+- **顯示訂閱者頁面**（`showSubscriberPageOnStatusPage`）——預設開啟。在狀態頁面導覽列放上 **訂閱** 項目，訪客在那裡透過下方的管道訂閱。
+- **電子郵件**（`enableEmailSubscribers`）——預設開啟。在你打開之前，其餘管道全都是關的。
+- **SMS**（`enableSmsSubscribers`）——預設關閉。在 OneUptime Cloud 上，除非該頁面有自己的 **Twilio 設定**，否則每則簡訊都會從專案的簡訊與通話餘額中支付。要開啟它，專案還需要在 **專案設定 > 通知 > 通知設定** 中開啟 **啟用 SMS 通知**。
+- **Slack**（`enableSlackSubscribers`）——預設關閉。
+- **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）——預設關閉。
+- **Webhook**（`enableWebhookSubscribers`）——預設關閉。
 
-每個管道在狀態頁面側邊選單的 **訂閱者** 底下也各有一份清單：**電子郵件訂閱者**、**SMS 訂閱者**、**Slack 訂閱者**、**MS Teams 訂閱者** 與 **Webhook 訂閱者**。你在那裡查看誰註冊了、手動加人，或替某位訂閱者留下一則 **備註**（`internalNote`）。
+這些開關決定訪客能怎麼自行訂閱：透過已關閉的管道訂閱會被狀態頁面拒絕。它們不會停止通知：你的團隊在儀表板上、透過 API 或工作流程新增的訂閱者，不論哪些管道開著，都會收到更新。
 
-**只開一個開關還不夠。** 狀態頁面導覽列上的 **訂閱** 項目，只有在 **顯示訂閱者頁面**（`showSubscriberPageOnStatusPage`）開啟*而且*至少啟用一種管道時才會出現。如果你打開了 **啟用電子郵件訂閱者** 卻沒開 **顯示訂閱者頁面**，訪客根本走不到那張表單。
+在 OneUptime Cloud 上，你的方案不包含的開關旁邊會顯示所需方案的名稱：**SMS** 與 **顯示訂閱者頁面** 需要 **Growth**，**Slack**、**Microsoft Teams** 與 **Webhook** 需要 **Scale**。
 
-同樣這五個開關會在 **進階設定** 的 **訂閱者設定** 卡片上再出現一次，旁邊還有 **顯示訂閱者頁面**。它們底下是同一批欄位——挑一個畫面用到底就好，而且建議用專屬的 **訂閱者設定** 頁面，因為其餘的訂閱者設定都在那裡。
+每個管道在狀態頁面側邊選單的 **訂閱者** 底下也各有一份清單：**電子郵件訂閱者**、**SMS 訂閱者**、**Slack 訂閱者**、**MS Teams 訂閱者** 與 **Webhook 訂閱者**。你在那裡查看誰註冊了、手動加人，或替某位訂閱者留下一則 **備註**（`internalNote`）。 某個管道關閉期間，它的清單頂端會說明這一點，管道的開關就在旁邊，不必離開清單就能打開。
+
+**只開一個開關還不夠。** 狀態頁面導覽列上的 **訂閱** 項目，只有在 **顯示訂閱者頁面** 開啟*而且*至少開啟一種管道時才會出現。如果你打開了 **電子郵件** 卻沒開 **顯示訂閱者頁面**，訪客根本走不到那張表單。
 
 ## 訪客在訂閱頁面上看到什麼
 
@@ -127,14 +130,14 @@ SMS、Slack、Microsoft Teams 與 Webhook 訂閱者跳過這一關——它們�
 **Show At**（`showAnnouncementAt`）與 **End At**（`endAnnouncementAt`）主導一切，但總覽頁面和公告清單問的問題不一樣，這個差別常讓人踩坑。
 
 - **總覽頁面** 在 `showAnnouncementAt` 已經過去、而 `endAnnouncementAt` 還在未來或根本沒填時顯示公告。
-- **`/announcements` 清單** 顯示 `showAnnouncementAt` 落在 **顯示公告歷史記錄（天數）**（`showAnnouncementHistoryInDays`，預設 14）範圍內的公告，然後在前端把它們分成進行中與過往。
+- **`/announcements` 清單** 顯示 `showAnnouncementAt` 落在公告歷史記錄天數（`showAnnouncementHistoryInDays`，預設 14）範圍內的公告，然後在前端把它們分成進行中與過往。
 
 有兩個後果值得先想好：
 
 - **沒有結束日期的公告永遠不會過期。** 把 **公告顯示結束於** 留空，它就會無限期釘在總覽頁面上。凡是有時效的內容都設個結束時間。
 - **舊但仍生效的公告可能從清單中消失。** 如果它的開始時間早於 `showAnnouncementHistoryInDays`，它會從 `/announcements` 掉出去，但仍留在總覽頁面上。如果你會掛長期公告，就把歷史區間調大。
 
-公告到底要不要顯示，由 **進階設定** 上的 **公告設定** 卡片控制：**顯示公告**（`showAnnouncementsOnStatusPage`，預設 true）與 **顯示公告歷史記錄（天數）**（預設 14）。**顯示公告** 關閉時，公告端點會直接拒絕請求。
+公告到底要不要顯示，在 **進階設定** 上的 **狀態頁面顯示的內容** 卡片裡設定：**顯示公告**（`showAnnouncementsOnStatusPage`，預設 true）以及它底下的 **顯示最近 … 天**（`showAnnouncementHistoryInDays`，預設 14）。**顯示公告** 關閉時，公告端點會直接拒絕請求。
 
 ## 公告範本
 

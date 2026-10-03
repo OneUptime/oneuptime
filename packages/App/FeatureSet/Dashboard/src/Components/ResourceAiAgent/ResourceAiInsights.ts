@@ -6,6 +6,11 @@ import { Gray500, Green500, Red500, Yellow500 } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure half of a resource's AI Insights page (ResourceAiInsightsPage):
@@ -19,32 +24,49 @@ import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
  * suites read it without a browser.
  */
 
-export const RESOURCE_AI_INSIGHTS_PAGE_TITLE: string = "AI Insights";
+export const RESOURCE_AI_INSIGHTS_PAGE_TITLE: string =
+  translationKey("AI Insights");
 
-export const RESOURCE_AI_INSIGHTS_EMPTY_TITLE: string = "Nothing yet";
+export const RESOURCE_AI_INSIGHTS_EMPTY_TITLE: string =
+  translationKey("Nothing yet");
 
 export function getResourceAiInsightsPageSubtitle(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `What OneUptime AI investigated and changed on this ${descriptor.noun}.`;
+  return translateTemplate(
+    "What OneUptime AI investigated and changed on this {{noun}}.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 export function getResourceAiInsightsEmptyDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `When an incident or alert on this ${descriptor.noun} is investigated, the findings, proposed fixes and every command AI ran appear here.`;
+  return translateTemplate(
+    "When an incident or alert on this {{noun}} is investigated, the findings, proposed fixes and every command AI ran appear here.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 export function getResourceCommandsCardDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Every command OneUptime AI ran on this ${descriptor.noun} through the ${descriptor.agentName} — while investigating (read-only), for fixes, and for connection tests — with its result.`;
+  return translateTemplate(
+    "Every command OneUptime AI ran on this {{noun}} through the {{agent}} — while investigating (read-only), for fixes, and for connection tests — with its result.",
+    {
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+      agent: translatableTerm(descriptor.agentName),
+    },
+  );
 }
 
 export function getResourceCommandsEmptyMessage(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `OneUptime AI has not run any commands on this ${descriptor.noun} yet.`;
+  return translateTemplate(
+    "OneUptime AI has not run any commands on this {{noun}} yet.",
+    { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+  );
 }
 
 /*
@@ -58,8 +80,10 @@ export const RESOURCE_COMMAND_JOB_ORIGIN_LABELS: Record<
   >,
   string
 > = {
-  [RunnerJobOrigin.AiInvestigation]: "Investigation or connection test",
-  [RunnerJobOrigin.AiRemediation]: "Fix",
+  [RunnerJobOrigin.AiInvestigation]: translationKey(
+    "Investigation or connection test",
+  ),
+  [RunnerJobOrigin.AiRemediation]: translationKey("Fix"),
 };
 
 /*
@@ -74,12 +98,12 @@ export function describeResourceCommandJobOrigin(job: {
 
   if (origin === RunnerJobOrigin.AiInvestigation) {
     return job.aiRunId
-      ? "Investigation (read-only)"
-      : "Connection test (read-only)";
+      ? translateTemplate("Investigation (read-only)")
+      : translateTemplate("Connection test (read-only)");
   }
 
   if (origin === RunnerJobOrigin.AiRemediation) {
-    return "Fix";
+    return translateTemplate("Fix");
   }
 
   return origin;
@@ -334,11 +358,11 @@ export function describeResourceFixType(
   suggestionType: string | null,
 ): string | null {
   if (suggestionType === AutoRemediationSuggestionType.CommandPlan) {
-    return "Command plan";
+    return translateTemplate("Command plan");
   }
 
   if (suggestionType === AutoRemediationSuggestionType.Runbook) {
-    return "Runbook";
+    return translateTemplate("Runbook");
   }
 
   return null;
@@ -349,15 +373,25 @@ export function describeResourceInvestigationSubject(
   investigation: ResourceAiInsightsInvestigation,
 ): { text: string; incidentId: string | null; alertId: string | null } {
   if (investigation.incident) {
-    const number: string =
-      investigation.incident.number !== null
-        ? ` #${investigation.incident.number}`
-        : "";
-    const title: string = investigation.incident.title
-      ? `: ${investigation.incident.title}`
-      : "";
+    const number: number | null = investigation.incident.number;
+    const title: string | null = investigation.incident.title || null;
+    let text: string;
+
+    if (number !== null && title) {
+      text = translateTemplate("Incident #{{number}}: {{title}}", {
+        number: number,
+        title: title,
+      });
+    } else if (number !== null) {
+      text = translateTemplate("Incident #{{number}}", { number: number });
+    } else if (title) {
+      text = translateTemplate("Incident: {{title}}", { title: title });
+    } else {
+      text = translateTemplate("Incident");
+    }
+
     return {
-      text: `Incident${number}${title}`,
+      text: text,
       incidentId: investigation.incident.id,
       alertId: null,
     };
@@ -365,13 +399,21 @@ export function describeResourceInvestigationSubject(
 
   if (investigation.alert) {
     return {
-      text: `Alert${investigation.alert.title ? `: ${investigation.alert.title}` : ""}`,
+      text: investigation.alert.title
+        ? translateTemplate("Alert: {{title}}", {
+            title: investigation.alert.title,
+          })
+        : translateTemplate("Alert"),
       incidentId: null,
       alertId: investigation.alert.id,
     };
   }
 
-  return { text: "Investigation", incidentId: null, alertId: null };
+  return {
+    text: translateTemplate("Investigation"),
+    incidentId: null,
+    alertId: null,
+  };
 }
 
 // What an investigation found, or why there is nothing to show yet.
@@ -386,8 +428,8 @@ export function getResourceInvestigationSummary(
     investigation.status === AIRunStatus.Queued ||
     investigation.status === AIRunStatus.Running
   ) {
-    return "Still investigating.";
+    return translateTemplate("Still investigating.");
   }
 
-  return "No summary was recorded.";
+  return translateTemplate("No summary was recorded.");
 }

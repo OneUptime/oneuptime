@@ -14,6 +14,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -49,9 +50,11 @@ RunCron(
         } as Select<Project>,
         currentAlertState: {
           name: true,
+          color: true,
         } as Select<AlertState>,
         alertSeverity: {
           name: true,
+          color: true,
         },
         createdByUser: {
           name: true,
@@ -127,11 +130,19 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState!.name!,
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentAlertState?.color,
+            ),
             episodeDescription: await Markdown.convertToHTML(
               episode.description! || "",
               MarkdownContentType.Email,
             ),
             episodeSeverity: episode.alertSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.alertSeverity?.color,
+            ),
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {
                 date: episodeCreatedDate,

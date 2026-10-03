@@ -1,18 +1,26 @@
 import { describe, expect, test } from "@jest/globals";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import {
+  canLookUpByName,
   getNameColumn,
+  getTerraformAttribute,
   getTerraformAttributes,
   getTerraformModelOperations,
   getTerraformTypeName,
@@ -20,6 +28,7 @@ import {
   TerraformAttributeDescriptor,
   TerraformSecretKind,
   TerraformValueKind,
+  TERRAFORM_RESOURCE_META_ARGUMENTS,
   toTerraformSnakeCase,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
 
@@ -280,5 +289,90 @@ describe("getNameColumn", () => {
     expect(getNameColumn(Workflow)).toBe("name");
     expect(getNameColumn(Incident)).toBe("title");
     expect(getNameColumn(ScheduledMaintenance)).toBe("title");
+  });
+});
+
+describe("what an attribute points at", () => {
+  test("an id points at the model of the relation it is the key of", () => {
+    expect(attribute(Incident, "incident_severity_id").relatedModelType).toBe(
+      IncidentSeverity,
+    );
+    expect(attribute(Alert, "monitor_id").relatedModelType).toBe(Monitor);
+    expect(
+      attribute(OnCallDutyPolicyEscalationRule, "on_call_duty_policy_id")
+        .relatedModelType,
+    ).toBe(OnCallDutyPolicy);
+  });
+
+  test("an incident's change_monitor_status_to_id is a monitor status, not an incident state", () => {
+    expect(
+      attribute(Incident, "change_monitor_status_to_id").relatedModelType,
+    ).toBe(MonitorStatus);
+    expect(
+      attribute(ScheduledMaintenance, "change_monitor_status_to_id")
+        .relatedModelType,
+    ).toBe(MonitorStatus);
+  });
+
+  test("a set of ids points at the model of its records", () => {
+    expect(attribute(Incident, "monitors").relatedModelType).toBe(Monitor);
+    expect(attribute(Workflow, "labels").relatedModelType).toBe(Label);
+  });
+
+  test("plain values point at nothing", () => {
+    expect(attribute(Incident, "title").relatedModelType).toBeUndefined();
+    expect(attribute(Monitor, "monitor_type").relatedModelType).toBeUndefined();
+  });
+
+  test("an attribute carries its column's description, for the pages to explain it", () => {
+    expect(attribute(Incident, "title").description).toBe(
+      "Title of this incident",
+    );
+  });
+
+  test("getTerraformAttribute finds one by column", () => {
+    expect(
+      getTerraformAttribute(Incident, "incidentSeverityId")?.attributeName,
+    ).toBe("incident_severity_id");
+    expect(getTerraformAttribute(Incident, "createdAt")).toBeUndefined();
+  });
+});
+
+describe("names Terraform reserves", () => {
+  test("lists Terraform's resource meta-arguments", () => {
+    expect([...TERRAFORM_RESOURCE_META_ARGUMENTS].sort()).toEqual([
+      "connection",
+      "count",
+      "depends_on",
+      "for_each",
+      "lifecycle",
+      "provider",
+      "provisioner",
+    ]);
+  });
+
+  test("a Kubernetes cluster's provider attribute is named like the provider meta-argument", () => {
+    expect(attribute(KubernetesCluster, "provider").isReservedName).toBe(true);
+    expect(attribute(KubernetesCluster, "name").isReservedName).toBe(false);
+  });
+
+  test("source and version are only reserved in module blocks", () => {
+    expect(attribute(InventoryItem, "source").isReservedName).toBe(false);
+  });
+});
+
+describe("looking a record up by name", () => {
+  test("works for a model with a name column", () => {
+    expect(canLookUpByName(Monitor)).toBe(true);
+    expect(canLookUpByName(IncidentSeverity)).toBe(true);
+  });
+
+  test("does not for one named by its title: the provider's lookup filters on name", () => {
+    expect(canLookUpByName(Incident)).toBe(false);
+    expect(canLookUpByName(ScheduledMaintenance)).toBe(false);
+  });
+
+  test("does not for a model outside the public API", () => {
+    expect(canLookUpByName(EmailVerificationToken)).toBe(false);
   });
 });

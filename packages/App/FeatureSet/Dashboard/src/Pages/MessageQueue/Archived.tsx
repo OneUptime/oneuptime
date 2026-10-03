@@ -17,6 +17,8 @@ import {
   getMessageQueueBrokerLabel,
   getMessageQueueSystemLabel,
 } from "./Utils/MessageQueuePresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Archived queues. A discovered queue that is not seen for a while is
@@ -29,6 +31,7 @@ import {
 const MessageQueueArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { unarchiveBulkActions } = useBulkArchiveActions<MessageQueue>({
     modelType: MessageQueue,
   });
@@ -199,7 +202,7 @@ const MessageQueueArchivedPage: FunctionComponent<
               if (item.autoArchivedAt) {
                 return (
                   <span className="text-sm text-gray-500">
-                    Automatically (not seen)
+                    {translator.translateText("Automatically (not seen)")}
                   </span>
                 );
               }

@@ -13,7 +13,22 @@ import IncidentStatusPageScopeCopy, {
 /*
  * What the "Will notify" summary says for an audience, worked out apart from
  * React so it can be tested on its own: a headline, one line per status page
- * that will be notified, the pages that will not be and why, and notes.
+ * that will be notified, the pages that will not be and why, and notes - or
+ * nothing at all.
+ *
+ * Under a "notify subscribers" checkbox (declaring an incident, writing a
+ * public note) it speaks when someone will be notified, and when the
+ * incident's status page scope is why the pages that list its monitors will
+ * not be: those are the mistakes worth catching before anything is sent.
+ * When no status page subscriber was ever going to hear about the incident -
+ * it is on no monitor, no status page lists its monitors, the pages that
+ * show it have no subscribers yet - it says nothing. Most incidents are like
+ * that, and a project that does not use status pages would otherwise see a
+ * warning on every one.
+ *
+ * The confirmation before sending a notification again always answers
+ * (`saysWhenNobodyIsNotified`): who it reaches, no one included, is what is
+ * being confirmed.
  *
  * `translate` looks a string up in the active locale by its English text
  * (useTranslateValue's translateString); placeholders are filled in after the
@@ -52,6 +67,34 @@ const EXCLUSION_TEXT: Record<
     IncidentStatusPageScopeCopy.audienceHidesIncidents,
   [IncidentSubscriberAudienceExclusionReason.AlreadyNotified]:
     IncidentStatusPageScopeCopy.audienceAlreadyNotified,
+};
+
+/*
+ * Whether the incident's status page scope keeps a status page from hearing
+ * about it: the incident is limited to other pages, it is not limited and a
+ * page that lists its monitors only shows incidents limited to it, or a page
+ * it is limited to lists none of its monitors (or it is on no monitor at
+ * all). Each is something the person can fix in the scope. A page that does
+ * not show incidents at all, or that a Retry skips because it was sent the
+ * notification already, is not: nothing about this incident would change it.
+ */
+export const isHeldBackByStatusPageScope: (
+  audience: IncidentSubscriberAudienceResult,
+) => boolean = (audience: IncidentSubscriberAudienceResult): boolean => {
+  if (audience.selectedStatusPagesNotListingMonitors.length > 0) {
+    return true;
+  }
+
+  return audience.excludedStatusPages.some(
+    (statusPage: IncidentSubscriberAudienceExcludedStatusPage): boolean => {
+      return (
+        statusPage.reason ===
+          IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope ||
+        statusPage.reason ===
+          IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents
+      );
+    },
+  );
 };
 
 // "Site 03 (up to 41 email, 3 SMS)", or "Site 05 (no subscribers yet)".
@@ -94,13 +137,28 @@ export const describeNotifiedStatusPage: (
   );
 };
 
-export const buildSubscriberAudienceView: (data: {
+export interface BuildSubscriberAudienceViewData {
   audience: IncidentSubscriberAudienceResult;
   translate: TranslateFunction;
-}) => SubscriberAudienceView = (data: {
-  audience: IncidentSubscriberAudienceResult;
-  translate: TranslateFunction;
-}): SubscriberAudienceView => {
+  /*
+   * Say so when no one will be notified, whatever the reason. Off, the view
+   * is null then, unless the incident's status page scope is the reason
+   * (isHeldBackByStatusPageScope).
+   */
+  saysWhenNobodyIsNotified?: boolean | undefined;
+}
+
+/*
+ * What the summary says, or null when it has nothing to say: no one will be
+ * notified, and nothing about the incident's status page scope is why (see
+ * the header). A hidden incident is always said: whoever ticks "notify" on a
+ * note cannot see from there that the incident is hidden.
+ */
+export const buildSubscriberAudienceView: (
+  data: BuildSubscriberAudienceViewData,
+) => SubscriberAudienceView | null = (
+  data: BuildSubscriberAudienceViewData,
+): SubscriberAudienceView | null => {
   const audience: IncidentSubscriberAudienceResult = data.audience;
   const translate: TranslateFunction = data.translate;
 
@@ -108,16 +166,6 @@ export const buildSubscriberAudienceView: (data: {
     return {
       tone: "warning",
       headline: translate(IncidentStatusPageScopeCopy.audienceHiddenIncident),
-      pages: [],
-      notNotified: [],
-      notes: [],
-    };
-  }
-
-  if (!audience.hasMonitors) {
-    return {
-      tone: "warning",
-      headline: translate(IncidentStatusPageScopeCopy.audienceNoMonitors),
       pages: [],
       notNotified: [],
       notes: [],
@@ -166,17 +214,25 @@ export const buildSubscriberAudienceView: (data: {
   const pageCount: number =
     audience.statusPages.length + audience.hiddenStatusPageCount;
 
-  if (pageCount === 0) {
-    return {
-      tone: "warning",
-      headline: translate(IncidentStatusPageScopeCopy.audienceNoStatusPages),
-      pages: [],
-      notNotified: notNotified,
-      notes: [],
-    };
-  }
-
   if (!IncidentSubscriberAudience.reachesAnyone(audience)) {
+    if (
+      !data.saysWhenNobodyIsNotified &&
+      !isHeldBackByStatusPageScope(audience)
+    ) {
+      return null;
+    }
+
+    // No page will show it - with no monitor, no page can.
+    if (pageCount === 0) {
+      return {
+        tone: "warning",
+        headline: translate(IncidentStatusPageScopeCopy.audienceNoStatusPages),
+        pages: [],
+        notNotified: notNotified,
+        notes: [],
+      };
+    }
+
     return {
       tone: "warning",
       headline: translate(IncidentStatusPageScopeCopy.audienceNoSubscribers),

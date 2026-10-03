@@ -29,6 +29,8 @@ import {
 } from "./SiteContainerLayout";
 import { SiteChildView, SiteLinkView } from "./SiteHierarchyTypes";
 import { SiteCardBody } from "./SiteCard";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * One drill-down level of the site hierarchy as a React Flow graph: the
@@ -110,13 +112,17 @@ const HIDDEN_HANDLE_STYLE: React.CSSProperties = {
 const SiteNodeCard: FunctionComponent<NodeProps<SiteNodeData>> = (
   props: NodeProps<SiteNodeData>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const site: SiteChildView = props.data.site;
 
   return (
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${site.name} — ${site.siteType}, open this site`}
+      aria-label={translator.translateTemplate(
+        "{{name}} — {{siteType}}, open this site",
+        { name: site.name, siteType: site.siteType },
+      )}
       /*
        * transition-colors, not transition: the all-properties transition
        * includes box-shadow, which would fade the keyboard focus ring in
@@ -241,6 +247,7 @@ export interface ComponentProps {
 const SiteContainerGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
   const canvasElement: React.MutableRefObject<HTMLDivElement | null> =
@@ -314,9 +321,14 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
           to.x - from.x,
           to.y - from.y,
         );
-        const statusName: string = link.monitorStatus
-          ? link.monitorStatus.name
-          : "No status";
+        const ariaLabel: string = link.monitorStatus
+          ? translator.translateTemplate("{{name}} — {{status}} link", {
+              name: link.name,
+              status: link.monitorStatus.name,
+            })
+          : translator.translateTemplate("{{name}} — No status link", {
+              name: link.name,
+            });
 
         return {
           id: link.id,
@@ -327,7 +339,7 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
           type: "smoothstep",
           pathOptions: { borderRadius: 14 },
           label: truncateEdgeLabel(link.name),
-          ariaLabel: `${link.name} — ${statusName} link`,
+          ariaLabel: ariaLabel,
           /*
            * An opaque, bordered chip: the label sits in the gap between
            * two cards, and a bare label there was unreadable against the
@@ -351,7 +363,7 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
           style: { stroke: color, strokeWidth: 2 },
         };
       });
-  }, [props.links, layout]);
+  }, [props.links, layout, translator.language]);
 
   const rows: number = gridRowCount(nodes.length);
   const columns: number = gridColumnCount(nodes.length);
@@ -462,8 +474,13 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
             description={
               <span className="mx-auto block max-w-md">
                 {searchText
-                  ? `Nothing matching “${searchText}” at this level is down, and no unit beneath it is either. Switch back to All to see everything here.`
-                  : "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see them."}
+                  ? translator.translateTemplate(
+                      "Nothing matching “{{searchText}}” at this level is down, and no unit beneath it is either. Switch back to All to see everything here.",
+                      { searchText: searchText },
+                    )
+                  : translator.translateText(
+                      "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see them.",
+                    )}
               </span>
             }
           />
@@ -474,7 +491,10 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
             title="No child sites match your search"
             description={
               <span className="mx-auto block max-w-md">
-                {`Nothing under this site matches “${searchText}”. Clear the search to see all of its children again.`}
+                {translator.translateTemplate(
+                  "Nothing under this site matches “{{searchText}}”. Clear the search to see all of its children again.",
+                  { searchText: searchText },
+                )}
               </span>
             }
           />
@@ -485,8 +505,9 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
             title="No child sites here yet"
             description={
               <span className="mx-auto block max-w-md">
-                Sites added under this one (and network devices assigned to
-                them) will appear here as a map.
+                {translator.translateText(
+                  "Sites added under this one (and network devices assigned to them) will appear here as a map.",
+                )}
               </span>
             }
           />
@@ -501,9 +522,11 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <Icon className="mt-px h-4 w-4 flex-shrink-0" icon={IconProp.Alert} />
           <span>
-            {props.childrenTruncated
-              ? "This level is very large, so only part of it is shown. Drill into a site to see the rest."
-              : "This subtree is very large, so the rollup counts on these cards may be partial."}
+            {translator.translateText(
+              props.childrenTruncated
+                ? "This level is very large, so only part of it is shown. Drill into a site to see the rest."
+                : "This subtree is very large, so the rollup counts on these cards may be partial.",
+            )}
           </span>
         </div>
       ) : (
@@ -540,8 +563,8 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
                 <button
                   key={button.title}
                   type="button"
-                  title={button.title}
-                  aria-label={button.title}
+                  title={translator.translateText(button.title)}
+                  aria-label={translator.translateText(button.title)}
                   className="h-7 w-7 rounded border border-gray-300 bg-white text-sm text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   onClick={() => {
                     if (flowInstance.current) {

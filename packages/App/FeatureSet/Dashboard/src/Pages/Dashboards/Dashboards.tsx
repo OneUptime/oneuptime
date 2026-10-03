@@ -62,6 +62,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -139,6 +140,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="dashboard-table"
         userPreferencesKey="dashboards-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

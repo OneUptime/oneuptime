@@ -90,6 +90,7 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import Permission from "../../../../Types/Permission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 type Row = {
   _id: string;
@@ -395,6 +396,7 @@ describe("BaseModelTable row actions", () => {
       actionButtons: [
         {
           title: "Send Test",
+          icon: IconProp.Play,
           buttonStyleType: ButtonStyleType.NORMAL,
           onClick: onSendTest,
         },
@@ -423,6 +425,7 @@ describe("BaseModelTable row actions", () => {
       actionButtons: [
         {
           title: "Verify",
+          icon: IconProp.Check,
           buttonStyleType: ButtonStyleType.OUTLINE,
           placement: ActionButtonPlacement.Primary,
           onClick: () => {
@@ -444,6 +447,7 @@ describe("BaseModelTable row actions", () => {
       actionButtons: [
         {
           title: "Retry Checkout",
+          icon: IconProp.Refresh,
           buttonStyleType: ButtonStyleType.OUTLINE,
           isVisible: (item: Monitor) => {
             return (item as unknown as Row)._id === "monitor-1";

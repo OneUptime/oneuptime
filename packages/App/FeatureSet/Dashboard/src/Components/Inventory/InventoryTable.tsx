@@ -4,8 +4,7 @@ import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItem
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { TableEmptyStateActionStyle } from "Common/UI/Components/Table/TableEmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import { MANUAL_ENTITY_TYPES } from "Common/Types/Telemetry/EntityTypeGroups";
@@ -46,13 +45,14 @@ import useResourceOwners, {
 } from "../ResourceOwners/useResourceOwners";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useMemo,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -121,8 +121,7 @@ export interface ComponentProps {
 const InventoryTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-
+  const translator: Translator = useTranslator();
   const isArchivedView: boolean = Boolean(props.archivedOnly);
 
   const tableKey: string =
@@ -154,8 +153,8 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
-    hasActiveFilters,
     facetSaveState,
     restoreFacetState,
   }: UseResourceOwnersResult<InventoryItem> = useResourceOwners<InventoryItem>({
@@ -229,36 +228,34 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           ...(props.query || {}),
         })}
         showRefreshButton={true}
-        noItemsMessage={
-          hasActiveFilters ? (
-            "No inventory item matches the facets above."
-          ) : (
-            <EmptyState
-              id="inventory-empty-state"
-              icon={IconProp.Cube}
-              title="Nothing here yet"
-              description={
-                translateString(
-                  "Items appear here on their own as you send OpenTelemetry data and register infrastructure in OneUptime. You can also add something by hand — a vendor API or an appliance that will never report telemetry on its own.",
-                ) || ""
-              }
-              footer={
-                <Button
-                  title="Read the setup guide"
-                  icon={IconProp.Book}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
-                      ),
-                    );
-                  }}
-                />
-              }
-            />
-          )
-        }
+        /*
+         * An empty inventory fills itself: items arrive with telemetry, so the
+         * way forward is the setup guide as much as the Create button. Under
+         * a facet that matched nothing the table says nothing matches instead
+         * (the chips reach it through facetEmptyState) - not "nothing here".
+         */
+        emptyState={{
+          ...facetEmptyState,
+          title: "Nothing here yet.",
+          icon: IconProp.Cube,
+          description:
+            "Items appear here on their own as you send OpenTelemetry data and register infrastructure in OneUptime. You can also add something by hand — a vendor API or an appliance that will never report telemetry on its own.",
+          actions: [
+            {
+              title: "Read the setup guide",
+              icon: IconProp.Book,
+              style: TableEmptyStateActionStyle.Link,
+              dataTestId: "inventory-setup-guide",
+              onClick: () => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
+                  ),
+                );
+              },
+            },
+          ],
+        }}
         /*
          * Only the fields a human owns. Type and key are absent on purpose:
          * the key is derived from (project, type, name) server-side, and
@@ -332,7 +329,9 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
               return (
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900">
-                    {item.displayName || item.entityKey || "Unnamed"}
+                    {item.displayName ||
+                      item.entityKey ||
+                      translator.translateText("Unnamed")}
                   </span>
                   {item.description ? (
                     <span className="text-xs text-gray-500 line-clamp-1">

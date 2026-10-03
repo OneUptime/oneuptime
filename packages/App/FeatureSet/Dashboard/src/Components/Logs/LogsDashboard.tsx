@@ -73,7 +73,6 @@ import {
   SeverityShare,
   TopErrorPatternRow,
   buildLogsInsightsUrlParams,
-  describeTimeRange,
   encodeScopeSelection,
   parseScopeSelections,
   readLogsInsightsUrlScope,
@@ -91,6 +90,10 @@ import {
   computeScopedServiceCoverage,
 } from "../../Utils/ServiceCoverage";
 import { hasResourceEntityFacetSelections } from "Common/Types/Telemetry/ResourceEntityFacet";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { describeLogsTimeRange } from "./LogsInsightsCopy";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The Logs Insights page.
@@ -110,6 +113,7 @@ const TOP_ERROR_LIMIT: number = 12;
 const RESOURCE_CARD_LIMIT: number = 12;
 
 const LogsDashboard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The slice the Viewer tab handed over, read once on mount.
    *
@@ -574,7 +578,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       );
   }, [selectedScopeValues, scopeOptionByValue, resourceNames, serviceById]);
 
-  const rangeLabel: string = describeTimeRange(timeRange);
+  const rangeLabel: string = describeLogsTimeRange(timeRange, translator);
 
   /*
    * The user editing the scope by hand means it is no longer the saved
@@ -592,10 +596,14 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   const headerBar: ReactElement = (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Insights</h2>
+        <h2 className="text-base font-semibold text-gray-900">
+          {translator.translateText("Insights")}
+        </h2>
         <p className="text-xs text-gray-500">
-          What your services are logging in {rangeLabel} — and what is going
-          wrong.
+          {translator.translateTemplate(
+            "What your services are logging in {{range}} — and what is going wrong.",
+            { range: rangeLabel },
+          )}
         </p>
         {(savedViewName || unappliedFiltersHint) && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -603,14 +611,24 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
               <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
                 <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
                 <span>
-                  Scoped by saved view{" "}
-                  <span className="font-medium">{savedViewName}</span>
+                  <TranslatedSentence
+                    template="Scoped by saved view {{view}}"
+                    slots={{
+                      view: (
+                        <span className="font-medium">{savedViewName}</span>
+                      ),
+                    }}
+                  />
                 </span>
                 <button
                   type="button"
                   className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
-                  title="Stop scoping by this saved view"
-                  aria-label="Stop scoping by this saved view"
+                  title={translator.translateText(
+                    "Stop scoping by this saved view",
+                  )}
+                  aria-label={translator.translateText(
+                    "Stop scoping by this saved view",
+                  )}
                   onClick={() => {
                     applyScopeSelection([]);
                   }}
@@ -669,10 +687,10 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             void loadInsights();
           }}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
-          title="Refresh"
+          title={translator.translateText("Refresh")}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-          <span>Refresh</span>
+          <span>{translator.translateText("Refresh")}</span>
         </button>
       </div>
     </div>
@@ -749,12 +767,14 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             <Icon icon={IconProp.List} className="h-7 w-7 text-indigo-500" />
           </div>
           <h3 className="mt-5 text-lg font-semibold text-gray-900">
-            No logs in {rangeLabel}
+            {translator.translateTemplate("No logs in {{range}}", {
+              range: rangeLabel,
+            })}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
-            Once your services start shipping logs via OpenTelemetry,
-            you&apos;ll see your top errors, severity distribution and
-            per-service volume here.
+            {translator.translateText(
+              "Once your services start shipping logs via OpenTelemetry, you'll see your top errors, severity distribution and per-service volume here.",
+            )}
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
@@ -762,7 +782,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-              <span>Open Viewer</span>
+              <span>{translator.translateText("Open Viewer")}</span>
             </AppLink>
             <AppLink
               to={RouteUtil.populateRouteParams(
@@ -771,7 +791,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500"
             >
               <Icon icon={IconProp.Book} className="h-3.5 w-3.5" />
-              <span>Setup Guide</span>
+              <span>{translator.translateText("Setup Guide")}</span>
             </AppLink>
           </div>
         </div>
@@ -822,14 +842,19 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         <StatCard
           label="Total logs"
           value={total}
-          subtext={`ingested in ${rangeLabel}`}
+          subtext={translator.translateTemplate("ingested in {{range}}", {
+            range: rangeLabel,
+          })}
           icon={IconProp.List}
           tone="indigo"
         />
         <StatCard
           label="Errors"
           value={volume?.errorCount || 0}
-          subtext={`${volume?.errorRatePercent || 0}% of total volume`}
+          subtext={translator.translateTemplate(
+            "{{percent}}% of total volume",
+            { percent: volume?.errorRatePercent || 0 },
+          )}
           icon={IconProp.Alert}
           tone={(volume?.errorCount || 0) > 0 ? "amber" : "emerald"}
         />
@@ -837,9 +862,11 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           label="Distinct errors"
           value={errorPatterns.length}
           subtext={
-            errorPatterns.length > 0
-              ? "unique messages, listed below"
-              : "nothing failing"
+            translator.translateText(
+              errorPatterns.length > 0
+                ? "unique messages, listed below"
+                : "nothing failing",
+            ) as string
           }
           icon={IconProp.Search}
           tone={errorPatterns.length > 0 ? "amber" : "emerald"}
@@ -851,10 +878,17 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           }
           subtext={
             showQuietServices
-              ? "no logs in range"
+              ? (translator.translateText("no logs in range") as string)
               : coverage.isCoverageMeaningful && coverage.scopedServiceCount > 0
-                ? `${reportingServices} of ${coverage.scopedServiceCount} services`
-                : "sending logs"
+                ? translator.translatePlural(
+                    {
+                      one: "{{reporting}} of {{count}} service",
+                      other: "{{reporting}} of {{count}} services",
+                    },
+                    coverage.scopedServiceCount,
+                    { reporting: reportingServices },
+                  )
+                : (translator.translateText("sending logs") as string)
           }
           icon={showQuietServices ? IconProp.Alert : IconProp.CheckCircle}
           tone={showQuietServices ? "amber" : "emerald"}
@@ -866,11 +900,16 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         <div className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              Severity distribution
+              {translator.translateText("Severity distribution")}
             </h3>
             <p className="text-xs text-gray-500">
-              How {total.toLocaleString()} log{total === 1 ? "" : "s"} break
-              down by severity
+              {translator.translatePlural(
+                {
+                  one: "How {{count}} log breaks down by severity",
+                  other: "How {{count}} logs break down by severity",
+                },
+                total,
+              )}
             </p>
           </div>
           <div className="flex h-2 overflow-hidden rounded-full bg-gray-100">
@@ -929,17 +968,20 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
-            Sources reporting logs
+            {translator.translateText("Sources reporting logs")}
           </h3>
           <p className="text-xs text-gray-500">
-            Volume and error signal per service in {rangeLabel}
+            {translator.translateTemplate(
+              "Volume and error signal per service in {{range}}",
+              { range: rangeLabel },
+            )}
           </p>
         </div>
         <AppLink
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
           to={viewerRoute}
         >
-          <span>Open Viewer</span>
+          <span>{translator.translateText("Open Viewer")}</span>
           <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
         </AppLink>
       </div>
@@ -976,7 +1018,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                       {resourceDisplay.name}
                       {resourceDisplay.typeLabel && (
                         <span className="ml-2 text-xs font-normal text-gray-400">
-                          {resourceDisplay.typeLabel}
+                          {translator.translateText(resourceDisplay.typeLabel)}
                         </span>
                       )}
                     </span>
@@ -994,13 +1036,18 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                   <div className="flex flex-wrap items-center justify-end gap-1.5">
                     {row.errorCount > 0 && (
                       <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                        {row.errorCount.toLocaleString()} error
-                        {row.errorCount === 1 ? "" : "s"}
+                        {translator.translatePlural(
+                          { one: "{{count}} error", other: "{{count}} errors" },
+                          row.errorCount,
+                        )}
                       </span>
                     )}
                     {row.warnCount > 0 && (
                       <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        {row.warnCount.toLocaleString()} warn
+                        {translator.translatePlural(
+                          { one: "{{count}} warn", other: "{{count}} warn" },
+                          row.warnCount,
+                        )}
                       </span>
                     )}
                   </div>
@@ -1012,7 +1059,10 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                       {row.total.toLocaleString()}
                     </span>
                     <span className="mb-1 text-xs text-gray-400">
-                      log{row.total === 1 ? "" : "s"}
+                      {translator.translatePlural(
+                        { one: "log", other: "logs" },
+                        row.total,
+                      )}
                     </span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -1084,13 +1134,16 @@ const TONE_STYLES: Record<
 const StatCard: FunctionComponent<StatCardProps> = (
   props: StatCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const tone: { bg: string; text: string; valueText: string } =
     TONE_STYLES[props.tone];
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500">{props.label}</p>
+        <p className="text-sm font-medium text-gray-500">
+          {translator.translateText(props.label)}
+        </p>
         <div
           className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone.bg}`}
         >

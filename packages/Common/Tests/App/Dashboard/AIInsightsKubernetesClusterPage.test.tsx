@@ -75,6 +75,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { toHeadline } from "../../../UI/Components/Table/EmptyTableMessage";
 
 jest.mock("react-i18next", () => {
   return {
@@ -1137,7 +1138,7 @@ describe("AI Insights page", () => {
       expect(screen.queryByText("Fixes")).not.toBeInTheDocument();
       // The command history stays: connection tests land there too.
       expect(
-        await findText(KUBECTL_COMMANDS_EMPTY_MESSAGE),
+        await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE)),
       ).toBeInTheDocument();
     });
 
@@ -1378,7 +1379,7 @@ describe("AI Insights page", () => {
       expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
       // The command history does not depend on the insights route.
       expect(
-        await findText(KUBECTL_COMMANDS_EMPTY_MESSAGE),
+        await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE)),
       ).toBeInTheDocument();
     });
   });
@@ -1465,7 +1466,7 @@ describe("AI Insights page", () => {
       openInsightsPage();
 
       expect(
-        await findText(KUBECTL_COMMANDS_EMPTY_MESSAGE),
+        await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE)),
       ).toBeInTheDocument();
       expect(
         screen.getAllByText(KUBECTL_COMMANDS_CARD_TITLE).length,
@@ -1510,7 +1511,7 @@ describe("AI Insights page", () => {
         grant([...BASE_PERMISSIONS, permission]);
         openInsightsPage();
 
-        await findText(KUBECTL_COMMANDS_EMPTY_MESSAGE);
+        await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE));
         expect(
           screen.queryByTestId("kubectl-jobs-permission-note"),
         ).not.toBeInTheDocument();

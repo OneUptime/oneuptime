@@ -45,6 +45,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   summary: OverviewSection<MonitorUptimeSummary>;
@@ -53,9 +56,10 @@ export interface ComponentProps {
   onRetry: () => void;
 }
 
-const CARD_TITLE: string = "Uptime history";
-const CARD_DESCRIPTION: string =
-  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.";
+const CARD_TITLE: string = translationKey("Uptime history");
+const CARD_DESCRIPTION: string = translationKey(
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.",
+);
 
 interface StatusModels {
   all: Array<MonitorStatus>;
@@ -123,6 +127,7 @@ export const toStatusModels: (
 const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const summary: MonitorUptimeSummary | null = props.summary.value;
   const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null);
   const stripRef: MutableRefObject<HTMLDivElement | null> =
@@ -307,7 +312,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
         data-testid="monitor-uptime-90d"
         className="text-sm font-medium text-gray-500"
       >
-        No data yet
+        {translator.translateText("No data yet")}
       </p>
     );
   } else if (presentation90) {
@@ -324,10 +329,10 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
         {presentation90.valueText}{" "}
         <span className="font-normal text-gray-500">
           {presentation90.isPartial
-            ? `measured over ${formatDurationCompact(
-                presentation90.coveredSeconds,
-              )}`
-            : "over 90 days"}
+            ? translator.translateTemplate("measured over {{duration}}", {
+                duration: formatDurationCompact(presentation90.coveredSeconds),
+              })
+            : translator.translateText("over 90 days")}
         </span>
       </p>
     );
@@ -350,7 +355,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
 
     legendItems.push({
       key: statusId,
-      name: status?.name || "Unknown status",
+      name: status?.name || translator.translateTemplate("Unknown status"),
       color: status?.color || Green.toString(),
     });
   }
@@ -410,13 +415,13 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
              */}
             <div className="mt-2 flex justify-between text-xs text-gray-500">
               <span>{Moment(summary.startDate).format("MMM D")}</span>
-              <span>Today</span>
+              <span>{translator.translateText("Today")}</span>
             </div>
           </div>
         </div>
 
         <ul
-          aria-label="Legend"
+          aria-label={translator.translateText("Legend")}
           className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600"
         >
           {legendItems.map((item: LegendItem) => {
@@ -429,7 +434,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           })}
           <li className="inline-flex items-center gap-1.5">
             <MonitorStatusDot color={NO_DATA_BAR_COLOR.toString()} />
-            No data
+            {translator.translateText("No data")}
           </li>
         </ul>
 
@@ -438,39 +443,52 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500"
         >
           <p>
-            {
-              "Downtime counts time in every status that isn't marked operational."
-            }
+            {translator.translateText(
+              "Downtime counts time in every status that isn't marked operational.",
+            )}
           </p>
           {isYoungMonitor && monitorCreatedAt ? (
             <p className="mt-1">
-              {"This monitor was created "}
-              <RelativeTime date={monitorCreatedAt} />
-              {"; earlier days have no data."}
+              <TranslatedSentence
+                template="This monitor was created {{time}}; earlier days have no data."
+                slots={{ time: <RelativeTime date={monitorCreatedAt} /> }}
+              />
             </p>
           ) : (
             <></>
           )}
           {areIncidentMarkersUnavailable ? (
-            <p className="mt-1">Incident markers are unavailable.</p>
+            <p className="mt-1">
+              {translator.translateText("Incident markers are unavailable.")}
+            </p>
           ) : (
             <></>
           )}
           {summary.isComplete === false ? (
             <p className="mt-1">
               {summary.completeFrom
-                ? `History before ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    summary.completeFrom,
-                    true,
-                  )} is incomplete.`
-                : "Part of this history is incomplete."}
+                ? translator.translateTemplate(
+                    "History before {{date}} is incomplete.",
+                    {
+                      date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        summary.completeFrom,
+                        true,
+                      ),
+                    },
+                  )
+                : translator.translateText(
+                    "Part of this history is incomplete.",
+                  )}
             </p>
           ) : (
             <></>
           )}
           {props.summary.refreshError ? (
             <p className="mt-1">
-              {`Couldn't refresh the uptime history. ${props.summary.refreshError}`}
+              {translator.translateTemplate(
+                "Couldn't refresh the uptime history. {{error}}",
+                { error: props.summary.refreshError || "" },
+              )}
             </p>
           ) : (
             <></>

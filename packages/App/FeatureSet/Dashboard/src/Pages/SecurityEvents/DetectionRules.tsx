@@ -253,6 +253,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Default from Sigma level",
@@ -284,6 +287,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Default from Sigma level",

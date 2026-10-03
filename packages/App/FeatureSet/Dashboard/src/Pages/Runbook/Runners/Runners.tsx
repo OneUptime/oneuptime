@@ -11,6 +11,7 @@ import {
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -35,6 +36,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
@@ -48,6 +51,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   return (
     <Fragment>
@@ -101,6 +105,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         actionButtons={[
           {
             title: "Show setup instructions",
+            icon: IconProp.CommandLine,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: Runner,
@@ -200,7 +205,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (!item.lastAlive) {
                 return (
                   <span className="text-gray-500">
-                    {translateString("Never") || "Never"}
+                    {translator.translateText("Never")}
                   </span>
                 );
               }
@@ -229,7 +234,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (capabilities.length === 0) {
                 return (
                   <span className="text-gray-500">
-                    {translateString("None") || "None"}
+                    {translator.translateText("None")}
                   </span>
                 );
               }

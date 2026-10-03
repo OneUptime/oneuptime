@@ -13,6 +13,11 @@ import {
   FilterFieldDefinition,
   FilterFieldValueOption,
 } from "./Types";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const CUSTOM_ATTRIBUTE_VALUE: string = "__custom_attribute__";
 
@@ -37,6 +42,7 @@ const operatorOptions: Array<DropdownOption> = [
 const FilterConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { condition, config } = props;
 
   const isAttributeField: boolean = condition.field.startsWith("attributes.");
@@ -66,7 +72,14 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
       label: config.customAttributeLabel || "Custom Attribute...",
       description:
         config.customAttributeDescription ||
-        `Filter on a custom ${config.entityNameSingular} attribute`,
+        translator.translateTemplate(
+          "Filter on a custom {{entity}} attribute",
+          {
+            entity: translatableTerm(config.entityNameSingular, {
+              inSentence: true,
+            }),
+          },
+        ),
     });
   }
 
@@ -112,7 +125,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
           />
           {operatorHint && (
             <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
-              {operatorHint}
+              {translator.translateText(operatorHint)}
             </p>
           )}
         </div>
@@ -149,7 +162,11 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
           }
           placeholder={
             fieldDefinition.valuePlaceholder ||
-            `Select ${fieldDefinition.label.toLowerCase()}...`
+            translator.translateTemplate("Select {{field}}...", {
+              field: translatableTerm(fieldDefinition.label, {
+                inSentence: true,
+              }),
+            })
           }
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             props.onChange({
@@ -175,9 +192,9 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
               });
             }}
           />
-          <span className="ml-2 text-xs text-gray-500">
+          <code className="ml-2 text-xs text-gray-500">
             {boolChecked ? "true" : "false"}
-          </span>
+          </code>
         </div>
       );
     }
@@ -195,7 +212,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
           />
           {operatorHint && (
             <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
-              {operatorHint}
+              {translator.translateText(operatorHint)}
             </p>
           )}
         </div>
@@ -214,7 +231,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
         />
         {operatorHint && (
           <p className="mt-0.5 text-[10px] text-gray-400 leading-tight">
-            {operatorHint}
+            {translator.translateText(operatorHint)}
           </p>
         )}
       </div>
@@ -270,8 +287,8 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               onClick={props.onDelete}
-              aria-label="Remove condition"
-              title="Remove condition"
+              aria-label={translator.translateText("Remove condition")}
+              title={translator.translateText("Remove condition")}
               className="absolute top-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors duration-150"
             >
               <Icon icon={IconProp.Trash} className="h-4 w-4" />
@@ -284,7 +301,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             {/* Field */}
             <div>
               <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                Field
+                {translator.translateText("Field")}
               </label>
               <Dropdown
                 options={fieldDropdownOptions}
@@ -314,7 +331,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             {isAttributeField && (
               <div>
                 <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                  Attribute
+                  {translator.translateText("Attribute")}
                 </label>
                 <Input
                   type={InputType.TEXT}
@@ -333,7 +350,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             {/* Operator */}
             <div>
               <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                Operator
+                {translator.translateText("Operator")}
               </label>
               <Dropdown
                 options={operatorOptions}
@@ -353,7 +370,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
             {/* Value */}
             <div>
               <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                Value
+                {translator.translateText("Value")}
               </label>
               {renderValueInput()}
             </div>

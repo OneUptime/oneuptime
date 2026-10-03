@@ -29,6 +29,8 @@ import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariab
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
 import { hasIncidentAdvancedOptions } from "./CriteriaAdvancedOptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface IncidentRoleOption {
   id: string;
@@ -63,6 +65,7 @@ export interface ComponentProps {
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [criteriaIncident, setCriteriaIncident] =
     React.useState<CriteriaIncident>(
       props.initialValue || {
@@ -210,7 +213,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       }}
       className="underline text-blue-600 hover:text-blue-800"
     >
-      Learn about dynamic templates
+      {translator.translateText("Learn about dynamic templates")}
     </button>
   );
 
@@ -233,7 +236,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Incident Title"
             description={
-              <span>Title for the incident. {templateDocsLink}</span>
+              <span>
+                {translator.translateText("Title for the incident.")}{" "}
+                {templateDocsLink}
+              </span>
             }
             required={true}
           />
@@ -348,8 +354,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         >
           <div className="space-y-4">
             <p className="text-sm text-gray-500">
-              Optionally assign users to incident roles. These users will be
-              automatically assigned when the incident is created.
+              {translator.translateText(
+                "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
+              )}
             </p>
             {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
               if (role.canAssignMultipleUsers) {
@@ -363,9 +370,12 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                       title={role.name}
                       description={
                         <span>
-                          Assign multiple users to the {role.name} role{" "}
+                          {translator.translateTemplate(
+                            "Assign multiple users to the {{role}} role",
+                            { role: role.name },
+                          )}{" "}
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
-                            Multiple
+                            {translator.translateText("Multiple")}
                           </span>
                         </span>
                       }
@@ -394,7 +404,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         }
                       }}
                       isMultiSelect={true}
-                      placeholder={`Select ${role.name}...`}
+                      placeholder={translator.translateTemplate(
+                        "Select {{role}}...",
+                        { role: role.name },
+                      )}
                     />
                   </div>
                 );
@@ -407,7 +420,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 <div key={role.id}>
                   <FieldLabelElement
                     title={role.name}
-                    description={`Assign a user to the ${role.name} role`}
+                    description={translator.translateTemplate(
+                      "Assign a user to the {{role}} role",
+                      { role: role.name },
+                    )}
                   />
                   <Dropdown
                     value={
@@ -428,7 +444,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                         value ? new ObjectID(value.toString()) : undefined,
                       );
                     }}
-                    placeholder={`Select ${role.name}...`}
+                    placeholder={translator.translateTemplate(
+                      "Select {{role}}...",
+                      { role: role.name },
+                    )}
                   />
                 </div>
               );

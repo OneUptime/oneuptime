@@ -22,6 +22,7 @@ import {
   getMessagingBrokerMetricsSource,
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -97,11 +98,11 @@ export function getMessageQueueLivenessLabel(
 ): string {
   switch (status) {
     case MessageQueueLivenessStatus.SeenRecently:
-      return "Seen recently";
+      return translateTemplate("Seen recently");
     case MessageQueueLivenessStatus.NotSeenRecently:
-      return "Not seen recently";
+      return translateTemplate("Not seen recently");
     default:
-      return "Never seen";
+      return translateTemplate("Never seen");
   }
 }
 
@@ -123,9 +124,20 @@ export function getMessageQueueLivenessTone(
 
 /*
  * The pill's hover text: what "seen" means — when discovery last found the
- * queue, not when the telemetry that named it was produced.
+ * queue, not when the telemetry that named it was produced. Built when it is
+ * shown, so it reads in the reader's language.
  */
-export const MESSAGE_QUEUE_LIVENESS_DESCRIPTION: string = `Seen recently: in the last ${MESSAGE_QUEUE_LIVE_WINDOW_MINUTES} minutes, discovery found spans or broker metrics naming this queue. It runs every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes over the last ${MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES} minutes of telemetry, and over the last ${MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES} minutes of cloud monitoring metrics, which arrive late.`;
+export function getMessageQueueLivenessDescription(): string {
+  return translateTemplate(
+    "Seen recently: in the last {{liveWindow}} minutes, discovery found spans or broker metrics naming this queue. It runs every {{interval}} minutes over the last {{window}} minutes of telemetry, and over the last {{cloudWindow}} minutes of cloud monitoring metrics, which arrive late.",
+    {
+      liveWindow: MESSAGE_QUEUE_LIVE_WINDOW_MINUTES,
+      interval: MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES,
+      window: MESSAGE_QUEUE_DISCOVERY_WINDOW_MINUTES,
+      cloudWindow: MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES,
+    },
+  );
+}
 
 // ---- docs ------------------------------------------------------------------
 
@@ -198,19 +210,35 @@ export interface MessageQueueBrokerMetricsGuidance {
 function sourceLabelOf(source: MessagingBrokerMetricsSource): string {
   switch (source.kind) {
     case "receiver":
-      return `OpenTelemetry Collector receiver: ${source.receiver}`;
+      return translateTemplate(
+        "OpenTelemetry Collector receiver: {{receiver}}",
+        {
+          receiver: source.receiver,
+        },
+      );
     case "prometheus":
-      return `Prometheus scrape: ${source.exporter}, port ${source.port}, path ${source.path}`;
+      return translateTemplate(
+        "Prometheus scrape: {{exporter}}, port {{port}}, path {{path}}",
+        { exporter: source.exporter, port: source.port, path: source.path },
+      );
     case "cloud-monitoring":
       return source.alternativeReceivers.length > 0
-        ? `Cloud monitoring: the ${source.receiver} receiver (or ${source.alternativeReceivers.join(
-            ", ",
-          )})`
-        : `Cloud monitoring: the ${source.receiver} receiver`;
+        ? translateTemplate(
+            "Cloud monitoring: the {{receiver}} receiver (or {{alternatives}})",
+            {
+              receiver: source.receiver,
+              alternatives: source.alternativeReceivers.join(", "),
+            },
+          )
+        : translateTemplate("Cloud monitoring: the {{receiver}} receiver", {
+            receiver: source.receiver,
+          });
     case "external-scraper":
-      return `External scraper: ${source.scraper}`;
+      return translateTemplate("External scraper: {{scraper}}", {
+        scraper: source.scraper,
+      });
     default:
-      return "No ready-made source";
+      return translateTemplate("No ready-made source");
   }
 }
 
@@ -222,7 +250,15 @@ function sourceSentencesOf(source: MessagingBrokerMetricsSource): string {
     case "external-scraper":
       return source.note;
     case "prometheus":
-      return `The ${source.exporter} serves Prometheus metrics on port ${source.port} at \`${source.path}\`; scrape it with the collector's \`prometheus\` receiver. ${source.note}`;
+      return translateTemplate(
+        "The {{exporter}} serves Prometheus metrics on port {{port}} at `{{path}}`; scrape it with the collector's `prometheus` receiver. {{note}}",
+        {
+          exporter: source.exporter,
+          port: source.port,
+          path: source.path,
+          note: source.note,
+        },
+      );
     default:
       return source.reason;
   }
@@ -256,11 +292,15 @@ export function getMessageQueueBrokerMetricsGuidance(
 
   let description: string;
   if (reachesQueue) {
-    description = `No ${label} broker metric has arrived for this queue yet. ${sourceSentencesOf(
-      source,
-    )}`;
+    description = translateTemplate(
+      "No {{system}} broker metric has arrived for this queue yet. {{sources}}",
+      { system: label, sources: sourceSentencesOf(source) },
+    );
   } else if (canBrokerMetricsReachMessageQueue(system)) {
-    description = `${label} broker metrics name the namespace they come from, and this queue has none (its clients connect through the emulator or a custom domain, or it was added without one), so they attach to the same destination's queue in their namespace, not to this one.`;
+    description = translateTemplate(
+      "{{system}} broker metrics name the namespace they come from, and this queue has none (its clients connect through the emulator or a custom domain, or it was added without one), so they attach to the same destination's queue in their namespace, not to this one.",
+      { system: label },
+    );
   } else {
     description = sourceSentencesOf(source);
   }
@@ -271,8 +311,10 @@ export function getMessageQueueBrokerMetricsGuidance(
     description: description,
     docsRoute: getMessageQueueSystemDocsRoute(system),
     docsLabel: known
-      ? `${label} broker metrics in the Queues guide →`
-      : "Broker health metrics in the Queues guide →",
+      ? translateTemplate("{{system}} broker metrics in the Queues guide →", {
+          system: label,
+        })
+      : translateTemplate("Broker health metrics in the Queues guide →"),
     reachesQueue: reachesQueue,
   };
 }
@@ -288,12 +330,19 @@ export function getMessageQueueBrokerMetricsNoDataDescription(data: {
 }): string {
   const label: string = getMessageQueueSystemLabel(data.system);
   const lastReceivedAt: Date | null = toMessageQueueDate(data.lastReceivedAt);
-  const since: string = lastReceivedAt
-    ? ` The last one arrived ${OneUptimeDate.getDateAsLocalFormattedString(
-        lastReceivedAt,
-      )}.`
-    : "";
-  return `No ${label} broker metric arrived for this queue in the selected range.${since} Widen the range, or check that the collector still sends them.`;
+  if (lastReceivedAt) {
+    return translateTemplate(
+      "No {{system}} broker metric arrived for this queue in the selected range. The last one arrived {{time}}. Widen the range, or check that the collector still sends them.",
+      {
+        system: label,
+        time: OneUptimeDate.getDateAsLocalFormattedString(lastReceivedAt),
+      },
+    );
+  }
+  return translateTemplate(
+    "No {{system}} broker metric arrived for this queue in the selected range. Widen the range, or check that the collector still sends them.",
+    { system: label },
+  );
 }
 
 // ---- curated broker metrics ----------------------------------------------
@@ -348,12 +397,12 @@ export function getMessageQueueBrokerMetricCaption(
   descriptor: Pick<MessageQueueMetricDescriptor, "kind" | "aggregation">,
 ): string {
   if (descriptor.kind === "counter") {
-    return "per second, average over the range";
+    return translateTemplate("per second, average over the range");
   }
   if (descriptor.aggregation === AggregationType.Sum) {
-    return "newest whole interval";
+    return translateTemplate("newest whole interval");
   }
-  return "newest value";
+  return translateTemplate("newest value");
 }
 
 /*
@@ -371,15 +420,15 @@ export function getMessageQueueMetricListCaption(
   descriptor: Pick<MessageQueueMetricDescriptor, "kind" | "seriesCombine">,
 ): string {
   if (descriptor.kind === "counter") {
-    return "per second, all series";
+    return translateTemplate("per second, all series");
   }
   switch (descriptor.seriesCombine) {
     case "max":
-      return "highest series";
+      return translateTemplate("highest series");
     case "avg":
-      return "average of series";
+      return translateTemplate("average of series");
     default:
-      return "total of series";
+      return translateTemplate("total of series");
   }
 }
 

@@ -2,6 +2,8 @@ import Dictionary from "../../../Types/Dictionary";
 import Table from "../Table/Table";
 import FieldType from "../Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -21,6 +23,7 @@ interface Item {
 const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<Array<Item>>([]);
 
   useEffect(() => {
@@ -45,7 +48,9 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
 
   if (data.length === 0) {
     return (
-      <div className="text-gray-400 text-sm py-2">No items to display.</div>
+      <div className="text-gray-400 text-sm py-2">
+        {translator.translateText("No items to display.")}
+      </div>
     );
   }
 
@@ -89,7 +94,9 @@ const DictionaryOfStringsViewer: FunctionComponent<ComponentProps> = (
             return (
               <span className="font-mono text-gray-600">
                 {item.value || (
-                  <span className="text-gray-400 italic">empty</span>
+                  <span className="text-gray-400 italic">
+                    {translator.translateText("empty")}
+                  </span>
                 )}
               </span>
             );

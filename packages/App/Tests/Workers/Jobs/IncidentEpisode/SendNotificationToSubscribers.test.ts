@@ -879,7 +879,11 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
     expect(pendingQuery).toBeDefined();
     expect(pendingQuery!.select["title"]).toBe(true);
     expect(pendingQuery!.select["description"]).toBe(true);
-    expect(pendingQuery!.select["incidentSeverity"]).toEqual({ name: true });
+    expect(pendingQuery!.select["incidentSeverity"]).toEqual({
+      name: true,
+      // The default email paints the severity in its own colour.
+      color: true,
+    });
   });
 
   test("emails the episode-created template with the episode's details", async () => {

@@ -14,7 +14,6 @@ import {
   ToolActionOutcome,
   buildOptimisticQuestion,
   describeAuthor,
-  describeAuthorPossessive,
   describeConversation,
   describePermissionMode,
   describeThreadActivity,
@@ -279,18 +278,43 @@ describe("who is asking", () => {
     expect(describeAuthor({ userId: PRIYA, name: "Priya" }, SAM)).toBe("Priya");
   });
 
+  /*
+   * Whose question is on is one whole sentence per way of naming the asker,
+   * so a language words the possessive its own way.
+   */
   test("possessives read naturally", () => {
-    expect(
-      describeAuthorPossessive({ userId: PRIYA, name: "Priya" }, PRIYA),
-    ).toBe("your");
-    expect(
-      describeAuthorPossessive({ userId: PRIYA, name: "Priya" }, SAM),
-    ).toBe("Priya's");
-    expect(
-      describeAuthorPossessive({ userId: SAM, name: "James" }, PRIYA),
-    ).toBe("James'");
-    expect(describeAuthorPossessive({ userId: SAM, name: " " }, PRIYA)).toBe(
-      "a responder's",
+    const workingFor: (
+      author: { userId: string | null; name: string },
+      viewerUserId: string | null,
+    ) => string | null = (
+      author: { userId: string | null; name: string },
+      viewerUserId: string | null,
+    ): string | null => {
+      return describeThreadActivity(
+        view({
+          messages: [
+            message({
+              role: AIChatMessageRole.Assistant,
+              status: AIChatMessageStatus.InProgress,
+              author: author,
+            }),
+          ],
+          viewerUserId: viewerUserId,
+        }),
+      );
+    };
+
+    expect(workingFor({ userId: PRIYA, name: "Priya" }, PRIYA)).toBe(
+      `${AI_DISPLAY_NAME} is working on your question…`,
+    );
+    expect(workingFor({ userId: PRIYA, name: "Priya" }, SAM)).toBe(
+      `${AI_DISPLAY_NAME} is working on Priya's question…`,
+    );
+    expect(workingFor({ userId: SAM, name: "James" }, PRIYA)).toBe(
+      `${AI_DISPLAY_NAME} is working on James's question…`,
+    );
+    expect(workingFor({ userId: SAM, name: " " }, PRIYA)).toBe(
+      `${AI_DISPLAY_NAME} is working on a responder's question…`,
     );
   });
 

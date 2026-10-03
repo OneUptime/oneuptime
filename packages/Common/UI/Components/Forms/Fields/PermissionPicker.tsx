@@ -3,6 +3,8 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../../Types/Permission";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -24,6 +26,7 @@ export interface ComponentProps {
 const PermissionPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedPermission, setSelectedPermission] =
     useState<Permission | null>(props.initialValue || null);
   const [activeGroup, setActiveGroup] = useState<PermissionGroup | null>(null);
@@ -150,7 +153,9 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
           <input
             type="text"
             className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-            placeholder={props.placeholder || "Search permissions..."}
+            placeholder={translator.translateText(
+              props.placeholder || "Search permissions...",
+            )}
             value={searchQuery}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setSearchQuery(e.target.value);
@@ -203,9 +208,11 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
           <div className="flex-1 overflow-y-auto">
             {visiblePermissions.length === 0 && (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                {isSearching
-                  ? "No permissions match your search."
-                  : "Select a group to view permissions."}
+                {translator.translateText(
+                  isSearching
+                    ? "No permissions match your search."
+                    : "Select a group to view permissions.",
+                )}
               </div>
             )}
 

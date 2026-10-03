@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -18,6 +19,10 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The burn rate rule form's pure half, split out of BurnRateRules.tsx so it
@@ -163,19 +168,20 @@ export const describeBurnRateOutputs: DescribeBurnRateOutputsFunction = (
   const createsAlert: boolean = willCreateAlert(rule);
   const createsIncident: boolean = willDeclareIncident(rule);
 
+  // English; the page translates the label it shows.
   if (createsAlert && createsIncident) {
-    return "Alert + Incident";
+    return translationKey("Alert + Incident");
   }
 
   if (createsIncident) {
-    return "Incident";
+    return translationKey("Incident");
   }
 
   if (createsAlert) {
-    return "Alert";
+    return translationKey("Alert");
   }
 
-  return "Nothing";
+  return translationKey("Nothing");
 };
 
 /*
@@ -199,33 +205,52 @@ export type DescribeBurnRateOutputOptionsFunction = (
   rule: BurnRateRuleOptionFlags,
 ) => Array<string>;
 
+/*
+ * Each line whole, so a translation never has to glue "Alert" to a list of
+ * options: the page translates the English line it is given.
+ */
+interface OutputOptionLines {
+  resolvedByHand: string;
+  isPrivate: string;
+  both: string;
+}
+
+const ALERT_OPTION_LINES: OutputOptionLines = {
+  resolvedByHand: translationKey("Alert: resolved by hand"),
+  isPrivate: translationKey("Alert: private"),
+  both: translationKey("Alert: resolved by hand, private"),
+};
+
+const INCIDENT_OPTION_LINES: OutputOptionLines = {
+  resolvedByHand: translationKey("Incident: resolved by hand"),
+  isPrivate: translationKey("Incident: private"),
+  both: translationKey("Incident: resolved by hand, private"),
+};
+
 export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunction =
   (rule: BurnRateRuleOptionFlags): Array<string> => {
     const lines: Array<string> = [];
 
     type DescribeOutputFunction = (data: {
-      label: string;
+      lines: OutputOptionLines;
       isPrivate: boolean | undefined;
       autoResolve: boolean | undefined;
     }) => void;
 
     const describeOutput: DescribeOutputFunction = (data: {
-      label: string;
+      lines: OutputOptionLines;
       isPrivate: boolean | undefined;
       autoResolve: boolean | undefined;
     }): void => {
-      const options: Array<string> = [];
+      const resolvedByHand: boolean = data.autoResolve === false;
+      const isPrivate: boolean = data.isPrivate === true;
 
-      if (data.autoResolve === false) {
-        options.push("resolved by hand");
-      }
-
-      if (data.isPrivate === true) {
-        options.push("private");
-      }
-
-      if (options.length > 0) {
-        lines.push(`${data.label}: ${options.join(", ")}`);
+      if (resolvedByHand && isPrivate) {
+        lines.push(data.lines.both);
+      } else if (resolvedByHand) {
+        lines.push(data.lines.resolvedByHand);
+      } else if (isPrivate) {
+        lines.push(data.lines.isPrivate);
       }
     };
 
@@ -234,7 +259,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
 
     if (createsAlert) {
       describeOutput({
-        label: "Alert",
+        lines: ALERT_OPTION_LINES,
         isPrivate: rule.isAlertPrivate,
         autoResolve: rule.autoResolveAlert,
       });
@@ -242,7 +267,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
 
     if (createsIncident) {
       describeOutput({
-        label: "Incident",
+        lines: INCIDENT_OPTION_LINES,
         isPrivate: rule.isIncidentPrivate,
         autoResolve: rule.autoResolveIncident,
       });
@@ -252,7 +277,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
       rule.addSloOwnersAsOwners === true &&
       (createsAlert || createsIncident)
     ) {
-      lines.push("SLO owners added as owners");
+      lines.push(translationKey("SLO owners added as owners"));
     }
 
     return lines;
@@ -605,7 +630,13 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertTitleTemplate: true,
     },
     title: "Alert Title",
-    description: `Title of the alert this rule raises. Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    // A getter, so the form reads it in the language of the moment.
+    get description(): string {
+      return translateTemplate(
+        "Title of the alert this rule raises. Leave empty to use the default: {{defaultTitle}}",
+        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
+      );
+    },
     fieldType: FormFieldSchemaType.Text,
     templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
     templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
@@ -629,6 +660,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: AlertSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Alert Severity",
@@ -751,7 +785,13 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentTitleTemplate: true,
     },
     title: "Incident Title",
-    description: `Title of the incident this rule declares. Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    // A getter, so the form reads it in the language of the moment.
+    get description(): string {
+      return translateTemplate(
+        "Title of the incident this rule declares. Leave empty to use the default: {{defaultTitle}}",
+        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
+      );
+    },
     fieldType: FormFieldSchemaType.Text,
     templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
     templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
@@ -775,6 +815,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: IncidentSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Incident Severity",

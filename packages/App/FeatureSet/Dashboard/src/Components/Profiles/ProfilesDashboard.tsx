@@ -40,6 +40,12 @@ import {
   profileServiceCategoryLabel,
   profileServiceCategoryOrder,
 } from "../../Utils/ProfileServiceCategory";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /** Each time-range chip on the home page. */
 interface TimeRange {
@@ -153,6 +159,7 @@ function readProfileTypeFromUrl(): string | undefined {
 }
 
 const ProfilesDashboard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [services, setServices] = useState<Array<Service>>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<
     string | "all" | null
@@ -717,7 +724,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
         <div className="flex flex-wrap items-center gap-3">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-              Service
+              {translator.translateText("Service")}
             </div>
             <select
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -726,7 +733,9 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                 setSelectedServiceId(e.target.value);
               }}
             >
-              <option value="all">All services</option>
+              <option value="all">
+                {translator.translateText("All services")}
+              </option>
               {visibleGroups.map(
                 (group: {
                   category: ProfileServiceCategory;
@@ -735,7 +744,9 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                   return (
                     <optgroup
                       key={group.category}
-                      label={profileServiceCategoryLabel(group.category)}
+                      label={translator.translateText(
+                        profileServiceCategoryLabel(group.category),
+                      )}
                     >
                       {group.services.map((s: Service) => {
                         const id: string = s.id?.toString() || "";
@@ -767,9 +778,11 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                     ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
-                title="Sort by sample count in the current window"
+                title={translator.translateText(
+                  "Sort by sample count in the current window",
+                )}
               >
-                Activity
+                {translator.translateText("Activity")}
               </button>
               <button
                 type="button"
@@ -781,16 +794,16 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                     ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
-                title="Sort alphabetically"
+                title={translator.translateText("Sort alphabetically")}
               >
-                A-Z
+                {translator.translateText("A-Z")}
               </button>
             </div>
           </div>
 
           <div>
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-              Time window
+              {translator.translateText("Time window")}
             </div>
             <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1">
               {TIME_RANGES.map((r: TimeRange) => {
@@ -817,7 +830,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
 
           <div>
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">
-              What to analyze
+              {translator.translateText("What to analyze")}
             </div>
             <ProfileTypeSelector
               selectedProfileType={profileType}
@@ -835,16 +848,16 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                 });
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white hover:bg-gray-50 text-gray-700 rounded-md border border-gray-300"
-              title="Refresh data"
+              title={translator.translateText("Refresh data")}
             >
               <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-              Refresh
+              {translator.translateText("Refresh")}
             </button>
             <AppLink
               className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
               to={allProfilesRoute}
             >
-              All profiles →
+              {translator.translateText("All profiles →") || ""}
             </AppLink>
           </div>
         </div>
@@ -867,11 +880,12 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Where the time is going
+              {translator.translateText("Where the time is going")}
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Every profile captured in the window, merged into one view. Click
-              a frame to zoom in.
+              {translator.translateText(
+                "Every profile captured in the window, merged into one view. Click a frame to zoom in.",
+              )}
             </p>
           </div>
         </div>
@@ -894,19 +908,23 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
             <div>
               <div className="flex items-baseline gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">
-                  Top functions
+                  {translator.translateText("Top functions")}
                 </h3>
                 {topFunctionsTruncated && (
                   <span
                     className="text-[10px] text-gray-400"
-                    title="The window held more distinct stacks than the server aggregates in one pass — the ranking covers the heaviest ones"
+                    title={translator.translateText(
+                      "The window held more distinct stacks than the server aggregates in one pass — the ranking covers the heaviest ones",
+                    )}
                   >
-                    showing the largest stacks
+                    {translator.translateText("showing the largest stacks")}
                   </span>
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-0.5">
-                Ranked by self time — the actual work each function did.
+                {translator.translateText(
+                  "Ranked by self time — the actual work each function did.",
+                )}
               </p>
             </div>
           </div>
@@ -943,7 +961,7 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-900">
-            Services being profiled
+            {translator.translateText("Services being profiled")}
           </h3>
           <div className="flex items-center gap-3">
             {gridServiceCount < totalVisibleServiceCount && (
@@ -953,9 +971,17 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                   setShowAllServices(true);
                 }}
                 className="text-[11px] text-gray-500 hover:text-gray-800"
-                title="Include services with no profile samples in this window"
+                title={translator.translateText(
+                  "Include services with no profile samples in this window",
+                )}
               >
-                Show all {totalVisibleServiceCount.toLocaleString()} services
+                {translator.translatePlural(
+                  {
+                    one: "Show all {{count}} service",
+                    other: "Show all {{count}} services",
+                  },
+                  totalVisibleServiceCount,
+                )}
               </button>
             )}
             {showAllServices && (
@@ -965,9 +991,11 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                   setShowAllServices(false);
                 }}
                 className="text-[11px] text-gray-500 hover:text-gray-800"
-                title="Only show services with profile samples in this window"
+                title={translator.translateText(
+                  "Only show services with profile samples in this window",
+                )}
               >
-                Show only active services
+                {translator.translateText("Show only active services")}
               </button>
             )}
             {kernelCount > 0 && (
@@ -979,18 +1007,28 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                   });
                 }}
                 className="text-[11px] text-gray-500 hover:text-gray-800 inline-flex items-center gap-1"
-                title={
+                title={translator.translateText(
                   showKernel
                     ? "Hide kernel-thread services"
-                    : "Show kernel-thread services"
-                }
+                    : "Show kernel-thread services",
+                )}
               >
                 <Icon
                   icon={showKernel ? IconProp.Eye : IconProp.EyeSlash}
                   className="h-3 w-3"
                 />
-                {showKernel ? "Hide" : "Show"} {kernelCount} kernel{" "}
-                {kernelCount === 1 ? "thread" : "threads"}
+                {translator.translatePlural(
+                  showKernel
+                    ? {
+                        one: "Hide {{count}} kernel thread",
+                        other: "Hide {{count}} kernel threads",
+                      }
+                    : {
+                        one: "Show {{count}} kernel thread",
+                        other: "Show {{count}} kernel threads",
+                      },
+                  kernelCount,
+                )}
               </button>
             )}
           </div>
@@ -1015,7 +1053,9 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
             return (
               <div key={group.category} className="mb-5 last:mb-0">
                 <div className="mb-2 text-[10px] uppercase tracking-wider text-gray-400">
-                  {profileServiceCategoryLabel(group.category)}{" "}
+                  {translator.translateText(
+                    profileServiceCategoryLabel(group.category),
+                  )}{" "}
                   <span className="text-gray-300 normal-case">
                     · {group.services.length}
                   </span>
@@ -1042,7 +1082,13 @@ const ProfilesDashboard: FunctionComponent = (): ReactElement => {
                           {sampleCount > 0 && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700">
                               <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                              {sampleCount.toLocaleString()} samples
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} sample",
+                                  other: "{{count}} samples",
+                                },
+                                sampleCount,
+                              )}
                             </span>
                           )}
                         </div>
@@ -1102,6 +1148,7 @@ interface HeadlineInsightProps {
 const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
   props: HeadlineInsightProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const totalSelf: number = useMemo(() => {
     let t: number = 0;
     for (const f of props.topFunctions) {
@@ -1137,8 +1184,9 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
         ? `${Math.round(props.rangeMinutes / 60)}h`
         : `${Math.round(props.rangeMinutes / (60 * 24))}d`;
 
+  // What the window measured, as it reads mid-sentence: "CPU time".
   const category: string = props.profileType
-    ? ProfileUtil.getProfileTypeDisplayName(props.profileType).toLowerCase()
+    ? ProfileUtil.getProfileTypeDisplayName(props.profileType)
     : "samples";
 
   if (props.loading) {
@@ -1153,17 +1201,22 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
   if (topN.length === 0) {
     return (
       <div className="mb-4 rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
-        No profile data in the last {timeLabel} for {props.serviceName}. Try a
-        wider time window — or, if you haven&apos;t sent profiles yet,{" "}
-        <AppLink
-          className="text-indigo-600 hover:text-indigo-800 font-medium"
-          to={RouteUtil.populateRouteParams(
-            RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
-          )}
-        >
-          set up profiling
-        </AppLink>
-        .
+        <TranslatedSentence
+          template="No profile data in the last {{time}} for {{service}}. Try a wider time window — or, if you haven't sent profiles yet, {{setUpLink}}."
+          values={{ time: timeLabel, service: props.serviceName }}
+          slots={{
+            setUpLink: (
+              <AppLink
+                className="text-indigo-600 hover:text-indigo-800 font-medium"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route,
+                )}
+              >
+                {translator.translateText("set up profiling") || ""}
+              </AppLink>
+            ),
+          }}
+        />
       </div>
     );
   }
@@ -1180,29 +1233,47 @@ const HeadlineInsight: FunctionComponent<HeadlineInsightProps> = (
         </div>
         <div className="min-w-0">
           <div className="text-sm text-gray-700 leading-relaxed">
-            In the last <span className="font-semibold">{timeLabel}</span>,{" "}
-            <span className="font-semibold">{props.serviceName}</span> spent
-            most of its {category} in{" "}
-            <span className="font-mono font-medium text-gray-900">
-              {leader.functionName || "(anonymous)"}
-            </span>{" "}
-            ({ProfileUtil.formatPercent(leaderShare)}{" "}
-            {hasWindowTotal ? "of the window" : "of top sampled functions"}
-            ).
+            <TranslatedSentence
+              template={
+                hasWindowTotal
+                  ? "In the last {{time}}, {{service}} spent most of its {{category}} in {{function}} ({{share}} of the window)."
+                  : "In the last {{time}}, {{service}} spent most of its {{category}} in {{function}} ({{share}} of top sampled functions)."
+              }
+              values={{
+                category: translatableTerm(category, { inSentence: true }),
+                share: ProfileUtil.formatPercent(leaderShare),
+              }}
+              slots={{
+                time: <span className="font-semibold">{timeLabel}</span>,
+                service: (
+                  <span className="font-semibold">{props.serviceName}</span>
+                ),
+                function: (
+                  <span className="font-mono font-medium text-gray-900">
+                    {leader.functionName ||
+                      translator.translateText("(anonymous)")}
+                  </span>
+                ),
+              }}
+            />
             {topN.length >= 2 && (
               <>
                 {" "}
-                The top <span className="font-semibold">
-                  {topN.length}
-                </span>{" "}
-                functions account for{" "}
-                <span className="font-semibold">
-                  {ProfileUtil.formatPercent(topShare)}
-                </span>{" "}
-                {hasWindowTotal
-                  ? "of the window"
-                  : "of the top sampled functions"}{" "}
-                — those are your optimization targets.
+                <TranslatedSentence
+                  template={
+                    hasWindowTotal
+                      ? "The top {{count}} functions account for {{share}} of the window — those are your optimization targets."
+                      : "The top {{count}} functions account for {{share}} of the top sampled functions — those are your optimization targets."
+                  }
+                  slots={{
+                    count: <span className="font-semibold">{topN.length}</span>,
+                    share: (
+                      <span className="font-semibold">
+                        {ProfileUtil.formatPercent(topShare)}
+                      </span>
+                    ),
+                  }}
+                />
               </>
             )}
           </div>
@@ -1249,6 +1320,8 @@ interface TopFunctionsListProps {
 const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
   props: TopFunctionsListProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (props.loading) {
     return (
       <div className="space-y-2">
@@ -1267,7 +1340,9 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
   if (props.functions.length === 0) {
     return (
       <p className="text-xs text-gray-500 py-6 text-center">
-        No functions found. Check that the service is actively being profiled.
+        {translator.translateText(
+          "No functions found. Check that the service is actively being profiled.",
+        )}
       </p>
     );
   }
@@ -1313,7 +1388,9 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
                 <div className="flex items-center gap-2 min-w-0">
                   <span
                     className={`inline-block h-2 w-2 rounded-sm ${style.bg} flex-shrink-0`}
-                    title={ProfileUtil.getModuleCategoryLabel(category)}
+                    title={translator.translateText(
+                      ProfileUtil.getModuleCategoryLabel(category),
+                    )}
                   />
                   <button
                     type="button"
@@ -1325,13 +1402,13 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
                         ? "text-indigo-700 font-semibold"
                         : "text-gray-900"
                     }`}
-                    title={
+                    title={translator.translateText(
                       isHighlighted
                         ? "Clear the flame-graph highlight"
-                        : "Highlight this function in the flame graph"
-                    }
+                        : "Highlight this function in the flame graph",
+                    )}
                   >
-                    {fn.functionName || "(anonymous)"}
+                    {fn.functionName || translator.translateText("(anonymous)")}
                   </button>
                   {/*
                    * Hover-only hint: the affordance must be
@@ -1344,9 +1421,11 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
                       isHighlighted ? "" : "inline group-[:not(:hover)]:hidden"
                     }`}
                   >
-                    {isHighlighted
-                      ? "highlighted — click to clear"
-                      : "click to highlight in flame graph"}
+                    {translator.translateText(
+                      isHighlighted
+                        ? "highlighted — click to clear"
+                        : "click to highlight in flame graph",
+                    )}
                   </span>
                 </div>
                 {fn.fileName && (
@@ -1379,10 +1458,15 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
                     });
                   }}
                   className="mt-0.5 rounded p-1 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 group-hover:text-gray-400 transition-colors"
-                  title="Callers & callees"
-                  aria-label={`Show callers and callees of ${
-                    fn.functionName || "(anonymous)"
-                  }`}
+                  title={translator.translateText("Callers & callees")}
+                  aria-label={translator.translateTemplate(
+                    "Show callers and callees of {{name}}",
+                    {
+                      name:
+                        fn.functionName ||
+                        translator.translateTemplate("(anonymous)"),
+                    },
+                  )}
                 >
                   <Icon icon={IconProp.ArrowUpDown} className="h-3.5 w-3.5" />
                 </button>
@@ -1396,20 +1480,20 @@ const TopFunctionsList: FunctionComponent<TopFunctionsListProps> = (
 };
 
 const EmptyState: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-16 text-center">
       <div className="mx-auto w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mb-5">
         <Icon icon={IconProp.ChartBar} className="h-7 w-7 text-indigo-500" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        No profiles yet
+        {translator.translateText("No profiles yet")}
       </h3>
       <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-        Send continuous profiles with Grafana Alloy (zero-code eBPF profiling
-        for anything running on a host) or a Pyroscope SDK in your application
-        (Go, Node.js, Python, Java, .NET, Ruby, and more). Once samples start
-        arriving, this page shows a merged flame graph and the functions
-        consuming the most resources across every recent recording.
+        {translator.translateText(
+          "Send continuous profiles with Grafana Alloy (zero-code eBPF profiling for anything running on a host) or a Pyroscope SDK in your application (Go, Node.js, Python, Java, .NET, Ruby, and more). Once samples start arriving, this page shows a merged flame graph and the functions consuming the most resources across every recent recording.",
+        )}
       </p>
       <div className="mt-6">
         <AppLink
@@ -1419,7 +1503,7 @@ const EmptyState: FunctionComponent = (): ReactElement => {
           )}
         >
           <Icon icon={IconProp.Book} className="h-4 w-4" />
-          <span>Set up profiling</span>
+          <span>{translator.translateText("Set up profiling")}</span>
         </AppLink>
       </div>
     </div>

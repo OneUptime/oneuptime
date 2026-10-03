@@ -18,6 +18,8 @@ import ScheduleTimelineLayout, {
 } from "Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * One schedule's row: its name and "who is on call now" in the sticky
@@ -67,6 +69,7 @@ export interface ComponentProps {
 const TimelineRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const schedule: TimelineSchedule = props.schedule;
 
   /*
@@ -137,7 +140,9 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
           <span
             className="flex min-w-0 items-center gap-1.5"
             data-testid="timeline-on-call-now"
-            title={`${active.userName} is on call now`}
+            title={translator.translateTemplate("{{name}} is on call now", {
+              name: active.userName,
+            })}
           >
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-60" />
@@ -153,7 +158,7 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
               {active.userName}
             </span>
             <span className="max-sm:hidden shrink-0 text-gray-400 sm:inline">
-              on call now
+              {translator.translateText("on call now")}
             </span>
           </span>
         );
@@ -165,7 +170,7 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
           data-testid="timeline-uncovered-now"
         >
           <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 shrink-0" />
-          No one on call now
+          {translator.translateText("No one on call now")}
         </span>
       );
     }
@@ -175,14 +180,28 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
       props.computedWindow,
     );
 
-    const period: string =
-      props.range.mode === TimelineViewMode.Month ? "month" : "week";
+    const isMonth: boolean = props.range.mode === TimelineViewMode.Month;
 
     return (
       <span className="truncate text-gray-500">
         {people === 0
-          ? `No one on call this ${period}`
-          : `${people} ${people === 1 ? "person" : "people"} on call this ${period}`}
+          ? translator.translateText(
+              isMonth
+                ? "No one on call this month"
+                : "No one on call this week",
+            )
+          : translator.translatePlural(
+              isMonth
+                ? {
+                    one: "{{count}} person on call this month",
+                    other: "{{count}} people on call this month",
+                  }
+                : {
+                    one: "{{count}} person on call this week",
+                    other: "{{count}} people on call this week",
+                  },
+              people,
+            )}
       </span>
     );
   };
@@ -212,9 +231,11 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
           {schedule.isCurrentUserOnRoster && (
             <span
               className="shrink-0 rounded bg-indigo-50 px-1 py-px text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200"
-              title="You are on this schedule's roster"
+              title={translator.translateText(
+                "You are on this schedule's roster",
+              )}
             >
-              You
+              {translator.translateText("You")}
             </span>
           )}
         </div>

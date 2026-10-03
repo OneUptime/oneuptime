@@ -13,8 +13,11 @@ import { APP_API_URL, IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   /*
    * Set once the provider list has loaded empty, which happens when the
@@ -74,15 +77,16 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       data-testid="sso-no-providers-help"
                     >
                       <p>
-                        This project has no single sign-on provider you can use
-                        to log in. Ask a project admin to enable one.
+                        {translator.translateText(
+                          "This project has no single sign-on provider you can use to log in. Ask a project admin to enable one.",
+                        )}
                       </p>
                       <div className="mt-4">
                         <Link
                           to={RouteMap[PageMap.LOGOUT] as Route}
                           className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
                         >
-                          Back to sign in
+                          {translator.translateText("Back to sign in")}
                         </Link>
                       </div>
                     </div>

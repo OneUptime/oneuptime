@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ProfileUtil, { ProfileCategory } from "../../Utils/ProfileUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ProfileTypeSelectorProps {
   selectedProfileType: string | undefined;
@@ -79,6 +81,7 @@ const ADVANCED_OPTIONS: Array<{ label: string; value: string }> = [
 const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
   props: ProfileTypeSelectorProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const selectedCategory: ProfileCategory | "all" = props.selectedProfileType
     ? ProfileUtil.getProfileCategory(props.selectedProfileType)
     : "all";
@@ -109,7 +112,7 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
             <button
               key={pill.label}
               type="button"
-              title={pill.description}
+              title={translator.translateText(pill.description)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 isActive
                   ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
@@ -120,7 +123,7 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
               }}
             >
               <span className="mr-1.5 text-gray-400">{pill.icon}</span>
-              {pill.label}
+              {translator.translateText(pill.label)}
             </button>
           );
         })}
@@ -134,14 +137,14 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
             const value: string = e.target.value;
             props.onChange(value === "" ? undefined : value);
           }}
-          title="Pick a specific profile type"
+          title={translator.translateText("Pick a specific profile type")}
         >
-          <option value="">Specific type…</option>
+          <option value="">{translator.translateText("Specific type…")}</option>
           {ADVANCED_OPTIONS.map(
             (option: { label: string; value: string }, index: number) => {
               return (
                 <option key={index} value={option.value}>
-                  {option.label}
+                  {translator.translateText(option.label)}
                 </option>
               );
             },

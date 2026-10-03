@@ -5,6 +5,8 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepDnssecMonitor: MonitorStepDnssecMonitor;
@@ -14,6 +16,7 @@ export interface ComponentProps {
 const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
 
@@ -91,7 +94,9 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       {showAdvancedOptions && (
         <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
+          <h4 className="font-medium">
+            {translator.translateText("Advanced Options")}
+          </h4>
 
           <div>
             <FieldLabelElement

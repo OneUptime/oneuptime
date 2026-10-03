@@ -440,7 +440,9 @@ describe("Alert Episode detail page: severity (issue #3374)", () => {
     expect(fieldValue("Created By")).toEqual("System");
     // An episode with no grouping rule is a manual one, not a crash.
     expect(fieldValue("Grouping Rule")).toEqual("Manual Episode");
-    expect(fieldValue("Episode ID")).toContain(EPISODE_ID);
+    // The ID is no longer a field of the card: it is the card's ID line.
+    expect(screen.queryByText("Episode ID")).toBeNull();
+    expect(screen.getByTestId("detail-id-value")).toHaveTextContent(EPISODE_ID);
     expectNoCrash();
   });
 
@@ -539,7 +541,7 @@ describe("Alert Episode detail page: both relations missing", () => {
 });
 
 describe("Alert Episode overview: details column", () => {
-  test("uses the compact single-column style with the episode ID last", async () => {
+  test("uses the compact single-column style with the episode ID on a line under the fields", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     const numberRow: HTMLElement | null | undefined = screen
@@ -567,8 +569,28 @@ describe("Alert Episode overview: details column", () => {
       "On-Call Duty Policies",
       "Created At",
       "Labels",
-      "Episode ID",
     ]);
+
+    /*
+     * The episode's ID used to be the last row, a full-width UUID pill. It
+     * is the small line under the rows now: "ID", the start of the ID (all
+     * of it in the text, clipped), and a copy button.
+     */
+    const idLine: HTMLElement = screen.getByTestId("detail-id-line");
+
+    expect(grid!.nextElementSibling).toBe(idLine);
+    expect(idLine.parentElement).toHaveAttribute("id", "model-detail-episodes");
+    expect(idLine).toHaveClass("mt-3", "border-t", "border-gray-100", "pt-3");
+    expect(within(idLine).getByTestId("detail-id-label")).toHaveTextContent(
+      "ID",
+    );
+    expect(within(idLine).getByTestId("detail-id-value")).toHaveTextContent(
+      EPISODE_ID,
+    );
+    expect(
+      within(idLine).getByRole("button", { name: "Copy ID to clipboard" }),
+    ).toBeInTheDocument();
+    expect(idLine.querySelector("label")).toBeNull();
     expectNoCrash();
   });
 

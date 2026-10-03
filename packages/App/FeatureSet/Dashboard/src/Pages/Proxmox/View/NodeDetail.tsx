@@ -53,6 +53,8 @@ import { JSONObject } from "Common/Types/JSON";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // A node's pve externalId is "node/<name>".
 const NODE_EXTERNAL_ID_PREFIX: string = "node/";
@@ -60,6 +62,7 @@ const NODE_EXTERNAL_ID_PREFIX: string = "node/";
 const ProxmoxClusterNodeDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../proxmox/:modelId/nodes/:subModelId — subModelId is
    * the percent-encoded pve externalId ("node/pve1"), not a DB id.
@@ -198,7 +201,10 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_cpu",
       title: "CPU Utilization",
-      description: `CPU usage percent for node ${nodeName} (pve_cpu_usage_ratio × 100 — already a true ratio).`,
+      description: translator.translateTemplate(
+        "CPU usage percent for node {{nodeName}} (pve_cpu_usage_ratio × 100 — already a true ratio).",
+        { nodeName: nodeName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -222,7 +228,10 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_memory",
       title: "Memory Usage",
-      description: `Memory usage for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "Memory usage for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -244,7 +253,10 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_root_disk",
       title: "Root Filesystem Usage",
-      description: `Root filesystem usage for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "Root filesystem usage for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "Disk",
       legendUnit: "",
     },
@@ -378,7 +390,9 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Node Metrics: ${nodeName}`}
+          title={translator.translateTemplate("Node Metrics: {{nodeName}}", {
+            nodeName: nodeName,
+          })}
           description="CPU, memory, root filesystem, and I/O for this node over the selected time range."
         >
           <ResourceMetricsTab
@@ -388,7 +402,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
                 <div className="mt-4 space-y-6">
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      Network Throughput
+                      {translator.translateText("Network Throughput")}
                       <InfoTooltip
                         label="Network Throughput"
                         text={PROXMOX_METRIC_DESCRIPTIONS.nodeNetworkThroughput}
@@ -418,7 +432,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
                   </div>
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      Disk Throughput
+                      {translator.translateText("Disk Throughput")}
                       <InfoTooltip
                         label="Disk Throughput"
                         text={PROXMOX_METRIC_DESCRIPTIONS.nodeDiskThroughput}
@@ -461,7 +475,10 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
       {showRemoveModal && canRemoveNode && (
         <ConfirmModal
           title="Remove Node"
-          description={`Only remove ${pveNodeName} if it has been removed from the Proxmox cluster. OneUptime cannot tell a node that was removed from one that is down, so it keeps reporting it as offline until you remove it here. Once it is removed, its Node Offline alert resolves within a few minutes. If ${pveNodeName} reports again, it comes back.`}
+          description={translator.translateTemplate(
+            "Only remove {{nodeName}} if it has been removed from the Proxmox cluster. OneUptime cannot tell a node that was removed from one that is down, so it keeps reporting it as offline until you remove it here. Once it is removed, its Node Offline alert resolves within a few minutes. If {{nodeName}} reports again, it comes back.",
+            { nodeName: pveNodeName },
+          )}
           submitButtonText="Remove Node"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isRemoving}

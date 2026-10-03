@@ -10,12 +10,17 @@ import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
+import {
+  translateTemplate,
+  translateText,
+} from "../../Utils/TranslateTemplate";
 import { PeopleListFromIds } from "../PeoplePicker/PeopleList";
 import {
   getPeoplePickerKinds,
   PeoplePickerFieldConfig,
   readPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
+import { isFormFieldValueSet } from "./Utils/AdvancedFormSection";
 
 type SummaryElementFn<T extends GenericObject> = (
   item: FormValues<T>,
@@ -67,7 +72,7 @@ const getFileSummaryElement: <T extends GenericObject>(
     index: number,
   ) => string = (file: FileSummaryItem | string, index: number): string => {
     if (!file) {
-      return `File ${index + 1}`;
+      return translateTemplate("File {{number}}", { number: index + 1 });
     }
 
     if (typeof file === "string") {
@@ -81,7 +86,7 @@ const getFileSummaryElement: <T extends GenericObject>(
       fileObject.fileName ||
       fileObject.slug ||
       fileObject._id ||
-      `File ${index + 1}`
+      translateTemplate("File {{number}}", { number: index + 1 })
     );
   };
 
@@ -105,7 +110,7 @@ const getFileSummaryElement: <T extends GenericObject>(
     file: FileSummaryItem,
   ): string | undefined => {
     if (typeof file.isPublic === "boolean") {
-      return file.isPublic ? "Public" : "Private";
+      return translateText(file.isPublic ? "Public" : "Private");
     }
 
     return undefined;
@@ -130,7 +135,11 @@ const getFileSummaryElement: <T extends GenericObject>(
         | undefined) || null;
 
     if (!value || (Array.isArray(value) && value.length === 0)) {
-      return <span className="text-gray-500">No files selected.</span>;
+      return (
+        <span className="text-gray-500">
+          {translateText("No files selected.")}
+        </span>
+      );
     }
 
     const files: Array<FileSummaryItem | string> = Array.isArray(value)
@@ -206,6 +215,105 @@ const getPeoplePickerSummaryElement: <T extends GenericObject>(
   };
 
   return PeoplePickerSummary;
+};
+
+/*
+ * Whether the review lists a field. A field folded into a collapsible
+ * section - the Advanced section most of all - is one the form kept out of
+ * the way, so the review lists it only when it holds something of the
+ * user's (isFormFieldValueSet: a value other than empty or its default, a
+ * switch off its default). Declare Incident's Advanced options left alone
+ * would otherwise come back as four rows nobody touched, on the one screen
+ * meant to confirm what was chosen. A field shown only under a condition
+ * follows that condition, as everywhere else.
+ */
+export const isListedInFormSummary: <T extends GenericObject>(
+  field: Field<T>,
+  formValues: FormValues<T>,
+) => boolean = <T extends GenericObject>(
+  field: Field<T>,
+  formValues: FormValues<T>,
+): boolean => {
+  if (field.showIf && !field.showIf(formValues)) {
+    return false;
+  }
+
+  if (field.collapsibleSection) {
+    return isFormFieldValueSet(field, formValues);
+  }
+
+  return true;
+};
+
+/*
+ * The rows the review shows for a list of fields, in order. A folded
+ * section that says what it holds in a line (FormFieldCollapsibleSection
+ * .getSummary) is reviewed by that line: one row, titled with the section,
+ * in place of its fields - "Subscriber Notifications: Subscribers of the
+ * event's status pages are notified when it is scheduled, when it starts
+ * and when it ends." is what someone confirming the form needs to read,
+ * defaults included. Every other field is listed when isListedInFormSummary
+ * says so.
+ */
+export const getFormSummaryFields: <T extends GenericObject>(
+  fields: Fields<T>,
+  formValues: FormValues<T>,
+) => Fields<T> = <T extends GenericObject>(
+  fields: Fields<T>,
+  formValues: FormValues<T>,
+): Fields<T> => {
+  const rows: Fields<T> = [];
+  // The summarised section the fields being walked belong to, if any.
+  let summarisedSectionId: string | null = null;
+
+  for (const field of fields) {
+    if (field.showIf && !field.showIf(formValues)) {
+      continue;
+    }
+
+    const section: Field<T>["collapsibleSection"] = field.collapsibleSection;
+
+    if (section && section.id === summarisedSectionId) {
+      continue;
+    }
+
+    summarisedSectionId = null;
+
+    const sentences: Array<string> = (
+      section?.getSummary?.(formValues) || []
+    ).filter((sentence: string): boolean => {
+      return Boolean(sentence && sentence.trim());
+    });
+
+    if (section && sentences.length > 0) {
+      summarisedSectionId = section.id;
+
+      rows.push({
+        // Detail draws a row only under a key; the section's own id is one.
+        field: { [section.id]: true } as unknown as Field<T>["field"],
+        title: section.title,
+        getSummaryElement: (): ReactElement => {
+          return (
+            <span data-testid="form-summary-section-summary">
+              {sentences
+                .map((sentence: string): string => {
+                  return translateText(sentence) ?? sentence;
+                })
+                .join(" ")}
+            </span>
+          );
+        },
+      });
+
+      continue;
+    }
+
+    if (isListedInFormSummary(field, formValues)) {
+      rows.push(field);
+    }
+  }
+
+  return rows;
 };
 
 export interface ComponentProps<T> {
@@ -285,16 +393,12 @@ const FormSummary: <T extends GenericObject>(
   const getDetailForFormStep: (formStep: FormStep<T>) => ReactElement = (
     formStep: FormStep<T>,
   ): ReactElement => {
-    const formFields: Fields<T> = props.formFields
-      .filter((field: Field<T>) => {
+    const formFields: Fields<T> = getFormSummaryFields(
+      props.formFields.filter((field: Field<T>) => {
         return formStep.id === field.stepId;
-      })
-      .filter((formField: Field<T>) => {
-        if (!formField.showIf) {
-          return true;
-        }
-        return formField.showIf(formValues);
-      });
+      }),
+      formValues,
+    );
 
     if (formFields.length === 0) {
       return <></>;
@@ -325,7 +429,10 @@ const FormSummary: <T extends GenericObject>(
     );
   }
 
-  return getDetailForFormFields(formValues, formFields);
+  return getDetailForFormFields(
+    formValues,
+    getFormSummaryFields(formFields, formValues),
+  );
 };
 
 export default FormSummary;

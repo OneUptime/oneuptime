@@ -483,9 +483,9 @@ describe("the editor caps the list at the shared ceiling", () => {
     expect(EDITOR).toContain(
       "disabled={configs.length >= MAX_SNMP_CONFIGS_PER_SCAN}",
     );
-    expect(EDITOR).toContain(
-      "`A scan can try at most ${MAX_SNMP_CONFIGS_PER_SCAN} SNMP configs.",
-    );
+    // A translated sentence, with the ceiling filled in from the constant.
+    expect(EDITOR).toContain('"A scan can try at most {{max}} SNMP configs.');
+    expect(EDITOR).toContain("{ max: MAX_SNMP_CONFIGS_PER_SCAN }");
   });
 
   /*

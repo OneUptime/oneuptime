@@ -10,6 +10,8 @@ import Dropdown, {
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepDomainMonitor: MonitorStepDomainMonitor;
@@ -19,6 +21,7 @@ export interface ComponentProps {
 const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
 
@@ -79,7 +82,9 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       {showAdvancedOptions && (
         <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
+          <h4 className="font-medium">
+            {translator.translateText("Advanced Options")}
+          </h4>
 
           <div>
             <FieldLabelElement

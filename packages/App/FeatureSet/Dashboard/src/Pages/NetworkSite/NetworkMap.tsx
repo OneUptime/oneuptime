@@ -82,6 +82,8 @@ import React, {
   useState,
 } from "react";
 import { Location, useLocation } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The drill-down network map — the franchise-network feature's
@@ -122,6 +124,7 @@ const PAGE_DESCRIPTION: string =
 const NetworkSiteMap: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Lazy: the URL is read at mount, and after that only when a navigation
    * lands on this route (see the re-seed effect below).
@@ -526,7 +529,9 @@ const NetworkSiteMap: FunctionComponent<
           {/* Slate reads on both the light and the dark surface; the
            * default VeryLightGray all but vanishes on white. */}
           <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
-          <p className="text-sm text-gray-500">Loading your network…</p>
+          <p className="text-sm text-gray-500">
+            {translator.translateText("Loading your network…")}
+          </p>
         </div>
       </Card>
     );
@@ -699,8 +704,16 @@ const NetworkSiteMap: FunctionComponent<
         data-testid="network-map-health-filter-hint"
       >
         {isHealthFiltered
-          ? `Showing ${healthSummary.attention} of ${healthSummary.total} — everything operational is hidden.`
-          : "Narrow this level to what needs a look — a site counts if its own status is down, or if any unit beneath it is."}
+          ? translator.translateTemplate(
+              "Showing {{attention}} of {{total}} — everything operational is hidden.",
+              {
+                attention: healthSummary.attention,
+                total: healthSummary.total,
+              },
+            )
+          : translator.translateText(
+              "Narrow this level to what needs a look — a site counts if its own status is down, or if any unit beneath it is.",
+            )}
       </p>
     </div>
   );
@@ -733,7 +746,10 @@ const NetworkSiteMap: FunctionComponent<
         </div>
         <Card
           title={currentSite.name}
-          description={`${currentSite.siteType} — click a site to drill down; a unit opens its device topology.`}
+          description={translator.translateTemplate(
+            "{{siteType}} — click a site to drill down; a unit opens its device topology.",
+            { siteType: currentSite.siteType },
+          )}
           buttons={[refreshButton]}
         >
           {/*
@@ -813,9 +829,9 @@ const NetworkSiteMap: FunctionComponent<
             title="No network sites yet"
             description={
               <span className="mx-auto block max-w-md">
-                Model your network as a hierarchy — regions, franchisees,
-                markets, units — and this page becomes a drill-down map of all
-                of it, from the whole country down to the switch in one store.
+                {translator.translateText(
+                  "Model your network as a hierarchy — regions, franchisees, markets, units — and this page becomes a drill-down map of all of it, from the whole country down to the switch in one store.",
+                )}
               </span>
             }
             footer={
@@ -825,7 +841,7 @@ const NetworkSiteMap: FunctionComponent<
                 )}
                 className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
               >
-                Create your first network site
+                {translator.translateText("Create your first network site")}
               </Link>
             }
           />
@@ -852,11 +868,13 @@ const NetworkSiteMap: FunctionComponent<
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-gray-500">
-          Drag to pan, scroll to zoom, or use the controls on the map.
+          {translator.translateText(
+            "Drag to pan, scroll to zoom, or use the controls on the map.",
+          )}
         </p>
         <p className="flex items-center gap-1.5 text-xs text-gray-500">
           <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-500" />
-          Live — updates every minute
+          {translator.translateText("Live — updates every minute")}
         </p>
       </div>
 
@@ -864,8 +882,9 @@ const NetworkSiteMap: FunctionComponent<
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <Icon className="mt-px h-4 w-4 flex-shrink-0" icon={IconProp.Alert} />
           <span>
-            This network is very large, so only part of it is shown. Drill into
-            a site to see the rest.
+            {translator.translateText(
+              "This network is very large, so only part of it is shown. Drill into a site to see the rest.",
+            )}
           </span>
         </div>
       ) : (
@@ -915,11 +934,12 @@ const NetworkSiteMap: FunctionComponent<
                   icon={IconProp.CheckCircle}
                 />
               </span>
-              Nothing needs attention
+              {translator.translateText("Nothing needs attention")}
             </div>
             <p className="mt-1 text-sm text-gray-500">
-              Every site at this level is operational, and so is every unit
-              beneath them. Switch back to All to see them.
+              {translator.translateText(
+                "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see them.",
+              )}
             </p>
           </div>
         </MapSection>

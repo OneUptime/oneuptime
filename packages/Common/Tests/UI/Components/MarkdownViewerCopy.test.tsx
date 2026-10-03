@@ -69,7 +69,9 @@ jest.mock("react-syntax-highlighter/dist/esm/prism-light", () => {
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
-import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer, {
+  CODE_BLOCK_FONT_CLASS_NAME,
+} from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 import {
   clipboardToMarkdown,
   pastedHtmlToMarkdown,
@@ -462,5 +464,42 @@ describe("a copy of MarkdownViewer's output", () => {
     expect(pastedHtmlToMarkdown(container.innerHTML)).toBe(
       "Steps:\n\n- Service down\n  - Users cannot log in\n\n```bash\nnpm run restart\n```",
     );
+  });
+});
+
+/*
+ * Every frontend's index.ejs sets `* { font-family: Inter }`. A rule that
+ * matches an element beats what the element inherits, so each highlighted
+ * token <span> inside a code block was drawn in Inter: code was
+ * proportional, and lined-up code (Terraform's aligned =, YAML indentation)
+ * came out ragged. Every element inside the block now inherits the code's
+ * monospace font; a class selector outranks `*`.
+ */
+describe("MarkdownViewer code blocks keep a monospace font", () => {
+  test("every element inside the <pre> inherits its font, so the * rule cannot reach the tokens", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "hcl", 'name  = "x"\nlabel = "y"\n');
+      },
+    );
+    const pre: HTMLElement = container.querySelector("pre") as HTMLElement;
+
+    expect(CODE_BLOCK_FONT_CLASS_NAME).toBe("[&_*]:[font-family:inherit]");
+    expect(pre.className.split(" ")).toContain(CODE_BLOCK_FONT_CLASS_NAME);
+    expect(pre.querySelector("code")?.className).toContain("font-mono");
+  });
+
+  test("the header (language label and Copy button) keeps the interface font", () => {
+    const container: HTMLElement = renderViewer(
+      (components: MockComponents): React.ReactElement => {
+        return codeFence(components, "hcl", 'name = "x"\n');
+      },
+    );
+    const header: HTMLElement = container.querySelector(
+      "[data-markdown-ignore]",
+    ) as HTMLElement;
+
+    expect(header.className).not.toContain(CODE_BLOCK_FONT_CLASS_NAME);
+    expect(header.contains(container.querySelector("pre"))).toBe(false);
   });
 });

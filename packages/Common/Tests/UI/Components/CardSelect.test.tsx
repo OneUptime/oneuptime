@@ -1018,4 +1018,49 @@ describe("CardSelect", () => {
       expect(isCardSelectOptionGroup(website)).toBe(false);
     });
   });
+
+  /*
+   * A short choice inside a dialog - the measurement form's four ready-made
+   * measurements - reads better as two wide columns than as three narrow
+   * ones whose titles wrap.
+   */
+  describe("columns", () => {
+    type GridFunction = () => HTMLElement;
+
+    const grid: GridFunction = (): HTMLElement => {
+      return screen.getByTestId("card-select-option-Website")
+        .parentElement as HTMLElement;
+    };
+
+    test("up to three side by side when nothing is asked for", () => {
+      renderComponent({ options: [website, kubernetes, manual] });
+
+      expect(grid()).toHaveClass(
+        "grid-cols-1",
+        "sm:grid-cols-2",
+        "lg:grid-cols-3",
+      );
+    });
+
+    test("at most two side by side with maxColumns 2", () => {
+      renderComponent({
+        options: [website, kubernetes, manual],
+        maxColumns: 2,
+      });
+
+      expect(grid()).toHaveClass("grid-cols-1", "sm:grid-cols-2");
+      expect(grid()).not.toHaveClass("lg:grid-cols-3");
+    });
+
+    test("one a row wins over maxColumns", () => {
+      renderComponent({
+        options: [website, kubernetes, manual],
+        maxColumns: 2,
+        singleColumn: true,
+      });
+
+      expect(grid()).toHaveClass("grid-cols-1");
+      expect(grid()).not.toHaveClass("sm:grid-cols-2");
+    });
+  });
 });

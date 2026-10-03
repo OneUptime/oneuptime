@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import AffectedResourcesPicker, {
@@ -10,7 +11,10 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -28,15 +32,23 @@ import Service from "Common/Models/DatabaseModels/Service";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import {
   getFormSteps,
   getTemplateFormFields,
 } from "./ScheduledMaintenanceTemplates";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getSubscriberNotificationSummary } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+
+// The Affected Resources card's Edit: as on the create forms' step.
+const affectedResourcesAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenanceTemplate> =
+  getAdvancedFormSection<ScheduledMaintenanceTemplate>();
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -171,83 +183,47 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return Boolean(item.isRecurringEvent);
               },
             },
+            /*
+             * The line the form's folded Subscriber Notifications section
+             * shows, so the page and the form say it the same way.
+             */
+            {
+              field: {
+                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+              },
+              title: "Subscriber Notifications",
+              fieldType: FieldType.Element,
+              getElement: (
+                item: ScheduledMaintenanceTemplate,
+              ): ReactElement => {
+                return (
+                  <p data-testid="template-subscriber-notifications-summary">
+                    {getSubscriberNotificationSummary(item)
+                      .map((sentence: string): string => {
+                        return translator.translateText(sentence) || sentence;
+                      })
+                      .join(" ")}
+                  </p>
+                );
+              },
+            },
             {
               field: {
                 sendSubscriberNotificationsOnBeforeTheEvent: true,
               },
-              title: "Send reminders to subscribers before the event",
-              fieldType: FieldType.Boolean,
+              title: "Reminders before the event",
+              fieldType: FieldType.Element,
               getElement: (
                 item: ScheduledMaintenanceTemplate,
               ): ReactElement => {
                 return (
                   <RecurringArrayViewElement
                     value={item.sendSubscriberNotificationsOnBeforeTheEvent}
-                    postfix=" before the event is begins"
+                    postfix=" before the event begins"
+                    noItemsMessage={translator.translateText(
+                      "No reminders configured",
+                    )}
                   />
-                );
-              },
-            },
-            {
-              field: {
-                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-              },
-              title: "Notify Status Page Subscribers",
-              fieldType: FieldType.Boolean,
-              getElement: (
-                item: ScheduledMaintenanceTemplate,
-              ): ReactElement => {
-                return (
-                  <div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
-                          ]
-                            ? "Event Created: Notify Subscribers"
-                            : "Event Created: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
-                          ]
-                            ? "Event Ongoing: Notify Subscribers"
-                            : "Event Ongoing: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
-                          ]
-                            ? "Event Ended: Notify Subscribers"
-                            : "Event Ended: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                  </div>
                 );
               },
             },
@@ -389,11 +365,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Change Monitor Status to ",
             description:
               "This will change the status of all the monitors attached when the event starts.",
+            collapsibleSection: affectedResourcesAdvancedSection,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",

@@ -55,6 +55,8 @@ import {
   pivotTimeseries,
   resolveTraceSeriesColor,
 } from "./TraceChartData";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceChartComponent;
@@ -63,6 +65,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rows, setRows] = useState<Array<TimeseriesRow>>([]);
   /*
    * The window and bucket width `rows` were fetched for, replaced together
@@ -439,7 +442,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
         {!isLoading && error && <ErrorMessage message={error} />}
         {!isLoading && !error && pivotedData.length === 0 && (
           <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            No data for the selected time range
+            {translator.translateText("No data for the selected time range")}
           </div>
         )}
         {isChartShown && (

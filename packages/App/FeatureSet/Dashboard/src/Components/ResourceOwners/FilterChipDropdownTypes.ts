@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The React-free half of FilterChipDropdown.
@@ -84,22 +85,26 @@ export type FilterOperator =
   | "less_than"
   | "less_than_or_equal";
 
+/*
+ * English translation keys: the chips translate each one where they draw
+ * it.
+ */
 export const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
-  is: "is",
-  is_not: "is not",
-  is_empty: "is empty",
-  is_not_empty: "is not empty",
-  before: "is before",
-  after: "is after",
-  between: "is between",
-  contains: "contains",
-  not_contains: "does not contain",
-  starts_with: "starts with",
-  ends_with: "ends with",
-  greater_than: "is greater than",
-  greater_than_or_equal: "is greater than or equal to",
-  less_than: "is less than",
-  less_than_or_equal: "is less than or equal to",
+  is: translationKey("is"),
+  is_not: translationKey("is not"),
+  is_empty: translationKey("is empty"),
+  is_not_empty: translationKey("is not empty"),
+  before: translationKey("is before"),
+  after: translationKey("is after"),
+  between: translationKey("is between"),
+  contains: translationKey("contains"),
+  not_contains: translationKey("does not contain"),
+  starts_with: translationKey("starts with"),
+  ends_with: translationKey("ends with"),
+  greater_than: translationKey("is greater than"),
+  greater_than_or_equal: translationKey("is greater than or equal to"),
+  less_than: translationKey("is less than"),
+  less_than_or_equal: translationKey("is less than or equal to"),
 };
 
 /**

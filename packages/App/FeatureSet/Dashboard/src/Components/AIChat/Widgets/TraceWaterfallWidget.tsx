@@ -1,4 +1,6 @@
 import { AIChatWidget, AIChatWidgetSpan } from "Common/Types/AI/AIChatTypes";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -10,6 +12,7 @@ const MAX_SPANS: number = 40;
 const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const spans: Array<AIChatWidgetSpan> = props.widget.data.spans || [];
   const totalDurationMs: number = Math.max(
     props.widget.data.totalDurationMs || 0,
@@ -71,7 +74,7 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
               {span.isError && (
                 <span
                   className="mr-1 text-red-500"
-                  title="Span recorded an error"
+                  title={translator.translateText("Span recorded an error")}
                 >
                   ●
                 </span>
@@ -96,7 +99,14 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
       })}
       {spans.length > shown.length && (
         <div className="pt-1 text-[11px] text-gray-400">
-          Showing {shown.length} of {spans.length} spans.
+          {translator.translatePlural(
+            {
+              one: "Showing {{shown}} of {{count}} span.",
+              other: "Showing {{shown}} of {{count}} spans.",
+            },
+            spans.length,
+            { shown: translator.formatNumber(shown.length) },
+          )}
         </div>
       )}
     </div>

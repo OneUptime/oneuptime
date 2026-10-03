@@ -17,6 +17,8 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   ruleType: RuleRunType;
@@ -37,6 +39,7 @@ export interface ComponentProps {
 const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
@@ -125,7 +128,14 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
         {isOwnerRule ? (
           <CheckboxElement
             title="Notify the owners this run adds"
-            description={`Off by default, and only honoured when the rule itself has Notify Owners turned on. An owner is notified once for every ${meta.resourceSingular} they are added to, which on a large project can be a lot of notifications.`}
+            description={translator.translateTemplate(
+              "Off by default, and only honoured when the rule itself has Notify Owners turned on. An owner is notified once for every {{resource}} they are added to, which on a large project can be a lot of notifications.",
+              {
+                resource: translatableTerm(meta.resourceSingular, {
+                  inSentence: true,
+                }),
+              },
+            )}
             value={notifyOwners}
             dataTestId="run-rule-notify-owners-checkbox"
             onChange={(value: boolean) => {

@@ -6,6 +6,13 @@ import RestrictionTimes, {
   RestrictionType,
   WeeklyResctriction,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Small, pure helpers that turn the layer's rotation / restriction / start-time
@@ -14,39 +21,57 @@ import RestrictionTimes, {
  * expanding it.
  */
 
-type IntervalNoun = {
-  singular: string;
-  plural: string;
-  adjective: string; // e.g. "daily", "weekly"
+/*
+ * How a rotation is described, a whole sentence per interval so each language
+ * words it its own way: once per interval ("Rotates daily"), or every few
+ * intervals ("Rotates every 2 days").
+ */
+type IntervalSentences = {
+  once: string;
+  every: PluralTemplate;
 };
 
-const intervalNouns: Record<EventInterval, IntervalNoun> = {
+const intervalSentences: Record<EventInterval, IntervalSentences> = {
   [EventInterval.Hour]: {
-    singular: "hour",
-    plural: "hours",
-    adjective: "hourly",
+    once: translationKey("Rotates hourly"),
+    every: {
+      one: "Rotates every {{count}} hour",
+      other: "Rotates every {{count}} hours",
+    },
   },
-  [EventInterval.Day]: { singular: "day", plural: "days", adjective: "daily" },
+  [EventInterval.Day]: {
+    once: translationKey("Rotates daily"),
+    every: {
+      one: "Rotates every {{count}} day",
+      other: "Rotates every {{count}} days",
+    },
+  },
   [EventInterval.Week]: {
-    singular: "week",
-    plural: "weeks",
-    adjective: "weekly",
+    once: translationKey("Rotates weekly"),
+    every: {
+      one: "Rotates every {{count}} week",
+      other: "Rotates every {{count}} weeks",
+    },
   },
   [EventInterval.Month]: {
-    singular: "month",
-    plural: "months",
-    adjective: "monthly",
+    once: translationKey("Rotates monthly"),
+    every: {
+      one: "Rotates every {{count}} month",
+      other: "Rotates every {{count}} months",
+    },
   },
   [EventInterval.Year]: {
-    singular: "year",
-    plural: "years",
-    adjective: "yearly",
+    once: translationKey("Rotates yearly"),
+    every: {
+      one: "Rotates every {{count}} year",
+      other: "Rotates every {{count}} years",
+    },
   },
 };
 
 export function summarizeRotation(rotation: Recurring | undefined): string {
   if (!rotation) {
-    return "No rotation";
+    return translateTemplate("No rotation");
   }
 
   const intervalType: EventInterval =
@@ -55,14 +80,14 @@ export function summarizeRotation(rotation: Recurring | undefined): string {
     ? rotation.intervalCount.toNumber()
     : 1;
 
-  const noun: IntervalNoun =
-    intervalNouns[intervalType] || intervalNouns[EventInterval.Day];
+  const sentences: IntervalSentences =
+    intervalSentences[intervalType] || intervalSentences[EventInterval.Day];
 
   if (count <= 1) {
-    return `Rotates ${noun.adjective}`;
+    return translateTemplate(sentences.once);
   }
 
-  return `Rotates every ${count} ${noun.plural}`;
+  return translatePlural(sentences.every, count);
 }
 
 export function summarizeHandOff(handOffTime: Date | undefined): string | null {
@@ -70,9 +95,9 @@ export function summarizeHandOff(handOffTime: Date | undefined): string | null {
     return null;
   }
 
-  return `Hands off at ${OneUptimeDate.getLocalHourAndMinuteFromDate(
-    handOffTime,
-  )}`;
+  return translateTemplate("Hands off at {{time}}", {
+    time: OneUptimeDate.getLocalHourAndMinuteFromDate(handOffTime),
+  });
 }
 
 export function summarizeRestriction(
@@ -87,14 +112,14 @@ export function summarizeRestriction(
   timezone?: string | undefined,
 ): string {
   if (!restrictionTimes) {
-    return "On call 24/7";
+    return translateTemplate("On call 24/7");
   }
 
   const restrictionType: RestrictionType =
     restrictionTimes.restictionType || RestrictionType.None;
 
   if (restrictionType === RestrictionType.None) {
-    return "On call 24/7";
+    return translateTemplate("On call 24/7");
   }
 
   // A short "(<tz>)" suffix so it is unambiguous which zone the hours are in.
@@ -104,15 +129,18 @@ export function summarizeRestriction(
     const day: { startTime: Date; endTime: Date } | null =
       restrictionTimes.dayRestrictionTimes;
     if (day && day.startTime && day.endTime) {
-      return `Daily ${OneUptimeDate.getHourAndMinuteInTimezoneString(
-        day.startTime,
-        timezone,
-      )} – ${OneUptimeDate.getHourAndMinuteInTimezoneString(
-        day.endTime,
-        timezone,
-      )}${tzSuffix}`;
+      return `${translateTemplate("Daily {{start}} – {{end}}", {
+        start: OneUptimeDate.getHourAndMinuteInTimezoneString(
+          day.startTime,
+          timezone,
+        ),
+        end: OneUptimeDate.getHourAndMinuteInTimezoneString(
+          day.endTime,
+          timezone,
+        ),
+      })}${tzSuffix}`;
     }
-    return "Restricted to specific hours daily";
+    return translateTemplate("Restricted to specific hours daily");
   }
 
   // Weekly
@@ -120,7 +148,7 @@ export function summarizeRestriction(
     restrictionTimes.weeklyRestrictionTimes || [];
 
   if (weekly.length === 0) {
-    return "Restricted to specific times each week";
+    return translateTemplate("Restricted to specific times each week");
   }
 
   if (weekly.length === 1) {
@@ -138,16 +166,31 @@ export function summarizeRestriction(
       timezone,
     );
     const endDay: DayOfWeek = OneUptimeDate.getDayOfWeek(w.endTime, timezone);
-    return `${startDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
-      w.startTime,
-      timezone,
-    )} – ${endDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
-      w.endTime,
-      timezone,
+    // Only names and times: the days are written in the reader's language.
+    return `${translateTemplate(
+      "{{startDay}} {{startTime}} – {{endDay}} {{endTime}}",
+      {
+        startDay: translatableTerm(startDay),
+        startTime: OneUptimeDate.getHourAndMinuteInTimezoneString(
+          w.startTime,
+          timezone,
+        ),
+        endDay: translatableTerm(endDay),
+        endTime: OneUptimeDate.getHourAndMinuteInTimezoneString(
+          w.endTime,
+          timezone,
+        ),
+      },
     )}${tzSuffix}`;
   }
 
-  return `${weekly.length} weekly time windows`;
+  return translatePlural(
+    {
+      one: "{{count}} weekly time window",
+      other: "{{count}} weekly time windows",
+    },
+    weekly.length,
+  );
 }
 
 /*
@@ -178,8 +221,10 @@ export function summarizeOffHoursFallback(data: {
   }
 
   const sentence: string = data.hasLowerPriorityLayer
-    ? "outside those hours, lower-priority layers take over."
-    : "outside those hours nobody in this schedule is on call — this is the lowest-priority layer, so there is nothing to fall back to.";
+    ? translateTemplate("outside those hours, lower-priority layers take over.")
+    : translateTemplate(
+        "outside those hours nobody in this schedule is on call — this is the lowest-priority layer, so there is nothing to fall back to.",
+      );
 
   if (!data.capitalize) {
     return sentence;
@@ -190,10 +235,12 @@ export function summarizeOffHoursFallback(data: {
 
 export function summarizeStartsAt(startsAt: Date | undefined): string {
   if (!startsAt) {
-    return "Start time not set";
+    return translateTemplate("Start time not set");
   }
 
-  return `Starts ${OneUptimeDate.getDateAsLocalFormattedString(startsAt, false)}`;
+  return translateTemplate("Starts {{date}}", {
+    date: OneUptimeDate.getDateAsLocalFormattedString(startsAt, false),
+  });
 }
 
 /*
@@ -263,14 +310,23 @@ export function formatWindowSpan(start: Date, end: Date): string {
   if (days >= 60) {
     // 30.44 = mean calendar month, so 89-92 day spans all land on "3 months".
     const months: number = Math.round(days / 30.44);
-    return `${months} ${months === 1 ? "month" : "months"}`;
+    return translatePlural(
+      { one: "{{count}} month", other: "{{count}} months" },
+      months,
+    );
   }
 
   if (days >= 14 && days % 7 === 0) {
-    return `${days / 7} weeks`;
+    return translatePlural(
+      { one: "{{count}} week", other: "{{count}} weeks" },
+      days / 7,
+    );
   }
 
-  return `${days} ${days === 1 ? "day" : "days"}`;
+  return translatePlural(
+    { one: "{{count}} day", other: "{{count}} days" },
+    days,
+  );
 }
 
 /*
@@ -280,31 +336,45 @@ export function formatWindowSpan(start: Date, end: Date): string {
  */
 export function formatRelativeStart(start: Date, now: Date): string {
   if (OneUptimeDate.isOnOrBefore(start, now)) {
-    return "Now";
+    return translateTemplate("Now");
   }
 
   const seconds: number = OneUptimeDate.getDifferenceInSeconds(start, now);
   const minutes: number = Math.round(seconds / 60);
 
   if (minutes < 60) {
-    return `in ${Math.max(1, minutes)} min`;
+    return translateTemplate("in {{minutes}} min", {
+      minutes: Math.max(1, minutes),
+    });
   }
 
   const hours: number = Math.round(minutes / 60);
   if (hours < 24) {
-    return `in ${hours} ${hours === 1 ? "hour" : "hours"}`;
+    return translatePlural(
+      { one: "in {{count}} hour", other: "in {{count}} hours" },
+      hours,
+    );
   }
 
   const days: number = Math.round(hours / 24);
   if (days < 7) {
-    return `in ${days} ${days === 1 ? "day" : "days"}`;
+    return translatePlural(
+      { one: "in {{count}} day", other: "in {{count}} days" },
+      days,
+    );
   }
 
   const weeks: number = Math.round(days / 7);
   if (weeks < 5) {
-    return `in ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+    return translatePlural(
+      { one: "in {{count}} week", other: "in {{count}} weeks" },
+      weeks,
+    );
   }
 
   const months: number = Math.round(days / 30);
-  return `in ${months} ${months === 1 ? "month" : "months"}`;
+  return translatePlural(
+    { one: "in {{count}} month", other: "in {{count}} months" },
+    months,
+  );
 }

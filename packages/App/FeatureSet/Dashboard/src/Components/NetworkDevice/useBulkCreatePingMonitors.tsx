@@ -30,6 +30,8 @@ import PermissionGate, {
 import ProbeUtil from "../../Utils/Probe";
 import { provisionPingMonitorForDevice } from "./PingMonitorProvisioning";
 import PingMonitorSeedIds from "./PingMonitorSeedIds";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The fleet-wide half of "a monitor-backed device with nothing bound reads
@@ -74,13 +76,16 @@ type CreatePingMonitorsFormData = {
  * the totals stop adding up. "Skipped" in the failed list is the one report
  * that names the device, says nothing happened, and says why.
  */
-export const SKIPPED_SNMP_DEVICE_MESSAGE: string =
-  "Skipped: this device is probe-polled, so it does not use a bound monitor.";
+export const SKIPPED_SNMP_DEVICE_MESSAGE: string = translationKey(
+  "Skipped: this device is probe-polled, so it does not use a bound monitor.",
+);
 
-export const SKIPPED_ALREADY_BOUND_MESSAGE: string =
-  "Skipped: a monitor is already bound to this device.";
+export const SKIPPED_ALREADY_BOUND_MESSAGE: string = translationKey(
+  "Skipped: a monitor is already bound to this device.",
+);
 
 function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<NetworkDevice> | null>(null);
@@ -180,7 +185,9 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
 
     if (!device) {
       throw new BadDataException(
-        "This device could not be read. It may have been deleted since the list was loaded.",
+        translationKey(
+          "This device could not be read. It may have been deleted since the list was loaded.",
+        ),
       );
     }
 
@@ -275,15 +282,19 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
         if (skippedMessage) {
           failedItems.push({
             item: item,
-            failedMessage: skippedMessage,
+            // The progress list shows it as given: a fixed sentence is looked up.
+            failedMessage:
+              translator.translateText(skippedMessage) || skippedMessage,
           });
         } else {
           successItems.push(item);
         }
       } catch (err) {
+        const message: string = API.getFriendlyMessage(err);
+
         failedItems.push({
           item: item,
-          failedMessage: API.getFriendlyMessage(err),
+          failedMessage: translator.translateText(message) || message,
         });
       }
 
@@ -408,9 +419,14 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
     setBulkActionProps(null);
   };
 
+  // English keys: the form looks the description up.
   const probeFieldDescription: string = didProbeLoadFail
-    ? "Optional. The project's probes could not be loaded just now, so the monitors will use the project's default probes. A probe has to be able to reach the device's network — a global probe on the public internet cannot ping a private address — so if these devices are on an internal network, create the monitors from a device's page once a probe deployed there can be picked, or change the probes on each monitor afterwards."
-    : "Optional. Leave it empty to use the project's default probes. A probe has to be able to reach the device's network: a global probe on the public internet cannot ping a private (RFC 1918) address, so for devices on an internal network pick a custom probe deployed on that network.";
+    ? translationKey(
+        "Optional. The project's probes could not be loaded just now, so the monitors will use the project's default probes. A probe has to be able to reach the device's network — a global probe on the public internet cannot ping a private address — so if these devices are on an internal network, create the monitors from a device's page once a probe deployed there can be picked, or change the probes on each monitor afterwards.",
+      )
+    : translationKey(
+        "Optional. Leave it empty to use the project's default probes. A probe has to be able to reach the device's network: a global probe on the public internet cannot ping a private (RFC 1918) address, so for devices on an internal network pick a custom probe deployed on that network.",
+      );
 
   const modals: ReactElement = (
     <>

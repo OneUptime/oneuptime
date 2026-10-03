@@ -8,8 +8,8 @@ import {
   EXCEPTION_TREND_ZOOM_BUCKET_MINUTES,
   EXCEPTION_TREND_ZOOM_MAX_BARS,
   buildExceptionTrendZoomRequest,
-  describeExceptionTrendZoomWindow,
   getExceptionTrendPresetTimeRange,
+  getExceptionTrendZoomWindowEdges,
   isExceptionTrendIntraday,
   pickExceptionTrendZoomBucketMinutes,
 } from "../../FeatureSet/Dashboard/src/Components/Exceptions/ExceptionTrendZoom";
@@ -336,19 +336,20 @@ describe("isExceptionTrendIntraday", () => {
   );
 });
 
-describe("describeExceptionTrendZoomWindow", () => {
+describe("getExceptionTrendZoomWindowEdges", () => {
   test("names both edges the way the reader's clock writes them", () => {
     const window: InBetween<Date> = zoomWindow(
       "2026-09-28T10:00:00.000Z",
       "2026-09-28T11:30:00.000Z",
     );
 
-    expect(describeExceptionTrendZoomWindow(window)).toBe(
-      `between ${OneUptimeDate.getDateAsLocalShortDateTimeString(
+    expect(getExceptionTrendZoomWindowEdges(window)).toEqual({
+      start: OneUptimeDate.getDateAsLocalShortDateTimeString(
         new Date("2026-09-28T10:00:00.000Z"),
-      )} and ${OneUptimeDate.getDateAsLocalShortDateTimeString(
+      ),
+      end: OneUptimeDate.getDateAsLocalShortDateTimeString(
         new Date("2026-09-28T11:30:00.000Z"),
-      )}`,
-    );
+      ),
+    });
   });
 });

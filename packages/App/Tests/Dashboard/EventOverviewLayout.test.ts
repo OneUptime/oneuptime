@@ -692,7 +692,9 @@ describe("header duration label", () => {
   test.each(PAGES)(
     "the %s header says how long a resolved event lasted",
     (_name: string, page: EventPage) => {
-      expect(page.changeState).toContain('durationPrefix = "Lasted";');
+      expect(page.changeState).toContain(
+        'durationPrefix = translationKey("Lasted");',
+      );
       expect(page.changeState).not.toContain("Resolved in");
       expect(page.view).toContain(
         'label={`${resolvedState?.name || "Resolved"} in`}',

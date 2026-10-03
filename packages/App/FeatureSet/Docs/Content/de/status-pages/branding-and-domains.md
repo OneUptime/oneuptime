@@ -34,7 +34,7 @@ Dann sinnvoll: Die Seite ist rein intern oder noch im Aufbau. Schalten Sie **All
 
 **Statusseiten → Ihre Seite → Branding → Kopfzeile** (`{id}/header-style`). Trotz des Namens im Seitenmenü liegen hier Ihre beiden größten Markenelemente.
 
-Die erste Karte heißt **Logo, Cover and Favicon** und hat eine Schaltfläche **Edit Images**:
+Die erste Karte heißt **Logo und Titelbild** und hat eine Schaltfläche **Edit Images**:
 
 - **Logo** – Bild-Upload, Platzhalter `Upload logo`.
 - **Logo Alt Text** – Platzhalter `Logo of My Company`. Lassen Sie das Feld leer, wird stattdessen der Titel der Statusseite verwendet.
@@ -64,7 +64,7 @@ Impressum, Datenschutz und Nutzungsbedingungen gehören hierhin. Kopfzeilen-Link
 - **Default Bar Color of the History Chart** – **Edit Default Bar Color** öffnet die Farbauswahl **Standard-Balkenfarbe**, also die Farbe für den Fall, dass keine Regel greift.
 - **Gesamte Betriebszeit in Prozent** – **Edit Settings** öffnet den Schalter **Gesamtprozentsatz der Verfügbarkeit anzeigen** und ein Dropdown **Verfügbarkeitsgenauigkeit auswählen**, das standardmäßig auf zwei Nachkommastellen steht (`99.99% (Two Decimal)`).
 
-**Wie viele Tage das Diagramm abdeckt, stellen Sie nicht hier ein.** Das ist **Verfügbarkeitsverlauf anzeigen (in Tagen)** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`), gültig von 1 bis 90.
+**Wie viele Tage das Diagramm abdeckt, stellen Sie nicht hier ein.** Das ist **Verfügbarkeitsverlauf** in der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`), von 1 bis 90 Tagen.
 
 ## Eigenes HTML, CSS und JavaScript
 
@@ -152,7 +152,7 @@ Bleibt eine Zeile lange nach dem Anlegen des DNS-Eintrags auf „Action Required
 
 ## Powered by OneUptime
 
-Die Zeile „Powered by OneUptime“ ist keine Einstellung des Branding-Abschnitts. Sie liegt unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`), in der Karte **Branding „Powered By OneUptime“**, als einzelner Schalter: **Branding "Powered By OneUptime" ausblenden**. **Edit Settings** öffnet ihn, wie jede andere Karte auf dieser Seite.
+Die Zeile „Powered by OneUptime“ ist keine Einstellung des Branding-Abschnitts. Sie ist der letzte Schalter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**.
 
 ## Wo Sie als Nächstes lesen sollten
 

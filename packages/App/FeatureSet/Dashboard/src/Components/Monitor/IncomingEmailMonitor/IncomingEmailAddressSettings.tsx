@@ -23,6 +23,12 @@ import IncomingEmailMonitorAddress, {
   CUSTOM_LOCAL_PART_MIN_LENGTH,
 } from "Common/Utils/Monitor/IncomingEmailMonitorAddress";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -68,7 +74,7 @@ const getLocalPartError: GetErrorFunction = (value: string): string | null => {
   } catch (err) {
     return err instanceof BadDataException
       ? err.message
-      : "Please enter a valid name.";
+      : translateTemplate("Please enter a valid name.");
   }
 };
 
@@ -86,6 +92,7 @@ const getLocalPartError: GetErrorFunction = (value: string): string | null => {
 const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [openModal, setOpenModal] = useState<OpenModal>(OpenModal.None);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -272,14 +279,19 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
           {currentAddress ? (
             <>
               <p className="text-xs font-medium text-gray-500">
-                {props.customLocalPart ? "Custom address" : "Generated address"}
+                {translator.translateText(
+                  props.customLocalPart
+                    ? "Custom address"
+                    : "Generated address",
+                )}
               </p>
               {getAddressRow(currentAddress, "incoming-email-current-address")}
             </>
           ) : (
             <p className="text-sm text-gray-500">
-              Only people who can edit monitors can see this, because it
-              contains the monitor&apos;s secret key.
+              {translator.translateText(
+                "Only people who can edit monitors can see this, because it contains the monitor's secret key.",
+              )}
             </p>
           )}
         </div>
@@ -290,26 +302,37 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
           title="Reset email address?"
           description={
             <span data-testid="incoming-email-reset-confirmation">
-              {
-                "This monitor will get a new, randomly generated email address. "
-              }
+              {translator.translateText(
+                "This monitor will get a new, randomly generated email address.",
+              )}{" "}
               {currentAddress ? (
+                <TranslatedSentence
+                  template="The current address {{address}} will stop working immediately, and email sent to it will be ignored."
+                  slots={{
+                    address: (
+                      <span className="font-mono font-medium text-gray-900">
+                        {currentAddress}
+                      </span>
+                    ),
+                  }}
+                />
+              ) : (
+                translator.translateText(
+                  "The current address will stop working immediately, and email sent to it will be ignored.",
+                )
+              )}{" "}
+              {props.customLocalPart ? (
                 <>
-                  {"The current address "}
-                  <span className="font-mono font-medium text-gray-900">
-                    {currentAddress}
-                  </span>
-                  {
-                    " will stop working immediately, and email sent to it will be ignored. "
-                  }
+                  {translator.translateText(
+                    "Your custom address will be removed.",
+                  )}{" "}
                 </>
               ) : (
-                "The current address will stop working immediately, and email sent to it will be ignored. "
+                <></>
               )}
-              {props.customLocalPart
-                ? "Your custom address will be removed. "
-                : ""}
-              {"Update every system that sends email to this monitor."}
+              {translator.translateText(
+                "Update every system that sends email to this monitor.",
+              )}
             </span>
           }
           submitButtonText="Reset Address"
@@ -351,7 +374,14 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
                   localPart: true,
                 },
                 title: "Address name",
-                description: `${CUSTOM_LOCAL_PART_MIN_LENGTH} to ${CUSTOM_LOCAL_PART_MAX_LENGTH} lowercase letters, numbers, dots, hyphens or underscores. The domain is always @${INBOUND_EMAIL_DOMAIN}.`,
+                description: translator.translateTemplate(
+                  "{{min}} to {{max}} lowercase letters, numbers, dots, hyphens or underscores. The domain is always @{{domain}}.",
+                  {
+                    min: CUSTOM_LOCAL_PART_MIN_LENGTH,
+                    max: CUSTOM_LOCAL_PART_MAX_LENGTH,
+                    domain: INBOUND_EMAIL_DOMAIN,
+                  },
+                ),
                 fieldType: FormFieldSchemaType.Text,
                 placeholder: "nightly-backups",
                 required: true,
@@ -375,13 +405,19 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
                       data-testid="incoming-email-custom-address-preview"
                       className="mt-2 text-sm text-gray-500"
                     >
-                      {"New address: "}
-                      <span className="font-mono text-gray-900">
-                        {getIncomingEmailAddress(
-                          props.secretKey,
-                          normalizeLocalPart(value),
-                        )}
-                      </span>
+                      <TranslatedSentence
+                        template="New address: {{address}}"
+                        slots={{
+                          address: (
+                            <span className="font-mono text-gray-900">
+                              {getIncomingEmailAddress(
+                                props.secretKey,
+                                normalizeLocalPart(value),
+                              )}
+                            </span>
+                          ),
+                        }}
+                      />
                     </p>
                   );
                 },
@@ -398,7 +434,10 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
           title="Email address updated"
           description={
             addressChange.previousAddress
-              ? `This monitor now receives email at the address below. The previous address (${addressChange.previousAddress}) no longer works.`
+              ? translator.translateTemplate(
+                  "This monitor now receives email at the address below. The previous address ({{address}}) no longer works.",
+                  { address: addressChange.previousAddress },
+                )
               : "This monitor now receives email at the address below."
           }
           submitButtonText="Done"

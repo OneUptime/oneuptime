@@ -34,6 +34,7 @@ import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
 import SlackChannelsCard from "./SlackChannelsCard";
+import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -384,6 +385,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
               setIsProjectAccountConnected(false);
               setWorkspaceProjectAuthTokenId(null);
+
+              /*
+               * Every Workspace menu in the project lists only connected
+               * workspaces: ask again, so they stop listing this one.
+               */
+              ConnectedWorkspaces.refresh().catch(() => {
+                // A failed request leaves the menus as they were.
+              });
             } else {
               setError(
                 <div>

@@ -37,6 +37,8 @@ import StatusPageReportPeriodUtil, {
 import Timezone from "Common/Types/Timezone";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface TestEmailObject {
   email: Email;
@@ -119,6 +121,7 @@ const fromFormValues: FromFormValuesFunction = (
 const ReportPeriodPreview: FunctionComponent<ReportSettings> = (
   props: ReportSettings,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const timezone: Timezone =
     props.reportTimezone || StatusPageReportPeriodUtil.DEFAULT_TIMEZONE;
 
@@ -168,18 +171,26 @@ const ReportPeriodPreview: FunctionComponent<ReportSettings> = (
   return (
     <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-4 space-y-2">
       {row(
-        "Next report",
+        translator.translateTerm("Next report"),
         nextSendAt
           ? OneUptimeDate.getDateAsFormattedStringInTimezone({
               date: nextSendAt,
               timezone: timezone,
               showWeekday: true,
             })
-          : "Set a first report date to schedule one.",
+          : translator.translateTemplate(
+              "Set a first report date to schedule one.",
+            ),
       )}
-      {row("Covering", `${period.periodName} (${period.reportDates})`)}
+      {row(
+        translator.translateTerm("Covering"),
+        `${period.periodName} (${period.reportDates})`,
+      )}
       <p className="text-xs text-gray-500">
-        Times and period boundaries are resolved in {timezone.toString()}.
+        {translator.translateTemplate(
+          "Times and period boundaries are resolved in {{timezone}}.",
+          { timezone: timezone.toString() },
+        )}
       </p>
     </div>
   );
@@ -188,6 +199,7 @@ const ReportPeriodPreview: FunctionComponent<ReportSettings> = (
 const StatusPageReports: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
@@ -457,8 +469,17 @@ const StatusPageReports: FunctionComponent<
                   <p>
                     {item.reportPeriodType ===
                     StatusPageReportPeriodType.PreviousCalendarPeriod
-                      ? "The previous whole calendar period"
-                      : `A rolling ${item.reportDataInDays || StatusPageReportPeriodUtil.DEFAULT_REPORT_DATA_IN_DAYS} days`}
+                      ? translator.translateText(
+                          "The previous whole calendar period",
+                        )
+                      : translator.translatePlural(
+                          {
+                            one: "A rolling {{count}} day",
+                            other: "A rolling {{count}} days",
+                          },
+                          item.reportDataInDays ||
+                            StatusPageReportPeriodUtil.DEFAULT_REPORT_DATA_IN_DAYS,
+                        )}
                   </p>
                 );
               },

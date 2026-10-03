@@ -128,6 +128,34 @@ describe("CollapsibleSection", () => {
     expect(header()).not.toHaveTextContent("Configured");
   });
 
+  test("a badge that does not fit beside the title goes under it", () => {
+    /*
+     * On a phone, "Advanced" and a summary such as "When no criteria match:
+     * Operational" do not fit on one line. The title row wraps, so the
+     * badge drops under the title instead of running off the header - and
+     * keeps the 8px gap it always had when it does fit.
+     */
+    renderSection({
+      defaultCollapsed: true,
+      badge: "When no criteria match: Operational",
+    });
+
+    const heading: HTMLElement = screen.getByTestId(
+      "collapsible-section-heading",
+    );
+
+    expect(heading).toHaveClass("flex", "flex-wrap", "gap-x-2");
+
+    const badge: HTMLElement = screen
+      .getByText("When no criteria match: Operational")
+      .closest("span.max-w-full")! as HTMLElement;
+
+    expect(badge).not.toBeNull();
+    expect(badge.parentElement).toBe(heading);
+    // The gap comes from the row now; a margin as well would double it.
+    expect(badge).not.toHaveClass("ml-2");
+  });
+
   test("two sections never share an id", () => {
     render(
       <>
@@ -148,5 +176,62 @@ describe("CollapsibleSection", () => {
 
     expect(controlled).toHaveLength(2);
     expect(new Set(controlled).size).toBe(2);
+  });
+});
+
+/*
+ * A folded section can say what is inside it in a line under its title - a
+ * form's "Subscriber Notifications" folded to the sentence that says who is
+ * told and when - so a reader knows without opening it. It is for the folded
+ * state only: open, the fields say it themselves and the description shows.
+ */
+describe("CollapsibleSection's folded line", () => {
+  const SUMMARY: string =
+    "Subscribers are notified when it is scheduled, when it starts and when it ends.";
+
+  test("shows under the title while folded, and describes the header", () => {
+    renderSection({
+      defaultCollapsed: true,
+      description: "Shown while open.",
+      collapsedDescription: SUMMARY,
+    });
+
+    const summary: HTMLElement = screen.getByTestId(
+      "collapsible-section-summary",
+    );
+
+    expect(summary).toHaveTextContent(SUMMARY);
+    // It wraps on a narrow screen rather than being cut off.
+    expect(summary).not.toHaveClass("truncate");
+    expect(header()).toHaveAttribute("aria-describedby", summary.id);
+    expect(header()).toHaveAccessibleDescription(SUMMARY);
+    expect(screen.queryByText("Shown while open.")).toBeNull();
+  });
+
+  test("gives way to the description once open, and comes back when folded", () => {
+    renderSection({
+      defaultCollapsed: true,
+      description: "Shown while open.",
+      collapsedDescription: SUMMARY,
+    });
+
+    fireEvent.click(header());
+
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+    expect(header()).not.toHaveAttribute("aria-describedby");
+    expect(screen.getByText("Shown while open.")).toBeInTheDocument();
+
+    fireEvent.click(header());
+
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      SUMMARY,
+    );
+  });
+
+  test("is not drawn when there is nothing to say", () => {
+    renderSection({ defaultCollapsed: true });
+
+    expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
+    expect(header()).not.toHaveAttribute("aria-describedby");
   });
 });

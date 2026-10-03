@@ -23,9 +23,10 @@ jobs:
     # (App/jest.config.json sets isolatedModules) and runs on jest's worker
     # pool, which took the whole suite to under three minutes of test time.
     #
-    # Nothing goes unchecked: the compile-app job in the Compile workflow has
-    # every App test file as a tsc program root, and checks the whole program
-    # once in about a minute rather than 338 times over.
+    # Nothing goes unchecked: the Compile workflow's Compile App step (in its
+    # compile-services job) has every App test file as a tsc program root, and
+    # checks the whole program once in about a minute rather than 338 times
+    # over.
     #
     # This cap is the tripwire. The suite has room to grow several times over
     # before it comes close, so if the job ever hits it something has regressed

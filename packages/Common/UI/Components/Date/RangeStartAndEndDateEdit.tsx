@@ -10,6 +10,10 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import OneUptimeDate from "../../../Types/Date";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import { getTimeRangeLabel } from "./TimeRangePickerDropdown";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   value?: RangeStartAndEndDateTime | undefined;
@@ -44,6 +48,7 @@ const QUICK_RANGES: Array<TimeRange> = [
 const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const selectedRange: TimeRange =
     props.value?.range || TimeRange.PAST_ONE_HOUR;
   const isCustom: boolean = selectedRange === TimeRange.CUSTOM;
@@ -121,10 +126,10 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
       <div
         className="md:w-52 md:shrink-0 md:pr-4 md:max-h-96 md:overflow-y-auto"
         role="radiogroup"
-        aria-label="Time range"
+        aria-label={translator.translateText("Time range")}
       >
         <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Quick ranges
+          {translator.translateText("Quick ranges")}
         </div>
         <div className="grid grid-cols-2 gap-1 md:grid-cols-1">
           {QUICK_RANGES.map((range: TimeRange) => {
@@ -145,7 +150,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
                     : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                {range}
+                {translator.translateText(getTimeRangeLabel(range))}
               </button>
             );
           })}
@@ -163,7 +168,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
             }`}
           >
             <Icon icon={IconProp.Calendar} className="h-4 w-4" />
-            Custom range
+            {translator.translateText("Custom range")}
           </button>
         </div>
       </div>
@@ -173,10 +178,12 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         {isCustom ? (
           <div>
             <div className="text-sm font-medium text-gray-900">
-              Custom range
+              {translator.translateText("Custom range")}
             </div>
             <div className="mt-0.5 text-xs text-gray-500">
-              Pick the exact start and end date &amp; time.
+              {translator.translateText(
+                "Pick the exact start and end date & time.",
+              )}
             </div>
             <StartAndEndDate
               type={StartAndEndDateType.DateTime}
@@ -195,11 +202,16 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
               <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
                 <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
                 <span>
-                  Showing{" "}
-                  <span className="font-medium text-gray-700">
-                    {customDuration}
-                  </span>{" "}
-                  of data.
+                  <TranslatedSentence
+                    template="Showing {{duration}} of data."
+                    slots={{
+                      duration: (
+                        <span className="font-medium text-gray-700">
+                          {customDuration}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
               </div>
             ) : (
@@ -209,27 +221,35 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         ) : (
           <div>
             <div className="text-sm font-medium text-gray-900">
-              {selectedRange}
+              {translator.translateText(getTimeRangeLabel(selectedRange))}
             </div>
             <div className="mt-0.5 text-xs text-gray-500">
-              Relative to now &mdash; updates every time the dashboard loads.
+              {translator.translateText(
+                "Relative to now — updates every time the dashboard loads.",
+              )}
             </div>
             <div className="mt-3 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">From</span>
+                <span className="text-gray-500">
+                  {translator.translateText("From")}
+                </span>
                 <span className="font-medium text-gray-900">
                   {formatDateTime(resolvedRange.startValue)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">To</span>
+                <span className="text-gray-500">
+                  {translator.translateText("To")}
+                </span>
                 <span className="font-medium text-gray-900">
                   {formatDateTime(resolvedRange.endValue)}
                 </span>
               </div>
               {previewDuration ? (
                 <div className="flex items-center justify-between border-t border-gray-200 pt-2 text-sm">
-                  <span className="text-gray-500">Duration</span>
+                  <span className="text-gray-500">
+                    {translator.translateText("Duration")}
+                  </span>
                   <span className="font-medium text-gray-900">
                     {previewDuration}
                   </span>

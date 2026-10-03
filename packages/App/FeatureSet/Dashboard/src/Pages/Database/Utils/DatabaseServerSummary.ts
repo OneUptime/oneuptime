@@ -2,6 +2,10 @@ import { DATABASE_SERVER_LIVE_WINDOW_MINUTES } from "./DatabaseServerPresentatio
 import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
 } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The numbers behind the stat strip at the top of the Databases list, and
@@ -54,13 +58,20 @@ export function isDatabaseFleetSummaryStale(data: {
  * Short, lowercase source names for the breakdown line — "4 from traces ·
  * 2 Kubernetes · 1 manual" reads better in a tile than the filter labels.
  */
+// Each source's share of the fleet, as the strip words it: "3 collector".
 const SOURCE_SHORT_LABELS: Record<DatabaseServerDiscoverySource, string> = {
-  [DatabaseServerDiscoverySource.Collector]: "collector",
-  [DatabaseServerDiscoverySource.ClientSpans]: "from traces",
-  [DatabaseServerDiscoverySource.Kubernetes]: "Kubernetes",
-  [DatabaseServerDiscoverySource.Docker]: "Docker",
-  [DatabaseServerDiscoverySource.Podman]: "Podman",
-  [DatabaseServerDiscoverySource.Manual]: "manual",
+  [DatabaseServerDiscoverySource.Collector]: translationKey(
+    "{{count}} collector",
+  ),
+  [DatabaseServerDiscoverySource.ClientSpans]: translationKey(
+    "{{count}} from traces",
+  ),
+  [DatabaseServerDiscoverySource.Kubernetes]: translationKey(
+    "{{count}} Kubernetes",
+  ),
+  [DatabaseServerDiscoverySource.Docker]: translationKey("{{count}} Docker"),
+  [DatabaseServerDiscoverySource.Podman]: translationKey("{{count}} Podman"),
+  [DatabaseServerDiscoverySource.Manual]: translationKey("{{count}} manual"),
 };
 
 function formatCount(n: number): string {
@@ -117,7 +128,9 @@ export function describeDatabaseSourceBreakdown(
         source: DatabaseServerDiscoverySource;
         count: number;
       }): string => {
-        return `${formatCount(entry.count)} ${SOURCE_SHORT_LABELS[entry.source]}`;
+        return translateTemplate(SOURCE_SHORT_LABELS[entry.source], {
+          count: formatCount(entry.count),
+        });
       },
     )
     .join(" · ");
@@ -148,7 +161,9 @@ export function summarizeDatabaseFleet(
     {
       title: "Seen recently",
       value: formatCount(seen),
-      sublabel: `in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} min`,
+      sublabel: translateTemplate("in the last {{minutes}} min", {
+        minutes: DATABASE_SERVER_LIVE_WINDOW_MINUTES,
+      }),
     },
     {
       title: "Engine metrics",
@@ -158,7 +173,9 @@ export function summarizeDatabaseFleet(
           ? "—"
           : connected === 0
             ? "no Database Agent connected yet"
-            : `${Math.round((connected / total) * 100)}% of databases`,
+            : translateTemplate("{{percent}}% of databases", {
+                percent: Math.round((connected / total) * 100),
+              }),
     },
     {
       /*

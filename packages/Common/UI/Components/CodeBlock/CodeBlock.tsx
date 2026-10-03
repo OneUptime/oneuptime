@@ -13,6 +13,8 @@ import React, {
 import hljs, { resolveRegisteredLanguage } from "./LanguageRegistry";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   code: string | ReactElement;
@@ -24,6 +26,7 @@ export interface ComponentProps {
 const CodeBlock: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [copied, setCopied] = useState<boolean>(false);
 
   const handleCopy: () => void = (): void => {
@@ -79,8 +82,12 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
         <button
           onClick={handleCopy}
           className="absolute top-2 right-2 p-2 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-all opacity-70 hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100 z-10"
-          title={copied ? "Copied!" : "Copy to clipboard"}
-          aria-label={copied ? "Copied" : "Copy to clipboard"}
+          title={translator.translateText(
+            copied ? "Copied!" : "Copy to clipboard",
+          )}
+          aria-label={translator.translateText(
+            copied ? "Copied" : "Copy to clipboard",
+          )}
           type="button"
         >
           <Icon

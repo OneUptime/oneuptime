@@ -10,6 +10,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -76,6 +78,7 @@ interface CardData {
 const ResourceActivityCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   const [incidentCount, setIncidentCount] = useState<number | null>(null);
@@ -257,10 +260,13 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
   return (
     <div className="mb-6">
       <div className="mb-3">
-        <h2 className="text-sm font-semibold text-gray-900">Activity</h2>
+        <h2 className="text-sm font-semibold text-gray-900">
+          {translator.translateText("Activity")}
+        </h2>
         <p className="text-xs text-gray-500">
-          Current incidents, alerts, and scheduled maintenance impacting this
-          resource. Click a card to see the full list.
+          {translator.translateText(
+            "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+          )}
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -273,7 +279,7 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {card.title}
+                  {translator.translateText(card.title)}
                 </span>
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-md ${card.iconBg} ring-1 ring-inset ${card.iconRing}`}
@@ -296,10 +302,10 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               <div className="mt-1 text-xs text-gray-500">
-                {card.description}
+                {translator.translateText(card.description)}
               </div>
               <div className="mt-3 flex items-center gap-1 text-xs font-medium text-indigo-600 group-hover:text-indigo-700">
-                <span>View all</span>
+                <span>{translator.translateText("View all")}</span>
                 <Icon icon={IconProp.ArrowRight} className="h-3 w-3" />
               </div>
             </Link>

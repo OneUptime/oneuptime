@@ -23,6 +23,8 @@ import RoleLabel from "Common/UI/Components/RoleLabel/RoleLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUser from "../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface RoleAssignment {
   roleId: string;
@@ -43,9 +45,17 @@ interface RoleData {
   isPrimaryRole: boolean;
 }
 
+/*
+ * Who takes each incident role, one card per role: the role's name, a
+ * Primary tag on the roles the person declaring takes when nobody is picked
+ * for them, the people picked so far, and a picker for one more - for a role
+ * that takes only one person, until it has one. Incident episodes use it too
+ * (IncidentEpisodeRoleFormField): they share the project's incident roles.
+ */
 const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
   props: IncidentRoleFormFieldProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [roles, setRoles] = useState<Array<RoleData>>([]);
@@ -63,7 +73,10 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
         if (!projectId) {
-          setError("Project not found");
+          setError(
+            translator.translateText("Project not found") ||
+              "Project not found",
+          );
           setIsLoading(false);
           return;
         }
@@ -206,8 +219,7 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
   if (roles.length === 0) {
     return (
       <p className="text-gray-500">
-        No incident roles defined. Go to Settings {">"} Incident Roles to create
-        roles.
+        {translator.translateText("No incident roles found.")}
       </p>
     );
   }
@@ -235,12 +247,7 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                 />
                 {role.isPrimaryRole && (
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
-                    Primary
-                  </span>
-                )}
-                {role.canAssignMultipleUsers && (
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                    Multiple
+                    {translator.translateText("Primary")}
                   </span>
                 )}
               </div>
@@ -259,9 +266,13 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                       key={userId}
                       className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm"
                     >
-                      <span>{userOption?.label || "Unknown User"}</span>
+                      <span>
+                        {userOption?.label ||
+                          translator.translateText("Unknown User")}
+                      </span>
                       <button
                         type="button"
+                        aria-label={translator.translateText("Remove")}
                         onClick={() => {
                           removeUserFromRole(role.id.toString(), userId);
                         }}
@@ -280,7 +291,7 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <Dropdown
-                    placeholder={`Select user for ${role.name}`}
+                    placeholder="Select User"
                     options={userOptions.filter((opt: DropdownOption) => {
                       // Filter out already selected users
                       return !selectedUsers.includes(opt.value as string);
@@ -301,7 +312,9 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
 
             {!canAddMore && (
               <p className="text-xs text-gray-500">
-                Only one user can be assigned to this role.
+                {translator.translateText(
+                  "Only one user can be assigned to this role.",
+                )}
               </p>
             )}
           </div>

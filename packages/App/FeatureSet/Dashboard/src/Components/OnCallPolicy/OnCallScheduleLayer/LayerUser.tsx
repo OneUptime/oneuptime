@@ -28,6 +28,8 @@ import {
   Droppable,
   DroppableProvided,
 } from "react-beautiful-dnd";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -37,6 +39,7 @@ export interface ComponentProps {
 const LayerUser: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [users, setUsers] = useState<Array<OnCallDutyPolicyScheduleLayerUser>>(
     [],
   );
@@ -216,7 +219,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         {canReorder ? (
           <span
             {...dragProvided.dragHandleProps}
-            aria-label="Drag to reorder"
+            aria-label={translator.translateText("Drag to reorder")}
             className="flex h-8 w-5 flex-shrink-0 cursor-grab items-center justify-center text-gray-300 transition-colors hover:text-gray-500 active:cursor-grabbing"
           >
             <Icon icon={IconProp.GripVertical} className="h-5 w-5" />
@@ -234,7 +237,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium text-gray-900">
-            {name || email || "Unknown user"}
+            {name || email || translator.translateText("Unknown user")}
           </div>
           {name && email ? (
             <div className="truncate text-xs text-gray-500">{email}</div>
@@ -243,7 +246,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
 
         <button
           type="button"
-          aria-label="Remove user from layer"
+          aria-label={translator.translateText("Remove user from layer")}
           disabled={isBusy}
           onClick={() => {
             deleteUser(layerUser);
@@ -309,9 +312,13 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           <span className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 ring-1 ring-inset ring-gray-100">
             <Icon icon={IconProp.UserGroup} className="h-5 w-5" />
           </span>
-          <p className="text-sm font-medium text-gray-900">No users yet</p>
+          <p className="text-sm font-medium text-gray-900">
+            {translator.translateText("No users yet")}
+          </p>
           <p className="mt-0.5 text-sm text-gray-500">
-            Add users to put them into this layer&apos;s on-call rotation.
+            {translator.translateText(
+              "Add users to put them into this layer's on-call rotation.",
+            )}
           </p>
         </div>
       );

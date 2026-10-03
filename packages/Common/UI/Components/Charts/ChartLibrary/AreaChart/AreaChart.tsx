@@ -46,6 +46,8 @@ import useChartAnnotations, {
   UseChartAnnotationsResult,
 } from "../Annotations/UseChartAnnotations";
 import { cx } from "../Utils/Cx";
+import { Translator } from "../../../../Utils/TranslateTemplate";
+import useTranslator from "../../../../Utils/UseTranslator";
 import {
   DeferredChartClick,
   useDeferredChartClick,
@@ -501,6 +503,8 @@ const ChartTooltip: ({
   label,
   valueFormatter,
 }: ChartTooltipProps): React.JSX.Element | null => {
+  const translator: Translator = useTranslator();
+
   if (active && payload && payload.length) {
     /*
      * Highest value at the hovered timestamp first, capped — on a grouped
@@ -566,7 +570,13 @@ const ChartTooltip: ({
           )}
           {overflowCount > 0 ? (
             <p className={cx("pt-1 text-xs", "text-gray-400")}>
-              +{overflowCount} more series — highest values shown
+              {translator.translatePlural(
+                {
+                  one: "+{{count}} more series — highest values shown",
+                  other: "+{{count}} more series — highest values shown",
+                },
+                overflowCount,
+              )}
             </p>
           ) : null}
         </div>

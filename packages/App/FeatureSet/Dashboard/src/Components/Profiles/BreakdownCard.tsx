@@ -9,6 +9,9 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -58,6 +61,7 @@ const BREAKDOWN_LIMIT: number = 10;
 const BreakdownCard: FunctionComponent<BreakdownCardProps> = (
   props: BreakdownCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [breakdownBy, setBreakdownBy] = useState<string>(SERVICE_BREAKDOWN_KEY);
   const [items, setItems] = useState<Array<BreakdownItem>>([]);
   const [totalSampleCount, setTotalSampleCount] = useState<number>(0);
@@ -264,10 +268,13 @@ const BreakdownCard: FunctionComponent<BreakdownCardProps> = (
     <div className="rounded-xl border border-gray-200 bg-white p-4">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Breakdown</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translator.translateText("Breakdown")}
+          </h3>
           <p className="mt-0.5 text-xs text-gray-500">
-            Share of samples in the window — a value that dominates here is
-            where to look first.
+            {translator.translateText(
+              "Share of samples in the window — a value that dominates here is where to look first.",
+            )}
           </p>
         </div>
         <select
@@ -283,16 +290,22 @@ const BreakdownCard: FunctionComponent<BreakdownCardProps> = (
             void loadAttributes();
           }}
         >
-          <option value={SERVICE_BREAKDOWN_KEY}>by Service</option>
+          <option value={SERVICE_BREAKDOWN_KEY}>
+            {translator.translateText("by Service")}
+          </option>
           {attributes.map((attribute: string) => {
             return (
               <option key={attribute} value={attribute}>
-                by {attribute}
+                {translator.translateTemplate("by {{attribute}}", {
+                  attribute: attribute,
+                })}
               </option>
             );
           })}
           {attributesLoading && (
-            <option disabled={true}>Loading attributes…</option>
+            <option disabled={true}>
+              {translator.translateText("Loading attributes…")}
+            </option>
           )}
         </select>
       </div>
@@ -323,7 +336,7 @@ const BreakdownCard: FunctionComponent<BreakdownCardProps> = (
 
       {!isLoading && !error && items.length === 0 && (
         <p className="py-6 text-center text-xs text-gray-500">
-          No data to break down in this window.
+          {translator.translateText("No data to break down in this window.")}
         </p>
       )}
 
@@ -348,12 +361,24 @@ const BreakdownCard: FunctionComponent<BreakdownCardProps> = (
                     {resolveLabel(item)}
                   </span>
                   <span className="flex-shrink-0 text-[11px] text-gray-500">
-                    <span className="font-mono font-semibold text-gray-900">
-                      {item.sampleCount.toLocaleString()}
-                    </span>{" "}
-                    samples · {item.profileCount.toLocaleString()}{" "}
-                    {item.profileCount === 1 ? "profile" : "profiles"} ·{" "}
-                    {ProfileUtil.formatPercent(item.share)}
+                    <TranslatedSentence
+                      template={{
+                        one: "{{samples}} samples · {{count}} profile · {{share}}",
+                        other:
+                          "{{samples}} samples · {{count}} profiles · {{share}}",
+                      }}
+                      count={item.profileCount}
+                      values={{
+                        share: ProfileUtil.formatPercent(item.share),
+                      }}
+                      slots={{
+                        samples: (
+                          <span className="font-mono font-semibold text-gray-900">
+                            {translator.formatNumber(item.sampleCount)}
+                          </span>
+                        ),
+                      }}
+                    />
                   </span>
                 </div>
                 <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -367,7 +392,13 @@ const BreakdownCard: FunctionComponent<BreakdownCardProps> = (
           })}
           {totalSampleCount > 0 && (
             <div className="pt-2 text-right text-[11px] text-gray-400">
-              {totalSampleCount.toLocaleString()} samples in window
+              {translator.translatePlural(
+                {
+                  one: "{{count}} sample in window",
+                  other: "{{count}} samples in window",
+                },
+                totalSampleCount,
+              )}
             </div>
           )}
         </div>

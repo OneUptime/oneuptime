@@ -57,10 +57,18 @@ import {
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
 import {
   buildExceptionTrendZoomRequest,
-  describeExceptionTrendZoomWindow,
+  ExceptionTrendZoomWindowEdges,
   getExceptionTrendPresetTimeRange,
+  getExceptionTrendZoomWindowEdges,
   isExceptionTrendIntraday,
 } from "./ExceptionTrendZoom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export const EXCEPTION_TREND_COLORS: { unhandled: string; handled: string } = {
   unhandled: "#ef4444",
@@ -105,6 +113,7 @@ function formatTick(time: string, isIntraday: boolean): string {
 const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
   props: TrendTooltipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const row: ExceptionTrendRow | undefined = props.payload?.[0]?.payload;
 
   if (!props.active || !row) {
@@ -119,7 +128,11 @@ const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
         {OneUptimeDate.getDateAsLocalShortDateTimeString(new Date(row.timeMs))}
       </div>
       <div className="mt-1 text-gray-600">
-        {formatOccurrenceCount(total)} occurrence{total === 1 ? "" : "s"}
+        {translator.translatePlural(
+          { one: "{{count}} occurrence", other: "{{count}} occurrences" },
+          total,
+          { count: formatOccurrenceCount(total) },
+        )}
       </div>
       {total > 0 && (
         <div className="mt-1 space-y-0.5">
@@ -129,7 +142,8 @@ const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
                 className="h-2 w-2 rounded-sm"
                 style={{ backgroundColor: EXCEPTION_TREND_COLORS.unhandled }}
               />
-              Unhandled {formatOccurrenceCount(row.unhandled)}
+              {translator.translateText("Unhandled")}{" "}
+              {formatOccurrenceCount(row.unhandled)}
             </div>
           )}
           {row.handled > 0 && (
@@ -138,7 +152,8 @@ const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
                 className="h-2 w-2 rounded-sm"
                 style={{ backgroundColor: EXCEPTION_TREND_COLORS.handled }}
               />
-              Handled {formatOccurrenceCount(row.handled)}
+              {translator.translateText("Handled")}{" "}
+              {formatOccurrenceCount(row.handled)}
             </div>
           )}
         </div>
@@ -160,6 +175,7 @@ const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
 const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [windowKey, setWindowKey] = useState<ExceptionTrendWindowKey>(
     DEFAULT_EXCEPTION_TREND_WINDOW,
   );
@@ -321,19 +337,52 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
       )
     : windowKey === ExceptionTrendWindowKey.Day;
 
-  const windowPhrase: string = zoomWindow
-    ? describeExceptionTrendZoomWindow(zoomWindow)
-    : `in the ${trendWindow.description}`;
+  // "last 24 hours": the preset window, as the sentences around it name it.
+  const windowTerm: TranslatableTerm = translatableTerm(
+    trendWindow.description,
+  );
+
+  const getCountDescription: () => string = (): string => {
+    const count: string = formatOccurrenceCount(summary.total);
+
+    if (zoomWindow) {
+      const edges: ExceptionTrendZoomWindowEdges =
+        getExceptionTrendZoomWindowEdges(zoomWindow);
+
+      return translator.translatePlural(
+        {
+          one: "{{count}} occurrence between {{start}} and {{end}}",
+          other: "{{count}} occurrences between {{start}} and {{end}}",
+        },
+        summary.total,
+        { count, start: edges.start, end: edges.end },
+      );
+    }
+
+    return translator.translatePlural(
+      {
+        one: "{{count}} occurrence in the {{window}}",
+        other: "{{count}} occurrences in the {{window}}",
+      },
+      summary.total,
+      { count, window: windowTerm },
+    );
+  };
 
   const description: string = !props.fingerprint
-    ? "No fingerprint was recorded, so occurrences cannot be charted."
+    ? (translator.translateText(
+        "No fingerprint was recorded, so occurrences cannot be charted.",
+      ) as string)
     : isLoading && buckets.length === 0
       ? zoomWindow
-        ? "Loading occurrences for the selected window…"
-        : `Loading occurrences for the ${trendWindow.description}…`
-      : `${formatOccurrenceCount(summary.total)} occurrence${
-          summary.total === 1 ? "" : "s"
-        } ${windowPhrase}`;
+        ? (translator.translateText(
+            "Loading occurrences for the selected window…",
+          ) as string)
+        : translator.translateTemplate(
+            "Loading occurrences for the {{window}}…",
+            { window: windowTerm },
+          )
+      : getCountDescription();
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (!props.fingerprint) {
@@ -348,7 +397,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={IconProp.Alert} className="h-5 w-5 text-gray-400" />
           <p className="text-sm font-medium text-gray-700">
-            Could not load the occurrence trend
+            {translator.translateText("Could not load the occurrence trend")}
           </p>
           <p className="text-xs text-gray-500">{error}</p>
         </div>
@@ -392,13 +441,25 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
           />
           <p className="text-sm font-medium text-gray-700">
             {zoomWindow
-              ? "No occurrences in the selected window"
-              : `No occurrences in the ${trendWindow.description}`}
+              ? translator.translateText(
+                  "No occurrences in the selected window",
+                )
+              : translator.translateTemplate(
+                  "No occurrences in the {{window}}",
+                  {
+                    window: windowTerm,
+                  },
+                )}
           </p>
           <p className="text-xs text-gray-500">
             {zoomWindow
-              ? `Double-click here or reset the zoom to see the ${trendWindow.description}.`
-              : "Try a longer window to see when it last happened."}
+              ? translator.translateTemplate(
+                  "Double-click here or reset the zoom to see the {{window}}.",
+                  { window: windowTerm },
+                )
+              : translator.translateText(
+                  "Try a longer window to see when it last happened.",
+                )}
           </p>
         </div>
       );
@@ -412,7 +473,7 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
               className="h-2.5 w-2.5 rounded-sm"
               style={{ backgroundColor: EXCEPTION_TREND_COLORS.unhandled }}
             />
-            Unhandled
+            {translator.translateText("Unhandled")}
             <span className="font-semibold tabular-nums text-gray-900">
               {formatOccurrenceCount(summary.unhandled)}
             </span>
@@ -422,21 +483,28 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
               className="h-2.5 w-2.5 rounded-sm"
               style={{ backgroundColor: EXCEPTION_TREND_COLORS.handled }}
             />
-            Handled
+            {translator.translateText("Handled")}
             <span className="font-semibold tabular-nums text-gray-900">
               {formatOccurrenceCount(summary.handled)}
             </span>
           </span>
           {summary.peakTime && (
             <span className="text-gray-500">
-              Peak{" "}
-              <span className="font-semibold tabular-nums text-gray-900">
-                {formatOccurrenceCount(summary.peakCount)}
-              </span>{" "}
-              at{" "}
-              {OneUptimeDate.getDateAsLocalShortDateTimeString(
-                OneUptimeDate.fromString(summary.peakTime),
-              )}
+              <TranslatedSentence
+                template="Peak {{count}} at {{time}}"
+                slots={{
+                  count: (
+                    <span className="font-semibold tabular-nums text-gray-900">
+                      {formatOccurrenceCount(summary.peakCount)}
+                    </span>
+                  ),
+                }}
+                values={{
+                  time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                    OneUptimeDate.fromString(summary.peakTime),
+                  ),
+                }}
+              />
             </span>
           )}
           <TimeRangeZoomHint className="ml-auto" />
@@ -555,7 +623,10 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
                     return {
                       value: option.key,
                       label: option.label,
-                      title: `Show the ${option.description}`,
+                      title: translator.translateTemplate(
+                        "Show the {{window}}",
+                        { window: translatableTerm(option.description) },
+                      ),
                     };
                   },
                 )}

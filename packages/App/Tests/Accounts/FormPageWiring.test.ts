@@ -272,7 +272,13 @@ describe("the page talks to the server through its own client only", () => {
     expect(apiPathsSource).not.toContain("incident-form");
 
     const modelSource: string = readCode(
-      nodePath.join(PACKAGES_DIR, "Common", "Models", "DatabaseModels", "Form.ts"),
+      nodePath.join(
+        PACKAGES_DIR,
+        "Common",
+        "Models",
+        "DatabaseModels",
+        "Form.ts",
+      ),
     );
     const serverApiSource: string = readCode(
       nodePath.join(PACKAGES_DIR, "Common", "Server", "API", "FormAPI.ts"),
@@ -280,7 +286,9 @@ describe("the page talks to the server through its own client only", () => {
 
     expect(modelSource).toContain('@CrudApiEndpoint(new Route("/form"))');
     expect(serverApiSource).toContain("?.toString()}/public/:shareKey`,");
-    expect(serverApiSource).toContain("?.toString()}/public/:shareKey/submit`,");
+    expect(serverApiSource).toContain(
+      "?.toString()}/public/:shareKey/submit`,",
+    );
 
     expect(utilsSource).toContain("`/${encodeURIComponent(shareKey)}`");
     expect(utilsSource).toContain("`/${encodeURIComponent(shareKey)}/submit`");
@@ -396,15 +404,50 @@ const MARKDOWN_EDITOR_SENTENCES: Array<string> = [
   "Formatting help",
 ];
 
+/*
+ * The Markdown editor's toolbar, which the editor looks up in the page's
+ * locale too: its buttons' names, and on this narrow page the words of its
+ * More formatting menu, which holds the buttons that do not fit.
+ */
+const MARKDOWN_TOOLBAR_WORDS: Array<string> = [
+  "More formatting",
+  "Bold",
+  "Italic",
+  "Underline",
+  "Strikethrough",
+  "Heading 1",
+  "Heading 2",
+  "Heading 3",
+  "Bullet List",
+  "Numbered List",
+  "Task List",
+  "Indent",
+  "Outdent",
+  "Link",
+  "Upload Image",
+  "Code",
+  "Table",
+  "Horizontal Rule",
+  "Quote",
+  "Code Block",
+  "Switch to markdown source",
+  "Switch to visual editor",
+];
+
 const FLAT_SENTENCES: Array<string> = [
   ...(Object.values(FormMessage) as Array<string>),
   ...SHARED_FORM_SENTENCES,
   ...MARKDOWN_EDITOR_SENTENCES,
+  ...MARKDOWN_TOOLBAR_WORDS,
 ];
 
 // Words a language genuinely shares with English, and nothing else.
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
-  de: ["(Optional)"],
+  de: ["(Optional)", "Link", "Code"],
+  fr: ["Code"],
+  pt: ["Link"],
+  nl: ["Code"],
+  da: ["Link"],
 };
 
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;

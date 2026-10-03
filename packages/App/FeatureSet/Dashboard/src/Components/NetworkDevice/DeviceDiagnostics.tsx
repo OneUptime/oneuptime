@@ -42,6 +42,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -72,11 +76,13 @@ interface PollData {
   consecutiveFailures: number;
 }
 
-const GONE_MESSAGE: string =
-  "This diagnostic no longer exists. The device or its probe may have been deleted.";
+const GONE_MESSAGE: string = translationKey(
+  "This diagnostic no longer exists. The device or its probe may have been deleted.",
+);
 
-const NO_PROBE_MESSAGE: string =
-  "This device has no probe assigned, so there is nothing to ping or trace it from.";
+const NO_PROBE_MESSAGE: string = translationKey(
+  "This device has no probe assigned, so there is nothing to ping or trace it from.",
+);
 
 const TONE_CLASS_NAMES: Record<PingResultTone, string> = {
   up: "text-green-700",
@@ -362,7 +368,9 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
 
       if (!diagnosticId) {
         throw new Error(
-          "The diagnostic was created but its id did not come back.",
+          translateTemplate(
+            "The diagnostic was created but its id did not come back.",
+          ),
         );
       }
 
@@ -400,8 +408,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
     if (!row.pingResult) {
       return (
         <p className="text-sm text-gray-500">
-          {translateString("The probe reported no ping statistics.") ||
-            "The probe reported no ping statistics."}
+          {translateString("The probe reported no ping statistics.")}
         </p>
       );
     }
@@ -460,8 +467,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
     if (!row.traceRouteResult) {
       return (
         <p className="text-sm text-gray-500">
-          {translateString("The probe reported no path.") ||
-            "The probe reported no path."}
+          {translateString("The probe reported no path.")}
         </p>
       );
     }
@@ -475,7 +481,8 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
         </p>
         {summary.dnsLine ? (
           <p className="mt-1 text-xs text-gray-500">
-            <span className="font-medium">DNS:</span> {summary.dnsLine}
+            <span className="font-medium">{translateString("DNS:")}</span>{" "}
+            {summary.dnsLine}
           </p>
         ) : (
           <></>
@@ -509,8 +516,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
       return (
         <p className="text-sm text-red-700">
           {result.message ||
-            translateString("The diagnostic could not be started.") ||
-            "The diagnostic could not be started."}
+            translateString("The diagnostic could not be started.")}
         </p>
       );
     }
@@ -519,8 +525,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
       return (
         <p className="text-sm text-red-700">
           {result.row?.statusMessage ||
-            translateString("The probe could not run this diagnostic.") ||
-            "The probe could not run this diagnostic."}
+            translateString("The probe could not run this diagnostic.")}
         </p>
       );
     }
@@ -553,8 +558,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
             to={settingsRoute}
             className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
           >
-            {translateString("Assign a probe in Settings") ||
-              "Assign a probe in Settings"}
+            {translateString("Assign a probe in Settings")}
           </Link>
         </div>
       </div>
@@ -595,8 +599,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
 
         {!isRunning && !outcome ? (
           <p className="mt-2 text-xs text-gray-500">
-            {translateString("Runs from this device's probe.") ||
-              "Runs from this device's probe."}
+            {translateString("Runs from this device's probe.")}
           </p>
         ) : (
           <></>
@@ -608,10 +611,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
             data-testid="network-device-diagnostic-running"
           >
             <Loader loaderType={LoaderType.Beats} size={8} />
-            <span>
-              {translateString("Waiting for the probe…") ||
-                "Waiting for the probe…"}
-            </span>
+            <span>{translateString("Waiting for the probe…")}</span>
           </div>
         ) : (
           <></>

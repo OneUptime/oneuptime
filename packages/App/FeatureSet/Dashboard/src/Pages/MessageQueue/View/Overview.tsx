@@ -67,11 +67,11 @@ import {
   getMessageQueueServiceIds,
 } from "../../../Components/MessageQueue/MessageQueueTelemetryQueries";
 import {
-  MESSAGE_QUEUE_LIVENESS_DESCRIPTION,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
   formatMessageQueueDurationMs,
   formatMessageQueueErrorRate,
+  getMessageQueueLivenessDescription,
   getMessageQueueLivenessLabel,
   getMessageQueueLivenessStatus,
   getMessageQueueLivenessTone,
@@ -84,6 +84,8 @@ import {
   isMessageQueueFound,
   isNamespaceScopedMessagingSystem,
 } from "../Utils/MessageQueuePresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -112,6 +114,7 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
 const MessageQueueOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [messageQueue, setMessageQueue] = useState<MessageQueue | null>(null);
@@ -462,8 +465,12 @@ const MessageQueueOverview: FunctionComponent<
       icon: IconProp.Globe,
       label:
         namespaceScoped && (q.brokerScope || "").trim()
-          ? `Namespace: ${broker}`
-          : `Broker: ${broker}`,
+          ? translator.translateTemplate("Namespace: {{broker}}", {
+              broker: broker,
+            })
+          : translator.translateTemplate("Broker: {{broker}}", {
+              broker: broker,
+            }),
     });
   }
 
@@ -495,7 +502,17 @@ const MessageQueueOverview: FunctionComponent<
       iconColor: "rose",
       loading: telemetryLoading,
       sublabel: hasSpans
-        ? `${formatMessageQueueErrorRate(m.errorRatePercent)} of ${formatMessageQueueCount(m.total)} spans`
+        ? translator.translatePlural(
+            {
+              one: "{{rate}} of {{count}} span",
+              other: "{{rate}} of {{count}} spans",
+            },
+            m.total,
+            {
+              rate: formatMessageQueueErrorRate(m.errorRatePercent),
+              count: formatMessageQueueCount(m.total),
+            },
+          )
         : undefined,
       percent: m.errorRatePercent,
       higherIsBetter: false,
@@ -655,7 +672,7 @@ const MessageQueueOverview: FunctionComponent<
         }
         statusLabel={getMessageQueueLivenessLabel(liveness)}
         statusTone={getMessageQueueLivenessTone(liveness)}
-        statusDescription={MESSAGE_QUEUE_LIVENESS_DESCRIPTION}
+        statusDescription={getMessageQueueLivenessDescription()}
         lastSeenAt={q.lastSeenAt}
         description={q.description as string}
         chips={chips}

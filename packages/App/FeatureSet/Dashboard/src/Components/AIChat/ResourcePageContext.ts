@@ -29,6 +29,15 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import {
+  getGlobalTranslator,
+  TemplateValues,
+  translatableTerm,
+  TranslatableTerm,
+  translateTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 type NamedResource = BaseModel & { name?: string | undefined };
 
@@ -56,7 +65,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.HOSTS,
     detailPage: PageMap.HOST_VIEW,
     modelType: Host,
-    noun: "host",
+    noun: translationKey("host"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Process,
@@ -79,7 +88,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.DOCKER_HOSTS,
     detailPage: PageMap.DOCKER_HOST_VIEW,
     modelType: DockerHost,
-    noun: "Docker host",
+    noun: translationKey("Docker host"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Container,
@@ -92,7 +101,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.PODMAN_HOSTS,
     detailPage: PageMap.PODMAN_HOST_VIEW,
     modelType: PodmanHost,
-    noun: "Podman host",
+    noun: translationKey("Podman host"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Container,
@@ -105,7 +114,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.KUBERNETES_CLUSTERS,
     detailPage: PageMap.KUBERNETES_CLUSTER_VIEW,
     modelType: KubernetesCluster,
-    noun: "Kubernetes cluster",
+    noun: translationKey("Kubernetes cluster"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Namespace,
@@ -178,7 +187,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.DOCKER_SWARM_CLUSTERS,
     detailPage: PageMap.DOCKER_SWARM_CLUSTER_VIEW,
     modelType: DockerSwarmCluster,
-    noun: "Docker Swarm cluster",
+    noun: translationKey("Docker Swarm cluster"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Node,
@@ -221,7 +230,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.PROXMOX_CLUSTERS,
     detailPage: PageMap.PROXMOX_CLUSTER_VIEW,
     modelType: ProxmoxCluster,
-    noun: "Proxmox cluster",
+    noun: translationKey("Proxmox cluster"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Node,
@@ -244,7 +253,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.VMWARE_VCENTERS,
     detailPage: PageMap.VMWARE_VCENTER_VIEW,
     modelType: VMwareVCenter,
-    noun: "vCenter",
+    noun: translationKey("vCenter"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Host,
@@ -272,7 +281,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.CEPH_CLUSTERS,
     detailPage: PageMap.CEPH_CLUSTER_VIEW,
     modelType: CephCluster,
-    noun: "Ceph cluster",
+    noun: translationKey("Ceph cluster"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Osd,
@@ -290,7 +299,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.SERVERLESS_FUNCTIONS,
     detailPage: PageMap.SERVERLESS_FUNCTION_VIEW,
     modelType: ServerlessFunction,
-    noun: "serverless function",
+    noun: translationKey("serverless function"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Instance,
@@ -302,7 +311,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.CLOUD_RESOURCES,
     detailPage: PageMap.CLOUD_RESOURCE_VIEW,
     modelType: CloudResource,
-    noun: "cloud environment",
+    noun: translationKey("cloud environment"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Instance,
@@ -314,7 +323,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.IOT_FLEETS,
     detailPage: PageMap.IOT_FLEET_VIEW,
     modelType: IoTFleet,
-    noun: "IoT fleet",
+    noun: translationKey("IoT fleet"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Device,
@@ -331,7 +340,7 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.NETWORK_DEVICES,
     detailPage: PageMap.NETWORK_DEVICE_VIEW,
     modelType: NetworkDevice,
-    noun: "network device",
+    noun: translationKey("network device"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Interface,
@@ -344,24 +353,67 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
     listPage: PageMap.DATABASE_SERVERS,
     detailPage: PageMap.DATABASE_SERVER_VIEW,
     modelType: DatabaseServer,
-    noun: "database",
+    noun: translationKey("database"),
     subresources: [],
   },
 };
 
+/*
+ * What a child resource is called in a sentence. English keys: they are
+ * sent to the server as they are, and put into a translated sentence as a
+ * term.
+ */
+const SUBRESOURCE_LABELS: Record<AIResourceSubresourceKind, string> = {
+  [AIResourceSubresourceKind.Namespace]: translationKey("namespace"),
+  [AIResourceSubresourceKind.Pod]: translationKey("pod"),
+  [AIResourceSubresourceKind.Deployment]: translationKey("deployment"),
+  [AIResourceSubresourceKind.StatefulSet]: translationKey("StatefulSet"),
+  [AIResourceSubresourceKind.DaemonSet]: translationKey("DaemonSet"),
+  [AIResourceSubresourceKind.Job]: translationKey("job"),
+  [AIResourceSubresourceKind.CronJob]: translationKey("CronJob"),
+  [AIResourceSubresourceKind.Node]: translationKey("node"),
+  [AIResourceSubresourceKind.Container]: translationKey("container"),
+  [AIResourceSubresourceKind.PersistentVolumeClaim]: translationKey(
+    "persistent volume claim",
+  ),
+  [AIResourceSubresourceKind.PersistentVolume]:
+    translationKey("persistent volume"),
+  [AIResourceSubresourceKind.HorizontalPodAutoscaler]: translationKey(
+    "horizontal pod autoscaler",
+  ),
+  [AIResourceSubresourceKind.VerticalPodAutoscaler]: translationKey(
+    "vertical pod autoscaler",
+  ),
+  [AIResourceSubresourceKind.Service]: translationKey("service"),
+  [AIResourceSubresourceKind.Task]: translationKey("task"),
+  [AIResourceSubresourceKind.Stack]: translationKey("stack"),
+  [AIResourceSubresourceKind.Network]: translationKey("network"),
+  [AIResourceSubresourceKind.Volume]: translationKey("volume"),
+  [AIResourceSubresourceKind.Secret]: translationKey("secret"),
+  [AIResourceSubresourceKind.Config]: translationKey("config"),
+  [AIResourceSubresourceKind.Guest]: translationKey("guest"),
+  [AIResourceSubresourceKind.Storage]: translationKey("storage"),
+  [AIResourceSubresourceKind.Host]: translationKey("host"),
+  [AIResourceSubresourceKind.VirtualMachine]: translationKey("virtual machine"),
+  [AIResourceSubresourceKind.Datastore]: translationKey("datastore"),
+  [AIResourceSubresourceKind.Cluster]: translationKey("cluster"),
+  [AIResourceSubresourceKind.Osd]: translationKey("OSD"),
+  [AIResourceSubresourceKind.Pool]: translationKey("pool"),
+  [AIResourceSubresourceKind.Device]: translationKey("device"),
+  [AIResourceSubresourceKind.Process]: translationKey("process"),
+  [AIResourceSubresourceKind.WindowsService]: translationKey("Windows service"),
+  [AIResourceSubresourceKind.SystemdUnit]: translationKey("systemd unit"),
+  [AIResourceSubresourceKind.Instance]: translationKey("instance"),
+  [AIResourceSubresourceKind.Interface]: translationKey("interface"),
+};
+
 function subresourceLabel(kind: AIResourceSubresourceKind): string {
-  switch (kind) {
-    case AIResourceSubresourceKind.Osd:
-      return "OSD";
-    case AIResourceSubresourceKind.WindowsService:
-      return "Windows service";
-    case AIResourceSubresourceKind.StatefulSet:
-    case AIResourceSubresourceKind.DaemonSet:
-    case AIResourceSubresourceKind.CronJob:
-      return kind;
-    default:
-      return kind.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
-  }
+  return (
+    SUBRESOURCE_LABELS[kind] ||
+    String(kind)
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .toLowerCase()
+  );
 }
 
 function decodeExternalKey(rawKey: string): string | undefined {
@@ -476,7 +528,9 @@ export default class ResourcePageContextUtil {
         entityId,
         ...(subresource ? { subresource } : {}),
         noun,
-        chipLabel: `This ${noun}`,
+        chipLabel: translateTemplate("This {{noun}}", {
+          noun: translatableTerm(noun, { inSentence: true }),
+        }),
         icon: definition.icon,
         isEntity: true,
       };
@@ -513,8 +567,13 @@ export default class ResourcePageContextUtil {
     return item.name;
   }
 
+  /*
+   * Each question names the resource on the page, so it is built here in
+   * the reader's language; the titles are English keys the view translates.
+   */
   public static getSuggestions(
     context: DashboardPageContext,
+    translator: Translator = getGlobalTranslator(),
   ): Array<SuggestedQuestion> {
     const page: ResourcePageDefinition | undefined = context.resourceType
       ? RESOURCE_PAGES[context.resourceType]
@@ -526,45 +585,81 @@ export default class ResourcePageContextUtil {
       context.resourceType,
     );
     if (context.type === AIChatPageContextType.ResourcesList) {
+      const resources: TemplateValues = {
+        resources: translatableTerm(definition.pluralLabel, {
+          inSentence: true,
+        }),
+      };
+
       return [
         {
           icon: IconProp.Search,
           title: "Resource overview",
-          question: `List my ${definition.pluralLabel} and summarize their recorded metadata. Which resources need a closer look?`,
+          question: translator.translateTemplate(
+            "List my {{resources}} and summarize their recorded metadata. Which resources need a closer look?",
+            resources,
+          ),
         },
         {
           icon: IconProp.Heartbeat,
           title: "Connection health",
-          question: `Check connection status and last telemetry times for my ${definition.pluralLabel}, where available. Which resources have stopped reporting?`,
+          question: translator.translateTemplate(
+            "Check connection status and last telemetry times for my {{resources}}, where available. Which resources have stopped reporting?",
+            resources,
+          ),
         },
         {
           icon: IconProp.ChartBar,
           title: "Metric trends",
-          question: `Find available metrics for my ${definition.pluralLabel} and compare relevant trends over the last 24 hours.`,
+          question: translator.translateTemplate(
+            "Find available metrics for my {{resources}} and compare relevant trends over the last 24 hours.",
+            resources,
+          ),
         },
         {
           icon: IconProp.Error,
           title: "Recent errors",
-          question: `Summarize log severity, trace errors and operation latency for my ${definition.pluralLabel} over the last 6 hours. Identify affected resources and explain any gaps in telemetry.`,
+          question: translator.translateTemplate(
+            "Summarize log severity, trace errors and operation latency for my {{resources}} over the last 6 hours. Identify affected resources and explain any gaps in telemetry.",
+            resources,
+          ),
         },
       ];
     }
+    const parent: TranslatableTerm = translatableTerm(page.noun, {
+      inSentence: true,
+    });
     if (context.subresource) {
       return [
         {
           icon: IconProp.Search,
           title: "Understand this view",
-          question: `Explain the ${subresourceLabel(context.subresource.kind)} context on this page and inspect its parent ${page.noun}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.`,
+          question: translator.translateTemplate(
+            "Explain the {{child}} context on this page and inspect its parent {{parent}}. Verify the child identity before attributing findings to it; state any missing namespace or identity information.",
+            {
+              child: translatableTerm(
+                subresourceLabel(context.subresource.kind),
+                { inSentence: true },
+              ),
+              parent: parent,
+            },
+          ),
         },
         {
           icon: IconProp.ChartBar,
           title: "Parent metric trends",
-          question: `Find available metrics for the parent ${page.noun} and chart relevant trends over the last 24 hours. Clearly distinguish parent-level findings from evidence for the child resource on this page.`,
+          question: translator.translateTemplate(
+            "Find available metrics for the parent {{parent}} and chart relevant trends over the last 24 hours. Clearly distinguish parent-level findings from evidence for the child resource on this page.",
+            { parent: parent },
+          ),
         },
         {
           icon: IconProp.Error,
           title: "Parent resource errors",
-          question: `Summarize log severity, trace errors and operation latency for the parent ${page.noun} over the last 6 hours. Explain whether the evidence identifies the child resource on this page and do not assume a missing namespace.`,
+          question: translator.translateTemplate(
+            "Summarize log severity, trace errors and operation latency for the parent {{parent}} over the last 6 hours. Explain whether the evidence identifies the child resource on this page and do not assume a missing namespace.",
+            { parent: parent },
+          ),
         },
       ];
     }
@@ -572,22 +667,34 @@ export default class ResourcePageContextUtil {
       {
         icon: IconProp.Search,
         title: "Resource overview",
-        question: `Summarize this ${page.noun}'s recorded metadata and available telemetry. What needs a closer look?`,
+        question: translator.translateTemplate(
+          "Summarize this {{resource}}'s recorded metadata and available telemetry. What needs a closer look?",
+          { resource: parent },
+        ),
       },
       {
         icon: IconProp.Heartbeat,
         title: "Connection health",
-        question: `Check this ${page.noun}'s connection status and when it last sent telemetry, where available. Is data arriving?`,
+        question: translator.translateTemplate(
+          "Check this {{resource}}'s connection status and when it last sent telemetry, where available. Is data arriving?",
+          { resource: parent },
+        ),
       },
       {
         icon: IconProp.ChartBar,
         title: "Metric trends",
-        question: `Find available metrics for this ${page.noun} and chart relevant trends over the last 24 hours. Identify changes that need attention.`,
+        question: translator.translateTemplate(
+          "Find available metrics for this {{resource}} and chart relevant trends over the last 24 hours. Identify changes that need attention.",
+          { resource: parent },
+        ),
       },
       {
         icon: IconProp.Error,
         title: "Recent errors",
-        question: `Summarize log severity, trace errors and operation latency for this ${page.noun} over the last 6 hours. Explain any gaps in available telemetry.`,
+        question: translator.translateTemplate(
+          "Summarize log severity, trace errors and operation latency for this {{resource}} over the last 6 hours. Explain any gaps in available telemetry.",
+          { resource: parent },
+        ),
       },
     ];
   }

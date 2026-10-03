@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -25,6 +30,7 @@ export interface CallLogsTableProps {
 const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
   props: CallLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -123,12 +129,26 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
         cardProps={{
           title: "Call Logs",
           description: props.singularName
-            ? `Calls made for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "Calls made for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Calls made for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No call logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "No call logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No call logs."
         }
         showRefreshButton={true}

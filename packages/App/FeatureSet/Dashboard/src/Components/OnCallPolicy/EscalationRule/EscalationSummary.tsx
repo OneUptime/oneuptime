@@ -18,6 +18,9 @@ import {
 import useOnCallReadiness, {
   OnCallReadinessState,
 } from "../Readiness/useOnCallReadiness";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * A concise, plain-english overview of how an on-call policy escalates — the
@@ -77,22 +80,31 @@ export interface ComponentProps {
   readiness?: OnCallReadinessState | undefined;
 }
 
-// Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
-const formatDuration: (minutes: number) => string = (
+// Compact human duration, e.g. "5 min", "1 hr", "1 hr 30 min".
+const formatDuration: (minutes: number, translator: Translator) => string = (
   minutes: number,
+  translator: Translator,
 ): string => {
   if (!minutes || minutes <= 0) {
-    return "0 min";
+    return translator.translateTemplate("{{minutes}} min", { minutes: 0 });
   }
   if (minutes < 60) {
-    return `${minutes} min`;
+    return translator.translateTemplate("{{minutes}} min", {
+      minutes: minutes,
+    });
   }
   const hours: number = Math.floor(minutes / 60);
   const remaining: number = minutes % 60;
   if (remaining === 0) {
-    return hours === 1 ? "1 hr" : `${hours} hrs`;
+    return translator.translatePlural(
+      { one: "{{count}} hr", other: "{{count}} hrs" },
+      hours,
+    );
   }
-  return `${hours} hr ${remaining} min`;
+  return translator.translateTemplate("{{hours}} hr {{minutes}} min", {
+    hours: hours,
+    minutes: remaining,
+  });
 };
 
 const responderIcon: (type: ResponderType) => IconProp = (
@@ -122,6 +134,7 @@ const responderIconColor: (type: ResponderType) => string = (
 const EscalationSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const levels: Array<EscalationLevelSummary> = props.levels;
 
   /*
@@ -190,7 +203,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
           <Icon icon={IconProp.Alert} className="h-3 w-3 text-amber-500" />
-          No responders
+          {translator.translateText("No responders")}
         </span>
       );
     }
@@ -232,7 +245,9 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                 key={`r-${i}`}
                 title={
                   responder.isUncovered
-                    ? "No one is currently on call in this schedule."
+                    ? translator.translateText(
+                        "No one is currently on call in this schedule.",
+                      )
                     : undefined
                 }
                 className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
@@ -256,7 +271,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                 {responder.label}
                 {responder.isUncovered ? (
                   <span className="text-[10px] font-semibold uppercase tracking-wide">
-                    no one on call
+                    {translator.translateText("no one on call")}
                   </span>
                 ) : (
                   <></>
@@ -296,11 +311,12 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
       {/* Header */}
       <div className="border-b border-gray-100 px-6 py-5">
         <h2 className="text-lg font-semibold text-gray-900">
-          Escalation summary
+          {translator.translateText("Escalation summary")}
         </h2>
         <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-          A plain-english walkthrough of who gets paged, and when, after an
-          incident is triggered.
+          {translator.translateText(
+            "A plain-english walkthrough of who gets paged, and when, after an incident is triggered.",
+          )}
         </p>
       </div>
 
@@ -324,8 +340,8 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
             label="To final level"
             value={
               timeToFinalLevel > 0
-                ? formatDuration(timeToFinalLevel)
-                : "Instant"
+                ? formatDuration(timeToFinalLevel, translator)
+                : translator.translateText("Instant") || "Instant"
             }
           />
           <StatTile
@@ -334,7 +350,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
             value={
               props.repeatEnabled && props.repeatCount > 0
                 ? `${props.repeatCount}×`
-                : "None"
+                : translator.translateText("None") || "None"
             }
           />
         </div>
@@ -344,14 +360,18 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
           {/* Trigger node */}
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
             <Icon icon={IconProp.Alert} className="h-3.5 w-3.5 text-red-400" />
-            Incident triggered
+            {translator.translateText("Incident triggered")}
           </div>
 
           <ol className="mt-2 space-y-0">
             {levels.map((level: EscalationLevelSummary, index: number) => {
               const offset: number = cumulativeOffsets[index] || 0;
               const timingLabel: string =
-                offset <= 0 ? "Immediately" : `After ${formatDuration(offset)}`;
+                offset <= 0
+                  ? translator.translateText("Immediately") || "Immediately"
+                  : translator.translateTemplate("After {{duration}}", {
+                      duration: formatDuration(offset, translator),
+                    });
 
               return (
                 <Fragment key={`level-${index}`}>
@@ -376,7 +396,9 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                         </span>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                        <span className="text-xs text-gray-500">Notifies</span>
+                        <span className="text-xs text-gray-500">
+                          {translator.translateText("Notifies")}
+                        </span>
                         {getResponderChips(level)}
                       </div>
                     </div>
@@ -400,18 +422,27 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
               </span>
               <div className="min-w-0 flex-1 pt-0.5 text-sm text-gray-600">
                 {props.repeatEnabled && props.repeatCount > 0 ? (
-                  <>
-                    If still unacknowledged, the entire policy repeats{" "}
-                    <span className="font-semibold text-gray-900">
-                      up to {props.repeatCount} more{" "}
-                      {props.repeatCount === 1 ? "time" : "times"}
-                    </span>
-                    , then stops.
-                  </>
+                  <TranslatedSentence
+                    template="If still unacknowledged, the entire policy repeats {{times}}, then stops."
+                    slots={{
+                      times: (
+                        <span className="font-semibold text-gray-900">
+                          {translator.translatePlural(
+                            {
+                              one: "up to {{count}} more time",
+                              other: "up to {{count}} more times",
+                            },
+                            props.repeatCount,
+                          )}
+                        </span>
+                      ),
+                    }}
+                  />
                 ) : (
                   <>
-                    If no one acknowledges after the final level, escalation
-                    stops here.
+                    {translator.translateText(
+                      "If no one acknowledges after the final level, escalation stops here.",
+                    )}
                   </>
                 )}
               </div>
