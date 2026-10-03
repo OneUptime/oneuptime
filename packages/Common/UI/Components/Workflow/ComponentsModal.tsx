@@ -62,6 +62,9 @@ import {
   getPickerItemProps,
   resourceItemKey,
 } from "./ComponentPicker/PickerItems";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -168,9 +171,12 @@ const prefersTouch: PrefersTouchFunction = (): boolean => {
 const ComponentsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const typeLabel: string =
-    props.componentsType === ComponentType.Trigger ? "trigger" : "component";
-  const typePlural: string = `${typeLabel}s`;
+  const translator: Translator = useTranslator();
+  /*
+   * Every sentence below comes in a trigger and a component version, so a
+   * locale words each one whole rather than slotting the noun in.
+   */
+  const isTrigger: boolean = props.componentsType === ComponentType.Trigger;
 
   const catalog: PickerCatalog = useMemo(() => {
     return getPickerCatalog({
@@ -606,13 +612,23 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
 
   if (isSearching) {
     if (outcome.results.length === 0) {
-      statusText = `No ${typePlural} match.`;
+      statusText =
+        translator.translateText(
+          isTrigger ? "No triggers match." : "No components match.",
+        ) || "";
     } else if (searchHasMore) {
-      statusText = `Best ${visibleResults.length} of ${outcome.results.length} matches.`;
+      statusText = translator.translateTemplate(
+        "Best {{shown}} of {{total}} matches.",
+        {
+          shown: translator.formatNumber(visibleResults.length),
+          total: translator.formatNumber(outcome.results.length),
+        },
+      );
     } else {
-      statusText = `${outcome.results.length} ${
-        outcome.results.length === 1 ? "match" : "matches"
-      }.`;
+      statusText = translator.translatePlural(
+        { one: "{{count}} match.", other: "{{count}} matches." },
+        outcome.results.length,
+      );
     }
   }
 
@@ -624,12 +640,19 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Search} className="h-5 w-5 text-gray-400" />
           </div>
           <p className="mt-3 text-sm font-medium text-gray-900">
-            No {typePlural} match &ldquo;{deferredQuery.trim()}&rdquo;
+            {translator.translateTemplate(
+              isTrigger
+                ? "No triggers match “{{search}}”"
+                : "No components match “{{search}}”",
+              { search: deferredQuery.trim() },
+            )}
           </p>
           <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-            {props.componentsType === ComponentType.Trigger
-              ? "Check the spelling, or try fewer or different words. To start this workflow from another tool, use the Webhook trigger."
-              : "Check the spelling, or try fewer or different words. For anything that is not here, the API components and Run Custom JavaScript can work with any service."}
+            {translator.translateText(
+              props.componentsType === ComponentType.Trigger
+                ? "Check the spelling, or try fewer or different words. To start this workflow from another tool, use the Webhook trigger."
+                : "Check the spelling, or try fewer or different words. For anything that is not here, the API components and Run Custom JavaScript can work with any service.",
+            )}
           </p>
           <button
             type="button"
@@ -637,7 +660,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
             className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-            Clear search
+            {translator.translateText("Clear search")}
           </button>
         </div>
       );
@@ -648,7 +671,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
         <ul
           id={SEARCH_RESULTS_ID}
           role="listbox"
-          aria-label={`Matching ${typePlural}`}
+          aria-label={translator.translateText(
+            isTrigger ? "Matching triggers" : "Matching components",
+          )}
           className="space-y-0.5"
         >
           {visibleResults.map(
@@ -704,7 +729,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                       id={`${optionId}-description`}
                       className="truncate text-xs text-gray-500"
                     >
-                      {componentMetadata.description}
+                      {translator.translateText(componentMetadata.description)}
                     </div>
                   </div>
                   <span className="max-sm:hidden max-w-[40%] flex-shrink-0 truncate rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600 sm:inline-block">
@@ -726,12 +751,13 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
             }}
             className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
-            Show{" "}
-            {Math.min(
-              SEARCH_RESULTS_PAGE_SIZE,
-              outcome.results.length - visibleResults.length,
-            )}{" "}
-            more
+            {translator.translatePlural(
+              { one: "Show {{count}} more", other: "Show {{count}} more" },
+              Math.min(
+                SEARCH_RESULTS_PAGE_SIZE,
+                outcome.results.length - visibleResults.length,
+              ),
+            )}
           </button>
         )}
       </>
@@ -749,7 +775,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     if (catalog.components.length === 0) {
       return (
         <p className="px-1 py-12 text-center text-sm text-gray-500">
-          No {typePlural} to show.
+          {translator.translateText(
+            isTrigger ? "No triggers to show." : "No components to show.",
+          )}
         </p>
       );
     }
@@ -781,8 +809,12 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               id="workflow-picker-more"
               title={
                 catalog.popular.length > 0
-                  ? `More ${typePlural}`
-                  : `${typeLabel.charAt(0).toUpperCase()}${typeLabel.slice(1)}s`
+                  ? isTrigger
+                    ? "More triggers"
+                    : "More components"
+                  : isTrigger
+                    ? "Triggers"
+                    : "Components"
               }
             />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -831,7 +863,12 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               {...getPickerItemProps(ALL_RESOURCES_ITEM_KEY)}
-              aria-label={`Browse all resources, ${catalog.resources.length}`}
+              aria-label={translator.translateTemplate(
+                "Browse all resources, {{count}}",
+                {
+                  count: translator.formatNumber(catalog.resources.length),
+                },
+              )}
               onClick={() => {
                 openView(
                   { kind: PickerViewKind.AllResources },
@@ -840,7 +877,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               }}
               className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors duration-150 hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
-              <span className="min-w-0 flex-1">Browse all resources</span>
+              <span className="min-w-0 flex-1">
+                {translator.translateText("Browse all resources")}
+              </span>
               <span className="flex-shrink-0 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-600">
                 {catalog.resources.length}
               </span>
@@ -884,7 +923,10 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
         </div>
         <div
           role="group"
-          aria-label={`${resource.name} ${typePlural}`}
+          aria-label={translator.translateTemplate(
+            isTrigger ? "{{resource}} triggers" : "{{resource}} components",
+            { resource: translatableTerm(resource.name) },
+          )}
           className="mt-4 grid grid-cols-1 gap-2"
         >
           {resource.components.map(
@@ -913,15 +955,21 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
           }}
         />
         <h3 className="mt-3 text-base font-semibold text-gray-900">
-          All resources
+          {translator.translateText("All resources")}
         </h3>
         <p className="mt-0.5 text-sm text-gray-500">
-          {catalog.resources.length} resources, A to Z. Search above to find one
-          by name.
+          {translator.translatePlural(
+            {
+              one: "{{count}} resource, A to Z. Search above to find one by name.",
+              other:
+                "{{count}} resources, A to Z. Search above to find one by name.",
+            },
+            catalog.resources.length,
+          )}
         </p>
         <div
           role="group"
-          aria-label="All resources"
+          aria-label={translator.translateText("All resources")}
           className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200"
         >
           {catalog.resources.map((resource: PickerResource): ReactElement => {
@@ -953,35 +1001,68 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
 
   return (
     <SideOver
-      title={`Add ${typeLabel.charAt(0).toUpperCase()}${typeLabel.slice(1)}`}
-      description={`Click a ${typeLabel} to add it to your workflow.`}
+      title={isTrigger ? "Add Trigger" : "Add Component"}
+      description={
+        isTrigger
+          ? "Click a trigger to add it to your workflow."
+          : "Click a component to add it to your workflow."
+      }
       onClose={props.onCloseModal}
       leftFooterElement={
         <div className="max-md:hidden items-center gap-4 text-xs text-gray-500 md:flex">
           <span className="inline-flex items-center gap-1.5">
-            <KeyboardShortcut
-              keys={[KeyboardKey.ArrowUp]}
-              size={KeyboardShortcutSize.ExtraSmall}
+            <TranslatedSentence
+              template="{{keys}} to move"
+              slots={{
+                keys: (
+                  <>
+                    <KeyboardShortcut
+                      keys={[KeyboardKey.ArrowUp]}
+                      size={KeyboardShortcutSize.ExtraSmall}
+                    />
+                    <KeyboardShortcut
+                      keys={[KeyboardKey.ArrowDown]}
+                      size={KeyboardShortcutSize.ExtraSmall}
+                    />
+                  </>
+                ),
+              }}
+              renderText={(text: string): ReactElement => {
+                return <span>{text.trim()}</span>;
+              }}
             />
-            <KeyboardShortcut
-              keys={[KeyboardKey.ArrowDown]}
-              size={KeyboardShortcutSize.ExtraSmall}
-            />
-            to move
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <KeyboardShortcut
-              keys={[KeyboardKey.Enter]}
-              size={KeyboardShortcutSize.ExtraSmall}
+            <TranslatedSentence
+              template="{{key}} to add"
+              slots={{
+                key: (
+                  <KeyboardShortcut
+                    keys={[KeyboardKey.Enter]}
+                    size={KeyboardShortcutSize.ExtraSmall}
+                  />
+                ),
+              }}
+              renderText={(text: string): ReactElement => {
+                return <span>{text.trim()}</span>;
+              }}
             />
-            to add
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <KeyboardShortcut
-              keys={["/"]}
-              size={KeyboardShortcutSize.ExtraSmall}
+            <TranslatedSentence
+              template="{{key}} to search"
+              slots={{
+                key: (
+                  <KeyboardShortcut
+                    keys={["/"]}
+                    size={KeyboardShortcutSize.ExtraSmall}
+                  />
+                ),
+              }}
+              renderText={(text: string): ReactElement => {
+                return <span>{text.trim()}</span>;
+              }}
             />
-            to search
           </span>
         </div>
       }
@@ -997,7 +1078,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               id={SEARCH_INPUT_ID}
               type="text"
               role="combobox"
-              aria-label={`Search ${typePlural}`}
+              aria-label={translator.translateText(
+                isTrigger ? "Search triggers" : "Search components",
+              )}
               aria-autocomplete="list"
               aria-expanded={isSearching && visibleResults.length > 0}
               aria-controls={isSearching ? SEARCH_RESULTS_ID : undefined}
@@ -1011,11 +1094,11 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               autoCapitalize="off"
               spellCheck={false}
               value={query}
-              placeholder={
+              placeholder={translator.translateText(
                 props.componentsType === ComponentType.Trigger
                   ? "Search triggers, e.g. incident created"
-                  : "Search components, e.g. create incident"
-              }
+                  : "Search components, e.g. create incident",
+              )}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setQuery(event.target.value);
               }}
@@ -1026,7 +1109,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               <div className="absolute inset-y-0 right-0 flex items-center pr-1.5">
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label={translator.translateText("Clear search")}
                   onClick={clearSearch}
                   className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >

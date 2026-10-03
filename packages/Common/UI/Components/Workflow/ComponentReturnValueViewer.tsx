@@ -3,6 +3,8 @@ import BreakableCode from "./BreakableCode";
 import { ReturnValue } from "../../../Types/Workflow/Component";
 import { componentReturnValueReference } from "../../../Types/Workflow/TemplateSyntax";
 import React, { FunctionComponent, ReactElement } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   returnValues: Array<ReturnValue>;
@@ -27,6 +29,7 @@ export interface ComponentProps {
 const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div>
       {props.name && (
@@ -37,7 +40,7 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
       )}
       {props.returnValues && props.returnValues.length === 0 && (
         <p className="text-xs italic text-gray-500">
-          This step does not return any data.
+          {translator.translateText("This step does not return any data.")}
         </p>
       )}
       {props.returnValues && props.returnValues.length > 0 && (
@@ -85,7 +88,12 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                       textToBeCopied={reference}
                       iconOnly={true}
                       size="sm"
-                      title={`Copy the reference to ${returnValue.name}`}
+                      title={translator.translateTemplate(
+                        "Copy the reference to {{name}}",
+                        {
+                          name: translatableTerm(returnValue.name),
+                        },
+                      )}
                       className="mt-0.5 shrink-0"
                     />
                   </div>

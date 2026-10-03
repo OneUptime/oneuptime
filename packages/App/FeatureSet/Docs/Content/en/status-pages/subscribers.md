@@ -8,19 +8,22 @@ This page covers both: the five subscription channels and how visitors sign up, 
 
 ## Subscription channels
 
-A status page supports five channels, each with its own toggle on the status page. Go to **Status Pages → your page → Subscribers → Subscriber Settings**:
+A status page supports five channels. They, and the page visitors sign up on, are switched in one place: the **Channels** card at **Status Pages → your page → Subscribers → Subscriber Settings**. Each switch saves as soon as you flip it:
 
-- **Enable Email Subscribers** (`enableEmailSubscribers`) — on by default. Everything else is off until you turn it on.
-- **Enable SMS Subscribers** (`enableSmsSubscribers`) — off by default.
-- **Enable Slack Subscribers** (`enableSlackSubscribers`) — off by default.
-- **Enable Microsoft Teams Subscribers** (`enableMicrosoftTeamsSubscribers`) — off by default.
-- **Enable Webhook Subscribers** (`enableWebhookSubscribers`) — off by default.
+- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — on by default. Puts the **Subscribe** item in the status page nav bar, where visitors sign up by the channels below.
+- **Email** (`enableEmailSubscribers`) — on by default. Everything else is off until you turn it on.
+- **SMS** (`enableSmsSubscribers`) — off by default. On OneUptime Cloud each text is paid from the project's SMS and call balance, unless the page has its own **Twilio Config** (see [below](#email-footer-custom-smtp-and-twilio)). Turning it on also needs **Enable SMS Notifications** on for the project, in **Project Settings > Notifications > Notification Settings**.
+- **Slack** (`enableSlackSubscribers`) — off by default.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — off by default.
+- **Webhook** (`enableWebhookSubscribers`) — off by default.
 
-Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand, or leave yourself a **Notes** (`internalNote`) entry on a particular subscriber.
+The switches decide how visitors can sign themselves up, and the status page refuses a sign-up by a channel that is off. They do not stop notifications: subscribers your team adds on the dashboard, with the API or by a workflow get updates whichever channels are on.
 
-**One toggle is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) is on *and* at least one channel is enabled. If you turn on **Enable Email Subscribers** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
+On OneUptime Cloud, a switch your plan does not include has the plan's name beside it: **Growth** for **SMS** and **Show Subscriber Page**, **Scale** for **Slack**, **Microsoft Teams** and **Webhook**.
 
-The same five toggles appear a second time inside the **Subscriber Settings** card on **Advanced Settings**, alongside **Show Subscriber Page**. They are the same columns underneath — pick one screen and stay on it, and prefer the dedicated **Subscriber Settings** page since that is where the rest of the subscriber configuration lives.
+Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand, or leave yourself a **Notes** (`internalNote`) entry on a particular subscriber. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list.
+
+**One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
 ## What a visitor sees on the Subscribe page
 
@@ -89,7 +92,7 @@ Links in messages sent before the unsubscribe page existed keep working: an **Up
 
 Anyone who can read a mailbox can unsubscribe it. For an address somebody signed up themselves, that is the point. For one your team added, such as a site's mailing list like `site03-all@`, it means one reader can take everyone on the list off the page before the next outage. So:
 
-- **Add people by their own addresses where you can.** The **Add in Bulk** form and the email subscriber form say so.
+- **Add people by their own addresses where you can.** The **Add in Bulk** form and the email subscriber form say so, in the email field's description.
 - **The team is told.** A subscriber your team added is one added from the dashboard, with an API key (the REST API, Terraform, a script) or by a workflow; the API reads it as **Is Added By Team** (`isAddedByTeam`). When one unsubscribes, through its link or the **Update Subscription** page, the status page's owners (its owner users, and the members of its owner teams) each get one email naming the subscriber, with a link to the page's subscriber list. So does the teammate who added it, when a teammate did. A page with no owners emails only that teammate, so a subscriber an API key or a workflow added to a page with no owners is not reported. People who signed up themselves on the status page are never reported. Subscribers that an API key or a workflow added before OneUptime recorded this cannot be told apart from sign-ups, and are not reported either.
 - **The subscriber lists show it.** Above each list, a notice names the subscribers your team added that unsubscribed in the last 30 days.
 
@@ -258,7 +261,7 @@ On OneUptime Cloud, subscriber notification templates are a **Scale** plan featu
 | **SMS**                            | a **Twilio Config**                                                            |
 | **Slack** and **Microsoft Teams**  | nothing more                                                                   |
 
-Without them the page sends its default email or SMS, and the **Notification Templates** tab warns you with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
+Without them the page sends its default email or SMS. When a linked Email or SMS template cannot be used for that reason, the **Notification Templates** tab says so with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
 
 None of this is needed to put incident custom fields into messages. Fields marked **Include in Subscriber Notifications** are in the default email, Slack, Microsoft Teams and webhook messages on every plan that has custom fields (see [Incident custom fields in notifications](#incident-custom-fields-in-notifications)). A custom template is for placing them yourself, anywhere in your own layout.
 

@@ -10,6 +10,8 @@ import React, {
 } from "react";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import LogSearchSuggestions from "./LogSearchSuggestions";
 import LogSearchHelp from "./LogSearchHelp";
 
@@ -38,6 +40,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
   LogSearchBarProps & React.RefAttributes<LogSearchBarRef>
 > = forwardRef<LogSearchBarRef, LogSearchBarProps>(
   (props: LogSearchBarProps, ref: React.Ref<LogSearchBarRef>): ReactElement => {
+    const translator: Translator = useTranslator();
     const [isFocused, setIsFocused] = useState<boolean>(false);
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
@@ -366,8 +369,13 @@ const LogSearchBar: React.ForwardRefExoticComponent<
             }}
             onKeyDown={handleKeyDown}
             placeholder={
-              props.placeholder ||
-              'Search logs... (e.g. severity:error service:api "connection refused")'
+              translator.translateText(props.placeholder) ||
+              translator.translateTemplate(
+                "Search logs... (e.g. {{example}})",
+                {
+                  example: 'severity:error service:api "connection refused"',
+                },
+              )
             }
             className="flex-1 bg-transparent font-mono text-sm text-gray-900 placeholder-gray-400 outline-none"
             spellCheck={false}
@@ -383,7 +391,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
                 setShowSuggestions(false);
                 inputRef.current?.focus();
               }}
-              title="Clear search"
+              title={translator.translateText("Clear search")}
             >
               <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
             </button>

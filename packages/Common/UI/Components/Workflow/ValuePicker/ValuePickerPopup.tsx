@@ -27,6 +27,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { createPortal } from "react-dom";
 
 export enum ValuePickerPopupMode {
@@ -127,6 +129,7 @@ export interface ValuePickerPopupProps {
 const ValuePickerPopup: FunctionComponent<ValuePickerPopupProps> = (
   props: ValuePickerPopupProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const popupRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<ValuePickerPosition | null>(null);
@@ -270,7 +273,7 @@ const ValuePickerPopup: FunctionComponent<ValuePickerPopupProps> = (
       ref={popupRef}
       id={props.id}
       role="dialog"
-      aria-label={props.ariaLabel}
+      aria-label={translator.translateText(props.ariaLabel)}
       data-testid={props.dataTestId || "value-picker"}
       data-mode={props.mode}
       className="fixed flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-sm shadow-lg"

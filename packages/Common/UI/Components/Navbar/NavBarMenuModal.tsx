@@ -443,7 +443,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       className="relative z-50"
       role="dialog"
       aria-modal="true"
-      aria-label="Products menu"
+      aria-label={tx("Products menu")}
     >
       {/* Backdrop */}
       <div
@@ -502,7 +502,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               {query ? (
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label={tx("Clear search")}
                   onClick={() => {
                     setQuery("");
                     inputRef.current?.focus();
@@ -525,7 +525,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
             <div
               id="navbar-menu-listbox"
               role="listbox"
-              aria-label="Products"
+              aria-label={tx("Products")}
               className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-4"
             >
               {flatItems.length === 0 ? (

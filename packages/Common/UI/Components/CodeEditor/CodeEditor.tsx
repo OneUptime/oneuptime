@@ -36,6 +36,13 @@ import {
   describeYamlSyntaxError,
 } from "../../../Types/Code/YamlSyntax";
 import IconProp from "../../../Types/Icon/IconProp";
+import {
+  PluralTemplate,
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -288,15 +295,35 @@ const MODIFIER_KEYS: Array<string> = ["Shift", "Control", "Alt", "Meta"];
  * Heard on the way in, through aria-describedby: Tab indents here, so the way
  * out has to be announced rather than discovered.
  */
-export const CODE_EDITOR_KEYS_HINT: string =
-  "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.";
+export const CODE_EDITOR_KEYS_HINT: string = translationKey(
+  "Tab inserts indentation. To move focus out of the editor, press Escape, then Tab.",
+);
+
+// The status bar of a document that parses: "Valid JSON · 12 lines".
+export const VALID_DOCUMENT_STATUS: PluralTemplate = {
+  one: "Valid {{language}} · {{count}} line",
+  other: "Valid {{language}} · {{count}} lines",
+};
+
+// The cursor's place, with how much is selected when anything is.
+export const CURSOR_POSITION_TEMPLATE: string = translationKey(
+  "Ln {{line}}, Col {{column}}",
+);
+
+export const CURSOR_POSITION_WITH_SELECTION: PluralTemplate = {
+  one: "Ln {{line}}, Col {{column}} ({{count}} selected)",
+  other: "Ln {{line}}, Col {{column}} ({{count}} selected)",
+};
 
 type StatusTone = "error" | "valid" | "invalid" | "neutral";
 
 interface StatusShape {
   tone: StatusTone;
   icon: IconProp;
+  // English, or the caller's own words; looked up when it is shown.
   message: string;
+  // A valid document's line count: the status is then VALID_DOCUMENT_STATUS.
+  lineCount?: number | undefined;
 }
 
 /*
@@ -326,8 +353,12 @@ const TOOLBAR_BUTTON_CLASS: string =
 const CodeEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const language: CodeLanguage = getCodeLanguage(props.type);
   const readOnly: boolean = Boolean(props.readOnly);
+  const placeholder: string | undefined = translator.translateText(
+    props.placeholder,
+  );
 
   const [text, setText] = useState<string>(() => {
     return toEditorText(props.value ?? props.initialValue);
@@ -461,9 +492,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    if (props.placeholder) {
+    if (placeholder) {
       return `<span class="ou-code-editor__placeholder">${escapeHtml(
-        props.placeholder,
+        placeholder,
       )}</span>`;
     }
 
@@ -475,7 +506,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     }
 
     return null;
-  }, [text, props.placeholder, example, language.grammar]);
+  }, [text, placeholder, example, language.grammar]);
 
   const lineCount: number = useMemo(() => {
     return countLines(text);
@@ -928,9 +959,8 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       return {
         tone: "valid",
         icon: IconProp.CheckCircle,
-        message: `Valid ${language.label} · ${lines} ${
-          lines === 1 ? "line" : "lines"
-        }`,
+        message: "",
+        lineCount: lines,
       };
     }
 
@@ -1041,7 +1071,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             data-testid="code-editor-language"
             className="inline-flex shrink-0 items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700"
           >
-            {language.label}
+            {translator.translateText(language.label)}
           </span>
           {readOnly && (
             <span
@@ -1049,7 +1079,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               className="inline-flex shrink-0 items-center gap-1 text-xs text-gray-500"
             >
               <Icon icon={IconProp.Lock} className="h-3 w-3" />
-              Read-only
+              {translator.translateText("Read-only")}
             </span>
           )}
           {props.hint && (
@@ -1058,7 +1088,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               data-testid="code-editor-hint"
               className="truncate text-xs text-gray-500"
             >
-              {props.hint}
+              {translator.translateText(props.hint)}
             </span>
           )}
         </div>
@@ -1075,34 +1105,35 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               }}
             >
               <Icon icon={IconProp.Code} className="h-3.5 w-3.5" />
-              Insert example
+              {translator.translateText("Insert example")}
             </button>
           )}
           {language.canFormat && !readOnly && (
             <button
               type="button"
               data-testid="code-editor-format-button"
-              title={
+              title={translator.translateText(
                 canFormat
                   ? "Format the document (Shift+Alt+F)"
-                  : "Format is available once the document is valid JSON"
-              }
+                  : "Format is available once the document is valid JSON",
+              )}
               disabled={!canFormat}
               className={TOOLBAR_BUTTON_CLASS}
               onClick={handleFormat}
             >
               <Icon icon={IconProp.Indent} className="h-3.5 w-3.5" />
-              Format
+              {translator.translateText("Format")}
             </button>
           )}
           <button
             type="button"
             data-testid="code-editor-copy-button"
-            aria-label={
+            aria-label={translator.translateTemplate(
               copied
-                ? `${language.label} copied to clipboard`
-                : `Copy ${language.label} to clipboard`
-            }
+                ? "{{language}} copied to clipboard"
+                : "Copy {{language}} to clipboard",
+              { language: translatableTerm(language.label) },
+            )}
             disabled={isEmpty}
             className={TOOLBAR_BUTTON_CLASS}
             onClick={handleCopy}
@@ -1111,7 +1142,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               icon={copied ? IconProp.Check : IconProp.Copy}
               className="h-3.5 w-3.5"
             />
-            {copied ? "Copied" : "Copy"}
+            {translator.translateText(copied ? "Copied" : "Copy")}
           </button>
         </div>
       </div>
@@ -1194,7 +1225,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               value={text}
               readOnly={readOnly}
               tabIndex={props.tabIndex}
-              placeholder={props.placeholder}
+              placeholder={placeholder}
               wrap={language.wrap ? "soft" : "off"}
               spellCheck={spellCheck}
               autoCapitalize="off"
@@ -1210,7 +1241,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               aria-label={
                 props.ariaLabelledby || props.id
                   ? undefined
-                  : `${language.label} editor`
+                  : translator.translateTemplate("{{language}} editor", {
+                      language: translatableTerm(language.label),
+                    })
               }
               aria-labelledby={props.ariaLabelledby}
               aria-describedby={describedBy || undefined}
@@ -1278,7 +1311,15 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           {status && (
             <>
               <Icon icon={status.icon} className="h-3.5 w-3.5 shrink-0" />
-              <span className="min-w-0 break-words">{status.message}</span>
+              <span className="min-w-0 break-words">
+                {status.lineCount !== undefined
+                  ? translator.translatePlural(
+                      VALID_DOCUMENT_STATUS,
+                      status.lineCount,
+                      { language: translatableTerm(language.label) },
+                    )
+                  : translator.translateText(status.message)}
+              </span>
             </>
           )}
         </div>
@@ -1292,19 +1333,27 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
               data-testid="code-editor-tab-released"
               className="rounded border border-gray-200 bg-white px-1.5 text-gray-600"
             >
-              Tab moves focus
+              {translator.translateText("Tab moves focus")}
             </span>
           )}
           <span>
-            Ln {cursor.line}, Col {cursor.column}
-            {selectedCharacters > 0 ? ` (${selectedCharacters} selected)` : ""}
+            {selectedCharacters > 0
+              ? translator.translatePlural(
+                  CURSOR_POSITION_WITH_SELECTION,
+                  selectedCharacters,
+                  { line: cursor.line, column: cursor.column },
+                )
+              : translator.translateTemplate(CURSOR_POSITION_TEMPLATE, {
+                  line: cursor.line,
+                  column: cursor.column,
+                })}
           </span>
         </div>
       </div>
 
       {!readOnly && (
         <span id={keysHintId} className="sr-only">
-          {CODE_EDITOR_KEYS_HINT}
+          {translator.translateText(CODE_EDITOR_KEYS_HINT)}
         </span>
       )}
 
@@ -1313,7 +1362,11 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
        * region - nothing would speak the confirmation. This does.
        */}
       <span role="status" aria-live="polite" className="sr-only">
-        {copied ? `${language.label} copied to clipboard` : ""}
+        {copied
+          ? translator.translateTemplate("{{language}} copied to clipboard", {
+              language: translatableTerm(language.label),
+            })
+          : ""}
       </span>
     </div>
   );

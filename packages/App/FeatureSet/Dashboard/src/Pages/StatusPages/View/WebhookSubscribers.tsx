@@ -6,7 +6,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import CSVFileUpload, {
@@ -33,6 +32,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberChannelOffPanel from "../../../Components/StatusPage/SubscriberChannelOffPanel";
+import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -65,7 +66,12 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
 
   const [isWebhookSubscribersEnabled, setIsWebhookSubscribersEnabled] =
     React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  /*
+   * Loading from the first render: the list, and the channel's switch
+   * above it, are drawn once the status page has said whether the channel
+   * is on - not first as off, for a frame, on a page where it is on.
+   */
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
   const [
     categoryCheckboxOptionsAndCategories,
@@ -352,12 +358,15 @@ const StatusPageWebhookSubscribers: FunctionComponent<PageComponentProps> = (
 
       {!error && !isLoading ? (
         <>
-          {!isWebhookSubscribersEnabled && (
-            <Alert
-              type={AlertType.DANGER}
-              title="Webhook subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
-            />
-          )}
+          {/*
+           * The channel's own switch while it is off, where a red
+           * "not enabled" banner used to send people to another page.
+           */}
+          <SubscriberChannelOffPanel
+            statusPageId={modelId}
+            method={StatusPageSubscriberNotificationMethod.Webhook}
+            isEnabled={isWebhookSubscribersEnabled}
+          />
           <SubscriberNotificationWarnings statusPageId={modelId} />
           <TeamAddedSubscribersUnsubscribedNotice
             statusPageId={modelId}

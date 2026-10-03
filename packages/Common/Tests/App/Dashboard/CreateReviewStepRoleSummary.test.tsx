@@ -431,7 +431,7 @@ const INCIDENT_CREATE: PageUnderTest = {
   route: "/dashboard/incidents/create",
   rolesFieldKey: "incidentRoles",
   editorType: IncidentRoleFormField,
-  emptyMessage: "No incident roles assigned.",
+  emptyMessage: "Nobody picked. You take any role marked Primary.",
 };
 
 const INCIDENT_EPISODE_CREATE: PageUnderTest = {
@@ -440,7 +440,7 @@ const INCIDENT_EPISODE_CREATE: PageUnderTest = {
   route: "/dashboard/incidents/episodes/create",
   rolesFieldKey: "episodeRoles",
   editorType: IncidentEpisodeRoleFormField,
-  emptyMessage: "No episode roles assigned.",
+  emptyMessage: "Nobody picked. You take any role marked Primary.",
 };
 
 const PAGES: Array<PageUnderTest> = [INCIDENT_CREATE, INCIDENT_EPISODE_CREATE];

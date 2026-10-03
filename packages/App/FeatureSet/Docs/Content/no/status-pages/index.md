@@ -123,9 +123,7 @@ De fleste visningsbryterne bor på ett sted: **Statussider → siden din → Ava
 
 - **Vis oppetidshistorikk (i dager)** (`showUptimeHistoryInDays`) — lengden på oppetidsstolpen ved siden av hver ressurs. Standard er 90, og den må ligge mellom 1 og 90. Alle **Vis oppetid %**- og **Vis statushistorikkdiagram**-valg på en ressurs eller en gruppe leser dette tallet.
 
-**Abonnentsinnstillinger**:
-
-- **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — på som standard, pluss de fem bryterne for å aktivere hver kanal. De samme kanalbryterne finnes også på det dedikerte skjermbildet **Abonnentsinnstillinger** under seksjonen **Abonnenter**; behandle det som det egentlige stedet å sette dem.
+Om siden viser punktet **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, på som standard), og hvilke kanaler besøkende kan abonnere med, stilles ikke inn på dette skjermbildet: Begge deler ligger i kortet **Kanaler** under **Abonnenter → Abonnentsinnstillinger** (se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers)).
 
 **Drevet av OneUptime-merkevarebygging**:
 

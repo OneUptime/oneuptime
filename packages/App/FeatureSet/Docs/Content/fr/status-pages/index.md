@@ -123,9 +123,7 @@ L'essentiel des interrupteurs d'affichage tient en un seul endroit : **Pages de 
 
 - **Afficher l'historique de disponibilité (en jours)** (`showUptimeHistoryInDays`) — la longueur de la barre de disponibilité affichée à côté de chaque ressource. 90 par défaut, et doit rester entre 1 et 90. Chaque option **Afficher le % de disponibilité** et **Afficher le graphique de l'historique des états** d'une ressource ou d'un groupe lit ce nombre.
 
-**Paramètres des abonnés** :
-
-- **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) — activé par défaut, plus les cinq bascules d'activation par canal. Ces mêmes bascules de canal apparaissent aussi sur l'écran dédié **Paramètres des abonnés**, sous la section **Abonnés** ; considérez celui-là comme l'endroit canonique où les régler.
+L'affichage d'une entrée **S'abonner** sur la page (**Afficher la page des abonnés**, `showSubscriberPageOnStatusPage`, activé par défaut) et les canaux par lesquels les visiteurs peuvent s'abonner ne se règlent pas sur cet écran : les deux se trouvent dans la carte **Canaux** sous **Abonnés → Paramètres des abonnés** (voir [Abonnés et annonces](/docs/status-pages/subscribers)).
 
 **Image de marque « Propulsé par OneUptime »** :
 

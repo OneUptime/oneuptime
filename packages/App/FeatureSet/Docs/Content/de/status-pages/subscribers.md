@@ -8,19 +8,22 @@ Diese Seite behandelt beides: die fünf Abonnementkanäle und wie Besucher sich 
 
 ## Abonnementkanäle
 
-Eine Statusseite unterstützt fünf Kanäle, jeder mit eigenem Schalter auf der Statusseite. Gehen Sie auf **Statusseiten → Ihre Seite → Abonnenten → Abonnenten-Einstellungen**:
+Eine Statusseite unterstützt fünf Kanäle. Sie und die Seite, auf der sich Besucher anmelden, werden an einer Stelle geschaltet: in der Karte **Kanäle** unter **Statusseiten → Ihre Seite → Abonnenten → Abonnenten-Einstellungen**. Jeder Schalter speichert, sobald Sie ihn umlegen:
 
-- **E-Mail-Abonnenten aktivieren** (`enableEmailSubscribers`) – standardmäßig an. Alles andere ist aus, bis Sie es einschalten.
-- **SMS-Abonnenten aktivieren** (`enableSmsSubscribers`) – standardmäßig aus.
-- **Slack-Abonnenten aktivieren** (`enableSlackSubscribers`) – standardmäßig aus.
-- **Microsoft Teams-Abonnenten aktivieren** (`enableMicrosoftTeamsSubscribers`) – standardmäßig aus.
-- **Webhook-Abonnenten aktivieren** (`enableWebhookSubscribers`) – standardmäßig aus.
+- **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an. Zeigt den Eintrag **Abonnieren** in der Navigationsleiste der Statusseite, über den sich Besucher über die Kanäle darunter anmelden.
+- **E-Mail** (`enableEmailSubscribers`) – standardmäßig an. Alles andere ist aus, bis Sie es einschalten.
+- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration**. Zum Einschalten muss für das Projekt außerdem **SMS-Benachrichtigungen aktivieren** an sein, unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
+- **Slack** (`enableSlackSubscribers`) – standardmäßig aus.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) – standardmäßig aus.
+- **Webhook** (`enableWebhookSubscribers`) – standardmäßig aus.
 
-Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **MS Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten einen Eintrag unter **Notizen** (`internalNote`).
+Die Schalter bestimmen, wie sich Besucher selbst anmelden können; eine Anmeldung über einen ausgeschalteten Kanal lehnt die Statusseite ab. Benachrichtigungen stoppen sie nicht: Abonnenten, die Ihr Team im Dashboard, über die API oder per Workflow hinzufügt, erhalten Updates, egal welche Kanäle an sind.
 
-**Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) an ist *und* mindestens ein Kanal aktiviert ist. Schalten Sie **E-Mail-Abonnenten aktivieren** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
+In OneUptime Cloud steht neben einem Schalter, den Ihr Tarif nicht enthält, der Name des Tarifs: **Growth** für **SMS** und **Abonnentenseite anzeigen**, **Scale** für **Slack**, **Microsoft Teams** und **Webhook**.
 
-Dieselben fünf Schalter tauchen ein zweites Mal in der Karte **Abonnenten-Einstellungen** unter **Erweiterte Einstellungen** auf, zusammen mit **Abonnentenseite anzeigen**. Darunter liegen dieselben Spalten – suchen Sie sich einen Bildschirm aus und bleiben Sie dort, am besten auf der eigenen Seite **Abonnenten-Einstellungen**, denn dort steht auch der Rest der Abonnentenkonfiguration.
+Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **MS Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten einen Eintrag unter **Notizen** (`internalNote`). Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen.
+
+**Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist *und* mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
 ## Was ein Besucher auf der Seite Abonnieren sieht
 

@@ -3,6 +3,9 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../../Types/Time/TimeRange";
 import Icon from "../../Icon/Icon";
+import { getTimeRangeLabel } from "../../Date/TimeRangePickerDropdown";
+import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   ChartTimeRangeZoomContextValue,
   isTimeRangeZoomFor,
@@ -34,6 +37,7 @@ const ResetTimeRangeZoomButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
+  const translator: Translator = useTranslator();
 
   if (!zoom || !zoom.isZoomed || !zoom.onTimeRangeReset) {
     return null;
@@ -47,8 +51,12 @@ const ResetTimeRangeZoomButton: FunctionComponent<ComponentProps> = (
   const previousRange: TimeRange | undefined = zoom.rangeBeforeZoom?.range;
   const title: string =
     previousRange && previousRange !== TimeRange.CUSTOM
-      ? `Go back to ${previousRange}, the time range before the zoom`
-      : "Go back to the time range before the zoom";
+      ? translator.translateTemplate(
+          "Go back to {{range}}, the time range before the zoom",
+          { range: translatableTerm(getTimeRangeLabel(previousRange)) },
+        )
+      : translator.translateText("Go back to the time range before the zoom") ||
+        "";
 
   return (
     <button
@@ -56,13 +64,13 @@ const ResetTimeRangeZoomButton: FunctionComponent<ComponentProps> = (
       data-testid={RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID}
       className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${props.className || ""}`}
       title={title}
-      aria-label="Reset zoom"
+      aria-label={translator.translateText("Reset zoom")}
       onClick={() => {
         onTimeRangeReset();
       }}
     >
       <Icon icon={IconProp.MagnifyingGlassMinus} className="h-3.5 w-3.5" />
-      Reset zoom
+      {translator.translateText("Reset zoom")}
     </button>
   );
 };

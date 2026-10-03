@@ -16,7 +16,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
   return (
-    <nav className="block" aria-label="Breadcrumb">
+    <nav className="block" aria-label={translateString("Breadcrumb")}>
       <ol role="list" className="flex flex-wrap items-center gap-x-1 gap-y-2">
         {links &&
           links.length > 0 &&

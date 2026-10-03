@@ -404,7 +404,7 @@ const STATE_FIELD_CASES: Array<LookupFieldCase> = [
     modelType: AlertState,
     chosen: ACKNOWLEDGED_ALERT_STATE,
     placeholder: STATE_PLACEHOLDER,
-    emptyMessage: "Will use first available state by priority",
+    emptyMessage: "The usual starting state.",
     notFoundMessage: "The selected alert state could not be found.",
   },
   {
@@ -413,7 +413,7 @@ const STATE_FIELD_CASES: Array<LookupFieldCase> = [
     modelType: AlertState,
     chosen: ACKNOWLEDGED_ALERT_STATE,
     placeholder: STATE_PLACEHOLDER,
-    emptyMessage: "Will use first available state by priority",
+    emptyMessage: "The usual starting state.",
     notFoundMessage: "The selected alert state could not be found.",
   },
   {
@@ -422,7 +422,7 @@ const STATE_FIELD_CASES: Array<LookupFieldCase> = [
     modelType: IncidentState,
     chosen: INVESTIGATING_INCIDENT_STATE,
     placeholder: STATE_PLACEHOLDER,
-    emptyMessage: "Will use first available state by priority",
+    emptyMessage: "The usual starting state.",
     notFoundMessage: "The selected incident state could not be found.",
   },
   {
@@ -431,7 +431,7 @@ const STATE_FIELD_CASES: Array<LookupFieldCase> = [
     modelType: IncidentState,
     chosen: INVESTIGATING_INCIDENT_STATE,
     placeholder: STATE_PLACEHOLDER,
-    emptyMessage: "Will use first available state by priority",
+    emptyMessage: "The usual starting state.",
     notFoundMessage: "The selected incident state could not be found.",
   },
 ];

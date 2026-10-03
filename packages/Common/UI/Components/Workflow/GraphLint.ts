@@ -14,6 +14,11 @@
  */
 
 import Dictionary from "../../../Types/Dictionary";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateText,
+} from "../../Utils/TranslateTemplate";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   Argument,
@@ -346,7 +351,9 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       componentId: null,
       argumentId: null,
       message:
-        "This workflow has no trigger, so it can never start. Add a trigger and connect it to the first step.",
+        translateText(
+          "This workflow has no trigger, so it can never start. Add a trigger and connect it to the first step.",
+        ) || "",
     });
   }
 
@@ -386,7 +393,10 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       addNodeIssue({
         rule: WorkflowLintRule.DuplicateComponentId,
         severity: WorkflowLintSeverity.Error,
-        message: `More than one step has the id "${componentId}". Ids must be unique — otherwise the steps overwrite each other's results and any reference to "${componentId}" is ambiguous.`,
+        message: translateTemplate(
+          'More than one step has the id "{{id}}". Ids must be unique — otherwise the steps overwrite each other\'s results and any reference to "{{id}}" is ambiguous.',
+          { id: componentId },
+        ),
       });
     }
 
@@ -394,7 +404,10 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
       addNodeIssue({
         rule: WorkflowLintRule.ComponentIdContainsDot,
         severity: WorkflowLintSeverity.Error,
-        message: `The id "${componentId}" contains a dot. References are split on dots, so no other step can read this one's results. Use dashes instead.`,
+        message: translateTemplate(
+          'The id "{{id}}" contains a dot. References are split on dots, so no other step can read this one\'s results. Use dashes instead.',
+          { id: componentId },
+        ),
       });
     }
 
@@ -409,7 +422,9 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
         rule: WorkflowLintRule.UnreachableComponent,
         severity: WorkflowLintSeverity.Warning,
         message:
-          "Nothing connects to this step from the trigger, so it will never run.",
+          translateText(
+            "Nothing connects to this step from the trigger, so it will never run.",
+          ) || "",
       });
     }
 
@@ -432,7 +447,9 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
           rule: WorkflowLintRule.MissingRequiredArgument,
           severity: WorkflowLintSeverity.Error,
           argumentId: argument.id,
-          message: `"${argument.name}" is required but empty.`,
+          message: translateTemplate('"{{argument}}" is required but empty.', {
+            argument: translatableTerm(argument.name),
+          }),
         });
         continue;
       }
@@ -454,7 +471,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
             rule: WorkflowLintRule.InvalidJSON,
             severity: WorkflowLintSeverity.Error,
             argumentId: argument.id,
-            message: `"${argument.name}" is not valid JSON. ${jsonCheck.errorMessage}`,
+            message: translateTemplate(
+              '"{{argument}}" is not valid JSON. {{parserMessage}}',
+              {
+                argument: translatableTerm(argument.name),
+                parserMessage: jsonCheck.errorMessage || "",
+              },
+            ),
           });
         }
       }
@@ -502,7 +525,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.ReferenceHasWhitespace,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" contains ${expression.raw}, which has a space inside the braces. Spaces are not trimmed here, so this resolves to nothing — write it as {{${expression.inner}}}.`,
+              message: translateTemplate(
+                '"{{argument}}" contains {{expression}}, which has a space inside the braces. Spaces are not trimmed here, so this resolves to nothing — write it as {{fixed}}.',
+                {
+                  argument: translatableTerm(argument.name),
+                  expression: expression.raw,
+                  fixed: `{{${expression.inner}}}`,
+                },
+              ),
             });
             continue;
           }
@@ -516,7 +546,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.UnknownReferenceRoot,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" refers to ${expression.raw}, but ${parsed.reason}. Nothing will be substituted and the text will be sent as-is.`,
+              message: translateTemplate(
+                '"{{argument}}" refers to {{expression}}, but {{reason}}. Nothing will be substituted and the text will be sent as-is.',
+                {
+                  argument: translatableTerm(argument.name),
+                  expression: expression.raw,
+                  reason: parsed.reason || "",
+                },
+              ),
             });
             continue;
           }
@@ -535,7 +572,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.UnknownReferencedComponent,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" refers to a step called "${referencedComponentId}", but no step in this workflow has that id.`,
+              message: translateTemplate(
+                '"{{argument}}" refers to a step called "{{step}}", but no step in this workflow has that id.',
+                {
+                  argument: translatableTerm(argument.name),
+                  step: referencedComponentId,
+                },
+              ),
             });
             continue;
           }
@@ -555,7 +598,14 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.UnknownReferencedReturnValue,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" reads "${returnValueId}" from step "${referencedComponentId}", but that step does not return anything by that name.`,
+              message: translateTemplate(
+                '"{{argument}}" reads "{{value}}" from step "{{step}}", but that step does not return anything by that name.',
+                {
+                  argument: translatableTerm(argument.name),
+                  value: returnValueId,
+                  step: referencedComponentId,
+                },
+              ),
             });
             continue;
           }
@@ -565,7 +615,10 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.SelfReference,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" refers to this step's own results, which do not exist yet while its settings are being read.`,
+              message: translateTemplate(
+                '"{{argument}}" refers to this step\'s own results, which do not exist yet while its settings are being read.',
+                { argument: translatableTerm(argument.name) },
+              ),
             });
             continue;
           }
@@ -582,7 +635,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.ForwardReference,
               severity: WorkflowLintSeverity.Error,
               argumentId: argument.id,
-              message: `"${argument.name}" reads results from "${referencedComponentId}", but that step runs after this one, so it has no results yet.`,
+              message: translateTemplate(
+                '"{{argument}}" reads results from "{{step}}", but that step runs after this one, so it has no results yet.',
+                {
+                  argument: translatableTerm(argument.name),
+                  step: referencedComponentId,
+                },
+              ),
             });
             continue;
           }
@@ -595,7 +654,13 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
               rule: WorkflowLintRule.ReferenceToUnreachableComponent,
               severity: WorkflowLintSeverity.Warning,
               argumentId: argument.id,
-              message: `"${argument.name}" reads results from "${referencedComponentId}", which is not connected to the trigger and so never runs.`,
+              message: translateTemplate(
+                '"{{argument}}" reads results from "{{step}}", which is not connected to the trigger and so never runs.',
+                {
+                  argument: translatableTerm(argument.name),
+                  step: referencedComponentId,
+                },
+              ),
             });
           }
         }

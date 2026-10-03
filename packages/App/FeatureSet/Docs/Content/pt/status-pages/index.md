@@ -123,9 +123,7 @@ A maioria das chaves de exibição fica em um só lugar: **Páginas de status �
 
 - **Mostrar histórico de tempo de atividade (em dias)** (`showUptimeHistoryInDays`) — o comprimento da barra de disponibilidade ao lado de cada recurso. O padrão é 90 e o valor precisa ficar entre 1 e 90. Toda opção **Mostrar % de tempo de atividade** e **Mostrar gráfico de histórico de status** de um recurso ou grupo lê esse número.
 
-**Configurações de assinantes**:
-
-- **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) — ativado por padrão, mais as cinco chaves de habilitação por canal. As mesmas chaves de canal também aparecem na tela dedicada **Configurações de assinantes**, dentro da seção **Assinantes**; trate essa como o lugar canônico para defini-las.
+Se a página mostra o item **Inscrever-se** (**Mostrar página de assinantes**, `showSubscriberPageOnStatusPage`, ativado por padrão) e por quais canais os visitantes podem se inscrever não se define nesta tela: as duas coisas ficam no cartão **Canais** em **Assinantes → Configurações de assinantes** (veja [Assinantes e anúncios](/docs/status-pages/subscribers)).
 
 **Marca "Powered By OneUptime"**:
 

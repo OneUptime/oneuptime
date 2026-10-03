@@ -3,6 +3,8 @@ import { NotificationItem } from "./NotificationItem";
 import NotificationBellItem from "./NotificationBellItem";
 import NotificationBellSection from "./NotificationBellSection";
 import { HeaderAlertType } from "../HeaderAlert";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   items: Array<NotificationItem>;
@@ -12,6 +14,7 @@ export interface ComponentProps {
 const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const errorItems: Array<NotificationItem> = props.items.filter(
     (item: NotificationItem) => {
       return item.alertType === HeaderAlertType.ERROR && item.count > 0;
@@ -43,13 +46,13 @@ const NotificationBellDropdown: (props: ComponentProps) => ReactElement = (
       <div className="py-2">
         <div className="px-4 py-2 border-b border-gray-100">
           <span className="text-sm font-semibold text-gray-900">
-            Notifications
+            {translator.translateText("Notifications")}
           </span>
         </div>
 
         {!hasItems && (
           <div className="px-4 py-6 text-center text-sm text-gray-500">
-            No notifications
+            {translator.translateText("No notifications")}
           </div>
         )}
 

@@ -7,6 +7,8 @@ import Icon from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import {
   DragDropContext,
   Draggable,
@@ -144,6 +146,7 @@ const ROW_CLASS_NAME: string =
 const ResourceList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const visibleResources: Array<StatusPageResource> =
     props.statusPageResources.slice(0, props.visibleCount);
 
@@ -235,7 +238,9 @@ const ResourceList: FunctionComponent<ComponentProps> = (
             icon={IconProp.Edit}
             title=""
             tooltip="Edit this resource"
-            ariaLabel={`Edit ${name}`}
+            ariaLabel={translator.translateTemplate("Edit {{name}}", {
+              name: name,
+            })}
             dataTestId="status-page-resource-row-edit"
             disabled={isBusy}
             className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
@@ -248,13 +253,20 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         )}
 
         <MoreMenu
-          text={`More actions for ${name}`}
+          text={translator.translateTemplate("More actions for {{name}}", {
+            name: name,
+          })}
           menuIcon={IconProp.EllipsisHorizontal}
           isDisabled={isBusy}
           elementToBeShownInsteadOfButton={
             <button
               type="button"
-              aria-label={`More actions for ${name}`}
+              aria-label={translator.translateTemplate(
+                "More actions for {{name}}",
+                {
+                  name: name,
+                },
+              )}
               data-testid="status-page-resource-row-more"
               className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
@@ -301,8 +313,12 @@ const ResourceList: FunctionComponent<ComponentProps> = (
             resourceId && props.selectedResourceIds.has(resourceId),
           )}
           disabled={!resourceId}
-          ariaLabel={`Select ${name}`}
-          hoverText={`Select ${name}`}
+          ariaLabel={translator.translateTemplate("Select {{name}}", {
+            name: name,
+          })}
+          hoverText={translator.translateTemplate("Select {{name}}", {
+            name: name,
+          })}
           onChange={() => {
             props.onToggleResourceSelected(statusPageResource);
           }}
@@ -378,7 +394,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
             </p>
           ) : (
             <p className="truncate text-sm text-gray-400">
-              Same as the monitor name
+              {translator.translateText("Same as the monitor name")}
             </p>
           )}
         </div>
@@ -412,9 +428,11 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         {...provided.dragHandleProps}
         className={`${GRIP_COLUMN_CLASS_NAME} flex h-6 cursor-grab items-center justify-center rounded text-gray-300 transition-colors hover:bg-gray-200 hover:text-gray-600 group-hover:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 active:cursor-grabbing`}
         data-testid="status-page-resource-row-drag-handle"
-        aria-label={`Reorder ${StatusPageResourceExplorerUtil.getResourceName(
-          statusPageResource,
-        )}`}
+        aria-label={translator.translateTemplate("Reorder {{name}}", {
+          name: StatusPageResourceExplorerUtil.getResourceName(
+            statusPageResource,
+          ),
+        })}
       >
         <Icon icon={IconProp.Drag} className="h-4 w-4" />
       </span>
@@ -534,7 +552,9 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         )}
 
         {props.isSelectable ? (
-          <span className="sm:hidden">Select all</span>
+          <span className="sm:hidden">
+            {translator.translateText("Select all")}
+          </span>
         ) : (
           <></>
         )}
@@ -545,7 +565,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         />
         <span
           className={POSITION_COLUMN_CLASS_NAME}
-          title="Position on the status page"
+          title={translator.translateText("Position on the status page")}
           aria-hidden="true"
         >
           #
@@ -554,13 +574,13 @@ const ResourceList: FunctionComponent<ComponentProps> = (
           className={`${MONITOR_COLUMN_CLASS_NAME} max-sm:hidden sm:block`}
           aria-hidden="true"
         >
-          Monitor
+          {translator.translateText("Monitor")}
         </span>
         <span
           className={`${PUBLISHED_NAME_COLUMN_CLASS_NAME} max-sm:hidden sm:block`}
           aria-hidden="true"
         >
-          Shown on the status page as
+          {translator.translateText("Shown on the status page as")}
         </span>
         <span
           className={`${ACTIONS_COLUMN_CLASS_NAME} max-sm:hidden sm:flex`}
@@ -709,10 +729,18 @@ const ResourceList: FunctionComponent<ComponentProps> = (
           data-testid="status-page-resource-list-show-more"
         >
           <Button
-            title={`Show ${Math.min(
-              hiddenCount,
-              StatusPageResourceExplorerUtil.ResourceRowsPerPage,
-            ).toLocaleString()} more of ${hiddenCount.toLocaleString()}`}
+            title={translator.translateTemplate(
+              "Show {{shown}} more of {{total}}",
+              {
+                shown: translator.formatNumber(
+                  Math.min(
+                    hiddenCount,
+                    StatusPageResourceExplorerUtil.ResourceRowsPerPage,
+                  ),
+                ),
+                total: translator.formatNumber(hiddenCount),
+              },
+            )}
             icon={IconProp.ChevronDown}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}

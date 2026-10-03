@@ -3,6 +3,8 @@ import Column from "./Types/Column";
 import { getTableCellClassName } from "./CellClassName";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -35,6 +37,7 @@ type TableSkeletonRowsFunction = <T extends GenericObject>(
 const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Enough rows to look like a page of data without painting offscreen ones.
   const rowCount: number = Math.max(1, Math.min(props.itemsOnPage || 0, 10));
   const rowIndexes: Array<number> = Array.from(Array(rowCount).keys());
@@ -54,7 +57,9 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
         aria-live="polite"
         className="divide-y divide-gray-200 bg-white"
       >
-        <span className="sr-only">Loading...</span>
+        <span className="sr-only">
+          {translator.translateText("Loading...")}
+        </span>
         {rowIndexes.map((rowIndex: number) => {
           return (
             <div
@@ -122,7 +127,9 @@ const TableSkeletonRows: TableSkeletonRowsFunction = <T extends GenericObject>(
               return (
                 <td key={columnIndex} className={className}>
                   {rowIndex === 0 && columnIndex === 0 && (
-                    <span className="sr-only">Loading...</span>
+                    <span className="sr-only">
+                      {translator.translateText("Loading...")}
+                    </span>
                   )}
                   <Skeleton
                     className="h-4"

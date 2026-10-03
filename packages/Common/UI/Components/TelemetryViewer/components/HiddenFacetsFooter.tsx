@@ -1,10 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
-import {
-  formatEmptyFacetCount,
-  formatHiddenFacetCount,
-} from "../FacetVisibility";
+import { formatHiddenFacetCount } from "../FacetVisibility";
 
 export interface HiddenFacetsFooterProps {
   // Empty resource facets the sidebar folded away.
@@ -27,6 +26,7 @@ export interface HiddenFacetsFooterProps {
 const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
   props: HiddenFacetsFooterProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (props.hiddenCount <= 0) {
     return null;
   }
@@ -50,7 +50,9 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
           <span className="flex flex-none items-center">
             <Icon icon={IconProp.EyeSlash} className="h-3.5 w-3.5" />
           </span>
-          <span className="truncate">Hide empty filters</span>
+          <span className="truncate">
+            {translator.translateText("Hide empty filters")}
+          </span>
         </button>
       ) : (
         <>
@@ -74,10 +76,16 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
             className="flex-none rounded font-medium text-indigo-500 transition-colors hover:text-indigo-600"
             aria-expanded={false}
             aria-controls={props.controlsId}
-            aria-label={`Show ${formatEmptyFacetCount(props.hiddenCount)}`}
+            aria-label={translator.translatePlural(
+              {
+                one: "Show {{count}} empty filter",
+                other: "Show {{count}} empty filters",
+              },
+              props.hiddenCount,
+            )}
             onClick={props.onToggle}
           >
-            Show
+            {translator.translateText("Show")}
           </button>
         </>
       )}

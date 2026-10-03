@@ -31,6 +31,12 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   title: string;
@@ -80,6 +86,7 @@ export interface ComponentProps {
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [component, setComponent] = useState<NodeDataProp>(props.component);
   const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
@@ -123,9 +130,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       dialog.focus();
     }
   }, []);
-
-  const componentTypeName: string =
-    component.metadata.componentType.toLowerCase();
 
   /*
    * Which step a delete removes: its kind and the identifier the workflow
@@ -248,7 +252,14 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         fields={[
           {
             title: "Identifier",
-            description: `How other steps refer to this ${componentTypeName}. Renaming it breaks references that use the old name.`,
+            description: translator.translateTemplate(
+              "How other steps refer to this {{type}}. Renaming it breaks references that use the old name.",
+              {
+                type: translatableTerm(component.metadata.componentType, {
+                  inSentence: true,
+                }),
+              },
+            ),
             field: { id: true },
             required: true,
             fieldType: FormFieldSchemaType.Text,
@@ -366,7 +377,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       onClick={showDocumentation}
     >
       <Icon icon={IconProp.Book} className="h-4 w-4" />
-      <span className="max-sm:sr-only">How to use</span>
+      <span className="max-sm:sr-only">
+        {translator.translateText("How to use")}
+      </span>
     </button>
   ) : undefined;
 
@@ -421,7 +434,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               }}
             />
             <span className="text-sm text-red-600">
-              Some settings need fixing before this can be saved.
+              {translator.translateText(
+                "Some settings need fixing before this can be saved.",
+              )}
             </span>
           </div>
         ) : (
@@ -456,7 +471,10 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
              * Worded as what it is. There is no dry run: the step executes for
              * real, and anything it sends or changes is not undone afterwards.
              */
-            description={`This runs "${component.metadata.title}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.`}
+            description={translator.translateTemplate(
+              'This runs "{{step}}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.',
+              { step: translatableTerm(component.metadata.title) },
+            )}
             onClose={() => {
               setShowRunStepConfirmation(false);
             }}
@@ -475,12 +493,15 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
         {showDeleteConfirmation && (
           <ConfirmModal
-            title={`Delete ${component.metadata.componentType}`}
+            title={translateNamedAction(translator, {
+              template: "Delete {{itemName}}",
+              itemName: component.metadata.componentType,
+            })}
             description={
               <DeleteConfirmationMessage
                 kind="question"
                 name={stepName}
-                typeLabel={componentTypeName}
+                typeLabel={component.metadata.componentType}
               />
             }
             onClose={() => {

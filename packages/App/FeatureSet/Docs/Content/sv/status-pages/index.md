@@ -123,9 +123,7 @@ De flesta visningsreglagen finns på ett och samma ställe: **Statussidor → di
 
 - **Visa upptidshistorik (i dagar)** (`showUptimeHistoryInDays`) — längden på drifttidsstapeln bredvid varje resurs. Standard är 90 och värdet måste ligga mellan 1 och 90. Varje **Visa upptid %** och **Visa statushistorikdiagram** på en resurs eller grupp läser den här siffran.
 
-**Prenumerantinställningar**:
-
-- **Visa prenumerantsida** (`showSubscriberPageOnStatusPage`) — på som standard, plus de fem växlarna för respektive kanal. Samma kanalväxlar finns också på den dedikerade skärmen **Prenumerantinställningar** under sektionen **Prenumeranter**; behandla den som den kanoniska platsen att sätta dem på.
+Om sidan visar posten **Prenumerera** (**Visa prenumerantsida**, `showSubscriberPageOnStatusPage`, på som standard) och via vilka kanaler besökare kan prenumerera ställs inte in på den här skärmen: Båda finns i kortet **Kanaler** under **Prenumeranter → Prenumerantinställningar** (se [Prenumeranter och meddelanden](/docs/status-pages/subscribers)).
 
 **Drivs av OneUptime-varumärke**:
 

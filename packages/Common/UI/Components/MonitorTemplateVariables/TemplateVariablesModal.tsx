@@ -8,6 +8,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import TemplateVariablesCatalog, {
   TemplateVariable,
   TemplateVariableGroup,
@@ -38,6 +41,7 @@ export interface ComponentProps {
 const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [search, setSearch] = useState<string>("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -100,7 +104,9 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
           copyToClipboard(v.key);
         }}
         className="group w-full rounded-md border border-gray-200 bg-white px-3 py-2.5 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40"
-        title={`Click to copy {{${v.key}}}`}
+        title={translator.translateTemplate("Click to copy {{token}}", {
+          token: `{{${v.key}}}`,
+        })}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -108,12 +114,20 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
               {`{{${v.key}}}`}
             </code>
             <p className="mt-1 text-xs leading-snug text-gray-600">
-              {v.description}
+              {translator.translateText(v.description)}
             </p>
             {v.example ? (
               <p className="mt-1 text-xs text-gray-400">
-                Example:{" "}
-                <span className="font-mono text-gray-500">{v.example}</span>
+                <TranslatedSentence
+                  template="Example: {{example}}"
+                  slots={{
+                    example: (
+                      <span className="font-mono text-gray-500">
+                        {v.example}
+                      </span>
+                    ),
+                  }}
+                />
               </p>
             ) : null}
           </div>
@@ -124,7 +138,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
                 : "bg-gray-100 text-gray-500 group-hover:bg-indigo-100 group-hover:text-indigo-700"
             }`}
           >
-            {isCopied ? "Copied" : "Copy"}
+            {translator.translateText(isCopied ? "Copied" : "Copy")}
           </span>
         </div>
       </button>
@@ -137,9 +151,13 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
     return (
       <div key={group.title} className="space-y-2">
         <div className="border-b border-gray-200 pb-1.5">
-          <h3 className="text-sm font-semibold text-gray-900">{group.title}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translator.translateText(group.title)}
+          </h3>
           {group.description ? (
-            <p className="mt-0.5 text-xs text-gray-500">{group.description}</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {translator.translateText(group.description)}
+            </p>
           ) : null}
         </div>
         {group.variables.length > 0 ? (
@@ -148,7 +166,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
           </div>
         ) : (
           <p className="text-xs italic text-gray-400">
-            No variables in this section yet.
+            {translator.translateText("No variables in this section yet.")}
           </p>
         )}
       </div>
@@ -165,7 +183,14 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Dynamic Template Variables"
-      description={`Use these variables in incident and alert titles, descriptions, and remediation notes. Click any variable to copy it. ${totalVariables} variables available for this monitor type.`}
+      description={translator.translatePlural(
+        {
+          one: "Use these variables in incident and alert titles, descriptions, and remediation notes. Click any variable to copy it. {{count}} variable available for this monitor type.",
+          other:
+            "Use these variables in incident and alert titles, descriptions, and remediation notes. Click any variable to copy it. {{count}} variables available for this monitor type.",
+        },
+        totalVariables,
+      )}
       onClose={props.onClose}
       closeButtonText="Done"
       modalWidth={ModalWidth.Large}
@@ -185,7 +210,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
             onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
               setSearch(e.target.value);
             }}
-            placeholder="Filter variables…"
+            placeholder={translator.translateText("Filter variables…")}
             className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             autoFocus
           />
@@ -193,7 +218,10 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
 
         {filteredGroups.length === 0 ? (
           <div className="rounded-md border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
-            No variables match <code className="font-mono">{search}</code>.
+            <TranslatedSentence
+              template="No variables match {{search}}."
+              slots={{ search: <code className="font-mono">{search}</code> }}
+            />
           </div>
         ) : (
           <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1">
@@ -202,21 +230,36 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
         )}
 
         <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900">
-          <p className="font-medium">Syntax tips</p>
+          <p className="font-medium">
+            {translator.translateText("Syntax tips")}
+          </p>
           <ul className="mt-1 list-disc space-y-1 pl-4">
             <li>
-              Wrap the variable name in double braces:{" "}
-              <code className="font-mono">{"{{monitorName}}"}</code>
+              <TranslatedSentence
+                template="Wrap the variable name in double braces: {{example}}"
+                slots={{
+                  example: (
+                    <code className="font-mono">{"{{monitorName}}"}</code>
+                  ),
+                }}
+              />
             </li>
             <li>
-              Use dot paths for nested values:{" "}
-              <code className="font-mono">
-                {"{{responseBody.data.status}}"}
-              </code>
+              <TranslatedSentence
+                template="Use dot paths for nested values: {{example}}"
+                slots={{
+                  example: (
+                    <code className="font-mono">
+                      {"{{responseBody.data.status}}"}
+                    </code>
+                  ),
+                }}
+              />
             </li>
             <li>
-              Missing values render as empty strings — they will not break the
-              template.
+              {translator.translateText(
+                "Missing values render as empty strings — they will not break the template.",
+              )}
             </li>
           </ul>
         </div>

@@ -13,6 +13,8 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface FeedItemProps {
   key: string;
@@ -33,6 +35,7 @@ export interface ComponentProps extends FeedItemProps {
 const FeedItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showMoreInformationModal, setShowMoreInformationModal] =
     useState<boolean>(false);
 
@@ -107,7 +110,8 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                 {props.user?.name && (
                   <div className="text-sm">
                     <div className="font-medium text-gray-900">
-                      {props.user?.name?.toString() || "Unknown User"}
+                      {props.user?.name?.toString() ||
+                        translator.translateText("Unknown User")}
                     </div>
                   </div>
                 )}

@@ -1,5 +1,7 @@
 // Tailwind
 import Input from "../Input/Input";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -9,10 +11,12 @@ export interface ComponentProps {
 const SearchBox: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
       <div className="w-full sm:max-w-xs">
-        <label className="sr-only">Search</label>
+        <label className="sr-only">{translator.translateText("Search")}</label>
         <div className="relative">
           <Input
             onChange={(value: string) => {

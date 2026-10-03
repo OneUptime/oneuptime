@@ -37,6 +37,12 @@ import {
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "../../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import UserUtil from "../../Utils/User";
+import {
+  fillTemplate,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * The edition pill and its dialog. This component only READS the license
@@ -82,8 +88,9 @@ const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
  * SSO" are not on this list: they are part of every edition (see
  * communityFeatures below).
  */
-export const LICENSE_LAPSE_CONSEQUENCES: string =
-  "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.";
+export const LICENSE_LAPSE_CONSEQUENCES: string = translationKey(
+  "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.",
+);
 
 /*
  * The two periods have different names and different lengths: an unlicensed
@@ -91,17 +98,36 @@ export const LICENSE_LAPSE_CONSEQUENCES: string =
  * trial, and only a license that expired has a grace period
  * (ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS days after its expiry). The
  * numbers come from the constants the license classifier uses.
+ *
+ * Each is one whole sentence set with the number of days as a placeholder, so
+ * a locale words "after the 30-day trial" its own way. The English ends with
+ * LICENSE_LAPSE_CONSEQUENCES word for word (a test holds them together).
  */
-export const TRIAL_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial), ${LICENSE_LAPSE_CONSEQUENCES}`;
+export const TRIAL_ENFORCEMENT_TEMPLATE: string = translationKey(
+  "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.",
+);
 
-export const GRACE_ENFORCEMENT_SUMMARY: string = `Without a valid license (after the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period), ${LICENSE_LAPSE_CONSEQUENCES}`;
+export const GRACE_ENFORCEMENT_TEMPLATE: string = translationKey(
+  "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.",
+);
+
+export const TRIAL_ENFORCEMENT_SUMMARY: string = fillTemplate(
+  TRIAL_ENFORCEMENT_TEMPLATE,
+  { days: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS },
+);
+
+export const GRACE_ENFORCEMENT_SUMMARY: string = fillTemplate(
+  GRACE_ENFORCEMENT_TEMPLATE,
+  { days: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS },
+);
 
 /*
  * What has stopped once the license lapsed (expired past its grace period,
  * missing after the trial, or invalid), after the reason the notice gives.
  */
-export const LICENSE_LAPSED_STATE: string =
-  "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.";
+export const LICENSE_LAPSED_STATE: string = translationKey(
+  "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.",
+);
 
 type LicenseStatus = "valid" | "grace" | "expired" | "missing" | "invalid";
 
@@ -135,6 +161,7 @@ type PillTone = "normal" | "warning" | "alerted";
 const EditionLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
   /*
@@ -541,7 +568,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const graceDaysLeftText: string =
     graceDaysLeft === null
       ? ""
-      : `${graceDaysLeft} ${graceDaysLeft === 1 ? "day" : "days"} left`;
+      : translator.translatePlural(
+          { one: "{{count}} day left", other: "{{count}} days left" },
+          graceDaysLeft,
+        );
 
   const licenseExpiresAtText: string | null = useMemo(() => {
     if (!globalConfig?.enterpriseLicenseExpiresAt) {
@@ -624,17 +654,21 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     });
   }, [currentVersion, latestVersion]);
 
-  const updateAdvisoryText: string = useMemo(() => {
-    const released: string = latestVersionPublishedAtText
-      ? `Released on ${latestVersionPublishedAtText}. `
-      : "";
-
-    if (isMajorUpgrade) {
-      return `${released}Major versions carry breaking changes and have to be applied one at a time, so check the upgrade guide before you start.`;
-    }
-
-    return `${released}Upgrading picks up the latest fixes and improvements.`;
-  }, [isMajorUpgrade, latestVersionPublishedAtText]);
+  // Two whole sentences: when it was released, then what upgrading means.
+  const updateAdvisoryText: string = [
+    latestVersionPublishedAtText
+      ? translator.translateTemplate("Released on {{date}}.", {
+          date: latestVersionPublishedAtText,
+        })
+      : "",
+    translator.translateText(
+      isMajorUpgrade
+        ? "Major versions carry breaking changes and have to be applied one at a time, so check the upgrade guide before you start."
+        : "Upgrading picks up the latest fixes and improvements.",
+    ),
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   /*
    * Null renders no footer at all. Every branch here has to be true of this
@@ -642,9 +676,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    * on a build that cannot be compared, and a worse one where the check has
    * been turned off.
    */
-  const updateFooterText: string | null = useMemo(() => {
+  const updateFooterText: string | null = ((): string | null => {
     if (isUpdateCheckDisabled) {
-      return "Update checks are turned off on this installation (DISABLE_UPDATE_CHECK), so it is not compared against OneUptime releases.";
+      return (
+        translator.translateText(
+          "Update checks are turned off on this installation (DISABLE_UPDATE_CHECK), so it is not compared against OneUptime releases.",
+        ) || null
+      );
     }
 
     if (!hasComparableVersion) {
@@ -652,11 +690,17 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     if (!latestVersionCheckedAtText) {
-      return "This installation has not checked for updates yet. It checks OneUptime releases on GitHub once a day.";
+      return (
+        translator.translateText(
+          "This installation has not checked for updates yet. It checks OneUptime releases on GitHub once a day.",
+        ) || null
+      );
     }
 
-    return `Checked for updates on ${latestVersionCheckedAtText}.`;
-  }, [isUpdateCheckDisabled, hasComparableVersion, latestVersionCheckedAtText]);
+    return translator.translateTemplate("Checked for updates on {{date}}.", {
+      date: latestVersionCheckedAtText,
+    });
+  })();
 
   const userLimit: number | null = useMemo(() => {
     return typeof globalConfig?.enterpriseLicenseUserLimit === "number"
@@ -785,46 +829,37 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     seatUsageDisplayPercent,
   ]);
 
-  const editionName: string = useMemo(() => {
+  // In the reader's language: the pill, the dialog title and the pill's name.
+  const editionName: string = ((): string => {
+    let name: string = translationKey("Enterprise Edition (License Required)");
+
     if (!IS_ENTERPRISE_EDITION) {
-      return "Community Edition";
+      name = translationKey("Community Edition");
+    } else if (isConfigLoading) {
+      name = translationKey("Enterprise Edition (Checking...)");
+    } else if (isUnlicensedTrial) {
+      if (graceDaysLeftText) {
+        return translator.translateTemplate(
+          "Enterprise Edition (Trial, {{daysLeft}})",
+          { daysLeft: graceDaysLeftText },
+        );
+      }
+
+      name = translationKey("Enterprise Edition (Trial)");
+    } else if (isExpiredGrace) {
+      name = translationKey(
+        "Enterprise Edition (License Expired, Grace Period)",
+      );
+    } else if (licenseValid) {
+      name = translationKey("Enterprise Edition");
+    } else if (licenseStatus === "expired") {
+      name = translationKey("Enterprise Edition (License Expired)");
+    } else if (licenseStatus === "invalid") {
+      name = translationKey("Enterprise Edition (License Invalid)");
     }
 
-    if (isConfigLoading) {
-      return "Enterprise Edition (Checking...)";
-    }
-
-    if (isUnlicensedTrial) {
-      return graceDaysLeftText
-        ? `Enterprise Edition (Trial, ${graceDaysLeftText})`
-        : "Enterprise Edition (Trial)";
-    }
-
-    if (isExpiredGrace) {
-      return "Enterprise Edition (License Expired, Grace Period)";
-    }
-
-    if (licenseValid) {
-      return "Enterprise Edition";
-    }
-
-    if (licenseStatus === "expired") {
-      return "Enterprise Edition (License Expired)";
-    }
-
-    if (licenseStatus === "invalid") {
-      return "Enterprise Edition (License Invalid)";
-    }
-
-    return "Enterprise Edition (License Required)";
-  }, [
-    isConfigLoading,
-    licenseValid,
-    licenseStatus,
-    isUnlicensedTrial,
-    isExpiredGrace,
-    graceDaysLeftText,
-  ]);
+    return translator.translateText(name) || name;
+  })();
 
   const indicatorColor: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
@@ -852,42 +887,44 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const ctaLabel: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
-      return showEditionMismatchNotice ? "Action needed" : "Learn more";
+      return showEditionMismatchNotice
+        ? translationKey("Action needed")
+        : translationKey("Learn more");
     }
 
     if (isConfigLoading) {
-      return "Checking";
+      return translationKey("Checking");
     }
 
     if (isUnlicensedTrial) {
-      return "Add license";
+      return translationKey("Add license");
     }
 
     if (isExpiredGrace) {
-      return "Renew license";
+      return translationKey("Renew license");
     }
 
     if (!licenseValid) {
       if (licenseStatus === "expired") {
-        return "Renew license";
+        return translationKey("Renew license");
       }
 
       if (licenseStatus === "invalid") {
-        return "Fix license";
+        return translationKey("Fix license");
       }
 
-      return "Validate license";
+      return translationKey("Validate license");
     }
 
     if (seatTone === "breached") {
-      return "User limit exceeded";
+      return translationKey("User limit exceeded");
     }
 
     if (seatTone === "approaching") {
-      return "Seats nearly full";
+      return translationKey("Seats nearly full");
     }
 
-    return "View details";
+    return translationKey("View details");
   }, [
     isConfigLoading,
     licenseValid,
@@ -933,47 +970,71 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const modalDescription: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
-      return "You are running the free, open-source build of OneUptime.";
+      return translationKey(
+        "You are running the free, open-source build of OneUptime.",
+      );
     }
 
     if (isConfigLoading) {
-      return "Checking your license with OneUptime...";
+      return translationKey("Checking your license with OneUptime...");
     }
 
     if (isUnlicensedTrial) {
-      return "No license is installed yet. Enterprise features are available during the trial.";
+      return translationKey(
+        "No license is installed yet. Enterprise features are available during the trial.",
+      );
     }
 
     if (isExpiredGrace) {
-      return "Your license has expired. Renew it before the grace period ends.";
+      return translationKey(
+        "Your license has expired. Renew it before the grace period ends.",
+      );
     }
 
     if (!licenseValid) {
-      return "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.";
+      return translationKey(
+        "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.",
+      );
     }
 
-    return "License, version, seat usage, and the instances covered by this key.";
+    return translationKey(
+      "License, version, seat usage, and the instances covered by this key.",
+    );
   }, [isConfigLoading, licenseValid, isUnlicensedTrial, isExpiredGrace]);
 
   const communityFeatures: Array<string> = useMemo(() => {
     return [
-      "Full OneUptime platform with incident response, status pages, and workflow automation.",
-      'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
-      "Community support, documentation, and tutorials to help teams get started quickly.",
-      "Regular updates, bug fixes, and open-source extensibility.",
-      "Integrations with popular DevOps tools through community-maintained connectors.",
+      translationKey(
+        "Full OneUptime platform with incident response, status pages, and workflow automation.",
+      ),
+      translationKey(
+        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
+      ),
+      translationKey(
+        "Community support, documentation, and tutorials to help teams get started quickly.",
+      ),
+      translationKey(
+        "Regular updates, bug fixes, and open-source extensibility.",
+      ),
+      translationKey(
+        "Integrations with popular DevOps tools through community-maintained connectors.",
+      ),
     ];
   }, []);
 
   const enterpriseFeatures: Array<string> = useMemo(() => {
     return [
-      "Enterprise (hardened and secure) Docker images.",
-      "Dedicated enterprise support phone number available 24/7/365.",
-      "Priority chat and email support.",
-      "Dedicated engineer who can build custom features to integrate OneUptime with your ecosystem.",
-      "Compliance reports (ISO, SOC, GDPR, HIPAA).",
-      "Legal indemnification.",
-      "Audit logs and many more enterprise-focused features.",
+      translationKey("Enterprise (hardened and secure) Docker images."),
+      translationKey(
+        "Dedicated enterprise support phone number available 24/7/365.",
+      ),
+      translationKey("Priority chat and email support."),
+      translationKey(
+        "Dedicated engineer who can build custom features to integrate OneUptime with your ecosystem.",
+      ),
+      translationKey("Compliance reports (ISO, SOC, GDPR, HIPAA)."),
+      translationKey("Legal indemnification."),
+      translationKey("Audit logs and many more enterprise-focused features."),
     ];
   }, []);
 
@@ -1082,13 +1143,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               : "bg-emerald-500"
         }`}
       />
-      {seatTone === "breached"
-        ? "Seat limit exceeded"
-        : seatTone === "approaching"
-          ? "Seats nearly full"
-          : isExpiredGrace
-            ? "Grace period"
-            : "License active"}
+      {translator.translateText(
+        seatTone === "breached"
+          ? "Seat limit exceeded"
+          : seatTone === "approaching"
+            ? "Seats nearly full"
+            : isExpiredGrace
+              ? "Grace period"
+              : "License active",
+      )}
     </span>
   ) : undefined;
 
@@ -1123,7 +1186,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             id="edition-version-heading"
             className="text-sm font-semibold text-gray-900"
           >
-            This installation
+            {translator.translateText("This installation")}
           </h4>
           <p className="mt-1.5 flex items-baseline gap-2">
             <span
@@ -1136,8 +1199,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           </p>
           {!hasComparableVersion && (
             <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
-              This build does not report a version number, so it cannot be
-              compared against the latest OneUptime release.
+              {translator.translateText(
+                "This build does not report a version number, so it cannot be compared against the latest OneUptime release.",
+              )}
             </p>
           )}
         </div>
@@ -1163,7 +1227,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                 isUpdateAvailable ? "text-amber-700" : "text-emerald-600"
               }`}
             />
-            {isUpdateAvailable ? "Update available" : "Up to date"}
+            {translator.translateText(
+              isUpdateAvailable ? "Update available" : "Up to date",
+            )}
           </span>
         )}
       </div>
@@ -1174,9 +1240,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           className="border-t border-amber-200 bg-amber-50 px-5 py-4"
         >
           <h5 className="text-sm font-semibold text-amber-900">
-            {isMajorUpgrade
-              ? `OneUptime v${latestVersion} is a major upgrade`
-              : `OneUptime v${latestVersion} is available`}
+            {translator.translateTemplate(
+              isMajorUpgrade
+                ? "OneUptime v{{version}} is a major upgrade"
+                : "OneUptime v{{version}} is available",
+              { version: latestVersion },
+            )}
           </h5>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
             {updateAdvisoryText}
@@ -1202,7 +1271,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                  */
                 className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
               >
-                Read the upgrade guide
+                {translator.translateText("Read the upgrade guide")}
                 <Icon
                   icon={IconProp.ExternalLink}
                   className="h-3 w-3 shrink-0 text-white"
@@ -1246,16 +1315,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               id="edition-evaluation-heading"
               className="text-sm font-semibold text-violet-900"
             >
-              Evaluation license
+              {translator.translateText("Evaluation license")}
             </h4>
             <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
-              Testing only
+              {translator.translateText("Testing only")}
             </span>
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-violet-800">
-            This key was issued for evaluation and testing. It is not licensed
-            for production use — reach out whenever you are ready to go live and
-            we will get a production license sorted for you.
+            {translator.translateText(
+              "This key was issued for evaluation and testing. It is not licensed for production use — reach out whenever you are ready to go live and we will get a production license sorted for you.",
+            )}
           </p>
           <div className="mt-3">
             <a
@@ -1268,7 +1337,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Email}
                 className="h-3 w-3 shrink-0 text-white"
               />
-              Talk to sales about production
+              {translator.translateText("Talk to sales about production")}
             </a>
           </div>
         </div>
@@ -1296,17 +1365,33 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         >
           <h4 className="text-sm font-semibold text-amber-900">
             {graceDaysLeftText
-              ? `Enterprise Edition trial: ${graceDaysLeftText}`
-              : "Enterprise Edition trial"}
+              ? translator.translateTemplate(
+                  "Enterprise Edition trial: {{daysLeft}}",
+                  {
+                    daysLeft: graceDaysLeftText,
+                  },
+                )
+              : translator.translateText("Enterprise Edition trial")}
           </h4>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            {`${
-              hasLicenseInstalled
-                ? "A license is installed, but this installation cannot tell whether it is still current, so it is treating this as an unlicensed install."
-                : "No Enterprise license is installed."
-            } Enterprise features stay fully available${
-              graceEndsAtText ? ` until ${graceEndsAtText}` : ""
-            }, counted from the first time this installation ran the Enterprise Edition. ${TRIAL_ENFORCEMENT_SUMMARY}`}
+            {[
+              translator.translateText(
+                hasLicenseInstalled
+                  ? "A license is installed, but this installation cannot tell whether it is still current, so it is treating this as an unlicensed install."
+                  : "No Enterprise license is installed.",
+              ),
+              graceEndsAtText
+                ? translator.translateTemplate(
+                    "Enterprise features stay fully available until {{date}}, counted from the first time this installation ran the Enterprise Edition.",
+                    { date: graceEndsAtText },
+                  )
+                : translator.translateText(
+                    "Enterprise features stay fully available, counted from the first time this installation ran the Enterprise Edition.",
+                  ),
+              translator.translateTemplate(TRIAL_ENFORCEMENT_TEMPLATE, {
+                days: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+              }),
+            ].join(" ")}
           </p>
           {/*
            * What the license client actually said about the installed license.
@@ -1323,13 +1408,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             </p>
           )}
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
-            {canManageLicense
-              ? hasLicenseInstalled
-                ? "Re-activate the license below before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep SCIM provisioning and audit logging running and enterprise configuration editable."
-                : "Add a license below before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable."
-              : hasLicenseInstalled
-                ? "Ask a master admin of this installation to re-activate the license."
-                : "Ask a master admin of this installation to add a license."}
+            {translator.translateText(
+              canManageLicense
+                ? hasLicenseInstalled
+                  ? "Re-activate the license below before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep SCIM provisioning and audit logging running and enterprise configuration editable."
+                  : "Add a license below before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable."
+                : hasLicenseInstalled
+                  ? "Ask a master admin of this installation to re-activate the license."
+                  : "Ask a master admin of this installation to add a license.",
+            )}
           </p>
         </section>
       );
@@ -1344,20 +1431,39 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         >
           <h4 className="text-sm font-semibold text-amber-900">
             {graceEndsAtText
-              ? `License expired, grace period until ${graceEndsAtText}`
-              : "License expired, grace period"}
+              ? translator.translateTemplate(
+                  "License expired, grace period until {{date}}",
+                  { date: graceEndsAtText },
+                )
+              : translator.translateText("License expired, grace period")}
           </h4>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            {`The Enterprise license expired${
-              licenseExpiresAtText ? ` on ${licenseExpiresAtText}` : ""
-            }. Every enterprise feature keeps working until the grace period ends${
-              graceDaysLeftText ? ` (${graceDaysLeftText})` : ""
-            }. ${GRACE_ENFORCEMENT_SUMMARY}`}
+            {[
+              licenseExpiresAtText
+                ? translator.translateTemplate(
+                    "The Enterprise license expired on {{date}}.",
+                    { date: licenseExpiresAtText },
+                  )
+                : translator.translateText("The Enterprise license expired."),
+              graceDaysLeftText
+                ? translator.translateTemplate(
+                    "Every enterprise feature keeps working until the grace period ends ({{daysLeft}}).",
+                    { daysLeft: graceDaysLeftText },
+                  )
+                : translator.translateText(
+                    "Every enterprise feature keeps working until the grace period ends.",
+                  ),
+              translator.translateTemplate(GRACE_ENFORCEMENT_TEMPLATE, {
+                days: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+              }),
+            ].join(" ")}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
-            {canManageLicense
-              ? "Renew the license with OneUptime, then refresh it here."
-              : "Ask a master admin of this installation to renew the license."}
+            {translator.translateText(
+              canManageLicense
+                ? "Renew the license with OneUptime, then refresh it here."
+                : "Ask a master admin of this installation to renew the license.",
+            )}
           </p>
         </section>
       );
@@ -1365,23 +1471,39 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
     if (!licenseValid) {
       const title: string =
-        licenseStatus === "expired"
-          ? "License expired"
-          : licenseStatus === "invalid"
-            ? "License not valid"
-            : "No valid license";
+        translator.translateText(
+          licenseStatus === "expired"
+            ? "License expired"
+            : licenseStatus === "invalid"
+              ? "License not valid"
+              : "No valid license",
+        ) || "";
 
+      /*
+       * The license client's own message is shown as it was sent; everything
+       * else is this component's sentence in the reader's language.
+       */
       const reason: string =
         licenseStatus === "expired"
-          ? `The Enterprise license expired${
-              licenseExpiresAtText ? ` on ${licenseExpiresAtText}` : ""
-            } and its grace period is over.`
+          ? licenseExpiresAtText
+            ? translator.translateTemplate(
+                "The Enterprise license expired on {{date}} and its grace period is over.",
+                { date: licenseExpiresAtText },
+              )
+            : translator.translateText(
+                "The Enterprise license expired and its grace period is over.",
+              ) || ""
           : licenseStatus === "invalid"
             ? licenseMessage ||
-              "The stored license could not be verified. Validate the license again."
-            : hasLicenseInstalled
-              ? "A license is installed, but this installation cannot confirm that it is current, so nothing is licensed by it."
-              : "This installation has no valid Enterprise license.";
+              translator.translateText(
+                "The stored license could not be verified. Validate the license again.",
+              ) ||
+              ""
+            : translator.translateText(
+                hasLicenseInstalled
+                  ? "A license is installed, but this installation cannot confirm that it is current, so nothing is licensed by it."
+                  : "This installation has no valid Enterprise license.",
+              ) || "";
 
       /*
        * Whatever the license client said, for EVERY status and not only
@@ -1417,7 +1539,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             </p>
           )}
           <p className="mt-1 text-xs leading-relaxed text-red-800">
-            {`${reason} ${LICENSE_LAPSED_STATE}`}
+            {`${reason} ${translator.translateText(LICENSE_LAPSED_STATE)}`}
           </p>
         </section>
       );
@@ -1430,13 +1552,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           className="rounded-xl border border-gray-200 bg-gray-50 p-4"
         >
           <h4 className="text-sm font-semibold text-gray-900">
-            Legacy license
+            {translator.translateText("Legacy license")}
           </h4>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            This license was issued before OneUptime signed its licenses, so
-            this installation cannot verify it offline. It keeps working;
-            refreshing the license replaces it with a signed one once OneUptime
-            issues them.
+            {translator.translateText(
+              "This license was issued before OneUptime signed its licenses, so this installation cannot verify it offline. It keeps working; refreshing the license replaces it with a signed one once OneUptime issues them.",
+            )}
           </p>
         </section>
       );
@@ -1487,7 +1608,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return (
       <Modal
         title={editionName}
-        description={modalDescription}
+        description={translator.translateText(modalDescription)}
         rightElement={modalRightElement}
         submitButtonText={
           IS_ENTERPRISE_EDITION ? parts.submitButtonText : "Talk to Sales"
@@ -1519,7 +1640,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-red-900">
-                        Unable to load license details
+                        {translator.translateText(
+                          "Unable to load license details",
+                        )}
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-red-800">
                         {configError}
@@ -1551,18 +1674,19 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                 <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">
                   <div className="min-w-0 bg-white px-4 py-3">
                     <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                      Licensed to
+                      {translator.translateText("Licensed to")}
                     </dt>
                     <dd
                       className="mt-1 truncate text-sm font-medium text-gray-900"
                       title={globalConfig?.enterpriseCompanyName || undefined}
                     >
-                      {globalConfig?.enterpriseCompanyName || "Not specified"}
+                      {globalConfig?.enterpriseCompanyName ||
+                        translator.translateText("Not specified")}
                     </dd>
                   </div>
                   <div className="bg-white px-4 py-3">
                     <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                      Expires
+                      {translator.translateText("Expires")}
                     </dt>
                     <dd className="mt-1 text-sm font-medium tabular-nums text-gray-900">
                       {licenseExpiresAtText || "—"}
@@ -1578,12 +1702,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               {showLicenseAdminRequiredNotice && (
                 <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
                   <h4 className="text-sm font-semibold text-amber-900">
-                    A master admin has to activate this license
+                    {translator.translateText(
+                      "A master admin has to activate this license",
+                    )}
                   </h4>
                   <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                    This installation does not have a valid enterprise license.
-                    Ask a master admin of this OneUptime installation to enter
-                    or refresh the license key from this dialog.
+                    {translator.translateText(
+                      "This installation does not have a valid enterprise license. Ask a master admin of this OneUptime installation to enter or refresh the license key from this dialog.",
+                    )}
                   </p>
                 </section>
               )}
@@ -1599,13 +1725,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     id="edition-features-heading"
                     className="text-sm font-semibold text-indigo-900"
                   >
-                    What your license unlocks
+                    {translator.translateText("What your license unlocks")}
                   </h4>
                   <p className="mt-0.5 text-xs text-indigo-700">
-                    {canManageLicense
-                      ? "A valid license that includes them keeps SCIM provisioning and audit logging running, enterprise configuration (SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
-                      : "A master admin can add the license to keep SCIM provisioning and audit logging running and enterprise configuration editable."}{" "}
-                    Core monitoring never depends on it.
+                    {`${translator.translateText(
+                      canManageLicense
+                        ? "A valid license that includes them keeps SCIM provisioning and audit logging running, enterprise configuration (SCIM, team compliance, audit log settings) editable and the enterprise admin dashboards unlocked."
+                        : "A master admin can add the license to keep SCIM provisioning and audit logging running and enterprise configuration editable.",
+                    )} ${translator.translateText("Core monitoring never depends on it.")}`}
                   </p>
                   <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {enterpriseFeatures.map(
@@ -1622,7 +1749,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                               />
                             </span>
                             <span className="text-xs leading-snug text-gray-700">
-                              {feature}
+                              {translator.translateText(feature)}
                             </span>
                           </li>
                         );
@@ -1641,26 +1768,27 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   className="rounded-xl border border-amber-200 bg-amber-50 p-5"
                 >
                   <h4 className="text-sm font-semibold text-amber-900">
-                    This is the Community Edition image
+                    {translator.translateText(
+                      "This is the Community Edition image",
+                    )}
                   </h4>
                   <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                    IS_ENTERPRISE_EDITION is set but this is the Community
-                    Edition image — switch to the enterprise image (the
-                    enterprise-* image tags) to use Enterprise Edition features.
-                    Until then they are off; everything else keeps working.
+                    {translator.translateText(
+                      "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.",
+                    )}
                   </p>
                 </section>
               )}
               {versionCardElement}
               <p>
-                You are running the Community Edition of OneUptime. Here is a
-                quick comparison to help you decide if Enterprise is the right
-                fit for your team.
+                {translator.translateText(
+                  "You are running the Community Edition of OneUptime. Here is a quick comparison to help you decide if Enterprise is the right fit for your team.",
+                )}
               </p>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-gray-200 bg-white p-4">
                   <h4 className="text-sm font-semibold text-gray-900">
-                    Community Edition
+                    {translator.translateText("Community Edition")}
                   </h4>
                   <ul className="mt-3 space-y-2 text-sm text-gray-600">
                     {communityFeatures.map((feature: string, index: number) => {
@@ -1670,19 +1798,22 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                             icon={IconProp.Check}
                             className="mt-0.5 h-3 w-3 shrink-0 text-gray-400"
                           />
-                          <span className="leading-snug">{feature}</span>
+                          <span className="leading-snug">
+                            {translator.translateText(feature)}
+                          </span>
                         </li>
                       );
                     })}
                   </ul>
                   <p className="mt-3 text-xs text-gray-500">
-                    Best for small teams experimenting with reliability
-                    workflows.
+                    {translator.translateText(
+                      "Best for small teams experimenting with reliability workflows.",
+                    )}
                   </p>
                 </div>
                 <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-4">
                   <h4 className="text-sm font-semibold text-indigo-900">
-                    Enterprise Edition
+                    {translator.translateText("Enterprise Edition")}
                   </h4>
                   <ul className="mt-3 space-y-2 text-sm text-indigo-900">
                     {enterpriseFeatures.map(
@@ -1693,22 +1824,25 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                               icon={IconProp.Check}
                               className="mt-0.5 h-3 w-3 shrink-0 text-indigo-600"
                             />
-                            <span className="leading-snug">{feature}</span>
+                            <span className="leading-snug">
+                              {translator.translateText(feature)}
+                            </span>
                           </li>
                         );
                       },
                     )}
                   </ul>
                   <p className="mt-3 text-xs text-indigo-700">
-                    Everything in Community plus white-glove onboarding,
-                    enterprise SLAs, and a partner dedicated to your reliability
-                    goals.
+                    {translator.translateText(
+                      "Everything in Community plus white-glove onboarding, enterprise SLAs, and a partner dedicated to your reliability goals.",
+                    )}
                   </p>
                 </div>
               </div>
               <p className="text-xs text-gray-500">
-                Ready to unlock enterprise capabilities? Click &quot;Talk to
-                Sales&quot; to start the conversation.
+                {translator.translateText(
+                  'Ready to unlock enterprise capabilities? Click "Talk to Sales" to start the conversation.',
+                )}
               </p>
             </>
           )}
@@ -1736,9 +1870,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          * Name) so voice-control users can activate it by the words they see
          * ("{editionName}" and "{ctaLabel}", e.g. "Learn more").
          */
-        aria-label={`${editionName}${
-          showEvaluationTag ? ", Evaluation" : ""
-        }, ${ctaLabel}`}
+        aria-label={translator.translateTemplate(
+          showEvaluationTag
+            ? "{{edition}}, Evaluation, {{action}}"
+            : "{{edition}}, {{action}}",
+          {
+            edition: editionName,
+            action: translator.translateText(ctaLabel) || ctaLabel,
+          },
+        )}
       >
         {pillTone !== "normal" && (
           <Icon
@@ -1758,10 +1898,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         <span className="tracking-wide">{editionName}</span>
         {showEvaluationTag && (
           <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
-            Evaluation
+            {translator.translateText("Evaluation")}
           </span>
         )}
-        <span className={pillCtaTextClassName}>{ctaLabel}</span>
+        <span className={pillCtaTextClassName}>
+          {translator.translateText(ctaLabel)}
+        </span>
       </button>
 
       {LicenseManager ? (

@@ -123,9 +123,7 @@ Die meisten Anzeigeschalter liegen an einer Stelle: **Statusseiten → Ihre Seit
 
 - **Verfügbarkeitsverlauf anzeigen (in Tagen)** (`showUptimeHistoryInDays`) – die Länge des Verfügbarkeitsbalkens neben jeder Ressource. Standard 90, erlaubt sind 1 bis 90. Jede Option **Verfügbarkeit % anzeigen** und **Statusverlaufsdiagramm anzeigen** an einer Ressource oder Gruppe liest diesen Wert.
 
-**Abonnenten-Einstellungen**:
-
-- **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an, dazu die fünf Schalter für die einzelnen Kanäle. Dieselben Kanalschalter erscheinen auch auf dem eigenen Bildschirm **Abonnenten-Einstellungen** im Abschnitt **Abonnenten**; behandeln Sie diesen als den maßgeblichen Ort dafür.
+Ob die Seite einen Eintrag **Abonnieren** zeigt (**Abonnentenseite anzeigen**, `showSubscriberPageOnStatusPage`, standardmäßig an) und über welche Kanäle Besucher abonnieren können, legen Sie nicht hier fest: Beides steht in der Karte **Kanäle** unter **Abonnenten → Abonnenten-Einstellungen** (siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers)).
 
 **Branding „Powered By OneUptime“**:
 

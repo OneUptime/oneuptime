@@ -89,6 +89,12 @@ import SessionAwareImage from "./SessionAwareImage";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
+  translateTemplate,
+  translateText,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import {
   InlineReferenceTransformOptions,
   MARKDOWN_INLINE_REFERENCE_COMPONENTS,
   MarkdownInlineReferenceContext,
@@ -215,7 +221,10 @@ export const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
           const errorMessage: string = String(error);
           const errorEl: HTMLPreElement = document.createElement("pre");
           errorEl.className = "text-red-500";
-          errorEl.textContent = `Error rendering diagram: ${errorMessage}`;
+          errorEl.textContent = translateTemplate(
+            "Error rendering diagram: {{error}}",
+            { error: errorMessage },
+          );
           containerRef.current.innerHTML = "";
           containerRef.current.appendChild(errorEl);
         }
@@ -353,6 +362,7 @@ const CodeBlock: FunctionComponent<{
   content: string;
   rest: any;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [copied, setCopied] = useState<boolean>(false);
 
   const handleCopy: () => void = useCallback((): void => {
@@ -408,7 +418,7 @@ const CodeBlock: FunctionComponent<{
               ? "text-green-400"
               : "text-gray-400 hover:text-gray-200 hover:bg-white/10"
           }`}
-          aria-label="Copy code"
+          aria-label={translator.translateText("Copy code")}
           type="button"
         >
           {copied ? (
@@ -437,7 +447,7 @@ const CodeBlock: FunctionComponent<{
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
           )}
-          {copied ? "Copied!" : "Copy"}
+          {translator.translateText(copied ? "Copied!" : "Copy")}
         </button>
       </div>
       {/*
@@ -476,6 +486,7 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
 }: {
   isoValue: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const parsed: Date = new Date(isoValue);
   if (isNaN(parsed.getTime())) {
     return (
@@ -495,7 +506,9 @@ const LocalTime: FunctionComponent<{ isoValue: string }> = ({
   return (
     <time
       dateTime={isoValue}
-      title={`${isoValue} (UTC)`}
+      title={translator.translateTemplate("{{time}} (UTC)", {
+        time: isoValue,
+      })}
       className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono whitespace-nowrap"
     >
       {localFormatted}
@@ -713,7 +726,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
            * alt text (already plain, React-escaped) instead.
            */
           return alt ? (
-            <span className="text-gray-500 italic">{`[image: ${alt}]`}</span>
+            <span className="text-gray-500 italic">
+              {translateTemplate("[image: {{alt}}]", { alt: String(alt) })}
+            </span>
           ) : null;
         }
         return (
@@ -787,7 +802,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                     "aria-label":
                       existingLabel ||
                       extractTextFromChildren(children).trim() ||
-                      "Task item",
+                      translateText("Task item"),
                   } as any,
                 );
               }

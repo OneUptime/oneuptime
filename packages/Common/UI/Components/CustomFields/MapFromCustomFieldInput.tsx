@@ -1,6 +1,9 @@
 import API from "../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -91,6 +94,7 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const [sourceFields, setSourceFields] = useState<Array<SourceField>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -206,7 +210,13 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
 
   if (selectedValue && !isSelectedValueOffered) {
     options.unshift({
-      label: `${selectedValue} (no longer available on ${props.sourceTitle})`,
+      label: translator.translateTemplate(
+        "{{value}} (no longer available on {{source}})",
+        {
+          value: String(selectedValue),
+          source: translatableTerm(props.sourceTitle),
+        },
+      ),
       value: selectedValue,
     });
   }
@@ -224,7 +234,10 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
       <ErrorMessage
         message={
           props.noSourceFieldsMessage ||
-          `No ${props.sourceTitle} custom field exists in this project yet. Create one first.`
+          translator.translateTemplate(
+            "No {{source}} custom field exists in this project yet. Create one first.",
+            { source: translatableTerm(props.sourceTitle) },
+          )
         }
       />
     );
@@ -239,7 +252,10 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
   if (options.length === 0) {
     return (
       <ErrorMessage
-        message={`No ${props.sourceTitle} custom field of this type exists in this project. Create one first, or choose a different field type.`}
+        message={translator.translateTemplate(
+          "No {{source}} custom field of this type exists in this project. Create one first, or choose a different field type.",
+          { source: translatableTerm(props.sourceTitle) },
+        )}
       />
     );
   }
@@ -293,10 +309,16 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
           className="mt-2 text-sm text-gray-500"
           data-testid="map-from-selected-field-type"
         >
-          {translateString("Field Type") ?? "Field Type"}:{" "}
-          <span className="font-medium text-gray-700">
-            {translateString(selectedTypeLabel) ?? selectedTypeLabel}
-          </span>
+          <TranslatedSentence
+            template="Field Type: {{type}}"
+            slots={{
+              type: (
+                <span className="font-medium text-gray-700">
+                  {translateString(selectedTypeLabel) ?? selectedTypeLabel}
+                </span>
+              ),
+            }}
+          />
         </p>
       )}
     </div>
