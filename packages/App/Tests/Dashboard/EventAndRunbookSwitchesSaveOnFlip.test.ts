@@ -310,6 +310,15 @@ describe("the SLO banner turns evaluation on where it says it is off", () => {
     expect(banner).toContain("subscribeToModelSwitchSaved({");
     expect(banner).toContain("column: SLO_EVALUATION_SWITCH_COLUMN");
   });
+
+  test("the overview's data hears it too, so the hero follows the banner's button", () => {
+    const data: string = readDashboard("Components/Slo/useSloOverviewData.ts");
+
+    expect(data).toContain(
+      "subscribeToModelSwitchSaved({ modelType: ServiceLevelObjective, modelId: options.sloId, column: SLO_EVALUATION_SWITCH_COLUMN,",
+    );
+    expect(data).toContain("unsubscribeEvaluation();");
+  });
 });
 
 describe("what the switches say", () => {
