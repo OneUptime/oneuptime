@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -24,6 +29,7 @@ export interface EmailLogsTableProps {
 const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
   props: EmailLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -123,12 +129,20 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
         cardProps={{
           title: "Email Logs",
           description: props.singularName
-            ? `Emails sent for this ${props.singularName}.`
+            ? translator.translateTemplate("Emails sent for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "Emails sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No email logs for this ${props.singularName}.`
+            ? translator.translateTemplate("No email logs for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "No email logs."
         }
         showRefreshButton={true}

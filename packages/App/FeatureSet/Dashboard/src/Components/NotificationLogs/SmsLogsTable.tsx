@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -45,6 +50,7 @@ const getSmsStatusColor: (status: SmsStatus) => Color = (
 const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   props: SmsLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -150,12 +156,20 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
         cardProps={{
           title: "SMS Logs",
           description: props.singularName
-            ? `SMS sent for this ${props.singularName}.`
+            ? translator.translateTemplate("SMS sent for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "SMS sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No SMS logs for this ${props.singularName}.`
+            ? translator.translateTemplate("No SMS logs for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "No SMS logs."
         }
         showRefreshButton={true}

@@ -45,6 +45,11 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -88,29 +93,32 @@ export interface ComponentProps {
   windowEnd: Date | null;
 }
 
-export const BROKER_HEALTH_TITLE: string = "Broker health";
+export const BROKER_HEALTH_TITLE: string = translationKey("Broker health");
 
 export const BROKER_HEALTH_NO_DATA_TITLE: string =
   "No broker metrics in this range";
 
-export const BROKER_HEALTH_CREATE_MONITOR_LABEL: string = "Create monitor";
+export const BROKER_HEALTH_CREATE_MONITOR_LABEL: string =
+  translationKey("Create monitor");
 
 /*
  * The queue's Documentation tab, which turns the system's metrics source into
  * a configuration with the reader's ingestion key filled in.
  */
-export const BROKER_HEALTH_SETUP_LINK_LABEL: string =
-  "Set up broker metrics for this queue →";
+export const BROKER_HEALTH_SETUP_LINK_LABEL: string = translationKey(
+  "Set up broker metrics for this queue →",
+);
 
 /*
  * Where a system's broker metrics can be read when they never reach this
  * queue: the project's Metrics explorer.
  */
 export const BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL: string =
-  "Open the Metrics explorer →";
+  translationKey("Open the Metrics explorer →");
 
-export const BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON: string =
-  "No series of this metric in the selected range carries this queue's attributes, so a monitor would watch nothing. Widen the range and try again.";
+export const BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON: string = translationKey(
+  "No series of this metric in the selected range carries this queue's attributes, so a monitor would watch nothing. Widen the range and try again.",
+);
 
 /*
  * Catalog notes spell component names and settings in backticks; they read
@@ -168,11 +176,13 @@ export function getMessageQueueBrokerMonitorLinks(data: {
 const SectionHeader: FunctionComponent<{ metricsRoute: Route }> = (props: {
   metricsRoute: Route;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mb-3 flex items-center justify-between">
       <div className="flex items-center gap-1">
         <h2 className="text-base font-semibold text-gray-900">
-          {BROKER_HEALTH_TITLE}
+          {translator.translateText(BROKER_HEALTH_TITLE)}
         </h2>
         <InfoTooltip
           label={BROKER_HEALTH_TITLE}
@@ -183,7 +193,7 @@ const SectionHeader: FunctionComponent<{ metricsRoute: Route }> = (props: {
         to={props.metricsRoute}
         className="text-sm font-medium text-indigo-600 hover:underline"
       >
-        All metrics →
+        {translator.translateText("All metrics →") || ""}
       </AppLink>
     </div>
   );
@@ -192,6 +202,7 @@ const SectionHeader: FunctionComponent<{ metricsRoute: Route }> = (props: {
 const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const metricsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.MESSAGE_QUEUE_VIEW_METRICS] as Route,
     { modelId: props.modelId },
@@ -247,7 +258,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
             to={metricsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            All metrics →
+            {translator.translateText("All metrics →") || ""}
           </AppLink>
           <Link
             to={getMessageQueueDocsRoute(
@@ -256,7 +267,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
             openInNewTab={true}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            Broker health stays empty →
+            {translator.translateText("Broker health stays empty →")}
           </Link>
         </div>
       </Card>
@@ -296,7 +307,8 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                 to={documentationRoute}
                 className="text-sm font-medium text-indigo-600 hover:underline"
               >
-                {BROKER_HEALTH_SETUP_LINK_LABEL}
+                {translator.translateText(BROKER_HEALTH_SETUP_LINK_LABEL) ||
+                  ""}
               </AppLink>
             ) : guidance.sourceKind !== "none" ? (
               <AppLink
@@ -305,7 +317,9 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                 )}
                 className="text-sm font-medium text-indigo-600 hover:underline"
               >
-                {BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL}
+                {translator.translateText(
+                  BROKER_HEALTH_METRICS_EXPLORER_LINK_LABEL,
+                ) || ""}
               </AppLink>
             ) : (
               <></>
@@ -419,7 +433,9 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                     >
                       {link
                         ? getMessageQueueMetricMonitorHint(link)
-                        : BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON}
+                        : translator.translateText(
+                            BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON,
+                          )}
                     </span>
                     {link ? (
                       <span
@@ -430,7 +446,9 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                           to={link.route}
                           className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
                         >
-                          {BROKER_HEALTH_CREATE_MONITOR_LABEL}
+                          {translator.translateText(
+                            BROKER_HEALTH_CREATE_MONITOR_LABEL,
+                          ) || ""}
                         </AppLink>
                       </span>
                     ) : (
@@ -440,10 +458,14 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                         data-testid="message-queue-create-monitor-unavailable"
                         data-metric-id={id}
                         aria-describedby={`message-queue-create-monitor-hint-${id}`}
-                        title={BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON}
+                        title={translator.translateText(
+                          BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON,
+                        )}
                         className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
                       >
-                        {BROKER_HEALTH_CREATE_MONITOR_LABEL}
+                        {translator.translateText(
+                          BROKER_HEALTH_CREATE_MONITOR_LABEL,
+                        )}
                       </button>
                     )}
                   </div>

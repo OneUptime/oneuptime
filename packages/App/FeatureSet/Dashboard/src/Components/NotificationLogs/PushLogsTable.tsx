@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -26,6 +31,7 @@ export interface PushLogsTableProps {
 const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
   props: PushLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -131,12 +137,20 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
         cardProps={{
           title: "Push Logs",
           description: props.singularName
-            ? `Push notifications sent for this ${props.singularName}.`
+            ? translator.translateTemplate("Push notifications sent for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "Push notifications sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No Push logs for this ${props.singularName}.`
+            ? translator.translateTemplate("No Push logs for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "No Push logs."
         }
         showRefreshButton={true}

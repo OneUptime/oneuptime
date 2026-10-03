@@ -3,6 +3,8 @@ import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import { DOCS_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   probeKey: string;
@@ -12,6 +14,7 @@ export interface ComponentProps {
 const CustomProbeDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const host: string = `${HTTP_PROTOCOL}${HOST}`;
 
   return (
@@ -28,20 +31,23 @@ docker run --name oneuptime-probe --network host -e PROBE_KEY=${props.probeKey.t
 `}
             />
             <p className="text-sm text-gray-500">
-              To monitor IPv6 destinations, run the probe on a host that has
-              IPv6.{" "}
+              {translator.translateText(
+                "To monitor IPv6 destinations, run the probe on a host that has IPv6.",
+              )}{" "}
               <a
                 className="font-medium text-indigo-600 hover:underline"
                 href={`${DOCS_URL.toString()}/probe/custom-probe#monitoring-ipv6-destinations`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Monitoring IPv6 destinations
+                {translator.translateText("Monitoring IPv6 destinations")}
               </a>
             </p>
             <div className="mt-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">
-                With Proxy Configuration (Optional)
+                {translator.translateText(
+                  "With Proxy Configuration (Optional)",
+                )}
               </h4>
               <CodeBlock
                 language="bash"

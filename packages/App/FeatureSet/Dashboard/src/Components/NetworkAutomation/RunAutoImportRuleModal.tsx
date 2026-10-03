@@ -13,6 +13,8 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -44,6 +46,7 @@ export interface ComponentProps {
 const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<AutoImportRuleRunResult | null>(null);
@@ -183,7 +186,7 @@ const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
             {result.matchedIpAddressSample.length > 0 ? (
               <div className="mt-4">
                 <div className="font-medium text-gray-900">
-                  Sample of matching hosts
+                  {translator.translateText("Sample of matching hosts")}
                 </div>
                 <div className="mt-1 max-h-32 overflow-y-auto rounded-md bg-gray-50 p-2 font-mono text-xs text-gray-700">
                   {result.matchedIpAddressSample.join(", ")}

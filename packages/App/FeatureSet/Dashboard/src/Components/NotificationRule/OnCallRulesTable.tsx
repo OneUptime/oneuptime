@@ -44,6 +44,8 @@ import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -478,6 +480,7 @@ const OPT_OUT_LABEL: string = "Muted - notifications turned off for this rule";
 const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [severities, setSeverities] = useState<Array<OnCallRuleSeverity>>([]);
@@ -616,16 +619,22 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * is used, which keeps those four pages byte-identical to what shipped.
    */
   const ruleSingularName: string | undefined = props.onBehalfOfName
-    ? `Notification Rule for ${props.onBehalfOfName}`
+    ? translator.translateTemplate("Notification Rule for {{name}}", {
+        name: props.onBehalfOfName,
+      })
     : undefined;
 
   const notifyAfterFieldTitle: string = props.onBehalfOfName
-    ? `Notify ${props.onBehalfOfName} after`
-    : "Notify me after";
+    ? translator.translateTemplate("Notify {{name}} after", {
+        name: props.onBehalfOfName,
+      })
+    : translator.translateTemplate("Notify me after");
 
   const notificationMethodFieldDescription: string = props.onBehalfOfName
-    ? `How should ${props.onBehalfOfName} be notified?`
-    : "How do you want to be notified?";
+    ? translator.translateTemplate("How should {{name}} be notified?", {
+        name: props.onBehalfOfName,
+      })
+    : translator.translateTemplate("How do you want to be notified?");
 
   /*
    * ==========================================================================
@@ -1051,9 +1060,19 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
               return (
                 <div>
-                  {item["notifyAfterMinutes"] === 0 && <p>Immediately</p>}
+                  {item["notifyAfterMinutes"] === 0 && (
+                    <p>{translator.translateText("Immediately")}</p>
+                  )}
                   {(item["notifyAfterMinutes"] as number) > 0 && (
-                    <p>{item["notifyAfterMinutes"] as number} minutes</p>
+                    <p>
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} minute",
+                          other: "{{count}} minutes",
+                        },
+                        item["notifyAfterMinutes"] as number,
+                      )}
+                    </p>
                   )}
                 </div>
               );

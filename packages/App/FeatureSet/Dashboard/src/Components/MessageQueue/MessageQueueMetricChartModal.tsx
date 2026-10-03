@@ -51,6 +51,11 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -104,16 +109,17 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
  * What the chart of a curated per-period count shows
  * (getCompleteMessageQueueCountSeries).
  */
-export const MESSAGE_QUEUE_METRIC_CHART_COUNT_NOTE: string =
-  "A count per interval, added up across its series. Only whole intervals are drawn, so the newest one, still filling or still arriving from its source, does not read as a drop.";
+export const MESSAGE_QUEUE_METRIC_CHART_COUNT_NOTE: string = translationKey(
+  "A count per interval, added up across its series. Only whole intervals are drawn, so the newest one, still filling or still arriving from its source, does not read as a drop.",
+);
 
 export const MESSAGE_QUEUE_METRIC_AGGREGATION_LABELS: Partial<
   Record<AggregationType, string>
 > = {
-  [AggregationType.Avg]: "Average",
-  [AggregationType.Max]: "Max",
-  [AggregationType.Min]: "Min",
-  [AggregationType.Sum]: "Sum",
+  [AggregationType.Avg]: translationKey("Average"),
+  [AggregationType.Max]: translationKey("Max"),
+  [AggregationType.Min]: translationKey("Min"),
+  [AggregationType.Sum]: translationKey("Sum"),
   [AggregationType.P50]: "p50",
   [AggregationType.P90]: "p90",
   [AggregationType.P95]: "p95",
@@ -123,6 +129,7 @@ export const MESSAGE_QUEUE_METRIC_AGGREGATION_LABELS: Partial<
 const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const unit: string = (props.unit || "").trim();
 
   const descriptor: MessageQueueMetricDescriptor | null = useMemo(() => {
@@ -308,8 +315,13 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
   );
 
   const description: string = descriptor
-    ? `${descriptor.description} Charted for this queue only.`
-    : "Charted for this queue only: the datapoints tagged with its key.";
+    ? translator.translateTemplate(
+        "{{metricDescription}} Charted for this queue only.",
+        { metricDescription: descriptor.description },
+      )
+    : translator.translateText(
+        "Charted for this queue only: the datapoints tagged with its key.",
+      ) || "";
 
   const note: string = descriptor
     ? descriptor.kind === "counter"
@@ -344,7 +356,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
               <div
                 className="inline-flex rounded-md shadow-sm"
                 role="group"
-                aria-label="Aggregation"
+                aria-label={translator.translateText("Aggregation")}
               >
                 {spec.aggregations.map(
                   (option: AggregationType, index: number): ReactElement => {
@@ -369,8 +381,9 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
                             : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                         }`}
                       >
-                        {MESSAGE_QUEUE_METRIC_AGGREGATION_LABELS[option] ||
-                          option}
+                        {translator.translateText(
+                          MESSAGE_QUEUE_METRIC_AGGREGATION_LABELS[option],
+                        ) || option}
                       </button>
                     );
                   },
@@ -392,7 +405,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
                     to={monitorLink.route}
                     className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
                   >
-                    Create monitor
+                    {translator.translateText("Create monitor") || ""}
                   </AppLink>
                 </span>
               ) : (
@@ -416,7 +429,7 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
               className="mb-3 text-xs text-gray-500"
               data-testid="message-queue-metric-chart-note"
             >
-              {note}
+              {translator.translateText(note)}
             </p>
           ) : (
             <></>

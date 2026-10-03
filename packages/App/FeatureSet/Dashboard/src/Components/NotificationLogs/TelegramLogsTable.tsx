@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -32,6 +37,7 @@ export interface TelegramLogsTableProps {
 const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
   props: TelegramLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -163,12 +169,20 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
         cardProps={{
           title: "Telegram Logs",
           description: props.singularName
-            ? `Telegram messages sent for this ${props.singularName}.`
+            ? translator.translateTemplate("Telegram messages sent for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "Telegram messages sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No Telegram logs for this ${props.singularName}.`
+            ? translator.translateTemplate("No Telegram logs for this {{itemName}}.", {
+                itemName: translatableTerm(props.singularName, {
+                  inSentence: true,
+                }),
+              })
             : "No Telegram logs."
         }
         showRefreshButton={true}

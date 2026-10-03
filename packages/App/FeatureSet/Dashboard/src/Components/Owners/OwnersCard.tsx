@@ -35,7 +35,13 @@ import useAnchoredFieldPopup, {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import useTranslateValue from "Common/UI/Utils/Translation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -72,7 +78,7 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
   props: OwnerCircleViewProps,
 ): ReactElement => {
   const { item, isOverlapping } = props;
-  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const tooltipContent: ReactElement = (
     <div className="flex items-center gap-3 p-1.5 min-w-[180px]">
@@ -85,8 +91,8 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
         </div>
         <div className="text-xs text-gray-500 truncate">
           {item.kind === PeoplePickerKind.Team
-            ? translateString("Team") || "Team"
-            : item.email || translateString("Owner") || "Owner"}
+            ? translator.translateText("Team")
+            : item.email || translator.translateText("Owner")}
         </div>
       </div>
     </div>
@@ -108,7 +114,9 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
       <button
         type="button"
         onClick={props.onRemoveClick}
-        aria-label={`Remove ${item.name}`}
+        aria-label={translator.translateTemplate("Remove {{name}}", {
+          name: item.name,
+        })}
         className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-md opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 hover:bg-red-600 focus:opacity-100 focus:scale-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-150"
       >
         <Icon icon={IconProp.Close} className="h-3 w-3" size={SizeProp.Small} />
@@ -151,7 +159,7 @@ export interface ComponentProps<
 function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
   props: ComponentProps<TOwnerUser, TOwnerTeam>,
 ): ReactElement {
-  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const resourceIdString: string = props.resourceId.toString();
   const { resourceIdField, resourceDisplayName } = props;
   const projectIdString: string | null =
@@ -404,20 +412,36 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     }
     const parts: Array<string> = [];
     if (userCount > 0) {
-      parts.push(`${userCount} ${userCount === 1 ? "person" : "people"}`);
+      parts.push(
+        translator.translatePlural(
+          { one: "{{count}} person", other: "{{count}} people" },
+          userCount,
+        ),
+      );
     }
     if (teamCount > 0) {
-      parts.push(`${teamCount} ${teamCount === 1 ? "team" : "teams"}`);
+      parts.push(
+        translator.translatePlural(
+          { one: "{{count}} team", other: "{{count}} teams" },
+          teamCount,
+        ),
+      );
     }
     return parts.join(" · ");
-  }, [items.length, userCount, teamCount]);
+  }, [items.length, userCount, teamCount, translator.language]);
+
+  // The resource's noun as it reads in the middle of a sentence.
+  const resourceName: TranslatableTerm = translatableTerm(
+    resourceDisplayName,
+    { inSentence: true },
+  );
 
   const addOwnerText: string =
-    translateString(OWNERS_ADD_BUTTON_TEXT) || OWNERS_ADD_BUTTON_TEXT;
+    translator.translateText(OWNERS_ADD_BUTTON_TEXT) || OWNERS_ADD_BUTTON_TEXT;
 
   const titleNode: ReactElement = (
     <span className="inline-flex items-center gap-2">
-      <span>{translateString("Owners") || "Owners"}</span>
+      <span>{translator.translateText("Owners")}</span>
       {items.length > 0 && (
         <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold ring-1 ring-inset ring-indigo-100">
           {items.length}
@@ -429,8 +453,11 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
   const descriptionNode: ReactElement = (
     <span>
       {props.description
-        ? translateString(props.description) || props.description
-        : `People and teams responsible for this ${resourceDisplayName}. They are notified about changes.`}
+        ? translator.translateText(props.description)
+        : translator.translateTemplate(
+            "People and teams responsible for this {{resourceName}}. They are notified about changes.",
+            { resourceName: resourceName },
+          )}
       {countLabel && <span className="ml-1 text-gray-400">· {countLabel}</span>}
     </span>
   );
@@ -467,13 +494,15 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
               />
             </div>
             <div className="text-sm font-medium text-gray-900">
-              {translateString("No owners yet") || "No owners yet"}
+              {translator.translateText("No owners yet")}
             </div>
             <div className="text-xs text-gray-500 mt-1 max-w-xs">
               {props.emptyDescription
-                ? translateString(props.emptyDescription) ||
-                  props.emptyDescription
-                : `Add a teammate or a team so they get notified about changes to this ${resourceDisplayName}.`}
+                ? translator.translateText(props.emptyDescription)
+                : translator.translateTemplate(
+                    "Add a teammate or a team so they get notified about changes to this {{resourceName}}.",
+                    { resourceName: resourceName },
+                  )}
             </div>
             <div ref={popup.anchorRef} className="mt-4 inline-block">
               <button
@@ -551,18 +580,27 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
 
         {confirmRemove && (
           <ConfirmModal
-            title={translateString("Remove owner") || "Remove owner"}
+            title="Remove owner"
             description={
               <span>
-                Are you sure you want to remove{" "}
-                <span className="font-semibold text-gray-900">
-                  {confirmRemove.name}
-                </span>
-                {confirmRemove.kind === PeoplePickerKind.Team ? " (Team)" : ""}{" "}
-                as an owner of this {resourceDisplayName}?
+                <TranslatedSentence
+                  template={
+                    confirmRemove.kind === PeoplePickerKind.Team
+                      ? "Are you sure you want to remove {{name}} (Team) as an owner of this {{resourceName}}?"
+                      : "Are you sure you want to remove {{name}} as an owner of this {{resourceName}}?"
+                  }
+                  slots={{
+                    name: (
+                      <span className="font-semibold text-gray-900">
+                        {confirmRemove.name}
+                      </span>
+                    ),
+                  }}
+                  values={{ resourceName: resourceName }}
+                />
               </span>
             }
-            submitButtonText={translateString("Remove") || "Remove"}
+            submitButtonText="Remove"
             submitButtonType={ButtonStyleType.DANGER}
             isLoading={isRemoving}
             error={removeError}
