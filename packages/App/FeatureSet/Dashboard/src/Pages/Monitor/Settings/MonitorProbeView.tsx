@@ -141,6 +141,12 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               },
               title: "Probe ID",
               fieldType: FieldType.ObjectID,
+              /*
+               * A custom probe is installed with its ID and its key
+               * (PROBE_ID, PROBE_KEY), so the ID stays a field, read beside
+               * the key, rather than going to the card's ID line.
+               */
+              showIdAsField: true,
             },
             {
               field: {
