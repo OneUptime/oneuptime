@@ -238,7 +238,9 @@ describe("Customer Support Access", () => {
     );
     expect(
       within(dialog).getByTestId("confirm-modal-description"),
-    ).toHaveTextContent(CustomerSupportAccessSwitchCopy.allowConfirmDescription);
+    ).toHaveTextContent(
+      CustomerSupportAccessSwitchCopy.allowConfirmDescription,
+    );
     expect(CustomerSupportAccessSwitchCopy.allowConfirmDescription).toContain(
       "see and change everything in it",
     );
@@ -359,9 +361,9 @@ describe("Settings > Project", () => {
       details.compareDocumentPosition(control) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      (getItemMock.mock.calls[0]![0] as ItemCall).id.toString(),
-    ).toBe(PROJECT_ID);
+    expect((getItemMock.mock.calls[0]![0] as ItemCall).id.toString()).toBe(
+      PROJECT_ID,
+    );
     // The old dialog card is gone.
     expect(
       screen.queryByTestId("card-model-detail-Enable Customer Support Access"),

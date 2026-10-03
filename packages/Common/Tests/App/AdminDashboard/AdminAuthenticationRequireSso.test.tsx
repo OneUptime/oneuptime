@@ -55,19 +55,22 @@ jest.mock("../../../UI/Config", () => {
 
 const mockGetItem: MockFunction = getJestMockFunction();
 
-jest.mock("../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      getItem: (...args: Array<unknown>): unknown => {
-        return mockGetItem(...args);
+jest.mock(
+  "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getItem: (...args: Array<unknown>): unknown => {
+          return mockGetItem(...args);
+        },
+        updateById: async (): Promise<unknown> => {
+          return {};
+        },
       },
-      updateById: async (): Promise<unknown> => {
-        return {};
-      },
-    },
-  };
-});
+    };
+  },
+);
 
 /*
  * A plain card is what replaced the toggle on the Community Edition before;
@@ -78,8 +81,9 @@ jest.mock("../../../UI/Components/Card/Card", () => {
     "../../../UI/Components/Card/Card",
   ) as Record<string, unknown>;
 
-  const RealCard: (props: Record<string, unknown>) => ReactElement =
-    actual["default"] as (props: Record<string, unknown>) => ReactElement;
+  const RealCard: (props: Record<string, unknown>) => ReactElement = actual[
+    "default"
+  ] as (props: Record<string, unknown>) => ReactElement;
 
   return {
     ...actual,
@@ -246,16 +250,19 @@ describe("Admin Dashboard authentication settings: Require SSO for Login", () =>
       // GlobalConfig is a single row with the zero id.
       const reads: Array<{ id: ObjectID; select: Record<string, unknown> }> =
         mockGetItem.mock.calls.map(
-          (call: Array<unknown>): { id: ObjectID; select: Record<string, unknown> } => {
+          (
+            call: Array<unknown>,
+          ): { id: ObjectID; select: Record<string, unknown> } => {
             return call[0] as { id: ObjectID; select: Record<string, unknown> };
           },
         );
-      const ssoRead: { id: ObjectID; select: Record<string, unknown> } | undefined =
-        reads.find(
-          (read: { id: ObjectID; select: Record<string, unknown> }): boolean => {
-            return Boolean(read.select["requireSsoForLogin"]);
-          },
-        );
+      const ssoRead:
+        | { id: ObjectID; select: Record<string, unknown> }
+        | undefined = reads.find(
+        (read: { id: ObjectID; select: Record<string, unknown> }): boolean => {
+          return Boolean(read.select["requireSsoForLogin"]);
+        },
+      );
 
       expect(ssoRead?.id.toString()).toBe(
         "00000000-0000-0000-0000-000000000000",

@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   act,
   cleanup,
@@ -37,19 +44,22 @@ import { getJestSpyOn } from "../../Spy";
 
 const mockGetItem: MockFunction = getJestMockFunction();
 
-jest.mock("../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      getItem: (...args: Array<unknown>): unknown => {
-        return mockGetItem(...args);
+jest.mock(
+  "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getItem: (...args: Array<unknown>): unknown => {
+          return mockGetItem(...args);
+        },
+        updateById: async (): Promise<unknown> => {
+          return {};
+        },
       },
-      updateById: async (): Promise<unknown> => {
-        return {};
-      },
-    },
-  };
-});
+    };
+  },
+);
 
 jest.mock("../../../UI/Components/Page/Page", () => {
   const react: typeof React = jest.requireActual("react") as typeof React;
@@ -226,8 +236,7 @@ async function renderCardIn(
     switchNote: switchNote,
     confirmTitle: within(dialog).getByTestId("modal-title").textContent || "",
     confirmDescription:
-      within(dialog).getByTestId("confirm-modal-description").textContent ||
-      "",
+      within(dialog).getByTestId("confirm-modal-description").textContent || "",
     confirmButton:
       within(dialog).getByTestId("modal-footer-submit-button").textContent ||
       "",

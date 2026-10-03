@@ -223,14 +223,22 @@ describe("useSelectedProjectSwitches", () => {
       updates.push(project);
     };
 
+    interface HookProps {
+      selectedProject: Project | null;
+    }
+
+    const initialProps: HookProps = {
+      selectedProject: makeProject(PROJECT_ID, false),
+    };
+
     const { rerender } = renderHook(
-      (props: { selectedProject: Project | null }) => {
+      (props: HookProps) => {
         useSelectedProjectSwitches({
           selectedProject: props.selectedProject,
           onProjectUpdated: onProjectUpdated,
         });
       },
-      { initialProps: { selectedProject: makeProject(PROJECT_ID, false) } },
+      { initialProps: initialProps },
     );
 
     announce({ projectId: OTHER_PROJECT_ID, value: true });

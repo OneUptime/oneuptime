@@ -157,9 +157,18 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
 describe("the switch cards", () => {
   test("each writes its Project column through the shared switch card", () => {
     for (const [file, column] of [
-      ["Components/Project/CustomerSupportAccessCard.tsx", "CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN"],
-      ["Components/MonitorGroup/MonitorGroupsSwitchCard.tsx", "MONITOR_GROUPS_SWITCH_COLUMN"],
-      ["Components/Project/RequireSsoForLoginCard.tsx", "REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN"],
+      [
+        "Components/Project/CustomerSupportAccessCard.tsx",
+        "CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN",
+      ],
+      [
+        "Components/MonitorGroup/MonitorGroupsSwitchCard.tsx",
+        "MONITOR_GROUPS_SWITCH_COLUMN",
+      ],
+      [
+        "Components/Project/RequireSsoForLoginCard.tsx",
+        "REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN",
+      ],
     ] as Array<[string, string]>) {
       const card: string = readDashboard(file);
 
@@ -167,10 +176,7 @@ describe("the switch cards", () => {
         file,
         true,
       ]);
-      expect([file, card.includes(`column={${column}}`)]).toEqual([
-        file,
-        true,
-      ]);
+      expect([file, card.includes(`column={${column}}`)]).toEqual([file, true]);
     }
 
     expect(CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN).toBe(
@@ -234,9 +240,10 @@ describe("the switch cards", () => {
    * holds every write to. Pinned so the copy's promises stay true.
    */
   test("who may flip them is the columns' own update permissions", () => {
-    expect(columnAccess(CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN).update).toEqual(
-      [Permission.ProjectOwner, Permission.ProjectAdmin],
-    );
+    expect(columnAccess(CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN).update).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+    ]);
     expect(columnAccess(REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN).update).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -281,9 +288,7 @@ describe("the menus follow Monitor Groups without a reload", () => {
       ),
     );
 
-    expect(helper).toContain(
-      "> = [MONITOR_GROUPS_SWITCH_COLUMN];",
-    );
+    expect(helper).toContain("> = [MONITOR_GROUPS_SWITCH_COLUMN];");
     expect(projectApi).toContain("isFeatureFlagMonitorGroupsEnabled: true,");
   });
 
@@ -378,9 +383,11 @@ describe("the old wording is gone from the dashboard", () => {
         return path.relative(DASHBOARD_SRC, file).split(path.sep).join("/");
       });
 
-    expect(using.filter((file: string): boolean => {
-      return file !== "Pages/StatusPages/View/SSO.tsx";
-    })).toEqual([]);
+    expect(
+      using.filter((file: string): boolean => {
+        return file !== "Pages/StatusPages/View/SSO.tsx";
+      }),
+    ).toEqual([]);
   });
 });
 

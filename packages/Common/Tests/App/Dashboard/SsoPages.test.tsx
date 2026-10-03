@@ -612,9 +612,7 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
      * The project's switch: it saves when flipped, asks with a red button
      * before it locks people out, and never asks to turn it off.
      */
-    const requireSso: HTMLElement = screen.getByTestId(
-      REQUIRE_SSO_SWITCH_CARD,
-    );
+    const requireSso: HTMLElement = screen.getByTestId(REQUIRE_SSO_SWITCH_CARD);
 
     expect(requireSso).toHaveAttribute("data-model", "Project");
     expect(requireSso).toHaveAttribute(

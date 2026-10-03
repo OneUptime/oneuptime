@@ -66,19 +66,22 @@ jest.mock("../../../UI/Config", () => {
 const mockGetItem: MockFunction = getJestMockFunction();
 const mockUpdateById: MockFunction = getJestMockFunction();
 
-jest.mock("../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      getItem: (...args: Array<unknown>): unknown => {
-        return mockGetItem(...args);
+jest.mock(
+  "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getItem: (...args: Array<unknown>): unknown => {
+          return mockGetItem(...args);
+        },
+        updateById: (...args: Array<unknown>): unknown => {
+          return mockUpdateById(...args);
+        },
       },
-      updateById: (...args: Array<unknown>): unknown => {
-        return mockUpdateById(...args);
-      },
-    },
-  };
-});
+    };
+  },
+);
 
 interface MockPageProps {
   title?: string | undefined;
@@ -454,9 +457,9 @@ describe("Settings > Authentication", () => {
     expect(updateCalls()[0]!.id.toString()).toBe(ZERO_ID);
     expect(updateCalls()[0]!.data).toEqual({ disableSignup: true });
     expect(control).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByTestId(`${SIGN_UP_SWITCH_TEST_ID}-status`)).toHaveTextContent(
-      "Saved",
-    );
+    expect(
+      screen.getByTestId(`${SIGN_UP_SWITCH_TEST_ID}-status`),
+    ).toHaveTextContent("Saved");
 
     const offSentence: string = en(
       "pages.settings.authentication.signUpSwitchOffDescription",
@@ -740,7 +743,9 @@ describe("Users > a user > Settings: Master Admin", () => {
     expect(grantOther.submitButtonType).toBeUndefined();
     expect(revokeOther.submitButtonType).toBeUndefined();
     expect(revokeOwn.submitButtonType).toBe(ButtonStyleType.DANGER);
-    expect(new Set([grantOther.title, revokeOther.title, revokeOwn.title]).size).toBe(3);
+    expect(
+      new Set([grantOther.title, revokeOther.title, revokeOwn.title]).size,
+    ).toBe(3);
   });
 });
 
@@ -779,7 +784,9 @@ describe("Projects > a project > Support", () => {
   test("letting support in asks with the consent warning, then saves through the admin API", async () => {
     await renderPage(<ProjectSupport />, { path: supportPath });
 
-    const control: HTMLElement = switchFor(PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID);
+    const control: HTMLElement = switchFor(
+      PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID,
+    );
 
     expect(control).toHaveAttribute("aria-checked", "false");
 

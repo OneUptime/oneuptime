@@ -112,9 +112,9 @@ const PROJECT_SUPPORT: string = readCode("Pages/Projects/View/Support.tsx");
 
 describe("Settings > Authentication", () => {
   test("is three switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog", () => {
-    expect(AUTHENTICATION.split("<ModelSwitchCard<GlobalConfig>").length - 1).toBe(
-      3,
-    );
+    expect(
+      AUTHENTICATION.split("<ModelSwitchCard<GlobalConfig>").length - 1,
+    ).toBe(3);
     expect(AUTHENTICATION.split("modelAPI={AdminModelAPI}").length - 1).toBe(3);
     expect(AUTHENTICATION.split("modelId={globalConfigId}").length - 1).toBe(3);
     expect(AUTHENTICATION).toContain(
@@ -238,23 +238,26 @@ describe("the locale keys these pages ask for", () => {
     }
   });
 
-  test.each(ALL_LOCALES)("%s has every one, with no placeholder", (locale: string) => {
-    const entries: Locale = readLocale(locale);
+  test.each(ALL_LOCALES)(
+    "%s has every one, with no placeholder",
+    (locale: string) => {
+      const entries: Locale = readLocale(locale);
 
-    for (const key of asked) {
-      const value: unknown = nested(entries, key);
+      for (const key of asked) {
+        const value: unknown = nested(entries, key);
 
-      expect({ key, type: typeof value }).toEqual({ key, type: "string" });
-      expect({ key, empty: (value as string).trim() === "" }).toEqual({
-        key,
-        empty: false,
-      });
-      expect({ key, placeholder: (value as string).includes("{{") }).toEqual({
-        key,
-        placeholder: false,
-      });
-    }
-  });
+        expect({ key, type: typeof value }).toEqual({ key, type: "string" });
+        expect({ key, empty: (value as string).trim() === "" }).toEqual({
+          key,
+          empty: false,
+        });
+        expect({ key, placeholder: (value as string).includes("{{") }).toEqual({
+          key,
+          placeholder: false,
+        });
+      }
+    },
+  );
 
   test.each(OTHER_LOCALES)("%s translates the added ones", (locale: string) => {
     const english: Locale = readLocale("en");

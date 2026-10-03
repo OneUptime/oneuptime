@@ -37,7 +37,9 @@ export const MonitorGroupsSwitchCopy: {
     "Turn optional features on or off for this project.",
   ),
   switchTitle: translationKey("Monitor Groups"),
-  switchOnDescription: translationKey("Monitor Groups is in the Monitors menu."),
+  switchOnDescription: translationKey(
+    "Monitor Groups is in the Monitors menu.",
+  ),
   switchOffDescription: translationKey(
     "Monitor Groups is hidden from the Monitors menu.",
   ),

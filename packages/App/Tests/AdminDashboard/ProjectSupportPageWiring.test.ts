@@ -310,7 +310,7 @@ describe("Project > Support page behaviour", () => {
     expect(supportSource).not.toContain("FormFieldSchemaType");
     expect(supportSource).not.toContain("editButtonText");
     expect(supportSource).toContain(
-      'dataTestId={PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID}',
+      "dataTestId={PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID}",
     );
   });
 
