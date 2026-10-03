@@ -58,10 +58,10 @@ Het belangrijkste is de samenvoegregel: **een sjabloon vult alleen een veld in d
 
 Notitiesjablonen geven responders kant-en-klare tekst voor incidentupdates, zodat een statuspagina-update om 03:00 uur niet vanaf nul wordt geschreven door iemand die half slaapt.
 
-Ga naar **Incidenten → Instellingen → Notitie-sjablonen** (`/dashboard/{projectId}/incidents/settings/note-templates`). De kaart heet **Openbare of privénotitiesjablonen voor incidenten** — één bibliotheek bedient beide notitietypen. Het aanmaakformulier heeft twee stappen:
+Ga naar **Incidenten → Instellingen → Notitie-sjablonen** (`/dashboard/{projectId}/incidents/settings/note-templates`). De kaart heet **Openbare of privénotitiesjablonen voor incidenten** — één bibliotheek bedient beide notitietypen. Het aanmaakformulier is één pagina:
 
-- **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
-- **Notitiedetails** — de notitietekst zelf, in Markdown, verplicht.
+- **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
+- De notitietekst zelf, in Markdown, verplicht.
 
 Net als bij incidentsjablonen worden rijen aangemaakt en bekeken in plaats van ter plekke bewerkt; open een sjabloon om het te wijzigen.
 
@@ -71,10 +71,10 @@ Notitiesjablonen duiken op waar je ze echt nodig hebt: de bevestigingsdialogen *
 
 Een postmortemsjabloon is het skelet van het verslag dat je na een incident schrijft — jouw kopjes, jouw aanwijzingen, jouw vaste vragen — zodat elke evaluatie in het project dezelfde vorm volgt.
 
-Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). De kaart heet **Postmortem-sjablonen**. Het aanmaakformulier heeft twee stappen:
+Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). De kaart heet **Postmortem-sjablonen**. Het aanmaakformulier is één pagina:
 
-- **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
-- **Postmortem-details** — **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
+- **Sjabloonnaam** en **Sjabloonbeschrijving**, beide verplicht.
+- **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
 
 Toepassen doe je vanaf het incident, niet vanuit de instellingen. Open een incident, kies **Postmortem** in het zijmenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) en gebruik **Sjabloon toepassen**. Dat opent de dialoog **Postmortemsjabloon toepassen** met een vervolgkeuzelijst **Selecteer sjabloon**; kies je er een, dan wordt de sjabloontekst in de editor **Postmortem-notitie** geladen, waar je hem bewerkt voordat je opslaat. Incident-episodes hebben dezelfde pagina **Postmortem** en putten uit dezelfde sjabloonbibliotheek.
 

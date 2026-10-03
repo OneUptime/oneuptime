@@ -4,7 +4,11 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import MonitoringIntervalValidator from "Common/Server/Utils/Monitor/MonitoringIntervalValidator";
-import MonitoringInterval from "../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
+import MonitoringInterval, {
+  getMonitoringIntervalOptions,
+  INTERVALS_SHORTER_THAN_5_MINUTES,
+  MONITOR_TYPES_OFFERED_5_MINUTES_OR_LONGER,
+} from "../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
 import {
   DEFAULT_MONITORING_INTERVAL,
   shouldDropDefaultMonitoringInterval,
@@ -67,12 +71,23 @@ describe("DEFAULT_MONITORING_INTERVAL", () => {
   test("is offered to the types whose shortest intervals are removed", () => {
     /*
      * Synthetic, Custom JavaScript and SSL Certificate monitors drop the one-
-     * and two-minute options (Create.tsx). Five minutes has to survive that
-     * filter, or those types would open on a value their dropdown hides.
+     * and two-minute options (getMonitoringIntervalOptions, which Create.tsx
+     * asks). Five minutes has to survive that filter, or those types would
+     * open on a value their dropdown hides.
      */
-    const removedForSlowTypes: Array<string> = ["* * * * *", "*/2 * * * *"];
+    expect(INTERVALS_SHORTER_THAN_5_MINUTES).not.toContain(
+      DEFAULT_MONITORING_INTERVAL,
+    );
 
-    expect(removedForSlowTypes).not.toContain(DEFAULT_MONITORING_INTERVAL);
+    for (const monitorType of MONITOR_TYPES_OFFERED_5_MINUTES_OR_LONGER) {
+      expect(
+        getMonitoringIntervalOptions({ monitorType }).map(
+          (option: { value: unknown }): unknown => {
+            return option.value;
+          },
+        ),
+      ).toContain(DEFAULT_MONITORING_INTERVAL);
+    }
   });
 });
 

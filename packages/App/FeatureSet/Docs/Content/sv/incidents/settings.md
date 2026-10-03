@@ -60,10 +60,10 @@ Det viktiga är sammanslagningsregeln: **en mall fyller bara i ett fält som du 
 
 Anteckningsmallar ger svarspersoner färdig text för incidentuppdateringar, så att en statussideuppdatering klockan tre på natten inte behöver skrivas från grunden av någon halvvaken.
 
-Gå till **Incidenter → Inställningar → Anteckningsmallar** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet heter **Mallar för offentliga eller privata anteckningar för incidenter** — ett och samma bibliotek betjänar båda anteckningstyperna. Formuläret har två steg:
+Gå till **Incidenter → Inställningar → Anteckningsmallar** (`/dashboard/{projectId}/incidents/settings/note-templates`). Kortet heter **Mallar för offentliga eller privata anteckningar för incidenter** — ett och samma bibliotek betjänar båda anteckningstyperna. Formuläret är en enda sida:
 
-- **Mallinformation** — **Mallnamn** och **Mallbeskrivning**, båda obligatoriska.
-- **Anteckningsdetaljer** — själva anteckningstexten, i Markdown, obligatorisk.
+- **Mallnamn** och **Mallbeskrivning**, båda obligatoriska.
+- Själva anteckningstexten, i Markdown, obligatorisk.
 
 Precis som incidentmallar skapas och visas rader snarare än redigeras direkt i listan; öppna en mall för att ändra den.
 
@@ -73,10 +73,10 @@ Anteckningsmallarna dyker upp där du faktiskt behöver dem: bekräftelsedialoge
 
 En postmortem-mall är skelettet till den genomgång du skriver efter en incident — dina rubriker, dina frågeställningar, era stående frågor — så att varje genomgång i projektet följer samma form.
 
-Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-mallar**. Formuläret har två steg:
+Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-mallar**. Formuläret är en enda sida:
 
-- **Mallinformation** — **Mallnamn** och **Mallbeskrivning**, båda obligatoriska.
-- **Detaljer för efteranalys** — **Mall för efteranalys**, alltså själva texten, i Markdown, obligatorisk.
+- **Mallnamn** och **Mallbeskrivning**, båda obligatoriska.
+- **Mall för efteranalys**, alltså själva texten, i Markdown, obligatorisk.
 
 Du tillämpar en mall från incidenten, inte från inställningarna. Öppna en incident, välj **Efteranalys** i dess sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) och använd **Tillämpa mall**. Det öppnar dialogen **Tillämpa mall för efteranalys** med rullgardinsmenyn **Välj mall**; väljer du en laddas malltexten in i redigeraren **Anteckning för efteranalys**, där du redigerar den innan du sparar. Incidentepisoder har samma sida **Efteranalys** och hämtar ur samma mallbibliotek.
 

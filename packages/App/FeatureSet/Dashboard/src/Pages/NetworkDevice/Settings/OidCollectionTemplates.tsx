@@ -219,15 +219,16 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
             },
           },
         ]}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "OIDs", id: "oids" },
-        ]}
+        /*
+         * One page: the name, the description and the OID list with its
+         * vendor-profile prefill. Three rows walk no steps
+         * (LongFormStepsGuard), and the list starts empty or from a profile
+         * picked right there.
+         */
         formFields={[
           {
             field: { name: true },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Core Routers",
@@ -238,7 +239,6 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           {
             field: { description: true },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -247,7 +247,6 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           {
             field: { oids: true },
             title: "OIDs",
-            stepId: "oids",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description: translator.translateTemplate(

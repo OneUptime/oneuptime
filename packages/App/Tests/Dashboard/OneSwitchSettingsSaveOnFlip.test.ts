@@ -189,6 +189,10 @@ describe("the banner on a turned-off monitor's pages", () => {
   });
 
   test("every monitor page that showed it still does", () => {
+    /*
+     * Interval.tsx is gone: the interval is on the Probes & Interval page
+     * (Probes.tsx), whose banner this checks.
+     */
     const pages: Array<string> = [
       "Alerts.tsx",
       "Criteria.tsx",
@@ -197,7 +201,6 @@ describe("the banner on a turned-off monitor's pages", () => {
       "Dependencies.tsx",
       "Documentation.tsx",
       "Incidents.tsx",
-      "Interval.tsx",
       "Logs.tsx",
       "Metrics.tsx",
       "Owners.tsx",

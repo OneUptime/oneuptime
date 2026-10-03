@@ -163,21 +163,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * One page for how often the monitor is checked, the probes that check it
+   * and how many of them must agree, as Create Monitor asks for them on one
+   * step. Only monitors that probes check have one.
+   */
   if (isProbeableMonitor) {
     configurationItems.push({
       link: {
-        title: "Interval",
-        to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.MONITOR_VIEW_INTERVAL] as Route,
-          { modelId: props.modelId },
-        ),
-      },
-      icon: IconProp.Clock,
-    });
-
-    configurationItems.push({
-      link: {
-        title: "Probes",
+        title: "Probes & Interval",
         to: RouteUtil.populateRouteParams(
           RouteMap[PageMap.MONITOR_VIEW_PROBES] as Route,
           { modelId: props.modelId },

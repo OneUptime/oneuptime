@@ -9,6 +9,7 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepFacts,
+  MIN_SCANNED_FORMS,
   SourceFileSystem,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
@@ -287,10 +288,13 @@ describe("the project's forms", () => {
     files,
   });
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read, owner pickers included", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
     /*
      * 30 owner rule forms, the two templates, scheduling maintenance, alert
      * episodes, the two owner pickers of a burn rate rule and the Forms On

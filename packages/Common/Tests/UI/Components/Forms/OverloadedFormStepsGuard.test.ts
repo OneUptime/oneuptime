@@ -378,15 +378,21 @@ describe("the project's stepped forms", () => {
 
   const stepCounts: Array<StepFieldCount> = forms.flatMap(countStepFields);
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. These floors prove that
+   * the scanner reads the project, nothing more: CI runs without ee/, and the
+   * counts keep shrinking as forms are simplified (598 steps and 80 rule
+   * forms in CI on 2026-10-03), so they sit far below them. See
+   * MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(stepCounts.length).toBeGreaterThan(600);
+    expect(stepCounts.length).toBeGreaterThan(300);
     expect(
       forms.filter((form: FormFacts): boolean => {
         return form.isRuleModel;
       }).length,
-    ).toBeGreaterThan(50);
+    ).toBeGreaterThan(40);
   });
 
   test(`show at most ${STEP_FIELD_LIMIT} fields on a step, or are listed with the reason they do not`, () => {

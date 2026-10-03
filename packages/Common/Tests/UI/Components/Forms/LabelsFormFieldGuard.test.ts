@@ -10,9 +10,12 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepFacts,
+  MIN_SCANNED_FORMS,
   RULE_CRITERIA_STEP_ID,
+  ShortFormWithSteps,
   SourceFileSystem,
   countFieldRows,
+  findShortFormsWithSteps,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
 
@@ -310,31 +313,19 @@ export function findLabelsFieldProblems(
 /*
  * A form with labels whose rows fit in three - the Advanced header counting
  * as one - has no steps: a stepper there exists only for what is folded.
+ * The rule is every form's now (FormStepsScan findShortFormsWithSteps, run
+ * over the whole tree by LongFormStepsGuard with its allowlist); here it is
+ * held, with no allowlist, to the forms that ask for labels.
  */
 export function findStepperForThreeRows(
   forms: Array<FormFacts>,
 ): Array<LabelsProblem> {
-  return forms
-    .filter((form: FormFacts): boolean => {
-      return (
-        form.hasSteps &&
-        !form.hasSummaryOnly &&
-        form.uncountableReasons.length === 0 &&
-        form.visibleFieldCount <= 3 &&
-        form.fields.some(isLabelsField)
-      );
+  return findShortFormsWithSteps(forms)
+    .filter((found: ShortFormWithSteps): boolean => {
+      return found.form.fields.some(isLabelsField);
     })
-    .map((form: FormFacts): LabelsProblem => {
-      return {
-        form,
-        message: `${form.visibleFieldCount} rows walk steps (${(
-          form.steps || []
-        )
-          .map((step: FormStepFacts): string => {
-            return step.id || "?";
-          })
-          .join(", ")}). Three rows fit on one page: drop the steps.`,
-      };
+    .map((found: ShortFormWithSteps): LabelsProblem => {
+      return { form: found.form, message: found.message };
     });
 }
 
@@ -949,12 +940,23 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       "repository-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY },
     },
   },
-  {
-    file: `${DASHBOARD}/Pages/Slo/Slos.tsx`,
-    label: "ModelTable: SLOs",
-    steps: ["basic-info", "objective", "period"],
-    rows: { "basic-info": { open: NAME_DESCRIPTION, folded: LABELS_ONLY } },
-  },
+  /*
+   * SLO create is one page: the name and the target, and everything that
+   * starts from a default folded with the labels (SloFormFields.ts).
+   */
+  onePage(
+    `${DASHBOARD}/Pages/Slo/Slos.tsx`,
+    "ModelTable: SLOs",
+    ["name", "targetPercentage"],
+    [
+      "description",
+      "atRiskThresholdPercentage",
+      "windowType",
+      "windowDays",
+      "timezone",
+      "labels",
+    ],
+  ),
   {
     file: `${DASHBOARD}/Pages/NetworkDevice/View/Index.tsx`,
     label: "CardModelDetail: Network Device Details",
@@ -1084,11 +1086,14 @@ describe("labels on the project's forms", () => {
     },
   );
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
-    expect(forms.length).toBeGreaterThan(500);
-    expect(withLabels.length).toBeGreaterThan(50);
-    expect(withLabels.filter(decidesAccessByLabels).length).toBeGreaterThan(45);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
+    expect(withLabels.length).toBeGreaterThan(30);
+    expect(withLabels.filter(decidesAccessByLabels).length).toBeGreaterThan(25);
   });
 
   test("never walk a step that holds nothing but Labels, or nothing but folded fields", () => {

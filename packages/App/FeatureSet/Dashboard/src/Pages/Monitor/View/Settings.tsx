@@ -6,9 +6,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import MonitorType, {
-  MonitorTypeHelper,
-} from "Common/Types/Monitor/MonitorType";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
@@ -16,9 +14,7 @@ import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InlineCode from "Common/UI/Components/InlineCode/InlineCode";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -34,17 +30,12 @@ import React, {
 } from "react";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
-import OneUptimeDate from "Common/Types/Date";
 import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [alertRefreshToggle, setAlertRefreshToggle] = useState<string>(
-    OneUptimeDate.getCurrentDate().toString(),
-  );
-
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -88,12 +79,16 @@ const MonitorCriteria: FunctionComponent<
   }, []);
 
   const getPageContent: GetReactElementFunction = (): ReactElement => {
-    if (!monitor?.monitorType || isLoading) {
-      return <ComponentLoader />;
-    }
-
+    /*
+     * The error first: a monitor that could not be read has no type, and
+     * waiting for one kept the loader up for good.
+     */
     if (error) {
       return <ErrorMessage message={error} />;
+    }
+
+    if (!monitor?.monitorType || isLoading) {
+      return <ComponentLoader />;
     }
 
     return (
@@ -108,62 +103,10 @@ const MonitorCriteria: FunctionComponent<
           <MonitoringCard monitorId={modelId} />
         )}
 
-        {monitor?.monitorType &&
-        MonitorTypeHelper.isProbableMonitor(monitor.monitorType) ? (
-          <div className="mt-5">
-            <CardModelDetail
-              name="Probe Agreement Settings"
-              editButtonText="Edit Probe Agreement"
-              cardProps={{
-                title: "Probe Agreement Settings",
-                description:
-                  "Configure how many probes must agree on a status before the monitor status changes.",
-              }}
-              onSaveSuccess={() => {
-                setAlertRefreshToggle(
-                  OneUptimeDate.getCurrentDate().toString(),
-                );
-              }}
-              isEditable={true}
-              formFields={[
-                {
-                  field: {
-                    minimumProbeAgreement: true,
-                  },
-                  title: "Minimum Probe Agreement",
-                  description:
-                    "The minimum number of probes that must agree on a condition before the monitor status changes. Leave empty to require all enabled and connected probes to agree.",
-                  fieldType: FormFieldSchemaType.Number,
-                  required: false,
-                  placeholder: "Leave empty for all probes",
-                  validation: {
-                    minValue: 1,
-                  },
-                },
-              ]}
-              modelDetailProps={{
-                showDetailsInNumberOfColumns: 1,
-                modelType: Monitor,
-                id: "model-detail-probe-agreement",
-                fields: [
-                  {
-                    field: {
-                      minimumProbeAgreement: true,
-                    },
-                    title: "Minimum Probe Agreement",
-                    description:
-                      "Number of probes that must agree on a condition. Empty means all probes.",
-                    fieldType: FieldType.Number,
-                    placeholder: "All probes must agree",
-                  },
-                ],
-                modelId: modelId,
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
+        {/*
+         * How many probes must agree before the status changes is on the
+         * Probes & Interval page now, under the probes it counts.
+         */}
 
         {monitor?.monitorType === MonitorType.IncomingRequest ? (
           <div className="mt-5">
@@ -317,7 +260,7 @@ const MonitorCriteria: FunctionComponent<
 
   return (
     <Fragment>
-      <DisabledWarning monitorId={modelId} refreshToggle={alertRefreshToggle} />
+      <DisabledWarning monitorId={modelId} />
       {getPageContent()}
     </Fragment>
   );
