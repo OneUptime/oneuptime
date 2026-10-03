@@ -24258,6 +24258,8 @@
   "Add a private note": "Privénotitie toevoegen",
   "Add a public note": "Openbare notitie toevoegen",
   "Mark Scheduled Maintenance as {{state}}": "Gepland onderhoud markeren als {{state}}",
+  "Subscribers will be notified about this update as soon as you post it.": "Abonnees worden op de hoogte gebracht van deze update zodra u deze plaatst.",
+  "The update will appear on your status page without notifying subscribers.": "De update verschijnt op uw statuspagina zonder abonnees op de hoogte te brengen.",
   "This marks the alert as resolved on the alert timeline.": "Hiermee wordt de waarschuwing op haar tijdlijn als opgelost gemarkeerd.",
   "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.": "Hiermee wordt de episode op haar tijdlijn als opgelost gemarkeerd en worden ook alle waarschuwingen in deze episode bijgewerkt.",
   "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.": "Hiermee wordt de episode op haar tijdlijn als opgelost gemarkeerd en worden ook alle incidenten in deze episode bijgewerkt.",

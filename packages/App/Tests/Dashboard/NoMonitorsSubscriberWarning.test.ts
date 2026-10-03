@@ -100,13 +100,17 @@ const AUDIENCE_SUMMARIES: Array<AudienceSummaryUse> = [
     dataTestId: "incident-create-subscriber-audience",
     isConfirmation: false,
   },
+  /*
+   * The incident's public note kind, read by its Public Notes page and by
+   * the Incident Feed's "Add Public Note" dialog.
+   */
   {
-    page: "Pages/Incidents/View/PublicNote.tsx",
+    page: "Components/EventNotes/NoteKinds/IncidentNoteKinds.tsx",
     dataTestId: "incident-public-note-audience",
     isConfirmation: false,
   },
   {
-    page: "Pages/Incidents/View/PublicNote.tsx",
+    page: "Components/EventNotes/NoteKinds/IncidentNoteKinds.tsx",
     dataTestId: "incident-public-note-resend-audience",
     isConfirmation: true,
   },
@@ -260,6 +264,7 @@ describe("the 'no monitors are attached' warning stays removed", () => {
     for (const page of [
       "Pages/Incidents/Create.tsx",
       "Pages/Incidents/View/PublicNote.tsx",
+      "Components/EventNotes/NoteKinds/IncidentNoteKinds.tsx",
       "Pages/Incidents/View/Index.tsx",
       "Components/Incident/SubscriberAudienceSummary.tsx",
       "Components/Incident/SubscriberAudienceText.ts",

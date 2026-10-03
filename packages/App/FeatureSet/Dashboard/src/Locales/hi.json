@@ -24258,6 +24258,8 @@
   "Add a private note": "निजी नोट जोड़ें",
   "Add a public note": "सार्वजनिक नोट जोड़ें",
   "Mark Scheduled Maintenance as {{state}}": "अनुसूचित रखरखाव को {{state}} के रूप में चिह्नित करें",
+  "Subscribers will be notified about this update as soon as you post it.": "जैसे ही आप इसे पोस्ट करेंगे, सब्सक्राइबर को इस अपडेट की सूचना दी जाएगी।",
+  "The update will appear on your status page without notifying subscribers.": "अपडेट सब्सक्राइबर को सूचित किए बिना आपके स्थिति पृष्ठ पर दिखाई देगा।",
   "This marks the alert as resolved on the alert timeline.": "यह अलर्ट को उसकी टाइमलाइन पर सुलझा हुआ चिह्नित करता है।",
   "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.": "यह एपिसोड को उसकी टाइमलाइन पर सुलझा हुआ चिह्नित करता है और इस एपिसोड के सभी अलर्ट भी अपडेट करता है।",
   "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.": "यह एपिसोड को उसकी टाइमलाइन पर सुलझा हुआ चिह्नित करता है और इस एपिसोड की सभी घटनाओं को भी अपडेट करता है।",

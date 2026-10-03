@@ -168,20 +168,28 @@ describe("SubscriberNotificationResendCopy wiring", () => {
   });
 
   test("the incident's public notes offer Resend, confirmed with the incident's audience", () => {
+    // The incident's public note kind, which its Public Notes page reads.
     const source: string = readSource(
-      "Pages",
-      "Incidents",
-      "View",
-      "PublicNote.tsx",
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "IncidentNoteKinds.tsx",
     );
 
     // It always answers, "no one" included.
     expect(source).toContain(
-      'resend: { audience: ( <SubscriberAudienceSummary request={{ incidentId: modelId }} dataTestId="incident-public-note-resend-audience" saysWhenNobodyIsNotified={true} /> ), }',
+      'resend: { audience: ( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-resend-audience" saysWhenNobodyIsNotified={true} /> ), }',
     );
   });
 
   test.each([
+    ["Components", "EventNotes", "NoteKinds", "IncidentEpisodeNoteKinds.ts"],
+    [
+      "Components",
+      "EventNotes",
+      "NoteKinds",
+      "ScheduledMaintenanceNoteKinds.ts",
+    ],
     ["Pages", "Incidents", "EpisodeView", "PublicNote.tsx"],
     ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
   ])(

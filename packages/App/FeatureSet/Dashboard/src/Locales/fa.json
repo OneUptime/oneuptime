@@ -24258,6 +24258,8 @@
   "Add a private note": "افزودن یادداشت خصوصی",
   "Add a public note": "افزودن یادداشت عمومی",
   "Mark Scheduled Maintenance as {{state}}": "علامت‌گذاری تعمیر و نگهداری زمان‌بندی‌شده به‌عنوان {{state}}",
+  "Subscribers will be notified about this update as soon as you post it.": "به‌محض انتشار این به‌روزرسانی، به مشترکان اطلاع داده می‌شود.",
+  "The update will appear on your status page without notifying subscribers.": "این به‌روزرسانی بدون اطلاع‌رسانی به مشترکان در صفحه وضعیت شما نمایش داده می‌شود.",
   "This marks the alert as resolved on the alert timeline.": "این کار هشدار را در خط زمانی آن برطرف‌شده علامت می‌زند.",
   "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.": "این کار اپیزود را در خط زمانی آن برطرف‌شده علامت می‌زند و همه هشدارهای این اپیزود را هم به‌روز می‌کند.",
   "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.": "این کار اپیزود را در خط زمانی آن برطرف‌شده علامت می‌زند و همه حادثه‌های این اپیزود را هم به‌روز می‌کند.",

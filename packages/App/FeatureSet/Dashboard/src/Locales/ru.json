@@ -24258,6 +24258,8 @@
   "Add a private note": "Добавить приватную заметку",
   "Add a public note": "Добавить публичную заметку",
   "Mark Scheduled Maintenance as {{state}}": "Отметить плановое обслуживание как «{{state}}»",
+  "Subscribers will be notified about this update as soon as you post it.": "Подписчики получат уведомление об этом обновлении сразу после публикации.",
+  "The update will appear on your status page without notifying subscribers.": "Обновление появится на странице статуса без уведомления подписчиков.",
   "This marks the alert as resolved on the alert timeline.": "Это отмечает оповещение как устранённое в его хронологии.",
   "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.": "Это отмечает эпизод как устранённый в его хронологии и также обновляет все оповещения в этом эпизоде.",
   "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.": "Это отмечает эпизод как устранённый в его хронологии и также обновляет все инциденты в этом эпизоде.",

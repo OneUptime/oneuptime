@@ -122,8 +122,8 @@ Korthodet har også en meny **Handlinger**, slik at du kan handle uten å forlat
 
 - **Execute Runbook** — start en [runbook](/docs/runbooks/index) mot denne hendelsen.
 - **Kjør vakttjenesteretningslinje** — tilkall en policy på forespørsel.
-- **Add Public Note** — de samme fire feltene som på siden Offentlige notater, i en dialog.
-- **Legg til privat notat** — bare notattekst og vedlegg.
+- **Add Public Note** — skrivefeltet fra siden Offentlige notater, i en dialog: skriv notatet, og velg **Post update**. Maler, **Draft with AI**, vedlegg, **Notify status page subscribers** med hvem det når, og **Preview notification** er alle der. Notatet publiseres nå; velg **Posted now** for å sette et tidligere tidspunkt.
+- **Legg til privat notat** — skrivefeltet fra siden Private notater, i en dialog: skriv notatet, og velg **Add note**.
 
 Alt annet ligger bak knappen **⋯** ved siden av, den samme knappen **Flere alternativer** som korthodet til en tabell har, slik at hodet viser så få knapper som mulig:
 

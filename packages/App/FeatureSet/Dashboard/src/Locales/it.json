@@ -24258,6 +24258,8 @@
   "Add a private note": "Aggiungi una nota privata",
   "Add a public note": "Aggiungi una nota pubblica",
   "Mark Scheduled Maintenance as {{state}}": "Segna la manutenzione programmata come {{state}}",
+  "Subscribers will be notified about this update as soon as you post it.": "Gli iscritti verranno avvisati di questo aggiornamento non appena lo pubblichi.",
+  "The update will appear on your status page without notifying subscribers.": "L'aggiornamento apparirà nella tua pagina di stato senza avvisare gli iscritti.",
   "This marks the alert as resolved on the alert timeline.": "Questo segna l'avviso come risolto nella sua cronologia.",
   "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.": "Questo segna l'episodio come risolto nella sua cronologia e aggiorna anche tutti gli avvisi di questo episodio.",
   "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.": "Questo segna l'episodio come risolto nella sua cronologia e aggiorna anche tutti gli incidenti di questo episodio.",

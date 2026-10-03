@@ -24258,6 +24258,8 @@
   "Add a private note": "Lägg till en privat anteckning",
   "Add a public note": "Lägg till en offentlig anteckning",
   "Mark Scheduled Maintenance as {{state}}": "Markera schemalagt underhåll som {{state}}",
+  "Subscribers will be notified about this update as soon as you post it.": "Prenumeranterna meddelas om den här uppdateringen så snart du publicerar den.",
+  "The update will appear on your status page without notifying subscribers.": "Uppdateringen visas på din statussida utan att prenumeranterna meddelas.",
   "This marks the alert as resolved on the alert timeline.": "Detta markerar larmet som löst på dess tidslinje.",
   "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.": "Detta markerar episoden som löst på dess tidslinje och uppdaterar även alla larm i denna episod.",
   "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.": "Detta markerar episoden som löst på dess tidslinje och uppdaterar även alla incidenter i denna episod.",
