@@ -365,7 +365,7 @@ describe("Subscriber Settings", () => {
     ]);
   });
 
-  test("with no subscriber timezones, says what subscribers see in text that wraps, not in a no-wrap chip", async () => {
+  test("with no subscriber timezones, says what subscribers see in the placeholder chip, which wraps", async () => {
     await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
 
     const advanced: Record<string, unknown> | undefined =
@@ -398,8 +398,16 @@ describe("Subscriber Settings", () => {
     expect(container.textContent).toBe(
       "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
     );
-    // The two sentences ran past the card's edge in the placeholder chip.
+    /*
+     * The chip every unset value on a detail card has. It used to be
+     * no-wrap, and these two sentences ran past the card's edge; it wraps
+     * now, so the page needs no plain-text stand-in of its own.
+     */
+    expect(
+      container.querySelector('[data-testid="placeholder-text"]'),
+    ).not.toBeNull();
     expect(container.innerHTML).not.toContain("whitespace-nowrap");
+    expect(container.innerHTML).toContain("whitespace-normal");
   });
 
   describe("the Notification Templates tab", () => {
@@ -613,13 +621,27 @@ describe("Subscriber Settings", () => {
 describe("Advanced Settings", () => {
   /*
    * What the page shows is one card of its own now ("What your status page
-   * shows", drawn for real here); no detail card with an Edit dialog is
-   * left on the page.
+   * shows", drawn for real here). The only detail cards with an Edit dialog
+   * are the overall uptime % and the downtime statuses, which came from
+   * Branding's Overview Page screen; neither is about subscribers.
    */
   test("no card shows or edits Show Subscriber Page or a subscriber channel", async () => {
     await renderPage(<StatusPageSettings {...PAGE_PROPS} />);
 
-    expect(recordedDetailCards).toEqual([]);
+    expect(
+      recordedDetailCards.map((card: Record<string, unknown>): unknown => {
+        return card["name"];
+      }),
+    ).toEqual([
+      "Status Page > Settings",
+      "Status Page > Branding > Downtime Monitor Statuses",
+    ]);
+
+    for (const card of recordedDetailCards) {
+      for (const column of SUBSCRIPTION_SWITCH_COLUMNS) {
+        expect(columnsOfCard(card)).not.toContain(column);
+      }
+    }
 
     await waitFor(() => {
       expect(

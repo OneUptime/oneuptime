@@ -255,16 +255,11 @@ const StatusPageSubscriberSettings: FunctionComponent<
                   );
                 }
                 /*
-                 * Two sentences, so plain text that wraps: in the no-wrap
-                 * placeholder chip they ran past the card's edge, on a
-                 * phone and at desktop widths alike.
+                 * Two sentences, in the placeholder chip every unset value
+                 * on a detail card has: the chip wraps inside the card.
                  */
                 return (
-                  <p className="text-sm text-gray-500">
-                    {translator.translateText(
-                      "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
-                    )}
-                  </p>
+                  <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
                 );
               },
             },

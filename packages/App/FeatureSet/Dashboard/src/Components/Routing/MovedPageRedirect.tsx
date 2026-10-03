@@ -25,7 +25,10 @@ export interface ComponentProps {
  *
  * A status page's Advanced Options page (…/status-pages/:id/advanced-options)
  * is one: no menu linked to it, and what it held lives on Embedded Status
- * and Advanced Settings now.
+ * and Advanced Settings now. So are the screens its Branding section used to
+ * be split into (header-style, footer-style, overview-page-branding,
+ * languages, and the empty navbar-style): they forward to the one Branding
+ * page.
  */
 const MovedPageRedirect: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
