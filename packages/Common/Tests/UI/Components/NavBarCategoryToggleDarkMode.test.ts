@@ -1,0 +1,176 @@
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
+ * the light utility classes under html.dark, one rule per class (and per
+ * variant). A class it has no rule for keeps its light colour in the dark
+ * theme, and nothing fails.
+ *
+ * So this reads the products menu's folding pieces - the category line
+ * (name, count, the products it holds, the chevron), the phone menu's list
+ * and the heading rows the desktop menu draws around them - and holds every
+ * colour class they draw with to what Theme.css remaps.
+ */
+
+const NAVBAR_DIR: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "UI",
+  "Components",
+  "Navbar",
+);
+
+const THEME_CSS_PATH: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "UI",
+  "Styles",
+  "Theme.css",
+);
+
+const readCode: (file: string) => string = (file: string): string => {
+  return fs
+    .readFileSync(path.join(NAVBAR_DIR, file), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1 ");
+};
+
+// Block comments only: prose in Theme.css must not count as a rule.
+const THEME_CSS: string = fs
+  .readFileSync(THEME_CSS_PATH, "utf8")
+  .replace(/\/\*[\s\S]*?\*\//g, " ");
+
+/*
+ * The whole variant chain is part of the token: Theme.css remaps
+ * `hover:bg-gray-50` only with a rule of its own.
+ */
+const COLOR_TOKEN: RegExp =
+  /(?<![\w:-])((?:[a-z0-9-]+:)*(?:bg|text|border|ring|divide|from|via|to)-(?:white|black|transparent|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?)(?![\w-])/g;
+
+/*
+ * A saturated 500/600 hue reads the same on both themes (a focus ring, a
+ * fill), and transparent is transparent in both. Never a grey: grey text is
+ * exactly what has to be lightened.
+ */
+const SAME_IN_BOTH_THEMES: RegExp =
+  /^(?:bg|text|border|ring)-(?:(?!gray|slate|zinc|neutral|stone)[a-z]+-(?:500|600)|transparent)$/;
+
+const IDENTIFIER_CHAR: RegExp = /[\w-]/;
+
+// A colour class put together at run time, which no scan can check.
+const TEMPLATE_COLOR_TOKEN: RegExp = /(bg|text|border|ring)-\$\{/;
+
+const SUBSTRING_VARIANTS: Array<string> = Array.from(
+  THEME_CSS.matchAll(/\[class\*="([^"]+)"\]/g),
+  (match: RegExpMatchArray): string => {
+    return match[1]!;
+  },
+).filter((prefix: string): boolean => {
+  return prefix.includes(":");
+});
+
+function isRemapped(token: string): boolean {
+  const utility: string = token.slice(token.lastIndexOf(":") + 1);
+
+  if (SAME_IN_BOTH_THEMES.test(utility)) {
+    return true;
+  }
+
+  if (THEME_CSS.includes(`[class~="${token}"]`)) {
+    return true;
+  }
+
+  if (
+    SUBSTRING_VARIANTS.some((prefix: string): boolean => {
+      return token.startsWith(prefix);
+    })
+  ) {
+    return true;
+  }
+
+  const escapedClass: string = token
+    .replace(/\\/g, "\\\\")
+    .replace(/:/g, "\\:")
+    .replace(/\//g, "\\/");
+  let from: number = THEME_CSS.indexOf(`.${escapedClass}`);
+
+  while (from !== -1) {
+    const next: string = THEME_CSS[from + escapedClass.length + 1] || " ";
+
+    // Followed by a non-identifier character, so bg-gray-50 is not bg-gray-500.
+    if (!IDENTIFIER_CHAR.test(next)) {
+      return true;
+    }
+
+    from = THEME_CSS.indexOf(`.${escapedClass}`, from + 1);
+  }
+
+  return false;
+}
+
+function colorTokens(code: string): Array<string> {
+  return Array.from(
+    new Set(
+      Array.from(code.matchAll(COLOR_TOKEN), (match: RegExpMatchArray) => {
+        return match[1]!;
+      }),
+    ),
+  );
+}
+
+describe.each(["NavBarCategoryToggle.tsx", "NavBarMobileMenu.tsx"])(
+  "%s in the dark theme",
+  (file: string) => {
+    const code: string = readCode(file);
+
+    test("draws with no dark: variants and builds no colour class from a template", () => {
+      expect(code.includes("dark:")).toBe(false);
+      expect(TEMPLATE_COLOR_TOKEN.test(code)).toBe(false);
+    });
+
+    test("every colour class it draws with is remapped for dark mode", () => {
+      expect(
+        colorTokens(code).filter((token: string): boolean => {
+          return !isRemapped(token);
+        }),
+      ).toEqual([]);
+    });
+  },
+);
+
+describe("the category line's colours", () => {
+  const tokens: Array<string> = colorTokens(
+    readCode("NavBarCategoryToggle.tsx"),
+  );
+
+  test("the scan finds them, so the check above is not vacuous", () => {
+    expect(tokens).toEqual(
+      expect.arrayContaining([
+        "text-gray-500",
+        "text-gray-600",
+        "text-gray-400",
+        "bg-gray-100",
+        "hover:bg-gray-50",
+        "border-indigo-300",
+        "bg-indigo-50",
+        "border-transparent",
+      ]),
+    );
+  });
+
+  test("the heading rows of the desktop menu use only remapped colours too", () => {
+    const modal: string = readCode("NavBarMenuModal.tsx");
+
+    // The plain heading that lines up with the category lines.
+    expect(modal).toContain("border border-transparent px-2");
+    for (const token of ["border-transparent", "text-gray-500"]) {
+      expect(isRemapped(token)).toBe(true);
+    }
+  });
+});
