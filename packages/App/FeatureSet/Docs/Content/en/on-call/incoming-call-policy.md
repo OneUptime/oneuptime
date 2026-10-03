@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime plays<br/>greeting message]
     D --> E[Load Escalation Rules]
     E --> F{Rule 1:<br/>Try On-Call User}
-    F -->|No Answer| G{Rule 2:<br/>Try Backup Team}
+    F -->|No Answer| G{Rule 2:<br/>Try Backup Engineer}
     F -->|Answered| H[Connect Caller<br/>to Engineer]
     G -->|No Answer| I{Rule 3:<br/>Try Manager}
     G -->|Answered| H
@@ -71,7 +71,7 @@ The Incoming Call Policy feature works by:
 
 1. Receiving incoming calls on a Twilio phone number
 2. Playing a customizable greeting message
-3. Routing the call through escalation rules (teams, schedules, or users)
+3. Routing the call through escalation rules (on-call schedules or people)
 4. Connecting the caller to the first available on-call engineer
 5. Escalating to the next rule if no one answers
 
@@ -155,36 +155,37 @@ flowchart LR
 
 ## Step 6: Configure Escalation Rules
 
-Escalation rules determine how calls are routed:
+Escalation rules decide who is rung when someone calls the policy's number, from the top of the list down:
 
 1. Open your Incoming Call Policy
 2. Go to the **Escalation Rules** tab
 3. Click **Add Escalation Rule**
-4. Configure the rule:
-   - **Escalate After (seconds)**: How long to wait before escalating
-   - **On-Call Schedule**: Select a schedule to route to whoever is on-call
-   - **Teams**: Select specific teams
-   - **Users**: Select specific users
-5. Add additional escalation rules as needed
+4. Fill in the rule. It is one step:
+   - **Who to call**: an on-call schedule or one person. A schedule rings whoever is on call in it when the call comes in. People are the members of your project.
+   - **Ring for (in seconds)**: how long their phone rings before the call moves on to the next rule. It starts at 30 seconds, and Twilio takes 5 to 600.
+   - **Name** and **Description** are optional, under **Advanced**. A rule without a name is listed after its place in the list: **Level 1**, **Level 2**.
+5. Save it, and add a rule for each schedule or person to try next
 
 Rules are called from the top of the list down, and a new rule is added to the end. To change the order, drag a rule by the handle at its top left; from the keyboard, focus the handle, press Space, move it with the arrow keys and press Space again.
+
+> **Mind voicemail**: keep **Ring for** shorter than the time the person's phone takes to send an unanswered call to voicemail. If their voicemail answers first, the caller is connected to it and the call does not move on to the next rule. Twilio adds a few seconds of its own to every ring.
 
 ### Escalation Rule Example
 
 ```mermaid
 flowchart TD
     subgraph "Escalation Chain"
-        A[Rule 1: Primary On-Call<br/>Wait 30 seconds] --> B[Rule 2: Secondary On-Call<br/>Wait 30 seconds]
-        B --> C[Rule 3: Engineering Lead<br/>Wait 30 seconds]
+        A[Level 1: Primary on-call schedule<br/>Ring for 30 seconds] --> B[Level 2: Secondary on-call schedule<br/>Ring for 30 seconds]
+        B --> C[Level 3: Engineering lead<br/>Ring for 30 seconds]
         C --> D[No Answer Message]
     end
 ```
 
-| Position in the list | Escalate After | Target                     |
-| -------------------- | -------------- | -------------------------- |
-| 1st                  | 30 seconds     | Primary On-Call Schedule   |
-| 2nd                  | 30 seconds     | Secondary On-Call Schedule |
-| 3rd                  | 30 seconds     | Engineering Team Lead      |
+| Level   | Who to call                 | Ring for   |
+| ------- | --------------------------- | ---------- |
+| Level 1 | Primary on-call schedule    | 30 seconds |
+| Level 2 | Secondary on-call schedule  | 30 seconds |
+| Level 3 | Engineering lead (a person) | 30 seconds |
 
 ## Step 7: Configure Voice Messages (Optional)
 
@@ -211,13 +212,14 @@ Customize the messages callers hear:
 
 ### Escalation Rule Settings
 
-| Setting                | Description                                      |
-| ---------------------- | ------------------------------------------------ |
-| Order                  | Where the rule sits in the list: rules are called from the top down. Set by dragging the rules; through the API, a new rule without one goes to the end |
-| Escalate After Seconds | Wait time before trying next rule (default: 30s) |
-| On-Call Schedule       | Route to whoever is currently on-call            |
-| Teams                  | Route to all members of selected teams           |
-| Users                  | Route to specific users                          |
+| Setting               | Description                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Who to call           | An on-call schedule, which rings whoever is on call in it, or one person. Each rule calls one of them                                                       |
+| Ring for (in seconds) | How long the phone rings before the call moves on to the next rule (default: 30; from 5 to 600)                                                             |
+| Name and Description  | Optional, under Advanced. A rule without a name is listed as Level 1, Level 2 and so on, after its place in the list                                        |
+| Order                 | Where the rule sits in the list: rules are called from the top down. Set by dragging the rules; through the API, a new rule without one goes to the end |
+
+Through the API, a rule sets `onCallDutyPolicyScheduleId` or `userId` (one of them, never both) and `escalateAfterSeconds`: the ring time, 30 when left out.
 
 ## Viewing Call Logs
 
@@ -305,6 +307,7 @@ If you no longer need a phone number:
 - Check that escalation rules are properly configured
 - Ensure on-call schedules have users assigned for the current time
 - Verify the policy is enabled
+- If calls end up in an engineer's voicemail, set the rule's **Ring for** below the time their phone takes to go to voicemail
 
 ### Audio quality issues
 

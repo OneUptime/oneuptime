@@ -37,7 +37,9 @@ import { createPortal } from "react-dom";
  * It stays open after a pick, so several can be picked in a row. In a form
  * ("toggle") a picked row shows a tick and picking it again takes it away;
  * on the Owners page ("add") a picked row is left out, because removing an
- * owner there is its own, confirmed, action.
+ * owner there is its own, confirmed, action. A field that takes one pick
+ * ("single") is a single choice: the picked row shows a tick, a pick
+ * replaces it, and the picker closes the list.
  *
  * Keyboard: typing searches, Up and Down move through the list, Enter picks,
  * Escape closes and hands focus back to the button that opened it.
@@ -47,7 +49,7 @@ export const PEOPLE_SEARCH_DEBOUNCE_MS: number = 250;
 export const PEOPLE_SEARCH_POPUP_WIDTH_PX: number = 320;
 export const PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX: number = 380;
 
-export type PeopleSearchSelectionMode = "toggle" | "add";
+export type PeopleSearchSelectionMode = "toggle" | "add" | "single";
 
 export interface ComponentProps {
   popup: AnchoredFieldPopup;
@@ -207,8 +209,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
               return false;
             }
 
+            // Only the Owners page leaves out what is picked already.
             return (
-              props.selectionMode === "toggle" ||
+              props.selectionMode !== "add" ||
               !props.selectedKeys.has(
                 getPeoplePickerOptionKey(row.kind, row.id),
               )
@@ -453,7 +456,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                       id={getOptionId(row)}
                       role="option"
                       aria-selected={
-                        props.selectionMode === "toggle" ? isPicked : false
+                        props.selectionMode === "add" ? false : isPicked
                       }
                       aria-disabled={Boolean(pendingKey) || undefined}
                       data-testid="people-search-option"
@@ -502,6 +505,9 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                           icon={IconProp.Check}
                           className="h-4 w-4 flex-shrink-0 text-indigo-600"
                         />
+                      ) : props.selectionMode === "single" ? (
+                        // A single choice is made by picking: nothing to add.
+                        <></>
                       ) : (
                         <Icon
                           icon={IconProp.Add}

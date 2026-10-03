@@ -7561,7 +7561,7 @@
   "Add Attribute Key": "Add Attribute Key",
   "Add Attribute Value": "Add Attribute Value",
   "Add Device": "Add Device",
-  "Add Escalation Rule": "Add Escalation Rule",
+  "Add Escalation Rule": "添加升级规则",
   "Add LLM provider": "Add LLM provider",
   "Add Labels": "Add Labels",
   "Add Layer": "添加层",
@@ -24561,5 +24561,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "任何拥有链接的人无需登录即可看到此仪表板及其所有小组件。",
   "Remove Password": "移除密码",
   "Share Publicly": "公开共享",
-  "Stop asking for the password?": "不再要求输入密码吗？"
+  "Stop asking for the password?": "不再要求输入密码吗？",
+  "Add the on-call schedules or people to call when someone dials this number.": "添加有人拨打此号码时要呼叫的值班计划或人员。",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "值班计划会在来电时呼叫当时值班的人。",
+  "Choose an on-call schedule or a person to call.": "请选择要呼叫的值班计划或人员。",
+  "Choose who to call": "选择呼叫对象",
+  "Describe who this rule calls and why.": "描述此规则呼叫谁以及原因。",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "如果在此时间内无人接听，来电将转到下一条规则。请设置得比对方电话转入语音信箱的时间更短。",
+  "No on-call schedules or people to pick from.": "没有可选择的值班计划或人员。",
+  "Ring for": "响铃时长",
+  "Ring for (in seconds)": "响铃时长（秒）",
+  "Search schedules or people...": "搜索计划或人员...",
+  "Who to call": "呼叫对象",
+  "{{count}} seconds": "{{count}} 秒",
+  "{{count}} seconds_one": "{{count}} 秒"
 }

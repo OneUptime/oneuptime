@@ -39,7 +39,8 @@ import {
 } from "./Utils/CreateFormDefaults";
 import {
   getPeoplePickerValueKeys,
-  toPeoplePickerIds,
+  PeoplePickerFormValue,
+  toPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
@@ -1068,7 +1069,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
       /*
        * A people picker's values that are not columns of the model - a
        * template's ownerUsers and ownerTeams - are sent as misc data, as
-       * plain ids. Its columns are saved with the model.
+       * plain ids (one id, for a picker that takes a single pick). Its
+       * columns are saved with the model.
        */
       if (isPeoplePickerField(field) && field.peoplePicker) {
         for (const key of getPeoplePickerValueKeys(field.peoplePicker)) {
@@ -1076,8 +1078,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
             continue;
           }
 
-          if (values[key] !== undefined && values[key] !== null) {
-            result[key] = toPeoplePickerIds(values[key]);
+          if (values[key] === undefined || values[key] === null) {
+            continue;
+          }
+
+          const formValue: PeoplePickerFormValue = toPeoplePickerFormValue(
+            field.peoplePicker,
+            values[key],
+          );
+
+          if (formValue !== null) {
+            result[key] = formValue;
           }
         }
 

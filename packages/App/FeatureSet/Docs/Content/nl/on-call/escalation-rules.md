@@ -10,7 +10,7 @@ Wanneer u op de pagina **Bereikbaarheidsbeleid** een bereikbaarheidsbeleid maakt
 
 ## Een escalatieregel toevoegen
 
-Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu en klik op **Add Escalation Rule**. Het dialoogvenster is één korte pagina met twee vragen:
+Open het bereikbaarheidsbeleid, kies **Escalatieregels** in het zijmenu en klik op **Escalatieregel toevoegen**. Het dialoogvenster is één korte pagina met twee vragen:
 
 - **Op de hoogte stellen** — wie op dit niveau wordt opgeroepen. Eén kiezer omvat bereikbaarheidsschema's, teams en personen: klik op **Ontvanger toevoegen**, zoek en kies er zoveel als nodig. Er is er minstens één nodig.
   - Een **bereikbaarheidsschema** roept op wie er dienst heeft wanneer het niveau wordt uitgevoerd, niet een vaste persoon.

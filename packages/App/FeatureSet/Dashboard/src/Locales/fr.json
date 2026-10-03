@@ -24561,5 +24561,18 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Toute personne disposant du lien verra ce tableau de bord et tous ses widgets, sans se connecter.",
   "Remove Password": "Supprimer le mot de passe",
   "Share Publicly": "Partager publiquement",
-  "Stop asking for the password?": "Ne plus demander le mot de passe ?"
+  "Stop asking for the password?": "Ne plus demander le mot de passe ?",
+  "Add the on-call schedules or people to call when someone dials this number.": "Ajoutez les plannings d'astreinte ou les personnes à appeler quand quelqu'un compose ce numéro.",
+  "An on-call schedule rings whoever is on call in it when the call comes in.": "Un planning d'astreinte fait sonner la personne d'astreinte au moment de l'appel.",
+  "Choose an on-call schedule or a person to call.": "Choisissez un planning d'astreinte ou une personne à appeler.",
+  "Choose who to call": "Choisir qui appeler",
+  "Describe who this rule calls and why.": "Décrivez qui cette règle appelle et pourquoi.",
+  "If nobody answers in this time, the call moves on to the next rule. Keep it shorter than their phone takes to go to voicemail.": "Si personne ne répond dans ce délai, l'appel passe à la règle suivante. Choisissez une durée plus courte que celle au bout de laquelle leur téléphone bascule sur la messagerie.",
+  "No on-call schedules or people to pick from.": "Aucun planning d'astreinte ni aucune personne à sélectionner.",
+  "Ring for": "Durée de sonnerie",
+  "Ring for (in seconds)": "Durée de sonnerie (en secondes)",
+  "Search schedules or people...": "Rechercher des plannings ou des personnes...",
+  "Who to call": "Qui appeler",
+  "{{count}} seconds": "{{count}} secondes",
+  "{{count}} seconds_one": "{{count}} seconde"
 }

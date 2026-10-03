@@ -10,7 +10,7 @@ Quando crei una policy di reperibilità nella pagina **Policy di reperibilità**
 
 ## Aggiungere una regola di escalation
 
-Apri la policy di reperibilità, scegli **Regole di escalation** nel menu laterale e fai clic su **Add Escalation Rule**. La finestra è un'unica pagina breve con due domande:
+Apri la policy di reperibilità, scegli **Regole di escalation** nel menu laterale e fai clic su **Aggiungi regola di escalation**. La finestra è un'unica pagina breve con due domande:
 
 - **Notifica** — chi viene avvisato a questo livello. Un solo selettore comprende pianificazioni di reperibilità, team e persone: fai clic su **Aggiungi destinatario**, cerca e scegli quanti ne servono. Ne serve almeno uno.
   - Una **pianificazione di reperibilità** avvisa chi è reperibile quando il livello viene eseguito, non una persona fissa.

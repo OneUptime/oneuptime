@@ -11,7 +11,7 @@ flowchart TD
     C --> D[OneUptime spelar upp<br/>hälsningsmeddelande]
     D --> E[Ladda eskaleringsregler]
     E --> F{Regel 1:<br/>Försök jour-användare}
-    F -->|Inget svar| G{Regel 2:<br/>Försök backup-team}
+    F -->|Inget svar| G{Regel 2:<br/>Försök backup-ingenjör}
     F -->|Besvarat| H[Anslut uppringare<br/>till ingenjör]
     G -->|Inget svar| I{Regel 3:<br/>Försök chef}
     G -->|Besvarat| H
@@ -34,7 +34,7 @@ Funktionen för inkommande samtalspolicy fungerar genom att:
 
 1. Ta emot inkommande samtal på ett Twilio-telefonnummer
 2. Spela upp ett anpassningsbart hälsningsmeddelande
-3. Dirigera samtalet genom eskaleringsregler (team, scheman eller användare)
+3. Dirigera samtalet genom eskaleringsregler (jourscheman eller personer)
 4. Ansluta uppringaren till den första tillgängliga jouringenjören
 5. Eskalera till nästa regel om ingen svarar
 
@@ -106,18 +106,20 @@ Telefonnumret köps från ditt Twilio-konto och webhooken **konfigureras automat
 
 ## Steg 6: Konfigurera eskaleringsregler
 
-Eskaleringsregler avgör hur samtal dirigeras:
+Eskaleringsregler avgör vem som ringas när någon ringer policyns nummer, uppifrån och ned i listan:
 
 1. Öppna din policy för inkommande samtal
 2. Gå till fliken **Eskaleringsregler**
 3. Klicka på **Lägg till eskaleringsregel**
-4. Konfigurera regeln:
-   - **Ordning**: Prioritetsordning (lägre nummer prövas först)
-   - **Eskalera efter (sekunder)**: Hur länge man väntar innan eskalering
-   - **Jourschema**: Välj ett schema för att dirigera till vem som är i jour
-   - **Team**: Välj specifika team
-   - **Användare**: Välj specifika användare
-5. Lägg till ytterligare eskaleringsregler efter behov
+4. Fyll i regeln. Det är ett enda steg:
+   - **Vem som ska ringas**: ett jourschema eller en person. Ett jourschema ringer den som har jour i det när samtalet kommer in. Personerna är medlemmarna i ditt projekt.
+   - **Ringtid (i sekunder)**: hur länge deras telefon ringer innan samtalet går vidare till nästa regel. Den börjar på 30 sekunder, och Twilio tar 5 till 600.
+   - **Namn** och **Beskrivning** är valfria och ligger under **Avancerad**. En regel utan namn visas efter sin plats i listan: **Level 1**, **Level 2**.
+5. Spara den och lägg till en regel för varje jourschema eller person som ska prövas därefter
+
+Reglerna prövas uppifrån och ned i listan, och en ny regel läggs till sist. Dra en regel i handtaget uppe till vänster för att ändra ordningen; med tangentbordet fokuserar du handtaget, trycker på blanksteg, flyttar regeln med piltangenterna och trycker på blanksteg igen.
+
+> **Tänk på röstbrevlådan**: håll **Ringtid** kortare än tiden det tar innan personens telefon skickar ett obesvarat samtal till röstbrevlådan. Om röstbrevlådan svarar först kopplas den som ringer till den, och samtalet går inte vidare till nästa regel. Twilio lägger själv till några sekunder på varje signal.
 
 ## Steg 7: Konfigurera röstmeddelanden (valfritt)
 
@@ -144,13 +146,14 @@ Anpassa meddelandena som uppringare hör:
 
 ### Inställningar för eskaleringsregel
 
-| Inställning             | Beskrivning                                        |
-| ----------------------- | -------------------------------------------------- |
-| Ordning                 | Prioritetsordning (1 = högst prioritet)            |
-| Eskalera efter sekunder | Väntetid innan nästa regel prövas (standard: 30 s) |
-| Jourschema              | Dirigera till vem som för närvarande är i jour     |
-| Team                    | Dirigera till alla medlemmar i valda team          |
-| Användare               | Dirigera till specifika användare                  |
+| Inställning          | Beskrivning                                                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vem som ska ringas   | Ett jourschema, som ringer den som har jour i det, eller en person. Varje regel ringer en av dem                                              |
+| Ringtid (i sekunder) | Hur länge telefonen ringer innan samtalet går vidare till nästa regel (standard: 30; från 5 till 600)                                         |
+| Namn och Beskrivning | Valfria, under Avancerad. En regel utan namn visas som Level 1, Level 2 och så vidare, efter sin plats i listan                               |
+| Ordning              | Regelns plats i listan: reglerna prövas uppifrån och ned. Ändras genom att dra reglerna; via API:et hamnar en ny regel utan ordning sist |
+
+Via API:et anger en regel `onCallDutyPolicyScheduleId` eller `userId` (en av dem, aldrig båda) och `escalateAfterSeconds`: ringtiden, 30 när den utelämnas.
 
 ## Visa samtalsloggar
 
@@ -193,6 +196,7 @@ Bara användare med verifierade telefonnummer kan ringas via eskaleringsregler.
 - Kontrollera att eskaleringsregler är korrekt konfigurerade
 - Se till att jourschemana har användare tilldelade för den aktuella tiden
 - Verifiera att policyn är aktiverad
+- Om samtal hamnar i en ingenjörs röstbrevlåda, sätt regelns **Ringtid** lägre än tiden det tar innan deras telefon går till röstbrevlådan
 
 ## Säkerhetsöverväganden
 
