@@ -4,6 +4,20 @@
     "untranslated": 12503
   },
   "sameAsEnglish": [
-    "Page {{page}}"
+    "Exception",
+    "Exceptions",
+    "Incident",
+    "Incidents",
+    "Page {{page}}",
+    "Runbook",
+    "Runbooks",
+    "Service",
+    "Services",
+    "Source Map",
+    "Source Maps",
+    "Span",
+    "Spans",
+    "Webhook",
+    "Webhooks"
   ]
 }
