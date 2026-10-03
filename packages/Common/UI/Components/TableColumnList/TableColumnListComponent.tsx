@@ -18,6 +18,15 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
 ): ReactElement => {
   const { translateString } = useTranslateValue();
 
+  /*
+   * Every hook runs before the empty-list return. A table reuses a row's
+   * cell for whatever row lands in its place, so the same list goes from
+   * some items to none (filtering, search, the next page) and back; a hook
+   * below that return then changes the hook count between renders, and
+   * React throws instead of drawing the table.
+   */
+  const [showMoreItems, setShowMoreItems] = React.useState<boolean>(false);
+
   if (!props.items || props.items.length === 0) {
     return <p>{translateString(props.noItemsMessage)}</p>;
   }
@@ -38,8 +47,6 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
       remainingItems.push(props.items[i]!);
     }
   }
-
-  const [showMoreItems, setShowMoreItems] = React.useState<boolean>(false);
 
   return (
     <div className={props.className}>
