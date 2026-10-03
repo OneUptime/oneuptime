@@ -24201,5 +24201,10 @@
   "Edit Languages": "Edit Languages",
   "History chart colors, languages, and whether search engines may list this page.": "History chart colors, languages, and whether search engines may list this page.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Shown at the top of your status page's overview, above everything else. Markdown is supported.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "The language first-time visitors see, and the languages they can switch to in the footer."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "The language first-time visitors see, and the languages they can switch to in the footer.",
+  "Each person is on call for a week, then the next one takes over.": "Each person is on call for a week, then the next one takes over.",
+  "Each turn lasts": "Each turn lasts",
+  "On call one at a time, in the order you add them, starting now.": "On call one at a time, in the order you add them, starting now.",
+  "Then the next person takes over.": "Then the next person takes over.",
+  "Who takes turns?": "Who takes turns?"
 }

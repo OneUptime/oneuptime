@@ -16049,7 +16049,7 @@
   "Search attributes, e.g. user firstName": "Search attributes, e.g. user firstName",
   "Search attributes…": "Search attributes…",
   "Search by URL, user, session or trace ID": "Search by URL, user, session or trace ID",
-  "Search by name or email…": "Search by name or email…",
+  "Search by name or email…": "Rechercher par nom ou e-mail…",
   "Search columns...": "Search columns...",
   "Search components, e.g. create incident": "Search components, e.g. create incident",
   "Search data source types...": "Search data source types...",
@@ -24201,5 +24201,10 @@
   "Edit Languages": "Modifier les langues",
   "History chart colors, languages, and whether search engines may list this page.": "Couleurs du graphique d'historique, langues, et autorisation pour les moteurs de recherche de référencer cette page.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Affichée en haut de la vue d'ensemble de votre page de statut, avant tout le reste. Markdown est pris en charge.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "La langue que voient les visiteurs lors de leur première visite, et les langues vers lesquelles ils peuvent basculer depuis le pied de page."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "La langue que voient les visiteurs lors de leur première visite, et les langues vers lesquelles ils peuvent basculer depuis le pied de page.",
+  "Each person is on call for a week, then the next one takes over.": "Chaque personne est d'astreinte pendant une semaine, puis la suivante prend le relais.",
+  "Each turn lasts": "Chaque tour dure",
+  "On call one at a time, in the order you add them, starting now.": "D'astreinte l'un après l'autre, dans l'ordre où vous les ajoutez, à partir de maintenant.",
+  "Then the next person takes over.": "Ensuite, la personne suivante prend le relais.",
+  "Who takes turns?": "Qui assure l'astreinte à tour de rôle ?"
 }

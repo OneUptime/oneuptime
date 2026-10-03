@@ -24201,5 +24201,10 @@
   "Edit Languages": "Editar idiomas",
   "History chart colors, languages, and whether search engines may list this page.": "Colores del gráfico de historial, idiomas y si los motores de búsqueda pueden incluir esta página.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Se muestra en la parte superior de la vista general de tu página de estado, antes que todo lo demás. Se admite Markdown.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "El idioma que ven los visitantes por primera vez y los idiomas a los que pueden cambiar desde el pie de página."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "El idioma que ven los visitantes por primera vez y los idiomas a los que pueden cambiar desde el pie de página.",
+  "Each person is on call for a week, then the next one takes over.": "Cada persona está de guardia una semana y luego la siguiente toma el relevo.",
+  "Each turn lasts": "Cada turno dura",
+  "On call one at a time, in the order you add them, starting now.": "De guardia uno a uno, en el orden en que los añadas, a partir de ahora.",
+  "Then the next person takes over.": "Después, la siguiente persona toma el relevo.",
+  "Who takes turns?": "¿Quiénes se turnan?"
 }
