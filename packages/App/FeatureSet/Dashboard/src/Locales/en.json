@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Resources & On-Call",
   "The usual starting state.": "The usual starting state.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Who takes each role on this incident. You take any role marked Primary that you leave empty."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Who takes each role on this incident. You take any role marked Primary that you leave empty.",
+  "{{count}} products": "{{count}} products",
+  "{{count}} products_one": "{{count}} product"
 }

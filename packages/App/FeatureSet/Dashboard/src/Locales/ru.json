@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Ресурсы и дежурство",
   "The usual starting state.": "Обычное начальное состояние.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Кто берёт каждую роль в этом эпизоде и в каждом его инциденте. Любую роль с отметкой «Основная», которую вы оставите пустой, берёте вы.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Кто берёт каждую роль в этом инциденте. Любую роль с отметкой «Основная», которую вы оставите пустой, берёте вы."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Кто берёт каждую роль в этом инциденте. Любую роль с отметкой «Основная», которую вы оставите пустой, берёте вы.",
+  "{{count}} products": "Продуктов: {{count}}",
+  "{{count}} products_one": "{{count}} продукт"
 }

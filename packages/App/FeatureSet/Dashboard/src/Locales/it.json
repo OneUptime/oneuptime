@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Risorse e reperibilità",
   "The usual starting state.": "Lo stato iniziale abituale.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Chi assume ciascun ruolo in questo episodio e in ognuno dei suoi incidenti. Assumi tu ogni ruolo contrassegnato come Principale che lasci vuoto.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Chi assume ciascun ruolo in questo incidente. Assumi tu ogni ruolo contrassegnato come Principale che lasci vuoto."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Chi assume ciascun ruolo in questo incidente. Assumi tu ogni ruolo contrassegnato come Principale che lasci vuoto.",
+  "{{count}} products": "{{count}} prodotti",
+  "{{count}} products_one": "{{count}} prodotto"
 }

@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "리소스 및 온콜",
   "The usual starting state.": "일반적인 시작 상태.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "이 에피소드와 그 안의 모든 인시던트에서 각 역할을 누가 맡는지 정합니다. 기본으로 표시된 역할을 비워 두면 본인이 맡습니다.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다. 기본으로 표시된 역할을 비워 두면 본인이 맡습니다."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다. 기본으로 표시된 역할을 비워 두면 본인이 맡습니다.",
+  "{{count}} products": "제품 {{count}}개",
+  "{{count}} products_one": "제품 {{count}}개"
 }

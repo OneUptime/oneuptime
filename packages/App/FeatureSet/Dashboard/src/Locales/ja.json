@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "リソースとオンコール",
   "The usual starting state.": "通常の開始状態。",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "このエピソードとその中のすべてのインシデントで各ロールを誰が担当するか。プライマリと表示されたロールを空欄のままにすると、あなたが担当します。",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "このインシデントで各ロールを誰が担当するか。プライマリと表示されたロールを空欄のままにすると、あなたが担当します。"
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "このインシデントで各ロールを誰が担当するか。プライマリと表示されたロールを空欄のままにすると、あなたが担当します。",
+  "{{count}} products": "{{count}} 件の製品",
+  "{{count}} products_one": "{{count}} 件の製品"
 }

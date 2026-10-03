@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "منابع و آنکال",
   "The usual starting state.": "وضعیت آغازین معمول.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "چه کسی هر نقش را در این اپیزود و در هر حادثه آن بر عهده می‌گیرد. هر نقشی با برچسب «اصلی» را که خالی بگذارید، خودتان بر عهده می‌گیرید.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد. هر نقشی با برچسب «اصلی» را که خالی بگذارید، خودتان بر عهده می‌گیرید."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد. هر نقشی با برچسب «اصلی» را که خالی بگذارید، خودتان بر عهده می‌گیرید.",
+  "{{count}} products": "{{count}} محصول",
+  "{{count}} products_one": "{{count}} محصول"
 }

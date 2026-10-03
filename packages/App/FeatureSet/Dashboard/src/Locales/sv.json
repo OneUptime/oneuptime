@@ -21425,5 +21425,7 @@
   "Resources & On-Call": "Resurser och jour",
   "The usual starting state.": "Det vanliga starttillståndet.",
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Vem som tar varje roll i den här episoden och i varje incident i den. Du tar själv varje roll märkt Primär som du lämnar tom.",
-  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Vem som tar varje roll i den här incidenten. Du tar själv varje roll märkt Primär som du lämnar tom."
+  "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Vem som tar varje roll i den här incidenten. Du tar själv varje roll märkt Primär som du lämnar tom.",
+  "{{count}} products": "{{count}} produkter",
+  "{{count}} products_one": "{{count}} produkt"
 }

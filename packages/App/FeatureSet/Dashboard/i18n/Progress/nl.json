@@ -5,6 +5,7 @@
   },
   "sameAsEnglish": [
     "Label: {{name}}",
+    "{{count}} product",
     "{{field}} is {{value}}"
   ]
 }
