@@ -29,6 +29,15 @@ const I18N_DIR: string = path.join(DASHBOARD_SRC, "..", "i18n");
 
 const FORM_FILE: string = "Components/OnCallPolicy/OnCallScheduleCreateForm.ts";
 
+/*
+ * The Layers page a new schedule opens on, whose Add Layer now starts a
+ * layer the way the first one starts.
+ */
+const LAYERS_FILE: string =
+  "Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx";
+
+const LAYERS_STRINGS: Array<string> = ["Add Layer"];
+
 // The strings this change adds, as the form writes them.
 const NEW_STRINGS: Array<string> = [
   // The question, and what it says under it.
@@ -220,6 +229,23 @@ describe("the who-takes-turns form's strings", () => {
     "%s translates the picker's and the turn lengths' strings too",
     (file: string) => {
       expect(findProblems(file, REUSED_STRINGS)).toEqual([]);
+    },
+  );
+
+  test("the Layers page draws Add Layer as one whole string", () => {
+    const layers: string = stripComments(
+      fs.readFileSync(path.join(DASHBOARD_SRC, LAYERS_FILE), "utf8"),
+    );
+
+    for (const text of LAYERS_STRINGS) {
+      expect(layers).toContain(`title="${text}"`);
+    }
+  });
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s translates the Layers page's Add Layer",
+    (file: string) => {
+      expect(findProblems(file, LAYERS_STRINGS)).toEqual([]);
     },
   );
 });
