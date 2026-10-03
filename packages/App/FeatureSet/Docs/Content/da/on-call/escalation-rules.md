@@ -27,7 +27,7 @@ Overskriften på **Avanceret** viser **Konfigureret**, når reglen har en beskri
 
 ## Sådan tilkalder niveauerne folk
 
-Når en hændelse eller en advarsel når politikken, tilkalder **Level 1** sine modtagere med det samme. Hvis ingen kvitterer inden for ventetiden, tilkaldes **Level 2**, og så videre ned gennem listen. Når det sidste niveaus ventetid er gået uden kvittering, starter politikken forfra fra **Level 1**, hvis dens **Repeat Policy** (under reglerne) siger, at den skal gentages, så mange gange som den tillader, og ellers stopper den.
+Når en hændelse eller en advarsel når politikken, tilkalder **Level 1** sine modtagere med det samme. Hvis ingen kvitterer inden for ventetiden, tilkaldes **Level 2**, og så videre ned gennem listen. Når det sidste niveaus ventetid er gået uden kvittering, starter politikken forfra fra **Level 1**, hvis dens **Gentagelsespolitik** (under reglerne) siger, at den skal gentages, så mange gange som den tillader, og ellers stopper den.
 
 Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår hvert niveau tilkaldes, hvem det tilkalder, og hvad der sker efter det sidste. Et niveau, hvor ikke alle modtagere kan tilkaldes, siger det på sit kort; klik på mærkatet for at se hvem og hvorfor.
 
