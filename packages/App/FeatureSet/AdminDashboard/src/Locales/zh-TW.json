@@ -556,9 +556,7 @@
         "cardDescription": "全域 LLM 供應商可用於所有專案的 AI 功能。設定 OpenAI、Anthropic、Ollama 或其他 LLM 供應商。",
         "noItems": "未設定 LLM 供應商。新增 LLM 供應商以啟用 AI 功能。",
         "stepBasicInfo": "基本資訊",
-        "stepProviderSettings": "供應商設定",
-        "stepAdvanced": "進階",
-        "stepCostSettings": "成本設定"
+        "stepProviderSettings": "供應商設定"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "建立新專案",
   "Create Project": "建立專案",
   "Created At": "建立於",
-  "Credentials": "憑證",
   "Datastore capacity": "資料儲存區容量",
   "Disable Sign Up": "停用註冊",
   "Disk and memory utilization of the databases backing this instance.": "支援此執行個體的資料庫之磁碟與記憶體使用率。",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "管理整個執行個體中的所有使用者。",
   "Master API Key": "主 API 金鑰",
   "Message": "訊息",
-  "Meta App": "Meta 應用程式",
   "Model": "模型",
   "Model Name": "模型名稱",
   "Monitor Log Retention (Days)": "監測器日誌保留期（天）",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "使用者名稱與密碼驗證需要。OAuth 不使用。",
   "Sample Description": "範例描述",
   "Sample Title": "範例標題",
-  "Secondary Twilio Phone Number": "次要 Twilio 電話號碼",
   "Secondary Twilio Phone Numbers": "次要 Twilio 電話號碼",
   "Secret token configured in Meta to validate webhook subscription requests.": "在 Meta 中設定用於驗證 webhook 訂閱請求的密鑰權杖。",
   "Select a team": "選擇團隊",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "永久刪除 {{name}}。",
   "This action cannot be undone.": "此操作無法復原。",
   "and {{remaining}} more": "以及另外 {{remaining}} 項",
-  "Type {{name}} to confirm.": "輸入 {{name}} 以確認。"
+  "Type {{name}} to confirm.": "輸入 {{name}} 以確認。",
+  "Configured": "已設定"
 }

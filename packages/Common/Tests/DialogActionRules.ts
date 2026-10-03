@@ -1615,15 +1615,28 @@ function analyzeDialog(
   return findings;
 }
 
+// Reads a file's text, or null when there is none.
+export type LocaleFileReader = (filePath: string) => string | null;
+
+const READ_LOCALE_FILE: LocaleFileReader = (
+  filePath: string,
+): string | null => {
+  return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
+};
+
 /*
  * The English locale of the feature set a file belongs to, as a lookup from
  * translation key to text. Common's own components translate English text,
  * which needs no lookup; they get Dashboard's, where most of them live.
+ *
+ * `readFile` reads the locale file: the disk unless a scan reads a tree of
+ * its own (Tests/Helpers/FormStepsScan's SourceFileSystem).
  */
 export function loadLocaleFor(
   repositoryRoot: string,
   relativeFile: string,
   cache: Map<string, LocaleLookup>,
+  readFile: LocaleFileReader = READ_LOCALE_FILE,
 ): LocaleLookup {
   const match: RegExpMatchArray | null = relativeFile.match(
     /^packages\/App\/FeatureSet\/([^/]+)\//,
@@ -1650,12 +1663,10 @@ export function loadLocaleFor(
     "en.json",
   );
   let dictionary: Record<string, unknown> = {};
+  const localeText: string | null = readFile(localeFile);
 
-  if (fs.existsSync(localeFile)) {
-    dictionary = JSON.parse(fs.readFileSync(localeFile, "utf8")) as Record<
-      string,
-      unknown
-    >;
+  if (localeText !== null) {
+    dictionary = JSON.parse(localeText) as Record<string, unknown>;
   }
 
   const lookup: LocaleLookup = (key: string): string | null => {

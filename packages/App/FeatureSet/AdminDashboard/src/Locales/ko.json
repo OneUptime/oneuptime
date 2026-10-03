@@ -556,9 +556,7 @@
         "cardDescription": "글로벌 LLM 공급자는 AI 기능을 위해 모든 프로젝트에서 사용할 수 있습니다. OpenAI, Anthropic, Ollama 또는 기타 LLM 공급자를 구성하세요.",
         "noItems": "구성된 LLM 공급자가 없습니다. AI 기능을 활성화하려면 LLM 공급자를 추가하세요.",
         "stepBasicInfo": "기본 정보",
-        "stepProviderSettings": "공급자 설정",
-        "stepAdvanced": "고급",
-        "stepCostSettings": "비용 설정"
+        "stepProviderSettings": "공급자 설정"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "새 프로젝트 만들기",
   "Create Project": "프로젝트 생성",
   "Created At": "생성일",
-  "Credentials": "자격 증명",
   "Datastore capacity": "데이터스토어 용량",
   "Disable Sign Up": "가입 비활성화",
   "Disk and memory utilization of the databases backing this instance.": "이 인스턴스를 지원하는 데이터베이스의 디스크 및 메모리 사용률입니다.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "인스턴스 전체의 모든 사용자를 관리합니다.",
   "Master API Key": "마스터 API 키",
   "Message": "메시지",
-  "Meta App": "Meta 앱",
   "Model": "모델",
   "Model Name": "모델 이름",
   "Monitor Log Retention (Days)": "모니터 로그 보존 기간(일)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "사용자 이름 및 비밀번호 인증에 필요합니다. OAuth에는 사용되지 않습니다.",
   "Sample Description": "샘플 설명",
   "Sample Title": "샘플 제목",
-  "Secondary Twilio Phone Number": "보조 Twilio 전화번호",
   "Secondary Twilio Phone Numbers": "보조 Twilio 전화번호",
   "Secret token configured in Meta to validate webhook subscription requests.": "웹훅 구독 요청을 검증하기 위해 Meta에 구성된 시크릿 토큰입니다.",
   "Select a team": "팀 선택",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "{{name}}을(를) 영구적으로 삭제합니다.",
   "This action cannot be undone.": "이 작업은 취소할 수 없습니다.",
   "and {{remaining}} more": "외 {{remaining}}개",
-  "Type {{name}} to confirm.": "확인하려면 {{name}}을(를) 입력하세요."
+  "Type {{name}} to confirm.": "확인하려면 {{name}}을(를) 입력하세요.",
+  "Configured": "설정됨"
 }

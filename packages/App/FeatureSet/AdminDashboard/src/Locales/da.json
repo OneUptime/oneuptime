@@ -556,9 +556,7 @@
         "cardDescription": "Globale LLM-udbydere er tilgængelige for alle projekter for AI-funktioner. Konfigurer OpenAI, Anthropic, Ollama eller andre LLM-udbydere.",
         "noItems": "Ingen LLM-udbydere konfigureret. Tilføj en LLM-udbyder for at aktivere AI-funktioner.",
         "stepBasicInfo": "Grundlæggende info",
-        "stepProviderSettings": "Udbyderindstillinger",
-        "stepAdvanced": "Avanceret",
-        "stepCostSettings": "Omkostningsindstillinger"
+        "stepProviderSettings": "Udbyderindstillinger"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Opret nyt projekt",
   "Create Project": "Opret projekt",
   "Created At": "Oprettet den",
-  "Credentials": "Loginoplysninger",
   "Datastore capacity": "Datalagerkapacitet",
   "Disable Sign Up": "Deaktivér tilmelding",
   "Disk and memory utilization of the databases backing this instance.": "Disk- og hukommelsesudnyttelse for de databaser, der understøtter denne instans.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Administrer alle brugere på tværs af instansen.",
   "Master API Key": "Master-API-nøgle",
   "Message": "Besked",
-  "Meta App": "Meta-app",
   "Model": "Model",
   "Model Name": "Modelnavn",
   "Monitor Log Retention (Days)": "Opbevaring af overvågningslogfiler (dage)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Påkrævet for godkendelse med brugernavn og adgangskode. Bruges ikke til OAuth.",
   "Sample Description": "Eksempelbeskrivelse",
   "Sample Title": "Eksempeltitel",
-  "Secondary Twilio Phone Number": "Sekundært Twilio-telefonnummer",
   "Secondary Twilio Phone Numbers": "Sekundære Twilio-telefonnumre",
   "Secret token configured in Meta to validate webhook subscription requests.": "Hemmeligt token konfigureret i Meta til at validere webhook-abonnementsanmodninger.",
   "Select a team": "Vælg et team",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Slet {{name}} permanent.",
   "This action cannot be undone.": "Denne handling kan ikke fortrydes.",
   "and {{remaining}} more": "og {{remaining}} mere",
-  "Type {{name}} to confirm.": "Skriv {{name}} for at bekræfte."
+  "Type {{name}} to confirm.": "Skriv {{name}} for at bekræfte.",
+  "Configured": "Konfigureret"
 }

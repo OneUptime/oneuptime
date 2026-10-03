@@ -556,9 +556,7 @@
         "cardDescription": "I fornitori LLM globali sono disponibili per tutti i progetti per le funzionalità IA. Configura OpenAI, Anthropic, Ollama o altri fornitori LLM.",
         "noItems": "Nessun fornitore LLM configurato. Aggiungi un fornitore LLM per abilitare le funzionalità IA.",
         "stepBasicInfo": "Informazioni di base",
-        "stepProviderSettings": "Impostazioni del fornitore",
-        "stepAdvanced": "Avanzato",
-        "stepCostSettings": "Impostazioni dei costi"
+        "stepProviderSettings": "Impostazioni del fornitore"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Crea nuovo progetto",
   "Create Project": "Crea progetto",
   "Created At": "Creato il",
-  "Credentials": "Credenziali",
   "Datastore capacity": "Capacità del datastore",
   "Disable Sign Up": "Disabilita la registrazione",
   "Disk and memory utilization of the databases backing this instance.": "Utilizzo di disco e memoria dei database che supportano questa istanza.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Gestisci tutti gli utenti dell'intera istanza.",
   "Master API Key": "Chiave API master",
   "Message": "Messaggio",
-  "Meta App": "App Meta",
   "Model": "Modello",
   "Model Name": "Nome modello",
   "Monitor Log Retention (Days)": "Conservazione dei log del monitor (giorni)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Richiesto per l'autenticazione con nome utente e password. Non utilizzato per OAuth.",
   "Sample Description": "Descrizione di esempio",
   "Sample Title": "Titolo di esempio",
-  "Secondary Twilio Phone Number": "Numero di telefono Twilio secondario",
   "Secondary Twilio Phone Numbers": "Numeri di telefono Twilio secondari",
   "Secret token configured in Meta to validate webhook subscription requests.": "Token segreto configurato in Meta per convalidare le richieste di sottoscrizione webhook.",
   "Select a team": "Seleziona un team",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Elimina definitivamente {{name}}.",
   "This action cannot be undone.": "Questa azione non può essere annullata.",
   "and {{remaining}} more": "e altri {{remaining}}",
-  "Type {{name}} to confirm.": "Digita {{name}} per confermare."
+  "Type {{name}} to confirm.": "Digita {{name}} per confermare.",
+  "Configured": "Configurato"
 }

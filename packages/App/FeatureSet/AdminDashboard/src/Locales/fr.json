@@ -556,9 +556,7 @@
         "cardDescription": "Les fournisseurs LLM globaux sont disponibles pour tous les projets pour les fonctionnalités d'IA. Configurez OpenAI, Anthropic, Ollama ou d'autres fournisseurs LLM.",
         "noItems": "Aucun fournisseur LLM configuré. Ajoutez un fournisseur LLM pour activer les fonctionnalités d'IA.",
         "stepBasicInfo": "Informations de base",
-        "stepProviderSettings": "Paramètres du fournisseur",
-        "stepAdvanced": "Avancé",
-        "stepCostSettings": "Paramètres des coûts"
+        "stepProviderSettings": "Paramètres du fournisseur"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Créer un nouveau projet",
   "Create Project": "Créer un projet",
   "Created At": "Créé le",
-  "Credentials": "Identifiants",
   "Datastore capacity": "Capacité du datastore",
   "Disable Sign Up": "Désactiver l'inscription",
   "Disk and memory utilization of the databases backing this instance.": "Utilisation du disque et de la mémoire des bases de données prenant en charge cette instance.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Gérez tous les utilisateurs de l'instance.",
   "Master API Key": "Clé API principale",
   "Message": "Message",
-  "Meta App": "Application Meta",
   "Model": "Modèle",
   "Model Name": "Nom du modèle",
   "Monitor Log Retention (Days)": "Rétention des journaux du moniteur (jours)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Requis pour l'authentification par nom d'utilisateur et mot de passe. Non utilisé pour OAuth.",
   "Sample Description": "Description de l'échantillon",
   "Sample Title": "Titre de l'échantillon",
-  "Secondary Twilio Phone Number": "Numéro de téléphone Twilio secondaire",
   "Secondary Twilio Phone Numbers": "Numéros de téléphone Twilio secondaires",
   "Secret token configured in Meta to validate webhook subscription requests.": "Jeton secret configuré dans Meta pour valider les demandes d'abonnement au webhook.",
   "Select a team": "Sélectionner une équipe",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Supprimer définitivement {{name}}.",
   "This action cannot be undone.": "Cette action ne peut pas être annulée.",
   "and {{remaining}} more": "et {{remaining}} de plus",
-  "Type {{name}} to confirm.": "Saisissez {{name}} pour confirmer."
+  "Type {{name}} to confirm.": "Saisissez {{name}} pour confirmer.",
+  "Configured": "Configuré"
 }
