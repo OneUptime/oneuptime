@@ -5,6 +5,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import DashboardVariable, {
   DashboardVariableType,
   DashboardVariableOption,
@@ -50,6 +52,7 @@ const MultiSelectPopover: FunctionComponent<{
   unavailableLabel?: string | undefined;
   onChange: (next: Array<string>) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const [open, setOpen] = useState<boolean>(false);
   const wrapRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
@@ -112,7 +115,12 @@ const MultiSelectPopover: FunctionComponent<{
       {open && (
         <div className="absolute z-30 mt-1 right-0 w-56 max-h-72 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg py-1">
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 text-[11px] text-gray-500">
-            <span>{selected.length} selected</span>
+            <span>
+              {translator.translatePlural(
+                { one: "{{count}} selected", other: "{{count}} selected" },
+                selected.length,
+              )}
+            </span>
             <button
               type="button"
               className="text-blue-600 hover:underline disabled:text-gray-300"
@@ -121,17 +129,25 @@ const MultiSelectPopover: FunctionComponent<{
                 onChange([]);
               }}
             >
-              Clear
+              {translator.translateText("Clear")}
             </button>
           </div>
           {maxSelections !== undefined && selected.length >= maxSelections && (
             <p className="px-3 py-1 text-xs text-gray-500">
-              Choose up to {maxSelections} labels.
+              {translator.translatePlural(
+                {
+                  one: "Choose up to {{count}} label.",
+                  other: "Choose up to {{count}} labels.",
+                },
+                maxSelections,
+              )}
             </p>
           )}
           {options.length === 0 ? (
             <div className="px-3 py-2 text-xs text-gray-400">
-              {isLoading ? "Loading options…" : "No options available"}
+              {translator.translateText(
+                isLoading ? "Loading options…" : "No options available",
+              )}
             </div>
           ) : (
             options.map((option: DashboardVariableOption) => {
@@ -168,6 +184,7 @@ const MultiSelectPopover: FunctionComponent<{
 const DashboardVariableControl: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { variable } = props;
   const isTelemetryAttribute: boolean =
     variable.type === DashboardVariableType.TelemetryAttribute;
@@ -258,11 +275,15 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
           }}
         >
           <option value="">
-            {props.isLoadingOptions ? "Loading…" : "All"}
+            {translator.translateText(
+              props.isLoadingOptions ? "Loading…" : "All",
+            )}
           </option>
           {isUnavailableSelection && (
             <option value={selectedValue}>
-              {isProjectLabel ? "Unavailable label" : selectedValue}
+              {isProjectLabel
+                ? translator.translateText("Unavailable label")
+                : selectedValue}
             </option>
           )}
           {options.map((option: DashboardVariableOption) => {

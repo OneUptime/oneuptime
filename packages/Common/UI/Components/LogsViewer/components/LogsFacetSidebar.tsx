@@ -5,6 +5,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   FacetData,
   FacetValue,
@@ -256,6 +258,7 @@ const PRIORITY_FACET_KEYS: ReadonlyArray<string> = [
 const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   props: LogsFacetSidebarProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const severityColorMap: Record<string, string> = useMemo(() => {
     return buildSeverityColorMap();
   }, []);
@@ -383,7 +386,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
     >
       <div className="border-b border-gray-100 px-3 py-2.5">
         <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-          Filters
+          {translator.translateText("Filters")}
         </h3>
       </div>
 

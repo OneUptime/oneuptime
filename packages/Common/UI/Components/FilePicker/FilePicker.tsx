@@ -14,6 +14,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import type { AxiosProgressEvent } from "axios";
 
@@ -64,6 +66,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
 
@@ -170,10 +173,16 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }
 
     if (fileNames.length === 1) {
-      return `"${fileNames[0]}" exceeds the 10MB limit.`;
+      return translator.translateTemplate(
+        '"{{fileName}}" exceeds the 10MB limit.',
+        { fileName: fileNames[0] || "" },
+      );
     }
 
-    return `These files exceed the 10MB limit: ${fileNames.join(", ")}.`;
+    return translator.translateTemplate(
+      "These files exceed the 10MB limit: {{fileNames}}.",
+      { fileNames: fileNames.join(", ") },
+    );
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -376,7 +385,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-900">
-                {file.name || `File ${i + 1}`}
+                {file.name ||
+                  translator.translateTemplate("File {{number}}", {
+                    number: i + 1,
+                  })}
               </p>
               {metadata.length > 0 && (
                 <p className="text-xs text-gray-500">{metadata.join(" • ")}</p>
@@ -388,7 +400,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
             onClick={removeFile}
           >
-            Remove
+            {translator.translateText("Remove")}
           </button>
         </div>
       );
@@ -438,11 +450,13 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 <div className="flex flex-col items-center text-sm text-gray-600 space-y-1">
                   <label className="relative cursor-pointer rounded-md bg-white px-4 py-2 font-medium text-indigo-600 hover:text-indigo-500">
                     <span>
-                      {props.placeholder
-                        ? props.placeholder
-                        : filesModel.length > 0
-                          ? "Add more files"
-                          : "Upload files"}
+                      {translator.translateText(
+                        props.placeholder
+                          ? props.placeholder
+                          : filesModel.length > 0
+                            ? "Add more files"
+                            : "Upload files",
+                      )}
                     </span>
                     <input
                       tabIndex={props.tabIndex}
@@ -455,40 +469,40 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     />
                   </label>
                   <p className="text-gray-500">
-                    {isDragActive
-                      ? "Release to start uploading"
-                      : filesModel.length === 0
-                        ? "Click to choose files"
-                        : "Click to add more"}{" "}
-                    or drag & drop.
+                    {translator.translateText(
+                      isDragActive
+                        ? "Release to start uploading."
+                        : filesModel.length === 0
+                          ? "Click to choose files or drag & drop."
+                          : "Click to add more or drag & drop.",
+                    )}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                      <span>Types: </span>
-                    )}
-                    {props.mimeTypes &&
-                      props.mimeTypes
-                        .map((type: MimeType) => {
-                          const enumKey: string | undefined =
-                            Object.keys(MimeType)[
-                              Object.values(MimeType).indexOf(type)
-                            ];
-                          return enumKey?.toUpperCase() || "";
-                        })
-                        .filter(
-                          (
-                            item: string | undefined,
-                            pos: number,
-                            array: Array<string | undefined>,
-                          ) => {
-                            return array.indexOf(item) === pos;
+                    {props.mimeTypes && props.mimeTypes?.length > 0
+                      ? translator.translateTemplate(
+                          "Types: {{types}}. Max 10MB each.",
+                          {
+                            types: props.mimeTypes
+                              .map((type: MimeType) => {
+                                const enumKey: string | undefined =
+                                  Object.keys(MimeType)[
+                                    Object.values(MimeType).indexOf(type)
+                                  ];
+                                return enumKey?.toUpperCase() || "";
+                              })
+                              .filter(
+                                (
+                                  item: string | undefined,
+                                  pos: number,
+                                  array: Array<string | undefined>,
+                                ) => {
+                                  return array.indexOf(item) === pos;
+                                },
+                              )
+                              .join(", "),
                           },
                         )
-                        .join(", ")}
-                    {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                      <span>.</span>
-                    )}{" "}
-                    Max 10MB each.
+                      : translator.translateText("Max 10MB each.")}
                   </p>
                   {error && (
                     <p className="text-xs text-red-500 font-medium">{error}</p>
@@ -502,7 +516,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       {uploadStatuses.length > 0 && (
         <div className="space-y-2 w-full">
           <p className="text-sm font-medium text-gray-700 text-left">
-            {hasActiveUploads ? "Uploading files" : "Upload status"}
+            {translator.translateText(
+              hasActiveUploads ? "Uploading files" : "Upload status",
+            )}
           </p>
           <div className="space-y-2">
             {uploadStatuses.map((upload: UploadStatus) => {
@@ -519,7 +535,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                       className={`text-xs ${upload.status === "error" ? "text-red-600" : "text-gray-500"}`}
                     >
                       {upload.status === "error"
-                        ? "Failed"
+                        ? translator.translateText("Failed")
                         : `${upload.progress}%`}
                     </span>
                   </div>
@@ -543,7 +559,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                           removeUploadStatus(upload.id);
                         }}
                       >
-                        Dismiss
+                        {translator.translateText("Dismiss")}
                       </button>
                     </div>
                   )}
@@ -556,14 +572,14 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       {filesModel.length > 0 && (
         <div className="space-y-2 w-full">
           <p className="text-sm font-medium text-gray-700 text-left">
-            Uploaded files
+            {translator.translateText("Uploaded files")}
           </p>
           <div className="flex flex-wrap gap-4">{getThumbs()}</div>
         </div>
       )}
       {props.error && (
         <p data-testid="error-message" className="text-sm text-red-400">
-          {props.error}
+          {translator.translateText(props.error)}
         </p>
       )}
     </div>

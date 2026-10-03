@@ -19,6 +19,12 @@ import Button, { ButtonStyleType } from "../Button/Button";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import ProgressBar from "../ProgressBar/ProgressBar";
 import React, { ReactElement, useRef, useState } from "react";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -37,6 +43,7 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
   const [fileText, setFileText] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [preview, setPreview] = useState<LabelRuleImportPreview | null>(null);
@@ -175,15 +182,22 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
             type={
               result.failures.length ? AlertType.WARNING : AlertType.SUCCESS
             }
-            title={`${result.successCount} ${result.successCount === 1 ? "rule" : "rules"} imported successfully. ${result.failures.length} failed.`}
+            title={translator.translatePlural(
+              {
+                one: "{{count}} rule imported successfully. {{failed}} failed.",
+                other:
+                  "{{count}} rules imported successfully. {{failed}} failed.",
+              },
+              result.successCount,
+              { failed: translator.formatNumber(result.failures.length) },
+            )}
           />
           {result.failures.length > 0 && (
             <>
               <p className="text-sm text-gray-600">
-                Download the failed rules to review and correct them before
-                importing again. Successful rules are excluded. If a request
-                timed out, check the rule list first; the server may have saved
-                it.
+                {translator.translateText(
+                  "Download the failed rules to review and correct them before importing again. Successful rules are excluded. If a request timed out, check the rule list first; the server may have saved it.",
+                )}
               </p>
               <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 p-4">
                 <ul className="space-y-2 text-sm text-gray-700">
@@ -191,7 +205,13 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
                     return (
                       <li key={failure.index}>
                         <strong>
-                          Row {failure.index}: {failure.itemName}
+                          {translator.translateTemplate(
+                            "Row {{row}}: {{name}}",
+                            {
+                              row: failure.index,
+                              name: failure.itemName,
+                            },
+                          )}
                         </strong>{" "}
                         — {failure.errorMessage}
                       </li>
@@ -232,7 +252,9 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
       >
         <div className="py-6 space-y-4" aria-live="polite">
           <p className="text-sm text-gray-600">
-            Keep this window open while the rules are created.
+            {translator.translateText(
+              "Keep this window open while the rules are created.",
+            )}
           </p>
           <ProgressBar
             count={completed}
@@ -249,11 +271,29 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
     return (
       <Modal
         title="Preview import"
-        description={`Create ${preview.items.length} ${model.pluralName?.toLowerCase()} in this project. Existing rules will be kept.`}
+        description={translator.translatePlural(
+          {
+            one: "Create {{count}} {{itemName}} in this project. Existing rules will be kept.",
+            other:
+              "Create {{count}} {{itemsName}} in this project. Existing rules will be kept.",
+          },
+          preview.items.length,
+          {
+            itemName: translatableTerm(model.singularName || "", {
+              inSentence: true,
+            }),
+            itemsName: translatableTerm(model.pluralName || "", {
+              inSentence: true,
+            }),
+          },
+        )}
         modalWidth={ModalWidth.Large}
         onClose={props.onClose}
         onSubmit={startImport}
-        submitButtonText={`Import ${preview.items.length} ${preview.items.length === 1 ? "rule" : "rules"}`}
+        submitButtonText={translator.translatePlural(
+          { one: "Import {{count}} rule", other: "Import {{count}} rules" },
+          preview.items.length,
+        )}
         error={error || undefined}
         leftFooterElement={
           <Button
@@ -274,7 +314,9 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
           {preview.mappings.length > 0 && (
             <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
               <p className="font-medium">
-                Conditions mapped to this resource type
+                {translator.translateText(
+                  "Conditions mapped to this resource type",
+                )}
               </p>
               <ul className="mt-2 list-disc pl-5">
                 {preview.mappings.map((mapping: string) => {
@@ -287,9 +329,15 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
-                  <th className="px-4 py-3">Rule</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Labels to add</th>
+                  <th className="px-4 py-3">
+                    {translator.translateText("Rule")}
+                  </th>
+                  <th className="px-4 py-3">
+                    {translator.translateText("Status")}
+                  </th>
+                  <th className="px-4 py-3">
+                    {translator.translateText("Labels to add")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -309,7 +357,9 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
                           )}
                           <details className="mt-2 text-gray-500">
                             <summary className="cursor-pointer text-indigo-600">
-                              View conditions and actions
+                              {translator.translateText(
+                                "View conditions and actions",
+                              )}
                             </summary>
                             <pre className="mt-2 max-w-md overflow-auto whitespace-pre-wrap break-words rounded bg-gray-50 p-3 text-xs">
                               {JSON.stringify(item.displayJson, null, 2)}
@@ -320,11 +370,14 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
                           <span
                             className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${item.isEnabled ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}
                           >
-                            {item.isEnabled ? "Enabled" : "Disabled"}
+                            {translator.translateText(
+                              item.isEnabled ? "Enabled" : "Disabled",
+                            )}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top text-gray-600">
-                          {item.labels.join(", ") || "None"}
+                          {item.labels.join(", ") ||
+                            translator.translateText("None")}
                         </td>
                       </tr>
                     );
@@ -334,9 +387,14 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
           </div>
           <div className="flex items-center justify-between gap-3 text-sm text-gray-500">
             <span>
-              {preview.items.length}{" "}
-              {preview.items.length === 1 ? "rule" : "rules"} · Page {page + 1}{" "}
-              of {pageCount}
+              {translator.translatePlural(
+                {
+                  one: "{{count}} rule · Page {{page}} of {{pages}}",
+                  other: "{{count}} rules · Page {{page}} of {{pages}}",
+                },
+                preview.items.length,
+                { page: page + 1, pages: pageCount },
+              )}
             </span>
             {pageCount > 1 && (
               <div className="flex gap-2">
@@ -366,7 +424,10 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
 
   return (
     <Modal
-      title={`Import ${model.pluralName}`}
+      title={translateNamedAction(translator, {
+        template: "Import {{itemsName}}",
+        itemName: model.pluralName || "",
+      })}
       description="Upload or paste a label rule JSON export. Review the validated rules before creating them in this project."
       modalWidth={ModalWidth.Large}
       onClose={isValidating ? undefined : props.onClose}
@@ -378,17 +439,16 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
     >
       <div className="space-y-5 py-4">
         <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-          Labels, monitors, and severities are matched by exact name in the
-          destination project. Create missing resources first. Conditions that
-          cannot be used with this resource type must be corrected before
-          importing.
+          {translator.translateText(
+            "Labels, monitors, and severities are matched by exact name in the destination project. Create missing resources first. Conditions that cannot be used with this resource type must be corrected before importing.",
+          )}
         </div>
         <div>
           <label
             htmlFor="label-rule-import-file"
             className="block text-sm font-medium text-gray-700"
           >
-            Upload JSON file
+            {translator.translateText("Upload JSON file")}
           </label>
           <input
             id="label-rule-import-file"
@@ -408,14 +468,14 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
               rel="noopener noreferrer"
               className="text-indigo-600 hover:text-indigo-800"
             >
-              JSON format and examples
+              {translator.translateText("JSON format and examples")}
             </a>
           </p>
           <label
             htmlFor="label-rule-import-json"
             className="mb-2 block text-sm font-medium text-gray-700"
           >
-            JSON
+            {translator.translateText("JSON")}
           </label>
           <textarea
             id="label-rule-import-json"
@@ -424,7 +484,9 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
             disabled={isValidating || isReadingFile}
             rows={12}
             spellCheck={false}
-            placeholder="Paste your label rule JSON export here."
+            placeholder={translator.translateText(
+              "Paste your label rule JSON export here.",
+            )}
             className="block w-full rounded-lg border border-gray-300 p-3 font-mono text-xs text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
               setFileText(event.target.value);

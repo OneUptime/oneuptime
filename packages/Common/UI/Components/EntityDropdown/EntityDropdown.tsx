@@ -26,6 +26,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -280,6 +282,7 @@ const detectLabelsField: (
 const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   props: EntityDropdownProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isMulti: boolean = Boolean(props.isMultiSelect);
   const modelType: { new (): BaseModel } | undefined = props.modelType;
   const labelField: string = props.labelField || "name";
@@ -1150,7 +1153,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     } catch {
       setLabelLoadErrors(
         (prev: Record<string, string>): Record<string, string> => {
-          return { ...prev, [labelId]: "Failed to load entries." };
+          return {
+            ...prev,
+            [labelId]: translationKey("Failed to load entries."),
+          };
         },
       );
     } finally {
@@ -1238,7 +1244,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * single value in-place when the popover is closed (single). When the
    * popover is open the input takes over for typing.
    */
-  const placeholderText: string = props.placeholder || "Select...";
+  const placeholderText: string =
+    translator.translateText(props.placeholder || "Select...") || "";
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
 
@@ -1307,7 +1314,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 {!props.disabled && (
                   <button
                     type="button"
-                    aria-label={`Remove ${opt.label}`}
+                    aria-label={translator.translateTemplate(
+                      "Remove {{option}}",
+                      { option: opt.label },
+                    )}
                     onClick={(): void => {
                       removeKey(key);
                     }}
@@ -1389,7 +1399,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               {!props.disabled && (
                 <button
                   type="button"
-                  aria-label="Clear selection"
+                  aria-label={translator.translateText("Clear selection")}
                   onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
                     e.stopPropagation();
                     clearAll();
@@ -1440,7 +1450,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               role="combobox"
               placeholder={
                 isMulti && selectedOptions.length > 0
-                  ? "Search to add more..."
+                  ? translator.translateText("Search to add more...")
                   : placeholderText
               }
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1528,7 +1538,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             {!isMulti && selectedKeys.length > 0 && !props.disabled && (
               <button
                 type="button"
-                aria-label="Clear selection"
+                aria-label={translator.translateText("Clear selection")}
                 onClick={(): void => {
                   clearAll();
                   setSearchQuery("");
@@ -1590,7 +1600,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     : "text-gray-600 hover:bg-white/60 hover:text-gray-800"
                 }`}
               >
-                Results
+                {translator.translateText("Results")}
               </button>
               <button
                 type="button"
@@ -1612,7 +1622,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 }`}
               >
                 <Icon icon={IconProp.Tag} className="h-3.5 w-3.5" />
-                Labels
+                {translator.translateText("Labels")}
                 {selectedLabelIds.length > 0 && (
                   <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
                     {selectedLabelIds.length}
@@ -1620,9 +1630,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 )}
               </button>
               <span className="ml-auto pr-1 text-[11px] text-gray-400">
-                {activeTab === "options"
-                  ? "Pick individually"
-                  : "Bulk-add by tag"}
+                {translator.translateText(
+                  activeTab === "options"
+                    ? "Pick individually"
+                    : "Bulk-add by tag",
+                )}
               </span>
             </div>
           )}
@@ -1652,14 +1664,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                  <span>Searching...</span>
+                  <span>{translator.translateText("Searching...")}</span>
                 </div>
               )}
               {!isLoading && availableOptions.length === 0 && (
                 <div className="px-3 py-2 text-gray-500">
-                  {searchQuery.trim() === ""
-                    ? "No options."
-                    : "No matching entries."}
+                  {translator.translateText(
+                    searchQuery.trim() === ""
+                      ? "No options."
+                      : "No matching entries.",
+                  )}
                 </div>
               )}
               {!isLoading &&
@@ -1767,19 +1781,22 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     ></path>
                   </svg>
-                  <span>Loading labels...</span>
+                  <span>{translator.translateText("Loading labels...")}</span>
                 </div>
               )}
               {!isLoadingLabels && labelError !== "" && (
-                <div className="px-3 py-2 text-red-600">{labelError}</div>
+                <div className="px-3 py-2 text-red-600">
+                  {translator.translateText(labelError)}
+                </div>
               )}
               {!isLoadingLabels &&
                 labelError === "" &&
                 labelsLoaded &&
                 allLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels found in this project. Create labels first to use
-                    this shortcut.
+                    {translator.translateText(
+                      "No labels found in this project. Create labels first to use this shortcut.",
+                    )}
                   </div>
                 )}
               {!isLoadingLabels &&
@@ -1788,7 +1805,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 allLabels.length > 0 &&
                 filteredLabels.length === 0 && (
                   <div className="px-3 py-2 text-gray-500">
-                    No labels match &ldquo;{searchQuery.trim()}&rdquo;.
+                    {translator.translateTemplate(
+                      "No labels match “{{search}}”.",
+                      { search: searchQuery.trim() },
+                    )}
                   </div>
                 )}
               {!isLoadingLabels &&
@@ -1823,9 +1843,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                         <div className="flex w-full items-center gap-2 px-2 py-1.5">
                           <button
                             type="button"
-                            aria-label={
-                              isExpanded ? "Collapse entries" : "Expand entries"
-                            }
+                            aria-label={translator.translateText(
+                              isExpanded
+                                ? "Collapse entries"
+                                : "Expand entries",
+                            )}
                             aria-expanded={isExpanded}
                             onMouseDown={(
                               event: React.MouseEvent<HTMLButtonElement>,
@@ -1892,7 +1914,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                               />
                             )}
                             <span className="truncate">
-                              {label.name || "Unnamed Label"}
+                              {label.name ||
+                                translator.translateText("Unnamed Label")}
                             </span>
                           </button>
                           {preview !== undefined && (
@@ -1927,15 +1950,21 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                                   />
                                 </svg>
-                                <span>Loading entries...</span>
+                                <span>
+                                  {translator.translateText(
+                                    "Loading entries...",
+                                  )}
+                                </span>
                               </div>
                             ) : previewError ? (
                               <div className="py-1 text-xs text-red-600">
-                                {previewError}
+                                {translator.translateText(previewError)}
                               </div>
                             ) : !preview || preview.length === 0 ? (
                               <div className="py-1 text-xs italic text-gray-500">
-                                No entries tagged with this label.
+                                {translator.translateText(
+                                  "No entries tagged with this label.",
+                                )}
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-1">
@@ -1979,7 +2008,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 disabled={isApplyingLabels}
                 className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
               >
-                Clear
+                {translator.translateText("Clear")}
               </button>
               <button
                 type="button"
@@ -2018,10 +2047,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   </svg>
                 )}
                 {isApplyingLabels
-                  ? "Adding..."
-                  : `Add entries from ${selectedLabelIds.length} label${
-                      selectedLabelIds.length === 1 ? "" : "s"
-                    }`}
+                  ? translator.translateText("Adding...")
+                  : translator.translatePlural(
+                      {
+                        one: "Add entries from {{count}} label",
+                        other: "Add entries from {{count}} labels",
+                      },
+                      selectedLabelIds.length,
+                    )}
               </button>
             </div>
           )}

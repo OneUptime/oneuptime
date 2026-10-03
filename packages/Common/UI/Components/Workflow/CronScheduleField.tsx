@@ -18,6 +18,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   initialValue?: string | null | undefined;
@@ -57,8 +60,9 @@ const isVariableGroup: (group: ValueSuggestionGroup) => boolean = (
   );
 };
 
-const NO_VARIABLES_MESSAGE: string =
-  "There are no variables yet. Add one under this workflow's Variables, or a global one for every workflow in the project.";
+const NO_VARIABLES_MESSAGE: string = translationKey(
+  "There are no variables yet. Add one under this workflow's Variables, or a global one for every workflow in the project.",
+);
 
 const normalizeInitialValue: (value: string | null | undefined) => string = (
   value: string | null | undefined,
@@ -114,6 +118,7 @@ const formatUtc: (date: Date) => string = (date: Date): string => {
 const CronScheduleField: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const initialValue: string = useMemo(() => {
     return normalizeInitialValue(props.initialValue);
   }, []);
@@ -191,7 +196,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             isActive ? "text-indigo-600" : "text-gray-400"
           }`}
         />
-        {args.label}
+        {translator.translateText(args.label)}
       </button>
     );
   };
@@ -209,7 +214,9 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0"
           />
           <div>
-            <p className="font-semibold">Not a valid cron expression</p>
+            <p className="font-semibold">
+              {translator.translateText("Not a valid cron expression")}
+            </p>
             <p className="text-red-700">{validationError}</p>
           </div>
         </div>
@@ -232,7 +239,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             {nextRuns.length > 0 && (
               <div className="mt-1.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                  Next runs
+                  {translator.translateText("Next runs")}
                 </p>
                 <ul className="mt-0.5 space-y-0.5">
                   {nextRuns.map((run: Date, index: number) => {
@@ -292,21 +299,27 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
           />
           {!selectedPresetOption && trimmedValue !== "" && !isVariable && (
             <p className="text-xs text-gray-500">
-              Your current schedule{" "}
-              <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                {trimmedValue}
-              </code>{" "}
-              is not one of the presets. Switch to{" "}
-              <button
-                type="button"
-                className="text-indigo-600 underline hover:text-indigo-700"
-                onClick={() => {
-                  setMode("custom");
+              <TranslatedSentence
+                template="Your current schedule {{schedule}} is not one of the presets. Switch to {{customCron}} to edit it."
+                slots={{
+                  schedule: (
+                    <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                      {trimmedValue}
+                    </code>
+                  ),
+                  customCron: (
+                    <button
+                      type="button"
+                      className="text-indigo-600 underline hover:text-indigo-700"
+                      onClick={() => {
+                        setMode("custom");
+                      }}
+                    >
+                      {translator.translateText("Custom cron")}
+                    </button>
+                  ),
                 }}
-              >
-                Custom cron
-              </button>{" "}
-              to edit it.
+              />
             </p>
           )}
           {renderPreview()}
@@ -321,7 +334,12 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             spellCheck={false}
             autoComplete="off"
             tabIndex={props.tabIndex}
-            placeholder={props.placeholder || "e.g. 0 */18 * * *"}
+            placeholder={
+              translator.translateText(props.placeholder) ||
+              translator.translateTemplate("e.g. {{example}}", {
+                example: "0 */18 * * *",
+              })
+            }
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               emit(event.target.value);
             }}
@@ -332,7 +350,9 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             }`}
           />
           <p className="text-xs text-gray-400 font-mono">
-            minute hour day-of-month month day-of-week
+            {translator.translateText(
+              "minute hour day-of-month month day-of-week",
+            )}
           </p>
           {renderPreview()}
         </div>
@@ -361,7 +381,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                     emit(reference);
                   }}
                 >
-                  Change
+                  {translator.translateText("Change")}
                 </InsertValueButton>
                 <span className="text-gray-300">·</span>
                 <button
@@ -372,7 +392,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                     setMode("preset");
                   }}
                 >
-                  Clear
+                  {translator.translateText("Clear")}
                 </button>
               </div>
             </div>
@@ -393,7 +413,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Variable}
                 className="h-4 w-4 text-gray-500"
               />
-              Select a variable
+              {translator.translateText("Select a variable")}
             </InsertValueButton>
           )}
 
@@ -403,13 +423,16 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
               className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0"
             />
             <p>
-              The variable is resolved when the workflow is saved. It must
-              contain a valid cron expression (for example{" "}
-              <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                0 */18 * * *
-              </code>
-              ). Component return values can&apos;t be used here because the
-              schedule is set up before the workflow runs.
+              <TranslatedSentence
+                template="The variable is resolved when the workflow is saved. It must contain a valid cron expression (for example {{example}}). Component return values can't be used here because the schedule is set up before the workflow runs."
+                slots={{
+                  example: (
+                    <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                      0 */18 * * *
+                    </code>
+                  ),
+                }}
+              />
             </p>
           </div>
         </div>

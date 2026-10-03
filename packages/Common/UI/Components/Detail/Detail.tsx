@@ -1,6 +1,9 @@
 import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
 import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import CodeBlock from "../CodeBlock/CodeBlock";
 import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
@@ -53,6 +56,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -95,7 +99,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     if (!options) {
       return (
         <span className="text-gray-400 italic text-sm">
-          {translateString("No options found") ?? "No options found"}
+          {translateString("No options found")}
         </span>
       );
     }
@@ -385,10 +389,22 @@ const Detail: DetailFunction = <T extends GenericObject>(
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span className="font-semibold text-blue-700">{minutes}</span>
-        <span className="text-xs text-blue-600 font-medium">
-          {minutes > 1 ? "minutes" : "minute"}
-        </span>
+        <TranslatedSentence
+          template={{ one: "{{count}} minute", other: "{{count}} minutes" }}
+          count={minutes}
+          slots={{
+            count: (
+              <span className="font-semibold text-blue-700">{minutes}</span>
+            ),
+          }}
+          renderText={(text: string): ReactElement => {
+            return (
+              <span className="text-xs text-blue-600 font-medium">
+                {text.trim()}
+              </span>
+            );
+          }}
+        />
       </div>
     );
   };
@@ -678,7 +694,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 style={{
                   height: "100px",
                 }}
-                alt={field.title ? `${field.title} image` : "Uploaded image"}
+                alt={
+                  field.title
+                    ? translator.translateTemplate("{{field}} image", {
+                        field: translatableTerm(field.title),
+                      })
+                    : translator.translateText("Uploaded image")
+                }
               />
             </div>
           </div>

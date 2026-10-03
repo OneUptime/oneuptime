@@ -20,6 +20,11 @@
  */
 
 import Dictionary from "../../../Types/Dictionary";
+import {
+  PluralTemplate,
+  translatePlural,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 import { NodeDataProp, NodeType } from "../../../Types/Workflow/Component";
 import {
   WorkflowLintIssue,
@@ -48,10 +53,12 @@ export enum WorkflowLintTone {
 
 /** Issues about the graph itself rather than any one step. */
 export const WORKFLOW_ISSUE_GRAPH_GROUP_KEY: string = "__workflow__";
-export const WORKFLOW_ISSUE_GRAPH_GROUP_TITLE: string = "This workflow";
+export const WORKFLOW_ISSUE_GRAPH_GROUP_TITLE: string =
+  translationKey("This workflow");
 
 /** A step that has issues but no title and no id to show for itself. */
-export const WORKFLOW_ISSUE_UNTITLED_STEP_TITLE: string = "Untitled step";
+export const WORKFLOW_ISSUE_UNTITLED_STEP_TITLE: string =
+  translationKey("Untitled step");
 
 /** Every issue that belongs to one step (or to the graph), shown as one card. */
 export interface WorkflowIssueGroup {
@@ -68,13 +75,15 @@ export interface WorkflowIssueGroup {
   warningCount: number;
 }
 
-type PluraliseFunction = (count: number, singular: string) => string;
+// "1 error", "3 warnings": in the reader's language, with its plural forms.
+export const WORKFLOW_LINT_ERROR_COUNT: PluralTemplate = {
+  one: "{{count}} error",
+  other: "{{count}} errors",
+};
 
-const pluralise: PluraliseFunction = (
-  count: number,
-  singular: string,
-): string => {
-  return `${count} ${singular}${count === 1 ? "" : "s"}`;
+export const WORKFLOW_LINT_WARNING_COUNT: PluralTemplate = {
+  one: "{{count}} warning",
+  other: "{{count}} warnings",
 };
 
 export type GetWorkflowLintCountTextFunction = (
@@ -95,11 +104,13 @@ export const getWorkflowLintCountText: GetWorkflowLintCountTextFunction = (
   const parts: Array<string> = [];
 
   if (counts.errorCount > 0) {
-    parts.push(pluralise(counts.errorCount, "error"));
+    parts.push(translatePlural(WORKFLOW_LINT_ERROR_COUNT, counts.errorCount));
   }
 
   if (counts.warningCount > 0) {
-    parts.push(pluralise(counts.warningCount, "warning"));
+    parts.push(
+      translatePlural(WORKFLOW_LINT_WARNING_COUNT, counts.warningCount),
+    );
   }
 
   return parts.join(", ");
@@ -130,7 +141,9 @@ export type GetWorkflowLintSeverityLabelFunction = (
 /** The word for a severity — the panel says it out loud rather than only colouring it. */
 export const getWorkflowLintSeverityLabel: GetWorkflowLintSeverityLabelFunction =
   (severity: WorkflowLintSeverity): string => {
-    return severity === WorkflowLintSeverity.Error ? "Error" : "Warning";
+    return severity === WorkflowLintSeverity.Error
+      ? translationKey("Error")
+      : translationKey("Warning");
   };
 
 /** The shape of a graph node this module needs — keeps react-flow out of here. */

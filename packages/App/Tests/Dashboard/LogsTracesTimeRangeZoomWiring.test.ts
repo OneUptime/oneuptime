@@ -308,23 +308,30 @@ describe("the explorers' charts and the drawer's timeline say the same thing", (
     },
   );
 
-  test.each([
-    ["logs", LOGS_ANALYTICS_VIEW],
-    ["traces", TRACES_ANALYTICS_VIEW],
-  ])(
-    "the %s Analytics timeseries offers the click, and names the way back as a reset",
-    (_name: string, file: string) => {
-      const source: string = read(file);
+  test("the traces Analytics timeseries offers the click, and names the way back as a reset", () => {
+    const source: string = read(TRACES_ANALYTICS_VIEW);
 
-      expect(source).toContain(
-        'selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"',
-      );
-      expect(source).toContain(
-        'zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""',
-      );
-      expect(source.toLowerCase()).not.toContain("zoom out");
-    },
-  );
+    expect(source).toContain(
+      'selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"',
+    );
+    expect(source).toContain(
+      'zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""',
+    );
+    expect(source.toLowerCase()).not.toContain("zoom out");
+  });
+
+  /*
+   * The logs view says the same, each hint one whole string so a locale
+   * translates it whole rather than in two glued halves.
+   */
+  test("the logs Analytics timeseries offers the click, and names the way back as a reset", () => {
+    const source: string = read(LOGS_ANALYTICS_VIEW);
+
+    expect(source).toContain(
+      'translator.translateText( selection.canClickToZoom ? zoomHandlers.onTimeRangeReset ? "Click or drag to zoom · double-click to reset" : "Click or drag to zoom" : zoomHandlers.onTimeRangeReset ? "Drag to zoom · double-click to reset" : "Drag to zoom", )',
+    );
+    expect(source.toLowerCase()).not.toContain("zoom out");
+  });
 });
 
 describe("the crosshair is set on the recharts root, only where a drag zooms", () => {

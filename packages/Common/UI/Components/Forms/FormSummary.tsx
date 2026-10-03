@@ -10,6 +10,10 @@ import Field from "./Types/Field";
 import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
+import {
+  translateTemplate,
+  translateText,
+} from "../../Utils/TranslateTemplate";
 import { PeopleListFromIds } from "../PeoplePicker/PeopleList";
 import {
   getPeoplePickerKinds,
@@ -67,7 +71,7 @@ const getFileSummaryElement: <T extends GenericObject>(
     index: number,
   ) => string = (file: FileSummaryItem | string, index: number): string => {
     if (!file) {
-      return `File ${index + 1}`;
+      return translateTemplate("File {{number}}", { number: index + 1 });
     }
 
     if (typeof file === "string") {
@@ -81,7 +85,7 @@ const getFileSummaryElement: <T extends GenericObject>(
       fileObject.fileName ||
       fileObject.slug ||
       fileObject._id ||
-      `File ${index + 1}`
+      translateTemplate("File {{number}}", { number: index + 1 })
     );
   };
 
@@ -105,7 +109,7 @@ const getFileSummaryElement: <T extends GenericObject>(
     file: FileSummaryItem,
   ): string | undefined => {
     if (typeof file.isPublic === "boolean") {
-      return file.isPublic ? "Public" : "Private";
+      return translateText(file.isPublic ? "Public" : "Private");
     }
 
     return undefined;
@@ -130,7 +134,11 @@ const getFileSummaryElement: <T extends GenericObject>(
         | undefined) || null;
 
     if (!value || (Array.isArray(value) && value.length === 0)) {
-      return <span className="text-gray-500">No files selected.</span>;
+      return (
+        <span className="text-gray-500">
+          {translateText("No files selected.")}
+        </span>
+      );
     }
 
     const files: Array<FileSummaryItem | string> = Array.isArray(value)

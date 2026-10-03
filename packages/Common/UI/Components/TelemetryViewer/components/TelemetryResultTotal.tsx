@@ -1,5 +1,14 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import {
+  PluralTemplate,
+  TemplateValues,
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
+import {
   ResultTotal,
   ResultTotalStatus,
   ResultTotalUnavailableReason,
@@ -22,9 +31,24 @@ export interface TelemetryResultTotalProps {
 }
 
 const UNAVAILABLE_EXPLANATION: Record<ResultTotalUnavailableReason, string> = {
-  [ResultTotalUnavailableReason.TooManyToCount]:
+  [ResultTotalUnavailableReason.TooManyToCount]: translationKey(
     "Too many to count in time. Narrow the time range for an exact total.",
-  [ResultTotalUnavailableReason.CountFailed]: "The total could not be counted.",
+  ),
+  [ResultTotalUnavailableReason.CountFailed]: translationKey(
+    "The total could not be counted.",
+  ),
+};
+
+// "1,234 spans": the count picks the form, and the item words go with it.
+const EXACT_TOTAL: PluralTemplate = {
+  one: "{{count}} {{itemName}}",
+  other: "{{count}} {{itemsName}}",
+};
+
+// "50+ spans": all an uncounted total can vouch for.
+const LOWER_BOUND_TOTAL: PluralTemplate = {
+  one: "{{count}}+ {{itemsName}}",
+  other: "{{count}}+ {{itemsName}}",
 };
 
 /*
@@ -37,8 +61,13 @@ const UNAVAILABLE_EXPLANATION: Record<ResultTotalUnavailableReason, string> = {
 const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
   props: TelemetryResultTotalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const labels: TelemetryItemLabels = getTelemetryItemLabels(props.itemLabel);
   const status: ResultTotalStatus = props.total.status;
+  const itemWords: TemplateValues = {
+    itemName: translatableTerm(labels.singular, { inSentence: true }),
+    itemsName: translatableTerm(labels.plural, { inSentence: true }),
+  };
 
   let content: ReactElement;
 
@@ -46,12 +75,18 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
     const count: number = props.total.count || 0;
 
     content = (
-      <>
-        <span className="font-semibold tabular-nums text-gray-900">
-          {count.toLocaleString()}
-        </span>{" "}
-        {count === 1 ? labels.singular : labels.plural}
-      </>
+      <TranslatedSentence
+        template={EXACT_TOTAL}
+        count={count}
+        values={itemWords}
+        slots={{
+          count: (
+            <span className="font-semibold tabular-nums text-gray-900">
+              {translator.formatNumber(count)}
+            </span>
+          ),
+        }}
+      />
     );
   } else if (status === ResultTotalStatus.Unavailable) {
     const reason: ResultTotalUnavailableReason =
@@ -59,17 +94,28 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
 
     content = (
       <>
-        <span className="font-semibold tabular-nums text-gray-900">
-          {`${props.rowsThroughPage.toLocaleString()}+`}
-        </span>{" "}
-        {labels.plural}
+        <TranslatedSentence
+          template={LOWER_BOUND_TOTAL}
+          count={props.rowsThroughPage}
+          values={itemWords}
+          slots={{
+            count: (
+              <span className="font-semibold tabular-nums text-gray-900">
+                {translator.formatNumber(props.rowsThroughPage)}
+              </span>
+            ),
+          }}
+        />
         <span className="text-gray-400">
-          {` · ${UNAVAILABLE_EXPLANATION[reason]}`}
+          {" · "}
+          {translator.translateText(UNAVAILABLE_EXPLANATION[reason])}
         </span>
       </>
     );
   } else {
-    content = <>{`Counting ${labels.plural}…`}</>;
+    content = (
+      <>{translator.translateTemplate("Counting {{itemsName}}…", itemWords)}</>
+    );
   }
 
   return (

@@ -7,6 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface CardSelectOption {
   value: string;
@@ -275,6 +277,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [search, setSearch] = useState<string>("");
+  const translator: Translator = useTranslator();
   const searchInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const containerRef: React.RefObject<HTMLDivElement> =
@@ -576,14 +579,14 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                 isSelected ? "text-gray-900" : "text-gray-900"
               }`}
             >
-              {option.title}
+              {translator.translateText(option.title)}
             </span>
             <span
               className={`mt-1 block text-sm ${
                 isSelected ? "text-gray-600" : "text-gray-500"
               }`}
             >
-              {option.description}
+              {translator.translateText(option.description)}
             </span>
           </div>
           {isSelected && (
@@ -613,9 +616,13 @@ const CardSelect: FunctionComponent<ComponentProps> = (
               ref={searchInputRef}
               type="text"
               value={search}
-              placeholder={props.searchPlaceholder || "Search"}
+              placeholder={translator.translateText(
+                props.searchPlaceholder || "Search",
+              )}
               autoComplete="off"
-              aria-label={props.searchPlaceholder || "Search"}
+              aria-label={translator.translateText(
+                props.searchPlaceholder || "Search",
+              )}
               data-testid="card-select-search"
               className="block w-full border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -654,7 +661,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
             {search.length > 0 && (
               <button
                 type="button"
-                aria-label="Clear search"
+                aria-label={translator.translateText("Clear search")}
                 data-testid="card-select-search-clear"
                 className="flex flex-shrink-0 items-center text-gray-400 hover:text-gray-600"
                 onClick={() => {
@@ -672,10 +679,23 @@ const CardSelect: FunctionComponent<ComponentProps> = (
             role="status"
           >
             {isSearching
-              ? isShowingClosestMatches
-                ? `Showing ${searchResults.length} closest of ${totalOptionCount}`
-                : `Showing ${searchResults.length} of ${totalOptionCount}`
-              : `${totalOptionCount} to choose from. Search by name, category, or what you want to watch.`}
+              ? translator.translateTemplate(
+                  isShowingClosestMatches
+                    ? "Showing {{shown}} closest of {{total}}"
+                    : "Showing {{shown}} of {{total}}",
+                  {
+                    shown: translator.formatNumber(searchResults.length),
+                    total: translator.formatNumber(totalOptionCount),
+                  },
+                )
+              : translator.translatePlural(
+                  {
+                    one: "{{count}} to choose from. Search by name, category, or what you want to watch.",
+                    other:
+                      "{{count}} to choose from. Search by name, category, or what you want to watch.",
+                  },
+                  totalOptionCount,
+                )}
           </p>
         </div>
       )}
@@ -683,7 +703,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       <div
         ref={containerRef}
         role="radiogroup"
-        aria-label="Select an option"
+        aria-label={translator.translateText("Select an option")}
         aria-labelledby={props.ariaLabelledby}
       >
         {isSearching && isShowingClosestMatches && (
@@ -691,7 +711,9 @@ const CardSelect: FunctionComponent<ComponentProps> = (
             className="mb-4 text-sm text-gray-500"
             data-testid="card-select-closest-matches"
           >
-            Nothing matches every word you typed. Closest matches:
+            {translator.translateText(
+              "Nothing matches every word you typed. Closest matches:",
+            )}
           </p>
         )}
 
@@ -709,10 +731,14 @@ const CardSelect: FunctionComponent<ComponentProps> = (
             data-testid="card-select-no-results"
           >
             <p className="text-sm font-medium text-gray-900">
-              Nothing matches every word you typed.
+              {translator.translateText(
+                "Nothing matches every word you typed.",
+              )}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              Try fewer words, or a protocol or product name.
+              {translator.translateText(
+                "Try fewer words, or a protocol or product name.",
+              )}
             </p>
             <button
               type="button"
@@ -722,7 +748,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                 searchInputRef.current?.focus();
               }}
             >
-              Clear search
+              {translator.translateText("Clear search")}
             </button>
           </div>
         )}
@@ -746,7 +772,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                     </div>
                     <div className="relative flex justify-start">
                       <span className="bg-white pr-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                        {group.label}
+                        {translator.translateText(group.label)}
                       </span>
                     </div>
                   </div>
@@ -774,7 +800,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                       className="h-4 w-4 flex-shrink-0 text-gray-400"
                     />
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {group.label}
+                      {translator.translateText(group.label)}
                     </span>
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                       {group.options.length}

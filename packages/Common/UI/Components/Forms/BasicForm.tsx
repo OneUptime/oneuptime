@@ -2,6 +2,8 @@ import API from "../../Utils/API/API";
 import UiAnalytics from "../../Utils/Analytics";
 import DropdownUtil from "../../Utils/Dropdown";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
@@ -160,6 +162,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     ref: Ref<any>,
   ): ReactElement => {
     const { translateString } = useTranslateValue();
+    const translator: Translator = useTranslator();
     const isSubmitting: MutableRefObject<boolean> = useRef(false);
 
     const [didSomethingChange, setDidSomethingChange] =
@@ -960,8 +963,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                       className="ml-auto text-right text-sm text-gray-500 lg:hidden"
                       role="status"
                     >
-                      {translateString("Step") ?? "Step"} {activeStepIndex + 1}{" "}
-                      {translateString("of") ?? "of"} {formSteps?.length}
+                      {translator.translateTemplate(
+                        "Step {{current}} of {{total}}",
+                        {
+                          current: activeStepIndex + 1,
+                          total: formSteps?.length || 0,
+                        },
+                      )}
                       <span className="block font-medium text-gray-900">
                         {translateString(activeStep.title) ?? activeStep.title}
                       </span>
