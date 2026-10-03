@@ -30,6 +30,7 @@ import {
   MonitorOpenWorkRow,
   MonitorOpenWorkSide,
 } from "./MonitorOverviewTypes";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 // The newest few of each kind; the count is the full total.
 export const MONITOR_OPEN_WORK_ROW_LIMIT: number = 5;
@@ -38,12 +39,13 @@ export const MONITOR_OPEN_WORK_ACCESS_REASONS: {
   incidents: string;
   alerts: string;
 } = {
-  incidents: "You need permission to read incidents.",
-  alerts: "You need permission to read alerts.",
+  incidents: translationKey("You need permission to read incidents."),
+  alerts: translationKey("You need permission to read alerts."),
 };
 
-export const MONITOR_OPEN_WORK_NO_PROJECT_MESSAGE: string =
-  "Select a project to see what is open on this monitor.";
+export const MONITOR_OPEN_WORK_NO_PROJECT_MESSAGE: string = translationKey(
+  "Select a project to see what is open on this monitor.",
+);
 
 type StateIdsFunction = (
   states: Array<IncidentState | AlertState>,

@@ -260,7 +260,10 @@ import { TimeRangeZoomProvider } from "../../../UI/Components/Charts/TimeRangeZo
 import { TimeRangeZoom } from "../../../UI/Components/Charts/TimeRangeZoom/UseTimeRangeZoom";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import { TIME_RANGE_ZOOM_HINT_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
-import { getTimeRangeButtonLabel } from "../../../UI/Components/Date/TimeRangePickerDropdown";
+import {
+  getTimeRangeButtonLabel,
+  getTimeRangeLabel,
+} from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import { TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX } from "../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -774,7 +777,7 @@ describe("dragging across a cluster Overview chart", () => {
     expect(reset).toBeVisible();
     expect(reset).toHaveAttribute(
       "title",
-      `Go back to ${TimeRange.PAST_THIRTY_MINS}, the time range before the zoom`,
+      `Go back to ${getTimeRangeLabel(TimeRange.PAST_THIRTY_MINS)}, the time range before the zoom`,
     );
     // The button sits in the hero, beside the picker it undoes.
     expect(
@@ -923,7 +926,7 @@ describe("undoing a cluster Overview zoom", () => {
     // Still offering the way back to where the reader started.
     expect(resetZoomButton()).toHaveAttribute(
       "title",
-      `Go back to ${TimeRange.PAST_THIRTY_MINS}, the time range before the zoom`,
+      `Go back to ${getTimeRangeLabel(TimeRange.PAST_THIRTY_MINS)}, the time range before the zoom`,
     );
 
     await doubleClickOn("Availability");

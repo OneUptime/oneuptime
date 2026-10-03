@@ -137,13 +137,25 @@ export function isExceptionTrendIntraday(spanMs: number): boolean {
   return Number.isFinite(spanMs) && spanMs <= 2 * DAY_MS;
 }
 
-/** "between Sep 28, 10:00 and Sep 28, 11:30", in the reader's zone and clock. */
-export function describeExceptionTrendZoomWindow(
+export interface ExceptionTrendZoomWindowEdges {
+  start: string;
+  end: string;
+}
+
+/*
+ * The zoomed window's edges - "Sep 28, 10:00" and "Sep 28, 11:30" - in the
+ * reader's zone and clock, for the card's sentences ("12 occurrences between
+ * {{start}} and {{end}}").
+ */
+export function getExceptionTrendZoomWindowEdges(
   zoomWindow: InBetween<Date>,
-): string {
-  return `between ${OneUptimeDate.getDateAsLocalShortDateTimeString(
-    OneUptimeDate.fromString(zoomWindow.startValue),
-  )} and ${OneUptimeDate.getDateAsLocalShortDateTimeString(
-    OneUptimeDate.fromString(zoomWindow.endValue),
-  )}`;
+): ExceptionTrendZoomWindowEdges {
+  return {
+    start: OneUptimeDate.getDateAsLocalShortDateTimeString(
+      OneUptimeDate.fromString(zoomWindow.startValue),
+    ),
+    end: OneUptimeDate.getDateAsLocalShortDateTimeString(
+      OneUptimeDate.fromString(zoomWindow.endValue),
+    ),
+  };
 }

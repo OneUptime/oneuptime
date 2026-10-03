@@ -10,6 +10,7 @@ import {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
 } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Plain-language formatting for the "Evidence checked" list of an AI
@@ -541,7 +542,9 @@ export function describeEvidenceTool(
 
   return {
     description:
-      words.length > 0 ? `Ran ${words.join(" ")}` : "Ran a telemetry query",
+      words.length > 0
+        ? translateTemplate("Ran {{query}}", { query: words.join(" ") })
+        : translateTemplate("Ran a telemetry query"),
     icon: IconProp.Database,
     category: "Other",
   };

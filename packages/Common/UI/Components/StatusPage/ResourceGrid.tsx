@@ -9,6 +9,12 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   rowLabel: string;
@@ -76,6 +82,7 @@ const ORPHAN_ACTIONS_CLASS_NAME: string =
 const ResourceGrid: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const gridModel: StatusPageResourceGridModel =
     useMemo((): StatusPageResourceGridModel => {
       return StatusPageResourceExplorerUtil.buildGridModel({
@@ -126,8 +133,12 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         <CheckboxElement
           value={isResourceSelected(statusPageResource)}
           disabled={!resourceId}
-          ariaLabel={`Select ${name}`}
-          hoverText={`Select ${name}`}
+          ariaLabel={translator.translateTemplate("Select {{name}}", {
+            name: name,
+          })}
+          hoverText={translator.translateTemplate("Select {{name}}", {
+            name: name,
+          })}
           onChange={() => {
             props.onToggleResourceSelected(statusPageResource);
           }}
@@ -165,7 +176,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
       <MoreMenuItem
         key="show-id"
         text="Show ID"
-        icon={IconProp.Info}
+        icon={IconProp.Identification}
         onClick={() => {
           props.onShowId(statusPageResource);
         }}
@@ -198,7 +209,9 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
             icon={IconProp.Edit}
             title=""
             tooltip={data.editTooltip}
-            ariaLabel={`Edit ${name}`}
+            ariaLabel={translator.translateTemplate("Edit {{name}}", {
+              name: name,
+            })}
             dataTestId="status-page-resource-grid-edit"
             className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
             onClick={() => {
@@ -210,13 +223,20 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         )}
 
         <MoreMenu
-          text={`More actions for ${name}`}
+          text={translator.translateTemplate("More actions for {{name}}", {
+            name: name,
+          })}
           menuIcon={IconProp.EllipsisHorizontal}
           isMenuPortaled={true}
           elementToBeShownInsteadOfButton={
             <button
               type="button"
-              aria-label={`More actions for ${name}`}
+              aria-label={translator.translateTemplate(
+                "More actions for {{name}}",
+                {
+                  name: name,
+                },
+              )}
               data-testid="status-page-resource-grid-more"
               className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
@@ -271,7 +291,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
 
         {renderActions({
           statusPageResource,
-          editTooltip: "Edit this resource",
+          editTooltip: translationKey("Edit this resource"),
           className: CHIP_ACTIONS_CLASS_NAME,
         })}
       </div>
@@ -301,7 +321,10 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         {props.isCreateable ? (
           <button
             type="button"
-            aria-label={`Add a monitor to ${rowValue} and ${columnValue}`}
+            aria-label={translator.translateTemplate(
+              "Add a monitor to {{row}} and {{column}}",
+              { row: rowValue, column: columnValue },
+            )}
             data-testid="status-page-resource-grid-cell-add"
             onClick={() => {
               props.onAddToCell(rowValue, columnValue);
@@ -313,7 +336,11 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
               className="h-3.5 w-3.5"
               thick={ThickProp.Thick}
             />
-            <span>{cell.length > 0 ? "Add" : "Add monitor"}</span>
+            <span>
+              {translator.translateText(
+                cell.length > 0 ? "Add" : "Add monitor",
+              )}
+            </span>
           </button>
         ) : (
           <></>
@@ -384,14 +411,24 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
           data-testid="status-page-resource-grid-orphans"
         >
           <div className="text-xs font-semibold text-amber-800">
-            {gridModel.orphanResources.length.toLocaleString()} resource
-            {gridModel.orphanResources.length === 1 ? "" : "s"} are not on the
-            grid
+            {translator.translatePlural(
+              {
+                one: "{{count}} resource is not on the grid",
+                other: "{{count}} resources are not on the grid",
+              },
+              gridModel.orphanResources.length,
+            )}
           </div>
           <p className="mt-0.5 text-xs text-amber-700">
-            Their {props.rowLabel.toLowerCase()} or{" "}
-            {props.columnLabel.toLowerCase()} is not one this group defines, so
-            visitors never see them. Edit each one to put it in a cell.
+            {translator.translateTemplate(
+              "Their {{row}} or {{column}} is not one this group defines, so visitors never see them. Edit each one to put it in a cell.",
+              {
+                row: translatableTerm(props.rowLabel, { inSentence: true }),
+                column: translatableTerm(props.columnLabel, {
+                  inSentence: true,
+                }),
+              },
+            )}
           </p>
 
           <div className="mt-3 flex flex-col gap-2">
@@ -424,7 +461,9 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
 
                     {renderActions({
                       statusPageResource,
-                      editTooltip: "Put this resource on the grid",
+                      editTooltip: translationKey(
+                        "Put this resource on the grid",
+                      ),
                       className: ORPHAN_ACTIONS_CLASS_NAME,
                     })}
                   </div>

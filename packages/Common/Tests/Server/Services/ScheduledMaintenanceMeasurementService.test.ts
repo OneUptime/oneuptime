@@ -214,10 +214,6 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         hooks.onBeforeCreate(buildCreateBy({ key: "Start Delay" })),
       ).rejects.toThrow(BadDataException);
 
-      await expect(
-        hooks.onBeforeCreate(buildCreateBy({ key: "" })),
-      ).rejects.toThrow(BadDataException);
-
       // Leading hyphen, and one character past the 50 the column allows.
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "-start-delay" })),
@@ -226,6 +222,24 @@ describe("ScheduledMaintenanceMeasurementService", () => {
       await expect(
         hooks.onBeforeCreate(buildCreateBy({ key: "a".repeat(51) })),
       ).rejects.toThrow(BadDataException);
+    });
+
+    /*
+     * An empty key is no longer refused: it is a key left out, made from the
+     * name. The rest of that behaviour, for all three kinds of measurement,
+     * is in MeasurementKeyGeneration.test.ts.
+     */
+    test("makes the key from the name when the create sends an empty one", async () => {
+      const createBy: CreateBy<ScheduledMaintenanceMeasurement> = buildCreateBy(
+        { key: "", name: "Start Delay" },
+      );
+
+      await hooks.onBeforeCreate(createBy);
+
+      expect(createBy.data.key).toBe("start-delay");
+      expect(createBy.data.metricName).toBe(
+        "oneuptime.scheduled-maintenance.measurement.start-delay",
+      );
     });
 
     test("accepts a lowercase hyphenated key", async () => {
@@ -511,31 +525,50 @@ describe("ScheduledMaintenanceMeasurementService", () => {
     });
 
     test("restarts the backfill for every column that changes what the number means", async () => {
-      const definitionKeys: Array<string> = [
-        "startAnchorType",
-        "endAnchorType",
-        "startScheduledMaintenanceStateId",
-        "endScheduledMaintenanceStateId",
-        "startScheduledMaintenanceStateRole",
-        "endScheduledMaintenanceStateRole",
-        "startStateOccurrence",
-        "endStateOccurrence",
-        "isEnabled",
+      /*
+       * A new value for any of these - the stored measurement starts at the
+       * scheduled start and ends when the event goes ongoing, in seconds.
+       */
+      const changes: Array<[string, unknown]> = [
+        [
+          "startAnchorType",
+          ScheduledMaintenanceMeasurementAnchorType.ScheduledEndsAt,
+        ],
+        [
+          "endAnchorType",
+          ScheduledMaintenanceMeasurementAnchorType.ScheduledEndsAt,
+        ],
+        ["startScheduledMaintenanceStateId", SCHEDULED_STATE_ID],
+        ["endScheduledMaintenanceStateId", COMPLETED_STATE_ID],
+        [
+          "startScheduledMaintenanceStateRole",
+          ScheduledMaintenanceStateRole.Resolved,
+        ],
+        [
+          "endScheduledMaintenanceStateRole",
+          ScheduledMaintenanceStateRole.Ended,
+        ],
+        ["startStateOccurrence", "Last"],
+        ["endStateOccurrence", "Last"],
+        ["isEnabled", false],
+        // The number every chart point is written in.
+        ["unit", "hours"],
       ];
 
-      for (const key of definitionKeys) {
+      for (const [key, value] of changes) {
         jest
           .spyOn(ScheduledMaintenanceMeasurementService, "findBy")
-          .mockResolvedValue(
-            [] as Array<ScheduledMaintenanceMeasurement> as never,
-          );
+          .mockResolvedValue([buildExistingMeasurement({})] as never);
 
         const updateBy: UpdateBy<ScheduledMaintenanceMeasurement> =
-          buildUpdateBy({ [key]: undefined });
+          buildUpdateBy({ [key]: value });
 
         await hooks.onBeforeUpdate(updateBy);
 
-        expect(dataOf(updateBy)["backfillRequestedAt"]).toBeInstanceOf(Date);
+        expect({
+          key,
+          restarted: dataOf(updateBy)["backfillRequestedAt"] instanceof Date,
+        }).toEqual({ key, restarted: true });
       }
     });
 
@@ -591,7 +624,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         "description",
         "showOnScheduledMaintenanceView",
         "order",
-        "unit",
+        // Not the unit: it is the number the points are in.
         "aggregationType",
       ]) {
         const updateBy: UpdateBy<ScheduledMaintenanceMeasurement> =

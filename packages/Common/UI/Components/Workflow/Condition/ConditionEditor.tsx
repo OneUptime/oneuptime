@@ -77,6 +77,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ConditionEditorProps {
   // The step's settings as stored.
@@ -106,7 +108,9 @@ export const CONDITION_TEST_IDS: {
   notes: "if-else-notes",
 };
 
-export const CHOOSE_FROM_LIST_LABEL: string = "Choose from the list instead";
+export const CHOOSE_FROM_LIST_LABEL: string = translationKey(
+  "Choose from the list instead",
+);
 
 const COMPARISON_OPTIONS: Array<DropdownOption | DropdownOptionGroup> =
   CONDITION_COMPARISON_GROUPS.flatMap(
@@ -123,12 +127,35 @@ const COMPARISON_OPTIONS: Array<DropdownOption | DropdownOptionGroup> =
     },
   );
 
-const COMPARE_WITH_PLACEHOLDER: Record<ConditionValueType, string> = {
-  [ConditionValueType.Text]: "e.g. production",
-  [ConditionValueType.Number]: "e.g. 200",
-  [ConditionValueType.Boolean]: "true or false",
-  [ConditionValueType.Null]: "e.g. production",
-  [ConditionValueType.Undefined]: "e.g. production",
+type CompareWithPlaceholderFunction = (
+  translator: Translator,
+  type: ConditionValueType,
+) => string;
+
+/*
+ * What Compare with suggests typing, by how it is compared. The examples are
+ * values, typed the same in every language - true and false most of all.
+ */
+const getCompareWithPlaceholder: CompareWithPlaceholderFunction = (
+  translator: Translator,
+  type: ConditionValueType,
+): string => {
+  if (type === ConditionValueType.Number) {
+    return translator.translateTemplate("e.g. {{example}}", {
+      example: "200",
+    });
+  }
+
+  if (type === ConditionValueType.Boolean) {
+    return translator.translateTemplate("{{trueValue}} or {{falseValue}}", {
+      trueValue: "true",
+      falseValue: "false",
+    });
+  }
+
+  return translator.translateTemplate("e.g. {{example}}", {
+    example: "production",
+  });
 };
 
 interface Touched {
@@ -140,6 +167,7 @@ interface Touched {
 const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
   props: ConditionEditorProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
   const compareAsName: string = `if-else-compare-as-${useId()}`;
 
@@ -283,7 +311,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
           });
         }}
       >
-        {CHOOSE_FROM_LIST_LABEL}
+        {translator.translateText(CHOOSE_FROM_LIST_LABEL)}
       </button>
     </div>
   ) : (
@@ -316,7 +344,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
           className="pt-0 text-sm font-semibold text-gray-700 sm:pt-2"
           aria-hidden="true"
         >
-          If
+          {translator.translateText("If")}
         </div>
         <div className="min-w-0">
           <ValueTextField
@@ -351,11 +379,10 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
                   });
                 }}
                 multiline={false}
-                placeholder={
-                  COMPARE_WITH_PLACEHOLDER[
-                    compareAsType || ConditionValueType.Text
-                  ]
-                }
+                placeholder={getCompareWithPlaceholder(
+                  translator,
+                  compareAsType || ConditionValueType.Text,
+                )}
                 ariaLabel={COMPARE_WITH_LABEL}
                 dataTestId={CONDITION_TEST_IDS.compareWith}
                 error={touched.compareWith ? errors.compareWith : undefined}
@@ -372,14 +399,18 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
         <div data-testid={CONDITION_TEST_IDS.compareAs}>
           <CollapsibleSection
             title={COMPARE_AS_LABEL}
-            badge={selectedCompareAs ? selectedCompareAs.label : "Mixed"}
+            badge={
+              selectedCompareAs
+                ? translator.translateText(selectedCompareAs.label)
+                : translator.translateText("Mixed")
+            }
             defaultCollapsed={!isCompareAsOpenOnLoad}
             headerClassName="!py-1"
           >
             <div className="space-y-2">
               <div
                 role="radiogroup"
-                aria-label={COMPARE_AS_LABEL}
+                aria-label={translator.translateText(COMPARE_AS_LABEL)}
                 className="inline-flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
               >
                 {CONDITION_COMPARE_AS_OPTIONS.map(
@@ -406,7 +437,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
                             props.onChange(patchForCompareAs(option.type));
                           }}
                         />
-                        {option.label}
+                        {translator.translateText(option.label)}
                       </label>
                     );
                   },
@@ -414,7 +445,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
               </div>
               {selectedCompareAs && (
                 <p className="text-xs text-gray-500">
-                  {selectedCompareAs.description}
+                  {translator.translateText(selectedCompareAs.description)}
                 </p>
               )}
             </div>
@@ -462,7 +493,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
       >
         <div className="flex items-start gap-2">
           <span className="mt-px inline-flex w-9 shrink-0 justify-center rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-px text-xs font-semibold text-emerald-700">
-            Yes
+            {translator.translateText("Yes")}
           </span>
           <p className="min-w-0 leading-6" data-testid="if-else-summary-yes">
             {describeConditionMet(state).map(renderPhrasePart)}
@@ -470,10 +501,10 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
         </div>
         <div className="flex items-start gap-2">
           <span className="mt-px inline-flex w-9 shrink-0 justify-center rounded-md border border-gray-200 bg-white px-1.5 py-px text-xs font-semibold text-gray-600">
-            No
+            {translator.translateText("No")}
           </span>
           <p className="min-w-0 leading-6" data-testid="if-else-summary-no">
-            otherwise.
+            {translator.translateText("otherwise.")}
           </p>
         </div>
       </div>

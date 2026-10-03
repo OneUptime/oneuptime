@@ -58,6 +58,8 @@ import {
   resolveNetworkMapMaxSites,
   toNetworkMapSites,
 } from "./NetworkMapWidgetData";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Network Map widget: this project's network sites drawn on the world,
@@ -126,6 +128,7 @@ function getMarkerRoute(marker: NetworkMapMarker): Route | undefined {
 const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const args: DashboardNetworkMapComponent["arguments"] =
     props.component.arguments;
 
@@ -456,15 +459,25 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
     >
       <div className="flex items-center justify-between mb-2 px-1">
         <span className="text-xs font-medium text-gray-400 uppercase tracking-wider truncate">
-          {args.title || "Network Map"}
+          {args.title || translator.translateText("Network Map")}
         </span>
         <span
           className="text-xs text-gray-300 tabular-nums flex-shrink-0"
           data-testid="network-map-widget-summary"
         >
           {summary.down > 0
-            ? `${summary.down} down · ${summary.total} sites`
-            : `${summary.total} sites`}
+            ? translator.translatePlural(
+                {
+                  one: "{{down}} down · {{count}} site",
+                  other: "{{down}} down · {{count}} sites",
+                },
+                summary.total,
+                { down: translator.formatNumber(summary.down) },
+              )
+            : translator.translatePlural(
+                { one: "{{count}} site", other: "{{count}} sites" },
+                summary.total,
+              )}
         </span>
       </div>
 
@@ -481,7 +494,15 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
              * technology along with the rest of the subtree.
              */
             role="group"
-            aria-label={`World map of ${summary.total} network sites, ${summary.down} of them down.`}
+            aria-label={translator.translatePlural(
+              {
+                one: "World map of {{count}} network site, {{down}} of them down.",
+                other:
+                  "World map of {{count}} network sites, {{down}} of them down.",
+              },
+              summary.total,
+              { down: translator.formatNumber(summary.down) },
+            )}
             viewBox={viewBoxOfViewport(viewport)}
             preserveAspectRatio="xMidYMid meet"
             className="block w-full h-full"

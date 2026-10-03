@@ -8,6 +8,7 @@ import React, {
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   text?: string | undefined;
@@ -38,6 +39,8 @@ interface PopupProps extends ComponentProps {
 const TooltipPopup: FunctionComponent<PopupProps> = (
   props: PopupProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+
   if (!props.text && !props.richContent) {
     return props.children;
   }
@@ -45,7 +48,7 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
   const tooltipContent: ReactElement = props.richContent ? (
     props.richContent
   ) : (
-    <span>{props.text}</span>
+    <span>{translateString(props.text) ?? props.text}</span>
   );
 
   const isRich: boolean = Boolean(props.richContent);

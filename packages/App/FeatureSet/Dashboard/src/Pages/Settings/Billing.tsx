@@ -73,12 +73,15 @@ import useAsyncEffect from "use-async-effect";
 import Countries from "Common/UI/Utils/Countries";
 import ObjectID from "Common/Types/ObjectID";
 import { Theme, useTheme } from "Common/UI/Utils/Theme";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const theme: Theme = useTheme();
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
     useState<boolean>(true);
@@ -246,9 +249,10 @@ const Settings: FunctionComponent<ComponentProps> = (
   const getSavedButNotDefaultMessage: GetNotDefaultMessageFunction = (
     err: unknown,
   ): string => {
-    return `Your payment method was saved, but automatic payments could not be switched to it. You can try again with "Set as Default" in the payment methods table. Reason: ${BaseAPI.getFriendlyMessage(
-      err,
-    )}`;
+    return translator.translateTemplate(
+      'Your payment method was saved, but automatic payments could not be switched to it. You can try again with "Set as Default" in the payment methods table. Reason: {{reason}}',
+      { reason: BaseAPI.getFriendlyMessage(err) },
+    );
   };
 
   type CompleteRedirectedSetupFunction = (
@@ -286,7 +290,9 @@ const Settings: FunctionComponent<ComponentProps> = (
       });
 
       if (redirectStatus === "failed") {
-        setPaymentMethodError(SETUP_NOT_COMPLETED_ERROR_MESSAGE);
+        setPaymentMethodError(
+          translator.translateTemplate(SETUP_NOT_COMPLETED_ERROR_MESSAGE),
+        );
         return;
       }
 
@@ -301,7 +307,9 @@ const Settings: FunctionComponent<ComponentProps> = (
         if (result.error) {
           throw new Error(
             result.error.message ||
-              "The payment provider could not load your payment method.",
+              translator.translateTemplate(
+                "The payment provider could not load your payment method.",
+              ),
           );
         }
 
@@ -623,29 +631,44 @@ const Settings: FunctionComponent<ComponentProps> = (
                     getAllEnvVars(),
                   ).map((plan: SubscriptionPlan): RadioButton => {
                     let description: string = plan.isCustomPricing()
-                      ? `Our sales team will contact you soon.`
-                      : `Billed ${
-                          isSubscriptionPlanYearly ? "yearly" : "monthly"
-                        }. ${
+                      ? translator.translateTemplate(
+                          "Our sales team will contact you soon.",
+                        )
+                      : [
+                          isSubscriptionPlanYearly
+                            ? translator.translateTemplate("Billed yearly.")
+                            : translator.translateTemplate("Billed monthly."),
                           plan.getTrialPeriod() > 0
-                            ? `Free ${plan.getTrialPeriod()} days trial.`
-                            : ""
-                        }`;
+                            ? translator.translatePlural(
+                                {
+                                  one: "Free {{count}} day trial.",
+                                  other: "Free {{count}} days trial.",
+                                },
+                                plan.getTrialPeriod(),
+                              )
+                            : "",
+                        ]
+                          .filter((sentence: string) => {
+                            return Boolean(sentence);
+                          })
+                          .join(" ");
 
                     if (
                       isSubscriptionPlanYearly &&
                       plan.getYearlySubscriptionAmountInUSD() === 0
                     ) {
-                      description =
-                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                      description = translator.translateTemplate(
+                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                      );
                     }
 
                     if (
                       !isSubscriptionPlanYearly &&
                       plan.getMonthlySubscriptionAmountInUSD() === 0
                     ) {
-                      description =
-                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                      description = translator.translateTemplate(
+                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                      );
                     }
 
                     return {
@@ -655,20 +678,27 @@ const Settings: FunctionComponent<ComponentProps> = (
                       title: plan.getName(),
                       description: description,
                       sideTitle: plan.isCustomPricing()
-                        ? "Custom Price"
+                        ? translator.translateTerm("Custom Price")
                         : isSubscriptionPlanYearly
-                          ? "$" +
-                            plan.getYearlySubscriptionAmountInUSD().toString() +
-                            "/mo billed yearly"
+                          ? translator.translateTemplate(
+                              "${{amount}}/mo billed yearly",
+                              {
+                                amount: plan.getYearlySubscriptionAmountInUSD(),
+                              },
+                            )
                           : "$" +
                             plan.getMonthlySubscriptionAmountInUSD().toString(),
                       sideDescription: plan.isCustomPricing()
                         ? ""
                         : isSubscriptionPlanYearly
-                          ? `~ $${
-                              plan.getYearlySubscriptionAmountInUSD() * 12
-                            } per user / year`
-                          : `/month per user`,
+                          ? translator.translateTemplate(
+                              "~ ${{amount}} per user / year",
+                              {
+                                amount:
+                                  plan.getYearlySubscriptionAmountInUSD() * 12,
+                              },
+                            )
+                          : translator.translateTemplate("/month per user"),
                     };
                   }),
                   title: "Please select a plan.",
@@ -693,7 +723,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                         );
 
                       if (!plan) {
-                        return <p>No plan selected for this project</p>;
+                        return (
+                          <p>
+                            {translator.translateText(
+                              "No plan selected for this project",
+                            )}
+                          </p>
+                        );
                       }
 
                       const isYearlyPlan: boolean =
@@ -703,29 +739,40 @@ const Settings: FunctionComponent<ComponentProps> = (
                         );
 
                       let description: string = plan.isCustomPricing()
-                        ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                        : `$${
-                            isYearlyPlan
-                              ? plan.getYearlySubscriptionAmountInUSD()
-                              : plan.getMonthlySubscriptionAmountInUSD()
-                          } / month per user. Billed ${
-                            isYearlyPlan ? "yearly" : "monthly"
-                          }.`;
+                        ? translator.translateTemplate(
+                            "Custom Pricing based on your needs. Our sales team will contact you shortly.",
+                          )
+                        : isYearlyPlan
+                          ? translator.translateTemplate(
+                              "${{amount}} / month per user. Billed yearly.",
+                              {
+                                amount: plan.getYearlySubscriptionAmountInUSD(),
+                              },
+                            )
+                          : translator.translateTemplate(
+                              "${{amount}} / month per user. Billed monthly.",
+                              {
+                                amount:
+                                  plan.getMonthlySubscriptionAmountInUSD(),
+                              },
+                            );
 
                       if (
                         isYearlyPlan &&
                         plan.getYearlySubscriptionAmountInUSD() === 0
                       ) {
-                        description =
-                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                        description = translator.translateTemplate(
+                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                        );
                       }
 
                       if (
                         !isYearlyPlan &&
                         plan.getMonthlySubscriptionAmountInUSD() === 0
                       ) {
-                        description =
-                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.";
+                        description = translator.translateTemplate(
+                          "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
+                        );
                       }
 
                       return (
@@ -747,8 +794,15 @@ const Settings: FunctionComponent<ComponentProps> = (
                       return (
                         <div>
                           <div className="bold">
-                            {item["paymentProviderSubscriptionSeats"]} users in
-                            this project.
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} user in this project.",
+                                other: "{{count}} users in this project.",
+                              },
+                              Number(
+                                item["paymentProviderSubscriptionSeats"] || 0,
+                              ),
+                            )}
                           </div>
                         </div>
                       );
@@ -762,8 +816,17 @@ const Settings: FunctionComponent<ComponentProps> = (
 
           {reseller && (
             <Card
-              title={`You have purchased this plan from ${reseller.name}`}
-              description={`If you would like to change the plan, please contact ${reseller.name} at ${reseller.description}`}
+              title={translator.translateTemplate(
+                "You have purchased this plan from {{reseller}}",
+                { reseller: reseller.name || "" },
+              )}
+              description={translator.translateTemplate(
+                "If you would like to change the plan, please contact {{reseller}} at {{contact}}",
+                {
+                  reseller: reseller.name || "",
+                  contact: reseller.description || "",
+                },
+              )}
               buttons={
                 reseller.changePlanLink
                   ? [
@@ -780,12 +843,17 @@ const Settings: FunctionComponent<ComponentProps> = (
             >
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-500">
-                  The plan you purchased from {reseller.name} is{" "}
-                  {resellerPlan?.name}
+                  {translator.translateTemplate(
+                    "The plan you purchased from {{reseller}} is {{plan}}",
+                    {
+                      reseller: reseller.name || "",
+                      plan: resellerPlan?.name || "",
+                    },
+                  )}
                 </div>
                 <div>
                   <span className="text-sm font-medium text-gray-500 mt-10">
-                    With the following features:
+                    {translator.translateText("With the following features:")}
                   </span>
 
                   <ul className="space-y-1 mt-2">
@@ -796,7 +864,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                           icon={IconProp.CheckCircle}
                           className="h-5 w-5 mr-1"
                         />{" "}
-                        {resellerPlan?.monitorLimit} Monitors
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} Monitor",
+                            other: "{{count}} Monitors",
+                          },
+                          Number(resellerPlan?.monitorLimit || 0),
+                        )}
                       </span>
                     </li>
                     <li className="text-sm font-medium text-gray-500">
@@ -806,7 +880,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                           icon={IconProp.CheckCircle}
                           className="h-5 w-5 mr-1"
                         />{" "}
-                        {resellerPlan?.teamMemberLimit} Team Members
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} Team Member",
+                            other: "{{count}} Team Members",
+                          },
+                          Number(resellerPlan?.teamMemberLimit || 0),
+                        )}
                       </span>
                     </li>
 
@@ -1099,7 +1179,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 <></>
               )}
               {!modalError && !setupIntent && !stripe ? (
-                <p>Loading...</p>
+                <p>{translator.translateText("Loading...")}</p>
               ) : (
                 <></>
               )}
@@ -1175,7 +1255,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                     return null;
                   }
                   if (!Email.isValidList(raw)) {
-                    return "Enter one or more valid emails separated by a comma.";
+                    return translator.translateTemplate(
+                      "Enter one or more valid emails separated by a comma.",
+                    );
                   }
                   return null;
                 },
@@ -1236,7 +1318,10 @@ const Settings: FunctionComponent<ComponentProps> = (
           {balance < 0 && (
             <Card
               title="Customer Balance"
-              description={`Your current customer balance is $${balance * -1}. This balance will be applied to your next invoice.`}
+              description={translator.translateTemplate(
+                "Your current customer balance is ${{balance}}. This balance will be applied to your next invoice.",
+                { balance: balance * -1 },
+              )}
             />
           )}
 
@@ -1264,7 +1349,13 @@ const Settings: FunctionComponent<ComponentProps> = (
           {reseller && (
             <Card
               title={`Cancel Plan`}
-              description={`If you would like to cancel the plan or delete the project, please contact ${reseller.name} at ${reseller.description}`}
+              description={translator.translateTemplate(
+                "If you would like to cancel the plan or delete the project, please contact {{reseller}} at {{contact}}",
+                {
+                  reseller: reseller.name || "",
+                  contact: reseller.description || "",
+                },
+              )}
             />
           )}
         </div>

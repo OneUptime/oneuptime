@@ -5,6 +5,8 @@ import DROPDOWN_MENU_Z_INDEX from "../../Dropdown/DropdownMenuZIndex";
 import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -36,6 +38,7 @@ export interface ComponentProps {
 const IconPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedIcon, setSelectedIcon] = useState<IconProp | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const {
@@ -138,8 +141,8 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           // A button, not a bare svg with a click handler - see ColorPicker.
           <button
             type="button"
-            aria-label="Clear icon"
-            title="Clear icon"
+            aria-label={translator.translateText("Clear icon")}
+            title={translator.translateText("Clear icon")}
             className="flex items-center text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
             onClick={() => {
               setSelectedIcon(null);
@@ -161,7 +164,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
               data-testid="icon-picker-popup"
               id={popupId}
               role="dialog"
-              aria-label="Icon picker"
+              aria-label={translator.translateText("Icon picker")}
               tabIndex={-1}
               className="fixed flex flex-col overflow-hidden bg-white border border-gray-200 rounded-lg shadow-lg p-3"
               style={{
@@ -220,7 +223,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
 
               {filteredIcons.length === 0 && (
                 <div className="text-center text-gray-500 py-4">
-                  No icons found
+                  {translator.translateText("No icons found")}
                 </div>
               )}
             </div>,

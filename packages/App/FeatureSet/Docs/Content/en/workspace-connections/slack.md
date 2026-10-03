@@ -9,16 +9,19 @@
 
 2. **Connect Slack to OneUptime Project**
 
-   - Navigate to **Project Settings** > **Slack** within your OneUptime project.
+   - Navigate to **Project Settings** > **Workspace** > **Slack** within your OneUptime project. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect Slack or Teams**, which leads here too.
    - Follow the prompts to connect your Slack account with the OneUptime project.
 
 3. **Configure Incident Notifications**
 
-   - After connecting your Slack account, go to **Incidents Page** > **Slack**.
+   - After connecting your Slack account, go to **Incidents** > **Workspace** > **Slack**. The **Workspace** section lists only the chat workspaces your project has connected, so **Slack** appears there once it is connected.
    - Add rules to send incident notifications to Slack. For example, you can create a rule that creates a new Slack channel and invites incident owners when an incident is created.
 
 4. **Configure Alerts and Scheduled Maintenance Notifications**
-   - Similar rules can be applied to Alerts and Scheduled Maintenance by navigating to their respective pages and configuring the desired rules.
+   - Similar rules can be applied to Alerts, Scheduled Maintenance, Monitors and On-Call from **Workspace** > **Slack** in their own menus.
+
+5. **Connect Your Own Account**
+   - Each person links their own Slack account under **User Settings** > **Workspace** > **Slack**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Slack.
 
 ## Network access for self-hosted deployments
 

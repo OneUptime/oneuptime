@@ -64,24 +64,31 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
     const submitButton: Locator = modal.getByTestId(
       "modal-footer-submit-button",
     );
-    await expect(submitButton).toHaveText("Next");
-    await submitButton.click();
+    /*
+     * The one button that reads Next: the main button while a step to come
+     * still has to be shown (the Free plan's Billing step), the plain one
+     * beside Create Ingestion Key once every step left is optional.
+     */
+    const nextButton: Locator = modal.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
+    await nextButton.click();
     await expect(
       modal.getByTestId("card-select-option-Server"),
     ).toHaveAttribute("aria-checked", "true");
-    await submitButton.click();
 
     const billingStep: Locator = modal
       .getByRole("navigation", { name: "Progress" })
       .getByText("Billing", { exact: true });
     if ((await billingStep.count()) > 0) {
+      await nextButton.click();
       await expect(
         modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();
-      await expect(submitButton).toHaveText("Next");
-      await submitButton.click();
     }
 
+    // Only the summary is left: the main button creates the key.
     await expect(submitButton).toHaveText("Create Ingestion Key");
     await submitButton.click();
     await page.getByTestId("modal").waitFor({ state: "hidden" });

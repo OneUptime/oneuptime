@@ -576,12 +576,6 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  /*
-   * BasicFormModal's footer button is the form's submit button on every
-   * step, so it has to read "Next" until the last step the way
-   * ModelFormModal's does; otherwise step one shows "Create connection".
-   */
-  const [isLastStep, setIsLastStep] = useState<boolean>(false);
   const isEditing: boolean = Boolean(props.connection?.id);
   const credentialsOnly: boolean = Boolean(props.credentialsOnly && isEditing);
   const lockedProvider: string | undefined = props.connection?.provider;
@@ -935,7 +929,12 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
       modalWidth={ModalWidth.Large}
       isLoading={isLoading}
       error={error}
-      submitButtonText={isLastStep ? finalButtonText : "Next"}
+      /*
+       * The action. BasicFormModal's button reads Next on a step that walks
+       * on, and the action once the steps left are all optional - the
+       * Polling step of an edit, whose values are filled in already.
+       */
+      submitButtonText={finalButtonText}
       onClose={(): void => {
         setIsLoading(false);
         props.onClose();
@@ -1005,9 +1004,6 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         initialValues,
         steps,
         fields,
-        onIsLastFormStep: (value: boolean): void => {
-          setIsLastStep(value);
-        },
       }}
     />
   );

@@ -16,6 +16,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -42,6 +44,7 @@ export interface ComponentProps {
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let isOnHideNavbarPage: boolean = false;
 
   for (const route of props.hideNavBarOn) {
@@ -125,7 +128,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
               )}
             >
-              Click here to pay your unpaid invoices.
+              {translator.translateText(
+                "Click here to pay your unpaid invoices.",
+              ) || ""}
             </AppLink>
           }
         />

@@ -788,7 +788,7 @@ describe("Incident on-call rules: deleting a rule says what it costs", () => {
     }
 
     expect(
-      screen.getByText(/You are not authorized to view this table/),
+      screen.getByText("You don't have access to this list"),
     ).toBeInTheDocument();
   });
 });

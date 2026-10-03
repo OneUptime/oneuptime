@@ -7,6 +7,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TenantPermission from "../Types/Database/Permissions/TenantPermission";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
+import EmailColorUtil from "../../Utils/Email/EmailColorUtil";
 import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
@@ -978,9 +979,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           rootCause: true,
           incidentNumber: true,
@@ -1014,9 +1017,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
           alertNumber: true,
           alertNumberWithPrefix: true,
@@ -1060,9 +1065,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
           episodeNumber: true,
           episodeNumberWithPrefix: true,
@@ -1093,9 +1100,11 @@ export class Service extends DatabaseService<Model> {
           },
           currentIncidentState: {
             name: true,
+            color: true,
           },
           incidentSeverity: {
             name: true,
+            color: true,
           },
           episodeNumber: true,
           episodeNumberWithPrefix: true,
@@ -4614,11 +4623,19 @@ export class Service extends DatabaseService<Model> {
       alertNumber: alertNumber,
       projectName: alert.project!.name!,
       currentState: alert.currentAlertState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        alert.currentAlertState?.color,
+      ),
       alertDescription: await Markdown.convertToHTML(
         alert.description! || "",
         MarkdownContentType.Email,
       ),
       alertSeverity: alert.alertSeverity!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "alertSeverity",
+        alert.alertSeverity?.color,
+      ),
       /*
        * Every resource the alert's Affected Resources card lists. An SLO
        * burn-rate alert has no monitor, and this used to read "No resources
@@ -4680,11 +4697,19 @@ export class Service extends DatabaseService<Model> {
       incidentNumber: incidentNumber,
       projectName: incident.project!.name!,
       currentState: incident.currentIncidentState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incident.currentIncidentState?.color,
+      ),
       incidentDescription: await Markdown.convertToHTML(
         incident.description! || "",
         MarkdownContentType.Email,
       ),
       incidentSeverity: incident.incidentSeverity!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentSeverity",
+        incident.incidentSeverity?.color,
+      ),
       // Every resource the incident's Affected Resources card lists.
       resourcesAffected: LinkedAffectedResources.getText({
         resources: await LinkedAffectedResources.readForIncident({
@@ -4853,11 +4878,19 @@ export class Service extends DatabaseService<Model> {
       episodeNumber: episodeNumber,
       projectName: alertEpisode.project!.name!,
       currentState: alertEpisode.currentAlertState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        alertEpisode.currentAlertState?.color,
+      ),
       alertEpisodeDescription: await Markdown.convertToHTML(
         alertEpisode.description! || "",
         MarkdownContentType.Email,
       ),
       alertEpisodeSeverity: alertEpisode.alertSeverity!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "alertEpisodeSeverity",
+        alertEpisode.alertSeverity?.color,
+      ),
       resourcesAffected: resourcesAffected,
       rootCause: await Markdown.convertToHTML(
         alertEpisode.rootCause ||
@@ -5030,11 +5063,19 @@ export class Service extends DatabaseService<Model> {
       episodeNumber: episodeNumber,
       projectName: incidentEpisode.project!.name!,
       currentState: incidentEpisode.currentIncidentState!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "currentState",
+        incidentEpisode.currentIncidentState?.color,
+      ),
       incidentEpisodeDescription: await Markdown.convertToHTML(
         incidentEpisode.description! || "",
         MarkdownContentType.Email,
       ),
       incidentEpisodeSeverity: incidentEpisode.incidentSeverity!.name!,
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentEpisodeSeverity",
+        incidentEpisode.incidentSeverity?.color,
+      ),
       resourcesAffected: resourcesAffected,
       rootCause: await Markdown.convertToHTML(
         incidentEpisode.rootCause ||

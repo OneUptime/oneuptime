@@ -48,7 +48,7 @@ _RUM → Settings → Label Rules_. A rule attaches labels to matching applicati
 | --- | --- |
 | **Conditions** | What the rule matches. **Application Labels** checks the labels an application already carries (has any of, all of or none of the ones you pick); **Application Name** and **Application Description** compare its name and description - contains, equals, starts with, ends with, or a case-insensitive regex or `*` wildcard pattern. With two or more conditions, choose **Match all** or **Match any**. |
 | **Labels to Add** | Every selected label is attached. Already-attached labels are not duplicated. |
-| **Enabled** | Turn the rule off without deleting it. |
+| **Enabled** | On for a new rule. Turn it off on the rule's edit form to pause the rule without deleting it. |
 
 Rules run **when an application is created** — including auto-discovery. They are not retroactive: adding a rule today does not relabel applications discovered last week. Set those by hand, or archive and let them be rediscovered.
 

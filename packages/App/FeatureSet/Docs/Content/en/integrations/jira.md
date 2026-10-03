@@ -14,7 +14,7 @@ The quickest way in is one of the 17 ready-made Jira templates, nine for inciden
 
 ## Start from a template
 
-The workflow picker has 17 Jira templates, under **Jira** in its list of categories: nine for incidents, then eight for alerts, each set under its own heading. Each one is a small workflow of its own, so you can take only the records and directions you want — incidents, alerts, or both. They share one convention — labels on the Jira issue — so any combination of them works together.
+The **Create a workflow** dialog has 17 Jira templates, under **Jira** in its category list: nine for incidents, then eight for alerts, each set under its own heading. Each one is a small workflow of its own, so you can take only the records and directions you want — incidents, alerts, or both. They share one convention — labels on the Jira issue — so any combination of them works together.
 
 ### Incident templates
 
@@ -49,7 +49,7 @@ The alert templates do the same jobs for alerts. There is one fewer, because ale
 | Add Jira comments to the alert as private notes                | Copies each comment on a linked issue onto the alert as a private note.                                                                                                   | Site URL, API token, and a Jira webhook for **Comment created** |
 | Add Jira issue changes to the alert as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the alert as a private note. Status changes are left to the template above.                | A Jira webhook for **Issue updated**                            |
 
-None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-5-more), or an alert marked **Private Alert**, to Jira — not the record, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
+None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-1-incident-details), or an alert marked **Private Alert**, to Jira — not the record, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
 
 ### What is different for alerts
 
@@ -102,7 +102,7 @@ The account behind the token needs **Browse Projects**, **Create Issues**, **Edi
 
 ### Create the workflows
 
-1. Open **Workflows → Create Workflow**. Under **Start from**, choose **Jira** from the categories, or type `Jira` into **Search templates…**, and click the template you want. The preview beside the list shows what it does and the settings it will ask for. Click **Use this template**.
+1. Open **Workflows → Create Workflow**. Under **Or start from a template**, choose **Jira** from the category list, or type `Jira` into **Search templates…**, and click the template you want. It opens to show what it does and the settings it will ask for. Click **Use this template**.
 2. **Name** is filled in from the template. Change it if you like.
 3. **Configure** asks for the values above. They are saved as that workflow's own variables, under **Workflow Variables** in its left menu. The API token is saved as a secret: it is redacted from **Logs → Runs**, and it only ever goes into the `Authorization` header of the Jira calls.
 4. Click **Create Workflow**. Every workflow is created **disabled**. Turn it on from **Overview → Edit Workflow → Enabled**.

@@ -16,6 +16,11 @@ import Query from "Common/Types/BaseDatabase/Query";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import { BILLING_ENABLED } from "Common/UI/Config";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface LlmLogsTableProps {
   query?: Query<LlmLog>;
@@ -25,6 +30,7 @@ export interface LlmLogsTableProps {
 const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
   props: LlmLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -170,12 +176,26 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
         cardProps={{
           title: "AI Logs",
           description: props.singularName
-            ? `AI usage logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "AI usage logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "AI usage logs for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No AI logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "No AI logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No AI logs."
         }
         showRefreshButton={true}

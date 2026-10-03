@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
@@ -17,10 +18,13 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorDependencies: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -75,6 +79,9 @@ const MonitorDependencies: FunctionComponent<
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Any offline status (default)",
@@ -119,7 +126,13 @@ const MonitorDependencies: FunctionComponent<
                   item.suppressAlertsWhenParentMonitorStatuses || [];
 
                 if (statuses.length === 0) {
-                  return <p>Any status flagged offline (default).</p>;
+                  return (
+                    <p>
+                      {translator.translateText(
+                        "Any status flagged offline (default).",
+                      )}
+                    </p>
+                  );
                 }
 
                 return (

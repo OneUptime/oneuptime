@@ -56,6 +56,9 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const networkAlertPolicyDocumentation: string = `
 ### What an Alert Policy Is
@@ -149,6 +152,7 @@ export interface AlertPolicyScopeEditorProps {
 const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
   props: AlertPolicyScopeEditorProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selection, setSelection] = useState<AlertPolicyScopeSelection>(
     readScopeSelection(props.initialValue),
   );
@@ -232,8 +236,16 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
         />
       </div>
       <p className="text-sm text-gray-500">
-        Currently covers: <strong>{summarizeScope(selection)}</strong>. A device
-        must match every kind that is filled in, and any entry within a kind.
+        <TranslatedSentence
+          template="Currently covers: {{scope}}. A device must match every kind that is filled in, and any entry within a kind."
+          slots={{
+            scope: (
+              <strong>
+                {translator.translateText(summarizeScope(selection))}
+              </strong>
+            ),
+          }}
+        />
       </p>
     </div>
   );
@@ -311,6 +323,7 @@ export interface RecommendedPolicyEmptyStateProps {
 const RecommendedPolicyEmptyState: FunctionComponent<
   RecommendedPolicyEmptyStateProps
 > = (props: RecommendedPolicyEmptyStateProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -418,14 +431,13 @@ const RecommendedPolicyEmptyState: FunctionComponent<
 
   return (
     <div className="py-4">
-      <p className="text-sm font-medium text-gray-900">No alert policies yet</p>
+      <p className="text-sm font-medium text-gray-900">
+        {translator.translateText("No alert policies yet")}
+      </p>
       <p className="mt-1 text-sm text-gray-500">
-        A policy alerts on a whole set of devices at once: one monitor per
-        matching device, kept as devices come and go. The recommended one raises
-        an incident when a device stops answering or an interface goes down, and
-        an alert when its SNMP walk fails, an interface saturates or an
-        interface logs errors. A device with no SNMP credentials is pinged, not
-        walked, so only the reachability item can fire on it.
+        {translator.translateText(
+          "A policy alerts on a whole set of devices at once: one monitor per matching device, kept as devices come and go. The recommended one raises an incident when a device stops answering or an interface goes down, and an alert when its SNMP walk fails, an interface saturates or an interface logs errors. A device with no SNMP credentials is pinged, not walked, so only the reachability item can fire on it.",
+        )}
       </p>
       {createGate.isAllowed ? (
         <div className="mt-4 flex justify-center">
@@ -491,6 +503,7 @@ const RecommendedPolicyEmptyState: FunctionComponent<
 const NetworkAlertPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [refreshToggle, setRefreshToggle] = useState<string>(
     ObjectID.generate().toString(),
   );
@@ -632,7 +645,9 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             getElement: (item: NetworkAlertPolicy): ReactElement => {
               if (!item.lastSyncAt) {
                 return (
-                  <span className="text-sm text-gray-400">Not counted yet</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not counted yet")}
+                  </span>
                 );
               }
 
@@ -676,7 +691,9 @@ const NetworkAlertPoliciesPage: FunctionComponent<
               }
 
               return (
-                <span className="text-sm text-gray-400">Not synced yet</span>
+                <span className="text-sm text-gray-400">
+                  {translator.translateText("Not synced yet")}
+                </span>
               );
             },
             getExportValue: (item: NetworkAlertPolicy): string => {
@@ -710,7 +727,9 @@ const NetworkAlertPoliciesPage: FunctionComponent<
                   )}
                 </span>
               ) : (
-                <span className="text-sm text-gray-400">Never</span>
+                <span className="text-sm text-gray-400">
+                  {translator.translateText("Never")}
+                </span>
               );
             },
             getExportValue: (item: NetworkAlertPolicy): string => {

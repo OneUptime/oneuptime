@@ -22,7 +22,6 @@ import StatusPagesViewEmbedded from "../Pages/StatusPages/View/EmbeddedStatus";
 import StatusPagesViewDomains from "../Pages/StatusPages/View/Domains";
 import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
 import StatusPagesViewAnnouncement from "../Pages/StatusPages/View/Announcements";
-import StatusPagesViewAdvancedOptions from "../Pages/StatusPages/View/AdvancedOptions";
 import StatusPagesArchived from "../Pages/StatusPages/Archived";
 import StatusPagesViewCustomHtmlCss from "../Pages/StatusPages/View/CustomHtmlCss";
 import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
@@ -84,6 +83,17 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+
+/*
+ * Where a status page's Advanced Options page used to be, relative to the
+ * page's own URL. Spelled out because nothing in the RouteMap points here
+ * any more: no menu ever linked to it, and it repeated the Embedded Status
+ * page's badge settings (its JSON export is on Advanced Settings now). The
+ * URL is kept only so an old link still arrives somewhere.
+ */
+export const MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH: string =
+  "advanced-options";
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -428,16 +438,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS,
-          )}
+          path={MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH}
           element={
-            <StatusPagesViewAdvancedOptions
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS] as Route
-              }
-            />
+            <MovedPageRedirect pageMap={PageMap.STATUS_PAGE_VIEW_EMBEDDED} />
           }
         />
 

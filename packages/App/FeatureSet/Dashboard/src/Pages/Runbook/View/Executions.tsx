@@ -29,6 +29,7 @@ import {
   Yellow500,
   Blue500,
 } from "Common/Types/BrandColors";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 
 function statusPill(status: RunbookExecutionStatus): ReactElement {
   switch (status) {
@@ -54,7 +55,9 @@ function triggerCell(item: RunbookExecution): ReactElement {
   if (item.incident) {
     return (
       <div className="flex flex-col">
-        <span className="text-xs text-gray-500">Incident</span>
+        <span className="text-xs text-gray-500">
+          {translateText("Incident")}
+        </span>
         <IncidentElement incident={item.incident as Incident} />
       </div>
     );
@@ -62,7 +65,7 @@ function triggerCell(item: RunbookExecution): ReactElement {
   if (item.alert) {
     return (
       <div className="flex flex-col">
-        <span className="text-xs text-gray-500">Alert</span>
+        <span className="text-xs text-gray-500">{translateText("Alert")}</span>
         <AlertElement alert={item.alert as Alert} />
       </div>
     );
@@ -72,7 +75,9 @@ function triggerCell(item: RunbookExecution): ReactElement {
       item.scheduledMaintenance as ScheduledMaintenance;
     return (
       <div className="flex flex-col">
-        <span className="text-xs text-gray-500">Maintenance</span>
+        <span className="text-xs text-gray-500">
+          {translateText("Maintenance")}
+        </span>
         {sm._id ? (
           <AppLink
             className="hover:underline"
@@ -81,7 +86,7 @@ function triggerCell(item: RunbookExecution): ReactElement {
               { modelId: new ObjectID(sm._id as string) },
             )}
           >
-            <span>{sm.title || "View"}</span>
+            <span>{sm.title || translateText("View")}</span>
           </AppLink>
         ) : (
           <span>{sm.title || "—"}</span>
@@ -92,15 +97,19 @@ function triggerCell(item: RunbookExecution): ReactElement {
   if (item.triggeredByUser) {
     return (
       <div className="flex flex-col">
-        <span className="text-xs text-gray-500">Manual run by</span>
+        <span className="text-xs text-gray-500">
+          {translateText("Manual run by")}
+        </span>
         <UserElement user={item.triggeredByUser as User} />
       </div>
     );
   }
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-gray-500">Trigger</span>
-      <span className="text-sm text-gray-500">Manual / unknown</span>
+      <span className="text-xs text-gray-500">{translateText("Trigger")}</span>
+      <span className="text-sm text-gray-500">
+        {translateText("Manual / unknown")}
+      </span>
     </div>
   );
 }

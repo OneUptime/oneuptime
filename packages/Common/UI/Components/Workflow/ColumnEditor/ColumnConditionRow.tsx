@@ -36,6 +36,8 @@ import {
 import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   row: ModelColumnRow;
@@ -51,6 +53,7 @@ export interface ComponentProps {
 const ColumnConditionRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const control: ModelColumnControl = controlForColumn(props.column);
   const operatorOption: DictionaryFilterOperatorOption = getOperatorOption(
     props.row.operator,
@@ -77,7 +80,10 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
         description: [
           isColumnKeyInformative(column) ? column.id : "",
           (isColumnDescriptionInformative(column)
-            ? summarizeDescription(column.description, 70)
+            ? summarizeDescription(
+                translator.translateText(column.description),
+                70,
+              )
             : "") || columnTypeLabel(column),
         ]
           .filter((part: string) => {
@@ -106,8 +112,11 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
       value: props.row.columnId,
       label: props.column?.title || props.row.columnId,
       description: isUnknownColumn
-        ? "Not a column on this model"
-        : `${props.row.columnId} · can't be picked from the list`,
+        ? translator.translateText("Not a column on this model") || ""
+        : translator.translateTemplate(
+            "{{column}} · can't be picked from the list",
+            { column: props.row.columnId },
+          ),
     });
   }
 
@@ -172,7 +181,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
         )}
         {isUnknownColumn ? (
           <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">
-            Not a column on this model
+            {translator.translateText("Not a column on this model")}
           </span>
         ) : (
           props.column && (
@@ -234,11 +243,15 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
 
         {props.row.valueMode === ColumnValueMode.Raw && (
           <p className="mt-1 text-[11px] text-amber-600">
-            Kept exactly as it was saved.
+            {translator.translateText("Kept exactly as it was saved.")}
           </p>
         )}
 
-        {issue && <p className="mt-1 text-[11px] text-red-500">{issue}</p>}
+        {issue && (
+          <p className="mt-1 text-[11px] text-red-500">
+            {translator.translateText(issue)}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center pt-1">

@@ -20,6 +20,9 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
@@ -28,6 +31,7 @@ export interface ComponentProps {
 const RepeatPolicy: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [repeatCount, setRepeatCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -92,31 +96,46 @@ const RepeatPolicy: FunctionComponent<ComponentProps> = (
                 isEnabled ? "bg-indigo-500" : "bg-gray-400"
               }`}
             />
-            {isEnabled ? "Repeat enabled" : "Repeat disabled"}
+            {translator.translateText(
+              isEnabled ? "Repeat enabled" : "Repeat disabled",
+            )}
           </span>
           <p className="max-w-xl text-sm leading-relaxed text-gray-600">
             {isEnabled ? (
               enabledAndHasCount ? (
-                <>
-                  If no one acknowledges after the final escalation level, this
-                  policy runs again from the top — up to{" "}
-                  <span className="font-semibold text-gray-900">
-                    {repeatCount} more {repeatCount === 1 ? "time" : "times"}
-                  </span>{" "}
-                  before it stops.
-                </>
+                <TranslatedSentence
+                  template="If no one acknowledges after the final escalation level, this policy runs again from the top — up to {{times}} before it stops."
+                  slots={{
+                    times: (
+                      <span className="font-semibold text-gray-900">
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} more time",
+                            other: "{{count}} more times",
+                          },
+                          repeatCount,
+                        )}
+                      </span>
+                    ),
+                  }}
+                />
               ) : (
-                <>
-                  Repeating is on, but the number of repeats is set to{" "}
-                  <span className="font-semibold text-gray-900">0</span>, so the
-                  policy still runs only once. Set a repeat count to have it try
-                  again.
-                </>
+                <TranslatedSentence
+                  template="Repeating is on, but the number of repeats is set to {{count}}, so the policy still runs only once. Set a repeat count to have it try again."
+                  slots={{
+                    count: (
+                      <span className="font-semibold text-gray-900">
+                        {translator.formatNumber(0)}
+                      </span>
+                    ),
+                  }}
+                />
               )
             ) : (
               <>
-                The policy runs once through all escalation levels. If no one
-                acknowledges, escalation stops here.
+                {translator.translateText(
+                  "The policy runs once through all escalation levels. If no one acknowledges, escalation stops here.",
+                )}
               </>
             )}
           </p>
@@ -135,7 +154,9 @@ const RepeatPolicy: FunctionComponent<ComponentProps> = (
                 {repeatCount}
               </div>
               <div className="text-xs text-gray-500">
-                {repeatCount === 1 ? "repeat" : "repeats"}
+                {translator.translateText(
+                  repeatCount === 1 ? "repeat" : "repeats",
+                )}
               </div>
             </div>
           </div>
@@ -153,10 +174,12 @@ const RepeatPolicy: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Repeat Policy
+              {translator.translateText("Repeat Policy")}
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-              What happens after every escalation level has been exhausted.
+              {translator.translateText(
+                "What happens after every escalation level has been exhausted.",
+              )}
             </p>
           </div>
           {!isLoading && !error ? (

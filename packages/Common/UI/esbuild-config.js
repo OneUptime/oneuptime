@@ -305,6 +305,7 @@ function resolvePackageSubpath(packageName, subpath) {
  * @param {Object} [options.additionalDefines] - Additional define variables
  * @param {Array} [options.additionalExternal] - Additional external modules
  * @param {Object} [options.additionalAlias] - Additional aliases
+ * @param {Array} [options.additionalPlugins] - Additional esbuild plugins, run after the shared ones
  */
 function createConfig(options) {
   const {
@@ -315,6 +316,7 @@ function createConfig(options) {
     additionalDefines = {},
     additionalExternal = [],
     additionalAlias = {},
+    additionalPlugins = [],
   } = options;
 
   const isDev = process.env.NODE_ENV !== "production";
@@ -401,6 +403,7 @@ function createConfig(options) {
       createRefractorCompatibilityPlugin(),
       createCSSPlugin(),
       createFileLoaderPlugin(),
+      ...additionalPlugins,
     ],
     loader: {
       ".tsx": "tsx",

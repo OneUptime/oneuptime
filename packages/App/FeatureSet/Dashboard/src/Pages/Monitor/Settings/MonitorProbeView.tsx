@@ -23,6 +23,8 @@ import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -32,6 +34,7 @@ export enum PermissionType {
 const ProbeView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
 
   const [probeKey, setProbeKey] = useState<string | null>(null);
@@ -138,6 +141,12 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               },
               title: "Probe ID",
               fieldType: FieldType.ObjectID,
+              /*
+               * A custom probe is installed with its ID and its key
+               * (PROBE_ID, PROBE_KEY), so the ID stays a field, read beside
+               * the key, rather than going to the card's ID line.
+               */
+              showIdAsField: true,
             },
             {
               field: {
@@ -250,8 +259,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         title={"Reset Probe Key"}
         description={
           <p className="mt-2">
-            Resetting the secret key will generate a new key. Secret is used to
-            authenticate probe requests.
+            {translator.translateText(
+              "Resetting the secret key will generate a new key. Secret is used to authenticate probe requests.",
+            )}
           </p>
         }
         modelId={modelId}

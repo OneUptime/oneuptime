@@ -15,6 +15,8 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface OutcomeStats {
   total: number;
@@ -35,6 +37,7 @@ interface StatTile {
   key: string;
   title: string;
   value: string;
+  // English, or already in the reader's language: translated when drawn.
   hint: string;
   valueClassName: string;
 }
@@ -42,12 +45,16 @@ interface StatTile {
 const AIFixOutcomeStatValue: FunctionComponent<{
   tile: StatTile;
 }> = (props: { tile: StatTile }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mt-1">
       <div className={`text-3xl font-semibold ${props.tile.valueClassName}`}>
         {props.tile.value}
       </div>
-      <div className="mt-2 text-sm text-gray-500">{props.tile.hint}</div>
+      <div className="mt-2 text-sm text-gray-500">
+        {translator.translateText(props.tile.hint)}
+      </div>
     </div>
   );
 };
@@ -58,6 +65,7 @@ const AIFixOutcomeStatValue: FunctionComponent<{
  * at least one agent PR, so new projects never see an empty scoreboard.
  */
 const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [stats, setStats] = useState<OutcomeStats | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -153,7 +161,10 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
       key: "total",
       title: "Total fix PRs",
       value: stats.total.toLocaleString(),
-      hint: `${stats.open.toLocaleString()} still open`,
+      hint: translator.translatePlural(
+        { one: "{{count}} still open", other: "{{count}} still open" },
+        stats.open,
+      ),
       valueClassName: "text-gray-900",
     },
     {
@@ -180,9 +191,14 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
       hint:
         stats.acceptanceRatePercent === null
           ? "No merged or closed PRs yet"
-          : `${stats.merged.toLocaleString()} of ${(
-              stats.merged + stats.closedUnmerged
-            ).toLocaleString()} reviewed PRs merged`,
+          : translator.translatePlural(
+              {
+                one: "{{merged}} of {{count}} reviewed PR merged",
+                other: "{{merged}} of {{count}} reviewed PRs merged",
+              },
+              stats.merged + stats.closedUnmerged,
+              { merged: translator.formatNumber(stats.merged) },
+            ),
       valueClassName: "text-gray-900",
     },
     /*
@@ -201,7 +217,14 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
       hint:
         stats.verifiedGreenRatePercent === null
           ? "No merged PRs yet"
-          : `${stats.verifiedGreen.toLocaleString()} of ${stats.merged.toLocaleString()} merged with CI green`,
+          : translator.translatePlural(
+              {
+                one: "{{verified}} of {{count}} merged with CI green",
+                other: "{{verified}} of {{count}} merged with CI green",
+              },
+              stats.merged,
+              { verified: translator.formatNumber(stats.verifiedGreen) },
+            ),
       valueClassName: "text-gray-900",
     },
   ];

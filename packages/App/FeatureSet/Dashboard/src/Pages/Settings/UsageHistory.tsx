@@ -15,12 +15,15 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<TelemetryUsageBilling>
@@ -160,17 +163,28 @@ const Settings: FunctionComponent<ComponentProps> = (
               }
 
               const typeLabels: Record<string, string> = {
-                [ServiceType.Host]: "Host telemetry",
-                [ServiceType.DockerHost]: "Docker host telemetry",
-                [ServiceType.PodmanHost]: "Podman host telemetry",
-                [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
-                [ServiceType.DatabaseServer]: "Database telemetry",
+                [ServiceType.Host]: translationKey("Host telemetry"),
+                [ServiceType.DockerHost]: translationKey(
+                  "Docker host telemetry",
+                ),
+                [ServiceType.PodmanHost]: translationKey(
+                  "Podman host telemetry",
+                ),
+                [ServiceType.KubernetesCluster]: translationKey(
+                  "Kubernetes telemetry",
+                ),
+                [ServiceType.DatabaseServer]:
+                  translationKey("Database telemetry"),
               };
               const label: string | undefined = primaryEntityType
                 ? typeLabels[primaryEntityType]
                 : undefined;
               if (label) {
-                return <div className="text-gray-700">{label}</div>;
+                return (
+                  <div className="text-gray-700">
+                    {translator.translateText(label)}
+                  </div>
+                );
               }
 
               return <div className="text-gray-400">—</div>;
@@ -184,9 +198,12 @@ const Settings: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: TelemetryUsageBilling) => {
               return (
-                <div>{`${item[
-                  "retainTelemetryDataForDays"
-                ]?.toString()} Days`}</div>
+                <div>
+                  {translator.translatePlural(
+                    { one: "{{count}} Day", other: "{{count}} Days" },
+                    Number(item["retainTelemetryDataForDays"] || 0),
+                  )}
+                </div>
               );
             },
           },

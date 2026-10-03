@@ -5,6 +5,8 @@ import HtmlWidgetDocument from "Common/Utils/Dashboard/HtmlWidgetDocument";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHtmlComponent;
@@ -13,6 +15,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { html, css, javascript, allowScripts, allowForms, allowPopups } =
     props.component.arguments;
 
@@ -77,7 +80,9 @@ const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
   if (isEmpty) {
     return (
       <div className="flex items-center justify-center h-full">
-        <span className="text-gray-300 text-sm">No HTML configured</span>
+        <span className="text-gray-300 text-sm">
+          {translator.translateText("No HTML configured")}
+        </span>
       </div>
     );
   }
@@ -90,7 +95,7 @@ const DashboardHtmlComponentElement: FunctionComponent<ComponentProps> = (
        * identical srcDoc does not reload a frame.
        */
       key={`html-widget-${props.componentId.toString()}-${props.refreshTick ?? 0}`}
-      title="HTML widget"
+      title={translator.translateText("HTML widget")}
       srcDoc={srcDoc}
       sandbox={sandbox}
       referrerPolicy="no-referrer"

@@ -1,7 +1,9 @@
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 /*
  * The dashboard's text about subscribers unsubscribing themselves: the
  * 'Unsubscribed At' column and filter on the five subscriber lists, the
- * warning about adding a shared address as one subscriber, and the notice of
+ * advice about adding a shared address as one subscriber, and the notice of
  * subscribers the team added that have since unsubscribed.
  *
  * Why it matters: every notification carries an unsubscribe link that works
@@ -21,15 +23,23 @@
 
 export const SubscriberUnsubscribeCopy: {
   unsubscribedAtTitle: string;
-  sharedAddressWarning: string;
+  sharedAddressAdvice: string;
   recentlyUnsubscribedTitle: string;
   recentlyUnsubscribedDescription: string;
   recentlyUnsubscribedItem: string;
   recentlyUnsubscribedMore: string;
 } = {
   unsubscribedAtTitle: "Unsubscribed At",
-  sharedAddressWarning:
-    "Add people by their own addresses where you can. Anyone who receives mail at a shared address, such as a mailing list like site03-all@, can unsubscribe it for everyone who reads it. When a subscriber your team added unsubscribes, this status page's owners and the person who added it are emailed.",
+  /*
+   * One sentence in the email fields' description (one subscriber, and Add
+   * in Bulk). It was a three-sentence warning box under the field, there on
+   * every visit whatever was typed; the email to the page's owners when a
+   * subscriber the team added unsubscribes, and the notice above the list,
+   * are unchanged.
+   */
+  sharedAddressAdvice: translationKey(
+    "Use people's own addresses where you can: anyone who reads a shared address, such as a mailing list, can unsubscribe it for everyone.",
+  ),
   recentlyUnsubscribedTitle: "Subscribers your team added have unsubscribed",
   recentlyUnsubscribedDescription:
     "These subscribers were added by your team and unsubscribed in the last 30 days, so they no longer receive this status page's notifications. If one was a shared address, such as a mailing list, make sure the people who still need these notifications are subscribed.",

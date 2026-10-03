@@ -50,6 +50,9 @@ import {
   WorkflowStepTraceWarning,
 } from "../../../Types/Workflow/StepTrace";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   trace: WorkflowStepTrace;
@@ -103,6 +106,7 @@ interface PortChipProps {
 const PortChip: FunctionComponent<PortChipProps> = (
   props: PortChipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const chip: ReactElement = (
     <span
       className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${
@@ -112,7 +116,7 @@ const PortChip: FunctionComponent<PortChipProps> = (
       }`}
       data-testid="workflow-run-step-port"
     >
-      {props.title}
+      {translator.translateText(props.title)}
     </span>
   );
 
@@ -120,7 +124,11 @@ const PortChip: FunctionComponent<PortChipProps> = (
     return chip;
   }
 
-  return <Tooltip text={props.description}>{chip}</Tooltip>;
+  return (
+    <Tooltip text={translator.translateText(props.description) || ""}>
+      {chip}
+    </Tooltip>
+  );
 };
 
 interface NextStepLabelProps {
@@ -139,13 +147,18 @@ interface NextStepLabelProps {
 const NextStepLabel: FunctionComponent<NextStepLabelProps> = (
   props: NextStepLabelProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const didRun: boolean = props.next.stepNumber !== null;
 
   return (
     <span data-testid="workflow-run-step-next">
       {didRun && (
         <>
-          <span className="text-gray-500">Step {props.next.stepNumber}</span>{" "}
+          <span className="text-gray-500">
+            {translator.translateTemplate("Step {{number}}", {
+              number: props.next.stepNumber || 0,
+            })}
+          </span>{" "}
         </>
       )}
       <span className="font-medium text-gray-900">{props.next.title}</span>{" "}
@@ -155,7 +168,9 @@ const NextStepLabel: FunctionComponent<NextStepLabelProps> = (
       {!didRun && (
         <>
           {" "}
-          <span className="text-gray-500">{props.notRunLabel}</span>
+          <span className="text-gray-500">
+            {translator.translateText(props.notRunLabel)}
+          </span>
         </>
       )}
       {props.isFollowed && <span className="text-gray-500">,</span>}
@@ -178,6 +193,7 @@ interface StepOutcomeLineProps {
 const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
   props: StepOutcomeLineProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const outcome: StepOutcome = props.outcome;
 
   if (outcome.kind === StepOutcomeKind.NoPort || !outcome.portTitle) {
@@ -191,7 +207,7 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
         className="text-sm text-gray-600"
         data-testid="workflow-run-step-outcome"
       >
-        Took no output, so the run ended here.
+        {translator.translateText("Took no output, so the run ended here.")}
       </p>
     );
   }
@@ -201,11 +217,32 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
       className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm"
       data-testid="workflow-run-step-outcome"
     >
-      <span className="text-gray-500">Took</span>{" "}
-      <PortChip
-        title={outcome.portTitle}
-        description={outcome.portDescription}
-        tone={outcome.portTone}
+      <TranslatedSentence
+        template="Took {{port}}"
+        slots={{
+          port: (
+            <PortChip
+              title={outcome.portTitle}
+              description={outcome.portDescription}
+              tone={outcome.portTone}
+            />
+          ),
+        }}
+        renderText={(text: string): ReactElement => {
+          /*
+           * The words in a span of their own, so the row's gap spaces them.
+           * The spaces around them stay as text: a flex row does not draw
+           * them, but they keep "Took" and the output apart for anything
+           * that reads the line out.
+           */
+          return (
+            <>
+              {text.trimStart() === text ? "" : " "}
+              <span className="text-gray-500">{text.trim()}</span>
+              {text.trimEnd() === text ? "" : " "}
+            </>
+          );
+        }}
       />
       {outcome.kind === StepOutcomeKind.LedTo && (
         <>
@@ -213,7 +250,9 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
           <span aria-hidden="true" className="text-gray-400">
             →
           </span>{" "}
-          <span className="sr-only">which led to</span>{" "}
+          <span className="sr-only">
+            {translator.translateText("which led to")}
+          </span>{" "}
           {outcome.nextSteps.map(
             (next: StepOutcomeNextStep, nextIndex: number) => {
               return (
@@ -234,9 +273,11 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
         <>
           {" "}
           <span className="text-gray-600">
-            {props.isLastStep
-              ? "Nothing is connected to it, so the run ended here."
-              : "Nothing is connected to it, so this branch ended here."}
+            {translator.translateText(
+              props.isLastStep
+                ? "Nothing is connected to it, so the run ended here."
+                : "Nothing is connected to it, so this branch ended here.",
+            )}
           </span>
         </>
       )}
@@ -251,6 +292,8 @@ interface StatusBadgeProps {
 const StatusBadge: FunctionComponent<StatusBadgeProps> = (
   props: StatusBadgeProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
@@ -260,7 +303,7 @@ const StatusBadge: FunctionComponent<StatusBadgeProps> = (
       }`}
       data-testid="workflow-run-step-status"
     >
-      {props.isFailed ? "Failed" : "Succeeded"}
+      {translator.translateText(props.isFailed ? "Failed" : "Succeeded")}
     </span>
   );
 };
@@ -277,10 +320,15 @@ interface ValueTextProps {
 const ValueText: FunctionComponent<ValueTextProps> = (
   props: ValueTextProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const value: TraceValueDisplay = props.value;
 
   if (value.kind === TraceValueKind.EmptyText) {
-    return <span className="text-xs italic text-gray-500">Empty text</span>;
+    return (
+      <span className="text-xs italic text-gray-500">
+        {translator.translateText("Empty text")}
+      </span>
+    );
   }
 
   if (value.kind === TraceValueKind.Null) {
@@ -347,13 +395,17 @@ interface ValueSectionProps {
 const ValueSection: FunctionComponent<ValueSectionProps> = (
   props: ValueSectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div>
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-        {props.title}
+        {translator.translateText(props.title)}
       </p>
       {props.rows.length === 0 ? (
-        <p className="text-sm text-gray-500">{props.emptyText}</p>
+        <p className="text-sm text-gray-500">
+          {translator.translateText(props.emptyText)}
+        </p>
       ) : (
         /*
          * Name beside value from sm up, so a step with six short arguments
@@ -380,7 +432,7 @@ const ValueSection: FunctionComponent<ValueSectionProps> = (
                       className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
                       data-testid="workflow-run-step-unresolved"
                     >
-                      Did not resolve
+                      {translator.translateText("Did not resolve")}
                     </span>
                   )}
                 </dt>
@@ -391,7 +443,12 @@ const ValueSection: FunctionComponent<ValueSectionProps> = (
                       className="mt-1 text-xs text-gray-500"
                       data-testid="workflow-run-step-template"
                     >
-                      from <TemplateText text={row.template} />
+                      <TranslatedSentence
+                        template="from {{template}}"
+                        slots={{
+                          template: <TemplateText text={row.template} />,
+                        }}
+                      />
                     </p>
                   )}
                 </dd>
@@ -418,6 +475,7 @@ interface StepItemProps {
 const StepItem: FunctionComponent<StepItemProps> = (
   props: StepItemProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(
     shouldStepStartOpen(props.trace, props.index),
   );
@@ -477,7 +535,11 @@ const StepItem: FunctionComponent<StepItemProps> = (
           }}
         >
           <span className="min-w-0 flex-1">
-            <span className="sr-only">Step {props.index + 1}: </span>
+            <span className="sr-only">
+              {translator.translateTemplate("Step {{number}}:", {
+                number: props.index + 1,
+              })}{" "}
+            </span>
             <span className="block break-words text-sm font-semibold text-gray-900">
               {title}
             </span>
@@ -517,7 +579,9 @@ const StepItem: FunctionComponent<StepItemProps> = (
                 className="mt-0.5 h-4 w-4 shrink-0 text-red-500"
               />
               <div className="min-w-0 text-sm">
-                <p className="font-medium text-red-800">This step failed</p>
+                <p className="font-medium text-red-800">
+                  {translator.translateText("This step failed")}
+                </p>
                 <p className="mt-0.5 whitespace-pre-wrap break-words text-red-700">
                   {errorMessage}
                 </p>
@@ -585,12 +649,15 @@ interface RunStoppedProps {
 const RunStopped: FunctionComponent<RunStoppedProps> = (
   props: RunStoppedProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const note: ReactElement = (
     <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
       <p className="text-sm font-semibold text-red-800">
-        {props.hasSteps
-          ? "The run stopped here"
-          : "The run stopped before its first step"}
+        {translator.translateText(
+          props.hasSteps
+            ? "The run stopped here"
+            : "The run stopped before its first step",
+        )}
       </p>
       <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-red-700">
         {props.message}
@@ -624,19 +691,25 @@ interface RunSleepingProps {
 const RunSleeping: FunctionComponent<RunSleepingProps> = (
   props: RunSleepingProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <li className={TIMELINE_ITEM_CLASS} data-testid="workflow-run-sleeping">
       <div aria-hidden="true" className={`${TIMELINE_DOT_CLASS} bg-indigo-500`}>
         <Icon icon={IconProp.Clock} className="h-4 w-4 text-white" />
       </div>
       <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
-        <p className="text-sm font-semibold text-indigo-800">Sleeping</p>
+        <p className="text-sm font-semibold text-indigo-800">
+          {translator.translateText("Sleeping")}
+        </p>
         <p className="mt-0.5 text-sm text-indigo-700">
-          The run carries on by itself at{" "}
-          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            props.resumesAt,
+          {translator.translateTemplate(
+            "The run carries on by itself at {{time}}. The steps after the Sleep have not run yet.",
+            {
+              time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                props.resumesAt,
+              ),
+            },
           )}
-          . The steps after the Sleep have not run yet.
         </p>
       </div>
     </li>
@@ -646,6 +719,7 @@ const RunSleeping: FunctionComponent<RunSleepingProps> = (
 const StepTraceViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const steps: Array<WorkflowStepTraceEntry> = getTraceSteps(props.trace);
   const runErrorMessage: string | null =
     typeof props.trace?.runErrorMessage === "string" &&
@@ -663,10 +737,10 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
    * and otherwise the run stopped before it.
    */
   const notRunLabel: string = singleStepRun
-    ? "(not run in this test)"
+    ? translationKey("(not run in this test)")
     : resumesAt
-      ? "(not run yet)"
-      : "(did not run)";
+      ? translationKey("(not run yet)")
+      : translationKey("(did not run)");
 
   if (steps.length === 0) {
     if (runErrorMessage) {
@@ -676,15 +750,18 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
     if (props.isRunning) {
       return (
         <p className="text-sm text-gray-500">
-          The steps show here once the run finishes.
+          {translator.translateText(
+            "The steps show here once the run finishes.",
+          )}
         </p>
       );
     }
 
     return (
       <p className="text-sm text-gray-500">
-        This run has no recorded steps. Runs from before step recording was
-        added show only their full log.
+        {translator.translateText(
+          "This run has no recorded steps. Runs from before step recording was added show only their full log.",
+        )}
       </p>
     );
   }
@@ -701,11 +778,13 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-4 w-4 shrink-0 text-blue-500"
           />
           <div className="min-w-0 text-sm">
-            <p className="font-medium text-blue-800">Only this step ran</p>
+            <p className="font-medium text-blue-800">
+              {translator.translateText("Only this step ran")}
+            </p>
             <p className="mt-0.5 text-blue-700">
-              This was a test of one step. The steps before it did not run, so
-              values it reads from them are missing, and the steps after it were
-              not started. Use Run Workflow to try the whole workflow.
+              {translator.translateText(
+                "This was a test of one step. The steps before it did not run, so values it reads from them are missing, and the steps after it were not started. Use Run Workflow to try the whole workflow.",
+              )}
             </p>
           </div>
         </div>
@@ -713,11 +792,20 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
 
       {props.trace.truncated && (
         <p className="text-sm text-amber-700">
-          Only the last {steps.length} steps of this run were kept.
+          {translator.translatePlural(
+            {
+              one: "Only the last {{count}} step of this run was kept.",
+              other: "Only the last {{count}} steps of this run were kept.",
+            },
+            steps.length,
+          )}
         </p>
       )}
 
-      <ol className="space-y-3" aria-label="Steps, in the order they ran">
+      <ol
+        className="space-y-3"
+        aria-label={translator.translateText("Steps, in the order they ran")}
+      >
         {steps.map((step: WorkflowStepTraceEntry, index: number) => {
           const isLastStep: boolean = index === steps.length - 1;
 

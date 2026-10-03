@@ -117,7 +117,7 @@ describe("PublishAllPackages", () => {
     expect(functionBody).not.toMatch(/^\s*cd \.\.\s*$/mu);
   });
 
-  it("compiles and tests the package in dedicated CI jobs", () => {
+  it("compiles and tests the package in CI from its own dependencies alone", () => {
     const compileWorkflow: string = fs.readFileSync(
       path.join(REPO_ROOT, ".github/workflows/compile.yml"),
       "utf8",
@@ -128,26 +128,48 @@ describe("PublishAllPackages", () => {
     );
 
     /*
-     * Each job installs the package's own dependencies first - a step of its
-     * own, through ./.github/actions/npm-install, which retries a network
-     * failure - and then compiles, or tests, the package.
+     * Each workflow installs the package's own dependencies first - a step of
+     * its own, through ./.github/actions/npm-install, which retries a network
+     * failure - and then compiles, or tests, the package. In the Compile
+     * workflow that is compile-recorders, the job for the SDKs published to
+     * npm, which installs neither Common nor App: the package customers
+     * install must build without either.
      */
     const install: RegExp =
       /uses: \.\/\.github\/actions\/npm-install\s+with:\s+working-directory: packages\/App\/FeatureSet\/MobileRecorder\s/;
-    const jobKey: RegExp = /\n {2}[A-Za-z0-9_-]+:\n/;
+    const compileCommand: string =
+      "cd packages/App/FeatureSet/MobileRecorder && npm run compile && npm run build";
+    const compileAt: number = compileWorkflow.indexOf(compileCommand);
+
+    // The job the compile belongs to: from its key line to the next job's.
+    const jobKeys: Array<RegExpMatchArray> = [
+      ...compileWorkflow.matchAll(/\n {2}([A-Za-z0-9_-]+):\n/g),
+    ];
+    const owner: RegExpMatchArray | undefined = jobKeys
+      .filter((key: RegExpMatchArray) => {
+        return (key.index as number) < compileAt;
+      })
+      .pop();
+    const next: RegExpMatchArray | undefined = jobKeys.find(
+      (key: RegExpMatchArray) => {
+        return (key.index as number) > compileAt;
+      },
+    );
+
+    expect(compileAt).toBeGreaterThan(-1);
+    expect(owner?.[1]).toBe("compile-recorders");
 
     const compileJob: string = compileWorkflow.slice(
-      compileWorkflow.indexOf("\n  compile-mobile-recorder:\n") + 1,
-    );
-    const compile: number = compileJob.indexOf(
-      "cd packages/App/FeatureSet/MobileRecorder && npm run compile && npm run build",
+      (owner?.index as number) + 1,
+      next ? (next.index as number) + 1 : undefined,
     );
 
-    expect(compileJob.startsWith("  compile-mobile-recorder:\n")).toBe(true);
     expect(compileJob.search(install)).toBeGreaterThan(-1);
-    expect(compile).toBeGreaterThan(compileJob.search(install));
-    // The install and the compile are both compile-mobile-recorder's steps.
-    expect(compileJob.slice(1, compile)).not.toMatch(jobKey);
+    expect(compileJob.indexOf(compileCommand)).toBeGreaterThan(
+      compileJob.search(install),
+    );
+    expect(compileJob).not.toMatch(/working-directory: packages\/Common\s/);
+    expect(compileJob).not.toMatch(/working-directory: packages\/App\s/);
 
     const test: number = testWorkflow.indexOf(
       "cd packages/App/FeatureSet/MobileRecorder && npm run test",

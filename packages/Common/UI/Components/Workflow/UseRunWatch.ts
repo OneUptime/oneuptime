@@ -13,6 +13,7 @@ import {
   RunWatchDecision,
   WatchedRun,
   decideRunWatch,
+  RUN_STARTING_MESSAGE,
   isFailedRunStatus,
 } from "./RunStatusWatcher";
 import {
@@ -205,7 +206,7 @@ const useRunWatch: UseRunWatchFunction = (
     watchGeneration.current = watchGeneration.current + 1;
 
     setHasFailed(false);
-    setMessage("Starting run…");
+    setMessage(RUN_STARTING_MESSAGE);
     setLogs("");
     setStepTrace(emptyTrace());
     setWatchedRun(null);

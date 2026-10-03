@@ -1,3 +1,4 @@
+import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import { CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE } from "Common/UI/Components/CustomFields/CustomFieldFormFields";
 
@@ -86,6 +87,90 @@ export const CustomFieldsPageCopy: {
     "Custom fields help you add new fields to your resources in OneUptime.",
   reorderDescription:
     "Custom fields help you add new fields to your resources in OneUptime. Drag a field to change where it appears.",
+};
+
+/*
+ * The custom field form. Creating a field asks for its name, its description
+ * and its type - and a dropdown's options - and nothing else: the maintainer,
+ * "The only thing I should see by default is: field name, field description,
+ * type. That's basically it." Whatever else a field can have is folded under
+ * Advanced (an incident field's settings, and on Edit where its value is
+ * copied from), and a field that copies its value from a monitor is made from
+ * the card's More menu, in a dialog that asks only what such a field needs.
+ */
+export const CustomFieldFormCopy: {
+  fieldTypeDescription: string;
+  dropdownOptionsDescription: string;
+  // Where a field's value comes from: the Edit form, under Advanced.
+  mapValueFromTitle: string;
+  mapValueFromDescription: string;
+  mapValueByHand: string;
+  fieldToCopyFromTitle: string;
+  fieldToCopyFromDescription: string;
+  // A new mapped field: the More menu item and its dialog.
+  createMappedFieldTitle: string;
+  createMappedFieldSubmit: string;
+  // An incident field's template variable, read only, under Advanced on Edit.
+  templateVariableTitle: string;
+  templateVariableDescription: string;
+  templateVariableNotLoaded: string;
+} = {
+  fieldTypeDescription:
+    "Choose how data is entered for this field. Dropdown types also need a list of options below.",
+  dropdownOptionsDescription:
+    "Add the options that should appear in the dropdown and optionally choose a color for each value.",
+  mapValueFromTitle: "Map Value From",
+  mapValueFromDescription:
+    "Copy this field's value from a related resource instead of typing it in on every record. The value is filled in when a record is created and refreshed whenever the source changes.",
+  mapValueByHand: "Enter values by hand",
+  fieldToCopyFromTitle: "Field To Copy From",
+  fieldToCopyFromDescription:
+    "Only fields of the same type can be copied. Clearing the source does not clear values that were already copied.",
+  createMappedFieldTitle: "Create Mapped Custom Field",
+  createMappedFieldSubmit: "Create Custom Field",
+  templateVariableTitle: "Template Variable",
+  templateVariableDescription:
+    "Use it in note templates and custom subscriber notification templates to show this field's value. It stays the same when the field is renamed.",
+  templateVariableNotLoaded:
+    "This field's template variable could not be loaded.",
+};
+
+/*
+ * What the mapped field dialog says about the resource a field copies its
+ * value from. A total Record, so a new source fails the compile here until
+ * its text is written - a dialog stitched together from the source's title
+ * could not be translated.
+ */
+export interface MappedCustomFieldSourceCopy {
+  // The source's option in the Edit form's Map Value From dropdown.
+  mapValueFromOption: string;
+  // What the More menu item does, on hover.
+  menuTooltip: string;
+  // The mapped field dialog.
+  dialogDescription: string;
+  sourceFieldTitle: string;
+  sourceFieldDescription: string;
+  sourceFieldPlaceholder: string;
+  noSourceFields: string;
+}
+
+export const MAPPED_CUSTOM_FIELD_SOURCE_COPY: Record<
+  CustomFieldMappingSourceResource,
+  MappedCustomFieldSourceCopy
+> = {
+  [CustomFieldMappingSourceResource.Monitor]: {
+    mapValueFromOption: "Copy from a monitor custom field",
+    menuTooltip:
+      "A field whose value is copied from a monitor custom field instead of being typed in.",
+    dialogDescription:
+      "A mapped field copies its value from a monitor custom field, so nobody has to type it in. The value is filled in from the monitor and kept up to date when it changes there.",
+    sourceFieldTitle: "Monitor Field",
+    sourceFieldDescription:
+      "The monitor custom field to copy. The new field gets its type and dropdown options.",
+    sourceFieldPlaceholder: "Select a monitor custom field",
+    noSourceFields:
+      "There are no monitor custom fields to copy yet. Add one under Monitors > Settings > Custom Fields first.",
+  },
 };
 
 export const CUSTOM_FIELDS_DESCRIPTION: string =

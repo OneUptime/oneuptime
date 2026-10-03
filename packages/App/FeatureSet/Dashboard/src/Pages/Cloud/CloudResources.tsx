@@ -39,6 +39,8 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import CloudDocumentationCard from "../../Components/Cloud/CloudDocumentationCard";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Picker options for the create form and the Platform filter. The label
@@ -65,6 +67,7 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
 const CloudResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -335,7 +338,9 @@ const CloudResources: FunctionComponent<
                   </AppLink>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
-                      account {account}
+                      {translator.translateTemplate("account {{account}}", {
+                        account: account,
+                      })}
                     </div>
                   )}
                 </div>
@@ -360,7 +365,7 @@ const CloudResources: FunctionComponent<
                   <span>
                     {platform
                       ? getManagedCloudPlatformLabel(platform)
-                      : "unknown"}
+                      : translator.translateText("unknown")}
                   </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">

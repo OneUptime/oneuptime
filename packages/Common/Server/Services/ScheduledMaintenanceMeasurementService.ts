@@ -8,6 +8,9 @@ import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMain
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import ScheduledMaintenanceMeasurementAnchorType from "../../Types/ScheduledMaintenance/ScheduledMaintenanceMeasurementAnchorType";
 import MeasurementDefinitionValidator from "../Utils/Measurement/MeasurementDefinitionValidator";
+import MeasurementKeyAssigner from "../Utils/Measurement/MeasurementKeyAssigner";
+import MeasurementStateReference from "../Utils/Measurement/MeasurementStateReference";
+import MeasurementDefinitionChange from "../Utils/Measurement/MeasurementDefinitionChange";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -51,7 +54,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    MeasurementDefinitionValidator.validateKey(createBy.data.key);
+    /*
+     * Made from the name when the create leaves the key out; a key that was
+     * sent must be valid and not another measurement's.
+     */
+    createBy.data.key = await MeasurementKeyAssigner.getKeyForCreate({
+      key: createBy.data.key,
+      name: createBy.data.name,
+      getKeysInProject: async (): Promise<Array<string>> => {
+        return await this.getKeysInProject(
+          createBy.data.projectId || createBy.props.tenantId,
+        );
+      },
+    });
 
     /*
      * Derived here rather than from the slug: DatabaseService generates the
@@ -65,8 +80,18 @@ export class Service extends DatabaseService<Model> {
       projectId: createBy.data.projectId!,
       startAnchorType: createBy.data.startAnchorType,
       endAnchorType: createBy.data.endAnchorType,
-      startStateId: createBy.data.startScheduledMaintenanceStateId,
-      endStateId: createBy.data.endScheduledMaintenanceStateId,
+      /*
+       * The dashboard's state picker sends the state as the relation,
+       * the API usually as the id: whichever the request has.
+       */
+      startStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.startScheduledMaintenanceStateId,
+        state: createBy.data.startScheduledMaintenanceState,
+      }),
+      endStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.endScheduledMaintenanceStateId,
+        state: createBy.data.endScheduledMaintenanceState,
+      }),
       startStateRole: createBy.data.startScheduledMaintenanceStateRole,
       endStateRole: createBy.data.endScheduledMaintenanceStateRole,
       startOccurrence: createBy.data.startStateOccurrence,
@@ -103,11 +128,19 @@ export class Service extends DatabaseService<Model> {
       "endAnchorType",
       "startScheduledMaintenanceStateId",
       "endScheduledMaintenanceStateId",
+      // The picked states, as the dashboard sends them.
+      "startScheduledMaintenanceState",
+      "endScheduledMaintenanceState",
       "startScheduledMaintenanceStateRole",
       "endScheduledMaintenanceStateRole",
       "startStateOccurrence",
       "endStateOccurrence",
       "isEnabled",
+      /*
+       * The unit is the number every chart point is written in
+       * (MeasurementMetricWriter), so changing it rewrites them all.
+       */
+      "unit",
     ];
 
     const touchesDefinition: boolean = definitionKeys.some((key: string) => {
@@ -130,11 +163,15 @@ export class Service extends DatabaseService<Model> {
         endScheduledMaintenanceStateRole: true,
         startStateOccurrence: true,
         endStateOccurrence: true,
+        isEnabled: true,
+        unit: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
     });
+
+    let changesDefinition: boolean = false;
 
     for (const existing of existingItems) {
       const merged: Record<string, unknown> = {
@@ -150,13 +187,61 @@ export class Service extends DatabaseService<Model> {
         endAnchorType: merged[
           "endAnchorType"
         ] as ScheduledMaintenanceMeasurementAnchorType,
-        startStateId: merged["startScheduledMaintenanceStateId"] as ObjectID,
-        endStateId: merged["endScheduledMaintenanceStateId"] as ObjectID,
+        startStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "startScheduledMaintenanceStateId",
+          stateKey: "startScheduledMaintenanceState",
+          storedStateId: existing.startScheduledMaintenanceStateId,
+        }),
+        endStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "endScheduledMaintenanceStateId",
+          stateKey: "endScheduledMaintenanceState",
+          storedStateId: existing.endScheduledMaintenanceStateId,
+        }),
         startStateRole: merged["startScheduledMaintenanceStateRole"] as string,
         endStateRole: merged["endScheduledMaintenanceStateRole"] as string,
         startOccurrence: merged["startStateOccurrence"] as string,
         endOccurrence: merged["endStateOccurrence"] as string,
       });
+
+      if (
+        MeasurementDefinitionChange.isChanged({
+          update: data,
+          stored: existing as unknown as Record<string, unknown>,
+          columns: [
+            "startAnchorType",
+            "endAnchorType",
+            "startScheduledMaintenanceStateRole",
+            "endScheduledMaintenanceStateRole",
+            "startStateOccurrence",
+            "endStateOccurrence",
+            "isEnabled",
+            "unit",
+          ],
+          pickedStates: [
+            {
+              stateIdKey: "startScheduledMaintenanceStateId",
+              stateKey: "startScheduledMaintenanceState",
+            },
+            {
+              stateIdKey: "endScheduledMaintenanceStateId",
+              stateKey: "endScheduledMaintenanceState",
+            },
+          ],
+        })
+      ) {
+        changesDefinition = true;
+      }
+    }
+
+    /*
+     * The dashboard's edit form sends every column on every save, a
+     * rename included. Only a value that differs from the stored one
+     * changes what the measurement means.
+     */
+    if (!changesDefinition) {
+      return { updateBy, carryForward: null };
     }
 
     /*
@@ -200,6 +285,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Every key the project's scheduled maintenance measurements hold, enabled
+   * or not, so a new one gets a key none of them has. Read as root: a key
+   * must not clash with one the creator is not allowed to see.
+   */
+  @CaptureSpan()
+  public async getKeysInProject(
+    projectId: ObjectID | undefined,
+  ): Promise<Array<string>> {
+    if (!projectId) {
+      return [];
+    }
+
+    const measurements: Array<Model> = await this.findBy({
+      query: { projectId: projectId },
+      select: { key: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return measurements
+      .map((measurement: Model) => {
+        return measurement.key;
+      })
+      .filter((key: string | undefined) => {
+        return Boolean(key);
+      }) as Array<string>;
+  }
+
+  /*
    * Every measurement metric name in the project, enabled or not.
    *
    * Disabled definitions must stay in this list: the tombstone pass diffs
@@ -232,8 +347,8 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     startAnchorType?: ScheduledMaintenanceMeasurementAnchorType | undefined;
     endAnchorType?: ScheduledMaintenanceMeasurementAnchorType | undefined;
-    startStateId?: ObjectID | undefined;
-    endStateId?: ObjectID | undefined;
+    startStateId?: string | undefined;
+    endStateId?: string | undefined;
     startStateRole?: string | undefined;
     endStateRole?: string | undefined;
     startOccurrence?: string | undefined;
@@ -247,8 +362,8 @@ export class Service extends DatabaseService<Model> {
         ScheduledMaintenanceMeasurementAnchorType.StateEntered,
       stateRoleEnteredAnchor:
         ScheduledMaintenanceMeasurementAnchorType.StateRoleEntered,
-      startStateId: data.startStateId?.toString(),
-      endStateId: data.endStateId?.toString(),
+      startStateId: data.startStateId,
+      endStateId: data.endStateId,
       startStateRole: data.startStateRole,
       endStateRole: data.endStateRole,
       startOccurrence: data.startOccurrence,
@@ -277,13 +392,13 @@ export class Service extends DatabaseService<Model> {
 
     const startState: ScheduledMaintenanceState | undefined = states.find(
       (state: ScheduledMaintenanceState) => {
-        return state._id?.toString() === data.startStateId!.toString();
+        return state._id?.toString() === data.startStateId;
       },
     );
 
     const endState: ScheduledMaintenanceState | undefined = states.find(
       (state: ScheduledMaintenanceState) => {
-        return state._id?.toString() === data.endStateId!.toString();
+        return state._id?.toString() === data.endStateId;
       },
     );
 

@@ -6,6 +6,7 @@ import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -25,8 +26,11 @@ import React, {
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Project from "Common/Models/DatabaseModels/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);
@@ -224,6 +228,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           actionButtons={[
             {
               title: "Show ID and Key",
+              icon: IconProp.Key,
               buttonStyleType: ButtonStyleType.NORMAL,
               // Reveals the probe's ID and secret key for copying - a utility, not the row's button.
               placement: ActionButtonPlacement.MoreMenu,
@@ -346,16 +351,22 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title={`Probe Key`}
             description={
               <div>
-                <span>Here is your probe key. Please keep this a secret.</span>
-                <br />
-                <br />
                 <span>
-                  <b>Probe ID: </b> {currentProbe["_id"]?.toString()}
+                  {translator.translateText(
+                    "Here is your probe key. Please keep this a secret.",
+                  )}
                 </span>
                 <br />
                 <br />
                 <span>
-                  <b>Probe Key: </b> {currentProbe["key"]?.toString()}
+                  <b>{translator.translateText("Probe ID:")} </b>{" "}
+                  {currentProbe["_id"]?.toString()}
+                </span>
+                <br />
+                <br />
+                <span>
+                  <b>{translator.translateText("Probe Key:")} </b>{" "}
+                  {currentProbe["key"]?.toString()}
                 </span>
               </div>
             }
@@ -407,13 +418,15 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: Project): ReactElement => {
                 return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
                   <span>
-                    Global probes disabled for new monitors. New monitors will
-                    not have Global Probes assigned by default.
+                    {translator.translateText(
+                      "Global probes disabled for new monitors. New monitors will not have Global Probes assigned by default.",
+                    )}
                   </span>
                 ) : (
                   <span>
-                    Global probes enabled for new monitors. New monitors will
-                    have Global Probes assigned by default.
+                    {translator.translateText(
+                      "Global probes enabled for new monitors. New monitors will have Global Probes assigned by default.",
+                    )}
                   </span>
                 );
               },

@@ -46,6 +46,7 @@ import {
   applyOAuthIdentityProviderPreset,
   getOAuthTokenUrlPlaceholderError,
 } from "./OAuthIdentityProviders";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 export interface OAuthTokenRefreshResult {
   expiresAt: Date | null;
@@ -154,7 +155,10 @@ export function getTokenRefreshDescription(
   }`;
 }
 
-// Rendered in the list's Type column, and on the variable's page.
+/*
+ * The Type field on the variable's own page. The variables list has no Type
+ * column; this page is where a variable's type is shown.
+ */
 export function getVariableTypeLabel(variable: WorkflowVariable): string {
   return isOAuth2WorkflowVariable(variable.variableType)
     ? "OAuth 2.0"
@@ -273,9 +277,15 @@ export function getVariableNameFormField(data: {
     fieldType: FormFieldSchemaType.Text,
     required: true,
     placeholder: "API_KEY",
-    description: `Workflows refer to this variable by name, as ${getWorkflowVariableReference(
-      { name: "THIS_NAME", isGlobal: data.isGlobal },
-    )}. Renaming it does not update workflows that already refer to the old name.`,
+    description: translateTemplate(
+      "Workflows refer to this variable by name, as {{reference}}. Renaming it does not update workflows that already refer to the old name.",
+      {
+        reference: getWorkflowVariableReference({
+          name: "THIS_NAME",
+          isGlobal: data.isGlobal,
+        }),
+      },
+    ),
     validation: {
       minLength: 2,
       noSpaces: true,

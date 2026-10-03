@@ -1,7 +1,9 @@
 import React, { FunctionComponent, ReactElement, useId } from "react";
+import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   icon?: IconProp | undefined;
@@ -26,11 +28,33 @@ export interface ComponentProps {
    * up with the labels of the items around it that do.
    */
   isIconSpaceReserved?: boolean | undefined;
+  /*
+   * A dot of this colour in the icon's place, for an item that picks a state,
+   * a severity or a monitor status: "Change state to" shows each state's
+   * colour the way the state dropdowns do. An icon, when given, wins.
+   */
+  color?: Color | string | undefined;
+  /*
+   * A mark in the icon's place, coloured like an icon, for an item whose
+   * button draws one that is not an icon: the H1 of a text editor's Heading
+   * 1. An icon, when given, wins.
+   */
+  iconElement?: ReactElement | undefined;
+  /*
+   * For an item that is one choice of several - a feed's sort order. Set to
+   * true or false, the item is a menuitemradio whose aria-checked says which
+   * choice is in use, so a screen reader hears what the tick on it shows.
+   * The tick itself is still the caller's icon, with isIconSpaceReserved
+   * keeping the other choices' labels in line. Left unset, the item is an
+   * ordinary menuitem.
+   */
+  isChecked?: boolean | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const isDisabled: boolean = Boolean(props.isDisabled);
   const isDestructive: boolean = Boolean(props.isDestructive);
   const reasonId: string = useId();
@@ -46,6 +70,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
    * to say stays natively disabled and is skipped, as before.
    */
   const isExplainedLock: boolean = isDisabled && Boolean(props.tooltip);
+
+  const dotColor: string | undefined =
+    props.color?.toString().trim() || undefined;
 
   const colorClassName: string = isDestructive
     ? "text-red-600"
@@ -72,7 +99,8 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
         props.className || ""
       }`}
-      role="menuitem"
+      role={props.isChecked === undefined ? "menuitem" : "menuitemradio"}
+      aria-checked={props.isChecked}
       tabIndex={-1}
       disabled={isDisabled && !isExplainedLock}
       aria-disabled={isDisabled}
@@ -96,11 +124,41 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           } ${props.iconClassName || ""}`}
         />
       )}
-      {!props.icon && props.isIconSpaceReserved && (
-        <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
+      {!props.icon && props.iconElement && (
+        <span
+          className={`mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center transition-colors duration-100 ${
+            isDestructive
+              ? `text-red-500 ${isDisabled ? "" : "group-hover:text-red-600"}`
+              : `text-gray-400 ${isDisabled ? "" : "group-hover:text-indigo-500"}`
+          }`}
+          aria-hidden="true"
+          data-testid="more-menu-item-mark"
+        >
+          {props.iconElement}
+        </span>
       )}
+      {!props.icon && !props.iconElement && dotColor && (
+        <span
+          className="mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center"
+          aria-hidden="true"
+          data-testid="more-menu-item-color"
+        >
+          <span
+            className="h-2.5 w-2.5 rounded-full border border-gray-200"
+            style={{ backgroundColor: dotColor }}
+          ></span>
+        </span>
+      )}
+      {!props.icon &&
+        !props.iconElement &&
+        !dotColor &&
+        props.isIconSpaceReserved && (
+          <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
+        )}
       <div className="flex w-full justify-between items-center">
-        <div className="font-medium">{props.text}</div>
+        <div className="font-medium">
+          {translateString(props.text) ?? props.text}
+        </div>
         <div>{props.rightElement}</div>
       </div>
     </button>
@@ -122,7 +180,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           {menuItem}
         </Tooltip>
         <span id={reasonId} className="sr-only">
-          {props.tooltip}
+          {translateString(props.tooltip) ?? props.tooltip}
         </span>
       </>
     );

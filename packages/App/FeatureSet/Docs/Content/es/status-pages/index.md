@@ -11,7 +11,7 @@ Las páginas de estado viven en **Páginas de Estado**, en la navegación izquie
 - **Se crea con dos campos.** Una página de estado nueva solo pide **Nombre** y **Descripción**. Los recursos, la marca y los dominios se configuran después.
 - **Los recursos son lo que ven los visitantes.** Cada fila de la página es un **Página de estado Recurso**: un monitor (o un grupo de monitores) con su propio nombre para mostrar, su información sobre herramientas y sus opciones de tiempo de actividad. Los grupos parten una página larga en secciones y se pueden anidar.
 - **Una URL de vista previa desde el primer día.** Toda página de estado recibe un enlace de vista previa para que puedas mirarla antes de que exista un dominio personalizado.
-- **Las rutas de cara al visitante dependen de los ajustes.** Los incidentes, los anuncios, los eventos programados y la página de suscripción aparecen solo cuando su interruptor en **Ajustes Avanzados** está activado.
+- **Las rutas de cara al visitante dependen de los ajustes.** Los incidentes, los episodios, los anuncios y los eventos programados aparecen solo mientras su interruptor en **Lo que muestra su página de estado** (en **Ajustes Avanzados**) está activado, y la página de suscripción solo mientras **Mostrar página de suscriptores** está activado.
 - **Tres formas de hacerla privada.** Usuarios privados, una contraseña maestra o SAML SSO / OIDC, más una lista blanca de IP.
 - **A los suscriptores se les avisa solo.** Los suscriptores por correo, SMS, Slack, Microsoft Teams y webhook pueden seguir una página, cada canal detrás de su propio interruptor.
 
@@ -98,38 +98,23 @@ Para saber qué pone un incidente en esta página y qué lo quita de ella, consu
 
 ## Elegir qué se muestra en la página
 
-Casi todos los interruptores de visualización están en el mismo sitio: **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**. Cada tarjeta tiene su propio botón **Edit Settings**.
+Lo que ven los visitantes se ajusta en una sola tarjeta: **Lo que muestra su página de estado**, en **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**. Tiene una fila por cada lista que la página puede mostrar, luego **Historial de tiempo de actividad** y la línea "Powered by OneUptime". No hay botón de editar: un interruptor se guarda en cuanto lo cambias, y un número de días cuando sales de su casilla o pulsas Intro.
 
-**Ajustes de incidentes**:
+- **Mostrar incidentes** (`showIncidentsOnStatusPage`) — activado de forma predeterminada. Debajo, **Mostrar … días de historial** (`showIncidentHistoryInDays`, predeterminado 14) fija hasta dónde llega hacia atrás la lista de incidentes, y **Mostrar etiquetas de incidentes** (`showIncidentLabelsOnStatusPage`) está desactivado de forma predeterminada.
+- **Mostrar solo incidentes limitados a esta página** (`onlyShowScopedIncidents`) — también en la fila de incidentes, desactivado de forma predeterminada. Con él activado, la página solo muestra los incidentes limitados a ella con **Limitar a estas páginas de estado**, y solo avisa a sus suscriptores de esos. También decide qué incidentes traen sus episodios a la página, por eso sigue visible cuando **Mostrar incidentes** está desactivado.
+- **Mostrar episodios** (`showEpisodesOnStatusPage`) — activado de forma predeterminada, con **Mostrar … días de historial** (`showEpisodeHistoryInDays`, predeterminado 14) y **Mostrar etiquetas de episodios** (`showEpisodeLabelsOnStatusPage`, desactivado de forma predeterminada). Los episodios son un modelo propio con sus propios endpoints, no una vista de los incidentes.
+- **Mostrar anuncios** (`showAnnouncementsOnStatusPage`) — activado de forma predeterminada, con **Mostrar … días de historial** (`showAnnouncementHistoryInDays`, predeterminado 14).
+- **Mostrar eventos de mantenimiento programado** (`showScheduledMaintenanceEventsOnStatusPage`) — activado de forma predeterminada, con **Mostrar … días de historial** (`showScheduledEventHistoryInDays`, predeterminado 14) y **Mostrar etiquetas de eventos** (`showScheduledEventLabelsOnStatusPage`, desactivado de forma predeterminada).
+- **Historial de tiempo de actividad** — **Mostrar … días de historial** (`showUptimeHistoryInDays`) es la longitud de la barra de tiempo de actividad que hay junto a cada recurso. El valor predeterminado es 90 y tiene que estar entre 1 y 90. Cada opción **Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** de un recurso o un grupo lee este número.
+- **Mostrar la marca Powered By OneUptime** — activado de forma predeterminada, así que el pie del visitante dice "Powered by OneUptime". Desactívalo para ocultar la línea. La columna lo guarda al revés, como `hidePoweredByOneUptimeBranding`.
 
-- **Mostrar incidentes** (`showIncidentsOnStatusPage`) — activado de forma predeterminada. Desactivarlo también quita el elemento **Incidencias** de la navegación.
-- **Mostrar historial de incidentes (en días)** (`showIncidentHistoryInDays`) — hasta dónde llega hacia atrás la lista de incidentes. El valor predeterminado es 14.
-- **Mostrar etiquetas de incidentes** (`showIncidentLabelsOnStatusPage`) — desactivado de forma predeterminada.
+**Una lista desactivada** desaparece de la página, junto con su elemento de la barra de navegación si lo tiene; su endpoint público rechaza las solicitudes y los suscriptores de la página no reciben avisos de ese tipo de evento. Su fila muestra entonces solo su interruptor: hasta dónde llega una lista oculta, y si muestra etiquetas, no cambia nada.
 
-**Ajustes del episodio** — los mismos tres interruptores para los episodios de incidente: **Mostrar episodios** (`showEpisodesOnStatusPage`, activado de forma predeterminada), **Mostrar historial de episodios (en días)** (predeterminado 14) y **Mostrar etiquetas de episodios** (desactivado de forma predeterminada). Los episodios son un modelo propio con sus propios endpoints, no una vista de los incidentes.
+**Planes.** En OneUptime Cloud, junto a un ajuste que tu plan no permite cambiar aparece el plan que hace falta. Los cuatro interruptores de listas, los tres de etiquetas y el historial de episodios necesitan **Growth**; ocultar la línea "Powered by OneUptime" necesita **Scale**. Las demás ventanas de historial, **Historial de tiempo de actividad** y **Mostrar solo incidentes limitados a esta página** se pueden cambiar con cualquier plan, y cada ajuste se guarda por separado.
 
-**Ajustes del anuncio**:
+Si la página muestra un elemento **Suscribirse** (**Mostrar página de suscriptores**, `showSubscriberPageOnStatusPage`, activado de forma predeterminada) y por qué canales pueden suscribirse los visitantes no se ajusta en esta pantalla: ambas cosas están en la tarjeta **Canales** de **Suscriptores → Ajustes de Suscriptores** (consulta [Suscriptores y anuncios](/docs/status-pages/subscribers)).
 
-- **Mostrar anuncios** (`showAnnouncementsOnStatusPage`) — activado de forma predeterminada.
-- **Mostrar historial de anuncios (en días)** (`showAnnouncementHistoryInDays`) — predeterminado 14.
-
-**Ajustes de evento programado**:
-
-- **Mostrar eventos de mantenimiento programado** (`showScheduledMaintenanceEventsOnStatusPage`) — activado de forma predeterminada.
-- **Mostrar historial de eventos programados (en días)** (`showScheduledEventHistoryInDays`) — predeterminado 14.
-- **Mostrar etiquetas de eventos** (`showScheduledEventLabelsOnStatusPage`) — desactivado de forma predeterminada.
-
-**Ajustes del historial de tiempo de actividad**:
-
-- **Mostrar historial de tiempo de actividad (en días)** (`showUptimeHistoryInDays`) — la longitud de la barra de tiempo de actividad que hay junto a cada recurso. El valor predeterminado es 90 y tiene que estar entre 1 y 90. Cada opción **Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** de un recurso o un grupo lee este número.
-
-**Ajustes de Suscriptores**:
-
-- **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado de forma predeterminada, junto con los cinco interruptores de habilitación por canal. Esos mismos interruptores de canal aparecen también en la pantalla dedicada **Ajustes de Suscriptores**, bajo la sección **Suscriptores**; trata esa como el sitio canónico para tocarlos.
-
-**Marca "Powered By OneUptime"**:
-
-- **Ocultar la marca Powered By OneUptime** — desactivado de forma predeterminada, así que el pie del visitante dice "Powered by OneUptime" hasta que lo actives.
+Debajo de la tarjeta están una tarjeta que exporta los ajustes de la página de estado a un archivo JSON que puedes volver a importar y la tarjeta para archivar la página de estado.
 
 **Dónde están los colores.** Los colores de la barra de tiempo de actividad no están aquí: el **Color de barra predeterminado**, las reglas de color de las barras, los **Estados de monitor de tiempo de inactividad** y **Mostrar porcentaje de tiempo de actividad general** viven todos en **Páginas de Estado → tu página → Marca → Página de Vista General**. No hay ningún ajuste de tema ni de color de marca en ninguna parte; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
 

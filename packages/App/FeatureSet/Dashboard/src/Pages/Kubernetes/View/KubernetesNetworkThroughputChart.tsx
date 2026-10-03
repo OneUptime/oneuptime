@@ -29,6 +29,8 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { useEmbeddedMetricCardRefreshNonce } from "../../../Components/Metrics/EmbeddedMetricCardRefresh";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export const NETWORK_THROUGHPUT_SKELETON_TEST_ID: string =
   "chart-loading-skeleton";
@@ -74,6 +76,7 @@ interface LoadedThroughput {
 const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const zoom: ChartTimeRangeZoomContextValue | null = useChartTimeRangeZoom();
   // null until the first load lands.
   const [loaded, setLoaded] = useState<LoadedThroughput | null>(null);
@@ -203,7 +206,9 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
           style={{ height: `${heightInPx}px` }}
           onDoubleClick={zoom?.onTimeRangeReset}
         >
-          No network traffic reported for the selected time range.
+          {translator.translateText(
+            "No network traffic reported for the selected time range.",
+          )}
         </div>
       );
     }
@@ -270,7 +275,10 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 shrink-0 text-red-500"
           />
           <span>
-            Couldn&apos;t refresh — showing previously loaded data. {error}
+            {translator.translateTemplate(
+              "Couldn't refresh — showing previously loaded data. {{error}}",
+              { error: error },
+            )}
           </span>
         </div>
       ) : null}
@@ -284,7 +292,7 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
               icon={IconProp.Refresh}
               className="h-3 w-3 animate-spin text-gray-400"
             />
-            Refreshing
+            {translator.translateText("Refreshing")}
           </div>
         ) : null}
         <div

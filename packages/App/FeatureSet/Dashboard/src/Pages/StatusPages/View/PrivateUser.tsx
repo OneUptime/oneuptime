@@ -5,7 +5,6 @@ import Email from "Common/Types/Email";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -30,10 +29,13 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [isMasterPasswordEnabled, setIsMasterPasswordEnabled] =
     useState<boolean>(false);
@@ -230,10 +232,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             {
               title: "Add in Bulk",
               buttonStyle: ButtonStyleType.OUTLINE,
+              icon: IconProp.UserGroup,
               onClick: () => {
                 setShowBulkAddModal(true);
               },
-            } as CardButtonSchema,
+            },
           ],
         }}
         noItemsMessage={"No private users created for this status page."}
@@ -323,8 +326,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               {bulkActionInProgress ? (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-500">
-                    Please wait while private users are being added. This may
-                    take a moment.
+                    {translator.translateText(
+                      "Please wait while private users are being added. This may take a moment.",
+                    )}
                   </p>
                   <ProgressBar
                     count={bulkProgress.completed}
@@ -344,11 +348,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                           color={Green}
                         />
                         <div className="ml-2 text-sm font-medium text-green-800">
-                          {bulkProgress.succeeded}{" "}
-                          {bulkProgress.succeeded === 1
-                            ? "private user"
-                            : "private users"}{" "}
-                          added successfully
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} private user added successfully",
+                              other:
+                                "{{count}} private users added successfully",
+                            },
+                            bulkProgress.succeeded,
+                          )}
                         </div>
                       </div>
                     )}
@@ -360,11 +367,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                           color={Red}
                         />
                         <div className="ml-2 text-sm font-medium text-red-800">
-                          {bulkProgress.failed.length}{" "}
-                          {bulkProgress.failed.length === 1
-                            ? "private user"
-                            : "private users"}{" "}
-                          failed
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} private user failed",
+                              other: "{{count}} private users failed",
+                            },
+                            bulkProgress.failed.length,
+                          )}
                         </div>
                       </div>
                     )}
@@ -376,11 +385,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                           color={Yellow}
                         />
                         <div className="ml-2 text-sm font-medium text-yellow-800">
-                          {bulkProgress.skippedInvalid.length} invalid{" "}
-                          {bulkProgress.skippedInvalid.length === 1
-                            ? "email"
-                            : "emails"}{" "}
-                          skipped
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} invalid email skipped",
+                              other: "{{count}} invalid emails skipped",
+                            },
+                            bulkProgress.skippedInvalid.length,
+                          )}
                         </div>
                       </div>
                     )}

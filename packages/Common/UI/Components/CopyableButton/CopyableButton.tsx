@@ -1,6 +1,8 @@
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -10,6 +12,7 @@ export interface ComponentProps {
 const CopyableButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [copiedToClipboard, setCopyToClipboard] = useState<boolean>(false);
 
   const refreshCopyToClipboardState: VoidFunction = (): void => {
@@ -42,14 +45,14 @@ const CopyableButton: FunctionComponent<ComponentProps> = (
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
-      aria-label={
-        copiedToClipboard ? "Copied to clipboard" : "Copy to clipboard"
-      }
+      aria-label={translator.translateText(
+        copiedToClipboard ? "Copied to clipboard" : "Copy to clipboard",
+      )}
       aria-live="polite"
     >
       {" "}
       {copiedToClipboard ? (
-        "Copied to Clipboard"
+        translator.translateText("Copied to Clipboard")
       ) : (
         <Tooltip text="Copy to Clipboard">
           <Icon

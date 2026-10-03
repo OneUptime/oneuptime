@@ -10,6 +10,8 @@ import React, {
 } from "react";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import TelemetrySearchSuggestions from "./TelemetrySearchSuggestions";
 import TelemetrySearchHelp from "./TelemetrySearchHelp";
 import { SearchHelpRow } from "../types";
@@ -66,6 +68,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
     props: TelemetrySearchBarProps,
     ref: React.Ref<TelemetrySearchBarRef>,
   ): ReactElement => {
+    const translator: Translator = useTranslator();
     const [isFocused, setIsFocused] = useState<boolean>(false);
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
     const [showHelp, setShowHelp] = useState<boolean>(false);
@@ -423,7 +426,9 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
               setIsFocused(false);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={props.placeholder || "Search..."}
+            placeholder={translator.translateText(
+              props.placeholder || "Search...",
+            )}
             /*
              * min-w-0 below md: an input's default minimum is its intrinsic
              * ~20ch width, so in a narrow box on a phone it overflowed and its
@@ -440,8 +445,8 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
             <div
               className="flex-none text-indigo-500"
               role="status"
-              aria-label="Loading results"
-              title="Loading results..."
+              aria-label={translator.translateText("Loading results")}
+              title={translator.translateText("Loading results...")}
             >
               <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
             </div>
@@ -456,7 +461,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
                 setShowSuggestions(false);
                 inputRef.current?.focus();
               }}
-              title="Clear search"
+              title={translator.translateText("Clear search")}
             >
               <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
             </button>

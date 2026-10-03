@@ -13,7 +13,39 @@ import { Green, Red } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
+import {
+  PluralTemplate,
+  TranslatableTerm,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
+
+/*
+ * The bulk-action bar's sentences. The labels are the table's English nouns,
+ * translated with the sentence; the count picks the language's plural form.
+ */
+export const BULK_SELECTED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} Selected",
+  other: "{{count}} {{itemsName}} Selected",
+};
+
+export const BULK_SUCCEEDED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} succeeded",
+  other: "{{count}} {{itemsName}} succeeded",
+};
+
+export const BULK_FAILED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} failed",
+  other: "{{count}} {{itemsName}} failed",
+};
+
+export const BULK_SELECTION_LIMIT: PluralTemplate = {
+  one: "Selected {{selected}} of {{count}} matching {{itemName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
+  other:
+    "Selected {{selected}} of {{count}} matching {{itemsName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
+};
 
 export interface BulkActionFailed<T extends GenericObject> {
   failedMessage: string | ReactElement;
@@ -43,7 +75,11 @@ export interface BulkActionOnClickProps<T extends GenericObject> {
 
 export interface BulkActionButtonSchema<T extends GenericObject> {
   title: string;
-  icon?: undefined | IconProp;
+  /*
+   * Required: every item in the Bulk Actions menu has an icon, as every item
+   * in a row's ⋯ menu does (see ActionButtonSchema).
+   */
+  icon: IconProp;
   buttonStyleType: ButtonStyleType;
   isLoading?: boolean | undefined;
   isVisible?: (items: Array<T>) => boolean | undefined;
@@ -106,6 +142,14 @@ const BulkUpdateForm: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  // The bar writes the table's labels as given: "2 Monitors succeeded".
+  const itemTerm: TranslatableTerm = translatableTerm(props.singularLabel);
+  const itemsTerm: TranslatableTerm = translatableTerm(props.pluralLabel);
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
   const [confirmModalProps, setConfirmModalProps] =
     React.useState<ConfirmModalProps | null>(null);
 
@@ -176,7 +220,7 @@ const BulkUpdateForm: <T extends GenericObject>(
       setConfirmModalProps({
         title: button.confirmTitle
           ? button.confirmTitle(props.selectedItems)
-          : "Confirm",
+          : tx("Confirm"),
         description: button.confirmMessage(props.selectedItems),
         children: button.confirmDetails?.(props.selectedItems),
         submitButtonType: button.confirmButtonStyleType,
@@ -235,8 +279,9 @@ const BulkUpdateForm: <T extends GenericObject>(
       return (
         <div className="space-y-4">
           <p className="text-sm text-gray-500">
-            Please wait while the bulk action is being performed. This may take
-            a moment.
+            {tx(
+              "Please wait while the bulk action is being performed. This may take a moment.",
+            )}
           </p>
           <ProgressBar
             count={
@@ -266,11 +311,15 @@ const BulkUpdateForm: <T extends GenericObject>(
                   color={Green}
                 />
                 <div className="ml-2 text-sm font-medium text-green-800">
-                  {progressInfo.successItems.length}{" "}
-                  {progressInfo.successItems.length === 1
-                    ? props.singularLabel
-                    : props.pluralLabel}{" "}
-                  succeeded
+                  {translator.translatePlural(
+                    BULK_SUCCEEDED_COUNT,
+                    progressInfo.successItems.length,
+                    {
+                      count: String(progressInfo.successItems.length),
+                      itemName: itemTerm,
+                      itemsName: itemsTerm,
+                    },
+                  )}
                 </div>
               </div>
             )}
@@ -282,11 +331,15 @@ const BulkUpdateForm: <T extends GenericObject>(
                   color={Red}
                 />
                 <div className="ml-2 text-sm font-medium text-red-800">
-                  {progressInfo.failed.length}{" "}
-                  {progressInfo.failed.length === 1
-                    ? props.singularLabel
-                    : props.pluralLabel}{" "}
-                  failed
+                  {translator.translatePlural(
+                    BULK_FAILED_COUNT,
+                    progressInfo.failed.length,
+                    {
+                      count: String(progressInfo.failed.length),
+                      itemName: itemTerm,
+                      itemsName: itemsTerm,
+                    },
+                  )}
                 </div>
               </div>
             )}
@@ -364,16 +417,20 @@ const BulkUpdateForm: <T extends GenericObject>(
                   className="h-4 w-4 text-indigo-600"
                 />
                 <span>
-                  {props.selectedItems.length}{" "}
                   {/*
                    * The singular when there is one of them. The badge is the
                    * one sentence in this bar that is always on screen, and
                    * "1 resources Selected" reads as a bug in the count.
                    */}
-                  {props.selectedItems.length === 1
-                    ? props.singularLabel
-                    : props.pluralLabel}{" "}
-                  Selected
+                  {translator.translatePlural(
+                    BULK_SELECTED_COUNT,
+                    props.selectedItems.length,
+                    {
+                      count: String(props.selectedItems.length),
+                      itemName: itemTerm,
+                      itemsName: itemsTerm,
+                    },
+                  )}
                 </span>
               </div>
 
@@ -407,9 +464,12 @@ const BulkUpdateForm: <T extends GenericObject>(
                     className="h-3.5 w-3.5"
                   />
                   <span>
-                    {props.isSelectingAllItems
-                      ? `Selecting All ${props.pluralLabel}...`
-                      : `Select All ${props.pluralLabel}`}
+                    {translator.translateTemplate(
+                      props.isSelectingAllItems
+                        ? "Selecting All {{itemsName}}..."
+                        : "Select All {{itemsName}}",
+                      { itemsName: itemsTerm },
+                    )}
                   </span>
                 </button>
               )}
@@ -423,7 +483,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-red-50 hover:border-red-300 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
-                <span>Clear Selection</span>
+                <span>{tx("Clear Selection")}</span>
               </button>
             </div>
 
@@ -436,7 +496,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                         icon={IconProp.Bolt}
                         className="h-4 w-4 text-gray-500"
                       />
-                      <span>Bulk Actions</span>
+                      <span>{tx("Bulk Actions")}</span>
                       <Icon
                         icon={IconProp.ChevronDown}
                         className="h-3.5 w-3.5 text-gray-400 ml-0.5"
@@ -452,12 +512,16 @@ const BulkUpdateForm: <T extends GenericObject>(
 
           {showLimitWarning && (
             <div className="mt-2 text-xs text-gray-500">
-              Selected {props.selectedItems.length.toLocaleString()} of{" "}
-              {totalMatchingItemsCount.toLocaleString()} matching{" "}
-              {props.pluralLabel}. You can only select{" "}
-              {LIMIT_PER_PROJECT.toLocaleString()} {props.pluralLabel} at a
-              time, for performance reasons, so bulk actions will apply to the
-              selected {props.selectedItems.length.toLocaleString()} only.
+              {translator.translatePlural(
+                BULK_SELECTION_LIMIT,
+                totalMatchingItemsCount,
+                {
+                  selected: translator.formatNumber(props.selectedItems.length),
+                  limit: translator.formatNumber(LIMIT_PER_PROJECT),
+                  itemName: itemTerm,
+                  itemsName: itemsTerm,
+                },
+              )}
             </div>
           )}
 

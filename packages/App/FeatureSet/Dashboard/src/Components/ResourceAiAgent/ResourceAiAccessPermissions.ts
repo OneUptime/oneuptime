@@ -11,6 +11,10 @@ import PermissionGate, {
 import User from "Common/UI/Utils/User";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import { RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS } from "./ResourceAiAccessSettingsUtil";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the signed-in user may do on a resource's AI pages, read from the
@@ -109,9 +113,15 @@ export function getResourceAccessTestPermissionGate(
 export function getResourceAccessTestPermissionRequirement(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `Testing the connection needs permission to edit this ${descriptor.noun} (one of: ${PermissionGate.getPermissionTitles(
-    new descriptor.modelType().getUpdatePermissions(),
-  ).join(", ")}).`;
+  return translateTemplate(
+    "Testing the connection needs permission to edit this {{noun}} (one of: {{permissions}}).",
+    {
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+      permissions: PermissionGate.getPermissionTitles(
+        new descriptor.modelType().getUpdatePermissions(),
+      ).join(", "),
+    },
+  );
 }
 
 /*
@@ -121,5 +131,11 @@ export function getResourceAccessTestPermissionRequirement(
 export function getResourceAccessTestPermissionMessage(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `${getResourceAccessTestPermissionRequirement(descriptor)} Nothing on the ${descriptor.noun} or in its AI settings was changed.`;
+  return translateTemplate(
+    "{{requirement}} Nothing on the {{noun}} or in its AI settings was changed.",
+    {
+      requirement: getResourceAccessTestPermissionRequirement(descriptor),
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+    },
+  );
 }

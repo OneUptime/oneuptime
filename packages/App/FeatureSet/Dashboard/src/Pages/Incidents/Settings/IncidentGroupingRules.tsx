@@ -484,6 +484,9 @@ const IncidentGroupingRulesPage: FunctionComponent<
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -698,6 +701,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "Episode Role Assignments",
             stepId: "on-call-ownership",
+            // Writes only the roles someone fills in.
+            customElementCanBeSkipped: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             spanFullRow: true,

@@ -12,6 +12,9 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
 import { MonitorOverviewSetupKind } from "Common/Utils/Monitor/MonitorOverviewFamily";
 import React, { FunctionComponent, ReactElement } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -20,13 +23,16 @@ export interface ComponentProps {
 }
 
 const CARD_TITLE: Record<MonitorOverviewSetupKind, string> = {
-  [MonitorOverviewSetupKind.HeartbeatUrl]: "Heartbeat URL",
-  [MonitorOverviewSetupKind.InboundEmail]: "Inbound email address",
-  [MonitorOverviewSetupKind.ServerAgent]: "Server agent",
+  [MonitorOverviewSetupKind.HeartbeatUrl]: translationKey("Heartbeat URL"),
+  [MonitorOverviewSetupKind.InboundEmail]: translationKey(
+    "Inbound email address",
+  ),
+  [MonitorOverviewSetupKind.ServerAgent]: translationKey("Server agent"),
 };
 
-const HIDDEN_SECRET_TEXT: string =
-  "Only people who can edit monitors can see this, because it contains the monitor's secret key.";
+const HIDDEN_SECRET_TEXT: string = translationKey(
+  "Only people who can edit monitors can see this, because it contains the monitor's secret key.",
+);
 
 /*
  * Where a push-based monitor gets its data from, once data is arriving: the
@@ -36,6 +42,7 @@ const HIDDEN_SECRET_TEXT: string =
 const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitor: Monitor = props.monitor;
 
   type GetValueRowFunction = (value: string) => ReactElement;
@@ -69,17 +76,23 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
 
       return (
         <p className="text-sm text-gray-700">
-          {"Host "}
-          {hostname ? (
-            <span
-              data-testid="monitor-connection-value"
-              className="break-all font-mono text-gray-900"
-            >
-              {hostname}
-            </span>
-          ) : (
-            <span className="text-gray-500">not reported yet</span>
-          )}
+          <TranslatedSentence
+            template="Host {{hostname}}"
+            slots={{
+              hostname: hostname ? (
+                <span
+                  data-testid="monitor-connection-value"
+                  className="break-all font-mono text-gray-900"
+                >
+                  {hostname}
+                </span>
+              ) : (
+                <span className="text-gray-500">
+                  {translator.translateText("not reported yet")}
+                </span>
+              ),
+            }}
+          />
         </p>
       );
     }
@@ -90,7 +103,11 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
     });
 
     if (!secretKey) {
-      return <p className="text-sm text-gray-500">{HIDDEN_SECRET_TEXT}</p>;
+      return (
+        <p className="text-sm text-gray-500">
+          {translator.translateText(HIDDEN_SECRET_TEXT)}
+        </p>
+      );
     }
 
     if (props.kind === MonitorOverviewSetupKind.InboundEmail) {
@@ -102,8 +119,9 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
       if (!address) {
         return (
           <p className="text-sm text-gray-500">
-            Inbound email is not configured on this server, so this monitor has
-            no address yet.
+            {translator.translateText(
+              "Inbound email is not configured on this server, so this monitor has no address yet.",
+            )}
           </p>
         );
       }
@@ -117,12 +135,19 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
   type GetMetaFunction = () => ReactElement;
 
   const getMeta: GetMetaFunction = (): ReactElement => {
-    let label: string = "Last report";
+    // Whole sentences per kind: with the time, and when there is none.
+    let label: { at: string; none: string } = {
+      at: translationKey("Last report {{time}}"),
+      none: translationKey("Last report: none yet"),
+    };
     let at: Date | undefined = undefined;
     let suffix: string = "";
 
     if (props.kind === MonitorOverviewSetupKind.HeartbeatUrl) {
-      label = "Last request";
+      label = {
+        at: translationKey("Last request {{time}}"),
+        none: translationKey("Last request: none yet"),
+      };
       at = MonitorCheckScheduleUtil.parseDate(
         monitor.incomingMonitorRequest?.incomingRequestReceivedAt,
       );
@@ -130,7 +155,10 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
         ? ` · ${monitor.incomingMonitorRequest.requestMethod}`
         : "";
     } else if (props.kind === MonitorOverviewSetupKind.InboundEmail) {
-      label = "Last email";
+      label = {
+        at: translationKey("Last email {{time}}"),
+        none: translationKey("Last email: none yet"),
+      };
       at = MonitorCheckScheduleUtil.parseDate(
         monitor.incomingEmailMonitorLastEmailReceivedAt,
       );
@@ -147,12 +175,14 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
       >
         {at ? (
           <>
-            {`${label} `}
-            <RelativeTime date={at} />
+            <TranslatedSentence
+              template={label.at}
+              slots={{ time: <RelativeTime date={at} /> }}
+            />
             {suffix}
           </>
         ) : (
-          <>{`${label}: none yet`}</>
+          <>{translator.translateTemplate(label.none)}</>
         )}
       </p>
     );

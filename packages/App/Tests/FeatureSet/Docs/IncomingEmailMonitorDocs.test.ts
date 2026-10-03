@@ -262,7 +262,9 @@ describe("What the section tells readers to click", () => {
       readDashboard(
         "Components/Monitor/SummaryView/IncomingEmailMonitorSummaryView.tsx",
       ),
-    ).toContain('lastEmailReceivedAt = "No email yet";');
+    ).toContain(
+      'lastEmailReceivedAt = translator.translateTemplate("No email yet");',
+    );
   });
 
   test("says the HTML body is shown as source, which is true", () => {

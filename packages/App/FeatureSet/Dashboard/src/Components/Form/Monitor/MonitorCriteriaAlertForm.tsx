@@ -26,6 +26,8 @@ import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariab
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
 import { hasAlertAdvancedOptions } from "./CriteriaAdvancedOptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaAlert;
@@ -40,6 +42,7 @@ export interface ComponentProps {
 const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [criteriaAlert, setCriteriaAlert] = React.useState<CriteriaAlert>(
     props.initialValue || {
       title: "",
@@ -104,7 +107,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       }}
       className="underline text-blue-600 hover:text-blue-800"
     >
-      Learn about dynamic templates
+      {translator.translateText("Learn about dynamic templates")}
     </button>
   );
 
@@ -126,7 +129,12 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Alert Title"
-            description={<span>Title for the alert. {templateDocsLink}</span>}
+            description={
+              <span>
+                {translator.translateText("Title for the alert.")}{" "}
+                {templateDocsLink}
+              </span>
+            }
             required={true}
           />
           <Input

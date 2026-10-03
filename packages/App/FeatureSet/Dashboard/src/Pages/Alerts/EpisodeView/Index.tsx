@@ -55,10 +55,13 @@ import {
 } from "../../../Components/EpisodeView/EpisodeTiming";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const AlertEpisodeView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -167,8 +170,11 @@ const AlertEpisodeView: FunctionComponent<
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem({
           modelType: AlertEpisode,
@@ -316,14 +322,17 @@ const AlertEpisodeView: FunctionComponent<
           className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
         >
           <span className="min-w-0 break-words">
-            {`Couldn't refresh episode timings: ${refreshError}`}
+            {translator.translateTemplate(
+              "Couldn't refresh episode timings: {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <button
             type="button"
             onClick={refreshInPlace}
             className="rounded-sm font-medium underline underline-offset-2 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
           >
-            Try again
+            {translator.translateText("Try again")}
           </button>
         </div>
       )}
@@ -331,13 +340,17 @@ const AlertEpisodeView: FunctionComponent<
       <EventStatBar columns={4} ariaLabel="Episode timing">
         <EventStatTile
           variant="segment"
-          label={`${timing.acknowledgedStateName} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: timing.acknowledgedStateName,
+          })}
           icon={IconProp.Check}
           value={timing.timeToAcknowledge}
         />
         <EventStatTile
           variant="segment"
-          label={`${timing.resolvedStateName} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: timing.resolvedStateName,
+          })}
           icon={IconProp.CheckCircle}
           value={timing.timeToResolve}
         />
@@ -463,6 +476,9 @@ const AlertEpisodeView: FunctionComponent<
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Episode Severity",
@@ -585,7 +601,9 @@ const AlertEpisodeView: FunctionComponent<
                       return <span>{item.alertGroupingRule.name}</span>;
                     }
 
-                    return <span>Manual Episode</span>;
+                    return (
+                      <span>{translator.translateText("Manual Episode")}</span>
+                    );
                   },
                 },
                 {
@@ -603,7 +621,7 @@ const AlertEpisodeView: FunctionComponent<
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span>System</span>;
+                    return <span>{translator.translateText("System")}</span>;
                   },
                 },
                 {

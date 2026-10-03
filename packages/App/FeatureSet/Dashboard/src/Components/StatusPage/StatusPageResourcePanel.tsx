@@ -935,7 +935,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           <MoreMenuItem
             key="show-group-id"
             text="Show group ID"
-            icon={IconProp.Info}
+            icon={IconProp.Identification}
             onClick={props.onShowGroupId}
           />,
         );

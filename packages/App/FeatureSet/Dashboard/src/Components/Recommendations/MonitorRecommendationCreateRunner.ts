@@ -1,4 +1,8 @@
 import { MonitorRecommendationCreatePlanItem } from "./MonitorRecommendationCreateUtil";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The batch-create loop, with React and the API client both kept out of it.
@@ -230,10 +234,6 @@ export default class MonitorRecommendationCreateRunner {
   public static getSummaryText(
     progress: MonitorRecommendationCreateProgress,
   ): string {
-    const monitorWord: (count: number) => string = (count: number): string => {
-      return count === 1 ? "monitor" : "monitors";
-    };
-
     /*
      * While it runs, the bar beside this line is already showing "N of M" and
      * a percentage — so the sentence does not repeat them. It answers the two
@@ -241,23 +241,38 @@ export default class MonitorRecommendationCreateRunner {
      * greyed out.
      */
     if (!progress.isComplete) {
-      return `Creating one monitor at a time so your notification rules are not flooded.`;
+      return translateTemplate(
+        "Creating one monitor at a time so your notification rules are not flooded.",
+      );
     }
 
     if (progress.failedCount === 0) {
-      return `Created ${progress.createdCount} ${monitorWord(
+      return translatePlural(
+        {
+          one: "Created {{count}} monitor.",
+          other: "Created {{count}} monitors.",
+        },
         progress.createdCount,
-      )}.`;
+      );
     }
 
     if (progress.createdCount === 0) {
-      return `None of the ${progress.totalCount} ${monitorWord(
+      return translatePlural(
+        {
+          one: "None of the {{count}} monitor could be created.",
+          other: "None of the {{count}} monitors could be created.",
+        },
         progress.totalCount,
-      )} could be created.`;
+      );
     }
 
-    return `Created ${progress.createdCount} of ${
-      progress.totalCount
-    } ${monitorWord(progress.totalCount)}. ${progress.failedCount} failed.`;
+    return translatePlural(
+      {
+        one: "Created {{created}} of {{count}} monitor. {{failed}} failed.",
+        other: "Created {{created}} of {{count}} monitors. {{failed}} failed.",
+      },
+      progress.totalCount,
+      { created: progress.createdCount, failed: progress.failedCount },
+    );
   }
 }

@@ -23,6 +23,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import { getDefaultEscalationRuleName } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import PositiveNumber from "../../Types/PositiveNumber";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
@@ -873,6 +874,23 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createBy.data.order = count.toNumber() + 1;
     }
 
+    /*
+     * A rule nobody named is called after its level: "Level 3" for the third
+     * rule of the policy. Adding a rule in the dashboard asks only who to
+     * notify and how long to wait, and the name it leaves out is this one -
+     * the form shows it as its placeholder. Done before the required-field
+     * check, which runs after this hook, so the column stays required for
+     * everything else that writes it.
+     */
+    if (!createBy.data.name || !createBy.data.name.toString().trim()) {
+      createBy.data.name = getDefaultEscalationRuleName(
+        await this.getLevelOfNewRule({
+          onCallDutyPolicyId: createBy.data.onCallDutyPolicyId,
+          order: createBy.data.order,
+        }),
+      );
+    }
+
     await this.rearrangeOrder(
       createBy.data.order,
       createBy.data.onCallDutyPolicyId,
@@ -883,6 +901,29 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The level a new rule with this order takes: one past every rule of the
+   * policy ordered before it. Rules at or after its order make room for it
+   * (rearrangeOrder), so they do not count. Counted rather than read off the
+   * order, which an API caller may leave with gaps.
+   */
+  private async getLevelOfNewRule(data: {
+    onCallDutyPolicyId: ObjectID;
+    order: number;
+  }): Promise<number> {
+    const rulesBefore: PositiveNumber = await this.countBy({
+      query: {
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
+        order: QueryHelper.lessThan(data.order),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return rulesBefore.toNumber() + 1;
   }
 
   @CaptureSpan()

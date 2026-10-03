@@ -19,6 +19,8 @@ import {
 } from "../Utils/CloudResourceTelemetryScope";
 import { CLOUD_INSTANCE_IDENTITY_ATTRIBUTES } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 import { CLOUD_INSTANCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The copy names the identity chain from the same constant ingest walks, so
@@ -31,6 +33,7 @@ const IDENTITY_ATTRIBUTE_LIST: string =
 const CloudResourceInstances: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,9 +59,18 @@ const CloudResourceInstances: FunctionComponent<
         selectMoreFields={{ latestCpuPercent: true, latestMemoryBytes: true }}
         cardProps={{
           title: "Instances",
-          description: `Running tasks, replicas and instances of this cloud environment, as last reported via OpenTelemetry. An instance is named from the first of these resource attributes its telemetry carries, platform identities first: ${IDENTITY_ATTRIBUTE_LIST}. Instances not seen in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} minutes are shown as Stale.`,
+          description: translator.translateTemplate(
+            "Running tasks, replicas and instances of this cloud environment, as last reported via OpenTelemetry. An instance is named from the first of these resource attributes its telemetry carries, platform identities first: {{attributes}}. Instances not seen in the last {{minutes}} minutes are shown as Stale.",
+            {
+              attributes: IDENTITY_ATTRIBUTE_LIST,
+              minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+            },
+          ),
         }}
-        noItemsMessage={`No instances reported yet. Instances appear when telemetry carries one of these resource attributes: ${IDENTITY_ATTRIBUTE_LIST}.`}
+        noItemsMessage={translator.translateTemplate(
+          "No instances reported yet. Instances appear when telemetry carries one of these resource attributes: {{attributes}}.",
+          { attributes: IDENTITY_ATTRIBUTE_LIST },
+        )}
         filters={[
           {
             field: { instanceName: true },
@@ -96,8 +108,14 @@ const CloudResourceInstances: FunctionComponent<
                   color={isLive ? Green : Gray500}
                   tooltip={
                     isLive
-                      ? `Seen in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} minutes`
-                      : `Not seen for more than ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} minutes`
+                      ? translator.translateTemplate(
+                          "Seen in the last {{minutes}} minutes",
+                          { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
+                        )
+                      : translator.translateTemplate(
+                          "Not seen for more than {{minutes}} minutes",
+                          { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
+                        )
                   }
                 />
               );

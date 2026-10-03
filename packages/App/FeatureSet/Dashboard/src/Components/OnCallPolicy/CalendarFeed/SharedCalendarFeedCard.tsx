@@ -48,6 +48,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -125,6 +127,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -578,7 +581,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
               },
               title: "Days of past shifts",
               stepId: "time-range",
-              description: `How many days back the calendar reaches (0 to ${MAX_PAST_DAYS}).`,
+              description: translator.translateTemplate(
+                "How many days back the calendar reaches (0 to {{max}}).",
+                { max: MAX_PAST_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {
@@ -592,7 +598,10 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
               },
               title: "Days ahead",
               stepId: "time-range",
-              description: `How far ahead the calendar reaches (${MIN_FUTURE_DAYS} to ${MAX_FUTURE_DAYS}).`,
+              description: translator.translateTemplate(
+                "How far ahead the calendar reaches ({{min}} to {{max}}).",
+                { min: MIN_FUTURE_DAYS, max: MAX_FUTURE_DAYS },
+              ),
               fieldType: FormFieldSchemaType.Number,
               required: true,
               validation: {

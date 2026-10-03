@@ -23,7 +23,6 @@ import {
   getTerraformProviderUrl,
   getTerraformProviderVersionConstraint,
   getTerraformResourceConfig,
-  getTerraformStarterHcl,
   TerraformOmissionReason,
   TerraformResourceConfig,
 } from "../../../Utils/DeveloperDocs/TerraformConfig";
@@ -503,37 +502,223 @@ describe("which attributes are safe to write", () => {
   });
 });
 
-describe("starting a new resource", () => {
-  test("a workflow needs only its name", () => {
-    expect(
-      getTerraformStarterHcl({ modelType: Workflow, singularName: "Workflow" }),
-    ).toBe(
+describe("the records a resource's ids point at", () => {
+  const SEVERITY_ID: string = "a0000001-0000-4000-8000-000000000001";
+  const STATUS_ID: string = "d0000002-0000-4000-8000-000000000002";
+  const MONITOR_IDS: Array<string> = [
+    "e0000001-0000-4000-8000-000000000001",
+    "e0000002-0000-4000-8000-000000000002",
+  ];
+  const NAMES: Record<string, string> = {
+    [SEVERITY_ID]: "Critical Incident",
+    [STATUS_ID]: "Degraded",
+    [MONITOR_IDS[0] as string]: "Checkout API",
+    [MONITOR_IDS[1] as string]: "Website",
+    [LABEL_ID]: "production",
+  };
+
+  function incidentConfig(
+    describeId?: ((id: string) => string | undefined) | undefined,
+  ): TerraformResourceConfig {
+    const config: TerraformResourceConfig | null = getTerraformResourceConfig({
+      modelType: Incident,
+      json: {
+        _id: "6e4f0a1c-1234-4b2c-9d8e-0123456789ab",
+        title: "Checkout requests are failing",
+        incidentSeverityId: { _type: "ObjectID", value: SEVERITY_ID },
+        changeMonitorStatusToId: STATUS_ID,
+        monitors: MONITOR_IDS.map((id: string) => {
+          return { _id: id };
+        }),
+        labels: [{ _id: LABEL_ID }],
+      },
+      describeId,
+    });
+
+    if (!config) {
+      throw new Error("No configuration for the incident");
+    }
+
+    return config;
+  }
+
+  test("are named in a comment after each id, lined up the way terraform fmt lines them up", () => {
+    const config: TerraformResourceConfig = incidentConfig(
+      (id: string): string | undefined => {
+        return NAMES[id];
+      },
+    );
+
+    expect(config.resourceHcl).toBe(
       [
-        'resource "oneuptime_workflow" "my_workflow" {',
-        '  name        = "My workflow"',
-        '  description = "Managed with Terraform"',
+        'resource "oneuptime_incident" "checkout_requests_are_failing" {',
+        '  title                = "Checkout requests are failing"',
+        `  incident_severity_id = "${SEVERITY_ID}" # Critical Incident`,
+        "  monitors = [",
+        `    "${MONITOR_IDS[0]}", # Checkout API`,
+        `    "${MONITOR_IDS[1]}", # Website`,
+        "  ]",
+        `  labels                      = ["${LABEL_ID}"] # production`,
+        `  change_monitor_status_to_id = "${STATUS_ID}"   # Degraded`,
         "}",
         "",
       ].join("\n"),
     );
   });
 
-  test("an incident asks for its severity", () => {
-    expect(
-      getTerraformStarterHcl({ modelType: Incident, singularName: "Incident" }),
-    ).toContain('incident_severity_id = "<incident severity id>"');
+  test("an id whose record the page does not know is written without one", () => {
+    const config: TerraformResourceConfig = incidentConfig(
+      (id: string): string | undefined => {
+        return id === SEVERITY_ID ? "Critical Incident" : undefined;
+      },
+    );
+
+    // Without names the monitors fit on one line, so every = lines up.
+    expect(config.resourceHcl).toContain(
+      `incident_severity_id        = "${SEVERITY_ID}" # Critical Incident`,
+    );
+    expect(config.resourceHcl).toContain(
+      `change_monitor_status_to_id = "${STATUS_ID}"\n`,
+    );
   });
 
-  test("a page can choose its own example values", () => {
-    expect(
-      getTerraformStarterHcl({
-        modelType: Monitor,
-        singularName: "Monitor",
-        exampleValues: {
-          monitorType: { kind: "string", value: "Manual" },
+  test("comments never change the configuration: without names it says the same", () => {
+    const named: string = incidentConfig((id: string) => {
+      return NAMES[id];
+    }).resourceHcl;
+    const plain: string = incidentConfig().resourceHcl;
+    // Only the layout may differ: a list whose items carry names is one per line.
+    const tokens: (hcl: string) => string = (hcl: string): string => {
+      return hcl.replace(/#[^\n]*/g, "").replace(/[\s,]+/g, "");
+    };
+
+    expect(plain).not.toContain("#");
+    expect(named).toContain("#");
+    expect(tokens(named)).toBe(tokens(plain));
+  });
+
+  test("a name cannot add a line to the configuration", () => {
+    const config: TerraformResourceConfig = incidentConfig(() => {
+      return 'evil\nresource "oneuptime_team" "x" {}';
+    });
+
+    expect(config.resourceHcl).not.toMatch(/^resource "oneuptime_team"/m);
+  });
+
+  test("the ids in a monitor's steps name their statuses and severities", () => {
+    const OFFLINE: string = "d0000003-0000-4000-8000-000000000003";
+    const config: TerraformResourceConfig | null = getTerraformResourceConfig({
+      modelType: Monitor,
+      json: {
+        _id: "1a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+        name: "Website",
+        monitorType: "Website",
+        monitorSteps: {
+          _type: "MonitorSteps",
+          value: {
+            monitorStepsInstanceArray: [
+              {
+                _type: "MonitorStep",
+                value: {
+                  monitorDestination: {
+                    _type: "URL",
+                    value: "https://example.com",
+                  },
+                  monitorCriteria: {
+                    _type: "MonitorCriteria",
+                    value: {
+                      monitorCriteriaInstanceArray: [
+                        {
+                          _type: "MonitorCriteriaInstance",
+                          value: {
+                            name: "Offline",
+                            filterCondition: "Any",
+                            monitorStatusId: OFFLINE,
+                            changeMonitorStatus: true,
+                            createIncidents: true,
+                            filters: [
+                              { checkOn: "Is Online", filterType: "False" },
+                            ],
+                            incidents: [
+                              {
+                                title: "Website is offline",
+                                incidentSeverityId: {
+                                  _type: "ObjectID",
+                                  value: SEVERITY_ID,
+                                },
+                                labelIds: [LABEL_ID],
+                              },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
         },
-      }),
-    ).toContain('monitor_type = "Manual"');
+      },
+      describeId: (id: string): string | undefined => {
+        return { ...NAMES, [OFFLINE]: "Offline" }[id];
+      },
+    });
+
+    expect(config).not.toBeNull();
+    expect(config!.resourceHcl).toContain(
+      `monitor_status_id     = "${OFFLINE}" # Offline`,
+    );
+    // Consecutive comments line up: the label list is two characters longer.
+    expect(config!.resourceHcl).toContain(
+      `incident_severity_id = "${SEVERITY_ID}"   # Critical Incident`,
+    );
+    expect(config!.resourceHcl).toContain(
+      `label_ids            = ["${LABEL_ID}"] # production`,
+    );
+  });
+});
+
+describe("attributes Terraform cannot set", () => {
+  test("a Kubernetes cluster's provider is left out, and the configuration says why", () => {
+    const cluster: KubernetesCluster = new KubernetesCluster();
+    cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
+    cluster.name = "production-us-east";
+    cluster.clusterIdentifier = "production-us-east";
+    cluster.provider = "EKS";
+
+    const config: TerraformResourceConfig = configFor(
+      cluster,
+      KubernetesCluster,
+    );
+
+    // `provider = "EKS"` in a resource block is Terraform's own meta-argument.
+    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
+    expect(config.resourceHcl).toContain(
+      "# Not set here, because Terraform reserves the name: provider.",
+    );
+    expect(config.omittedReserved).toEqual([
+      {
+        attributeName: "provider",
+        title: expect.any(String),
+        reason: TerraformOmissionReason.ReservedName,
+      },
+    ]);
+  });
+
+  test("a cluster without a provider says nothing about it", () => {
+    const cluster: KubernetesCluster = new KubernetesCluster();
+    cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
+    cluster.name = "production-us-east";
+    cluster.clusterIdentifier = "production-us-east";
+
+    const config: TerraformResourceConfig = configFor(
+      cluster,
+      KubernetesCluster,
+    );
+
+    expect(config.omittedReserved).toEqual([]);
+    expect(config.resourceHcl).not.toContain("reserves");
   });
 });
 
@@ -586,5 +771,14 @@ describe("looking a resource up by name", () => {
     ).toBe(
       'data "oneuptime_monitor" "api_health" {\n  name = "API Health"\n}\n',
     );
+  });
+
+  test("is not offered for a resource named by its title: the provider's lookup filters on name", () => {
+    expect(
+      getTerraformDataSourceByNameHcl({
+        modelType: Incident,
+        exampleName: "Checkout requests are failing",
+      }),
+    ).toBeNull();
   });
 });

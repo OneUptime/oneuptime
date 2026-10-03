@@ -342,6 +342,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         },
         incidentSeverity: {
           name: true,
+          color: true,
         },
         // Templates offer {{incidentState}}: the incident's state right now.
         currentIncidentState: {

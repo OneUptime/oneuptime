@@ -287,6 +287,18 @@ type StepThroughFunction = (data: {
 }) => Promise<void>;
 
 /*
+ * The one button of a multi-step form that reads Next: its main button
+ * while a step still to come asks for something, and the plain one beside
+ * the form's action once every step left is optional - when the main button
+ * would create the record from the step on screen.
+ */
+type NextButtonFunction = (form: Locator) => Locator;
+
+const nextButtonOf: NextButtonFunction = (form: Locator): Locator => {
+  return form.getByRole("button", { name: "Next", exact: true });
+};
+
+/*
  * Presses a multi-step form's Next until the step the caller is after
  * shows, waiting after each press for the step to change. Bounded: no form
  * here has ten steps. It never presses the button on the step it stops at,
@@ -652,7 +664,8 @@ test.describe("Incident template Custom Fields on Create", () => {
     });
     await createButton.click();
     const wizard: Locator = page.getByTestId("modal");
-    const next: Locator = wizard.getByTestId("modal-footer-submit-button");
+    const next: Locator = nextButtonOf(wizard);
+    const submit: Locator = wizard.getByTestId("modal-footer-submit-button");
 
     // Only the template's name, description and incident title are required.
     await wizard
@@ -693,10 +706,14 @@ test.describe("Incident template Custom Fields on Create", () => {
       option: "Hidden",
     });
 
-    // The steps after it (On-Call, Owners, Labels) are optional.
+    /*
+     * The steps after it (On-Call, Owners, Labels) are optional: the
+     * template could be created from here.
+     */
+    await expect(submit).toHaveText("Create Incident Template");
     await stepThrough({ form: wizard, next });
     expect(await isOnStep(wizard)).toBe(true);
-    await expect(next).toHaveText("Create Incident Template");
+    await expect(submit).toHaveText("Create Incident Template");
     await saveModal(page);
 
     /*
@@ -838,7 +855,10 @@ test.describe("Incident template Custom Fields on Create", () => {
     );
 
     const createForm: Locator = page.locator("#create-incident-form");
-    const next: Locator = page.locator("#create-incident-form-submit-button");
+    const next: Locator = nextButtonOf(createForm);
+    const declare: Locator = page.locator(
+      "#create-incident-form-submit-button",
+    );
 
     // Incident Details, prefilled from the template.
     const title: Locator = createForm.getByRole("textbox", { name: /^Title/ });
@@ -880,7 +900,12 @@ test.describe("Incident template Custom Fields on Create", () => {
     // Region starts from the template's value.
     await expect(createForm).toContainText(TEMPLATE_REGION);
 
-    // Required is enforced: the step does not move on without Impact.
+    /*
+     * Required is enforced: the step does not move on without Impact, and
+     * Declare Incident - on offer here, since every step after this one is
+     * optional - asks for it on this step instead of declaring.
+     */
+    await expect(declare).toHaveText("Declare Incident");
     await next.click();
     const impact: Locator = createForm.getByLabel(FIELDS.impact.name, {
       exact: true,
@@ -900,8 +925,8 @@ test.describe("Incident template Custom Fields on Create", () => {
     // On through the remaining steps to the last, where the button declares.
     await stepThrough({ form: createForm, next });
     expect(await isOnStep(createForm)).toBe(true);
-    await expect(next).toHaveText("Declare Incident");
-    await next.click();
+    await expect(declare).toHaveText("Declare Incident");
+    await declare.click();
 
     await expect(page).toHaveURL(
       new RegExp(

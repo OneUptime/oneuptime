@@ -8,6 +8,8 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useId } from "react";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Dropdown, {
   DropdownOption,
@@ -93,6 +95,7 @@ const RuleCriteriaBuilder: <TEntity>(
   props: ComponentProps<TEntity>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (text: string) => string = (text: string): string => {
     return translateString(text) ?? text;
   };
@@ -243,7 +246,12 @@ const RuleCriteriaBuilder: <TEntity>(
     } = {
       id: `rule-criteria-value-${index}`,
       dataTestId: `rule-criteria-value-${index}`,
-      ariaLabel: `Value for condition ${index + 1}`,
+      ariaLabel: translator.translateTemplate(
+        "Value for condition {{number}}",
+        {
+          number: index + 1,
+        },
+      ),
     };
     const error: string | undefined = problem || undefined;
 
@@ -393,7 +401,10 @@ const RuleCriteriaBuilder: <TEntity>(
         <div className="min-w-0">
           <Dropdown
             id={`rule-criteria-field-${index}`}
-            ariaLabel={`Criteria for condition ${index + 1}`}
+            ariaLabel={translator.translateTemplate(
+              "Criteria for condition {{number}}",
+              { number: index + 1 },
+            )}
             dataTestId={`rule-criteria-field-${index}`}
             className="relative w-full"
             isClearable={false}
@@ -427,7 +438,10 @@ const RuleCriteriaBuilder: <TEntity>(
         <div className="min-w-0 max-lg:col-start-2 max-lg:row-start-2">
           <Dropdown
             id={`rule-criteria-operator-${index}`}
-            ariaLabel={`Operator for condition ${index + 1}`}
+            ariaLabel={translator.translateTemplate(
+              "Operator for condition {{number}}",
+              { number: index + 1 },
+            )}
             dataTestId={`rule-criteria-operator-${index}`}
             className="relative w-full"
             isClearable={false}
@@ -473,7 +487,12 @@ const RuleCriteriaBuilder: <TEntity>(
           <Button
             title={RuleCriteriaCopy.removeCondition}
             tooltip={RuleCriteriaCopy.removeCondition}
-            ariaLabel={`Remove condition ${index + 1}`}
+            ariaLabel={translator.translateTemplate(
+              "Remove condition {{number}}",
+              {
+                number: index + 1,
+              },
+            )}
             dataTestId={`rule-criteria-delete-${index}`}
             icon={IconProp.Trash}
             buttonSize={ButtonSize.Small}

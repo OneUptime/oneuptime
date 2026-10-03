@@ -54,34 +54,45 @@ export interface ComponentProps {
 }
 
 /*
- * The track is the button itself. Every part of a switch has to be visible
- * to be usable (WCAG 1.4.11: 3:1 against what is next to it):
+ * The switch is drawn the way the rest of OneUptime draws its controls: a
+ * filled pill with a white knob that slides across it, no outline.
  *
- *   Off - a white track with a gray-500 outline and a gray-500 knob on the
- *         left. The outline is what says "this is a switch" on a white form
- *         (4.8:1). The old off state, a gray-200 pill with a white knob, was
- *         1.2:1 against the page and 1.2:1 between knob and track, so on a
- *         white modal it all but disappeared.
- *   On  - filled with the brand indigo, a white knob on the right carrying a
- *         tick, so "on" is told by shape as well as by colour.
+ *   Off - a gray-300 track, the grey every input, dropdown and checkbox in
+ *         the product has for its edge, with the white knob on the left.
+ *   On  - the brand indigo-600 of every primary button, the knob on the
+ *         right.
+ *
+ * The knob is the same white disc in both states, with the small shadow
+ * that sets it off the track; only its side changes. Which side it is on,
+ * and a track that goes from light grey to dark indigo (4.3:1 between the
+ * two), tell the states apart without telling them by hue alone.
+ *
+ * The outlined design before this one (a white track with a gray-500
+ * outline and a gray-500 dot that grew into a disc with a tick) did not
+ * look like anything else in the product. The pale gray-200 track before
+ * that one all but disappeared on a white form; gray-300 is the one step
+ * darker that keeps the classic look.
  *
  * The dark theme recolours these through the [data-ou-toggle-*] rules in
- * Common/UI/Styles/Theme.css: indigo-600 is under 3:1 on a dark card. Keep
+ * Common/UI/Styles/Theme.css: indigo-600 is under 3:1 on a dark card, and
+ * the theme's own gray-300 would be as light as the "on" indigo there. Keep
  * every colour class here a literal string, so that sheet and the suites
  * holding it to these classes can see it.
  */
 export const TOGGLE_TRACK_BASE_CLASS: string =
-  "relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border-2 transition-colors duration-200 ease-in-out motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2";
+  "relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
-export const TOGGLE_TRACK_OFF_CLASS: string = "border-gray-500 bg-white";
+export const TOGGLE_TRACK_OFF_CLASS: string = "bg-gray-300";
 
-export const TOGGLE_TRACK_ON_CLASS: string = "border-indigo-600 bg-indigo-600";
+export const TOGGLE_TRACK_ON_CLASS: string = "bg-indigo-600";
 
-// Hover only where a press would do something.
-export const TOGGLE_TRACK_OFF_HOVER_CLASS: string = "hover:border-gray-700";
+/*
+ * Hover only where a press would do something, one shade deeper in each
+ * state - on, the same indigo-700 a primary button deepens to.
+ */
+export const TOGGLE_TRACK_OFF_HOVER_CLASS: string = "hover:bg-gray-400";
 
-export const TOGGLE_TRACK_ON_HOVER_CLASS: string =
-  "hover:border-indigo-700 hover:bg-indigo-700";
+export const TOGGLE_TRACK_ON_HOVER_CLASS: string = "hover:bg-indigo-700";
 
 export const TOGGLE_TRACK_ENABLED_CLASS: string = "cursor-pointer";
 
@@ -93,20 +104,20 @@ export const TOGGLE_TRACK_DISABLED_CLASS: string =
   "cursor-not-allowed opacity-50";
 
 /*
- * The knob grows from a 14px dot to a 20px disc as it slides across, so the
- * state is told by size and position for anyone who cannot tell the colours
- * apart.
+ * 20px, filling the track's height inside its 2px clear border.
+ *
+ * Both clear borders are for Windows High Contrast (forced colours), which
+ * paints every background the page colour and drops shadows, but draws a
+ * transparent border in the text colour: the track keeps its outline there
+ * and the knob a ring of its own, so which side it is on still shows. With
+ * no border on the knob, on and off looked the same in that mode.
  */
 export const TOGGLE_KNOB_BASE_CLASS: string =
-  "pointer-events-none inline-flex transform items-center justify-center rounded-full transition-all duration-200 ease-in-out motion-reduce:transition-none";
+  "pointer-events-none inline-block h-5 w-5 rounded-full border border-transparent bg-white shadow transition duration-200 ease-in-out motion-reduce:transition-none";
 
-export const TOGGLE_KNOB_OFF_CLASS: string =
-  "h-3.5 w-3.5 translate-x-[3px] bg-gray-500";
+export const TOGGLE_KNOB_OFF_CLASS: string = "translate-x-0";
 
-export const TOGGLE_KNOB_ON_CLASS: string =
-  "h-5 w-5 translate-x-5 bg-white shadow";
-
-export const TOGGLE_CHECK_CLASS: string = "h-3 w-3 text-indigo-600";
+export const TOGGLE_KNOB_ON_CLASS: string = "translate-x-5";
 
 export interface ToggleClassNames {
   track: string;
@@ -284,24 +295,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
             aria-hidden="true"
             className={classNames.knob}
             data-ou-toggle-knob=""
-          >
-            {isChecked ? (
-              <svg
-                className={TOGGLE_CHECK_CLASS}
-                viewBox="0 0 12 12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                data-ou-toggle-check=""
-              >
-                <path d="M2.5 6.5 4.75 8.75 9.5 3.75" />
-              </svg>
-            ) : (
-              <></>
-            )}
-          </span>
+          />
         </button>
         {hasTitle || hasDescription || tooltip ? (
           <div className="min-w-0 flex-1">

@@ -4,30 +4,66 @@ import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { ReactElement } from "react";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Everything that decides how an insight LOOKS lives here — one label, one
  * glyph and one color per enum value — so the inbox list and the insight
  * detail page can never drift apart.
+ *
+ * The labels are English keys: the badges below translate them when they
+ * are drawn, and a caller that shows a label itself translates it there.
  */
 
 // Human labels for the wire-contract enum values (e.g. "NewException").
 export const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
-  [AIInsightType.NewException]: "New Exception",
-  [AIInsightType.ExceptionSpike]: "Exception Spike",
-  [AIInsightType.ErrorLogSpike]: "Error Log Spike",
-  [AIInsightType.TraceLatencyRegression]: "Latency Regression",
-  [AIInsightType.MetricDrift]: "Metric Drift",
+  [AIInsightType.NewException]: translationKey("New Exception"),
+  [AIInsightType.ExceptionSpike]: translationKey("Exception Spike"),
+  [AIInsightType.ErrorLogSpike]: translationKey("Error Log Spike"),
+  [AIInsightType.TraceLatencyRegression]: translationKey("Latency Regression"),
+  [AIInsightType.MetricDrift]: translationKey("Metric Drift"),
 };
 
 // Human labels for the wire-contract status values (e.g. "ActionRequired").
 export const STATUS_LABELS: Record<AIInsightStatus, string> = {
-  [AIInsightStatus.Detected]: "Detected",
-  [AIInsightStatus.ActionRequired]: "Needs Attention",
-  [AIInsightStatus.FixOpened]: "Fix Opened",
-  [AIInsightStatus.Resolved]: "Resolved",
-  [AIInsightStatus.Dismissed]: "Dismissed",
+  [AIInsightStatus.Detected]: translationKey("Detected"),
+  [AIInsightStatus.ActionRequired]: translationKey("Needs Attention"),
+  [AIInsightStatus.FixOpened]: translationKey("Fix Opened"),
+  [AIInsightStatus.Resolved]: translationKey("Resolved"),
+  [AIInsightStatus.Dismissed]: translationKey("Dismissed"),
+};
+
+// The severity values are words too; this is how each one reads.
+const SEVERITY_LABELS: Record<AIInsightSeverity, string> = {
+  [AIInsightSeverity.High]: translationKey("High"),
+  [AIInsightSeverity.Medium]: translationKey("Medium"),
+  [AIInsightSeverity.Low]: translationKey("Low"),
+};
+
+// A severity in the reader's language.
+const SeverityLabel: FunctionComponent<{
+  severity: AIInsightSeverity;
+}> = (props: { severity: AIInsightSeverity }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <>
+      {translator.translateText(
+        SEVERITY_LABELS[props.severity] || props.severity,
+      )}
+    </>
+  );
+};
+
+// One of the labels above, in the reader's language.
+const TranslatedLabel: FunctionComponent<{ text: string }> = (props: {
+  text: string;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return <>{translator.translateText(props.text)}</>;
 };
 
 const SEVERITY_BADGE_CLASSES: Record<AIInsightSeverity, string> = {
@@ -134,7 +170,7 @@ export function getInsightTypeElement(
   }
   return (
     <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-      {getInsightTypeLabel(insightType)}
+      <TranslatedLabel text={getInsightTypeLabel(insightType)} />
     </span>
   );
 }
@@ -157,7 +193,7 @@ export function getSeverityElement(
           SEVERITY_DOT_CLASSES[severity] || "bg-gray-400"
         }`}
       />
-      {severity}
+      <SeverityLabel severity={severity} />
     </span>
   );
 }
@@ -184,7 +220,7 @@ export function getSeverityInlineElement(
           SEVERITY_DOT_CLASSES[severity] || "bg-gray-400"
         }`}
       />
-      {severity}
+      <SeverityLabel severity={severity} />
     </span>
   );
 }
@@ -207,7 +243,7 @@ export function getStatusElement(
           STATUS_DOT_CLASSES[status] || "bg-gray-400"
         }`}
       />
-      {getStatusLabel(status)}
+      <TranslatedLabel text={getStatusLabel(status)} />
     </span>
   );
 }
@@ -219,7 +255,7 @@ export function getHumanVerdictElement(
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
         <Icon icon={IconProp.Check} className="h-3 w-3" />
-        Confirmed
+        <TranslatedLabel text={translationKey("Confirmed")} />
       </span>
     );
   }
@@ -227,7 +263,7 @@ export function getHumanVerdictElement(
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/20">
         <Icon icon={IconProp.Close} className="h-3 w-3" />
-        Dismissed
+        <TranslatedLabel text={translationKey("Dismissed")} />
       </span>
     );
   }

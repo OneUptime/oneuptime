@@ -1,14 +1,17 @@
 /*
  * The pure half of the workflow template picker: which templates it shows,
- * in what order, how search finds and ranks them, and what the preview says
- * about one. No React here, so every rule can be tested on its own.
+ * in what order, how search finds and ranks them, which one is picked, and
+ * what its details say. No React here, so every rule can be tested on its
+ * own.
  *
- * The picker this serves replaced a wall of forty-odd equally large cards,
- * all on screen at once, that the maintainer described as decision paralysis.
- * It now opens on a handful of recommended templates and keeps the rest
- * behind a short list of categories, each with its count, and a search that
- * reads words the way the Add Component picker does. Picking a template
- * shows what it does before anything is created.
+ * The picker started as a wall of forty-odd equally large cards. Its next
+ * version opened on a handful of recommended templates but kept a column of
+ * categories with counts, a list and a permanent preview side by side, and
+ * the maintainer found that too much as well: "extremely hard to use because
+ * it shows a lot of information on the modal". So now it shows little until
+ * asked: Start from scratch first, a few recommended templates as one-line
+ * rows, a search box and a category select, and the details of a template
+ * only once it is picked.
  */
 
 import IconProp from "Common/Types/Icon/IconProp";
@@ -72,35 +75,32 @@ export type WorkflowTemplatePickerView =
   | WorkflowTemplateCollection
   | WorkflowTemplateCategory;
 
+/*
+ * A view as the category select offers it. Only its name: the select is
+ * meant to be quiet, so it carries no icons, counts or descriptions.
+ */
 export interface WorkflowTemplatePickerViewInfo {
   view: WorkflowTemplatePickerView;
-  /** The name in the list of categories, and the list's heading. */
+  /** The option's name in the category select. */
   label: string;
-  /** One line under the heading. */
-  description: string;
-  icon: IconProp;
 }
 
 export const RECOMMENDED_VIEW_INFO: WorkflowTemplatePickerViewInfo = {
   view: WorkflowTemplateCollection.Recommended,
   label: "Recommended",
-  description: "A few good places to start.",
-  icon: IconProp.Star,
 };
 
 export const ALL_TEMPLATES_VIEW_INFO: WorkflowTemplatePickerViewInfo = {
   view: WorkflowTemplateCollection.All,
   label: "All templates",
-  description: "Every template, grouped by what it is for.",
-  icon: IconProp.Squares,
 };
 
 export type GetWorkflowTemplatePickerViewsFunction =
   () => Array<WorkflowTemplatePickerViewInfo>;
 
 /**
- * Every view, in the order the picker lists them: Recommended, then each
- * category in the catalog's display order, then All templates.
+ * Every view, in the order the category select lists them: Recommended, then
+ * each category in the catalog's display order, then All templates.
  */
 export const getWorkflowTemplatePickerViews: GetWorkflowTemplatePickerViewsFunction =
   (): Array<WorkflowTemplatePickerViewInfo> => {
@@ -116,8 +116,6 @@ export const getWorkflowTemplatePickerViews: GetWorkflowTemplatePickerViewsFunct
           return {
             view: category,
             label: info.label,
-            description: info.description,
-            icon: info.icon,
           };
         },
       ),
@@ -129,7 +127,7 @@ export type GetWorkflowTemplateCategoryLabelFunction = (
   category: WorkflowTemplateCategory,
 ) => string;
 
-/** The name the picker shows for a category, on its rows and in the preview too. */
+/** The name the picker shows for a category: in the select, and over its group in All templates. */
 export const getWorkflowTemplateCategoryLabel: GetWorkflowTemplateCategoryLabelFunction =
   (category: WorkflowTemplateCategory): string => {
     return getWorkflowTemplateCategoryInfo(category).label;
@@ -535,7 +533,7 @@ export const getWorkflowTemplateHighlightSegments: GetWorkflowTemplateHighlightS
 /*
  * Everything the picker remembers. It lives in the wizard, not in the picker,
  * so stepping back from Name finds the picker as it was left: the same
- * search, the same category and the same template highlighted.
+ * search, the same category and the same template picked.
  */
 export interface WorkflowTemplatePickerState {
   search: string;
@@ -544,15 +542,13 @@ export interface WorkflowTemplatePickerState {
   /** The view a search is narrowed to. A new search starts on All templates. */
   searchView: WorkflowTemplatePickerView;
   /**
-   * The template highlighted, previewed, and used by Enter or "Use this
-   * template". Null means the first one in the list.
+   * The template picked, by a click or the arrow keys: its details are
+   * open, and "Use this template" and Enter take it. Null when none has
+   * been, and then the picker shows no details at all while browsing - a
+   * template's details are there when asked for - and treats a search's
+   * best match as picked, so Enter after typing takes it.
    */
-  activeTemplateId: string | null;
-  /**
-   * Narrow screens have no room for the preview beside the list, so opening
-   * a template shows its preview in the list's place, with a way back.
-   */
-  isPreviewOpen: boolean;
+  selectedTemplateId: string | null;
 }
 
 export const INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE: WorkflowTemplatePickerState =
@@ -560,8 +556,7 @@ export const INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE: WorkflowTemplatePickerState
     search: "",
     browseView: WorkflowTemplateCollection.Recommended,
     searchView: WorkflowTemplateCollection.All,
-    activeTemplateId: null,
-    isPreviewOpen: false,
+    selectedTemplateId: null,
   };
 
 export type IsSearchingFunction = (
@@ -722,8 +717,9 @@ export type GetWorkflowTemplatePickerCountsFunction = (
 
 /**
  * How many templates each view holds, or while searching, how many of them
- * match. Shown beside each category, so a search also says where its matches
- * are.
+ * match. The picker no longer prints these beside the categories; it reads
+ * All templates' count to offer "Search all templates" when a search
+ * narrowed to one category finds nothing there but finds matches elsewhere.
  */
 export const getWorkflowTemplatePickerCounts: GetWorkflowTemplatePickerCountsFunction =
   (search: string): Map<WorkflowTemplatePickerView, number> => {
@@ -748,24 +744,37 @@ export type GetActiveWorkflowTemplateFunction = (
 ) => WorkflowTemplate | null;
 
 /**
- * The template the picker has highlighted: the one picked, while it is still
- * on the list, and otherwise the first on the list - so there is always a
- * template to preview and to use, and after a search it is the best match.
- * Null only when the list is empty.
+ * The template the picker has picked: its details are open, and "Use this
+ * template" and Enter take it.
+ *
+ * - The one picked by a click or the arrow keys, while it is on the list.
+ * - Otherwise, while searching, the best match, so typing and pressing
+ *   Enter takes it, as in the command palette.
+ * - Otherwise none. Browsing shows no template's details until one is
+ *   picked: that is what keeps the step calm when it opens.
+ *
+ * Null when none is picked, and when a search finds nothing.
  */
 export const getActiveWorkflowTemplate: GetActiveWorkflowTemplateFunction = (
   state: WorkflowTemplatePickerState,
 ): WorkflowTemplate | null => {
-  const templates: Array<WorkflowTemplate> =
-    getWorkflowTemplatePickerList(state).templates;
+  const list: WorkflowTemplatePickerList = getWorkflowTemplatePickerList(state);
 
-  return (
-    templates.find((template: WorkflowTemplate) => {
-      return template.id === state.activeTemplateId;
-    }) ||
-    templates[0] ||
-    null
+  const picked: WorkflowTemplate | undefined = list.templates.find(
+    (template: WorkflowTemplate) => {
+      return template.id === state.selectedTemplateId;
+    },
   );
+
+  if (picked) {
+    return picked;
+  }
+
+  if (list.isSearching) {
+    return list.templates[0] || null;
+  }
+
+  return null;
 };
 
 export type WithSearchFunction = (
@@ -775,7 +784,8 @@ export type WithSearchFunction = (
 
 /**
  * Typing. A search that starts afresh looks through every template, whatever
- * category was open; the best match becomes the highlighted one.
+ * category was open, and whatever was picked is let go, so the best match
+ * is the one picked.
  */
 export const withWorkflowTemplateSearch: WithSearchFunction = (
   state: WorkflowTemplatePickerState,
@@ -788,8 +798,7 @@ export const withWorkflowTemplateSearch: WithSearchFunction = (
     next.searchView = WorkflowTemplateCollection.All;
   }
 
-  next.activeTemplateId = null;
-  next.isPreviewOpen = false;
+  next.selectedTemplateId = null;
 
   return next;
 };
@@ -799,15 +808,18 @@ export type WithViewFunction = (
   view: WorkflowTemplatePickerView,
 ) => WorkflowTemplatePickerState;
 
-/** Choosing a category: narrows a search, or changes what is being browsed. */
+/**
+ * Choosing a category: narrows a search, or changes what is being browsed.
+ * Whatever was picked is let go: it may not be on the new list, and the
+ * details of one that is would open on a list the person has not read yet.
+ */
 export const withWorkflowTemplateView: WithViewFunction = (
   state: WorkflowTemplatePickerState,
   view: WorkflowTemplatePickerView,
 ): WorkflowTemplatePickerState => {
   const next: WorkflowTemplatePickerState = {
     ...state,
-    activeTemplateId: null,
-    isPreviewOpen: false,
+    selectedTemplateId: null,
   };
 
   if (isSearchingTemplates(state)) {
@@ -817,6 +829,19 @@ export const withWorkflowTemplateView: WithViewFunction = (
   }
 
   return next;
+};
+
+export type WithSelectedFunction = (
+  state: WorkflowTemplatePickerState,
+  templateId: string,
+) => WorkflowTemplatePickerState;
+
+/** Picking a template: a click on its row, or the arrow keys landing on it. */
+export const withWorkflowTemplateSelected: WithSelectedFunction = (
+  state: WorkflowTemplatePickerState,
+  templateId: string,
+): WorkflowTemplatePickerState => {
+  return { ...state, selectedTemplateId: templateId };
 };
 
 export enum WorkflowTemplateMove {
@@ -832,8 +857,9 @@ export type GetMovedWorkflowTemplateIdFunction = (
 ) => string | null;
 
 /**
- * The template an arrow key (or Home, or End) moves the highlight to. Stops
- * at either end rather than wrapping round.
+ * The template an arrow key (or Home, or End) picks. Stops at either end
+ * rather than wrapping round. With nothing picked yet, down picks the first
+ * template and up the last, as a combobox's arrows do from its text box.
  */
 export const getMovedWorkflowTemplateId: GetMovedWorkflowTemplateIdFunction = (
   state: WorkflowTemplatePickerState,
@@ -846,25 +872,32 @@ export const getMovedWorkflowTemplateId: GetMovedWorkflowTemplateIdFunction = (
     return null;
   }
 
+  const first: WorkflowTemplate = templates[0]!;
+  const last: WorkflowTemplate = templates[templates.length - 1]!;
+
   if (move === WorkflowTemplateMove.First) {
-    return templates[0]!.id;
+    return first.id;
   }
 
   if (move === WorkflowTemplateMove.Last) {
-    return templates[templates.length - 1]!.id;
+    return last.id;
   }
 
   /*
-   * By id: every list is built from fresh template objects, so the highlighted
+   * By id: every list is built from fresh template objects, so the picked
    * one is never the same object as its row in another list.
    */
   const active: WorkflowTemplate | null = getActiveWorkflowTemplate(state);
-  const index: number = Math.max(
-    0,
-    templates.findIndex((candidate: WorkflowTemplate) => {
-      return candidate.id === active?.id;
-    }),
-  );
+  const index: number = active
+    ? templates.findIndex((candidate: WorkflowTemplate) => {
+        return candidate.id === active.id;
+      })
+    : -1;
+
+  if (index === -1) {
+    return move === WorkflowTemplateMove.Next ? first.id : last.id;
+  }
+
   const nextIndex: number =
     move === WorkflowTemplateMove.Next
       ? Math.min(index + 1, templates.length - 1)
@@ -873,7 +906,13 @@ export const getMovedWorkflowTemplateId: GetMovedWorkflowTemplateIdFunction = (
   return templates[nextIndex]!.id;
 };
 
-/* ------------------------------ Preview ----------------------------- */
+/* ------------------------------ Details ----------------------------- */
+
+/*
+ * What a picked template's row opens to show: what starts it, the kinds of
+ * block it is made of, and the settings it will ask for. Named "preview"
+ * because it is shown before anything is created.
+ */
 
 export interface WorkflowTemplatePreviewBlock {
   componentId: string;
@@ -887,6 +926,7 @@ export interface WorkflowTemplatePreview {
   trigger: WorkflowTemplatePreviewBlock;
   /** Every other kind of block in it, once each, the main path first and Log last. */
   steps: Array<WorkflowTemplatePreviewBlock>;
+  /** How many blocks the created workflow has, the trigger included. */
   blockCount: number;
   /** What the Configure step will ask for, in the order it asks. */
   settings: Array<WorkflowTemplateVariable>;
@@ -951,7 +991,7 @@ export type GetWorkflowTemplatePreviewFunction = (
   findComponent?: FindWorkflowComponentFunction | undefined,
 ) => WorkflowTemplatePreview | null;
 
-/** Everything the preview shows about a template, before anything is created. */
+/** Everything a picked template's details show, before anything is created. */
 export const getWorkflowTemplatePreview: GetWorkflowTemplatePreviewFunction = (
   template: WorkflowTemplate,
   findComponent?: FindWorkflowComponentFunction | undefined,

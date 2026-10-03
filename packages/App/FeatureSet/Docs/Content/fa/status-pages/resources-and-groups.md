@@ -64,7 +64,7 @@
 
 ## درصدهای آپ‌تایم و نمودارهای تاریخچه
 
-هر دوی **Show Uptime %** و **Show Status History Chart** به تنظیمی وابسته‌اند که جای دیگری زندگی می‌کند. پنجره‌ای که پوشش می‌دهند **Show Uptime History (in days)** زیر **Status Pages → صفحه شما → Advanced → Advanced Settings** در کارت **Uptime History Settings** است. از ۱ تا ۹۰ روز می‌پذیرد و پیش‌فرضش ۹۰ است.
+هر دوی **Show Uptime %** و **Show Status History Chart** به تنظیمی وابسته‌اند که جای دیگری زندگی می‌کند. پنجره‌ای که پوشش می‌دهند **Uptime History** در کارت **What your status page shows** روی **Status Pages → صفحه شما → Advanced → Advanced Settings** است. از ۱ تا ۹۰ روز می‌پذیرد و پیش‌فرضش ۹۰ است.
 
 پس ترتیب چنین است: کلیدها را به ازای هر منبع روشن کنید، سپس پنجره را یک بار برای کل صفحه بگذارید.
 

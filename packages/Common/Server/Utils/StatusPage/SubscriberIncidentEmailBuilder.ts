@@ -13,6 +13,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
+import EmailColorUtil from "../../../Utils/Email/EmailColorUtil";
 import {
   SubscriberEmailTemplateChoice,
   SubscriberEmailTemplateChoiceReason,
@@ -264,7 +265,9 @@ export default class SubscriberIncidentEmailBuilder {
    *
    * The page needs what StatusPageSubscriberService.
    * getStatusPagesToSendNotification reads: its names, logoFileId,
-   * isPublicStatusPage, smtpConfig and the footer text columns.
+   * isPublicStatusPage, smtpConfig and the footer text columns. The default
+   * email paints the severity in its own colour when the incident was read
+   * with incidentSeverity.color; without it the severity stays plain text.
    */
   public static async forStatusPage(data: {
     event: SubscriberIncidentEmailEvent;
@@ -376,6 +379,11 @@ export default class SubscriberIncidentEmailBuilder {
       // Every name escaped, "<br/>" between groups: for the raw slot.
       resourcesAffected: pageTemplateVariables.resourcesAffectedHtml,
       incidentSeverity: data.incident.incidentSeverity?.name || " - ",
+      // The severity's dot and name colours, when it has a usable colour.
+      ...EmailColorUtil.getTemplateVariables(
+        "incidentSeverity",
+        data.incident.incidentSeverity?.color,
+      ),
       incidentTitle: incidentTitle,
       // The fields marked "Include in Subscriber Notifications".
       customFieldRows:

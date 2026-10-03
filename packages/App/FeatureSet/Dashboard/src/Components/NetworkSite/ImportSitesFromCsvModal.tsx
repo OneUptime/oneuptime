@@ -31,6 +31,8 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -86,6 +88,7 @@ export interface ComponentProps {
 const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [csvText, setCsvText] = useState<string>("");
   const [parseResult, setParseResult] = useState<SiteCsvParseResult | null>(
     null,
@@ -369,7 +372,10 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
    */
   const submitButtonText: string =
     rows.length > 0
-      ? `Import ${rows.length} Site${rows.length === 1 ? "" : "s"}`
+      ? translator.translatePlural(
+          { one: "Import {{count}} Site", other: "Import {{count}} Sites" },
+          rows.length,
+        )
       : "Import";
 
   return (
@@ -404,14 +410,18 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Columns: {SITE_CSV_COLUMNS.join(", ")}. siteType must be one of this
-          project&apos;s configured site types
-          {siteTypeNames ? ` (${siteTypeNames})` : ""}. parentName is optional
-          for every type: leave it empty for a top-level site, or name any site
-          that is not below this one in your site type hierarchy. Rows whose
-          parentName is empty or already exists import first, then their
-          children — parents and children can live in the same file. Rows with
-          an unresolvable parent are skipped and reported.
+          {siteTypeNames
+            ? translator.translateTemplate(
+                "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.",
+                {
+                  columns: SITE_CSV_COLUMNS.join(", "),
+                  siteTypes: siteTypeNames,
+                },
+              )
+            : translator.translateTemplate(
+                "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.",
+                { columns: SITE_CSV_COLUMNS.join(", ") },
+              )}
         </p>
 
         <TextArea
@@ -474,15 +484,19 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
         {parseErrors.length > 0 && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3">
             <p className="mb-1 text-sm font-medium text-red-800">
-              Fix these problems before importing:
+              {translator.translateText("Fix these problems before importing:")}
             </p>
             <ul className="list-disc space-y-0.5 pl-5">
               {parseErrors.map(
                 (error: SiteCsvError, index: number): ReactElement => {
                   return (
                     <li key={index} className="text-sm text-red-700">
-                      {error.line > 0 ? `Line ${error.line}: ` : ""}
-                      {error.message}
+                      {error.line > 0
+                        ? translator.translateTemplate(
+                            "Line {{line}}: {{message}}",
+                            { line: error.line, message: error.message },
+                          )
+                        : error.message}
                     </li>
                   );
                 },
@@ -497,18 +511,35 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
           rowResults.length === 0 && (
             <div className="overflow-x-auto">
               <p className="mb-2 text-sm text-gray-600">
-                {rows.length} site{rows.length === 1 ? "" : "s"} ready to
-                import.
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} site ready to import.",
+                    other: "{{count}} sites ready to import.",
+                  },
+                  rows.length,
+                )}
               </p>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
                   <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">Line</th>
-                    <th className="px-3 py-2">Name</th>
-                    <th className="px-3 py-2">Site Type</th>
-                    <th className="px-3 py-2">Parent</th>
-                    <th className="px-3 py-2">Address</th>
-                    <th className="px-3 py-2">Coordinates</th>
+                    <th className="px-3 py-2">
+                      {translator.translateText("Line")}
+                    </th>
+                    <th className="px-3 py-2">
+                      {translator.translateText("Name")}
+                    </th>
+                    <th className="px-3 py-2">
+                      {translator.translateText("Site Type")}
+                    </th>
+                    <th className="px-3 py-2">
+                      {translator.translateText("Parent")}
+                    </th>
+                    <th className="px-3 py-2">
+                      {translator.translateText("Address")}
+                    </th>
+                    <th className="px-3 py-2">
+                      {translator.translateText("Coordinates")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -545,15 +576,23 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
         {rowResults.length > 0 && (
           <div className="overflow-x-auto">
             <p className="mb-2 text-sm font-medium text-gray-700">
-              Import results
+              {translator.translateText("Import results")}
             </p>
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
                 <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-3 py-2">Line</th>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Result</th>
-                  <th className="px-3 py-2">Details</th>
+                  <th className="px-3 py-2">
+                    {translator.translateText("Line")}
+                  </th>
+                  <th className="px-3 py-2">
+                    {translator.translateText("Name")}
+                  </th>
+                  <th className="px-3 py-2">
+                    {translator.translateText("Result")}
+                  </th>
+                  <th className="px-3 py-2">
+                    {translator.translateText("Details")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -573,17 +612,17 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2">
                           {result.status === "created" && (
                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              Created
+                              {translator.translateText("Created")}
                             </span>
                           )}
                           {result.status === "failed" && (
                             <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                              Failed
+                              {translator.translateText("Failed")}
                             </span>
                           )}
                           {result.status === "skipped" && (
                             <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                              Skipped
+                              {translator.translateText("Skipped")}
                             </span>
                           )}
                         </td>

@@ -24,6 +24,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 
@@ -79,6 +80,12 @@ import {
 } from "./RecommendationViewModel";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -119,6 +126,7 @@ interface ProjectDefaults {
 const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
@@ -245,8 +253,11 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             name: true,
             isOperationalState: true,
             isOfflineState: true,
+            priority: true,
           },
-          sort: {},
+          sort: {
+            priority: SortOrder.Ascending,
+          },
         });
 
       const onlineStatus: MonitorStatus | undefined =
@@ -264,7 +275,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -274,7 +285,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           query: {},
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { name: true, order: true },
+          select: { name: true, order: true, color: true },
           sort: { order: SortOrder.Ascending },
         });
 
@@ -286,22 +297,30 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
        */
       if (!onlineStatus?._id) {
         throw new Error(
-          "This project has no operational monitor status. Add one under Project Settings > Monitor Status.",
+          translator.translateTemplate(
+            "This project has no operational monitor status. Add one under Project Settings > Monitor Status.",
+          ),
         );
       }
       if (!offlineStatus?._id) {
         throw new Error(
-          "This project has no offline monitor status. Add one under Project Settings > Monitor Status.",
+          translator.translateTemplate(
+            "This project has no offline monitor status. Add one under Project Settings > Monitor Status.",
+          ),
         );
       }
       if (!incidentSeverityList.data[0]?._id) {
         throw new Error(
-          "This project has no incident severity. Add one under Project Settings > Incident Severity.",
+          translator.translateTemplate(
+            "This project has no incident severity. Add one under Project Settings > Incident Severity.",
+          ),
         );
       }
       if (!alertSeverityList.data[0]?._id) {
         throw new Error(
-          "This project has no alert severity. Add one under Project Settings > Alert Severity.",
+          translator.translateTemplate(
+            "This project has no alert severity. Add one under Project Settings > Alert Severity.",
+          ),
         );
       }
 
@@ -323,6 +342,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -332,6 +352,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             id: new ObjectID(item._id!),
             name: item.name!,
             order: item.order,
+            color: DropdownUtil.toOptionColor(item.color),
           };
         }),
       );
@@ -662,10 +683,19 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   if (!definition) {
     return (
       <ErrorMessage
-        message={`No monitor recommendations are available for ${props.resourceType}.`}
+        message={translator.translateTemplate(
+          "No monitor recommendations are available for {{resourceType}}.",
+          { resourceType: props.resourceType },
+        )}
       />
     );
   }
+
+  // The resource's noun as it reads in the middle of a sentence.
+  const resourceName: TranslatableTerm = translatableTerm(
+    definition.resourceLabel,
+    { inSentence: true },
+  );
 
   if (!props.resourceIdentifier) {
     return (
@@ -673,7 +703,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         id="monitor-recommendations-no-identifier"
         icon={IconProp.Alert}
         title="No telemetry yet"
-        description={`This ${definition.resourceLabel.toLowerCase()} has not reported an identifier yet, so monitors cannot be scoped to it. Once the agent sends its first data, recommendations will appear here.`}
+        description={translator.translateTemplate(
+          "This {{resourceName}} has not reported an identifier yet, so monitors cannot be scoped to it. Once the agent sends its first data, recommendations will appear here.",
+          { resourceName: resourceName },
+        )}
       />
     );
   }
@@ -738,7 +771,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           <EmptyState
             id="monitor-recommendations-none-for-resource"
             icon={IconProp.Sparkles}
-            title={`No recommendations for this ${definition.resourceLabel.toLowerCase()} yet`}
+            title={translator.translateTemplate(
+              "No recommendations for this {{resourceName}} yet",
+              { resourceName: resourceName },
+            )}
             description="The note above explains why. You can still create monitors by hand."
           />
         );
@@ -765,7 +801,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           id="monitor-recommendations-all-handled"
           icon={IconProp.CheckCircle}
           title="Nothing left to set up here"
-          description={`All ${counts.total} recommended monitors for this ${definition.resourceLabel.toLowerCase()} have been created or dismissed. Use the tiles above to review them.`}
+          description={translator.translatePlural(
+            {
+              one: "The {{count}} recommended monitor for this {{resourceName}} has been created or dismissed. Use the tiles above to review it.",
+              other:
+                "All {{count}} recommended monitors for this {{resourceName}} have been created or dismissed. Use the tiles above to review them.",
+            },
+            counts.total,
+            { resourceName: resourceName },
+          )}
         />
       );
     }
@@ -791,7 +835,10 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       <MonitorPayAsYouGoCard />
       <Card
         title="Recommended Monitors"
-        description={`Monitors OneUptime recommends for this ${definition.resourceLabel.toLowerCase()}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.`}
+        description={translator.translateTemplate(
+          "Monitors OneUptime recommends for this {{resourceName}}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.",
+          { resourceName: resourceName },
+        )}
         buttons={[
           {
             /*
@@ -801,7 +848,11 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
              */
             title:
               selectedRecommendations.length > 0
-                ? `Create ${selectedRecommendations.length} Selected`
+                ? translator.translateTemplate("Create {{count}} Selected", {
+                    count: translator.formatNumber(
+                      selectedRecommendations.length,
+                    ),
+                  })
                 : "Create Monitors",
             icon: IconProp.Add,
             /*
@@ -895,9 +946,13 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         <div className="sticky bottom-4 z-10 mb-5 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-sm font-medium text-gray-900">
-              {selectedRecommendations.length}{" "}
-              {selectedRecommendations.length === 1 ? "monitor" : "monitors"}{" "}
-              selected
+              {translator.translatePlural(
+                {
+                  one: "{{count}} monitor selected",
+                  other: "{{count}} monitors selected",
+                },
+                selectedRecommendations.length,
+              )}
             </span>
             {/*
              * The severity split of what is about to be created. It is the
@@ -907,7 +962,9 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
              */}
             {selectedCriticalCount > 0 ? (
               <StatusBadge
-                text={`${selectedCriticalCount} Critical`}
+                text={translator.translateTemplate("{{count}} Critical", {
+                  count: translator.formatNumber(selectedCriticalCount),
+                })}
                 type={StatusBadgeType.Danger}
               />
             ) : (
@@ -915,7 +972,9 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             )}
             {selectedWarningCount > 0 ? (
               <StatusBadge
-                text={`${selectedWarningCount} Warning`}
+                text={translator.translateTemplate("{{count}} Warning", {
+                  count: translator.formatNumber(selectedWarningCount),
+                })}
                 type={StatusBadgeType.Warning}
               />
             ) : (
@@ -931,9 +990,13 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               }}
             />
             <Button
-              title={`Create ${selectedRecommendations.length} Selected ${
-                selectedRecommendations.length === 1 ? "Monitor" : "Monitors"
-              }`}
+              title={translator.translatePlural(
+                {
+                  one: "Create {{count}} Selected Monitor",
+                  other: "Create {{count}} Selected Monitors",
+                },
+                selectedRecommendations.length,
+              )}
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.PRIMARY}
               onClick={() => {
@@ -1005,13 +1068,15 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       {dismissTarget ? (
         <ConfirmModal
-          title={`Dismiss "${dismissTarget.recommendation.name}"?`}
+          title={translator.translateTemplate('Dismiss "{{name}}"?', {
+            name: dismissTarget.recommendation.name,
+          })}
           description={
             <div className="space-y-3">
               <p className="text-sm text-gray-500">
-                This hides the recommendation for everyone on the project. It
-                does not delete anything, and you can restore it at any time
-                from the Dismissed tile.
+                {translator.translateText(
+                  "This hides the recommendation for everyone on the project. It does not delete anything, and you can restore it at any time from the Dismissed tile.",
+                )}
               </p>
               <TextArea
                 value={dismissalReason}

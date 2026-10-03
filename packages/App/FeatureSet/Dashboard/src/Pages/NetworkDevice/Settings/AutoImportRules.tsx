@@ -357,6 +357,14 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            /*
+             * Off on purpose, though the column defaults to on: saving an
+             * enabled import rule imports the hosts discovered in the last
+             * day within a minute, and each one becomes a monitored device.
+             * A new rule is tried with Dry Run first and switched on after
+             * (CreateFormDefaultsGuard lists why).
+             */
+            defaultValue: false,
             description: "Enable or disable this rule.",
           },
           {

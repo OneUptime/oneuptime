@@ -106,24 +106,33 @@ test("opens a Kubernetes abbreviation result by clicking its actual link", async
   );
 });
 
-test("keeps title and description searches and restores every product when cleared", async ({
+test("keeps title and description searches and restores the folded menu when cleared", async ({
   page,
 }: {
   page: Page;
 }) => {
   const search: Locator = page.getByRole("combobox");
-  const productCount: number = await page.getByRole("option").count();
-  expect(productCount).toBeGreaterThan(20);
+  /*
+   * The menu opens on the seven Essentials; every other section is one
+   * folded line (ProductsMenuFolding.spec.ts). Search ignores folding.
+   */
+  await expect(page.getByRole("option")).toHaveCount(7);
+  const foldedSections: Locator = page.locator(
+    '#navbar-menu-listbox button[aria-expanded="false"]',
+  );
+  await expect(foldedSections).toHaveCount(7);
   await search.fill("Kubernetes");
   await expect(page.getByRole("option")).toHaveCount(1);
   await expect(page.getByRole("option")).toContainText("Kubernetes");
+  await expect(foldedSections).toHaveCount(0);
   await search.fill("error budgets");
   await expect(page.getByRole("option")).toHaveCount(1);
   await expect(page.getByRole("option")).toContainText("SLOs");
   await page.getByRole("button", { name: "Clear search", exact: true }).click();
   await expect(search).toHaveValue("");
   await expect(search).toBeFocused();
-  await expect(page.getByRole("option")).toHaveCount(productCount);
+  await expect(page.getByRole("option")).toHaveCount(7);
+  await expect(foldedSections).toHaveCount(7);
 });
 
 test("does not navigate for an unmatched query and recovers when a matching alias is typed", async ({

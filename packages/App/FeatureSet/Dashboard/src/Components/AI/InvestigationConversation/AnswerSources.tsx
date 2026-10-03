@@ -2,6 +2,11 @@ import { navigateToCitationTarget } from "../../AIChat/CitationTargetNav";
 import { AIChatCitation } from "Common/Types/AI/AIChatTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -12,12 +17,18 @@ export interface ComponentProps {
  * How many rows a cited query returned. Zero is a finding, not a failure:
  * the query ran and found nothing, which is how an answer proves an absence.
  */
-export function describeSourceRows(rowCount: number): string {
+export function describeSourceRows(
+  rowCount: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (!Number.isFinite(rowCount) || rowCount <= 0) {
-    return "no rows";
+    return translator.translateText("no rows") as string;
   }
 
-  return `${rowCount.toLocaleString("en-US")} ${rowCount === 1 ? "row" : "rows"}`;
+  return translator.translatePlural(
+    { one: "{{count}} row", other: "{{count}} rows" },
+    rowCount,
+  );
 }
 
 const ID_CLASS_NAME: string =
@@ -37,18 +48,25 @@ const ID_CLASS_NAME: string =
 const AnswerSources: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.citations || props.citations.length === 0) {
     return <></>;
   }
 
   return (
     <div data-testid="investigation-conversation-sources">
-      <h4 className="text-xs font-medium text-gray-500">Sources</h4>
+      <h4 className="text-xs font-medium text-gray-500">
+        {translator.translateText("Sources")}
+      </h4>
       <ul role="list" className="mt-1">
         {props.citations.map((citation: AIChatCitation): ReactElement => {
           const isEmpty: boolean = !(citation.rowCount > 0);
           const title: string = isEmpty
-            ? `${citation.label} — checked, found nothing`
+            ? translator.translateTemplate(
+                "{{label}} — checked, found nothing",
+                { label: citation.label },
+              )
             : citation.label;
           const line: ReactElement = (
             <>
@@ -57,7 +75,7 @@ const AnswerSources: FunctionComponent<ComponentProps> = (
                 {citation.label}
                 <span className="text-gray-400">
                   {" "}
-                  · {describeSourceRows(citation.rowCount)}
+                  · {describeSourceRows(citation.rowCount, translator)}
                 </span>
               </span>
             </>

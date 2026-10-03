@@ -19,6 +19,10 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
+import {
+  TOGGLE_TRACK_OFF_CLASS,
+  TOGGLE_TRACK_ON_CLASS,
+} from "../../../UI/Components/Toggle/Toggle";
 
 /*
  * User Settings > Email Preferences: the two controls that change how MUCH
@@ -414,19 +418,23 @@ describe("user settings > email preferences", () => {
       );
     });
 
-    test("it is the product's switch: outlined when off, filled when on", async () => {
+    test("it is the product's switch: grey when off, the brand indigo when on", async () => {
       rollupRows = [rollupRow(false)];
       renderPage();
       await waitForPageReady();
 
-      expect(rollupSwitch()).toHaveClass("border-gray-500", "bg-white");
+      expect(rollupSwitch()).toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+      expect(rollupSwitch()).not.toHaveClass(TOGGLE_TRACK_ON_CLASS);
+      // Not the green one-off it used to be, nor the outlined design.
       expect(rollupSwitch()).not.toHaveClass("bg-emerald-500");
+      expect(rollupSwitch()).not.toHaveClass("border-gray-500");
 
       fireEvent.click(rollupSwitch());
 
       await waitFor(() => {
-        expect(rollupSwitch()).toHaveClass("bg-indigo-600");
+        expect(rollupSwitch()).toHaveClass(TOGGLE_TRACK_ON_CLASS);
       });
+      expect(rollupSwitch()).not.toHaveClass(TOGGLE_TRACK_OFF_CLASS);
     });
   });
 

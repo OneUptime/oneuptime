@@ -8,19 +8,22 @@ Questa pagina copre entrambi: i cinque canali di iscrizione e come i visitatori 
 
 ## Canali di iscrizione
 
-Una pagina di stato supporta cinque canali, ognuno con il proprio interruttore sulla pagina di stato. Vai su **Pagine di stato → la tua pagina → Iscritti → Impostazioni iscritti**:
+Una pagina di stato supporta cinque canali. Loro e la pagina su cui i visitatori si iscrivono si attivano in un solo punto: la scheda **Canali** in **Pagine di stato → la tua pagina → Iscritti → Impostazioni iscritti**. Ogni interruttore viene salvato appena lo cambi:
 
-- **Abilita abbonati via email** (`enableEmailSubscribers`) — attivo per impostazione predefinita. Tutto il resto resta spento finché non lo accendi tu.
-- **Abilita abbonati SMS** (`enableSmsSubscribers`) — spento per impostazione predefinita.
-- **Abilita abbonati Slack** (`enableSlackSubscribers`) — spento per impostazione predefinita.
-- **Abilita abbonati Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — spento per impostazione predefinita.
-- **Abilita abbonati webhook** (`enableWebhookSubscribers`) — spento per impostazione predefinita.
+- **Mostra pagina iscritti** (`showSubscriberPageOnStatusPage`) — attivo per impostazione predefinita. Mette la voce **Iscriviti** nella barra di navigazione della pagina di stato, dove i visitatori si iscrivono tramite i canali qui sotto.
+- **E-mail** (`enableEmailSubscribers`) — attivo per impostazione predefinita. Tutto il resto resta spento finché non lo accendi tu.
+- **SMS** (`enableSmsSubscribers`) — spento per impostazione predefinita. Su OneUptime Cloud ogni SMS viene pagato con il credito SMS e chiamate del progetto, a meno che la pagina non abbia una propria **Configurazione Twilio**. Per accenderlo, il progetto deve avere attivo anche **Abilita notifiche SMS**, in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+- **Slack** (`enableSlackSubscribers`) — spento per impostazione predefinita.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — spento per impostazione predefinita.
+- **Webhook** (`enableWebhookSubscribers`) — spento per impostazione predefinita.
 
-Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti MS Teams** e **Iscritti webhook**. È lì che guardi chi si è registrato, aggiungi qualcuno a mano o lasci a te stesso una **Note** (`internalNote`) su un singolo iscritto.
+Gli interruttori decidono come i visitatori possono iscriversi da soli: la pagina di stato rifiuta un'iscrizione tramite un canale spento. Non fermano le notifiche: gli iscritti che il tuo team aggiunge dalla dashboard, con l'API o tramite un workflow ricevono gli aggiornamenti qualunque canale sia acceso.
 
-**Un solo interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** (`showSubscriberPageOnStatusPage`) è attivo *e* almeno un canale è abilitato. Se accendi **Abilita abbonati via email** ma lasci spento **Mostra pagina iscritti**, i visitatori non hanno alcun modo di raggiungere il modulo.
+Su OneUptime Cloud, accanto a un interruttore che il tuo piano non include compare il nome del piano: **Growth** per **SMS** e **Mostra pagina iscritti**, **Scale** per **Slack**, **Microsoft Teams** e **Webhook**.
 
-Gli stessi cinque interruttori compaiono una seconda volta nella scheda **Impostazioni iscritti** dentro **Impostazioni avanzate**, insieme a **Mostra pagina iscritti**. Sotto ci sono le stesse colonne — scegli una schermata e resta lì, preferibilmente la pagina dedicata **Impostazioni iscritti**, perché è dove vive tutto il resto della configurazione degli iscritti.
+Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti MS Teams** e **Iscritti webhook**. È lì che guardi chi si è registrato, aggiungi qualcuno a mano o lasci a te stesso una **Note** (`internalNote`) su un singolo iscritto. Finché un canale è spento, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così lo accendi senza lasciare l'elenco.
+
+**Un solo interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è acceso. Se accendi **E-mail** ma lasci spento **Mostra pagina iscritti**, i visitatori non hanno alcun modo di raggiungere il modulo.
 
 ## Che cosa vede un visitatore nella pagina di iscrizione
 
@@ -127,14 +130,14 @@ Gli allegati sono serviti da `GET {statusPageCrudPath}/status-page-announcement/
 **Show At** (`showAnnouncementAt`) e **End At** (`endAnnouncementAt`) governano tutto, ma la pagina panoramica e l'elenco degli annunci si pongono domande diverse, e la differenza fa inciampare parecchia gente.
 
 - **La pagina panoramica** mostra un annuncio quando `showAnnouncementAt` è nel passato e `endAnnouncementAt` è nel futuro oppure è vuoto.
-- **L'elenco `/announcements`** mostra gli annunci il cui `showAnnouncementAt` ricade entro **Mostra cronologia annunci (in giorni)** (`showAnnouncementHistoryInDays`, predefinito 14), e poi li divide lato client tra attivi e passati.
+- **L'elenco `/announcements`** mostra gli annunci il cui `showAnnouncementAt` ricade nella finestra di cronologia degli annunci (`showAnnouncementHistoryInDays`, predefinito 14), e poi li divide lato client tra attivi e passati.
 
 Due conseguenze da tenere in conto:
 
 - **Un annuncio senza data di fine non scade mai.** Lascia vuoto **Termina la visualizzazione dell'annuncio il** e resterà fissato sulla pagina panoramica all'infinito. Metti una data di fine su tutto ciò che ha una durata definita.
 - **Un annuncio vecchio ma ancora attivo può sparire dall'elenco.** Se è iniziato più di `showAnnouncementHistoryInDays` fa, esce da `/announcements` pur restando sulla panoramica. Allarga la finestra della cronologia se tieni avvisi di lunga durata.
 
-Se gli annunci compaiano o meno è deciso dalla scheda **Impostazioni annuncio** in **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, predefinito true) e **Mostra cronologia annunci (in giorni)** (predefinito 14). Con **Mostra annunci** spento, l'endpoint degli annunci rifiuta la richiesta in blocco.
+Se gli annunci compaiano o meno si imposta nella scheda **Cosa mostra la tua pagina di stato** in **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, predefinito true) e, sotto, **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, predefinito 14). Con **Mostra annunci** spento, l'endpoint degli annunci rifiuta la richiesta in blocco.
 
 ## Modelli di annunci
 

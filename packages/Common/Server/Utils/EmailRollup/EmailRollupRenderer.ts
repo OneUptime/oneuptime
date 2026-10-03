@@ -5,12 +5,16 @@ import {
   ROLLUP_SUBJECT_MAX_CATEGORIES,
 } from "./EmailRollupConstants";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import Color from "../../../Types/Color";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import RollupCategory, {
   ROLLUP_CATEGORY_LABEL,
   ROLLUP_CATEGORY_ORDER,
 } from "../../../Types/NotificationSetting/NotificationEmailRollupCategory";
+import EmailColorUtil, {
+  EmailColorPair,
+} from "../../../Utils/Email/EmailColorUtil";
 
 /*
  * Why this file exists: everything that turns a pile of deferred owner
@@ -43,6 +47,12 @@ import RollupCategory, {
  *   rows[].currentState     raw          our own table, {{this.currentState}}
  *   rows[].hasSeverity      raw          {{#ifCond this.hasSeverity "true"}}
  *   rows[].hasCurrentState  raw          {{#ifCond this.hasCurrentState "true"}}
+ *   rows[].severityColor            #rrggbb  our own chip, style attribute
+ *   rows[].severityTextColor        #rrggbb  our own chip, style attribute
+ *   rows[].hasSeverityColor         raw      {{#ifCond ... "true"}}
+ *   rows[].currentStateColor        #rrggbb  our own chip, style attribute
+ *   rows[].currentStateTextColor    #rrggbb  our own chip, style attribute
+ *   rows[].hasCurrentStateColor     raw      {{#ifCond ... "true"}}
  *   rows[].hasDetails       raw          {{#ifCond this.hasDetails "true"}}
  *   rows[].isSectionStart   raw          {{#ifCond this.isSectionStart "true"}}
  *   rows[].sectionLabel     raw          our own section heading
@@ -64,6 +74,12 @@ import RollupCategory, {
  * so "contains no raw `<`" is a property a test can assert on all of them at
  * once. Every visual decision lives in the template, where a designer can
  * change it without reasoning about escaping.
+ *
+ * The four colour fields are neither: they land inside a style attribute,
+ * where Handlebars' escaping stops an attribute break-out but not a CSS one.
+ * So they are only ever the #rrggbb EmailColorUtil writes - re-checked here
+ * even though the writer stored nothing else, because the row came back from
+ * the database - or "" with their `has...Color` flag "false".
  */
 
 /*
@@ -81,6 +97,9 @@ export interface RollupRow {
   hasLink: string;
   severity: string;
   currentState: string;
+  // #rrggbb, or "" when the name has no usable colour or there is no name.
+  severityColor: string;
+  currentStateColor: string;
   itemCount: number;
   category: RollupCategory;
   firstAtMs: number;
@@ -210,6 +229,8 @@ interface RollupGroup {
   link: string;
   severity: string;
   currentState: string;
+  severityColor: string;
+  currentStateColor: string;
   category: RollupCategory;
   itemCount: number;
 }
@@ -225,6 +246,26 @@ const normaliseDetail: NormaliseDetailFunction = (
   value: string | undefined,
 ): string => {
   return typeof value === "string" && value.trim() !== "" ? value : "";
+};
+
+type NormaliseDetailColorFunction = (
+  detail: string,
+  color: Color | string | undefined,
+) => string;
+
+/*
+ * A detail's colour, kept only beside the detail it belongs to: a row with no
+ * severity name has no severity chip to paint, whatever colour was stored.
+ */
+const normaliseDetailColor: NormaliseDetailColorFunction = (
+  detail: string,
+  color: Color | string | undefined,
+): string => {
+  if (detail === "") {
+    return "";
+  }
+
+  return EmailColorUtil.sanitize(color) ?? "";
 };
 
 /*
@@ -256,13 +297,21 @@ export const foldItems: FoldItemsFunction = (
     const existing: RollupGroup | undefined = groups.get(key);
 
     if (!existing) {
+      const severity: string = normaliseDetail(item.severity);
+      const currentState: string = normaliseDetail(item.currentState);
+
       groups.set(key, {
         latestAt: createdAtMs,
         firstAt: createdAtMs,
         title: item.subject ?? "",
         link: link,
-        severity: normaliseDetail(item.severity),
-        currentState: normaliseDetail(item.currentState),
+        severity: severity,
+        currentState: currentState,
+        severityColor: normaliseDetailColor(severity, item.severityColor),
+        currentStateColor: normaliseDetailColor(
+          currentState,
+          item.currentStateColor,
+        ),
         category: normaliseCategory(item.rollupCategory),
         itemCount: 1,
       });
@@ -292,10 +341,20 @@ export const foldItems: FoldItemsFunction = (
       existing.link = link;
       /*
        * All details describe the same notification as the title. Clearing a
-       * missing latest value avoids presenting an older snapshot as current.
+       * missing latest value avoids presenting an older snapshot as current -
+       * and a colour travels with its name, so an older colour never paints
+       * a newer name.
        */
       existing.severity = normaliseDetail(item.severity);
       existing.currentState = normaliseDetail(item.currentState);
+      existing.severityColor = normaliseDetailColor(
+        existing.severity,
+        item.severityColor,
+      );
+      existing.currentStateColor = normaliseDetailColor(
+        existing.currentState,
+        item.currentStateColor,
+      );
       /*
        * The category follows the LATEST item too. A group is keyed on its deep
        * link, and two events about one resource can in principle be filed
@@ -322,6 +381,8 @@ export const foldItems: FoldItemsFunction = (
       hasLink: group.link === "" ? "false" : "true",
       severity: group.severity,
       currentState: group.currentState,
+      severityColor: group.severityColor,
+      currentStateColor: group.currentStateColor,
       itemCount: group.itemCount,
       category: group.category,
       firstAtMs: group.firstAt,
@@ -711,6 +772,17 @@ export const buildRollupEmail: BuildRollupEmailFunction = (
           ? timeLabel
           : `${row.itemCount} updates · latest ${timeLabel}`;
 
+      /*
+       * The dot keeps the colour itself; the name takes the nearest shade of
+       * it that reads on the chip. Worked out here, once per row, so the
+       * template only ever places two finished #rrggbb strings.
+       */
+      const severityColors: EmailColorPair | null = EmailColorUtil.getColorPair(
+        row.severityColor,
+      );
+      const currentStateColors: EmailColorPair | null =
+        EmailColorUtil.getColorPair(row.currentStateColor);
+
       rowsForTemplate.push({
         title: row.title,
         link: row.link,
@@ -720,6 +792,17 @@ export const buildRollupEmail: BuildRollupEmailFunction = (
         currentState: row.currentState,
         hasSeverity: row.severity === "" ? "false" : "true",
         hasCurrentState: row.currentState === "" ? "false" : "true",
+        /*
+         * On every row, "" when there is no colour, like every other field
+         * here: the flag sends a colourless row to the plain chip, and an
+         * unset field would have rendered `color: ;` instead.
+         */
+        severityColor: severityColors?.color ?? "",
+        severityTextColor: severityColors?.textColor ?? "",
+        hasSeverityColor: severityColors ? "true" : "false",
+        currentStateColor: currentStateColors?.color ?? "",
+        currentStateTextColor: currentStateColors?.textColor ?? "",
+        hasCurrentStateColor: currentStateColors ? "true" : "false",
         hasDetails:
           row.severity !== "" || row.currentState !== "" ? "true" : "false",
         /*

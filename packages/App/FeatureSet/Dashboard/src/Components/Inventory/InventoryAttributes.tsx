@@ -8,6 +8,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The attribute inspector on an inventory item's overview.
@@ -55,6 +57,7 @@ const matchesFilter: MatchesFilterFunction = (
 const InventoryAttributes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [filter, setFilter] = useState<string>("");
 
   const identifying: JSONObject = props.identifyingAttributes || {};
@@ -85,7 +88,9 @@ const InventoryAttributes: FunctionComponent<ComponentProps> = (
     if (keys.length === 0) {
       return (
         <p className="py-2 text-sm text-gray-500">
-          Nothing here matches &quot;{filter}&quot;.
+          {translator.translateTemplate('Nothing here matches "{{filter}}".', {
+            filter,
+          })}
         </p>
       );
     }
@@ -108,7 +113,9 @@ const InventoryAttributes: FunctionComponent<ComponentProps> = (
                 <CopyTextButton
                   textToBeCopied={value}
                   iconOnly={true}
-                  title={`Copy ${key}`}
+                  title={translator.translateTemplate("Copy {{name}}", {
+                    name: key,
+                  })}
                 />
               </dd>
             </div>
@@ -138,10 +145,13 @@ const InventoryAttributes: FunctionComponent<ComponentProps> = (
 
         {Object.keys(identifying).length > 0 ? (
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Identity</h3>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Identity")}
+            </h3>
             <p className="mb-2 text-xs text-gray-500">
-              What makes this thing itself. These never change — change one and
-              it becomes a different item.
+              {translator.translateText(
+                "What makes this thing itself. These never change — change one and it becomes a different item.",
+              )}
             </p>
             {renderRows(identifying, "inventory-identifying-attributes")}
           </div>
@@ -149,10 +159,13 @@ const InventoryAttributes: FunctionComponent<ComponentProps> = (
 
         {Object.keys(descriptive).length > 0 ? (
           <div className="mt-6">
-            <h3 className="text-sm font-semibold text-gray-900">Details</h3>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Details")}
+            </h3>
             <p className="mb-2 text-xs text-gray-500">
-              Everything else — version, image tag, address. These change freely
-              without the item becoming something else.
+              {translator.translateText(
+                "Everything else — version, image tag, address. These change freely without the item becoming something else.",
+              )}
             </p>
             {renderRows(descriptive, "inventory-descriptive-attributes")}
           </div>

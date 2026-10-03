@@ -81,7 +81,10 @@ describe("docs for the Add Component and Add Trigger panels", () => {
 
     expect(source).toContain('title="Popular"');
     expect(source).toContain('title="OneUptime resources"');
-    expect(source).toContain(">Browse all resources</span>");
+    // Drawn in the reader's language, from the English the docs quote.
+    expect(source).toContain(
+      'translator.translateText("Browse all resources")',
+    );
     expect(source).not.toContain('submitButtonText="Add to Workflow"');
   });
 

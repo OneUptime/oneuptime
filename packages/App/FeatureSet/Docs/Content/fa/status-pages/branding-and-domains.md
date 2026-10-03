@@ -34,7 +34,7 @@
 
 بخش **Status Pages → صفحه شما → Branding → Header** (`{id}/header-style`). با وجود نامش در منوی کناری، اینجاست که دو دارایی بزرگ برندتان زندگی می‌کنند.
 
-نخستین کارت با عنوان **Logo, Cover and Favicon** است، با دکمه **Edit Images**:
+نخستین کارت با عنوان **Logo and Cover Image** است، با دکمه **Edit Images**:
 
 - **Logo** — بارگذاری تصویر، جانگهدار `Upload logo`.
 - **Logo Alt Text** — جانگهدار `Logo of My Company`. اگر خالی بگذارید، به‌جایش عنوان صفحه وضعیت به کار می‌رود.
@@ -64,7 +64,7 @@
 - **Default Bar Color of the History Chart** — **Edit Default Bar Color** انتخابگر **Default Bar Color** را باز می‌کند، رنگی که وقتی هیچ قاعده‌ای نمی‌خواند به کار می‌رود.
 - **Overall Uptime Percent** — **Edit Settings** کلید **Show Overall Uptime Percent** و فهرست کشویی **Select Uptime Precision** را باز می‌کند، که پیش‌فرضش دو رقم اعشار است (`99.99% (Two Decimal)`).
 
-**اینکه نمودار چند روز را پوشش می‌دهد اینجا تنظیم نمی‌شود.** آن **Show Uptime History (in days)** در **Status Pages → صفحه شما → Advanced → Advanced Settings** (`{id}/settings`) است، معتبر از ۱ تا ۹۰.
+**اینکه نمودار چند روز را پوشش می‌دهد اینجا تنظیم نمی‌شود.** آن **Uptime History** در کارت **What your status page shows** روی **Status Pages → صفحه شما → Advanced → Advanced Settings** (`{id}/settings`) است، از ۱ تا ۹۰ روز.
 
 ## ‏HTML، ‏CSS و JavaScript سفارشی
 
@@ -164,7 +164,7 @@
 
 ## Powered by OneUptime
 
-خط «Powered by OneUptime» تنظیمی در بخش برندسازی نیست. در **Status Pages → صفحه شما → Advanced → Advanced Settings** (`{id}/settings`)، در کارت **Powered By OneUptime Branding**، به‌صورت کلیدی تنها زندگی می‌کند: **Hide Powered By OneUptime Branding**. **Edit Settings** بازش می‌کند، مانند هر کارت دیگری در آن صفحه.
+خط «Powered by OneUptime» تنظیمی در بخش برندسازی نیست. آخرین کلید کارت **What your status page shows** روی **Status Pages → صفحه شما → Advanced → Advanced Settings** (`{id}/settings`) است: **Show Powered By OneUptime Branding**، به‌طور پیش‌فرض روشن. خاموشش کنید تا خط پنهان شود؛ همان لحظه ذخیره می‌شود. در OneUptime Cloud، پنهان کردنش به طرح **Scale** نیاز دارد.
 
 ## در ادامه چه بخوانیم
 

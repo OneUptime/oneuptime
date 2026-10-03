@@ -18,6 +18,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
@@ -146,9 +147,11 @@ RunCron(
           },
           currentAlertState: {
             name: true,
+            color: true,
           },
           alertSeverity: {
             name: true,
+            color: true,
           },
           /*
            * The series a grouped monitor raised this alert for, named in the
@@ -189,6 +192,10 @@ RunCron(
         alertNumber: alertNumber,
         projectName: alert.project!.name!,
         currentState: alert.currentAlertState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          alert.currentAlertState?.color,
+        ),
         alertDescription: await Markdown.convertToHTML(
           alert.description! || "",
           MarkdownContentType.Email,
@@ -206,6 +213,10 @@ RunCron(
           fallback: "None",
         }),
         alertSeverity: alert.alertSeverity!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "alertSeverity",
+          alert.alertSeverity?.color,
+        ),
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(
             alert.projectId!,

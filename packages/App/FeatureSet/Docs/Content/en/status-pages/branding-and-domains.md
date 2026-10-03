@@ -34,14 +34,14 @@ Use it when: the page is internal-only or still being set up. Turn **Allow Searc
 
 **Status Pages → your page → Branding → Header** (`{id}/header-style`). Despite the side-menu name, this is where your two biggest brand assets live.
 
-The first card is titled **Logo, Cover and Favicon**, with an **Edit Images** button:
+The first card is titled **Logo and Cover Image**, with an **Edit Images** button:
 
 - **Logo** — image upload, placeholder `Upload logo`.
 - **Logo Alt Text** — placeholder `Logo of My Company`. If you leave it blank, the status page title is used instead.
 - **Cover** — image upload, placeholder `Upload cover image`. This is the wide banner behind the header.
 - **Cover Image Alt Text** — the same idea for the cover.
 
-Below it is a **Header Links** table ("Header Links for your status page"). Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table reads "No status header link for this status page."
+Below it is a **Header Links** table ("Header Links for your status page"). Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
 
 Good for: pointing visitors back to your marketing site, your docs, or a support portal without making them guess the URL.
 
@@ -64,7 +64,7 @@ Legal, privacy and terms links belong here. Header links are for navigation; foo
 - **Default Bar Color of the History Chart** — **Edit Default Bar Color** opens the **Default Bar Color** picker, the color used when no rule matches.
 - **Overall Uptime Percent** — **Edit Settings** opens the **Show Overall Uptime Percent** toggle and a **Select Uptime Precision** dropdown, which defaults to two decimals (`99.99% (Two Decimal)`).
 
-**How many days the chart covers is not set here.** That is **Show Uptime History (in days)** on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), valid from 1 to 90.
+**How many days the chart covers is not set here.** That is **Uptime History** in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), from 1 to 90 days.
 
 ## Custom HTML, CSS and JavaScript
 
@@ -94,7 +94,7 @@ Sixteen languages ship with OneUptime: English, German, French, Spanish, Italian
 
 By default a status page is reachable at the preview URL shown on its **Overview** screen. To put it on your own hostname, go to **Status Pages → your page → Branding → Custom Domains** (`{id}/domains`).
 
-The card is titled **Custom Domains** and its description spells out the requirement directly: add your installation's status page CNAME record as the CNAME for these domains for this to work. With nothing configured the table reads "No custom domains found." The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
+The card is titled **Custom Domains** and its description spells out the requirement directly: add your installation's status page CNAME record as the CNAME for these domains for this to work. With nothing configured the table says **No custom domains found**, with **Create Status Page Domain** under it. The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
 
 ### Before you start
 
@@ -164,7 +164,7 @@ If a row sits on "Action Required: Please add your CNAME record." long after you
 
 ## Powered by OneUptime
 
-The "Powered by OneUptime" line is not a branding-section setting. It lives on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), in the **Powered By OneUptime Branding** card, as a single toggle: **Hide Powered By OneUptime Branding**. **Edit Settings** opens it, like every other card on that page.
+The "Powered by OneUptime" line is not a branding-section setting. It is the last switch of the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`): **Show Powered By OneUptime Branding**, on by default. Turn it off to hide the line; it saves at once. On OneUptime Cloud, hiding it needs the **Scale** plan.
 
 ## Where to read next
 

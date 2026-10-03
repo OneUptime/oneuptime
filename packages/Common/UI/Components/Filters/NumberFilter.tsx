@@ -13,6 +13,9 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -147,6 +150,7 @@ const buildValue: BuildValueFunction = (state: NumberState): unknown => {
 const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
 
   if (filter.filterDropdownOptions) {
@@ -218,7 +222,11 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 apply({ ...state, value: e.target.value });
               }}
-              placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
+              placeholder={
+                isBetween
+                  ? translator.translateText("From")
+                  : getFilterPlaceholder(translator, filter.title)
+              }
               className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
             />
           </div>
@@ -230,7 +238,7 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   apply({ ...state, endValue: e.target.value });
                 }}
-                placeholder="To"
+                placeholder={translator.translateText("To")}
                 className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
               />
             </div>

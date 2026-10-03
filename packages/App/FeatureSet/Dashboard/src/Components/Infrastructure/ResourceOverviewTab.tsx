@@ -6,6 +6,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConditionsTable, {
   type Condition,
 } from "Common/UI/Components/ConditionsTable/ConditionsTable";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Product-neutral overview tab for infrastructure resource detail
@@ -45,6 +47,7 @@ export interface ComponentProps {
 const ResourceOverviewTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (props.isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -55,7 +58,9 @@ const ResourceOverviewTab: FunctionComponent<ComponentProps> = (
   ) {
     return (
       <div className="text-gray-500 text-sm p-4">
-        {props.emptyMessage || "Resource details not yet available."}
+        {translator.translateText(
+          props.emptyMessage || "Resource details not yet available.",
+        )}
       </div>
     );
   }

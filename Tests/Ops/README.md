@@ -506,10 +506,12 @@ job of any workflow that builds from `Scripts/Dev/docker-compose.dev.yml` is
 held to the same warm-up rule, with the Dockerfiles it builds read from the
 compose file, what its services `depends_on` included. A build is read from a
 `docker compose -f` of that file that can build (`up`, `create`, `build`,
-`run`), which is how test-release.yaml's E2E jobs build their e2e container,
-and from `npm run dev`, read as the root package.json's `dev` script with its
-`--services`, which is how the Terraform Provider E2E bring-up builds `app` and
-`ingress`, both FROM public.ecr.aws images. The other npm scripts that build
+`run`), and from `npm run dev`, read as the root package.json's `dev` script
+with its `--services`, which is how the Terraform Provider E2E bring-up builds
+`app` and `ingress`, both FROM public.ecr.aws images. test-release.yaml's E2E
+jobs used to build their e2e container the first way; they now run the e2e
+image the workflow pushes, and the suite pins that they build nothing from the
+file and wait for that image's merge. The other npm scripts that build
 from it (`build`, `force-build`) are not read, and no workflow runs them. It
 also checks every workflow's `needs` for a job that does not exist and for
 cycles: GitHub refuses to run such a workflow, and nothing on a pull request
@@ -633,6 +635,51 @@ job then succeeds and cancels nothing. So the suite pins both sides:
 A new or renamed pull request workflow fails it until the matrix lists it.
 Groups are evaluated by a small reader that understands context paths and `||`
 and throws on anything else.
+
+### `ReleaseE2ePipeline.test.js`
+
+How the release workflows run the e2e suite. test-release.yaml runs on every
+push to master, and a run that has started now finishes (the next push waits
+as the one pending run), so the suite pins what that makes load-bearing: one
+concurrency group without `cancel-in-progress`; a timeout on every job; every
+checkout at the triggering commit, never `ref: ${{ github.ref }}` (a branch
+checkout fetches the branch tip as of when the job starts, so a run outliving a
+newer push would build the newer commit); `CI_PIPELINE_ID` on every job in any
+workflow that runs prerun, so `Scripts/Install/configure.sh` never `git pull`s;
+and a job waiting for `generate-build-number` only if it reads the number.
+
+The SaaS and self-hosted e2e jobs of both workflows run as shards
+(`E2E_SHARD`, `packages/E2E/Sharding`): shards 1..N for an N that
+packages/E2E's `npm run test-sharding` verifies (its `WORKFLOW_SHARD_TOTALS`),
+`fail-fast: false`, `E2E_SHARD` handed to the step that runs the suite, and an
+artifact name per shard. Each of test-release.yaml's e2e jobs must wait for
+exactly the images its stack runs, read from the compose files its start step
+boots (each file's services merged over the last, those behind a profile left
+out) plus the e2e overlay: a job that started before one of its images was
+pushed would not fail, it would test the previous push's image.
+
+### `CompileWorkflow.test.js`
+
+`.github/workflows/compile.yml` compiles the core packages in four jobs rather
+than one each, and is only as strong as a job per package was if each package
+sees what it saw alone. The suite pins that: every package under `packages/`
+and `packages/App/FeatureSet/` with a `compile` script is compiled, once, after
+its own install (and Common's, but for the recorders) in the same job; no job
+installs both App and a FeatureSet (resolution from a FeatureSet walks up into
+`packages/App/node_modules`); the recorders' job installs neither Common nor
+App; MobileApp compiles after Common in its job (its tsconfig maps `Common/*`
+to `../Common/build/dist/*`); and every step after a job's first install runs
+unless the run was cancelled, so one run reports each package that fails.
+
+### `CodeQlWorkflow.test.js`
+
+`.github/workflows/codeql.yml` is CodeQL's advanced setup, to replace the
+default setup configured in the repository settings. The suite pins that it
+scans pull requests, nightly and on demand but never a push, analyses the same
+languages with the same build modes and default query suite under the same
+categories (so the alerts carry over), and runs nothing until the
+`CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
+advanced setup's results while default setup is on.
 
 ## Utils
 

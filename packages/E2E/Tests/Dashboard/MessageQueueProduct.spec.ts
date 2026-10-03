@@ -784,21 +784,24 @@ test.describe.skip("Queues Product", () => {
       .fill(DESTINATION);
 
     /*
-     * Three steps - Messaging System, Queue Info, Labels - with the footer's
-     * one submit button reading "Next" until the last.
+     * Three steps - Messaging System, Queue Info, Labels - and only the first
+     * asks for anything: Create Queue is on offer from it, with a plain Next
+     * to the two optional ones.
      */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-    await expect(submit).toHaveText("Next");
-    await submit.click();
+    const next: Locator = modal.getByTestId("modal-footer-next-button");
+    await expect(submit).toHaveText("Create Queue");
+    await next.click();
 
     // Queue Info. No name: the server names the queue after its destination.
     await expect(
       modal.getByPlaceholder("Order events", { exact: true }),
     ).toBeVisible({ timeout: 30000 });
-    await expect(submit).toHaveText("Next");
-    await submit.click();
+    await expect(submit).toHaveText("Create Queue");
+    await next.click();
 
-    // Labels, optional, and the last step.
+    // Labels, optional, and the last step: nothing to walk on to.
+    await expect(next).toHaveCount(0);
     await expect(submit).toHaveText("Create Queue");
     await submit.click();
     await expect(modal).toBeHidden({ timeout: 30000 });
@@ -1207,9 +1210,15 @@ test.describe.skip("Queues Product", () => {
     await modal
       .getByPlaceholder("orders.created", { exact: true })
       .fill(DESTINATION);
+
+    // The queue's name is on the optional Queue Info step: Next opens it.
+    await modal.getByTestId("modal-footer-next-button").click();
     await modal
       .getByPlaceholder("Order events", { exact: true })
       .fill(SERVICE_BUS_QUEUE_NAME);
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Create Queue",
+    );
     await modal.getByTestId("modal-footer-submit-button").click();
     await expect(modal).toBeHidden({ timeout: 30000 });
 

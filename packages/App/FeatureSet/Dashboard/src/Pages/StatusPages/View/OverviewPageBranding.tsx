@@ -174,6 +174,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: true,
             placeholder: "Select monitor statuses",

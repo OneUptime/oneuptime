@@ -17,6 +17,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -84,6 +85,7 @@ RunCron(
             episodeNumberWithPrefix: true,
             incidentSeverity: {
               name: true,
+              color: true,
             },
           },
         });
@@ -202,9 +204,15 @@ RunCron(
           episodeNumber: episodeNumberStr,
           projectName: episodeStateTimeline.project!.name!,
           currentState: incidentState!.name!,
-          currentStateColor: incidentState!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incidentState!.color,
+          ),
           previousState: previousState?.name || "",
-          previousStateColor: previousState?.color?.toString() || "#6b7280",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousState",
+            previousState?.color,
+          ),
           previousStateDurationText: previousStateDurationText,
           episodeDescription: await Markdown.convertToHTML(
             episode.description! || "",
@@ -216,6 +224,10 @@ RunCron(
               timezones: user.timezone ? [user.timezone] : [],
             }),
           episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+          ...EmailColorUtil.getTemplateVariables(
+            "episodeSeverity",
+            episode.incidentSeverity?.color,
+          ),
           episodeViewLink: (
             await IncidentEpisodeService.getEpisodeLinkInDashboard(
               episodeStateTimeline.projectId!,

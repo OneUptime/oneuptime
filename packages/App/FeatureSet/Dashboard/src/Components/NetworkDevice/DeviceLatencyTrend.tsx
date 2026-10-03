@@ -25,6 +25,8 @@ import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -53,6 +55,7 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [rttPoints, setRttPoints] = useState<Array<LatencyPoint>>([]);
   const [lossPoints, setLossPoints] = useState<Array<LatencyPoint>>([]);
@@ -204,7 +207,7 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
           to={metricsRoute}
           className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
         >
-          {translateString("Open metrics") || "Open metrics"}
+          {translateString("Open metrics")}
         </Link>
       </div>
       {/*
@@ -229,22 +232,24 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
       ) : summary ? (
         <div className="mt-2 space-y-0.5 text-xs text-gray-600">
           <p data-testid="network-device-latency-summary">
-            {`${translateString("now") || "now"} ${formatMilliseconds(
-              summary.latest,
-            )} · ${translateString("avg") || "avg"} ${formatMilliseconds(
-              summary.avg,
-            )} · ${translateString("max") || "max"} ${formatMilliseconds(
-              summary.max,
-            )}`}
+            {translator.translateTemplate(
+              "now {{latest}} · avg {{avg}} · max {{max}}",
+              {
+                latest: formatMilliseconds(summary.latest),
+                avg: formatMilliseconds(summary.avg),
+                max: formatMilliseconds(summary.max),
+              },
+            )}
           </p>
           <p
             data-testid="network-device-loss-summary"
             className="flex items-center gap-1"
           >
             <span>
-              {`${lossTitle}: ${
-                lossSummary ? formatPercent(lossSummary.max) : "—"
-              }`}
+              {translator.translateTemplate("{{label}}: {{value}}", {
+                label: lossTitle,
+                value: lossSummary ? formatPercent(lossSummary.max) : "—",
+              })}
             </span>
             <InfoTooltip
               label={lossTitle}
@@ -254,8 +259,7 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
         </div>
       ) : (
         <p className="mt-2 text-xs text-gray-500">
-          {translateString("No ping data in the last hour.") ||
-            "No ping data in the last hour."}
+          {translateString("No ping data in the last hour.")}
         </p>
       )}
     </div>

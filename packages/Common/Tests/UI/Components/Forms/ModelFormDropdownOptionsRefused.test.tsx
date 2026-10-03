@@ -23,8 +23,9 @@ import {
  * every step. These tests drive the real ModelForm against the real Incident,
  * StatusPage and Label models and pin what happens instead:
  *
- *   - a list the person may not read leaves that dropdown empty, quietly (the
- *     page explains an empty status page picker next to it);
+ *   - a list the person may not read leaves that dropdown empty, quietly:
+ *     no error, and nothing explaining it (the status page picker's "No
+ *     status pages to pick from" banner was removed on purpose);
  *   - every other dropdown still gets its options;
  *   - any other failure is still shown, once, and still does not stop the
  *     other dropdowns;

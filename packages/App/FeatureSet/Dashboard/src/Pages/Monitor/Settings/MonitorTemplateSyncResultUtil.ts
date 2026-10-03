@@ -1,3 +1,7 @@
+import {
+  translatableTerm,
+  translatePlural,
+} from "Common/UI/Utils/TranslateTemplate";
 export interface SyncResultSummary {
   title: string;
   message: string;
@@ -22,9 +26,16 @@ export function buildSyncResultSummary(data: {
   const synced: number = data.syncedMonitors;
   const total: number = data.totalLinkedMonitors;
 
-  const message: string = `Synced ${data.subject} onto ${synced} monitor${
-    synced === 1 ? "" : "s"
-  } (${total} linked to this template).`;
+  const message: string = translatePlural(
+    {
+      one: "Synced {{subject}} onto {{count}} monitor ({{total}} linked to this template).",
+      other:
+        "Synced {{subject}} onto {{count}} monitors ({{total}} linked to this template).",
+    },
+    synced,
+    // The counts as they always read: raw, like {{total}} beside them.
+    { subject: translatableTerm(data.subject), total: total, count: synced },
+  );
 
   if (synced >= total) {
     return {
@@ -35,15 +46,19 @@ export function buildSyncResultSummary(data: {
   }
 
   const remaining: number = total - synced;
-  const isOne: boolean = remaining === 1;
+  const remainingSentence: string = translatePlural(
+    {
+      one: "{{count}} linked monitor still uses the previous configuration — usually because your permissions do not cover it. Run the sync again as a user who can update every linked monitor.",
+      other:
+        "{{count}} linked monitors still use the previous configuration — usually because your permissions do not cover them. Run the sync again as a user who can update every linked monitor.",
+    },
+    remaining,
+    { count: remaining },
+  );
 
   return {
     title: "Partially synced",
-    message: `${message} ${remaining} linked monitor${isOne ? "" : "s"} still ${
-      isOne ? "uses" : "use"
-    } the previous configuration — usually because your permissions do not cover ${
-      isOne ? "it" : "them"
-    }. Run the sync again as a user who can update every linked monitor.`,
+    message: `${message} ${remainingSentence}`,
     isIncomplete: true,
   };
 }

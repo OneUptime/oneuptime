@@ -11,7 +11,7 @@ As páginas de status ficam em **Páginas de status**, na navegação à esquerd
 - **Criada com dois campos.** Uma nova página de status só pede **Nome** e **Descrição**. Recursos, marca e domínios são configurados depois.
 - **Os recursos são o que os visitantes veem.** Cada linha da página é um **Status Page Resource** — um monitor (ou grupo de monitores) com seu próprio nome de exibição, dica e opções de disponibilidade. Grupos dividem uma página longa em seções e podem ser aninhados.
 - **Uma URL de prévia desde o primeiro dia.** Toda página de status ganha um link de prévia para você olhá-la antes de existir um domínio personalizado.
-- **As rotas voltadas ao visitante dependem das configurações.** Incidentes, comunicados, eventos agendados e a página de inscrição só aparecem quando a chave correspondente está ativada em **Configurações avançadas**.
+- **As rotas voltadas ao visitante dependem das configurações.** Incidentes, episódios, comunicados e eventos agendados só aparecem enquanto a chave correspondente está ativada em **O que sua página de status mostra** (em **Configurações avançadas**), e a página de inscrição só enquanto **Mostrar página de assinantes** está ativada.
 - **Três formas de torná-la privada.** Usuários privados, uma senha mestra ou SAML SSO / OIDC — mais uma lista de permissões de IP.
 - **Os assinantes são avisados automaticamente.** Assinantes por e-mail, SMS, Slack, Microsoft Teams e webhook podem acompanhar uma página, cada canal atrás da sua própria chave.
 
@@ -98,38 +98,23 @@ Para entender o que coloca um incidente nessa página e o que o tira de lá, vej
 
 ## Escolher o que aparece na página
 
-A maioria das chaves de exibição fica em um só lugar: **Páginas de status → sua página → Avançado → Configurações avançadas**. Cada cartão tem seu próprio botão **Edit Settings**.
+O que os visitantes veem é definido em um único cartão: **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas**. Ele tem uma linha para cada lista que a página pode mostrar, depois **Histórico de tempo de atividade** e a linha "Desenvolvido por OneUptime". Não há botão de editar: uma chave é salva assim que você a muda, e um número de dias quando você sai do campo ou pressiona Enter.
 
-**Configurações de Incidente**:
+- **Mostrar incidentes** (`showIncidentsOnStatusPage`) — ativado por padrão. Abaixo dela, **Mostrar … dias de histórico** (`showIncidentHistoryInDays`, padrão 14) define até onde a lista de incidentes volta no tempo, e **Mostrar rótulos de incidentes** (`showIncidentLabelsOnStatusPage`) vem desativada por padrão.
+- **Mostrar apenas incidentes limitados a esta página** (`onlyShowScopedIncidents`) — também na linha dos incidentes, desativada por padrão. Ativada, a página mostra apenas os incidentes limitados a ela com **Limitar a estas páginas de status**, e só avisa os assinantes sobre eles. Ela também decide quais incidentes trazem seus episódios para a página, por isso continua visível quando **Mostrar incidentes** está desativada.
+- **Mostrar episódios** (`showEpisodesOnStatusPage`) — ativado por padrão, com **Mostrar … dias de histórico** (`showEpisodeHistoryInDays`, padrão 14) e **Mostrar rótulos de episódios** (`showEpisodeLabelsOnStatusPage`, desativado por padrão). Episódios são um modelo próprio, com endpoints próprios, e não uma visão dos incidentes.
+- **Mostrar anúncios** (`showAnnouncementsOnStatusPage`) — ativado por padrão, com **Mostrar … dias de histórico** (`showAnnouncementHistoryInDays`, padrão 14).
+- **Mostrar eventos de manutenção programada** (`showScheduledMaintenanceEventsOnStatusPage`) — ativado por padrão, com **Mostrar … dias de histórico** (`showScheduledEventHistoryInDays`, padrão 14) e **Mostrar rótulos de eventos** (`showScheduledEventLabelsOnStatusPage`, desativado por padrão).
+- **Histórico de tempo de atividade** — **Mostrar … dias de histórico** (`showUptimeHistoryInDays`) é o comprimento da barra de disponibilidade ao lado de cada recurso. O padrão é 90 e o valor precisa ficar entre 1 e 90. Toda opção **Mostrar % de tempo de atividade** e **Mostrar gráfico de histórico de status** de um recurso ou grupo lê esse número.
+- **Mostrar a marca Powered By OneUptime** — ativada por padrão, então o rodapé do visitante diz "Desenvolvido por OneUptime". Desative-a para esconder a linha. A coluna guarda isso ao contrário, como `hidePoweredByOneUptimeBranding`.
 
-- **Mostrar incidentes** (`showIncidentsOnStatusPage`) — ativado por padrão. Desativar também remove o item **Incidentes** da navegação.
-- **Mostrar histórico de incidentes (em dias)** (`showIncidentHistoryInDays`) — até onde a lista de incidentes volta no tempo. O padrão é 14.
-- **Mostrar rótulos de incidentes** (`showIncidentLabelsOnStatusPage`) — desativado por padrão.
+**Uma lista desativada** some da página, junto com o item da barra de navegação, se ela tiver um; o endpoint público dela recusa as requisições, e os assinantes da página não são avisados sobre esse tipo de evento. A linha dela passa a mostrar só a chave: até onde volta uma lista oculta, e se ela mostra rótulos, não muda nada.
 
-**Configurações do episódio** — as mesmas três chaves para episódios de incidente: **Mostrar episódios** (`showEpisodesOnStatusPage`, ativado por padrão), **Mostrar histórico de episódios (em dias)** (padrão 14) e **Mostrar rótulos de episódios** (desativado por padrão). Episódios são um modelo próprio, com endpoints próprios, e não uma visão dos incidentes.
+**Planos.** No OneUptime Cloud, ao lado de uma configuração que o seu plano não permite mudar aparece o plano necessário. As quatro chaves de listas, as três de rótulos e o histórico de episódios exigem **Growth**; esconder a linha "Desenvolvido por OneUptime" exige **Scale**. As outras janelas de histórico, **Histórico de tempo de atividade** e **Mostrar apenas incidentes limitados a esta página** podem ser alteradas em qualquer plano, e cada configuração é salva sozinha.
 
-**Configurações do anúncio**:
+Se a página mostra o item **Inscrever-se** (**Mostrar página de assinantes**, `showSubscriberPageOnStatusPage`, ativado por padrão) e por quais canais os visitantes podem se inscrever não se define nesta tela: as duas coisas ficam no cartão **Canais** em **Assinantes → Configurações de assinantes** (veja [Assinantes e anúncios](/docs/status-pages/subscribers)).
 
-- **Mostrar anúncios** (`showAnnouncementsOnStatusPage`) — ativado por padrão.
-- **Mostrar histórico de anúncios (em dias)** (`showAnnouncementHistoryInDays`) — padrão 14.
-
-**Configurações de evento agendado**:
-
-- **Mostrar eventos de manutenção programada** (`showScheduledMaintenanceEventsOnStatusPage`) — ativado por padrão.
-- **Mostrar histórico de eventos agendados (em dias)** (`showScheduledEventHistoryInDays`) — padrão 14.
-- **Mostrar rótulos de eventos** (`showScheduledEventLabelsOnStatusPage`) — desativado por padrão.
-
-**Configurações do Histórico de Disponibilidade**:
-
-- **Mostrar histórico de tempo de atividade (em dias)** (`showUptimeHistoryInDays`) — o comprimento da barra de disponibilidade ao lado de cada recurso. O padrão é 90 e o valor precisa ficar entre 1 e 90. Toda opção **Mostrar % de tempo de atividade** e **Mostrar gráfico de histórico de status** de um recurso ou grupo lê esse número.
-
-**Configurações de assinantes**:
-
-- **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) — ativado por padrão, mais as cinco chaves de habilitação por canal. As mesmas chaves de canal também aparecem na tela dedicada **Configurações de assinantes**, dentro da seção **Assinantes**; trate essa como o lugar canônico para defini-las.
-
-**Marca "Powered By OneUptime"**:
-
-- **Ocultar a marca Powered By OneUptime** — desativada por padrão, então o rodapé do visitante diz "Desenvolvido por OneUptime" até você ativá-la.
+Abaixo do cartão ficam um cartão que exporta as configurações da página de status para um arquivo JSON que você pode importar de novo e o cartão para arquivar a página de status.
 
 **Onde estão as cores.** As cores da barra de disponibilidade não estão aqui — a **Cor Padrão da Barra**, as regras de cor de barra, os **Status de monitor de indisponibilidade** e **Mostrar percentual geral de tempo de atividade** ficam todos em **Páginas de status → sua página → Marca → Página de visão geral**. Não existe configuração de tema ou de cor de marca em lugar nenhum; qualquer coisa além desses controles se faz com **CSS Personalizado**.
 

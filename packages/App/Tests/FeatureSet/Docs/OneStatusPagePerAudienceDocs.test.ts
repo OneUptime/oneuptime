@@ -13,6 +13,10 @@ import DocsNav, {
 import IncidentStatusPageScopeCopy, {
   formatScopeText,
 } from "../../../FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
+import StatusPageDisplaySettingsCopy, {
+  DISPLAY_SECTIONS,
+  DisplaySectionDefinition,
+} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
@@ -660,7 +664,80 @@ describe("One Status Page per Audience docs", () => {
       );
     });
 
-    it("puts the picker on the declare form's Resources Affected step, and the summary on its More step", () => {
+    /*
+     * "No status page subscribers will be notified: no monitors are
+     * attached" is gone from under Notify Status Page Subscribers. The
+     * summary shows nothing when nobody will be told, and warns only when
+     * the status page scope is why; picking pages with no monitor is warned
+     * about under the picker. The guides must not promise the old notices.
+     */
+    it("says the summary shows nothing when nobody will be told, and warns only about the status page scope", () => {
+      const english: string = readPage(GUIDE_PAGE);
+
+      expect(english).toContain(
+        "When nobody will be told, the summary shows nothing: the incident has no monitors, no status page lists them, the pages have no subscribers yet, **Notify Status Page Subscribers** is off, or the incident is private.",
+      );
+      expect(english).toContain(
+        "It warns only when the status page scope is the reason, and names the pages it leaves out",
+      );
+      expect(english).toContain(
+        "- when a picked page lists none of the incident's monitors, or no monitor is attached at all.",
+      );
+      expect(english).toContain(
+        "**Notify Status Page Subscribers** reads **Yes** or **No** like every other box",
+      );
+      expect(english).toContain(
+        "Both confirmations list the pages it would reach now, or say that it would reach nobody;",
+      );
+      expect(english).not.toContain(
+        "When nothing will be sent at all, it says why instead",
+      );
+
+      const persian: string = readPage(GUIDE_PAGE, "fa");
+
+      expect(persian).toContain(
+        "وقتی کسی خبردار نخواهد شد، خلاصه چیزی نشان نمی‌دهد",
+      );
+      expect(persian).toContain("یا اصلاً هیچ مانیتوری پیوست نشده باشد");
+      expect(persian).toContain("یا می‌گویند که به هیچ‌کس نمی‌رسد");
+      expect(persian).not.toContain(
+        "وقتی اصلاً چیزی فرستاده نخواهد شد، به‌جایش دلیل را می‌گوید",
+      );
+
+      for (const language of ALL_LANGUAGES) {
+        for (const page of [
+          GUIDE_PAGE,
+          "incidents/declaring-incidents",
+          "incidents/notes-owners-and-feed",
+        ]) {
+          expect(readPage(page, language)).not.toMatch(
+            /no monitors are attached/i,
+          );
+        }
+      }
+    });
+
+    it("says the same on the declaring and notes pages, in every language", () => {
+      expect(readPage("incidents/declaring-incidents")).toContain(
+        "When nobody will be told (no monitor is attached, no status page lists the monitors, or the pages have no subscribers yet) it shows nothing, and it warns only when the incident's status page scope is the reason.",
+      );
+      expect(readPage("incidents/declaring-incidents", "fa")).toContain(
+        "وقتی کسی خبردار نخواهد شد (هیچ مانیتوری پیوست نشده",
+      );
+      expect(readPage("incidents/notes-owners-and-feed")).toContain(
+        "When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason.",
+      );
+      expect(readPage("incidents/notes-owners-and-feed", "fa")).toContain(
+        "وقتی کسی خبردار نخواهد شد چیزی نشان نمی‌دهد",
+      );
+    });
+
+    /*
+     * The More step went: the notify box, and the audience under it, sit
+     * right below the picker on Resources Affected, and Private Incident and
+     * Change Monitor Status to are folded under Advanced on their steps.
+     */
+    it("puts the picker and the notify box with its audience on the declare form's Resources Affected step", () => {
       const source: string = readDashboardSource("Pages/Incidents/Create.tsx");
 
       expect(source).toMatch(
@@ -669,7 +746,10 @@ describe("One Status Page per Audience docs", () => {
       expect(source).toMatch(
         /title:\s*"Resources Affected",\s*id:\s*"resources-affected"/,
       );
-      expect(source).toMatch(/title:\s*"More",\s*id:\s*"more"/);
+      expect(source).toMatch(
+        /title:\s*"Notify Status Page Subscribers",\s*stepId:\s*"resources-affected"/,
+      );
+      expect(source).not.toMatch(/id:\s*"more"/);
       expect(source).toContain("SubscriberAudienceSummary");
 
       for (const language of ALL_LANGUAGES) {
@@ -682,7 +762,8 @@ describe("One Status Page per Audience docs", () => {
 
         for (const name of [
           "Resources Affected",
-          "More",
+          "Incident Details",
+          "Advanced",
           "Labels",
           "Change Monitor Status to",
           "Private Incident",
@@ -737,22 +818,44 @@ describe("One Status Page per Audience docs", () => {
       }
     });
 
-    it("finds the scoped-only switch on the Incident Settings card of Advanced Settings", () => {
-      const source: string = readDashboardSource(
-        "Pages/StatusPages/View/StatusPageSettings.tsx",
-      );
+    /*
+     * Advanced Settings is one "What your status page shows" card now, with
+     * no Edit button: the scoped-only switch is in its incidents row, under
+     * Show Incidents, and saves as it is flipped.
+     */
+    it("finds the scoped-only switch in the What your status page shows card of Advanced Settings, under Show Incidents", () => {
+      expect(
+        readDashboardSource("Pages/StatusPages/View/StatusPageSettings.tsx"),
+      ).toContain("<StatusPageDisplaySettingsCard statusPageId={modelId} />");
 
-      expect(source).toMatch(/title:\s*"Incident Settings"/);
-      expect(source).toMatch(/editButtonText="Edit Settings"/);
-      expect(source).toContain(
-        "IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle",
-      );
+      const incidents: DisplaySectionDefinition = DISPLAY_SECTIONS.find(
+        (section: DisplaySectionDefinition) => {
+          return section.id === "incidents";
+        },
+      )!;
+
+      expect(incidents.show?.title).toBe("Show Incidents");
+      expect(
+        incidents.options.map((option: { title: string }) => {
+          return option.title;
+        }),
+      ).toContain(IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle);
 
       for (const language of ALL_LANGUAGES) {
-        const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
+        const guide: string = readPage(GUIDE_PAGE, language);
+        const names: Set<string> = boldText(guide);
 
-        expect(names.has("Incident Settings")).toBe(true);
-        expect(names.has("Edit Settings")).toBe(true);
+        expect(names.has(StatusPageDisplaySettingsCopy.cardTitle)).toBe(true);
+        expect(names.has("Show Incidents")).toBe(true);
+
+        // The step no longer sends anyone through an Edit dialog.
+        const step: string =
+          guide.split("\n").find((line: string): boolean => {
+            return line.startsWith("3. ");
+          }) || "";
+
+        expect(step).toContain(StatusPageDisplaySettingsCopy.cardTitle);
+        expect(step).not.toContain("Edit Settings");
       }
     });
 
@@ -992,6 +1095,34 @@ describe("One Status Page per Audience docs", () => {
           ),
         ).toBe(true);
       }
+    });
+
+    /*
+     * The dashboard no longer explains an empty status page picker (its "No
+     * status pages to pick from ... Ask a project admin." banner was removed
+     * at the maintainer's request), so the guide must not say it does. It is
+     * where the explanation lives now.
+     */
+    it("says an empty picker means no read access, without promising the picker says so", () => {
+      expect(Object.keys(IncidentStatusPageScopeCopy)).not.toContain(
+        "pickerNoAccessHint",
+      );
+
+      const english: string = readPage(GUIDE_PAGE, "en");
+
+      expect(english.split("Without it the picker is empty").length - 1).toBe(
+        2,
+      );
+      expect(english).not.toContain("and says why");
+      expect(english).not.toContain("The picker says so");
+
+      const persian: string = readPage(GUIDE_PAGE, "fa");
+
+      expect(persian.split("بدون آن انتخابگر خالی است").length - 1).toBe(2);
+      expect(persian).not.toContain("و می‌گوید چرا");
+      expect(persian).not.toContain(
+        "وقتی انتخابگر چیزی برای فهرست کردن نداشته باشد",
+      );
     });
 
     it("lets the roles that declare, edit or post a public note see the audience", () => {

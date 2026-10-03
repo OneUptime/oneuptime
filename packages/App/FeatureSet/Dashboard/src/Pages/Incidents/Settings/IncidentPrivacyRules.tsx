@@ -172,6 +172,9 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -349,6 +352,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",

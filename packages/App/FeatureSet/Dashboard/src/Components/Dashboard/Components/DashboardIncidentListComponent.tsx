@@ -33,6 +33,8 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardIncidentListComponent;
@@ -49,6 +51,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 const DashboardIncidentListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [incidents, setIncidents] = useState<Array<Incident>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -253,7 +256,8 @@ const DashboardIncidentListComponentElement: FunctionComponent<
               to={detailRoute}
               className="hover:underline text-gray-700 group-hover:text-blue-600"
             >
-              {(incident.title as string) || "Untitled"}
+              {(incident.title as string) ||
+                (translator.translateText("Untitled") as string)}
             </AppLink>
           </td>
           <td className="px-3 py-2">

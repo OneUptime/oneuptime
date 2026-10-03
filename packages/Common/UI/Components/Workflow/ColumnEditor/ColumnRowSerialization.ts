@@ -38,6 +38,7 @@ import {
   requiredWritableColumns,
 } from "../ModelSchema";
 import { controlForColumn, literalFitsControl } from "./ColumnControl";
+import { translationKey } from "../../../Utils/TranslateTemplate";
 import {
   ColumnValueMode,
   ModelColumnControl,
@@ -506,11 +507,11 @@ export const rowIssue: RowIssueFunction = (
   const control: ModelColumnControl = controlForColumn(column);
 
   if (control === ModelColumnControl.Number && isNaN(Number(row.text))) {
-    return "This column takes a number.";
+    return translationKey("This column takes a number.");
   }
 
   if (control === ModelColumnControl.Date && isNaN(Date.parse(row.text))) {
-    return "This column takes a date and time.";
+    return translationKey("This column takes a date and time.");
   }
 
   return null;

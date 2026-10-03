@@ -15,10 +15,13 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import HostDocumentationCard from "../../../Components/Host/DocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const HostDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [host, setHost] = useState<Host | null>(null);
@@ -65,7 +68,10 @@ const HostDocumentation: FunctionComponent<
     <Fragment>
       <HostDocumentationCard
         title="OTel Collector Setup"
-        description={`Connect this host (${host.hostIdentifier || host.name}) by installing the OpenTelemetry Collector with the steps below.`}
+        description={translator.translateTemplate(
+          "Connect this host ({{host}}) by installing the OpenTelemetry Collector with the steps below.",
+          { host: host.hostIdentifier || host.name || "" },
+        )}
       />
     </Fragment>
   );

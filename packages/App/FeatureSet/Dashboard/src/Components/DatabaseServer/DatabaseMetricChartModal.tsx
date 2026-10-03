@@ -47,6 +47,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A database's Metrics tab charts a clicked metric HERE, in place, instead
@@ -113,6 +115,7 @@ export const DATABASE_METRIC_AGGREGATION_LABELS: Partial<
 const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const unit: string = (props.unit || "").trim();
 
   // A curated metric is charted from the catalog; its shape is not needed.
@@ -415,7 +418,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
               <div
                 className="inline-flex rounded-md shadow-sm"
                 role="group"
-                aria-label="Aggregation"
+                aria-label={translator.translateText("Aggregation")}
               >
                 {spec.aggregations.map(
                   (option: AggregationType, index: number): ReactElement => {
@@ -461,7 +464,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
                   to={monitorRoute}
                   className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
                 >
-                  Create monitor
+                  {translator.translateText("Create monitor") as string}
                 </AppLink>
               ) : (
                 <></>
@@ -477,11 +480,13 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
                   }
                   title={
                     monitorBlocker ||
-                    "Checking whether this metric carries this database's id…"
+                    translator.translateText(
+                      "Checking whether this metric carries this database's id…",
+                    )
                   }
                   className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
                 >
-                  Create monitor
+                  {translator.translateText("Create monitor")}
                 </button>
               ) : (
                 <></>

@@ -20,6 +20,13 @@ import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -62,6 +69,10 @@ export const ACTIVE_MONITOR_PRICE_SENTENCE: string = `${ACTIVE_MONITOR_PRICE_TEX
 
 export const MONITOR_CONSENT_ERROR: string = `Please confirm you understand this monitor is billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month before creating it.`;
 
+/*
+ * The card's words, already in the reader's language - except `points`,
+ * which are English keys the card translates.
+ */
 interface PayAsYouGoCardProps {
   cardTitle: string;
   cardDescription: string;
@@ -87,6 +98,8 @@ function openPricingPage(): void {
 const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
   props: PayAsYouGoCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <Card
       title={props.cardTitle}
@@ -123,7 +136,7 @@ const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
                     thick={ThickProp.Thick}
                     className="h-2.5 w-2.5"
                   />
-                  Pay as you go
+                  {translator.translateText("Pay as you go")}
                 </span>
               </div>
               <p className="mt-1 text-sm text-gray-700">{props.summary}</p>
@@ -140,7 +153,7 @@ const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
                         thick={ThickProp.Thick}
                         className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500"
                       />
-                      <span>{point}</span>
+                      <span>{translator.translateText(point)}</span>
                     </li>
                   );
                 })}
@@ -167,25 +180,52 @@ const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
  * project is on the Free plan of a billed deployment.
  */
 export const TelemetryPayAsYouGoCard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!isProjectOnFreePlan()) {
     return <></>;
   }
 
+  const prices: { price: string; replayPrice: string; days: number } = {
+    price: TELEMETRY_PRICE_PER_GB_TEXT,
+    replayPrice: SESSION_REPLAY_PRICE_PER_GB_TEXT,
+    days: TELEMETRY_PRICE_RETENTION_IN_DAYS,
+  };
+
   return (
     <PayAsYouGoCard
       dataTestId="telemetry-pay-as-you-go-card"
-      cardTitle="Telemetry is a pay as you go feature"
-      cardDescription={`Your project is on the Free plan. Telemetry sent with an ingestion key is billed as you use it, from ${TELEMETRY_PRICE_SENTENCE}.`}
-      featureName="Telemetry ingest"
+      cardTitle={
+        translator.translateText(
+          "Telemetry is a pay as you go feature",
+        ) as string
+      }
+      cardDescription={translator.translateTemplate(
+        "Your project is on the Free plan. Telemetry sent with an ingestion key is billed as you use it, from {{price}} per GB ingested, with {{days}} day retention.",
+        prices,
+      )}
+      featureName={translator.translateText("Telemetry ingest") as string}
       featureIcon={IconProp.ChartBar}
-      priceLabel="Starting at"
+      priceLabel={translator.translateText("Starting at") as string}
       priceText={TELEMETRY_PRICE_PER_GB_TEXT}
-      priceCaption={`per GB ingested (${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention)`}
-      summary={`Telemetry is available on the Free plan, but it is not bundled into it. Data you send with an ingestion key is billed as you use it. ${TELEMETRY_RATES_SENTENCE}`}
+      priceCaption={translator.translateTemplate(
+        "per GB ingested ({{days}} day retention)",
+        prices,
+      )}
+      summary={`${translator.translateText(
+        "Telemetry is available on the Free plan, but it is not bundled into it. Data you send with an ingestion key is billed as you use it.",
+      )} ${translator.translateTemplate(
+        "Logs, traces, metrics, profiles and security events are billed at {{price}} per GB ingested, with {{days}} day retention. Session replay recordings are billed at {{replayPrice}} per GB, with {{days}} day retention.",
+        prices,
+      )}`}
       points={[
-        "A payment method is required before you can send paid telemetry.",
-        "Stop sending data, or delete the key, and the charge stops.",
-        "Longer retention costs proportionally more per GB.",
+        translationKey(
+          "A payment method is required before you can send paid telemetry.",
+        ),
+        translationKey(
+          "Stop sending data, or delete the key, and the charge stops.",
+        ),
+        translationKey("Longer retention costs proportionally more per GB."),
       ]}
     />
   );
@@ -196,13 +236,15 @@ export const TelemetryPayAsYouGoCard: FunctionComponent = (): ReactElement => {
  * on the Free plan of a billed deployment.
  */
 export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!isProjectOnFreePlan()) {
     return <></>;
   }
 
   return (
     <section
-      aria-label="Monitor pricing"
+      aria-label={translator.translateText("Monitor pricing")}
       data-testid="monitor-pay-as-you-go-card"
       className="mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
     >
@@ -210,11 +252,12 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-900">
-              Monitor pricing
+              {translator.translateText("Monitor pricing")}
             </h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
-              Your project is on the Free plan. Choose the monitoring that fits
-              your needs.
+              {translator.translateText(
+                "Your project is on the Free plan. Choose the monitoring that fits your needs.",
+              )}
             </p>
           </div>
           <a
@@ -223,7 +266,7 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
             rel="noopener noreferrer"
             className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            View pricing
+            {translator.translateText("View pricing")}
             <div aria-hidden="true">
               <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
             </div>
@@ -237,10 +280,10 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
                 <Icon icon={IconProp.Bolt} className="h-5 w-5" />
               </div>
               <h3 className="text-sm font-semibold text-gray-900">
-                Active monitoring
+                {translator.translateText("Active monitoring")}
               </h3>
               <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                Pay as you go
+                {translator.translateText("Pay as you go")}
               </span>
             </div>
             <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -248,15 +291,19 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
                 {ACTIVE_MONITOR_PRICE_TEXT}
               </span>
               <span className="text-sm text-gray-600">
-                per monitor per month
+                {translator.translateText("per monitor per month")}
               </span>
             </p>
             <p className="mt-3 text-sm leading-6 text-gray-600">
-              Every monitor type except {MonitorType.Manual} is an active
-              monitor.
+              {translator.translateTemplate(
+                "Every monitor type except {{manualType}} is an active monitor.",
+                { manualType: translatableTerm(MonitorType.Manual) },
+              )}
             </p>
             <p className="mt-1 text-sm leading-6 text-gray-600">
-              No commitment. Delete a monitor to stop its charges.
+              {translator.translateText(
+                "No commitment. Delete a monitor to stop its charges.",
+              )}
             </p>
           </div>
 
@@ -266,20 +313,24 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
                 <Icon icon={IconProp.CheckCircle} className="h-5 w-5" />
               </div>
               <h3 className="text-sm font-semibold text-gray-900">
-                Manual monitors
+                {translator.translateText("Manual monitors")}
               </h3>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                Always free
+                {translator.translateText("Always free")}
               </span>
             </div>
             <p className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
-              Free
+              {translator.translateText("Free")}
             </p>
             <p className="mt-3 text-sm leading-6 text-gray-600">
-              Unlimited monitors. No monitoring charges.
+              {translator.translateText(
+                "Unlimited monitors. No monitoring charges.",
+              )}
             </p>
             <p className="mt-1 text-sm leading-6 text-gray-600">
-              Update their status manually or through the API.
+              {translator.translateText(
+                "Update their status manually or through the API.",
+              )}
             </p>
           </div>
         </div>
@@ -293,7 +344,11 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
           >
             <Icon icon={IconProp.Billing} className="h-4 w-4" />
           </div>
-          <span>Add a payment method before creating an active monitor.</span>
+          <span>
+            {translator.translateText(
+              "Add a payment method before creating an active monitor.",
+            )}
+          </span>
         </div>
         <div className="flex items-start gap-2 text-xs leading-5 text-gray-500">
           <div
@@ -303,8 +358,9 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
             <Icon icon={IconProp.Info} className="h-4 w-4" />
           </div>
           <span>
-            Telemetry-based monitors also incur charges for the telemetry they
-            read.
+            {translator.translateText(
+              "Telemetry-based monitors also incur charges for the telemetry they read.",
+            )}
           </span>
         </div>
       </div>
@@ -317,36 +373,44 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
  * there is no room for the full card and no page card behind it.
  */
 const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <section
-      aria-label="Telemetry pricing"
+      aria-label={translator.translateText("Telemetry pricing")}
       data-testid="telemetry-pay-as-you-go-notice"
       className="overflow-hidden rounded-xl border border-gray-200 bg-white"
     >
       <div className="border-b border-gray-100 bg-indigo-50/50 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-gray-900">
-            Telemetry pricing
+            {translator.translateText("Telemetry pricing")}
           </h3>
           <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-            Pay as you go
+            {translator.translateText("Pay as you go")}
           </span>
         </div>
         <p className="mt-1 text-sm leading-6 text-gray-600">
-          Telemetry is not included in your Free plan.
+          {translator.translateText(
+            "Telemetry is not included in your Free plan.",
+          )}
         </p>
       </div>
 
       <div className="divide-y divide-gray-100 px-4">
         <div
           role="group"
-          aria-label="Telemetry"
+          aria-label={translator.translateText("Telemetry")}
           className="flex items-start justify-between gap-4 py-3"
         >
           <div className="min-w-0">
-            <h4 className="text-sm font-semibold text-gray-900">Telemetry</h4>
+            <h4 className="text-sm font-semibold text-gray-900">
+              {translator.translateText("Telemetry")}
+            </h4>
             <p className="mt-1 text-xs leading-5 text-gray-500">
-              Logs, traces, metrics, profiles and security events
+              {translator.translateText(
+                "Logs, traces, metrics, profiles and security events",
+              )}
             </p>
           </div>
           <p className="flex-shrink-0 text-right">
@@ -354,22 +418,22 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
               {TELEMETRY_PRICE_PER_GB_TEXT}
             </span>{" "}
             <span className="block text-xs leading-5 text-gray-500">
-              per GB ingested
+              {translator.translateText("per GB ingested")}
             </span>
           </p>
         </div>
 
         <div
           role="group"
-          aria-label="Session replay"
+          aria-label={translator.translateText("Session replay")}
           className="flex items-start justify-between gap-4 py-3"
         >
           <div className="min-w-0">
             <h4 className="text-sm font-semibold text-gray-900">
-              Session replay
+              {translator.translateText("Session replay")}
             </h4>
             <p className="mt-1 text-xs leading-5 text-gray-500">
-              Session replay recordings
+              {translator.translateText("Session replay recordings")}
             </p>
           </div>
           <p className="flex-shrink-0 text-right">
@@ -377,7 +441,7 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
               {SESSION_REPLAY_PRICE_PER_GB_TEXT}
             </span>{" "}
             <span className="block text-xs leading-5 text-gray-500">
-              per GB
+              {translator.translateText("per GB")}
             </span>
           </p>
         </div>
@@ -386,7 +450,13 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
       <div className="space-y-3 border-t border-gray-200 bg-gray-50 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <p className="text-xs leading-5 text-gray-500">
-            {TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention for both.
+            {translator.translatePlural(
+              {
+                one: "{{count}} day retention for both.",
+                other: "{{count}} day retention for both.",
+              },
+              TELEMETRY_PRICE_RETENTION_IN_DAYS,
+            )}
           </p>
           <a
             href={PRICING_PAGE_URL}
@@ -394,7 +464,7 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            View pricing
+            {translator.translateText("View pricing")}
             <div aria-hidden="true">
               <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
             </div>
@@ -408,8 +478,9 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
             <Icon icon={IconProp.Billing} className="h-4 w-4" />
           </div>
           <p>
-            Add a payment method before creating a key or sending paid
-            telemetry.
+            {translator.translateText(
+              "Add a payment method before creating a key or sending paid telemetry.",
+            )}
           </p>
         </div>
       </div>
@@ -472,6 +543,7 @@ export function isMonitorBatchConsentRequired(
 
 export function getMonitorBatchPriceSentence(
   monitorTypes: Array<MonitorType>,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   const billedCount: number = monitorTypes.filter(
     (monitorType: MonitorType) => {
@@ -484,11 +556,20 @@ export function getMonitorBatchPriceSentence(
    * project may have - a batch that runs into the cap is rejected part way
    * rather than billed in full.
    */
-  return `Creating ${billedCount} ${
-    billedCount === 1 ? "monitor" : "monitors"
-  } adds up to ${formatPriceInUSD(
-    billedCount * ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
-  )} per month to your bill (${ACTIVE_MONITOR_PRICE_SENTENCE}).`;
+  return translator.translatePlural(
+    {
+      one: "Creating {{count}} monitor adds up to {{total}} per month to your bill ({{price}} per monitor per month).",
+      other:
+        "Creating {{count}} monitors adds up to {{total}} per month to your bill ({{price}} per monitor per month).",
+    },
+    billedCount,
+    {
+      total: formatPriceInUSD(
+        billedCount * ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+      ),
+      price: ACTIVE_MONITOR_PRICE_TEXT,
+    },
+  );
 }
 
 export interface MonitorBatchConsentProps {
@@ -505,6 +586,8 @@ export interface MonitorBatchConsentProps {
 export const MonitorBatchPayAsYouGoConsent: FunctionComponent<
   MonitorBatchConsentProps
 > = (props: MonitorBatchConsentProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!isMonitorBatchConsentRequired(props.monitorTypes)) {
     return <></>;
   }
@@ -515,16 +598,19 @@ export const MonitorBatchPayAsYouGoConsent: FunctionComponent<
       data-testid="monitor-batch-pay-as-you-go-notice"
     >
       <PaidUsageConsent
-        title={`I understand these monitors are billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month each`}
+        title={translator.translateTemplate(
+          "I understand these monitors are billed at {{price}} per month each",
+          { price: ACTIVE_MONITOR_PRICE_TEXT },
+        )}
         description={
           <span>
-            {getMonitorBatchPriceSentence(props.monitorTypes)}{" "}
+            {getMonitorBatchPriceSentence(props.monitorTypes, translator)}{" "}
             <Link
               className="underline"
               openInNewTab={true}
               to={URL.fromString(PRICING_PAGE_URL)}
             >
-              See pay as you go pricing
+              {translator.translateText("See pay as you go pricing")}
             </Link>
             .
           </span>

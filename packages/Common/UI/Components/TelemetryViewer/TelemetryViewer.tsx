@@ -1,4 +1,5 @@
 import React, { ReactElement, ReactNode, useId, useState } from "react";
+import useTranslateValue from "../../Utils/Translation";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import {
   FacetData,
@@ -189,6 +190,7 @@ export const TELEMETRY_VIEWER_MAIN_AREA_TEST_ID: string =
 export const TELEMETRY_VIEWER_LIST_TEST_ID: string = "telemetry-viewer-list";
 
 function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
+  const { translateString } = useTranslateValue();
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
     props.facetConfigs !== undefined &&
@@ -295,7 +297,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             }}
           >
             <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
-            <span>Filters</span>
+            <span>{translateString("Filters")}</span>
           </button>
         )}
 
@@ -323,9 +325,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             onClick={() => {
               props.live?.onToggle(!props.live.isLive);
             }}
-            title={
-              props.live.isLive ? "Pause live updates" : "Enable live updates"
-            }
+            title={translateString(
+              props.live.isLive ? "Pause live updates" : "Enable live updates",
+            )}
           >
             <span
               className={`h-2 w-2 rounded-full ${
@@ -334,7 +336,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                   : "bg-gray-300"
               }`}
             />
-            <span>{props.live.isLive ? "Live" : "Paused"}</span>
+            <span>
+              {translateString(props.live.isLive ? "Live" : "Paused")}
+            </span>
           </button>
         )}
 
@@ -343,10 +347,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             type="button"
             className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
             onClick={props.onRefresh}
-            title="Refresh"
+            title={translateString("Refresh")}
           >
             <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-            <span>Refresh</span>
+            <span>{translateString("Refresh")}</span>
           </button>
         )}
 
@@ -453,10 +457,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                       className="h-8 w-8 text-gray-300"
                     />
                     <p className="text-sm font-medium text-gray-500">
-                      {props.emptyMessage || "No results"}
+                      {translateString(props.emptyMessage || "No results")}
                     </p>
                     <p className="text-xs text-gray-400">
-                      Try adjusting filters or time range.
+                      {translateString("Try adjusting filters or time range.")}
                     </p>
                   </div>
                 )

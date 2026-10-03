@@ -3,6 +3,7 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   children: ReactNode;
@@ -22,6 +23,8 @@ export interface ComponentProps {
 const Link: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const title: string | undefined = translateString(props.title);
   let children: ReactNode;
 
   if (
@@ -48,7 +51,7 @@ const Link: FunctionComponent<ComponentProps> = (
         onMouseOut={props.onMouseOut}
         onMouseLeave={props.onMouseLeave}
         style={props.style}
-        title={props.title}
+        title={title}
       >
         {children}
       </span>
@@ -89,8 +92,8 @@ const Link: FunctionComponent<ComponentProps> = (
       onMouseOut={props.onMouseOut}
       onMouseLeave={props.onMouseLeave}
       style={props.style}
-      title={props.title}
-      aria-label={props.title}
+      title={title}
+      aria-label={title}
       onKeyDown={(event: React.KeyboardEvent<HTMLAnchorElement>) => {
         /*
          * For onClick-only links (no href) we render role="button"; activate them

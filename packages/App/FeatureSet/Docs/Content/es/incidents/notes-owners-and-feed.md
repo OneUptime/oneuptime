@@ -114,7 +114,7 @@ El mensaje que reciben los suscriptores se genera con plantillas por página de 
 
 ## El feed del incidente
 
-La tarjeta **Incidente Feed** está al final de la columna izquierda de la página **Vista General** del incidente. Es la historia del incidente en orden: cada elemento es un icono, el avatar y el nombre de quien lo provocó, una marca de tiempo relativa con la hora local exacta al pasar el ratón, y un cuerpo en Markdown. Los elementos se ordenan de más antiguo a más reciente.
+La tarjeta **Incidente Feed** está al final de la columna izquierda de la página **Vista General** del incidente. Es la historia del incidente en orden: cada elemento es un icono, el avatar y el nombre de quien lo provocó, una marca de tiempo relativa con la hora local exacta al pasar el ratón, y un cuerpo en Markdown. De forma predeterminada, los elementos más recientes aparecen arriba.
 
 Algunos elementos llevan detalle adicional: una notificación a propietarios enumera, por ejemplo, a todo el mundo a quien se envió correo. Esos muestran un botón **More Information** que abre un panel **More Information**.
 
@@ -125,7 +125,11 @@ La cabecera de la tarjeta tiene además un menú **Acciones** para que puedas ac
 - **Add Public Note** — los mismos cuatro campos de la página de Notas Públicas, en un modal.
 - **Añadir nota privada** — solo cuerpo de la nota y adjuntos.
 
-Al lado, **Actualizar** vuelve a recuperar el feed.
+Todo lo demás está detrás del botón **⋯** de al lado, el mismo botón **Más opciones** que tiene la cabecera de tarjeta de una tabla, para que la cabecera muestre los menos botones posibles:
+
+- **Más recientes primero** / **Más antiguos primero** — el orden en que se lee el feed. Una marca indica el que está en uso, y tu navegador recuerda la elección para el feed de cada incidente.
+- **Filtrar por tipo de evento** — un diálogo que lista los tipos de evento del feed, cada uno con el icono de sus elementos, y un cuadro de búsqueda cuando la lista es larga. Marca los que quieras ver y elige **Aplicar filtros**; si no marcas ninguno, se muestran todos. Mientras el feed está filtrado, un recuadro encima indica cuántos tipos de evento muestra, con una etiqueta para cada uno, **Editar filtros** y **Limpiar filtros**. El filtro no se guarda: si sales del incidente, su feed vuelve a mostrarlo todo.
+- **Actualizar** — vuelve a recuperar el feed.
 
 **El feed es de solo anexado, y no es tu registro de auditoría.** La API permite crear y leer elementos del feed, pero no actualizarlos ni eliminarlos, así que nadie puede reescribir en silencio la historia de un incidente. Tampoco es permanente: en instalaciones facturadas, las filas del feed con más de tres años se eliminan. Para un registro duradero de quién cambió qué, usa **Auditoría → Registros de Auditoría** en el menú lateral del incidente.
 

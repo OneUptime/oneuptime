@@ -66,6 +66,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The OTel hostmetrics `process` scraper attaches per-process identity
@@ -156,6 +158,7 @@ const REFRESH_STORAGE_KEY: string = "host-process-view-auto-refresh-interval";
 const HostProcessView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const pid: string = Navigation.getLastParamAsString();
 
@@ -758,7 +761,7 @@ const HostProcessView: FunctionComponent<
     const hostDisplayName: string =
       (host.name as string | undefined) ||
       (host.hostIdentifier as string | undefined) ||
-      "host";
+      translator.translateTerm("host");
 
     const chips: Array<{ icon: IconProp; label: string }> = [];
     chips.push({ icon: IconProp.Hashtag, label: `pid ${identity.pid}` });
@@ -768,7 +771,9 @@ const HostProcessView: FunctionComponent<
     if (identity.latestSampleAt) {
       chips.push({
         icon: IconProp.Clock,
-        label: `Last sample ${OneUptimeDate.fromNow(identity.latestSampleAt)}`,
+        label: translator.translateTemplate("Last sample {{time}}", {
+          time: OneUptimeDate.fromNow(identity.latestSampleAt),
+        }),
       });
     }
 
@@ -801,7 +806,7 @@ const HostProcessView: FunctionComponent<
                       to={processesRoute}
                       className="text-indigo-600 hover:text-indigo-900"
                     >
-                      Processes
+                      {translator.translateText("Processes")}
                     </Link>
                     <span className="mx-1.5 text-gray-300">/</span>
                     <Link
@@ -927,7 +932,11 @@ const HostProcessView: FunctionComponent<
           value={formatInt(s.threads)}
           sublabel={
             s.openFds !== null
-              ? `${formatInt(s.openFds)} open fds`
+              ? translator.translatePlural(
+                  { one: "{{count}} open fd", other: "{{count}} open fds" },
+                  s.openFds,
+                  { count: formatInt(s.openFds) },
+                )
               : "thread count"
           }
           description={HOST_METRIC_DESCRIPTIONS.processThreads}
@@ -966,7 +975,7 @@ const HostProcessView: FunctionComponent<
           <div className="flex items-center justify-between mb-3">
             <div className="flex min-w-0 items-center gap-1">
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {params.title}
+                {translator.translateText(params.title)}
               </span>
               <InfoTooltip label={params.title} text={params.description} />
             </div>
@@ -1011,7 +1020,7 @@ const HostProcessView: FunctionComponent<
         <div className="flex items-center justify-between mb-3">
           <div className="flex min-w-0 items-center gap-1">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
+              {translator.translateText(params.title)}
             </span>
             <InfoTooltip label={params.title} text={params.description} />
           </div>
@@ -1076,10 +1085,12 @@ const HostProcessView: FunctionComponent<
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
-              Resource usage
+              {translator.translateText("Resource usage")}
             </h2>
             <p className="text-xs text-gray-500">
-              Aggregated over the selected time range for this process
+              {translator.translateText(
+                "Aggregated over the selected time range for this process",
+              )}
             </p>
           </div>
           <TimeRangeZoomHint revealOnHover={true} />

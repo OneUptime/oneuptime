@@ -40,10 +40,13 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterDaemonSetDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const daemonSetName: string = Navigation.getLastParamAsString();
 
@@ -135,7 +138,10 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "daemonset_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pods in daemonset ${daemonSetName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for pods in daemonset {{daemonSetName}}",
+        { daemonSetName: daemonSetName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -163,7 +169,10 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "daemonset_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pods in daemonset ${daemonSetName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pods in daemonset {{daemonSetName}}",
+        { daemonSetName: daemonSetName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -296,7 +305,10 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`DaemonSet Metrics: ${daemonSetName}`}
+          title={translator.translateTemplate(
+            "DaemonSet Metrics: {{daemonSetName}}",
+            { daemonSetName: daemonSetName },
+          )}
           description="CPU and memory usage for pods in this daemonset over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />

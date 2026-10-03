@@ -22,6 +22,10 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardProxmoxGuestListComponent;
@@ -113,7 +117,7 @@ function getGuestStatus(r: ProxmoxResource): {
   const haState: string = ((r.haState as string) || "").toLowerCase();
   if (haState === "error" || haState === "fence") {
     return {
-      text: `HA ${haState}`,
+      text: translateTemplate("HA {{state}}", { state: haState }),
       dot: GUEST_COLORS.haError,
       textColor: "var(--ou-danger-text, #b91c1c)",
     };
@@ -121,27 +125,31 @@ function getGuestStatus(r: ProxmoxResource): {
   const isUp: boolean | undefined = r.isUp as boolean | undefined;
   if (isUp === true) {
     return {
-      text: "Running",
+      text: translateText("Running") as string,
       dot: GUEST_COLORS.running,
       textColor: "var(--ou-success-text, #047857)",
     };
   }
   if (isUp === false) {
     return {
-      text: "Stopped",
+      text: translateText("Stopped") as string,
       dot: GUEST_COLORS.stopped,
       textColor: "var(--ou-text-muted, #6b7280)",
     };
   }
   return {
-    text: "Unknown",
+    text: translateText("Unknown") as string,
     dot: GUEST_COLORS.unknown,
     textColor: "var(--ou-text-muted, #6b7280)",
   };
 }
 
 function getGuestDisplayName(r: ProxmoxResource): string {
-  return (r.name as string) || (r.externalId as string) || "Unnamed";
+  return (
+    (r.name as string) ||
+    (r.externalId as string) ||
+    (translateText("Unnamed") as string)
+  );
 }
 
 function renderGuestRow(r: ProxmoxResource): ReactElement {

@@ -158,6 +158,8 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           title: "Enabled",
           stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
           description: "Enable or disable this rule.",
         },
@@ -186,6 +188,9 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",
@@ -355,6 +360,8 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           title: "Enabled",
           stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
         },
         {
@@ -369,6 +376,9 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
             type: IncidentSeverity,
             labelField: "name",
             valueField: "_id",
+            sort: {
+              order: SortOrder.Ascending,
+            },
           },
           required: false,
           placeholder: "Select Severities (optional)",

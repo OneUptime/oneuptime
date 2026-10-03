@@ -23,6 +23,7 @@ import StatusPageService, {
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -337,6 +338,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           projectId: true,
           incidentSeverity: {
             name: true,
+            color: true,
           },
           isVisibleOnStatusPage: true,
           episodeNumber: true,
@@ -873,6 +875,10 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                           resourcesAffected: resourcesAffectedString,
                           episodeSeverity:
                             episode.incidentSeverity?.name || " - ",
+                          ...EmailColorUtil.getTemplateVariables(
+                            "episodeSeverity",
+                            episode.incidentSeverity?.color,
+                          ),
                           episodeTitle: episode.title || "",
                           unsubscribeUrl: unsubscribeUrl,
                           subscriberEmailNotificationFooterText:

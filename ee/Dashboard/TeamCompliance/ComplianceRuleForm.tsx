@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { PROJECT_SWITCHED_CHANNELS, getRuleTypeIcon } from "./ComplianceView";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -24,6 +25,11 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import {
+  getOfferedWorkspaces,
+  useWorkspaceConnections,
+} from "@oneuptime/dashboard/Utils/Workspace/ConnectedWorkspaces";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -62,43 +68,89 @@ const toCardOption: (
   };
 };
 
-export const getRuleTypeCardOptions: () => Array<CardSelectOptionGroup> =
-  (): Array<CardSelectOptionGroup> => {
-    const byCategory: (
-      category: ComplianceRuleCategory,
-    ) => Array<CardSelectOption> = (
-      category: ComplianceRuleCategory,
-    ): Array<CardSelectOption> => {
-      return COMPLIANCE_RULE_DEFINITIONS.filter(
-        (definition: ComplianceRuleDefinition): boolean => {
-          return definition.category === category;
-        },
-      ).map(toCardOption);
+/*
+ * The two channels that need the project to have connected a chat
+ * workspace. A rule asking for a verified Slack account, in a project that
+ * never connected Slack, is a rule nobody can meet: so a NEW rule offers
+ * Slack and Microsoft Teams only once the project has connected them, as
+ * every Workspace menu does. Editing a rule offers everything, so a rule
+ * saved before a workspace was disconnected still shows what it asks for.
+ */
+const WORKSPACE_OF_CHANNEL: Readonly<
+  Partial<Record<ComplianceNotificationChannel, WorkspaceType>>
+> = {
+  [ComplianceNotificationChannel.Slack]: WorkspaceType.Slack,
+  [ComplianceNotificationChannel.MicrosoftTeams]: WorkspaceType.MicrosoftTeams,
+};
+
+/*
+ * Whether a channel is offered, given the workspaces the project has
+ * connected. Undefined means "offer everything": an edit, or a project
+ * whose workspaces are not known.
+ */
+export const isChannelOffered: (
+  channel: ComplianceNotificationChannel,
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+) => boolean = (
+  channel: ComplianceNotificationChannel,
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+): boolean => {
+  const workspace: WorkspaceType | undefined = WORKSPACE_OF_CHANNEL[channel];
+
+  return (
+    !offeredWorkspaces || !workspace || offeredWorkspaces.includes(workspace)
+  );
+};
+
+export const getRuleTypeCardOptions: (
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+) => Array<CardSelectOptionGroup> = (
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+): Array<CardSelectOptionGroup> => {
+  const byCategory: (
+    category: ComplianceRuleCategory,
+  ) => Array<CardSelectOption> = (
+    category: ComplianceRuleCategory,
+  ): Array<CardSelectOption> => {
+    return COMPLIANCE_RULE_DEFINITIONS.filter(
+      (definition: ComplianceRuleDefinition): boolean => {
+        return (
+          definition.category === category &&
+          (!definition.methodChannel ||
+            isChannelOffered(definition.methodChannel, offeredWorkspaces))
+        );
+      },
+    ).map(toCardOption);
+  };
+
+  return [
+    {
+      label: "On-call rules",
+      options: byCategory(ComplianceRuleCategory.OnCallRule),
+    },
+    {
+      label: "Notification methods",
+      options: byCategory(ComplianceRuleCategory.NotificationMethod),
+    },
+  ];
+};
+
+export const getChannelDropdownOptions: (
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+) => Array<DropdownOption> = (
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+): Array<DropdownOption> => {
+  return COMPLIANCE_CHANNEL_DEFINITIONS.filter(
+    (definition: ComplianceChannelDefinition): boolean => {
+      return isChannelOffered(definition.channel, offeredWorkspaces);
+    },
+  ).map((definition: ComplianceChannelDefinition): DropdownOption => {
+    return {
+      value: definition.channel,
+      label: definition.label,
     };
-
-    return [
-      {
-        label: "On-call rules",
-        options: byCategory(ComplianceRuleCategory.OnCallRule),
-      },
-      {
-        label: "Notification methods",
-        options: byCategory(ComplianceRuleCategory.NotificationMethod),
-      },
-    ];
-  };
-
-export const getChannelDropdownOptions: () => Array<DropdownOption> =
-  (): Array<DropdownOption> => {
-    return COMPLIANCE_CHANNEL_DEFINITIONS.map(
-      (definition: ComplianceChannelDefinition): DropdownOption => {
-        return {
-          value: definition.channel,
-          label: definition.label,
-        };
-      },
-    );
-  };
+  });
+};
 
 const getRuleType: (
   values: FormValues<TeamComplianceSetting>,
@@ -351,9 +403,11 @@ export const ComplianceRulePreview: FunctionComponent<{
   );
 };
 
-export const getComplianceRuleFormFields: () => Array<
-  ModelField<TeamComplianceSetting>
-> = (): Array<ModelField<TeamComplianceSetting>> => {
+export const getComplianceRuleFormFields: (
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+) => Array<ModelField<TeamComplianceSetting>> = (
+  offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+): Array<ModelField<TeamComplianceSetting>> => {
   return [
     {
       field: {
@@ -365,7 +419,7 @@ export const getComplianceRuleFormFields: () => Array<
         "On-call rules check that members will actually be paged; notification methods check they can be reached at all.",
       fieldType: FormFieldSchemaType.CardSelect,
       required: true,
-      cardSelectOptions: getRuleTypeCardOptions(),
+      cardSelectOptions: getRuleTypeCardOptions(offeredWorkspaces),
       /*
        * One column: the grid picks its column count from the VIEWPORT, so
        * inside the modal three columns squeeze each card to a few words a
@@ -389,7 +443,7 @@ export const getComplianceRuleFormFields: () => Array<
       description:
         "Members need a rule that notifies them on each channel you pick - Call and Push notification, say, so a critical page rings their phone and reaches the app. Leave empty to accept any channel.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownOptions: getChannelDropdownOptions(),
+      dropdownOptions: getChannelDropdownOptions(offeredWorkspaces),
       placeholder: "Any channel",
       required: false,
       showIf: (values: FormValues<TeamComplianceSetting>): boolean => {
@@ -409,6 +463,9 @@ export const getComplianceRuleFormFields: () => Array<
         type: IncidentSeverity,
         labelField: "name",
         valueField: "_id",
+        sort: {
+          order: SortOrder.Ascending,
+        },
       },
       placeholder: "All incident severities",
       required: false,
@@ -429,6 +486,9 @@ export const getComplianceRuleFormFields: () => Array<
         type: AlertSeverity,
         labelField: "name",
         valueField: "_id",
+        sort: {
+          order: SortOrder.Ascending,
+        },
       },
       placeholder: "All alert severities",
       required: false,
@@ -479,6 +539,14 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isEditing: boolean = Boolean(props.modelIdToEdit);
 
+  /*
+   * A new rule offers Slack and Microsoft Teams only for the workspaces the
+   * project has connected; an edit offers everything (see
+   * WORKSPACE_OF_CHANNEL). Not known yet, or not knowable: everything.
+   */
+  const offeredWorkspaces: ReadonlyArray<WorkspaceType> | undefined =
+    getOfferedWorkspaces(useWorkspaceConnections()) || undefined;
+
   return (
     <ModelFormModal<TeamComplianceSetting>
       title={isEditing ? "Edit compliance rule" : "Add a compliance rule"}
@@ -521,7 +589,9 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
           : "Teams > Compliance > Add Rule",
         modelType: TeamComplianceSetting,
         formType: isEditing ? FormType.Update : FormType.Create,
-        fields: getComplianceRuleFormFields(),
+        fields: getComplianceRuleFormFields(
+          isEditing ? undefined : offeredWorkspaces,
+        ),
         steps: COMPLIANCE_RULE_FORM_STEPS,
       }}
     />
