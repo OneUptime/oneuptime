@@ -2909,11 +2909,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getTeamsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/teams/:id/block-permissions",
-    titles: ["Project", "Teams", "View Team", "Block Permissions"],
-  },
-  {
-    getter: "getTeamsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/teams/:id/compliance",
     titles: ["Project", "Teams", "View Team", "Compliance"],
   },

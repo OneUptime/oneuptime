@@ -1106,7 +1106,6 @@ export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
   [PageMap.TEAM_VIEW_PERMISSIONS]: `${RouteParams.ModelID}/permissions`,
-  [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: `${RouteParams.ModelID}/block-permissions`,
   [PageMap.TEAM_VIEW_COMPLIANCE]: `${RouteParams.ModelID}/compliance`,
   [PageMap.TEAM_VIEW_ON_CALL_SCHEDULES]: `${RouteParams.ModelID}/on-call-schedules`,
   [PageMap.TEAM_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
@@ -6521,12 +6520,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_VIEW_PERMISSIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW_PERMISSIONS]
-    }`,
-  ),
-
-  [PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/teams/${
-      TeamsRoutePath[PageMap.TEAM_VIEW_BLOCK_PERMISSIONS]
     }`,
   ),
 

@@ -3729,7 +3729,6 @@
   "No performance profiles found for this host.": "Профили производительности для этого хоста не найдены.",
   "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions.": "Профили производительности не найдены. Профили захватываются автоматически с помощью OneUptime SDK после включения профилировщика в вашем сервисе. Инструкции по настройке см. в документации.",
   "No permissions created for this API Key so far.": "Для этого API-ключа пока не создано разрешений.",
-  "No permissions created for this team so far.": "Для этой команды пока не создано разрешений.",
   "No phone numbers found. Please add one to receive notifications.": "Номера телефонов не найдены. Добавьте номер, чтобы получать уведомления.",
   "No phone numbers found. Please add one to receive routed incoming calls.": "Номера телефонов не найдены. Добавьте номер, чтобы получать перенаправляемые входящие вызовы.",
   "No port entered": "Порт не введён",
@@ -14800,7 +14799,6 @@
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
   "Please wait while the bulk action is being performed. This may take a moment.": "Подождите, пока выполняется массовое действие. Это может занять некоторое время.",
   "Please wait while your {{itemsName}} are being imported.": "Подождите, идёт импорт ({{itemsName}}).",
-  "Please wait, we are refreshing the list of users for this project. Please try again in sometime.": "Please wait, we are refreshing the list of users for this project. Please try again in sometime.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
   "Pod CPU": "Pod CPU",
@@ -24430,5 +24428,14 @@
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "Если включено, людей нужно пригласить в проект, прежде чем они смогут войти через этого провайдера. При первом входе новые пользователи не создаются.",
   "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "Если включено, вход через этого провайдера выполняет требование SSO только в привязанных к нему проектах, поэтому уже вошедшие люди могут потерять доступ к другим проектам. Если выключено, он выполняет его в каждом проекте, в котором состоит человек, а привязанные проекты лишь определяют, куда добавляются новички.",
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Где OneUptime находит конечные точки провайдера. Он следует за издателем; меняйте его, только если ваш провайдер публикует свой документ обнаружения в другом месте.",
-  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Издатель вашего поставщика идентификации — точно в том виде, в каком его показывает провайдер. Можно также вставить его URL обнаружения."
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Издатель вашего поставщика идентификации — точно в том виде, в каком его показывает провайдер. Можно также вставить его URL обнаружения.",
+  "Block permissions: what this team can never do, even when one of its roles or permissions allows it.": "Заблокированные разрешения: то, что эта команда не может делать никогда, даже если это разрешает одна из её ролей или разрешений.",
+  "Blocks win over this team's roles and permissions. A block with labels applies only to resources that carry one of them.": "Блокировки сильнее ролей и разрешений этой команды. Блокировка с метками действует только на ресурсы, у которых есть одна из этих меток.",
+  "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "Пока без доступа. Добавьте на странице команды более узкую роль, например Инцидент Участник, или отдельные разрешения.",
+  "Nothing is blocked for this team.": "Для этой команды ничего не заблокировано.",
+  "Open the team to give it a role": "Откройте команду, чтобы назначить ей роль",
+  "This team can do nothing yet. Add a role to give it access.": "Эта команда пока ничего не может. Добавьте роль, чтобы дать ей доступ.",
+  "What the team's members can do. You can change it on the team's page at any time.": "Что могут участники команды. Это можно изменить на странице команды в любое время.",
+  "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "Что могут участники этой команды. Добавьте роль — готовый набор разрешений — или отдельное разрешение ровно для того, что вам нужно.",
+  "{{teamName}} was created without access.": "Команда {{teamName}} создана без доступа."
 }

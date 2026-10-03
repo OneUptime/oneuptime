@@ -3729,7 +3729,6 @@
   "No performance profiles found for this host.": "Aucun profil de performance trouvé pour cet hôte.",
   "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions.": "Aucun profil de performance trouvé. Les profils sont capturés automatiquement par le SDK OneUptime dès que vous activez le profileur dans votre service. Consultez la documentation pour les instructions de configuration.",
   "No permissions created for this API Key so far.": "Aucune autorisation créée pour cette clé API pour le moment.",
-  "No permissions created for this team so far.": "Aucune autorisation créée pour cette équipe pour le moment.",
   "No phone numbers found. Please add one to receive notifications.": "Aucun numéro de téléphone trouvé. Veuillez en ajouter un pour recevoir des notifications.",
   "No phone numbers found. Please add one to receive routed incoming calls.": "Aucun numéro de téléphone trouvé. Veuillez en ajouter un pour recevoir les appels entrants routés.",
   "No port entered": "Aucun port saisi",
@@ -14800,7 +14799,6 @@
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
   "Please wait while the bulk action is being performed. This may take a moment.": "Veuillez patienter pendant l'exécution de l'action groupée. Cela peut prendre un moment.",
   "Please wait while your {{itemsName}} are being imported.": "Veuillez patienter pendant l'importation ({{itemsName}}).",
-  "Please wait, we are refreshing the list of users for this project. Please try again in sometime.": "Please wait, we are refreshing the list of users for this project. Please try again in sometime.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
   "Pod CPU": "Pod CPU",
@@ -24430,5 +24428,14 @@
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "Si cette option est activée, les utilisateurs doivent être invités dans un projet avant de pouvoir se connecter avec ce fournisseur. Personne n'est créé lors d'une première connexion.",
   "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "Si cette option est activée, une connexion avec ce fournisseur ne satisfait l'obligation de SSO que dans les projets qui lui sont associés, si bien que des personnes déjà connectées peuvent perdre l'accès à d'autres projets. Si elle est désactivée, elle la satisfait dans chaque projet dont la personne fait partie, et les projets associés déterminent seulement où les nouveaux venus sont ajoutés.",
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Où OneUptime trouve les points de terminaison du fournisseur. Cette URL suit l'émetteur ; ne la modifiez que si votre fournisseur publie son document de découverte ailleurs.",
-  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "L'émetteur de votre fournisseur d'identité, exactement tel que le fournisseur l'indique. Vous pouvez aussi coller son URL de découverte."
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "L'émetteur de votre fournisseur d'identité, exactement tel que le fournisseur l'indique. Vous pouvez aussi coller son URL de découverte.",
+  "Block permissions: what this team can never do, even when one of its roles or permissions allows it.": "Autorisations bloquées : ce que cette équipe ne peut jamais faire, même si l'un de ses rôles ou l'une de ses autorisations le permet.",
+  "Blocks win over this team's roles and permissions. A block with labels applies only to resources that carry one of them.": "Les blocages l'emportent sur les rôles et les autorisations de cette équipe. Un blocage avec des étiquettes ne s'applique qu'aux ressources qui portent l'une d'elles.",
+  "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "Aucun accès pour l'instant. Ajoutez un rôle plus restreint, comme Membre de l'incident, ou des autorisations précises sur la page de l'équipe.",
+  "Nothing is blocked for this team.": "Rien n'est bloqué pour cette équipe.",
+  "Open the team to give it a role": "Ouvrir l'équipe pour lui attribuer un rôle",
+  "This team can do nothing yet. Add a role to give it access.": "Cette équipe ne peut encore rien faire. Ajoutez un rôle pour lui donner accès.",
+  "What the team's members can do. You can change it on the team's page at any time.": "Ce que les membres de l'équipe peuvent faire. Vous pouvez le modifier à tout moment sur la page de l'équipe.",
+  "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "Ce que les membres de cette équipe peuvent faire. Ajoutez un rôle pour un ensemble d'autorisations prêt à l'emploi, ou une seule autorisation pour exactement ce dont vous avez besoin.",
+  "{{teamName}} was created without access.": "L'équipe {{teamName}} a été créée sans accès."
 }

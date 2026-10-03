@@ -3729,7 +3729,6 @@
   "No performance profiles found for this host.": "Keine Leistungsprofile für diesen Host gefunden.",
   "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions.": "Keine Leistungsprofile gefunden. Profile werden automatisch vom OneUptime SDK erfasst, sobald Sie den Profiler in Ihrem Dienst aktivieren. Anweisungen zur Einrichtung finden Sie in der Dokumentation.",
   "No permissions created for this API Key so far.": "Bislang keine Berechtigungen für diesen API-Schlüssel erstellt.",
-  "No permissions created for this team so far.": "Bislang keine Berechtigungen für dieses Team erstellt.",
   "No phone numbers found. Please add one to receive notifications.": "Keine Telefonnummern gefunden. Bitte fügen Sie eine hinzu, um Benachrichtigungen zu erhalten.",
   "No phone numbers found. Please add one to receive routed incoming calls.": "Keine Telefonnummern gefunden. Bitte fügen Sie eine hinzu, um weitergeleitete eingehende Anrufe zu erhalten.",
   "No port entered": "Kein Port eingegeben",
@@ -14800,7 +14799,6 @@
   "Please wait while subscribers are being added. This may take a moment.": "Bitte warten Sie, während Abonnenten hinzugefügt werden. Dies kann einen Moment dauern.",
   "Please wait while the bulk action is being performed. This may take a moment.": "Bitte warten Sie, während die Massenaktion ausgeführt wird. Dies kann einen Moment dauern.",
   "Please wait while your {{itemsName}} are being imported.": "Bitte warten Sie, während Ihre {{itemsName}} importiert werden.",
-  "Please wait, we are refreshing the list of users for this project. Please try again in sometime.": "Bitte warten Sie, wir aktualisieren die Benutzerliste für dieses Projekt. Bitte versuchen Sie es in Kürze erneut.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Die Änderungsrate pro Sekunde statt des Rohwerts darstellen. Empfohlen für kumulative Zähler (z. B. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Diese Metrik als Änderungsrate pro Sekunde darstellen",
   "Pod CPU": "Pod-CPU",
@@ -24430,5 +24428,14 @@
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "Wenn aktiviert, müssen Personen zu einem Projekt eingeladen sein, bevor sie sich über diesen Anbieter anmelden können. Bei der ersten Anmeldung wird niemand neu angelegt.",
   "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "Wenn aktiviert, erfüllt eine Anmeldung über diesen Anbieter die SSO-Pflicht nur in den mit ihm verbundenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. Wenn deaktiviert, erfüllt sie sie in jedem Projekt, dem die Person angehört, und die verbundenen Projekte legen nur fest, wo neue Personen hinzugefügt werden.",
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Wo OneUptime die Endpunkte des Anbieters findet. Die URL folgt dem Aussteller; ändern Sie sie nur, wenn Ihr Anbieter sein Discovery-Dokument an anderer Stelle veröffentlicht.",
-  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Der Aussteller Ihres Identitätsanbieters, genau so, wie der Anbieter ihn angibt. Sie können auch seine Discovery-URL einfügen."
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Der Aussteller Ihres Identitätsanbieters, genau so, wie der Anbieter ihn angibt. Sie können auch seine Discovery-URL einfügen.",
+  "Block permissions: what this team can never do, even when one of its roles or permissions allows it.": "Sperrberechtigungen: was dieses Team nie darf, auch wenn eine seiner Rollen oder Berechtigungen es erlaubt.",
+  "Blocks win over this team's roles and permissions. A block with labels applies only to resources that carry one of them.": "Sperren haben Vorrang vor den Rollen und Berechtigungen dieses Teams. Eine Sperre mit Beschriftungen gilt nur für Ressourcen, die eine davon tragen.",
+  "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "Noch kein Zugriff. Fügen Sie auf der Seite des Teams eine engere Rolle wie Vorfallsmitglied oder einzelne Berechtigungen hinzu.",
+  "Nothing is blocked for this team.": "Für dieses Team ist nichts gesperrt.",
+  "Open the team to give it a role": "Team öffnen, um ihm eine Rolle zu geben",
+  "This team can do nothing yet. Add a role to give it access.": "Dieses Team kann noch nichts. Fügen Sie eine Rolle hinzu, um ihm Zugriff zu geben.",
+  "What the team's members can do. You can change it on the team's page at any time.": "Was die Mitglieder des Teams dürfen. Sie können es jederzeit auf der Seite des Teams ändern.",
+  "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "Was die Mitglieder dieses Teams dürfen. Fügen Sie eine Rolle für einen vorgefertigten Satz von Berechtigungen hinzu oder eine einzelne Berechtigung für genau das, was Sie brauchen.",
+  "{{teamName}} was created without access.": "{{teamName}} wurde ohne Zugriff erstellt."
 }

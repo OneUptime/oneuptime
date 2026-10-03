@@ -3729,7 +3729,6 @@
   "No performance profiles found for this host.": "Inga prestandaprofiler hittades för denna värd.",
   "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions.": "Inga prestandaprofiler hittades. Profiler fångas automatiskt av OneUptime SDK när du aktiverar profileraren i din tjänst. Se dokumentationen för installationsanvisningar.",
   "No permissions created for this API Key so far.": "Inga behörigheter har skapats för denna API-nyckel hittills.",
-  "No permissions created for this team so far.": "Inga behörigheter har skapats för detta team hittills.",
   "No phone numbers found. Please add one to receive notifications.": "Inga telefonnummer hittades. Lägg till ett för att få aviseringar.",
   "No phone numbers found. Please add one to receive routed incoming calls.": "Inga telefonnummer hittades. Lägg till ett för att ta emot dirigerade inkommande samtal.",
   "No port entered": "Ingen port angavs",
@@ -14800,7 +14799,6 @@
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
   "Please wait while the bulk action is being performed. This may take a moment.": "Vänta medan massåtgärden utförs. Det kan ta en stund.",
   "Please wait while your {{itemsName}} are being imported.": "Vänta medan dina {{itemsName}} importeras.",
-  "Please wait, we are refreshing the list of users for this project. Please try again in sometime.": "Please wait, we are refreshing the list of users for this project. Please try again in sometime.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
   "Pod CPU": "Pod CPU",
@@ -24430,5 +24428,14 @@
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "När detta är på måste personer vara inbjudna till ett projekt innan de kan logga in med den här leverantören. Ingen ny skapas vid första inloggningen.",
   "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "När detta är på uppfyller inloggning med den här leverantören SSO-kravet bara i de projekt som är kopplade till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. När det är av uppfyller den kravet i alla projekt personen tillhör, och kopplade projekt avgör bara var nya personer läggs till.",
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Var OneUptime hittar leverantörens slutpunkter. Den följer utfärdaren; ändra den bara om din leverantör publicerar sitt discovery-dokument någon annanstans.",
-  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Din identitetsleverantörs utfärdare, exakt som leverantören visar den. Du kan också klistra in dess discovery-URL."
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "Din identitetsleverantörs utfärdare, exakt som leverantören visar den. Du kan också klistra in dess discovery-URL.",
+  "Block permissions: what this team can never do, even when one of its roles or permissions allows it.": "Blockerade behörigheter: det det här teamet aldrig får göra, även när någon av dess roller eller behörigheter tillåter det.",
+  "Blocks win over this team's roles and permissions. A block with labels applies only to resources that carry one of them.": "Blockeringar går före det här teamets roller och behörigheter. En blockering med etiketter gäller bara resurser som har någon av dem.",
+  "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "Ingen åtkomst än. Lägg till en snävare roll, till exempel Incident Medlem, eller enskilda behörigheter på teamets sida.",
+  "Nothing is blocked for this team.": "Inget är blockerat för det här teamet.",
+  "Open the team to give it a role": "Öppna teamet för att ge det en roll",
+  "This team can do nothing yet. Add a role to give it access.": "Det här teamet kan inte göra något än. Lägg till en roll för att ge det åtkomst.",
+  "What the team's members can do. You can change it on the team's page at any time.": "Vad teamets medlemmar kan göra. Du kan ändra det på teamets sida när som helst.",
+  "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "Vad medlemmarna i det här teamet kan göra. Lägg till en roll för en färdig uppsättning behörigheter, eller en enskild behörighet för exakt det du behöver.",
+  "{{teamName}} was created without access.": "Teamet {{teamName}} skapades utan åtkomst."
 }

@@ -3729,7 +3729,6 @@
   "No performance profiles found for this host.": "Geen prestatieprofielen gevonden voor deze host.",
   "No performance profiles found. Profiles are captured automatically by the OneUptime SDK once you enable the profiler in your service. See the documentation for setup instructions.": "Geen prestatieprofielen gevonden. Profielen worden automatisch vastgelegd door de OneUptime SDK zodra u de profiler in uw service inschakelt. Raadpleeg de documentatie voor installatie-instructies.",
   "No permissions created for this API Key so far.": "Tot nu toe geen machtigingen aangemaakt voor deze API-sleutel.",
-  "No permissions created for this team so far.": "Tot nu toe geen machtigingen aangemaakt voor dit team.",
   "No phone numbers found. Please add one to receive notifications.": "Geen telefoonnummers gevonden. Voeg er een toe om meldingen te ontvangen.",
   "No phone numbers found. Please add one to receive routed incoming calls.": "Geen telefoonnummers gevonden. Voeg er een toe om doorgeschakelde inkomende oproepen te ontvangen.",
   "No port entered": "Geen poort ingevoerd",
@@ -14800,7 +14799,6 @@
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
   "Please wait while the bulk action is being performed. This may take a moment.": "Even geduld terwijl de bulkactie wordt uitgevoerd. Dit kan even duren.",
   "Please wait while your {{itemsName}} are being imported.": "Even geduld terwijl uw {{itemsName}} worden geïmporteerd.",
-  "Please wait, we are refreshing the list of users for this project. Please try again in sometime.": "Please wait, we are refreshing the list of users for this project. Please try again in sometime.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
   "Pod CPU": "Pod CPU",
@@ -24430,5 +24428,14 @@
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "Als dit aan staat, moeten mensen voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden. Bij de eerste aanmelding wordt niemand nieuw aangemaakt.",
   "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "Als dit aan staat, voldoet aanmelden met deze provider alleen in de gekoppelde projecten aan de SSO-verplichting, zodat al aangemelde mensen de toegang tot andere projecten kunnen verliezen. Als dit uit staat, voldoet het in elk project waar de persoon lid van is, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.",
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "Waar OneUptime de endpoints van de provider vindt. Deze volgt de uitgever; wijzig hem alleen als uw provider zijn discovery-document ergens anders publiceert.",
-  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "De uitgever van uw identiteitsprovider, precies zoals de provider die toont. U kunt ook de discovery-URL plakken."
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "De uitgever van uw identiteitsprovider, precies zoals de provider die toont. U kunt ook de discovery-URL plakken.",
+  "Block permissions: what this team can never do, even when one of its roles or permissions allows it.": "Geblokkeerde machtigingen: wat dit team nooit mag, ook als een van zijn rollen of machtigingen het toestaat.",
+  "Blocks win over this team's roles and permissions. A block with labels applies only to resources that carry one of them.": "Blokkeringen gaan voor de rollen en machtigingen van dit team. Een blokkering met labels geldt alleen voor resources die een van die labels hebben.",
+  "No access yet. Add a narrower role, such as Incident Member, or single permissions on the team's page.": "Nog geen toegang. Voeg op de pagina van het team een beperktere rol toe, zoals Incident Lid, of losse machtigingen.",
+  "Nothing is blocked for this team.": "Er is niets geblokkeerd voor dit team.",
+  "Open the team to give it a role": "Open het team om het een rol te geven",
+  "This team can do nothing yet. Add a role to give it access.": "Dit team kan nog niets. Voeg een rol toe om het toegang te geven.",
+  "What the team's members can do. You can change it on the team's page at any time.": "Wat de leden van het team mogen. U kunt dit op elk moment wijzigen op de pagina van het team.",
+  "What this team's members can do. Add a role for a ready-made set of permissions, or a single permission for exactly what you need.": "Wat de leden van dit team mogen. Voeg een rol toe voor een kant-en-klare set machtigingen, of één machtiging voor precies wat u nodig hebt.",
+  "{{teamName}} was created without access.": "Team {{teamName}} is aangemaakt zonder toegang."
 }
