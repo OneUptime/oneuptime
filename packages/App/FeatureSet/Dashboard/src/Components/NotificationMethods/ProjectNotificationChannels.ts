@@ -190,7 +190,7 @@ export default class ProjectNotificationChannelsStore {
   private static listeners: Set<() => void> = new Set();
   private static fetcher: ProjectNotificationChannelsFetcher =
     fetchProjectNotificationChannels;
-  private static isListeningForSwitches: boolean = false;
+  private static switchListener: ((event: CustomEvent) => void) | null = null;
 
   public static subscribe(listener: () => void): () => void {
     ProjectNotificationChannelsStore.listenForSwitches();
@@ -266,7 +266,8 @@ export default class ProjectNotificationChannelsStore {
   /*
    * One channel was switched. With the others known, it is recorded at
    * once; with nothing known yet, the project is asked again instead of
-   * guessing the other three.
+   * guessing the other three. A project nothing on the page has asked about
+   * is left alone.
    */
   public static recordChannel(
     projectId: ProjectIdInput,
@@ -279,7 +280,12 @@ export default class ProjectNotificationChannelsStore {
       return;
     }
 
-    const entry: ProjectEntry = ProjectNotificationChannelsStore.entryFor(key);
+    const entry: ProjectEntry | undefined =
+      ProjectNotificationChannelsStore.entries.get(key);
+
+    if (!entry) {
+      return;
+    }
 
     if (!entry.channels.enabled) {
       void ProjectNotificationChannelsStore.ask(key, entry);
@@ -303,13 +309,29 @@ export default class ProjectNotificationChannelsStore {
       fetcher || fetchProjectNotificationChannels;
   }
 
-  // Forgets every answer.
+  // Forgets every answer, and stops listening until the store is used again.
   public static reset(): void {
     ProjectNotificationChannelsStore.entries = new Map();
+
+    if (ProjectNotificationChannelsStore.switchListener) {
+      GlobalEvents.removeEventListener(
+        MODEL_SWITCH_SAVED_EVENT,
+        ProjectNotificationChannelsStore.switchListener,
+      );
+      ProjectNotificationChannelsStore.switchListener = null;
+    }
+
     ProjectNotificationChannelsStore.emit();
   }
 
   private static entryFor(key: string): ProjectEntry {
+    /*
+     * Whatever uses the store listens: a page that only records what it read
+     * (the Notification Channels card) must hear its own switches too, or the
+     * lists would open on the answer from before the flip.
+     */
+    ProjectNotificationChannelsStore.listenForSwitches();
+
     const existing: ProjectEntry | undefined =
       ProjectNotificationChannelsStore.entries.get(key);
 
@@ -370,11 +392,11 @@ export default class ProjectNotificationChannelsStore {
   /*
    * A project switch saved anywhere on the screen - by a ModelSwitchRow on
    * the Notification Channels card or in a list's panel - moves every list
-   * at once. Listened for from the first subscriber on, for the life of the
+   * at once. Listened for from the store's first use on, for the life of the
    * page.
    */
   private static listenForSwitches(): void {
-    if (ProjectNotificationChannelsStore.isListeningForSwitches) {
+    if (ProjectNotificationChannelsStore.switchListener) {
       return;
     }
 
@@ -382,37 +404,37 @@ export default class ProjectNotificationChannelsStore {
       return;
     }
 
-    ProjectNotificationChannelsStore.isListeningForSwitches = true;
+    const listener: (event: CustomEvent) => void = (
+      event: CustomEvent,
+    ): void => {
+      const saved: Partial<ModelSwitchSaved> =
+        (event.detail as Partial<ModelSwitchSaved>) || {};
 
-    GlobalEvents.addEventListener(
-      MODEL_SWITCH_SAVED_EVENT,
-      (event: CustomEvent): void => {
-        const saved: Partial<ModelSwitchSaved> =
-          (event.detail as Partial<ModelSwitchSaved>) || {};
+      if (
+        saved.tableName !== PROJECT_TABLE_NAME ||
+        !saved.modelId ||
+        !saved.column ||
+        typeof saved.value !== "boolean"
+      ) {
+        return;
+      }
 
-        if (
-          saved.tableName !== PROJECT_TABLE_NAME ||
-          !saved.modelId ||
-          !saved.column ||
-          typeof saved.value !== "boolean"
-        ) {
-          return;
-        }
+      const definition: ProjectNotificationChannelDefinition | undefined =
+        getProjectNotificationChannelForColumn(saved.column);
 
-        const definition: ProjectNotificationChannelDefinition | undefined =
-          getProjectNotificationChannelForColumn(saved.column);
+      if (!definition) {
+        return;
+      }
 
-        if (!definition) {
-          return;
-        }
+      ProjectNotificationChannelsStore.recordChannel(
+        saved.modelId,
+        definition.channel,
+        saved.value,
+      );
+    };
 
-        ProjectNotificationChannelsStore.recordChannel(
-          saved.modelId,
-          definition.channel,
-          saved.value,
-        );
-      },
-    );
+    ProjectNotificationChannelsStore.switchListener = listener;
+    GlobalEvents.addEventListener(MODEL_SWITCH_SAVED_EVENT, listener);
   }
 
   private static emit(): void {

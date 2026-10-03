@@ -639,10 +639,14 @@ describe("one answer for everything on screen", () => {
     unsubscribe();
   });
 
-  test("a switch saved before anything was known asks again instead of guessing the other three", async () => {
+  test("a switch saved while nothing is known asks again instead of guessing the other three", async () => {
     const fetcher: MockFunction = getJestMockFunction();
+    fetcher.mockRejectedValueOnce(new Error("Network down") as never);
     fetcher.mockResolvedValue(ALL_ON as never);
     ProjectNotificationChannelsStore.setFetcher(fetcher as never);
+
+    // The first read failed: nothing is known.
+    await ProjectNotificationChannelsStore.load(PROJECT_ID);
 
     ProjectNotificationChannelsStore.recordChannel(
       PROJECT_ID,
@@ -650,13 +654,65 @@ describe("one answer for everything on screen", () => {
       true,
     );
 
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
 
     await flush();
 
     expect(
       ProjectNotificationChannelsStore.getChannels(PROJECT_ID).enabled,
     ).toEqual(ALL_ON);
+  });
+
+  test("a switch saved for a project nothing on the page asked about is left alone", () => {
+    const fetcher: MockFunction = getJestMockFunction();
+    ProjectNotificationChannelsStore.setFetcher(fetcher as never);
+
+    ProjectNotificationChannelsStore.recordChannel(
+      OTHER_PROJECT_ID,
+      ProjectNotificationChannel.SMS,
+      true,
+    );
+
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(
+      ProjectNotificationChannelsStore.getChannels(OTHER_PROJECT_ID).enabled,
+    ).toBeNull();
+  });
+
+  /*
+   * The Notification Channels card reads the row itself and records it; no
+   * list on its page subscribes. Its own switches must still move the store,
+   * or the lists would open on the answer from before the flip.
+   */
+  test("a page that only records what it read hears its own switches, with nothing subscribed", () => {
+    ProjectNotificationChannelsStore.record(PROJECT_ID, ALL_OFF);
+
+    announceModelSwitchSaved({
+      modelType: Project,
+      modelId: new ObjectID(PROJECT_ID),
+      column: "enableCallNotifications",
+      value: true,
+    });
+
+    expect(
+      ProjectNotificationChannelsStore.getChannels(PROJECT_ID).enabled,
+    ).toEqual({ ...ALL_OFF, [ProjectNotificationChannel.Call]: true });
+  });
+
+  test("forgetting everything also stops listening, until the store is used again", () => {
+    ProjectNotificationChannelsStore.record(PROJECT_ID, ALL_OFF);
+    ProjectNotificationChannelsStore.reset();
+
+    announceModelSwitchSaved({
+      modelType: Project,
+      modelId: new ObjectID(PROJECT_ID),
+      column: "enableSmsNotifications",
+      value: true,
+    });
+
+    expect(
+      ProjectNotificationChannelsStore.getChannels(PROJECT_ID).enabled,
+    ).toBeNull();
   });
 });
 
