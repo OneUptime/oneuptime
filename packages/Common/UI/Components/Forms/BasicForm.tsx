@@ -914,6 +914,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         </div>
       ) : null;
 
+    /*
+     * The step list - the Progress list beside the form and, on a narrow
+     * screen, "Step 1 of 3" above it - is drawn only while there is more
+     * than one step to walk. A form whose steps come down to one, the
+     * others hidden by their showIf (a Server ingestion key's Browser
+     * Settings step), is the one page it is, not "Step 1 of 1". A step
+     * shown later brings the list back.
+     */
+    const showsStepList: boolean = Boolean(
+      currentFormStepId && formSteps && formSteps.length > 1,
+    );
+
     return (
       <div className="row" id={props.id}>
         <div className="col-lg-1">
@@ -933,7 +945,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
             )}
 
             <div className="flex">
-              {formSteps && currentFormStepId && (
+              {showsStepList && formSteps && currentFormStepId && (
                 <div
                   style={{ flex: "0 1 auto" }}
                   className="mr-10 max-lg:hidden lg:block"
@@ -952,12 +964,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 </div>
               )}
               <div
-                className={`${
-                  formSteps && currentFormStepId ? "w-auto pt-6" : "w-full pt-1"
-                }`}
+                className={`${showsStepList ? "w-auto pt-6" : "w-full pt-1"}`}
                 style={{ flex: "1 1 auto" }}
               >
-                {activeStep && (
+                {showsStepList && activeStep && (
                   <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">
                     <p
                       className="ml-auto text-right text-sm text-gray-500 lg:hidden"

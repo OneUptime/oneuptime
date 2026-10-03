@@ -63,14 +63,33 @@ describe("Pay as you go wiring", () => {
       expect(source).toContain("<TelemetryPayAsYouGoCard />");
     });
 
-    test("places the pricing notice on the create modal's billing step", () => {
-      expect(source).toContain("getTelemetryPayAsYouGoFormFields()");
-      expect(source).toContain("...billingFields.map(");
-      expect(source).toContain('stepId: "billing"');
+    test("builds its create form with the shared form, which ends on the billing step", () => {
+      /*
+       * The notice itself is added by Components/Telemetry/IngestionKeyForm,
+       * the one create form behind every door onto a new key (see the
+       * shared form's own block below, and IngestionKeyFormGuard).
+       */
+      expect(source).toContain("getIngestionKeyFormSteps(");
+      expect(source).toContain("getIngestionKeyFormFields(");
+      expect(source).not.toContain("getTelemetryPayAsYouGoFormFields");
     });
 
-    test("imports both from the billing component", () => {
+    test("imports the card from the billing component", () => {
       expect(source).toContain('from "../../Components/Billing/PayAsYouGo"');
+    });
+  });
+
+  describe("the shared ingestion key create form", () => {
+    const source: string = read(
+      "Components",
+      "Telemetry",
+      "IngestionKeyForm.ts",
+    );
+
+    test("places the pricing notice on its own billing step", () => {
+      expect(source).toContain("...getTelemetryPayAsYouGoFormFields().map(");
+      expect(source).toContain('stepId: "billing"');
+      expect(source).toContain('from "../Billing/PayAsYouGo"');
     });
   });
 
@@ -87,9 +106,10 @@ describe("Pay as you go wiring", () => {
       "IngestionKeySelector.tsx",
     );
 
-    test("includes the pricing notice in its create key modal", () => {
-      expect(source).toContain("...getTelemetryPayAsYouGoFormFields()");
-      expect(source).toContain('from "../Billing/PayAsYouGo"');
+    test("builds its create key modal with the shared form, pricing notice included", () => {
+      expect(source).toContain("getIngestionKeyFormSteps(");
+      expect(source).toContain("getIngestionKeyFormFields(");
+      expect(source).toContain('from "./IngestionKeyForm"');
     });
 
     test("has exactly one create key modal", () => {
@@ -118,7 +138,8 @@ describe("Pay as you go wiring", () => {
     test("no create form for TelemetryIngestionKey exists without the notice fields", () => {
       /*
        * Guards against a third door being added later. Any file that builds a
-       * create form over TelemetryIngestionKey has to include the notice.
+       * create form over TelemetryIngestionKey has to take its fields from
+       * the shared form, which includes the notice.
        */
       const creatingFiles: Array<string> = collectSourceFiles(
         DASHBOARD_SRC,
@@ -140,7 +161,7 @@ describe("Pay as you go wiring", () => {
           file: path.relative(DASHBOARD_SRC, file),
           hasBillingNotice: fs
             .readFileSync(file, "utf8")
-            .includes("getTelemetryPayAsYouGoFormFields()"),
+            .includes("getIngestionKeyFormFields("),
         }).toEqual({
           file: path.relative(DASHBOARD_SRC, file),
           hasBillingNotice: true,

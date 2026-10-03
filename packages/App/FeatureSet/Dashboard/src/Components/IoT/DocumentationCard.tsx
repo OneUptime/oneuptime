@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
@@ -23,6 +24,7 @@ const IoTDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.IoT}
+      newKeyName={translationKey("IoT key")}
       optionsLabel="How do your devices send data?"
       options={IOT_INGESTION_METHODS}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {

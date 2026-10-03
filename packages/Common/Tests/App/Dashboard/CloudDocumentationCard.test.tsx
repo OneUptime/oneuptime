@@ -27,6 +27,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import { HOST, HTTP_PROTOCOL } from "../../../UI/Config";
 import Protocol from "../../../Types/API/Protocol";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import ObjectID from "../../../Types/ObjectID";
 import {
   CLOUD_PROVIDER_LABELS,
@@ -371,13 +372,17 @@ describe("CloudDocumentationCard", () => {
         "Pick an ingestion key in step 1",
       );
 
-      // Every key in the project is offered: a cloud workload is a server.
+      /*
+       * Only Server keys are offered (and made): a cloud workload is a
+       * server, and its exporter sends no Origin header, so a Browser key
+       * would be refused on every export.
+       */
       const query: Record<string, unknown> = (
         getList.mock.calls[0]![0] as unknown as {
           query: Record<string, unknown>;
         }
       ).query;
-      expect(query["keyType"]).toBeUndefined();
+      expect(query["keyType"]).toBe(TelemetryIngestionKeyType.Server);
     });
 
     test("before the project has a key, the snippets show the placeholder and say where to pick one", async () => {
