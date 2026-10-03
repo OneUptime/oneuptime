@@ -42,6 +42,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE settings page for one application's session replay.
@@ -183,6 +185,7 @@ export function describeSameOriginTracePropagation(
 const RumApplicationSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route is ":id/session-replay-settings", so the model id is one segment
    * before the end. Same as Pages/Rum/View/Clients.tsx.
@@ -548,7 +551,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   ) {
                     return (
                       <span className="text-sm text-gray-500">
-                        not set (defaults to 100%)
+                        {translator.translateText("not set (defaults to 100%)")}
                       </span>
                     );
                   }
@@ -577,8 +580,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   if (origins.length === 0) {
                     return (
                       <span className="text-sm text-amber-700">
-                        Any origin the ingestion key allows - list your domains
-                        before production
+                        {translator.translateText(
+                          "Any origin the ingestion key allows - list your domains before production",
+                        )}
                       </span>
                     );
                   }
@@ -780,7 +784,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
                   return (
                     <span className="text-sm text-gray-900">
-                      {gb && gb > 0 ? `${gb} GB` : "No ceiling (0 or blank)"}
+                      {gb && gb > 0
+                        ? `${gb} GB`
+                        : translator.translateText("No ceiling (0 or blank)")}
                     </span>
                   );
                 },

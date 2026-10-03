@@ -14,7 +14,7 @@ All three pages edit the same underlying rule model — they're just filtered to
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
 | **Name**              | Short, human label. Shown in audit logs.                                                                |
 | **Description**       | Optional context for teammates.                                                                         |
-| **Enabled**           | Toggle to suspend a rule without deleting it.                                                           |
+| **Enabled**           | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it.             |
 | **Conditions**        | What the rule matches, on the **Match Criteria** step. Leave it empty to match every event of its type. |
 | **Runbooks to Start** | One or more runbooks to launch when the rule fires.                                                     |
 

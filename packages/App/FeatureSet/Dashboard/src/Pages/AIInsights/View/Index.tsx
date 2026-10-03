@@ -69,6 +69,11 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const POLL_INTERVAL_MS: number = 5000;
 // The server caps the triage event trail at 500 — show all of it.
@@ -105,6 +110,7 @@ const DISABLED_ACTION_CLASS: string =
 const AIInsightViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The id must come from useParams (a stable string), NOT from
    * Navigation.getLastParamAsObjectID(): that helper mints a fresh ObjectID
@@ -776,10 +782,15 @@ const AIInsightViewPage: FunctionComponent<
          */}
         <p className="border-t border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-500 md:px-6">
           {isTerminal
-            ? `This insight is closed as ${getStatusLabel(
-                status || undefined,
-              )}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.`
-            : "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled."}
+            ? translator.translateTemplate(
+                "This insight is closed as {{status}}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.",
+                {
+                  status: translatableTerm(getStatusLabel(status || undefined)),
+                },
+              )
+            : translator.translateText(
+                "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled.",
+              )}
         </p>
       </section>
 
@@ -812,7 +823,9 @@ const AIInsightViewPage: FunctionComponent<
                */
               <MarkdownViewer text={insight.detailMarkdown} safeMode={true} />
             ) : (
-              <p className="text-sm text-gray-500">No evidence was recorded.</p>
+              <p className="text-sm text-gray-500">
+                {translator.translateText("No evidence was recorded.")}
+              </p>
             )}
           </InsightPanel>
 
@@ -904,7 +917,11 @@ const AIInsightViewPage: FunctionComponent<
                 )}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
               >
-                <span>View the fix task and pull request</span>
+                <span>
+                  {translator.translateText(
+                    "View the fix task and pull request",
+                  )}
+                </span>
                 <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
               </Link>
             </InsightPanel>

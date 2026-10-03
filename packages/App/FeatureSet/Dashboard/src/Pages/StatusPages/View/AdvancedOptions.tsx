@@ -24,10 +24,13 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import { APP_API_URL } from "Common/UI/Config";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageAdvancedOptions: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showRegenerateTokenModal, setShowRegenerateTokenModal] =
     useState<boolean>(false);
@@ -161,56 +164,87 @@ const StatusPageAdvancedOptions: FunctionComponent<
                 }}
               />
               <p className="mt-2 text-sm text-gray-500">
-                Regenerating the token will invalidate any existing embedded
-                badges.
+                {translator.translateText(
+                  "Regenerating the token will invalidate any existing embedded badges.",
+                )}
               </p>
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-2">Badge Preview</h3>
-              <img src={badgeUrl} alt="Status Badge" className="mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                {translator.translateText("Badge Preview")}
+              </h3>
+              <img
+                src={badgeUrl}
+                alt={translator.translateText("Status Badge")}
+                className="mb-4"
+              />
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-2">HTML Embed</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {translator.translateText("HTML Embed")}
+              </h3>
               <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
                 <code>{`<img src="${badgeUrl}" alt="Status Badge" />`}</code>
               </pre>
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-2">Markdown Embed</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {translator.translateText("Markdown Embed")}
+              </h3>
               <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
                 <code>{`![Status](${badgeUrl})`}</code>
               </pre>
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-2">Markdown with Link</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {translator.translateText("Markdown with Link")}
+              </h3>
               <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
                 <code>{`[![Status](${badgeUrl})](https://your-status-page-url.com)`}</code>
               </pre>
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-2">Use Cases</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {translator.translateText("Use Cases")}
+              </h3>
               <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
-                <li>Add to your company website to show real-time status</li>
-                <li>Include in project README.md files on GitHub</li>
-                <li>Embed in documentation sites</li>
-                <li>Display on internal dashboards</li>
-                <li>Include in status emails or reports</li>
+                <li>
+                  {translator.translateText(
+                    "Add to your company website to show real-time status",
+                  )}
+                </li>
+                <li>
+                  {translator.translateText(
+                    "Include in project README.md files on GitHub",
+                  )}
+                </li>
+                <li>
+                  {translator.translateText("Embed in documentation sites")}
+                </li>
+                <li>
+                  {translator.translateText("Display on internal dashboards")}
+                </li>
+                <li>
+                  {translator.translateText(
+                    "Include in status emails or reports",
+                  )}
+                </li>
               </ul>
             </div>
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
               <h4 className="text-sm font-medium text-yellow-800 mb-2">
-                Security Note
+                {translator.translateText("Security Note")}
               </h4>
               <p className="text-sm text-yellow-700">
-                Keep your security token confidential. Anyone with the token can
-                access your status badge. If you suspect the token has been
-                compromised, regenerate it immediately.
+                {translator.translateText(
+                  "Keep your security token confidential. Anyone with the token can access your status badge. If you suspect the token has been compromised, regenerate it immediately.",
+                )}
               </p>
             </div>
           </div>

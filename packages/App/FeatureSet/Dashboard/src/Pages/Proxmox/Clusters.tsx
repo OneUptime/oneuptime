@@ -35,6 +35,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProxmoxDocumentationCard from "../../Components/Proxmox/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WI-18: while the project has no clusters yet, re-count on this
@@ -46,6 +48,7 @@ const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
 const ProxmoxClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -285,7 +288,9 @@ const ProxmoxClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );

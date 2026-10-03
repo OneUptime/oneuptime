@@ -8,6 +8,7 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Podman agent install guide. The agent is one container
@@ -559,7 +560,10 @@ ${codeBlock(
 )}`,
     },
     {
-      title: `Host shows up as "${PODMAN_DEFAULT_HOST_NAME}" or a container ID`,
+      title: translateTemplate(
+        'Host shows up as "{{hostName}}" or a container ID',
+        { hostName: PODMAN_DEFAULT_HOST_NAME },
+      ),
       markdown: `The host's name comes from \`PODMAN_HOST_NAME\`. An agent started without it reports \`${PODMAN_DEFAULT_HOST_NAME}\`, so every host set up that way looks like the same host. Set \`PODMAN_HOST_NAME\` to a name of its own on each host and ${
         cli
           ? `recreate the agent — \`podman rm -f ${name}\`, then run the command from step 2 with the new name.`

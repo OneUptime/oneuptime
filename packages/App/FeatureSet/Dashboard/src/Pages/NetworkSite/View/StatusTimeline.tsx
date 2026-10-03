@@ -34,6 +34,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const UPTIME_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30, 90];
 const DAILY_STRIP_DAYS: number = 30;
@@ -56,6 +58,7 @@ const DAILY_UPTIME_TITLE: string = `Daily Uptime — Last ${DAILY_STRIP_DAYS} Da
 const NetworkSiteStatusTimelinePage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [uptimeByWindow, setUptimeByWindow] = useState<Record<
@@ -196,7 +199,13 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
                 title={
                   days === 1
                     ? "Uptime — Last 24 Hours"
-                    : `Uptime — Last ${days} Days`
+                    : translator.translatePlural(
+                        {
+                          one: "Uptime — Last {{count}} Day",
+                          other: "Uptime — Last {{count}} Days",
+                        },
+                        days,
+                      )
                 }
                 /*
                  * One text for all four windows: it points at "the period
@@ -234,10 +243,9 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
             />
           </div>
           <p className="mb-4 text-sm text-gray-500">
-            One bar per 24 hours, oldest first. A whole day of downtime only
-            moves the 30-day figure by 3.3 points, so a bad day is easy to miss
-            in the averages above and hard to miss here. Time inside a scheduled
-            maintenance window is excluded from every bar.
+            {translator.translateText(
+              "One bar per 24 hours, oldest first. A whole day of downtime only moves the 30-day figure by 3.3 points, so a bad day is easy to miss in the averages above and hard to miss here. Time inside a scheduled maintenance window is excluded from every bar.",
+            )}
           </p>
           <SiteDailyUptimeStrip entries={dailyEntries} />
         </div>

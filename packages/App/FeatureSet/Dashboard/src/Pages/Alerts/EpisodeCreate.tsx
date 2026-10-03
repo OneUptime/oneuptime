@@ -32,10 +32,13 @@ import FetchAlertSeverity from "../../Components/AlertSeverity/FetchAlertSeverit
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const EpisodeCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error] = useState<string>("");
 
@@ -153,7 +156,13 @@ const EpisodeCreate: FunctionComponent<
                   placeholder: "Alert Severity",
                   getSummaryElement: (item: FormValues<AlertEpisode>) => {
                     if (!item.alertSeverity) {
-                      return <p>No alert severity selected.</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No alert severity selected.",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -186,7 +195,13 @@ const EpisodeCreate: FunctionComponent<
                   placeholder: "Select Initial State",
                   getSummaryElement: (item: FormValues<AlertEpisode>) => {
                     if (!item.currentAlertState) {
-                      return <p>Will use first available state by priority</p>;
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "Will use first available state by priority",
+                          )}
+                        </p>
+                      );
                     }
 
                     return (
@@ -221,8 +236,9 @@ const EpisodeCreate: FunctionComponent<
                     ) {
                       return (
                         <p>
-                          No on-call policies will be executed when this episode
-                          is created.
+                          {translator.translateText(
+                            "No on-call policies will be executed when this episode is created.",
+                          )}
                         </p>
                       );
                     }
@@ -288,7 +304,9 @@ const EpisodeCreate: FunctionComponent<
                   placeholder: "Labels",
                   getSummaryElement: (item: FormValues<AlertEpisode>) => {
                     if (!item.labels || !Array.isArray(item.labels)) {
-                      return <p>No labels assigned.</p>;
+                      return (
+                        <p>{translator.translateText("No labels assigned.")}</p>
+                      );
                     }
 
                     const labelIds: Array<ObjectID> = [];

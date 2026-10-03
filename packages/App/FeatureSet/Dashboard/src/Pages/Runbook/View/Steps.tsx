@@ -74,6 +74,12 @@ import {
   DroppableProvided,
   DropResult,
 } from "react-beautiful-dnd";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface AgentOption {
   id: string;
@@ -461,34 +467,40 @@ function summarizeStep(step: RunbookStep): string {
     return `${method} ${url}`;
   }
   if (step.type === RunbookStepType.JavaScript) {
-    return "Sandboxed JavaScript snippet";
+    return translateTemplate("Sandboxed JavaScript snippet");
   }
   if (step.type === RunbookStepType.Bash) {
-    return "Bash script on agent";
+    return translateTemplate("Bash script on agent");
   }
   if (step.type === RunbookStepType.SSH) {
     const cfg: SSHStepConfig = step.config as SSHStepConfig;
     const command: string = (cfg.command || "").split("\n")[0] || "";
     return command
-      ? `SSH: ${command.slice(0, 80)}${command.length > 80 ? "…" : ""}`
-      : "SSH command";
+      ? translateTemplate("SSH: {{command}}", {
+          command: `${command.slice(0, 80)}${command.length > 80 ? "…" : ""}`,
+        })
+      : translateTemplate("SSH command");
   }
   if (step.type === RunbookStepType.Kubernetes) {
     const cfg: KubernetesStepConfig = step.config as KubernetesStepConfig;
-    const verb: string =
-      cfg.action === KubernetesAction.ScaleWorkload
-        ? `Scale to ${cfg.replicas ?? "?"}`
-        : "Restart";
-    return `${verb}: ${cfg.namespace || "?"}/${cfg.workloadName || "?"}`;
+    const workload: string = `${cfg.namespace || "?"}/${cfg.workloadName || "?"}`;
+    return cfg.action === KubernetesAction.ScaleWorkload
+      ? translateTemplate("Scale to {{replicas}}: {{workload}}", {
+          replicas: cfg.replicas ?? "?",
+          workload: workload,
+        })
+      : translateTemplate("Restart: {{workload}}", { workload: workload });
   }
   if (step.type === RunbookStepType.AI) {
     const cfg: AIStepConfig = step.config as AIStepConfig;
     const firstLine: string = (cfg.prompt || "").split("\n")[0] || "";
     return firstLine
-      ? `AI: ${firstLine.slice(0, 80)}${firstLine.length > 80 ? "…" : ""}`
-      : "AI prompt";
+      ? translateTemplate("AI: {{prompt}}", {
+          prompt: `${firstLine.slice(0, 80)}${firstLine.length > 80 ? "…" : ""}`,
+        })
+      : translateTemplate("AI prompt");
   }
-  return "Manual checklist item";
+  return translateTemplate("Manual checklist item");
 }
 
 const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -504,6 +516,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [llmProviders, setLlmProviders] = useState<LlmProviderOption[]>([]);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
     {},
@@ -740,7 +753,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             className="text-gray-500"
           />
           <span className="text-xs font-medium text-gray-700">
-            Examples — click to insert
+            {translator.translateText("Examples — click to insert")}
           </span>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -838,7 +851,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ? [
             {
               value: args.currentAgentId,
-              label: `Unknown agent (${args.currentAgentId})`,
+              label: translator.translateTemplate("Unknown agent ({{id}})", {
+                id: args.currentAgentId,
+              }),
             },
             ...agentDropdownOptions,
           ]
@@ -849,20 +864,29 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       (args.currentAgentId
         ? {
             value: args.currentAgentId,
-            label: `Unknown agent (${args.currentAgentId})`,
+            label: translator.translateTemplate("Unknown agent ({{id}})", {
+              id: args.currentAgentId,
+            }),
           }
         : undefined);
 
     return (
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          Runner
+          {translator.translateText("Runner")}
         </label>
         {agents.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            No Runners in this project yet. Create one under{" "}
-            <strong>Runbooks &rsaquo; Runners</strong>, then come back to pick
-            it here.
+            <TranslatedSentence
+              template="No Runners in this project yet. Create one under {{location}}, then come back to pick it here."
+              slots={{
+                location: (
+                  <strong>
+                    {translator.translateText("Runbooks › Runners")}
+                  </strong>
+                ),
+              }}
+            />
           </div>
         ) : (
           <Dropdown
@@ -934,7 +958,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       args.currentProviderId && !knownOption
         ? {
             value: args.currentProviderId,
-            label: `Unavailable provider (${args.currentProviderId})`,
+            label: translator.translateTemplate(
+              "Unavailable provider ({{id}})",
+              { id: args.currentProviderId },
+            ),
           }
         : undefined;
 
@@ -947,7 +974,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          LLM provider <span className="text-gray-400">(optional)</span>
+          {translator.translateText("LLM provider")}{" "}
+          <span className="text-gray-400">
+            {translator.translateText("(optional)")}
+          </span>
         </label>
         <Dropdown
           options={options}
@@ -968,18 +998,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <p className="text-xs text-gray-500 mt-1.5">
           {staleOption ? (
             <span className="text-amber-700">
-              The provider pinned on this step is no longer available to this
-              project, so the step will fail when it runs. Pick another
-              provider, or switch back to the project default.
+              {translator.translateText(
+                "The provider pinned on this step is no longer available to this project, so the step will fail when it runs. Pick another provider, or switch back to the project default.",
+              )}
             </span>
           ) : (
-            <>
-              Leave this on <strong>Project default</strong> unless this step
-              needs a specific model — a cheaper one for routine triage, or a
-              self-hosted one for data that should not leave your network.
-              Changing the project default later moves every step still set to
-              default; a pinned step stays where you put it.
-            </>
+            <TranslatedSentence
+              template="Leave this on {{projectDefault}} unless this step needs a specific model — a cheaper one for routine triage, or a self-hosted one for data that should not leave your network. Changing the project default later moves every step still set to default; a pinned step stays where you put it."
+              slots={{
+                projectDefault: (
+                  <strong>{translator.translateText("Project default")}</strong>
+                ),
+              }}
+            />
           )}
         </p>
       </div>
@@ -1021,20 +1052,30 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       (args.currentCredentialId
         ? {
             value: args.currentCredentialId,
-            label: `Unknown credential (${args.currentCredentialId})`,
+            label: translator.translateTemplate("Unknown credential ({{id}})", {
+              id: args.currentCredentialId,
+            }),
           }
         : undefined);
 
     return (
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          Credential
+          {translator.translateText("Credential")}
         </label>
         {usable.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            No {args.credentialType} credentials in this project yet. Create one
-            under <strong>Settings &rsaquo; Credentials</strong>, assign it to
-            the Runner that will use it, then come back and pick it here.
+            <TranslatedSentence
+              template="No {{credentialType}} credentials in this project yet. Create one under {{location}}, assign it to the Runner that will use it, then come back and pick it here."
+              values={{ credentialType: args.credentialType }}
+              slots={{
+                location: (
+                  <strong>
+                    {translator.translateText("Settings › Credentials")}
+                  </strong>
+                ),
+              }}
+            />
           </div>
         ) : (
           <Dropdown
@@ -1103,11 +1144,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           bounds={AGENT_CLAIM_TIMEOUT_BOUNDS}
           description={
             <>
-              How long the Worker waits for the selected agent to pick this job
-              up before failing the step as timed out. Leave room for at least
-              one of the agent&rsquo;s poll cycles (5 seconds by default) and
-              for any step already running on it &mdash; an agent runs one job
-              at a time.
+              {translator.translateText(
+                "How long the Worker waits for the selected agent to pick this job up before failing the step as timed out. Leave room for at least one of the agent’s poll cycles (5 seconds by default) and for any step already running on it — an agent runs one job at a time.",
+              )}
             </>
           }
           onChange={(claimTimeoutInMs: number | undefined) => {
@@ -1140,7 +1179,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               {hasUnsaved ? (
                 <span className="text-xs text-amber-600 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                  Unsaved changes
+                  {translator.translateText("Unsaved changes")}
                 </span>
               ) : null}
               {addMenu}
@@ -1161,10 +1200,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     />
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900">
-                    Start your runbook
+                    {translator.translateText("Start your runbook")}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    Add the first step. You can reorder and edit at any time.
+                    {translator.translateText(
+                      "Add the first step. You can reorder and edit at any time.",
+                    )}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
@@ -1253,8 +1294,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                         e.stopPropagation();
                                       }}
                                       className="flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
-                                      aria-label="Drag to reorder step"
-                                      title="Drag to reorder"
+                                      aria-label={translator.translateText(
+                                        "Drag to reorder step",
+                                      )}
+                                      title={translator.translateText(
+                                        "Drag to reorder",
+                                      )}
                                     >
                                       <Icon
                                         icon={IconProp.GripVertical}
@@ -1323,7 +1368,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                       <div className="flex flex-col gap-4">
                                         <div>
                                           <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                            Title
+                                            {translator.translateText("Title")}
                                           </label>
                                           <Input
                                             value={step.title}
@@ -1338,9 +1383,13 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                                         <div>
                                           <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                            Description
+                                            {translator.translateText(
+                                              "Description",
+                                            )}
                                             <span className="ml-2 text-[10px] font-normal text-gray-400">
-                                              Markdown supported
+                                              {translator.translateText(
+                                                "Markdown supported",
+                                              )}
                                             </span>
                                           </label>
                                           <TextArea
@@ -1374,12 +1423,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               },
                                               helperText: (
                                                 <>
-                                                  JavaScript runs sandboxed on
-                                                  the selected Runner in your
-                                                  own infrastructure. The step
-                                                  waits until this agent claims
-                                                  the job, or fails after the
-                                                  claim timeout.
+                                                  {translator.translateText(
+                                                    "JavaScript runs sandboxed on the selected Runner in your own infrastructure. The step waits until this agent claims the job, or fails after the claim timeout.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1388,7 +1434,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 htmlFor={`runbook-step-${idx}-javascript-script`}
                                                 className="block text-xs font-medium text-gray-700 mb-1.5"
                                               >
-                                                Script
+                                                {translator.translateText(
+                                                  "Script",
+                                                )}
                                               </label>
                                               <CodeEditor
                                                 id={`runbook-step-${idx}-javascript-script`}
@@ -1405,12 +1453,17 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 }}
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
-                                                Sandboxed via{" "}
-                                                <code>isolated-vm</code> on the
-                                                agent. Use{" "}
-                                                <code>return value</code> to
-                                                capture output. No filesystem,
-                                                network, or process access.
+                                                <TranslatedSentence
+                                                  template="Sandboxed via {{sandbox}} on the agent. Use {{returnValue}} to capture output. No filesystem, network, or process access."
+                                                  slots={{
+                                                    sandbox: (
+                                                      <code>isolated-vm</code>
+                                                    ),
+                                                    returnValue: (
+                                                      <code>return value</code>
+                                                    ),
+                                                  }}
+                                                />
                                               </p>
                                               <div className="mt-2">
                                                 {renderScriptExamples({
@@ -1429,9 +1482,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 step.config as JavaScriptStepConfig,
                                               executionDescription: (
                                                 <>
-                                                  How long the agent lets the
-                                                  script run before tearing the
-                                                  isolate down.
+                                                  {translator.translateText(
+                                                    "How long the agent lets the script run before tearing the isolate down.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1444,7 +1497,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                               <div className="md:col-span-1">
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  Method
+                                                  {translator.translateText(
+                                                    "Method",
+                                                  )}
                                                 </label>
                                                 <Dropdown
                                                   options={HTTP_METHOD_OPTIONS}
@@ -1477,7 +1532,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               </div>
                                               <div className="md:col-span-3">
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  URL
+                                                  {translator.translateText(
+                                                    "URL",
+                                                  )}
                                                 </label>
                                                 <Input
                                                   value={
@@ -1499,7 +1556,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 htmlFor={`runbook-step-${idx}-http-headers`}
                                                 className="block text-xs font-medium text-gray-700 mb-1.5"
                                               >
-                                                Headers (JSON)
+                                                {translator.translateText(
+                                                  "Headers (JSON)",
+                                                )}
                                               </label>
                                               <CodeEditor
                                                 id={`runbook-step-${idx}-http-headers`}
@@ -1524,7 +1583,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 htmlFor={`runbook-step-${idx}-http-body`}
                                                 className="block text-xs font-medium text-gray-700 mb-1.5"
                                               >
-                                                Body
+                                                {translator.translateText(
+                                                  "Body",
+                                                )}
                                               </label>
                                               <CodeEditor
                                                 id={`runbook-step-${idx}-http-body`}
@@ -1554,9 +1615,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               }
                                               description={
                                                 <>
-                                                  How long to wait for the
-                                                  endpoint to respond before
-                                                  failing the step.
+                                                  {translator.translateText(
+                                                    "How long to wait for the endpoint to respond before failing the step.",
+                                                  )}
                                                 </>
                                               }
                                               onChange={(
@@ -1583,12 +1644,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               },
                                               helperText: (
                                                 <>
-                                                  Bash runs on the selected
-                                                  Runner in your own
-                                                  infrastructure. The step waits
-                                                  until this agent claims the
-                                                  job, or fails after the claim
-                                                  timeout.
+                                                  {translator.translateText(
+                                                    "Bash runs on the selected Runner in your own infrastructure. The step waits until this agent claims the job, or fails after the claim timeout.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1597,7 +1655,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 htmlFor={`runbook-step-${idx}-bash-script`}
                                                 className="block text-xs font-medium text-gray-700 mb-1.5"
                                               >
-                                                Bash script
+                                                {translator.translateText(
+                                                  "Bash script",
+                                                )}
                                               </label>
                                               <CodeEditor
                                                 id={`runbook-step-${idx}-bash-script`}
@@ -1614,10 +1674,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 }}
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
-                                                Runs via <code>bash -c</code> on
-                                                the selected agent. Output is
-                                                capped at 50&nbsp;KB. Non-zero
-                                                exit codes fail the step.
+                                                <TranslatedSentence
+                                                  template="Runs via {{command}} on the selected agent. Output is capped at 50 KB. Non-zero exit codes fail the step."
+                                                  slots={{
+                                                    command: (
+                                                      <code>bash -c</code>
+                                                    ),
+                                                  }}
+                                                />
                                               </p>
                                               <div className="mt-2">
                                                 {renderScriptExamples({
@@ -1635,11 +1699,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               config:
                                                 step.config as BashStepConfig,
                                               executionDescription: (
-                                                <>
-                                                  How long the agent lets the
-                                                  script run before killing it
-                                                  with <code>SIGKILL</code>.
-                                                </>
+                                                <TranslatedSentence
+                                                  template="How long the agent lets the script run before killing it with {{signal}}."
+                                                  slots={{
+                                                    signal: (
+                                                      <code>SIGKILL</code>
+                                                    ),
+                                                  }}
+                                                />
                                               ),
                                             })}
                                           </div>
@@ -1658,9 +1725,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               },
                                               helperText: (
                                                 <>
-                                                  This Runner opens the SSH
-                                                  connection, so it must be able
-                                                  to reach the host.
+                                                  {translator.translateText(
+                                                    "This Runner opens the SSH connection, so it must be able to reach the host.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1677,9 +1744,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               },
                                               helperText: (
                                                 <>
-                                                  The host, user and key. It
-                                                  must be assigned to the Runner
-                                                  above, or the step fails.
+                                                  {translator.translateText(
+                                                    "The host, user and key. It must be assigned to the Runner above, or the step fails.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1688,7 +1755,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 htmlFor={`runbook-step-${idx}-ssh-command`}
                                                 className="block text-xs font-medium text-gray-700 mb-1.5"
                                               >
-                                                Command
+                                                {translator.translateText(
+                                                  "Command",
+                                                )}
                                               </label>
                                               <CodeEditor
                                                 id={`runbook-step-${idx}-ssh-command`}
@@ -1704,11 +1773,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 }}
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
-                                                Runs on the remote host as the
-                                                credential&rsquo;s user. Output
-                                                is capped at 50&nbsp;KB and a
-                                                non-zero exit code fails the
-                                                step.
+                                                {translator.translateText(
+                                                  "Runs on the remote host as the credential’s user. Output is capped at 50 KB and a non-zero exit code fails the step.",
+                                                )}
                                               </p>
                                             </div>
                                             {renderAgentTimeouts({
@@ -1717,9 +1784,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 step.config as SSHStepConfig,
                                               executionDescription: (
                                                 <>
-                                                  Covers connecting,
-                                                  authenticating and running the
-                                                  command together.
+                                                  {translator.translateText(
+                                                    "Covers connecting, authenticating and running the command together.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1741,9 +1808,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               },
                                               helperText: (
                                                 <>
-                                                  This Runner calls the cluster
-                                                  API server, so it must be able
-                                                  to reach it.
+                                                  {translator.translateText(
+                                                    "This Runner calls the cluster API server, so it must be able to reach it.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1761,17 +1828,18 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               },
                                               helperText: (
                                                 <>
-                                                  The API server and service
-                                                  account token. Bind that
-                                                  account to a role allowing
-                                                  only what your runbooks need.
+                                                  {translator.translateText(
+                                                    "The API server and service account token. Bind that account to a role allowing only what your runbooks need.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                               <div>
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  Action
+                                                  {translator.translateText(
+                                                    "Action",
+                                                  )}
                                                 </label>
                                                 <Dropdown
                                                   options={[
@@ -1816,7 +1884,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               </div>
                                               <div>
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  Workload kind
+                                                  {translator.translateText(
+                                                    "Workload kind",
+                                                  )}
                                                 </label>
                                                 <Dropdown
                                                   options={[
@@ -1864,7 +1934,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               </div>
                                               <div>
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  Namespace
+                                                  {translator.translateText(
+                                                    "Namespace",
+                                                  )}
                                                 </label>
                                                 <Input
                                                   value={
@@ -1882,7 +1954,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               </div>
                                               <div>
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  Workload name
+                                                  {translator.translateText(
+                                                    "Workload name",
+                                                  )}
                                                 </label>
                                                 <Input
                                                   value={
@@ -1905,7 +1979,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               KubernetesAction.ScaleWorkload && (
                                               <div>
                                                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                  Replicas
+                                                  {translator.translateText(
+                                                    "Replicas",
+                                                  )}
                                                 </label>
                                                 <Input
                                                   value={String(
@@ -1925,9 +2001,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                   }}
                                                 />
                                                 <p className="text-xs text-gray-500 mt-1.5">
-                                                  Zero is allowed — draining a
-                                                  workload is a remediation.
-                                                  DaemonSets cannot be scaled.
+                                                  {translator.translateText(
+                                                    "Zero is allowed — draining a workload is a remediation. DaemonSets cannot be scaled.",
+                                                  )}
                                                 </p>
                                               </div>
                                             )}
@@ -1937,9 +2013,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 step.config as KubernetesStepConfig,
                                               executionDescription: (
                                                 <>
-                                                  How long the Runner waits for
-                                                  the API server to accept the
-                                                  change.
+                                                  {translator.translateText(
+                                                    "How long the Runner waits for the API server to accept the change.",
+                                                  )}
                                                 </>
                                               ),
                                             })}
@@ -1950,7 +2026,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                           <div className="flex flex-col gap-3">
                                             <div>
                                               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                                                Prompt
+                                                {translator.translateText(
+                                                  "Prompt",
+                                                )}
                                               </label>
                                               <TextArea
                                                 value={
@@ -1965,16 +2043,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 placeholder="What should the AI analyze, summarize or decide? Its response becomes this step's output."
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
-                                                Runs on the LLM provider
-                                                selected below (Settings
-                                                &rsaquo; AI &rsaquo; LLM
-                                                Providers). Calls are metered
-                                                like any other AI feature. Pair
-                                                with &ldquo;Require
-                                                approval&rdquo; below to have a
-                                                human review the AI&rsquo;s
-                                                answer before the next step
-                                                runs.
+                                                {translator.translateText(
+                                                  "Runs on the LLM provider selected below (Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
+                                                )}
                                               </p>
                                               <div className="mt-2">
                                                 {renderScriptExamples({
@@ -2073,7 +2144,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             {steps.length > 0 && (
               <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4 mt-1">
                 <div className="text-xs font-medium text-gray-500 mb-3 text-center uppercase tracking-wide">
-                  Add another step
+                  {translator.translateText("Add another step")}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
@@ -2115,7 +2186,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               {hasUnsaved ? (
                 <span className="text-xs text-amber-600 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                  You have unsaved changes
+                  {translator.translateText("You have unsaved changes")}
                 </span>
               ) : null}
               <Button

@@ -113,7 +113,16 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
             className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0 transition-transform duration-200"
           />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center">
+            {/*
+             * The badge goes under the title when the two do not fit on one
+             * line - on a phone, or with a long summary such as the monitor
+             * criteria's "When no criteria match: Operational" - instead of
+             * running off the edge of the header.
+             */}
+            <div
+              className="flex flex-wrap items-center gap-x-2 gap-y-1"
+              data-testid="collapsible-section-heading"
+            >
               <span
                 id={collapsibleTitleId}
                 className="text-sm font-medium text-gray-900 truncate"
@@ -121,7 +130,7 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
                 {translateString(props.title) ?? props.title}
               </span>
               {isCollapsed && props.badge && (
-                <span className="ml-2 flex-shrink-0">
+                <span className="max-w-full flex-shrink-0">
                   {typeof props.badge === "string" ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
                       {props.badge}

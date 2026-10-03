@@ -26,8 +26,11 @@ import React, {
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Project from "Common/Models/DatabaseModels/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
 
   const [currentProbe, setCurrentProbe] = useState<Probe | null>(null);
@@ -348,16 +351,22 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title={`Probe Key`}
             description={
               <div>
-                <span>Here is your probe key. Please keep this a secret.</span>
-                <br />
-                <br />
                 <span>
-                  <b>Probe ID: </b> {currentProbe["_id"]?.toString()}
+                  {translator.translateText(
+                    "Here is your probe key. Please keep this a secret.",
+                  )}
                 </span>
                 <br />
                 <br />
                 <span>
-                  <b>Probe Key: </b> {currentProbe["key"]?.toString()}
+                  <b>{translator.translateText("Probe ID:")} </b>{" "}
+                  {currentProbe["_id"]?.toString()}
+                </span>
+                <br />
+                <br />
+                <span>
+                  <b>{translator.translateText("Probe Key:")} </b>{" "}
+                  {currentProbe["key"]?.toString()}
                 </span>
               </div>
             }
@@ -409,13 +418,15 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: Project): ReactElement => {
                 return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
                   <span>
-                    Global probes disabled for new monitors. New monitors will
-                    not have Global Probes assigned by default.
+                    {translator.translateText(
+                      "Global probes disabled for new monitors. New monitors will not have Global Probes assigned by default.",
+                    )}
                   </span>
                 ) : (
                   <span>
-                    Global probes enabled for new monitors. New monitors will
-                    have Global Probes assigned by default.
+                    {translator.translateText(
+                      "Global probes enabled for new monitors. New monitors will have Global Probes assigned by default.",
+                    )}
                   </span>
                 );
               },

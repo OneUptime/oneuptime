@@ -114,7 +114,7 @@ Het bericht dat abonnees daadwerkelijk krijgen wordt per statuspagina en per kan
 
 ## De incidentfeed
 
-De kaart **Incidentfeed** staat onderaan de linkerkolom op de pagina **Overzicht** van het incident. Het is het verhaal van het incident op volgorde: elk item is een pictogram, de avatar en naam van wie het veroorzaakte, een relatief tijdstempel met de exacte lokale tijd bij hover, en een Markdown-tekst. Items staan oudste eerst.
+De kaart **Incidentfeed** staat onderaan de linkerkolom op de pagina **Overzicht** van het incident. Het is het verhaal van het incident op volgorde: elk item is een pictogram, de avatar en naam van wie het veroorzaakte, een relatief tijdstempel met de exacte lokale tijd bij hover, en een Markdown-tekst. Standaard staan de nieuwste items bovenaan.
 
 Sommige items dragen extra detail — een eigenaarsmelding somt bijvoorbeeld iedereen op die mail kreeg. Die tonen een knop **More Information** die een paneel **More Information** opent.
 
@@ -125,7 +125,11 @@ De kaartkop heeft ook een menu **Acties**, zodat je kunt handelen zonder de tijd
 - **Add Public Note** — dezelfde vier velden als de pagina Openbare notities, in een dialoog.
 - **Privénotitie toevoegen** — alleen notitietekst en bijlagen.
 
-Ernaast haalt **Vernieuwen** de feed opnieuw op.
+Al het andere zit achter de knop **⋯** ernaast, dezelfde knop **Meer opties** die de kaartkop van een tabel heeft, zodat de kop zo weinig mogelijk knoppen toont:
+
+- **Nieuwste eerst** / **Oudste eerst** — de volgorde waarin de feed wordt gelezen. Een vinkje markeert de gekozen volgorde, en je browser onthoudt de keuze voor de feed van elk incident.
+- **Filteren op gebeurtenistype** — een dialoog met de gebeurtenistypen van de feed, elk met het pictogram van zijn items, en een zoekveld als de lijst lang is. Vink de typen aan die je wilt zien en kies **Filters toepassen**; zonder vinkjes worden ze allemaal getoond. Zolang de feed gefilterd is, zegt een kader erboven hoeveel gebeurtenistypen hij toont, met een label voor elk, **Filters bewerken** en **Filters wissen**. Het filter wordt niet bewaard: verlaat je het incident, dan toont de feed weer alles.
+- **Vernieuwen** — haalt de feed opnieuw op.
 
 **De feed is alleen-toevoegen, en het is niet je auditlogboek.** De API staat toe feed-items aan te maken en te lezen, maar niet bij te werken of te verwijderen, dus niemand kan stilletjes de geschiedenis van een incident herschrijven. Permanent is hij ook niet: op betaalde installaties worden feed-rijen ouder dan drie jaar verwijderd. Voor een duurzaam verslag van wie wat wijzigde gebruik je **Audit → Auditlogboeken** in het zijmenu van het incident.
 

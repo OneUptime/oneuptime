@@ -11,6 +11,10 @@ import {
   formatCompact,
   formatDurationMs,
 } from "../../../Components/TelemetryResource/telemetryFormat";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure decisions behind the RUM application overview page.
@@ -143,7 +147,9 @@ export function describePageLoadsTile(input: {
       value: "0",
       sublabel:
         input.eventsTotal !== null && input.eventsTotal > 0
-          ? `no ${PAGE_LOAD_SPAN_NAME} spans`
+          ? translateTemplate("no {{spanName}} spans", {
+              spanName: PAGE_LOAD_SPAN_NAME,
+            })
           : "full page loads",
     };
   }
@@ -152,7 +158,11 @@ export function describePageLoadsTile(input: {
     value: formatCompact(input.stats.count),
     sublabel:
       input.stats.errorCount > 0
-        ? `${formatCompact(input.stats.errorCount)} failed`
+        ? translatePlural(
+            { one: "{{count}} failed", other: "{{count}} failed" },
+            input.stats.errorCount,
+            { count: formatCompact(input.stats.errorCount) },
+          )
         : "full page loads",
   };
 }
@@ -176,7 +186,9 @@ export function describePageLoadTimeTile(input: {
 
   return {
     value: formatDurationMs(input.stats.p95DurationMs),
-    sublabel: `median ${formatDurationMs(input.stats.p50DurationMs)}`,
+    sublabel: translateTemplate("median {{duration}}", {
+      duration: formatDurationMs(input.stats.p50DurationMs),
+    }),
   };
 }
 

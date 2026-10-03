@@ -25,10 +25,13 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ServerlessDocumentationCard from "../../Components/Serverless/ServerlessDocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ServerlessFunctions: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -229,7 +232,9 @@ const ServerlessFunctions: FunctionComponent<
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span className="font-mono">{platform || "unknown"}</span>
+                  <span className="font-mono">
+                    {platform || translator.translateText("unknown")}
+                  </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500">
                       {region}

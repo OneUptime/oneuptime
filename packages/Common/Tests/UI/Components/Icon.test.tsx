@@ -57,9 +57,9 @@ describe("Icon chevrons", () => {
 });
 
 /*
- * The feed's Filter & Sort control shows Newest first / Oldest first with
- * these two, and the right-sizing card shows over- and under-provisioned
- * containers with them. BarsArrowUp used to be a copy of BarsArrowDown's path,
+ * The right-sizing card shows over- and under-provisioned containers with
+ * these two (and the feed's old Filter & Sort button showed Newest first /
+ * Oldest first with them). BarsArrowUp used to be a copy of BarsArrowDown's path,
  * so both pairs read as the same thing.
  */
 describe("Icon bars-and-arrow sort glyphs", () => {

@@ -763,8 +763,8 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         "translateString(field.title)",
       ],
       [
-        ["UI", "Components", "Feed", "FeedOptionsButton.tsx"],
-        "translateString",
+        ["UI", "Components", "Feed", "FeedEventTypeChecklist.tsx"],
+        "translator.translateText",
       ],
     ];
 

@@ -49,8 +49,11 @@ import IncidentCustomFieldSettingsCard from "../../../Components/Incident/Incide
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -253,7 +256,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Entity,
               getElement: (item: IncidentTemplate): ReactElement => {
                 if (!item["incidentSeverity"]) {
-                  return <p>No incident severity.</p>;
+                  return (
+                    <p>{translator.translateText("No incident severity.")}</p>
+                  );
                 }
 
                 return (
@@ -275,7 +280,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Entity,
               getElement: (item: IncidentTemplate): ReactElement => {
                 if (!item["initialIncidentState"]) {
-                  return <p>Uses default &apos;Created&apos; state</p>;
+                  return (
+                    <p>
+                      {translator.translateText("Uses default 'Created' state")}
+                    </p>
+                  );
                 }
 
                 return (

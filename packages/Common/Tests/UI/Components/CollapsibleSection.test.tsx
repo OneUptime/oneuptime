@@ -128,6 +128,34 @@ describe("CollapsibleSection", () => {
     expect(header()).not.toHaveTextContent("Configured");
   });
 
+  test("a badge that does not fit beside the title goes under it", () => {
+    /*
+     * On a phone, "Advanced" and a summary such as "When no criteria match:
+     * Operational" do not fit on one line. The title row wraps, so the
+     * badge drops under the title instead of running off the header - and
+     * keeps the 8px gap it always had when it does fit.
+     */
+    renderSection({
+      defaultCollapsed: true,
+      badge: "When no criteria match: Operational",
+    });
+
+    const heading: HTMLElement = screen.getByTestId(
+      "collapsible-section-heading",
+    );
+
+    expect(heading).toHaveClass("flex", "flex-wrap", "gap-x-2");
+
+    const badge: HTMLElement = screen
+      .getByText("When no criteria match: Operational")
+      .closest("span.max-w-full")! as HTMLElement;
+
+    expect(badge).not.toBeNull();
+    expect(badge.parentElement).toBe(heading);
+    // The gap comes from the row now; a margin as well would double it.
+    expect(badge).not.toHaveClass("ml-2");
+  });
+
   test("two sections never share an id", () => {
     render(
       <>

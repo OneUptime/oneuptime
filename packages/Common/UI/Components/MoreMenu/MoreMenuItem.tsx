@@ -40,6 +40,15 @@ export interface ComponentProps {
    * 1. An icon, when given, wins.
    */
   iconElement?: ReactElement | undefined;
+  /*
+   * For an item that is one choice of several - a feed's sort order. Set to
+   * true or false, the item is a menuitemradio whose aria-checked says which
+   * choice is in use, so a screen reader hears what the tick on it shows.
+   * The tick itself is still the caller's icon, with isIconSpaceReserved
+   * keeping the other choices' labels in line. Left unset, the item is an
+   * ordinary menuitem.
+   */
+  isChecked?: boolean | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
@@ -90,7 +99,8 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
         props.className || ""
       }`}
-      role="menuitem"
+      role={props.isChecked === undefined ? "menuitem" : "menuitemradio"}
+      aria-checked={props.isChecked}
       tabIndex={-1}
       disabled={isDisabled && !isExplainedLock}
       aria-disabled={isDisabled}

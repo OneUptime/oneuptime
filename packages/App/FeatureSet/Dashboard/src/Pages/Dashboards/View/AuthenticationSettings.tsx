@@ -16,10 +16,13 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DashboardAuthenticationSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
   const [showPasswordModal, setShowPasswordModal] = useState<boolean>(false);
@@ -129,7 +132,9 @@ const DashboardAuthenticationSettings: FunctionComponent<
                   getElement: (item: Dashboard): ReactElement => {
                     return (
                       <p>
-                        {item.masterPassword ? "Password is set." : "Not set."}
+                        {item.masterPassword
+                          ? translator.translateText("Password is set.")
+                          : translator.translateText("Not set.")}
                       </p>
                     );
                   },

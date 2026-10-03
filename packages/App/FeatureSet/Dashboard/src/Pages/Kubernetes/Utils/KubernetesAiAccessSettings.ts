@@ -22,6 +22,13 @@ import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { isKubernetesAgentRunnerRow } from "./KubernetesAgentRunner";
 import { formatNameList } from "./KubernetesAiAccessSetup";
 import { joinAiAccessProtections } from "../../../Components/AiAccess/AiAccessModes";
+import {
+  TranslatableTerm,
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure pieces behind "What AI may do" on the cluster's AI agent page
@@ -766,8 +773,9 @@ export interface KubernetesAiAccessConfirmation {
   description: string;
 }
 
-const RISKIER_CHANGE_EXAMPLES: string =
-  "riskier changes such as kubectl set image, patch, scale to zero and deleting workloads";
+const RISKIER_CHANGE_EXAMPLES: string = translationKey(
+  "riskier changes such as kubectl set image, patch, scale to zero and deleting workloads",
+);
 
 /*
  * Saving Bypass approval, or a broad allowlist pattern while Automatic mode
@@ -790,7 +798,13 @@ export function getKubernetesAiAccessConfirmation(data: {
   if (newMode === KubernetesAiRemediationMode.BypassApproval) {
     return {
       title: "Turn on Bypass approval?",
-      description: `With Bypass approval OneUptime AI does not ask: it applies every fix the kubectl policy allows on this cluster on its own — ${RISKIER_CHANGE_EXAMPLES} included, in follow-up rounds too. Even so, ${getEveryModeProtectionsSentence()}.`,
+      description: translateTemplate(
+        "With Bypass approval OneUptime AI does not ask: it applies every fix the kubectl policy allows on this cluster on its own — {{examples}} included, in follow-up rounds too. Even so, {{protections}}.",
+        {
+          examples: translatableTerm(RISKIER_CHANGE_EXAMPLES),
+          protections: getEveryModeProtectionsSentence(),
+        },
+      ),
     };
   }
 
@@ -833,24 +847,44 @@ export function getKubernetesAiAccessConfirmation(data: {
     return null;
   }
 
-  const isOne: boolean = broadPatterns.length === 1;
   const quoted: string = broadPatterns
     .map((pattern: string): string => {
       return `"${pattern}"`;
     })
     .join(", ");
 
+  const descriptionValues: {
+    patterns: string;
+    examples: TranslatableTerm;
+    protections: string;
+  } = {
+    patterns: quoted,
+    examples: translatableTerm(RISKIER_CHANGE_EXAMPLES),
+    protections: getEveryModeProtectionsSentence(),
+  };
+
   return {
     title: "Let riskier changes run without approval?",
-    description: `The allowlist pattern${isOne ? "" : "s"} ${quoted} ${
-      isOne ? "uses" : "use"
-    } a wildcard for an object, the namespace, a selector or a --from source, so ${
-      isOne ? "it pre-approves" : "they pre-approve"
-    } a whole class of changes, not one. ${
+    description:
       resultingMode === KubernetesAiRemediationMode.Automatic
-        ? "In Automatic mode"
-        : "Once this cluster is switched to Automatic mode"
-    }, every riskier change of that shape — to any object and in any namespace the wildcard covers, ${RISKIER_CHANGE_EXAMPLES} included — then runs with nobody asked. Even so, ${getEveryModeProtectionsSentence()}.`,
+        ? translatePlural(
+            {
+              one: "The allowlist pattern {{patterns}} uses a wildcard for an object, the namespace, a selector or a --from source, so it pre-approves a whole class of changes, not one. In Automatic mode, every riskier change of that shape — to any object and in any namespace the wildcard covers, {{examples}} included — then runs with nobody asked. Even so, {{protections}}.",
+              other:
+                "The allowlist patterns {{patterns}} use a wildcard for an object, the namespace, a selector or a --from source, so they pre-approve a whole class of changes, not one. In Automatic mode, every riskier change of that shape — to any object and in any namespace the wildcard covers, {{examples}} included — then runs with nobody asked. Even so, {{protections}}.",
+            },
+            broadPatterns.length,
+            descriptionValues,
+          )
+        : translatePlural(
+            {
+              one: "The allowlist pattern {{patterns}} uses a wildcard for an object, the namespace, a selector or a --from source, so it pre-approves a whole class of changes, not one. Once this cluster is switched to Automatic mode, every riskier change of that shape — to any object and in any namespace the wildcard covers, {{examples}} included — then runs with nobody asked. Even so, {{protections}}.",
+              other:
+                "The allowlist patterns {{patterns}} use a wildcard for an object, the namespace, a selector or a --from source, so they pre-approve a whole class of changes, not one. Once this cluster is switched to Automatic mode, every riskier change of that shape — to any object and in any namespace the wildcard covers, {{examples}} included — then runs with nobody asked. Even so, {{protections}}.",
+            },
+            broadPatterns.length,
+            descriptionValues,
+          ),
   };
 }
 
@@ -911,15 +945,19 @@ export function buildKubernetesAiRunnerOptions(data: {
     const name: string = runner.name || id;
     const isBound: boolean = id === data.boundRunnerId;
 
-    let unusableReason: string | null = null;
+    // Why a listed Runner cannot be picked, as its whole option label.
+    let unusableLabel: string | null = null;
     if (isKubernetesAgentRunnerRow(runner)) {
-      unusableReason =
-        "installed by the Kubernetes agent chart, which now uses the Kubernetes AI agent";
+      unusableLabel = translationKey(
+        "{{name}} (currently bound — installed by the Kubernetes agent chart, which now uses the Kubernetes AI agent)",
+      );
     } else if (runner.canRunAiCommands !== true) {
-      unusableReason = "“Runs AI Remediation Commands” is off";
+      unusableLabel = translationKey(
+        "{{name}} (currently bound — “Runs AI Remediation Commands” is off)",
+      );
     }
 
-    if (unusableReason && !isBound) {
+    if (unusableLabel && !isBound) {
       continue;
     }
 
@@ -929,8 +967,8 @@ export function buildKubernetesAiRunnerOptions(data: {
 
     options.push({
       value: id,
-      label: unusableReason
-        ? `${name} (currently bound — ${unusableReason})`
+      label: unusableLabel
+        ? translateTemplate(unusableLabel, { name: name })
         : name,
     });
   }
@@ -938,7 +976,9 @@ export function buildKubernetesAiRunnerOptions(data: {
   if (data.boundRunnerId && !isBoundRunnerListed) {
     options.unshift({
       value: data.boundRunnerId,
-      label: `${data.boundRunnerName || "The bound Runner"} (currently bound)`,
+      label: translateTemplate("{{name}} (currently bound)", {
+        name: data.boundRunnerName || translatableTerm("The bound Runner"),
+      }),
     });
   }
 
@@ -998,7 +1038,8 @@ export function buildKubernetesAiCredentialOptions(data: {
   runner: KubernetesAiCredentialRunner;
 }): Array<DropdownOption> {
   const options: Array<DropdownOption> = [];
-  const runnerName: string = data.runner.name || "the chosen Runner";
+  const runnerName: string | TranslatableTerm =
+    data.runner.name || translatableTerm("the chosen Runner");
   const isAgentRunner: boolean = isAgentCredentialRunner(data.runner);
 
   for (const credential of data.credentials) {
@@ -1017,7 +1058,10 @@ export function buildKubernetesAiCredentialOptions(data: {
       if (isBound) {
         options.push({
           value: id,
-          label: `${name} (currently bound — not a Kubernetes credential)`,
+          label: translateTemplate(
+            "{{name}} (currently bound — not a Kubernetes credential)",
+            { name: name },
+          ),
         });
       }
       continue;
@@ -1026,20 +1070,30 @@ export function buildKubernetesAiCredentialOptions(data: {
     const runnerIds: Array<string> | undefined =
       readCredentialRunnerIds(credential);
 
-    let unusableReason: string | null = null;
+    // Why the credential cannot be picked, as its whole option label.
+    let unusableLabel: string | null = null;
     if (isAgentRunner) {
-      unusableReason = `${runnerName} is an in-cluster Runner and is never given a credential`;
+      unusableLabel = translationKey(
+        "{{name}} (currently bound — {{runner}} is an in-cluster Runner and is never given a credential)",
+      );
     } else if (!data.runner.id) {
-      unusableReason = "no Runner is chosen to use it";
+      unusableLabel = translationKey(
+        "{{name}} (currently bound — no Runner is chosen to use it)",
+      );
     } else if (runnerIds && !runnerIds.includes(data.runner.id)) {
-      unusableReason = `not assigned to ${runnerName}`;
+      unusableLabel = translationKey(
+        "{{name}} (currently bound — not assigned to {{runner}})",
+      );
     }
 
-    if (unusableReason) {
+    if (unusableLabel) {
       if (isBound) {
         options.push({
           value: id,
-          label: `${name} (currently bound — ${unusableReason})`,
+          label: translateTemplate(unusableLabel, {
+            name: name,
+            runner: runnerName,
+          }),
         });
       }
       continue;
@@ -1056,7 +1110,10 @@ export function buildKubernetesAiCredentialOptions(data: {
   ) {
     options.unshift({
       value: data.boundCredentialId,
-      label: `${data.boundCredentialName || "The bound credential"} (currently bound)`,
+      label: translateTemplate("{{name}} (currently bound)", {
+        name:
+          data.boundCredentialName || translatableTerm("The bound credential"),
+      }),
     });
   }
 

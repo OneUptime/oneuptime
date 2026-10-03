@@ -41,7 +41,7 @@ By default a subscriber gets everything on the page. Two toggles in the **Advanc
 - **Allow Subscribers to Choose Resources** (`allowSubscribersToChooseResources`) — off by default. Turn it on and the subscribe form grows a **Subscribe to All Resources** toggle; clear it and **Select Resources to Subscribe** appears so the visitor can pick individual resources.
 - **Allow Subscribers to Choose Event Types** (`allowSubscribersToChooseEventTypes`) — off by default. Same shape: a **Subscribe to All Event Types** toggle, and **Select Event Types to Subscribe** underneath when it is cleared.
 
-With either of them on, a new subscription takes two steps: **Details** asks where to send updates (the email address, phone number, workspace or webhook), and **Next** opens **Preferences**, with the resource and event type choices and the **Subscribe** button. With both off, the form stays the single page described above.
+With either of them on, the subscribe form has two steps. **Details** asks where to send updates (the email address, phone number, workspace or webhook), with **Subscribe** right under it: every resource and every kind of event are already chosen, so a visitor who wants everything subscribes there. **Next**, under **Subscribe**, opens **Preferences** to narrow the resources and event types down. With both off, the form stays the single page described above.
 
 The event types are `Incident`, `Announcement` and `Scheduled Event`.
 

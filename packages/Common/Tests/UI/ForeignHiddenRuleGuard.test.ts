@@ -150,10 +150,10 @@ const SR_ONLY_LABEL_SITES: Array<[string, string]> = [
     "packages/App/FeatureSet/Dashboard/src/Components/Workspace/SendTestNotificationButton.tsx",
     NEW_SM_LABEL_CLASS,
   ],
-  [
-    "packages/Common/UI/Components/Feed/FeedOptionsButton.tsx",
-    NEW_XL_LABEL_CLASS,
-  ],
+  /*
+   * The feed's "Filter & Sort" label (max-xl) went with its button: a feed's
+   * sort and filter are in its ⋯ menu now, which has no collapsing label.
+   */
 ];
 
 const SKIP_LINK_FILES: Array<string> = [
@@ -713,7 +713,7 @@ describe("ForeignHiddenRuleGuard detector", () => {
       }
     }
 
-    // The four label files ship the recommended strings.
+    // The label files ship the recommended strings.
     for (const [file, shipped] of SR_ONLY_LABEL_SITES) {
       expect(readRepositoryFile(file)).toContain(`"${shipped}"`);
     }

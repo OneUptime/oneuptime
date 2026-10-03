@@ -15,6 +15,8 @@ import { getOutputMetricNameFromRuleName } from "Common/Types/Metrics/RecordingR
 import MetricRecordingRuleDefinitionEditor from "../../../Components/Metrics/RecordingRule/MetricRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Recording Rules Work
@@ -43,6 +45,7 @@ Every materialized row carries an attribute \`oneuptime.derived.rule_id\` with t
 const MetricRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelTable<MetricRecordingRule>
       modelType={MetricRecordingRule}
@@ -190,7 +193,7 @@ const MetricRecordingRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

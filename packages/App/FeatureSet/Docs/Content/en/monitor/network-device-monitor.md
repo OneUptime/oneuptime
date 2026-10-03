@@ -467,7 +467,9 @@ Two buttons on a rule reach *every* scan in the project, however old:
 - **Dry Run** evaluates every completed scan and reports what the rule would
   import and monitor. Nothing is written, so it is the safe way to answer "what
   would this claim" before enabling a rule against a live estate. A disabled
-  rule can be dry-run; only a real run requires it to be enabled.
+  rule can be dry-run; only a real run requires it to be enabled. That is why
+  a rule created from the dashboard starts with **Enabled** off: dry-run it,
+  then switch it on.
 - **Run Rule** does the same evaluation and performs the import.
 
 **Large estates import in paced batches.** Device and monitor creation each run

@@ -8,7 +8,8 @@ interface FeedImplementation {
 }
 
 /*
- * How one feed connects its Filter & Sort state to the request it makes. The
+ * How one feed connects its sort and filter state - chosen in the ⋯ menu of
+ * its header - to the request it makes. The
  * checks below compare against the name the feed itself gave the
  * useFeedOptions() result, and look inside the two hook calls rather than
  * the whole file, so they survive renames and reformatting but not a wire
@@ -86,6 +87,9 @@ const FEED_OPTIONS_HOOK_CALL: RegExp =
   /const\s+(\w+)\s*:\s*UseFeedOptionsResult\s*=\s*useFeedOptions\s*\(/;
 
 const FEED_ITEMS_HOOK_CALL: RegExp = /\buseFeedItems\s*(?:<[^<>()]*>)?\s*\(/;
+
+// The `actions` prop of a FeedCard: the feed's main action beside the ⋯.
+const ACTIONS_PROP: RegExp = /\bactions=\{/;
 
 // A storage key written as a string literal ("incident"), not an expression.
 const QUOTED_STRING_LITERAL: RegExp = /^(["'`])[^"'`]*\1$/;
@@ -240,8 +244,8 @@ describe("dashboard feed ordering parity", () => {
   });
 
   /*
-   * The order is the reader's choice from the Filter & Sort button, and it
-   * is applied by the API. Reversing or re-sorting the loaded window in the
+   * The order is the reader's choice from the feed's ⋯ menu, and it is
+   * applied by the API. Reversing or re-sorting the loaded window in the
    * browser would show the newest ten upside down instead of the oldest ten.
    */
   test.each(FEED_IMPLEMENTATIONS)(
@@ -263,8 +267,15 @@ describe("dashboard feed ordering parity", () => {
     },
   );
 
+  /*
+   * "The filter, sort, and refresh should be combined into a More button in
+   * the feeds component, just like we have in the modal table." Every feed
+   * draws its card with FeedCard, which puts them behind the table's ⋯ and
+   * keeps only the feed's main action beside it - so no feed can grow a
+   * Refresh or filter button of its own again.
+   */
   test.each(FEED_IMPLEMENTATIONS)(
-    "$name offers Filter & Sort as the first header control and filters through the API",
+    "$name draws its card with FeedCard, with sort, filter and Refresh in its ⋯, and filters through the API",
     (implementation: FeedImplementation) => {
       const source: string = readSource(implementation);
       const wiring: FeedOptionsWiring = getFeedOptionsWiring(source);
@@ -273,10 +284,35 @@ describe("dashboard feed ordering parity", () => {
       expect(source).toMatch(
         /import\s+useFeedOptions\b[^;]*from\s+"Common\/UI\/Components\/Feed\/useFeedOptions"/,
       );
-      expect(source).toMatch(
-        /import\s+FeedOptionsButton\s+from\s+"Common\/UI\/Components\/Feed\/FeedOptionsButton"/,
+      expect(source).toContain(
+        'import FeedCard from "Common/UI/Components/Feed/FeedCard";',
       );
-      expect(source).toMatch(/buttons=\{\[\s*<FeedOptionsButton\b/);
+      expect(source).not.toContain("FeedOptionsButton");
+
+      // One card, the feed's: no plain Card with a button row of its own.
+      expect(source.match(/<FeedCard\b/g) || []).toHaveLength(1);
+      expect(source).not.toMatch(/<Card\b/);
+      expect(source).not.toMatch(/\bbuttons=\{/);
+      expect(source).not.toMatch(/title:\s*"Refresh"/);
+      expect(source).not.toContain("ButtonStyleType.ICON");
+
+      const card: string = getCallArguments(
+        source.replace(/<FeedCard\b/, "FeedCard("),
+        /FeedCard\(/,
+      );
+
+      /*
+       * The card shows - and its ⋯ changes - the options the feed reads with,
+       * and its Refresh re-reads the same feed.
+       */
+      expect(card).toMatch(
+        new RegExp(String.raw`\bfeedOptions=\{\s*${hook}\s*\}`),
+      );
+      expect(card).toMatch(/\bonRefresh=\{\s*refresh\s*\}/);
+      expect(
+        getCallArguments(source, FEED_ITEMS_HOOK_CALL).length,
+      ).toBeGreaterThan(0);
+      expect(source).toMatch(/\brefresh,\s*\n[\s\S]*?\}\s*=\s*useFeedItems/);
 
       /*
        * A change of options must both re-read the feed (viewKey) and change
@@ -296,23 +332,6 @@ describe("dashboard feed ordering parity", () => {
         ),
       );
 
-      const button: RegExpMatchArray | null = source.match(
-        /<FeedOptionsButton\b[\s\S]*?\/>/,
-      );
-
-      expect(button).not.toBeNull();
-      expect(button![0]).toMatch(
-        new RegExp(String.raw`\bvalue=\{\s*${hook}\.options\s*\}`),
-      );
-      expect(button![0]).toMatch(
-        new RegExp(
-          String.raw`\beventTypeOptions=\{\s*${hook}\.eventTypeOptions\s*\}`,
-        ),
-      );
-      expect(button![0]).toMatch(
-        new RegExp(String.raw`\bonChange=\{\s*${hook}\.setOptions\s*\}`),
-      );
-
       /*
        * A filtered feed with no matches must say it is filtered, not claim
        * the resource has no activity at all.
@@ -325,6 +344,79 @@ describe("dashboard feed ordering parity", () => {
       ).toMatch(new RegExp(String.raw`\boptions\s*:\s*${hook}\.options\b`));
     },
   );
+
+  /*
+   * A feed's main action stays in sight beside the ⋯: the notes, runbooks
+   * and on-call policies of the incident, alert, episode and maintenance
+   * feeds. Feeds with nothing to do but read show the ⋯ alone.
+   */
+  test.each(FEED_IMPLEMENTATIONS)(
+    "$name keeps only its own Actions menu beside the ⋯, if it has one",
+    (implementation: FeedImplementation) => {
+      const source: string = readSource(implementation);
+      const card: string = getCallArguments(
+        source.replace(/<FeedCard\b/, "FeedCard("),
+        /FeedCard\(/,
+      );
+      const hasActions: boolean = ACTIONS_PROP.test(card);
+      const hasActionsMenu: boolean = source.includes("<FeedActionsMenu");
+
+      expect(hasActions).toBe(hasActionsMenu);
+
+      if (hasActions) {
+        // The shared Actions menu, named in the reader's language.
+        expect(card).toMatch(/\bactions=\{\s*<FeedActionsMenu\b/);
+        expect(source).toContain(
+          'import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";',
+        );
+      }
+
+      // No feed draws an Actions trigger of its own any more.
+      expect(source).not.toContain("<span>Actions</span>");
+      expect(source).not.toContain("elementToBeShownInsteadOfButton");
+    },
+  );
+
+  test("the old Filter & Sort button is gone from the code base", () => {
+    const feedFolder: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "UI",
+      "Components",
+      "Feed",
+    );
+
+    expect(fs.existsSync(path.join(feedFolder, "FeedOptionsButton.tsx"))).toBe(
+      false,
+    );
+    expect(fs.existsSync(path.join(feedFolder, "FeedCard.tsx"))).toBe(true);
+    expect(fs.existsSync(path.join(feedFolder, "FeedMoreMenu.tsx"))).toBe(true);
+    expect(fs.existsSync(path.join(feedFolder, "FeedActionsMenu.tsx"))).toBe(
+      true,
+    );
+  });
+
+  test("the incident, alert, both episode and the maintenance feeds keep their Actions; the rest have none", () => {
+    const withActions: Array<string> = FEED_IMPLEMENTATIONS.filter(
+      (implementation: FeedImplementation): boolean => {
+        return readSource(implementation).includes("<FeedActionsMenu");
+      },
+    ).map((implementation: FeedImplementation): string => {
+      return implementation.name;
+    });
+
+    expect(withActions.sort()).toEqual(
+      [
+        "Alert",
+        "Alert episode",
+        "Incident",
+        "Incident episode",
+        "Scheduled maintenance",
+      ].sort(),
+    );
+  });
 
   /*
    * The dashboard moves from one incident (cluster, monitor, ...) to the next

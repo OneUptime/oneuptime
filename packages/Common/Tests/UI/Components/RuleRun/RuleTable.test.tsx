@@ -259,6 +259,33 @@ describe("RuleTable", () => {
     );
   });
 
+  it("starts every new rule on: the create form leaves the Enabled switch out", () => {
+    const enabledField: Record<string, unknown> = {
+      field: { isEnabled: true },
+      title: "Enabled",
+      fieldType: "Boolean",
+    };
+
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(baseProps() as any)}
+        modelType={MonitorLabelRule}
+        formFields={[...FORM_FIELDS, enabledField]}
+      />,
+    );
+
+    const fields: Array<Record<string, unknown>> =
+      lastTableProps()["formFields"];
+
+    expect(fields).toHaveLength(2);
+    // Every other field is handed on as it was.
+    expect(fields[0]).toBe(FORM_FIELDS[0]);
+    // The switch stays on the edit form only.
+    expect(fields[1]).toEqual({ ...enabledField, doNotShowWhenCreating: true });
+    expect(fields[1]!["doNotShowWhenEditing"]).toBeUndefined();
+    expect(enabledField["doNotShowWhenCreating"]).toBeUndefined();
+  });
+
   it("renders the rule's view page, with the table's own form, when given a rule id", () => {
     const listRoute: Route = new Route("/rules");
 

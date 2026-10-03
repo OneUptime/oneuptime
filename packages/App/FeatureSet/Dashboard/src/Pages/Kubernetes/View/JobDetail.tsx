@@ -40,10 +40,13 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const jobName: string = Navigation.getLastParamAsString();
 
@@ -134,7 +137,10 @@ const KubernetesClusterJobDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "job_cpu",
       title: "Pod CPU Utilization",
-      description: `CPU utilization for pods in job ${jobName}`,
+      description: translator.translateTemplate(
+        "CPU utilization for pods in job {{jobName}}",
+        { jobName: jobName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -162,7 +168,10 @@ const KubernetesClusterJobDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "job_memory",
       title: "Pod Memory Usage",
-      description: `Memory usage for pods in job ${jobName}`,
+      description: translator.translateTemplate(
+        "Memory usage for pods in job {{jobName}}",
+        { jobName: jobName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -309,7 +318,9 @@ const KubernetesClusterJobDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Job Metrics: ${jobName}`}
+          title={translator.translateTemplate("Job Metrics: {{jobName}}", {
+            jobName: jobName,
+          })}
           description="CPU and memory usage for pods in this job over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />

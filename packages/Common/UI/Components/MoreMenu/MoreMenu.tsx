@@ -58,6 +58,16 @@ export interface ComponentProps {
   isMenuPortaled?: boolean | undefined;
 }
 
+/*
+ * Every role a menu's items can have: an action (menuitem), and one choice of
+ * several (menuitemradio, a feed's sort order) or an on/off item
+ * (menuitemcheckbox). All three take part in the roving focus and close the
+ * menu when picked; leaving the last two out would also have the promotion
+ * in getMenuItems rewrite a choice's role to plain menuitem.
+ */
+export const MENU_ITEM_SELECTOR: string =
+  '[role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]';
+
 // Matches the mt-2 / mb-2 gap the in-place menu keeps from its trigger.
 const PORTALED_MENU_GAP_PX: number = 8;
 const PORTALED_MENU_VIEWPORT_PADDING_PX: number = 8;
@@ -154,13 +164,13 @@ const MoreMenu: React.ForwardRefExoticComponent<
             'button, a[href], [role="button"]',
           ),
         ).forEach((item: HTMLElement) => {
-          if (!item.closest('[role="menuitem"]')) {
+          if (!item.closest(MENU_ITEM_SELECTOR)) {
             item.setAttribute("role", "menuitem");
           }
         });
 
         return Array.from(
-          menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+          menuElement.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR),
         ).filter((item: HTMLElement) => {
           /*
            * A locked item that explains itself (MoreMenuItem with a tooltip)
@@ -601,7 +611,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         return;
       }
 
-      const menuItem: Element | null = eventTarget.closest('[role="menuitem"]');
+      const menuItem: Element | null = eventTarget.closest(MENU_ITEM_SELECTOR);
 
       if (
         menuItem instanceof HTMLElement &&
@@ -632,7 +642,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         return;
       }
 
-      const menuItem: Element | null = eventTarget.closest('[role="menuitem"]');
+      const menuItem: Element | null = eventTarget.closest(MENU_ITEM_SELECTOR);
 
       if (
         menuItem instanceof HTMLElement &&

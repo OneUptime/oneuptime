@@ -357,7 +357,10 @@ describe("VMware metric descriptions: the time window each number covers", () =>
     // Max per point across VMs, then the recent-window mean of those maxima.
     expect(OVERVIEW).toContain("max = Math.max(max, v);");
     expect(OVERVIEW).toContain(
-      "`max ${formatPercent(s.vmCpuReadyMaxPercent)} across",
+      'one: "max {{max}} across {{count}} powered-on VM",',
+    );
+    expect(OVERVIEW).toContain(
+      "{ max: formatPercent(s.vmCpuReadyMaxPercent) },",
     );
     expect(D.overviewVmCpuReady).toContain("busiest VM below");
     expect(D.overviewVmCpuReady).not.toContain("highest single VM");
@@ -770,11 +773,14 @@ describe("VMware metric descriptions: what each number is made of", () => {
     );
 
     for (const [chip, words] of [
-      ["datacenter${", "datacenters"],
-      ["cluster${", "clusters"],
-      ["ESXi host${", "ESXi hosts"],
-      ["powered on`", "VMs (powered on out of all, templates excluded)"],
-      ["datastore${", "datastores"],
+      ['other: "{{count}} datacenters"', "datacenters"],
+      ['other: "{{count}} clusters"', "clusters"],
+      ['other: "{{count}} ESXi hosts"', "ESXi hosts"],
+      [
+        'other: "{{poweredOn}}/{{count}} VMs powered on"',
+        "VMs (powered on out of all, templates excluded)",
+      ],
+      ['other: "{{count}} datastores"', "datastores"],
     ] as Array<[string, string]>) {
       expect({ chip, inHero: hero.includes(chip) }).toEqual({
         chip,

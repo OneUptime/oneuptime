@@ -42,10 +42,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -314,6 +317,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         stepId: "subscriber-info",
         required: false,
         doNotShowWhenEditing: true,
+        /*
+         * Off on purpose, though the column defaults to on: someone an admin
+         * adds is sent a "you have subscribed" message only when the admin
+         * asks for one (CreateFormDefaultsGuard lists why).
+         */
+        defaultValue: false,
       },
       {
         field: {
@@ -679,8 +688,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   {bulkActionInProgress ? (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500">
-                        Please wait while subscribers are being added. This may
-                        take a moment.
+                        {translator.translateText(
+                          "Please wait while subscribers are being added. This may take a moment.",
+                        )}
                       </p>
                       <ProgressBar
                         count={bulkProgress.completed}
@@ -700,11 +710,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Green}
                             />
                             <div className="ml-2 text-sm font-medium text-green-800">
-                              {bulkProgress.succeeded}{" "}
-                              {bulkProgress.succeeded === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              added successfully
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber added successfully",
+                                  other:
+                                    "{{count}} subscribers added successfully",
+                                },
+                                bulkProgress.succeeded,
+                              )}
                             </div>
                           </div>
                         )}
@@ -716,11 +729,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Red}
                             />
                             <div className="ml-2 text-sm font-medium text-red-800">
-                              {bulkProgress.failed.length}{" "}
-                              {bulkProgress.failed.length === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              failed
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber failed",
+                                  other: "{{count}} subscribers failed",
+                                },
+                                bulkProgress.failed.length,
+                              )}
                             </div>
                           </div>
                         )}
@@ -732,11 +747,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                               color={Yellow}
                             />
                             <div className="ml-2 text-sm font-medium text-yellow-800">
-                              {bulkProgress.skippedInvalid.length} invalid{" "}
-                              {bulkProgress.skippedInvalid.length === 1
-                                ? "phone number"
-                                : "phone numbers"}{" "}
-                              skipped
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} invalid phone number skipped",
+                                  other:
+                                    "{{count}} invalid phone numbers skipped",
+                                },
+                                bulkProgress.skippedInvalid.length,
+                              )}
                             </div>
                           </div>
                         )}

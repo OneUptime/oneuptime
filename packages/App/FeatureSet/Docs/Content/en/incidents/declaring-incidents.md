@@ -22,9 +22,9 @@ You can also declare an incident from alerts: **Declare Incident** on an alerts 
 
 ## Declaring one by hand
 
-Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over five steps: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** and **More**. When your project asks for some of its incident custom fields on create, a sixth step, **Details**, comes right after **Resources Affected**. The submit button at the end also reads **Declare Incident**.
+Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over five steps: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** and **More**. When your project asks for some of its incident custom fields on create, a sixth step, **Details**, comes right after **Resources Affected**.
 
-Only the first step has required fields, plus any custom field your admins marked **Required on Create**. If you are in a hurry, fill in **Incident Details** and submit — you can attach resources, assign roles and add on-call policies from the incident's own pages afterwards.
+Only the first step has required fields, plus any custom field your admins marked **Required on Create**. So the form's main button is **Declare Incident** from the first step on, with **Next** beside it: fill in **Incident Details** and declare, or walk on to attach resources, assign roles and add on-call policies first. You can also do those from the incident's own pages afterwards. While a custom field is **Required on Create**, the main button reads **Next** until you have answered it on the **Details** step.
 
 ### Step 1 — Incident Details
 
