@@ -120,19 +120,12 @@ const buildQueryValue: BuildQueryValueFunction = (
   }
 };
 
-const TextFilter: TextFilterFunction = <T extends GenericObject>(
+// A text filter's controls. TextFilter below decides whether to draw them.
+const TextFilterControls: TextFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
-
-  if (filter.filterDropdownOptions) {
-    return <></>;
-  }
-
-  if (!TEXT_FIELD_TYPES.includes(filter.type)) {
-    return <></>;
-  }
 
   const detected: { operator: FilterOperator; value: string } =
     detectCurrentState(props.filterData[filter.key]);
@@ -211,6 +204,28 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
       )}
     </div>
   );
+};
+
+/*
+ * FiltersForm draws every filter component in each of its rows, and each one
+ * draws nothing for a filter it does not own (a text column offered as a list
+ * of values is DropdownFilter's). That check calls no hook, so it lives in
+ * this wrapper and the hooks in TextFilterControls: a row whose filter changes
+ * mounts or unmounts the controls. See DateFilter for the crash that a check
+ * below a hook caused.
+ */
+const TextFilter: TextFilterFunction = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  if (props.filter.filterDropdownOptions) {
+    return <></>;
+  }
+
+  if (!TEXT_FIELD_TYPES.includes(props.filter.type)) {
+    return <></>;
+  }
+
+  return <TextFilterControls<T> {...props} />;
 };
 
 export default TextFilter;

@@ -147,19 +147,12 @@ const buildValue: BuildValueFunction = (state: NumberState): unknown => {
   }
 };
 
-const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
+// A number filter's controls. NumberFilter below decides whether to draw them.
+const NumberFilterControls: NumberFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
-
-  if (filter.filterDropdownOptions) {
-    return <></>;
-  }
-
-  if (filter.type !== FieldType.Number) {
-    return <></>;
-  }
 
   const detected: NumberState = detectState(props.filterData[filter.key]);
 
@@ -247,6 +240,28 @@ const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
       )}
     </div>
   );
+};
+
+/*
+ * FiltersForm draws every filter component in each of its rows, and each one
+ * draws nothing for a filter it does not own (a number column offered as a
+ * list of values is DropdownFilter's). That check calls no hook, so it lives
+ * in this wrapper and the hooks in NumberFilterControls: a row whose filter
+ * changes mounts or unmounts the controls. See DateFilter for the crash that
+ * a check below a hook caused.
+ */
+const NumberFilter: NumberFilterFunction = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  if (props.filter.filterDropdownOptions) {
+    return <></>;
+  }
+
+  if (props.filter.type !== FieldType.Number) {
+    return <></>;
+  }
+
+  return <NumberFilterControls<T> {...props} />;
 };
 
 export default NumberFilter;
