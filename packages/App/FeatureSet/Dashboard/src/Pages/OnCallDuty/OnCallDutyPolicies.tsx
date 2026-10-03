@@ -96,8 +96,8 @@ const OnCallDutyPage: FunctionComponent<
 
   /*
    * Name, who gets paged first, and the description and labels folded under
-   * Advanced (OnCallPolicyCreateForm.ts). Built once: the page re-renders as
-   * owners and facets load, and a new field list would rebuild an open form.
+   * Advanced (OnCallPolicyCreateForm.ts). Built once, not on every render of
+   * the page.
    */
   const createFormFields: Array<ModelField<OnCallDutyPolicy>> = useMemo(
     (): Array<ModelField<OnCallDutyPolicy>> => {
