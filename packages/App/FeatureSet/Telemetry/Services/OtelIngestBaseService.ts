@@ -699,6 +699,35 @@ export default abstract class OtelIngestBaseService {
       });
 
     /*
+     * Branch #1 of the ladder above resolves a Service the resource itself
+     * never names: from the `x-oneuptime-service-name` header, or from the
+     * container name a Docker / Podman Agent batch carries in place of a
+     * `service.name`. The heuristic Service resolver reads `service.name`
+     * and nothing else, so those batches were stamped with an empty
+     * `serviceEntityKey` and an `entityKeys` set with no service in it —
+     * while `primaryEntityId` pointed straight at that same Service row.
+     * Every per-service read (grouping, a `serviceEntityKey` filter, the
+     * per-service rollups) therefore missed them.
+     *
+     * Put the resolved name back into the attribute the resolver reads, so
+     * one extraction feeds the primary entity, the membership keys and the
+     * registry alike, and the key matches the `keyForService` the
+     * name-only paths (syslog / fluent) already stamp.
+     *
+     * Only when the resource is silent — an explicit `service.name` is
+     * already this exact name — and only on the heuristic path: a producer
+     * that sent `entity_refs` is authoritative and is not second-guessed.
+     */
+    if (
+      metadata.primaryEntityType === ServiceType.OpenTelemetry &&
+      metadata.serviceName &&
+      !flatAttributes["service.name"] &&
+      !(data.entityRefs && data.entityRefs.length > 0)
+    ) {
+      flatAttributes["service.name"] = metadata.serviceName;
+    }
+
+    /*
      * A database's own engine telemetry carries the host.name of the
      * machine its collector runs on (or, for the sqlserver / oracledb
      * receivers, the database server's name) — not a Host this batch
