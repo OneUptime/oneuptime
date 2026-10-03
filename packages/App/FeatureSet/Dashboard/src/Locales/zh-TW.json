@@ -24430,5 +24430,14 @@
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "開啟後，人員必須先受邀加入專案，才能透過此提供者登入。首次登入時不會建立新使用者。",
   "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "開啟後，透過此提供者登入僅在與其關聯的專案中滿足 SSO 強制要求，因此已登入的人員可能會失去其他專案的存取權。關閉後，在該人員所屬的每個專案中都滿足要求，關聯的專案僅決定新成員加入的位置。",
   "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "OneUptime 尋找提供者端點的位置。它會跟隨簽發者；僅當您的提供者在其他位置發布探索文件時才需要變更。",
-  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "您的身分提供者的簽發者，需與提供者顯示的完全一致。也可以直接貼上其探索 URL。"
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "您的身分提供者的簽發者，需與提供者顯示的完全一致。也可以直接貼上其探索 URL。",
+  "Signatures use RSA-SHA256 with a SHA256 digest, as most identity providers do.": "簽章使用 RSA-SHA256 和 SHA256 摘要，與大多數身分提供者相同。",
+  "The X.509 certificate your identity provider signs with, including its BEGIN CERTIFICATE and END CERTIFICATE lines.": "您的身分提供者用於簽章的 X.509 憑證，包括其 BEGIN CERTIFICATE 和 END CERTIFICATE 行。",
+  "The algorithm your identity provider signs with. Most use RSA-SHA256.": "您的身分提供者用於簽章的演算法。大多數使用 RSA-SHA256。",
+  "The digest algorithm your identity provider signs with. Most use SHA256.": "您的身分提供者簽章時使用的摘要演算法。大多數使用 SHA256。",
+  "This provider is off. Once your identity provider has the Entity ID and Reply URL above, edit the provider and turn Enabled on.": "此提供者已關閉。在您的身分提供者設定好上方的 Entity ID 和 Reply URL 後，請編輯此提供者並開啟「已啟用」。",
+  "Your identity provider's issuer (its entity ID), exactly as the provider shows it.": "您的身分提供者的簽發者（即其實體 ID），需與提供者顯示的完全一致。",
+  "Your identity provider's single sign-on URL. OneUptime sends people there to sign in.": "您的身分提供者的單一登入 URL。OneUptime 會將使用者導向該處登入。",
+  "People added in your identity provider can sign in to this status page, and people removed there lose access.": "在您的身分提供者中新增的人員可以登入此狀態頁面，在那裡移除的人員會失去存取權。",
+  "People added in your identity provider join the default teams, and people removed there leave them.": "在您的身分提供者中新增的人員會加入預設團隊，在那裡移除的人員會離開這些團隊。"
 }

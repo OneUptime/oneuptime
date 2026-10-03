@@ -27,13 +27,14 @@ La integración SSO proporciona los siguientes beneficios:
    - Ingresa la **URL de inicio de sesión** de tu proveedor de identidad
    - Ingresa el **Emisor** (ID de entidad) de tu proveedor de identidad
    - Pega el **Certificado público** de tu proveedor de identidad
-   - Selecciona el **Algoritmo de firma** (por ejemplo, `RSA-SHA-256`)
-   - Selecciona el **Algoritmo de resumen** (por ejemplo, `SHA256`)
+   - En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: las personas que inician sesión por primera vez se unen a estos equipos
+   - Todo lo demás se rellena en **Avanzado**: el **Método de firma** (`RSA-SHA256`), el **Método de resumen** (`SHA256`) y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor de identidad lo necesita
 
 3. **Obtener los metadatos SSO de OneUptime**
-   - Después de guardar, haz clic en el botón **Ver configuración SSO**
+   - Al guardar se abre el diálogo **Configuración de SSO**. Puedes volver a abrirlo con el botón **Ver configuración SSO**
    - Copia el **Identificador (ID de entidad)**: es necesario en la configuración de tu IdP
    - Copia la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: es necesaria en la configuración de tu IdP
+   - Un proveedor nuevo empieza deshabilitado. Cuando tu IdP tenga estos dos valores, edita el proveedor y activa **Habilitado**
 
 ## Configuración SAML de Keycloak
 
@@ -54,8 +55,7 @@ Keycloak es una popular solución de código abierto para gestión de identidade
    - **URL de inicio de sesión**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Emisor**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificado**: Consulta el [Paso 2](#paso-2-obtener-el-certificado-de-keycloak) a continuación
-   - **Algoritmo de firma**: `RSA-SHA-256`
-   - **Algoritmo de resumen**: `SHA256`
+   - **Método de firma** y **Método de resumen**: ya configurados en **Avanzado** (`RSA-SHA256` y `SHA256`)
 4. Guarda la configuración
 
 ### Paso 2: Obtener el certificado de Keycloak
@@ -121,8 +121,7 @@ Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nub
    - **URL de inicio de sesión**: La obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
    - **Emisor**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
    - **Certificado**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
-   - **Algoritmo de firma**: `RSA-SHA-256`
-   - **Algoritmo de resumen**: `SHA256`
+   - **Método de firma** y **Método de resumen**: ya configurados en **Avanzado** (`RSA-SHA256` y `SHA256`)
 4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Entra ID
 
 ### Paso 2: Crear una aplicación empresarial en Microsoft Entra ID
@@ -206,8 +205,7 @@ Okta es una plataforma de identidad ampliamente utilizada que proporciona sólid
    - **URL de inicio de sesión**: La obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
    - **Emisor**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
    - **Certificado**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
-   - **Algoritmo de firma**: `RSA-SHA-256`
-   - **Algoritmo de resumen**: `SHA256`
+   - **Método de firma** y **Método de resumen**: ya configurados en **Avanzado** (`RSA-SHA256` y `SHA256`)
 4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Okta
 
 ### Paso 2: Crear una aplicación SAML en Okta
@@ -287,7 +285,7 @@ La implementación SSO de OneUptime usa el protocolo SAML 2.0 y debería funcion
    - **URL de inicio de sesión** (punto de conexión SSO)
    - **Emisor** (ID de entidad del IdP)
    - **Certificado público** (certificado de firma X.509)
-4. Establece el **Algoritmo de firma** en `RSA-SHA-256` y el **Algoritmo de resumen** en `SHA256`
+4. El **Método de firma** (`RSA-SHA256`) y el **Método de resumen** (`SHA256`) ya están configurados en **Avanzado**; cámbialos solo si tu proveedor de identidad firma de otra forma
 
 ## OpenID Connect (OIDC)
 

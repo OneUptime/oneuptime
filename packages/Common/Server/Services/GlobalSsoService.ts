@@ -1,6 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/GlobalSso";
 import ObjectID from "../../Types/ObjectID";
+import { fillSamlProviderDefaults } from "../../Types/SSO/SamlProviderDefaults";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -121,10 +122,19 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
+  /*
+   * A SAML provider created without a signature method, a digest method or
+   * a description gets the usual ones (Types/SSO/SamlProviderDefaults),
+   * before the required-field check runs: the columns stay required, so the
+   * API and Terraform keep their contract, and a caller may leave them out.
+   * What the caller sent is kept.
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    fillSamlProviderDefaults(createBy.data);
+
     clearGlobalSsoAuthorizationCaches();
     return { createBy, carryForward: null };
   }
