@@ -267,10 +267,11 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
  * The caller clicks the trigger button first — either the empty-state
  * "Create Ingestion Key" CTA or the "New Key" button next to the dropdown.
  *
- * The form walks the create wizard's steps - Details, Key Type and, on the
- * Free plan, Billing - and its footer button reads "Next" until the last.
- * It is pressed until the modal closes, waiting for the step to move on
- * between presses, keeping the Server key the Key Type step preselects.
+ * The guide names the key and picks its type, so the form is one page - the
+ * name, filled in with the guide's ("VMware key"), is replaced here - and
+ * on the Free plan it walks on to a Billing step, its footer button reading
+ * "Next" until the pricing has been shown. The button is pressed until the
+ * modal closes, waiting for the step to move on between presses.
  */
 type SubmitIngestionKeyModalFunction = (data: {
   page: Page;

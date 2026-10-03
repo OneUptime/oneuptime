@@ -329,6 +329,7 @@ export const getIngestionKeyFormFields: (
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "Ingestion Key Name",
+      description: "Give this key a name you will recognize later.",
       defaultValue:
         options.keyName || getDefaultIngestionKeyName(options.keyType),
       validation: {
