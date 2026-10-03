@@ -5,6 +5,7 @@ import {
   SLO_UNARCHIVE_CARD_DESCRIPTION,
   SLO_UNARCHIVE_CONFIRM_MESSAGE,
 } from "../../../Components/Slo/SloArchiveCopy";
+import SloEvaluationCard from "../../../Components/Slo/SloEvaluationCard";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import PageMap from "../../../Utils/PageMap";
@@ -14,7 +15,6 @@ import {
   describeSloErrorBudget,
   describeSloWindow,
   getSloDowntimeSettingsFormFields,
-  getSloEvaluationSettingsFormFields,
   getSloObjectiveSettingsFormFields,
   getSloPeriodSettingsFormFields,
   orderDowntimeMonitorStatuses,
@@ -23,7 +23,6 @@ import {
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
@@ -146,9 +145,10 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   /*
    * Bumped after any card saves, and after the archive card archives or
    * unarchives, so the notice banner re-reads the SLO: a banner saying "This
-   * SLO is disabled" or "This SLO is archived" must disappear the moment the
-   * user turns evaluation back on, or unarchives, right below it. A counter
-   * rather than a timestamp, because two saves inside the same second would
+   * SLO is archived" must disappear the moment the user unarchives right
+   * below it. (The Evaluation switch needs no bump: the banner hears it
+   * through ModelSwitchEvents, wherever it is flipped.) A counter rather
+   * than a timestamp, because two saves inside the same second would
    * otherwise produce the same toggle value and the second would not refresh.
    */
   const [bannerRefreshCount, setBannerRefreshCount] = useState<number>(0);
@@ -175,10 +175,6 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const downtimeFormFields: Array<ModelField<ServiceLevelObjective>> =
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloDowntimeSettingsFormFields();
-    }, []);
-  const evaluationFormFields: Array<ModelField<ServiceLevelObjective>> =
-    useMemo((): Array<ModelField<ServiceLevelObjective>> => {
-      return getSloEvaluationSettingsFormFields();
     }, []);
 
   return (
@@ -403,65 +399,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      <CardModelDetail<ServiceLevelObjective>
-        name="SLO Evaluation"
-        cardProps={{
-          title: "Evaluation",
-          description:
-            "Whether OneUptime evaluates this SLO. A disabled SLO keeps its history and settings but stops measuring, and its burn rate rules stop firing.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Evaluation"
-        formFields={evaluationFormFields}
-        onSaveSuccess={refreshBanner}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: ServiceLevelObjective,
-          id: "slo-settings-evaluation",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
-                lastEvaluatedAt: true,
-              },
-              title: "Last Evaluated",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                if (!item.lastEvaluatedAt) {
-                  return getValueElement(
-                    translator.translateTemplate("Not evaluated yet"),
-                    translator.translateTemplate(
-                      "OneUptime evaluates enabled SLOs every few minutes.",
-                    ),
-                  );
-                }
-
-                const lastEvaluatedAt: Date = OneUptimeDate.fromString(
-                  item.lastEvaluatedAt,
-                );
-
-                return (
-                  <span
-                    className="font-medium text-gray-900"
-                    title={OneUptimeDate.getDateAsLocalFormattedString(
-                      lastEvaluatedAt,
-                    )}
-                  >
-                    {OneUptimeDate.fromNow(lastEvaluatedAt)}
-                  </span>
-                );
-              },
-            },
-          ],
-        }}
-      />
+      <SloEvaluationCard sloId={modelId} />
 
       <ArchiveResourceCard<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
