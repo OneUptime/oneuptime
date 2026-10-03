@@ -44,6 +44,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 
 export interface ComponentProps {
@@ -715,20 +716,27 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         id={groupByLabelId}
                         className="text-sm font-medium text-gray-900"
                       >
-                        Open a separate incident for each…
+                        {translator.translateText(
+                          "Open a separate incident for each…",
+                        )}
                       </span>
                     </div>
                     <p className="mb-2 ml-7 mt-1 text-xs text-gray-500">
-                      A path into the request body — the same{" "}
-                      <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                        requestBody
-                      </code>{" "}
-                      you reference in incident templates. Every distinct value
-                      opens its own incident; add{" "}
-                      <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                        [*]
-                      </code>{" "}
-                      to fan out over an array.
+                      <TranslatedSentence
+                        template="A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array."
+                        slots={{
+                          requestBody: (
+                            <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                              requestBody
+                            </code>
+                          ),
+                          wildcard: (
+                            <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                              [*]
+                            </code>
+                          ),
+                        }}
+                      />
                     </p>
                     <div className="ml-7 font-mono">
                       <Input
@@ -741,7 +749,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                       />
                     </div>
                     <p className="ml-7 mt-1.5 text-xs text-gray-500">
-                      e.g. one incident per Grafana alert name.
+                      {translator.translateText(
+                        "e.g. one incident per Grafana alert name.",
+                      )}
                     </p>
                   </div>
 
@@ -752,17 +762,18 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         2
                       </span>
                       <span className="text-sm font-medium text-gray-900">
-                        Auto-resolve each incident when…{" "}
+                        {translator.translateText(
+                          "Auto-resolve each incident when…",
+                        )}{" "}
                         <span className="font-normal text-gray-500">
-                          (optional)
+                          {translator.translateText("(optional)")}
                         </span>
                       </span>
                     </div>
                     <p className="mb-3 ml-7 mt-1 text-xs text-gray-500">
-                      A webhook only describes what is firing right now, so
-                      OneUptime cannot tell an incident has recovered unless the
-                      payload says so. Set the field and value that signal
-                      recovery. Leave blank to resolve these incidents manually.
+                      {translator.translateText(
+                        "A webhook only describes what is firing right now, so OneUptime cannot tell an incident has recovered unless the payload says so. Set the field and value that signal recovery. Leave blank to resolve these incidents manually.",
+                      )}
                     </p>
                     <div className="ml-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
@@ -770,7 +781,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                           htmlFor={resolvedPathInputId}
                           className="block text-xs font-medium text-gray-600"
                         >
-                          Field that signals recovery
+                          {translator.translateText(
+                            "Field that signals recovery",
+                          )}
                         </label>
                         <div className="mt-1 font-mono">
                           <Input
@@ -790,7 +803,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                           htmlFor={resolvedValueInputId}
                           className="block text-xs font-medium text-gray-600"
                         >
-                          Value that means recovered
+                          {translator.translateText(
+                            "Value that means recovered",
+                          )}
                         </label>
                         <div className="mt-1 font-mono">
                           <Input
@@ -809,15 +824,21 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     {incidentGrouping?.resolvedWhenJSONPath &&
                       incidentGrouping?.resolvedWhenValue && (
                         <p className="ml-7 mt-2 text-xs text-gray-500">
-                          Resolves an incident when{" "}
-                          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                            {incidentGrouping.resolvedWhenJSONPath}
-                          </code>{" "}
-                          equals{" "}
-                          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                            {incidentGrouping.resolvedWhenValue}
-                          </code>
-                          .
+                          <TranslatedSentence
+                            template="Resolves an incident when {{field}} equals {{value}}."
+                            slots={{
+                              field: (
+                                <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                                  {incidentGrouping.resolvedWhenJSONPath}
+                                </code>
+                              ),
+                              value: (
+                                <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                                  {incidentGrouping.resolvedWhenValue}
+                                </code>
+                              ),
+                            }}
+                          />
                         </p>
                       )}
                   </div>
@@ -829,11 +850,12 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         id={maxKeysLabelId}
                         className="text-sm font-medium text-gray-900"
                       >
-                        Max incidents per request
+                        {translator.translateText("Max incidents per request")}
                       </p>
                       <p className="mt-0.5 text-xs text-gray-500">
-                        Safety cap so a high-cardinality field cannot open
-                        unbounded incidents. Defaults to 100.
+                        {translator.translateText(
+                          "Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100.",
+                        )}
                       </p>
                     </div>
                     <div className="w-24 flex-shrink-0">

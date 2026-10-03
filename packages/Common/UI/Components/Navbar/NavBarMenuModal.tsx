@@ -8,7 +8,16 @@ import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import URL from "../../../Types/API/URL";
-import { isMoreMenuItemActive, type MoreMenuItem } from "./NavBar";
+import type { MoreMenuItem } from "./NavBar";
+import NavBarCategoryToggle from "./NavBarCategoryToggle";
+import {
+  CategoryFolds,
+  groupItemsByCategory,
+  isMoreMenuItemActive,
+  MenuCategory,
+  UNCATEGORIZED_TITLE,
+  useCategoryFolds,
+} from "./NavBarMenuCatalog";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -120,6 +129,14 @@ const writeRecentRoute: (routeString: string) => void = (
 
 export interface ComponentProps {
   items: MoreMenuItem[];
+  /*
+   * The categories the menu opens on. Every other category starts folded to
+   * one line until the user opens it (click, or Enter on its row); search
+   * ignores folding, and the category holding the current page opens by
+   * itself. Leave it unset to show every category open. See
+   * NavBarMenuCatalog.ts for the rules.
+   */
+  categoriesOpenByDefault?: Array<string> | undefined;
   footer?:
     | {
         title: string;
@@ -139,28 +156,65 @@ export interface ComponentProps {
   onClose: () => void;
 }
 
-interface IndexedItem {
-  item: MoreMenuItem;
+/*
+ * One stop of the keyboard cursor, in the order the rows are on screen: a
+ * product card, or the heading row of a category that folds.
+ */
+interface ItemEntry {
+  kind: "item";
+  key: string;
   flatIndex: number;
+  item: MoreMenuItem;
 }
 
-interface MenuGroup {
+interface CategoryEntry {
+  kind: "category";
+  key: string;
+  flatIndex: number;
   category: string;
-  items: IndexedItem[];
+}
+
+type MenuEntry = ItemEntry | CategoryEntry;
+
+interface MenuGroup {
+  key: string;
+  title: string;
   isRecent: boolean;
+  // The heading row that folds and opens the group, when it can fold.
+  toggle: CategoryEntry | undefined;
+  isOpen: boolean;
+  // Every product in the group, on screen or folded away.
+  items: Array<MoreMenuItem>;
+  // The product cards on screen.
+  shownEntries: Array<ItemEntry>;
 }
 
 interface RawGroup {
-  category: string;
-  items: MoreMenuItem[];
+  title: string;
+  items: Array<MoreMenuItem>;
   isRecent: boolean;
 }
+
+// The element aria-activedescendant points at for an entry.
+const entryElementId: (entry: MenuEntry) => string = (
+  entry: MenuEntry,
+): string => {
+  return entry.kind === "category"
+    ? `navbar-menu-category-${entry.flatIndex}`
+    : `navbar-menu-option-${entry.flatIndex}`;
+};
 
 const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [query, setQuery] = useState<string>("");
-  const [activeIndex, setActiveIndex] = useState<number>(0);
+  /*
+   * The entry the keyboard cursor is on, by key rather than position: opening
+   * a category moves every row below it, and the cursor must stay on the
+   * row the user is on. Unset means "the default": the current page's
+   * product when idle, the first match while searching.
+   */
+  const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
   // Drives the open transition (fade + scale-in) on the first paint.
   const [isShown, setIsShown] = useState<boolean>(false);
   // Recently opened product routes, read once when the modal opens.
@@ -172,6 +226,21 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const cellRefs: React.MutableRefObject<Array<HTMLDivElement | null>> = useRef<
     Array<HTMLDivElement | null>
   >([]);
+  const groupRefs: React.MutableRefObject<Map<string, HTMLDivElement>> = useRef<
+    Map<string, HTMLDivElement>
+  >(new Map());
+  /*
+   * The group (by key) of a category just opened, to scroll into view once
+   * its products are drawn.
+   */
+  const groupToReveal: React.MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(undefined);
+
+  const folds: CategoryFolds = useCategoryFolds(
+    props.items,
+    props.categoriesOpenByDefault,
+  );
 
   /*
    * Callers hand us plain English literals (or omit them and take the
@@ -185,6 +254,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   };
 
   const recentLabel: string = tx(props.recentLabel || "Recent");
+  const isSearching: boolean = query.trim().length > 0;
 
   // Keep familiar acronyms searchable even when the displayed title is translated.
   const filteredItems: MoreMenuItem[] = useMemo(() => {
@@ -224,61 +294,109 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   }, [recentRoutes, props.items]);
 
   // Group filtered items by category, preserving first-seen order.
-  const categoryGroups: RawGroup[] = useMemo(() => {
-    const order: string[] = [];
-    const byCategory: Map<string, MoreMenuItem[]> = new Map();
-    filteredItems.forEach((item: MoreMenuItem) => {
-      const category: string = item.category || "Other";
-      if (!byCategory.has(category)) {
-        byCategory.set(category, []);
-        order.push(category);
-      }
-      byCategory.get(category)!.push(item);
-    });
-    return order.map((category: string) => {
-      return { category, items: byCategory.get(category)!, isRecent: false };
-    });
+  const categoryGroups: Array<MenuCategory> = useMemo(() => {
+    return groupItemsByCategory(filteredItems);
   }, [filteredItems]);
 
   /*
    * Final render order: a "Recent" group (idle only) followed by the category
-   * groups, with every item stamped with its index in the flattened order so
-   * keyboard navigation and cell refs stay in sync.
+   * groups. Every row the keyboard cursor can stop on gets its index in that
+   * order, so arrow keys, the cursor and the cell refs stay in step: the
+   * heading row of a category that folds, then the products shown under it.
+   *
+   * A category folds only while idle. Search ignores folding: every match is
+   * shown under a plain heading, and the cursor moves over products alone.
    */
-  const displayGroups: MenuGroup[] = useMemo(() => {
-    const raw: RawGroup[] = [];
-    if (!query.trim() && recentItems.length > 0) {
-      raw.push({ category: recentLabel, items: recentItems, isRecent: true });
-    }
-    raw.push(...categoryGroups);
-
-    let flatIndex: number = 0;
-    return raw.map((group: RawGroup) => {
-      const items: IndexedItem[] = group.items.map((item: MoreMenuItem) => {
-        const entry: IndexedItem = { item, flatIndex };
-        flatIndex++;
-        return entry;
-      });
-      return { category: group.category, items, isRecent: group.isRecent };
+  const rawGroups: Array<RawGroup> = [];
+  if (!isSearching && recentItems.length > 0) {
+    rawGroups.push({ title: recentLabel, items: recentItems, isRecent: true });
+  }
+  categoryGroups.forEach((category: MenuCategory) => {
+    rawGroups.push({
+      title: category.title,
+      items: category.items,
+      isRecent: false,
     });
-  }, [query, recentItems, categoryGroups, recentLabel]);
+  });
 
-  // Flattened list in render order — used for keyboard navigation.
-  const flatItems: MoreMenuItem[] = useMemo(() => {
-    return displayGroups.reduce((acc: MoreMenuItem[], group: MenuGroup) => {
-      group.items.forEach((entry: IndexedItem) => {
-        acc.push(entry.item);
-      });
-      return acc;
-    }, []);
-  }, [displayGroups]);
+  const entries: Array<MenuEntry> = [];
+  const groups: Array<MenuGroup> = rawGroups.map(
+    (group: RawGroup): MenuGroup => {
+      const canFold: boolean =
+        folds.isEnabled && !isSearching && !group.isRecent;
+      const isOpen: boolean = !canFold || folds.isOpen(group.title);
+      let toggle: CategoryEntry | undefined = undefined;
+
+      if (canFold) {
+        toggle = {
+          kind: "category",
+          key: `category:${group.title}`,
+          flatIndex: entries.length,
+          category: group.title,
+        };
+        entries.push(toggle);
+      }
+
+      const shownEntries: Array<ItemEntry> = [];
+
+      if (isOpen) {
+        group.items.forEach((item: MoreMenuItem) => {
+          const entry: ItemEntry = {
+            kind: "item",
+            key: `${group.isRecent ? "recent" : `item:${group.title}`}:${item.route.toString()}`,
+            flatIndex: entries.length,
+            item,
+          };
+          entries.push(entry);
+          shownEntries.push(entry);
+        });
+      }
+
+      return {
+        key: group.isRecent ? "recent" : `category:${group.title}`,
+        title: group.title,
+        isRecent: group.isRecent,
+        toggle,
+        isOpen,
+        items: group.items,
+        shownEntries,
+      };
+    },
+  );
 
   // Index of the product matching the current page (the "you are here" item).
-  const currentFlatIndex: number = useMemo(() => {
-    return flatItems.findIndex((item: MoreMenuItem) => {
-      return isMoreMenuItemActive(item);
-    });
-  }, [flatItems]);
+  const currentFlatIndex: number = entries.findIndex(
+    (entry: MenuEntry): boolean => {
+      return entry.kind === "item" && isMoreMenuItemActive(entry.item);
+    },
+  );
+
+  /*
+   * Where the cursor is. When idle the menu opens "where you are", on the
+   * current page's product; while searching, on the first result. Either
+   * way it starts on a product, never on a category's heading row.
+   */
+  const activeIndex: number = ((): number => {
+    if (activeKey !== undefined) {
+      const index: number = entries.findIndex((entry: MenuEntry): boolean => {
+        return entry.key === activeKey;
+      });
+      if (index >= 0) {
+        return index;
+      }
+    }
+    if (!isSearching && currentFlatIndex >= 0) {
+      return currentFlatIndex;
+    }
+    const firstProductIndex: number = entries.findIndex(
+      (entry: MenuEntry): boolean => {
+        return entry.kind === "item";
+      },
+    );
+    return firstProductIndex >= 0 ? firstProductIndex : 0;
+  })();
+
+  const activeEntry: MenuEntry | undefined = entries[activeIndex];
 
   // Play the open animation and focus the search box on mount.
   useEffect(() => {
@@ -286,22 +404,32 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     inputRef.current?.focus();
   }, []);
 
-  /*
-   * When idle, pre-select the current page so the modal opens "where you are";
-   * while searching, snap the selection to the first result.
-   */
-  useEffect(() => {
-    if (query) {
-      setActiveIndex(0);
-      return;
-    }
-    setActiveIndex(currentFlatIndex >= 0 ? currentFlatIndex : 0);
-  }, [query, currentFlatIndex]);
-
   // Keep the active cell scrolled into view as the selection moves.
   useEffect(() => {
     cellRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
+
+  /*
+   * A category opened at the bottom of the list would grow below the fold,
+   * and look as if nothing happened: bring its products into view.
+   */
+  useEffect(() => {
+    const groupKey: string | undefined = groupToReveal.current;
+    if (groupKey === undefined) {
+      return;
+    }
+    groupToReveal.current = undefined;
+    const group: HTMLDivElement | undefined = groupRefs.current.get(groupKey);
+    if (group && typeof group.scrollIntoView === "function") {
+      group.scrollIntoView({ block: "nearest" });
+    }
+  });
+
+  const updateQuery: (value: string) => void = (value: string): void => {
+    setQuery(value);
+    // A new query puts the cursor back on its first result.
+    setActiveKey(undefined);
+  };
 
   // Record a selection and close the modal.
   const selectItem: (item: MoreMenuItem) => void = (
@@ -309,6 +437,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   ): void => {
     writeRecentRoute(item.route.toString());
     props.onClose();
+  };
+
+  // Open a folded category or fold an open one, keeping the cursor on it.
+  const toggleCategory: (entry: CategoryEntry) => void = (
+    entry: CategoryEntry,
+  ): void => {
+    if (!folds.isOpen(entry.category)) {
+      // A category's heading row and its group share the key.
+      groupToReveal.current = entry.key;
+    }
+    folds.toggle(entry.category);
+    setActiveKey(entry.key);
   };
 
   // Wrap the portions of text that match the query in a highlight.
@@ -346,6 +486,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     return parts;
   };
 
+  const moveTo: (index: number) => void = (index: number): void => {
+    const entry: MenuEntry | undefined = entries[index];
+    if (entry) {
+      setActiveKey(entry.key);
+    }
+  };
+
+  /*
+   * Up and Down move to the nearest row above or below, by where the rows
+   * are drawn: a category's heading row is one row across the whole menu,
+   * and the products under it are a grid of cards.
+   */
   const moveVertical: (direction: "up" | "down") => void = (
     direction: "up" | "down",
   ): void => {
@@ -359,7 +511,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
     // Find the nearest row in the requested direction.
     let targetTop: number | null = null;
-    for (let i: number = 0; i < flatItems.length; i++) {
+    for (let i: number = 0; i < entries.length; i++) {
       const cell: HTMLDivElement | null = cells[i] || null;
       if (!cell) {
         continue;
@@ -380,16 +532,25 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    // Within that row, pick the cell whose horizontal center is closest.
+    /*
+     * Within that row, pick the cell whose horizontal center is closest. A
+     * heading row spans the whole menu, so from a heading the first product
+     * of the row is the one to land on, as when reading.
+     */
+    const isFromHeading: boolean = activeEntry?.kind === "category";
     let bestIndex: number = activeIndex;
     let bestDistance: number = Number.POSITIVE_INFINITY;
-    for (let i: number = 0; i < flatItems.length; i++) {
+    for (let i: number = 0; i < entries.length; i++) {
       const cell: HTMLDivElement | null = cells[i] || null;
       if (!cell) {
         continue;
       }
       const rect: DOMRect = cell.getBoundingClientRect();
       if (Math.abs(rect.top - targetTop) <= 1) {
+        if (isFromHeading) {
+          bestIndex = i;
+          break;
+        }
         const centerX: number = rect.left + rect.width / 2;
         const distance: number = Math.abs(centerX - activeCenterX);
         if (distance < bestDistance) {
@@ -398,7 +559,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         }
       }
     }
-    setActiveIndex(bestIndex);
+    moveTo(bestIndex);
   };
 
   const handleKeyDown: (
@@ -409,19 +570,15 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       props.onClose();
       return;
     }
-    if (flatItems.length === 0) {
+    if (entries.length === 0) {
       return;
     }
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      setActiveIndex((index: number) => {
-        return Math.min(index + 1, flatItems.length - 1);
-      });
+      moveTo(Math.min(activeIndex + 1, entries.length - 1));
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
-      setActiveIndex((index: number) => {
-        return Math.max(index - 1, 0);
-      });
+      moveTo(Math.max(activeIndex - 1, 0));
     } else if (event.key === "ArrowDown") {
       event.preventDefault();
       moveVertical("down");
@@ -430,11 +587,16 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       moveVertical("up");
     } else if (event.key === "Enter") {
       event.preventDefault();
-      const item: MoreMenuItem | undefined = flatItems[activeIndex];
-      if (item) {
-        selectItem(item);
-        Navigation.navigate(item.route);
+      if (!activeEntry) {
+        return;
       }
+      if (activeEntry.kind === "category") {
+        // Enter on a category's row opens it (or folds it again).
+        toggleCategory(activeEntry);
+        return;
+      }
+      selectItem(activeEntry.item);
+      Navigation.navigate(activeEntry.item.route);
     }
   };
 
@@ -482,9 +644,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 aria-expanded={true}
                 aria-controls="navbar-menu-listbox"
                 aria-activedescendant={
-                  flatItems.length > 0
-                    ? `navbar-menu-option-${activeIndex}`
-                    : undefined
+                  activeEntry ? entryElementId(activeEntry) : undefined
                 }
                 aria-label={tx(props.searchPlaceholder || "Search products")}
                 autoComplete="off"
@@ -493,7 +653,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 spellCheck={false}
                 value={query}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setQuery(event.target.value);
+                  updateQuery(event.target.value);
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder={tx(props.searchPlaceholder || "Search…")}
@@ -504,7 +664,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   type="button"
                   aria-label={tx("Clear search")}
                   onClick={() => {
-                    setQuery("");
+                    updateQuery("");
                     inputRef.current?.focus();
                   }}
                   className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
@@ -528,7 +688,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               aria-label={tx("Products")}
               className="flex-1 overflow-y-auto overscroll-contain px-5 pb-5 pt-4"
             >
-              {flatItems.length === 0 ? (
+              {entries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
                     <Icon
@@ -546,85 +706,154 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   )}
                 </div>
               ) : (
-                displayGroups.map((group: MenuGroup) => {
+                groups.map((group: MenuGroup, groupIndex: number) => {
+                  const headingId: string = `navbar-menu-heading-${groupIndex}`;
+                  const bodyId: string = `navbar-menu-group-${groupIndex}`;
+                  const title: string =
+                    group.title === UNCATEGORIZED_TITLE && !group.isRecent
+                      ? tx(UNCATEGORIZED_TITLE)
+                      : group.title;
+                  const isFolded: boolean =
+                    Boolean(group.toggle) && !group.isOpen;
+                  const toggle: CategoryEntry | undefined = group.toggle;
+
                   return (
-                    <div key={group.category} className="mb-6 last:mb-1">
-                      <div className="mb-2.5 flex items-center gap-1.5 px-1">
-                        {group.isRecent && (
-                          <Icon
-                            icon={IconProp.Clock}
-                            className="h-3.5 w-3.5 text-gray-500"
-                          />
-                        )}
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">
-                          {group.category}
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {group.items.map((entry: IndexedItem) => {
-                          const item: MoreMenuItem = entry.item;
-                          const flatIndex: number = entry.flatIndex;
-                          const isActive: boolean = flatIndex === activeIndex;
-                          const isCurrent: boolean =
-                            flatIndex === currentFlatIndex;
-                          const colors: IconColorClasses =
-                            ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
-                            ICON_COLOR_CLASSES["indigo"]!;
-                          return (
-                            <div
-                              key={entry.flatIndex}
-                              id={`navbar-menu-option-${flatIndex}`}
-                              role="option"
-                              aria-selected={isActive}
-                              ref={(element: HTMLDivElement | null) => {
-                                cellRefs.current[flatIndex] = element;
-                              }}
-                              onMouseMove={() => {
-                                setActiveIndex(flatIndex);
-                              }}
-                            >
-                              <Link
-                                to={item.route}
-                                onClick={() => {
-                                  selectItem(item);
+                    <div
+                      key={group.key}
+                      role="group"
+                      aria-labelledby={headingId}
+                      ref={(element: HTMLDivElement | null) => {
+                        if (element) {
+                          groupRefs.current.set(group.key, element);
+                        } else {
+                          groupRefs.current.delete(group.key);
+                        }
+                      }}
+                      className={isFolded ? "mb-1" : "mb-6 last:mb-1"}
+                    >
+                      {toggle ? (
+                        <NavBarCategoryToggle
+                          title={title}
+                          itemTitles={group.items.map(
+                            (item: MoreMenuItem): string => {
+                              return item.title;
+                            },
+                          )}
+                          isOpen={group.isOpen}
+                          onToggle={() => {
+                            toggleCategory(toggle);
+                          }}
+                          controlsId={bodyId}
+                          headingId={headingId}
+                          id={entryElementId(toggle)}
+                          isActive={toggle.flatIndex === activeIndex}
+                          rowRef={(element: HTMLDivElement | null) => {
+                            cellRefs.current[toggle.flatIndex] = element;
+                          }}
+                          onMouseMove={() => {
+                            setActiveKey(toggle.key);
+                          }}
+                          keepsFocusOnClick={true}
+                        />
+                      ) : (
+                        /*
+                         * In a menu that folds, a plain heading (Recent, or a
+                         * category while searching) lines its text up with
+                         * the heading rows around it.
+                         */
+                        <div
+                          className={`mb-2.5 flex items-center gap-1.5 ${
+                            folds.isEnabled
+                              ? "border border-transparent px-2"
+                              : "px-1"
+                          }`}
+                        >
+                          {group.isRecent && (
+                            <Icon
+                              icon={IconProp.Clock}
+                              className="h-3.5 w-3.5 text-gray-500"
+                            />
+                          )}
+                          <h3
+                            id={headingId}
+                            className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500"
+                          >
+                            {title}
+                          </h3>
+                        </div>
+                      )}
+                      {group.shownEntries.length > 0 && (
+                        <div
+                          id={bodyId}
+                          className={`grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 ${
+                            toggle ? "mt-2" : ""
+                          }`}
+                        >
+                          {group.shownEntries.map((entry: ItemEntry) => {
+                            const item: MoreMenuItem = entry.item;
+                            const flatIndex: number = entry.flatIndex;
+                            const isActive: boolean = flatIndex === activeIndex;
+                            const isCurrent: boolean =
+                              flatIndex === currentFlatIndex;
+                            const colors: IconColorClasses =
+                              ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
+                              ICON_COLOR_CLASSES["indigo"]!;
+                            return (
+                              <div
+                                key={entry.key}
+                                id={entryElementId(entry)}
+                                role="option"
+                                aria-selected={isActive}
+                                ref={(element: HTMLDivElement | null) => {
+                                  cellRefs.current[flatIndex] = element;
                                 }}
-                                className={`group flex h-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 ${
-                                  isActive
-                                    ? "border-indigo-300 bg-indigo-50 shadow-sm"
-                                    : isCurrent
-                                      ? "border-indigo-100 bg-indigo-50/40"
-                                      : "border-transparent"
-                                }`}
+                                onMouseMove={() => {
+                                  setActiveKey(entry.key);
+                                }}
                               >
-                                <div
-                                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring}`}
+                                <Link
+                                  to={item.route}
+                                  onClick={() => {
+                                    selectItem(item);
+                                  }}
+                                  className={`group flex h-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 ${
+                                    isActive
+                                      ? "border-indigo-300 bg-indigo-50 shadow-sm"
+                                      : isCurrent
+                                        ? "border-indigo-100 bg-indigo-50/40"
+                                        : "border-transparent"
+                                  }`}
                                 >
-                                  <Icon
-                                    icon={item.icon}
-                                    className={`h-5 w-5 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
-                                  />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                                    <span className="truncate">
-                                      {highlightMatch(item.title)}
-                                    </span>
-                                    {isCurrent && (
-                                      <span
-                                        aria-hidden="true"
-                                        className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500"
-                                      />
-                                    )}
-                                  </p>
-                                  <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
-                                    {highlightMatch(item.description)}
-                                  </p>
-                                </div>
-                              </Link>
-                            </div>
-                          );
-                        })}
-                      </div>
+                                  <div
+                                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring}`}
+                                  >
+                                    <Icon
+                                      icon={item.icon}
+                                      className={`h-5 w-5 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
+                                    />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                                      <span className="truncate">
+                                        {highlightMatch(item.title)}
+                                      </span>
+                                      {isCurrent && (
+                                        <span
+                                          aria-hidden="true"
+                                          className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500"
+                                        />
+                                      )}
+                                    </p>
+                                    <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
+                                      {highlightMatch(item.description)}
+                                    </p>
+                                  </div>
+                                </Link>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })

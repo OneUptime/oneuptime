@@ -230,6 +230,22 @@ describe("the products menu in French", () => {
 
     const menu: HTMLElement = screen.getByRole("dialog");
 
+    /*
+     * The menu opens on Essentials and folds the other sections to one line
+     * each. These products sit in two of them, named in French as well:
+     * open those the way a user would.
+     */
+    for (const section of ["Observabilité", "Infrastructure"]) {
+      const toggle: HTMLElement = within(menu).getByRole("button", {
+        name: section,
+      });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(toggle);
+    }
+    expect(
+      within(menu).queryByRole("button", { name: "Observability" }),
+    ).toBeNull();
+
     for (const [, value] of PRODUCTS_MENU_FRENCH) {
       expect(within(menu).getAllByText(value).length).toBeGreaterThan(0);
     }

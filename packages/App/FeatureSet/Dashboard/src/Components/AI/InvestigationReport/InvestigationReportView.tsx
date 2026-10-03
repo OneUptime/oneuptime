@@ -22,6 +22,8 @@ import type {
   MarkdownEventReference,
   MarkdownInlineReferenceRenderers,
 } from "Common/UI/Components/Markdown.tsx/InlineReferences";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useMemo } from "react";
 
 export interface ComponentProps {
@@ -49,8 +51,10 @@ export const REPORT_SECTION_HEADING_CLASS_NAME: string =
 export const REPORT_SECTION_BODY_CLASS_NAME: string =
   "mt-1 text-sm leading-6 text-gray-700";
 
-export const REPORT_CAVEAT_TEXT: string =
-  "AI-generated first pass — verify before acting.";
+// An English key, translated where it is drawn.
+export const REPORT_CAVEAT_TEXT: string = translationKey(
+  "AI-generated first pass — verify before acting.",
+);
 
 /*
  * A completed AI investigation, laid out for a responder as one plain
@@ -69,6 +73,7 @@ export const REPORT_CAVEAT_TEXT: string =
 const InvestigationReportView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const idPrefix: string = useId();
   const report: ParsedInvestigationReport = props.report;
   const legacyEntries: Array<InvestigationEvidenceCheckedEntry> =
@@ -200,10 +205,12 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
     <>
       {hasSummary ? (
         <section
-          aria-label="Investigation summary"
+          aria-label={translator.translateText("Investigation summary")}
           data-section-kind={InvestigationReportSectionKind.Summary}
         >
-          <h3 className={REPORT_SECTION_HEADING_CLASS_NAME}>Summary</h3>
+          <h3 className={REPORT_SECTION_HEADING_CLASS_NAME}>
+            {translator.translateText("Summary")}
+          </h3>
           {/*
             The TL;DR is AI-written prose about the report below it: always
             plain text, never markdown, and simply absent for older runs. It
@@ -234,7 +241,10 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <section aria-label="Investigation report" className="space-y-6">
+      <section
+        aria-label={translator.translateText("Investigation report")}
+        className="space-y-6"
+      >
         {report.isStructured ? (
           <>
             {report.preamble ? (
@@ -284,7 +294,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
            * from its title to the caveat.
            */
           <p className="text-sm text-gray-500">
-            The report has no further details.
+            {translator.translateText("The report has no further details.")}
           </p>
         )}
 
@@ -305,7 +315,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
               icon={IconProp.Sparkles}
               className="mt-1 h-3 w-3 flex-shrink-0 text-gray-400"
             />
-            <span>{REPORT_CAVEAT_TEXT}</span>
+            <span>{translator.translateText(REPORT_CAVEAT_TEXT)}</span>
           </div>
           <CopyTextButton
             className="flex-shrink-0 whitespace-nowrap"
@@ -313,7 +323,7 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
             size="sm"
             variant="soft"
             label="Copy report"
-            copiedLabel="Report copied"
+            copiedLabel={translator.translateText("Report copied") as string}
           />
         </div>
       </section>

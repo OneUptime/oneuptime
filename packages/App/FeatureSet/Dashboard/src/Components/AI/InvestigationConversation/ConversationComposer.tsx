@@ -3,6 +3,9 @@ import { describePermissionMode } from "./InvestigationConversationData";
 import AIChatPermissionMode from "Common/Types/AI/AIChatPermissionMode";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,8 +29,9 @@ export interface ComponentProps {
    */
   onStop?: (() => void) | undefined;
   isStopping?: boolean | undefined;
+  // In the reader's language: the caller translates it.
   placeholder: string;
-  // The text box's accessible name.
+  // The text box's accessible name, in the reader's language.
   label: string;
   permissionMode: AIChatPermissionMode;
   onPermissionModeChange: (mode: AIChatPermissionMode) => void;
@@ -54,6 +58,7 @@ const SPINNER_CLASS_NAME: string =
 const ConversationComposer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const textareaRef: React.RefObject<HTMLTextAreaElement> =
     useRef<HTMLTextAreaElement>(null);
 
@@ -119,13 +124,15 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
             data-testid="investigation-conversation-mode"
             className="order-last basis-full text-xs leading-5 text-gray-500 sm:order-none sm:min-w-0 sm:flex-1 sm:basis-0"
           >
-            {describePermissionMode(props.permissionMode)}
+            {translator.translateText(
+              describePermissionMode(props.permissionMode),
+            )}
           </p>
           <div className="ml-auto flex-shrink-0">
             {props.isWorking && props.onStop ? (
               <button
                 type="button"
-                title="Stop generating"
+                title={translator.translateText("Stop generating")}
                 disabled={props.isStopping}
                 onClick={() => {
                   props.onStop?.();
@@ -141,7 +148,7 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
             ) : (
               <button
                 type="button"
-                title="Send (Enter)"
+                title={translator.translateText("Send (Enter)")}
                 disabled={!isSendable}
                 onClick={trySend}
                 className={`${BUTTON_CLASS_NAME} ${
@@ -160,11 +167,24 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
           </div>
         </div>
       </div>
-      {/* A keyboard hint is no use on a phone. */}
+      {/*
+        A keyboard hint is no use on a phone. The keys keep their names in
+        every language; the sentence around them is translated whole.
+      */}
       <p className="mt-2 text-[11px] leading-4 text-gray-400 max-sm:hidden">
-        <span className="font-medium text-gray-500">Enter</span> to send ·{" "}
-        <span className="font-medium text-gray-500">Shift + Enter</span> for a
-        new line
+        <TranslatedSentence
+          template="{{enter}} to send · {{shiftEnter}} for a new line"
+          slots={{
+            enter: (
+              <kbd className="font-sans font-medium text-gray-500">Enter</kbd>
+            ),
+            shiftEnter: (
+              <kbd className="font-sans font-medium text-gray-500">
+                Shift + Enter
+              </kbd>
+            ),
+          }}
+        />
       </p>
     </div>
   );

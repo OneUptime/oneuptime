@@ -34,7 +34,7 @@ Ouvrez une page de statut : la section **Image de marque** du menu latéral comp
 
 **Pages de statut → votre page → Image de marque → En-tête** (`{id}/header-style`). Malgré son nom dans le menu latéral, c'est ici que vivent vos deux plus gros actifs de marque.
 
-La première carte s'intitule **Logo, couverture et favicon**, avec un bouton **Edit Images** :
+La première carte s'intitule **Logo et image de couverture**, avec un bouton **Edit Images** :
 
 - **Logo** — téléversement d'image, texte indicatif `Upload logo`.
 - **Logo Alt Text** — texte indicatif `Logo of My Company`. Si vous le laissez vide, c'est le titre de la page de statut qui est utilisé.
@@ -64,7 +64,7 @@ Les liens légaux, de confidentialité et de conditions d'utilisation ont leur p
 - **Couleur de barre par défaut du graphique d'historique** — **Edit Default Bar Color** ouvre le sélecteur **Couleur de barre par défaut**, la couleur utilisée quand aucune règle ne s'applique.
 - **Pourcentage de disponibilité global** — **Edit Settings** ouvre la bascule **Afficher le pourcentage de disponibilité global** et une liste **Sélectionner la précision de disponibilité**, réglée sur deux décimales par défaut (`99.99% (Two Decimal)`).
 
-**Le nombre de jours couverts par le graphique ne se règle pas ici.** C'est **Afficher l'historique de disponibilité (en jours)**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`), avec une valeur comprise entre 1 et 90.
+**Le nombre de jours couverts par le graphique ne se règle pas ici.** C'est **Historique de disponibilité** dans la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`), de 1 à 90 jours.
 
 ## HTML, CSS et JavaScript personnalisés
 
@@ -152,7 +152,7 @@ Si une ligne reste bloquée sur « Action Required: Please add your CNAME record
 
 ## Propulsé par OneUptime
 
-La mention « Propulsé par OneUptime » n'est pas un réglage de la section image de marque. Elle vit dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`), dans la carte **Image de marque « Propulsé par OneUptime »**, sous forme d'une bascule unique : **Masquer la mention « Propulsé par OneUptime »**. **Edit Settings** l'ouvre, comme toutes les autres cartes de cet écran.
+La mention « Propulsé par OneUptime » n'est pas un réglage de la section image de marque. C'est la dernière bascule de la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`) : **Afficher la mention « Propulsé par OneUptime »**, activée par défaut. Désactivez-la pour masquer la mention ; c'est enregistré aussitôt. Sur OneUptime Cloud, la masquer demande le forfait **Scale**.
 
 ## Où lire ensuite
 

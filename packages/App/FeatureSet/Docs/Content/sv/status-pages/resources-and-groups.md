@@ -52,7 +52,7 @@ Steget **Avancerad** ser likadant ut i formuläret för en enskild resurs som i 
 
 ## Drifttidsprocent och historikdiagram
 
-Både **Visa upptid %** och **Visa statushistorikdiagram** vilar på en inställning som bor någon annanstans. Fönstret de täcker är **Visa upptidshistorik (i dagar)** under **Statussidor → din sida → Avancerad → Avancerade inställningar**, i kortet **Inställningar för drifttidshistorik**. Det tar 1 till 90 dagar och är 90 som standard.
+Både **Visa upptid %** och **Visa statushistorikdiagram** vilar på en inställning som bor någon annanstans. Fönstret de täcker är **Upptidshistorik** i kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar**. Det tar 1 till 90 dagar och är 90 som standard.
 
 Ordningen är alltså: slå på växlarna per resurs, och sätt sedan fönstret en gång för hela sidan.
 

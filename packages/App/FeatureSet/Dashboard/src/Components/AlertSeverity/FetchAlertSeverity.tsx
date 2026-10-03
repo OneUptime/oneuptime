@@ -13,6 +13,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import AlertSeverityElement from "./AlertSeverityElement";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertSeverityId: ObjectID;
@@ -26,6 +28,7 @@ export interface ComponentProps {
 const FetchAlertSeverity: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const alertSeverityId: string = props.alertSeverityId.toString();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -94,7 +97,13 @@ const FetchAlertSeverity: FunctionComponent<ComponentProps> = (
   }
 
   if (!alertSeverity) {
-    return <p>The selected alert severity could not be found.</p>;
+    return (
+      <p>
+        {translator.translateText(
+          "The selected alert severity could not be found.",
+        )}
+      </p>
+    );
   }
 
   return <AlertSeverityElement alertSeverity={alertSeverity} />;

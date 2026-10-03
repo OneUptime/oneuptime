@@ -18,6 +18,11 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Detects what the user is looking at in the dashboard so Ask AI can offer
@@ -26,9 +31,15 @@ import Navigation from "Common/UI/Utils/Navigation";
  */
 
 export interface DashboardPageContext extends AIChatPageContext {
-  // Lower-case noun for UI copy — "incident", "monitor", "the logs explorer".
+  /*
+   * Lower-case noun for UI copy — "incident", "monitor", "the logs explorer".
+   * An English key, put into a translated sentence as a term.
+   */
   noun: string;
-  // Short label for the composer chip — "This incident", "Logs explorer".
+  /*
+   * Short label for the composer chip — "This incident", "Logs explorer".
+   * English or already translated; the chip translates it when drawn.
+   */
   chipLabel: string;
   icon: IconProp;
   // True when the context points at one specific record (has an entityId).
@@ -76,7 +87,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.INCIDENT_VIEW,
     type: AIChatPageContextType.Incident,
-    noun: "incident",
+    noun: translationKey("incident"),
     chipLabel: "This incident",
     icon: IconProp.Alert,
     isValidId: isUuid,
@@ -84,7 +95,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.ALERT_VIEW,
     type: AIChatPageContextType.Alert,
-    noun: "alert",
+    noun: translationKey("alert"),
     chipLabel: "This alert",
     icon: IconProp.ExclaimationCircle,
     isValidId: isUuid,
@@ -92,7 +103,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.MONITOR_VIEW,
     type: AIChatPageContextType.Monitor,
-    noun: "monitor",
+    noun: translationKey("monitor"),
     chipLabel: "This monitor",
     icon: IconProp.AltGlobe,
     isValidId: isUuid,
@@ -100,7 +111,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.SCHEDULED_MAINTENANCE_VIEW,
     type: AIChatPageContextType.ScheduledMaintenanceEvent,
-    noun: "maintenance event",
+    noun: translationKey("maintenance event"),
     chipLabel: "This maintenance event",
     icon: IconProp.Clock,
     isValidId: isUuid,
@@ -108,7 +119,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.SERVICE_VIEW,
     type: AIChatPageContextType.TelemetryService,
-    noun: "service",
+    noun: translationKey("service"),
     chipLabel: "This service",
     icon: IconProp.SquareStack,
     isValidId: isUuid,
@@ -116,7 +127,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.RUM_APPLICATION_VIEW,
     type: AIChatPageContextType.RumApplication,
-    noun: "RUM application",
+    noun: translationKey("RUM application"),
     chipLabel: "This RUM application",
     icon: IconProp.AltGlobe,
     isValidId: isUuid,
@@ -124,7 +135,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.TRACE_VIEW,
     type: AIChatPageContextType.Trace,
-    noun: "trace",
+    noun: translationKey("trace"),
     chipLabel: "This trace",
     icon: IconProp.Waterfall,
     isValidId: (id: string) => {
@@ -134,7 +145,7 @@ const entityPageRules: Array<EntityPageRule> = [
   {
     pageMapKey: PageMap.EXCEPTIONS_VIEW,
     type: AIChatPageContextType.Exception,
-    noun: "exception",
+    noun: translationKey("exception"),
     chipLabel: "This exception",
     icon: IconProp.Bug,
     isValidId: isUuid,
@@ -145,63 +156,63 @@ const areaPageRules: Array<AreaPageRule> = [
   {
     baseRoute: RouteMap[PageMap.RUM_APPLICATIONS],
     type: AIChatPageContextType.RumApplications,
-    noun: "RUM applications",
+    noun: translationKey("RUM applications"),
     chipLabel: "RUM applications",
     icon: IconProp.AltGlobe,
   },
   {
     baseRoute: RouteMap[PageMap.SERVICES],
     type: AIChatPageContextType.TelemetryServicesList,
-    noun: "services",
+    noun: translationKey("services"),
     chipLabel: "Services",
     icon: IconProp.SquareStack,
   },
   {
     baseRoute: RouteMap[PageMap.INCIDENTS],
     type: AIChatPageContextType.IncidentsList,
-    noun: "incidents",
+    noun: translationKey("incidents"),
     chipLabel: "Incidents",
     icon: IconProp.Alert,
   },
   {
     baseRoute: RouteMap[PageMap.ALERTS],
     type: AIChatPageContextType.AlertsList,
-    noun: "alerts",
+    noun: translationKey("alerts"),
     chipLabel: "Alerts",
     icon: IconProp.ExclaimationCircle,
   },
   {
     baseRoute: RouteMap[PageMap.MONITORS],
     type: AIChatPageContextType.MonitorsList,
-    noun: "monitors",
+    noun: translationKey("monitors"),
     chipLabel: "Monitors",
     icon: IconProp.AltGlobe,
   },
   {
     baseRoute: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS],
     type: AIChatPageContextType.ScheduledMaintenanceList,
-    noun: "scheduled maintenance",
+    noun: translationKey("scheduled maintenance"),
     chipLabel: "Scheduled maintenance",
     icon: IconProp.Clock,
   },
   {
     baseRoute: RouteMap[PageMap.LOGS],
     type: AIChatPageContextType.LogsExplorer,
-    noun: "logs",
+    noun: translationKey("logs"),
     chipLabel: "Logs",
     icon: IconProp.Logs,
   },
   {
     baseRoute: RouteMap[PageMap.TRACES],
     type: AIChatPageContextType.TracesExplorer,
-    noun: "traces",
+    noun: translationKey("traces"),
     chipLabel: "Traces",
     icon: IconProp.Waterfall,
   },
   {
     baseRoute: RouteMap[PageMap.METRICS],
     type: AIChatPageContextType.MetricsExplorer,
-    noun: "metrics",
+    noun: translationKey("metrics"),
     chipLabel: "Metrics",
     icon: IconProp.Heartbeat,
   },
@@ -213,7 +224,7 @@ const areaPageRules: Array<AreaPageRule> = [
      */
     baseRoute: new Route(`/dashboard/${RouteParams.ProjectID}/exceptions`),
     type: AIChatPageContextType.ExceptionsList,
-    noun: "exceptions",
+    noun: translationKey("exceptions"),
     chipLabel: "Exceptions",
     icon: IconProp.Bug,
   },
@@ -389,14 +400,19 @@ export default class PageContextUtil {
     };
   }
 
-  // Contextual suggested questions for the chat home view.
+  /*
+   * Contextual suggested questions for the chat home view. The fixed ones are
+   * English keys the view translates; a resource's are written for the noun
+   * on the page, so they come back in the reader's language.
+   */
   public static getSuggestions(
     context: DashboardPageContext,
+    translator: Translator = getGlobalTranslator(),
   ): Array<SuggestedQuestion> {
     switch (context.type) {
       case AIChatPageContextType.Resource:
       case AIChatPageContextType.ResourcesList:
-        return ResourcePageContextUtil.getSuggestions(context);
+        return ResourcePageContextUtil.getSuggestions(context, translator);
       case AIChatPageContextType.RumApplication:
         return [
           {

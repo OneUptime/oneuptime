@@ -2,6 +2,12 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import { getInventoryTypeLabel } from "./InventoryTypeCatalog";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How an inventory item reaches the incidents, alerts and maintenance windows
@@ -114,9 +120,25 @@ export const canHaveLinkedResource: CanHaveLinkedResourceFunction = (
   return getLinkedResourceKindForEntityType(entityType) !== null;
 };
 
+/*
+ * The signals an item's linked page can be about, as its sentences name them.
+ * Listed so the extraction finds each; they go into the sentences as terms.
+ */
+export const INVENTORY_LINKED_SIGNALS: ReadonlyArray<string> = [
+  translationKey("incidents"),
+  translationKey("alerts"),
+  translationKey("maintenance windows"),
+];
+
+// "incidents are raised..." starts a sentence, so its first letter is a capital.
+const capitalizeFirst: (text: string) => string = (text: string): string => {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+};
+
 export type DescribeMissingLinkFunction = (
   entityType: string | undefined,
   signal: string,
+  translator?: Translator,
 ) => string;
 
 /**
@@ -127,14 +149,29 @@ export type DescribeMissingLinkFunction = (
 export const describeMissingLink: DescribeMissingLinkFunction = (
   entityType: string | undefined,
   signal: string,
+  translator: Translator = getGlobalTranslator(),
 ): string => {
-  const label: string = entityType
-    ? getInventoryTypeLabel(entityType)
-    : "This item";
+  const signalTerm: ReturnType<typeof translatableTerm> = translatableTerm(
+    signal,
+    { inSentence: true },
+  );
 
-  return (
-    `${signal.charAt(0).toUpperCase()}${signal.slice(1)} are raised against services, hosts and Kubernetes clusters. ` +
-    `A ${label} does not carry its own — look at the service or host it belongs to, ` +
-    `which you can find under Connections.`
+  if (!entityType) {
+    return capitalizeFirst(
+      translator.translateTemplate(
+        "{{signal}} are raised against services, hosts and Kubernetes clusters. This item does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+        { signal: signalTerm },
+      ),
+    );
+  }
+
+  return capitalizeFirst(
+    translator.translateTemplate(
+      "{{signal}} are raised against services, hosts and Kubernetes clusters. A {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+      {
+        signal: signalTerm,
+        type: translatableTerm(getInventoryTypeLabel(entityType)),
+      },
+    ),
   );
 };

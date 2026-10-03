@@ -22,6 +22,12 @@ export interface ComponentProps {
   hasError: boolean;
   validationAttempt: number;
   className: string;
+  /*
+   * What the folded fields are set to (FormFieldCollapsibleSection
+   * .getSummary): whole English sentences, each looked up on its own, shown
+   * under the title while the section is folded in place of "Configured".
+   */
+  summary?: Array<string> | undefined;
   children: ReactElement;
 }
 
@@ -47,6 +53,16 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
     }
   }, [props.hasError, props.validationAttempt]);
 
+  // Each sentence on its own: a locale translates sentences, not a paragraph.
+  const summary: string = (props.summary || [])
+    .filter((sentence: string): boolean => {
+      return Boolean(sentence && sentence.trim());
+    })
+    .map((sentence: string): string => {
+      return translateString(sentence) ?? sentence;
+    })
+    .join(" ");
+
   return (
     <CollapsibleSection
       title={translateString(props.title) ?? props.title}
@@ -55,12 +71,14 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
           ? translateString(props.description) ?? props.description
           : undefined
       }
+      collapsedDescription={summary || undefined}
       variant="bordered"
       className={props.className}
       isCollapsed={isCollapsed}
       onToggle={setIsCollapsed}
       badge={
-        props.isConfigured
+        // A summary already says what is set; the badge would only repeat it.
+        props.isConfigured && !summary
           ? translateString("Configured") ?? "Configured"
           : undefined
       }

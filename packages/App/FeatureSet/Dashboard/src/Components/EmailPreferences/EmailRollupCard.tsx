@@ -17,6 +17,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE ESCAPE HATCH FROM OWNER-EMAIL BURST ROLLUP, for one person in one
@@ -54,6 +56,7 @@ const resolveRollupEnabled: RollupEnabledResolver = (
 };
 
 const EmailRollupCard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [setting, setSetting] =
     useState<UserNotificationEmailRollupSetting | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -211,25 +214,28 @@ const EmailRollupCard: FunctionComponent = (): ReactElement => {
             <div>
               {/* leading-6: the line is the switch's 24px, so they sit level. */}
               <div className="text-sm font-medium leading-6 text-gray-900">
-                {isEnabled
-                  ? "On: notifications that arrive together are delivered as one email."
-                  : "Off: every notification arrives as its own email, immediately."}
+                {translator.translateText(
+                  isEnabled
+                    ? "On: notifications that arrive together are delivered as one email."
+                    : "Off: every notification arrives as its own email, immediately.",
+                )}
               </div>
               <p className="mt-1 text-sm text-gray-500 max-w-2xl">
-                {isEnabled
-                  ? "When a burst of notifications about the resources you own lands at once, the first few are still emailed one by one as they happen. The rest are delivered together a few minutes later. The summary includes the notifications you are still subscribed to when it is sent."
-                  : "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time."}
+                {translator.translateText(
+                  isEnabled
+                    ? "When a burst of notifications about the resources you own lands at once, the first few are still emailed one by one as they happen. The rest are delivered together a few minutes later. The summary includes the notifications you are still subscribed to when it is sent."
+                    : "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time.",
+                )}
               </p>
               <p className="mt-3 text-xs text-gray-500 max-w-2xl">
-                Either way, this only changes owner notification email. On-call
-                paging, security and sign-in email, and billing email are never
-                rolled up and are never delayed by this setting, so it cannot
-                make you unreachable. SMS, calls, push and chat notifications
-                are unaffected too.
+                {translator.translateText(
+                  "Either way, this only changes owner notification email. On-call paging, security and sign-in email, and billing email are never rolled up and are never delayed by this setting, so it cannot make you unreachable. SMS, calls, push and chat notifications are unaffected too.",
+                )}
               </p>
               <p className="mt-2 text-xs text-gray-500">
-                This is your own setting, in this project only. It changes
-                nothing for anyone else, and it saves automatically.
+                {translator.translateText(
+                  "This is your own setting, in this project only. It changes nothing for anyone else, and it saves automatically.",
+                )}
               </p>
             </div>
           </div>

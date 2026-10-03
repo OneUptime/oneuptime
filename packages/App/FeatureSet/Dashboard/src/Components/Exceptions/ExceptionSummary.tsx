@@ -17,6 +17,8 @@ import {
 } from "../../Utils/ExceptionDetailPresentation";
 import { getErrorClassBadgeLabel } from "../../Utils/ExceptionErrorClassLabels";
 import ExceptionResource from "./ExceptionResource";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export const EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT: number = 240;
 
@@ -96,6 +98,7 @@ export interface ComponentProps {
 const ExceptionSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const status: ExceptionSummaryStatus = getExceptionSummaryStatus(
     props.exception,
   );
@@ -103,13 +106,15 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
   const [isMessageExpanded, setIsMessageExpanded] = useState<boolean>(false);
   const hasMessage: boolean = Boolean(props.exception.message);
   const message: string =
-    props.exception.message || "No exception message was recorded.";
+    props.exception.message ||
+    (translator.translateText("No exception message was recorded.") as string);
   const isMessageClampable: boolean =
     message.length > EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT;
 
+  // Each pill's label and title are given in the reader's language.
   const pills: Array<SummaryPill> = [
     {
-      label: status.label,
+      label: translator.translateText(status.label) as string,
       className: status.pillClassName,
       testId: "exception-summary-status",
     },
@@ -117,7 +122,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
 
   if (props.exception.isResolved && props.exception.isArchived) {
     pills.push({
-      label: "Archived",
+      label: translator.translateText("Archived") as string,
       className: "bg-amber-50 text-amber-700 ring-amber-600/20",
       testId: "exception-summary-archived",
     });
@@ -125,11 +130,12 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
 
   if (props.exception.unhandled) {
     pills.push({
-      label: "Unhandled",
+      label: translator.translateText("Unhandled") as string,
       icon: IconProp.Alert,
       className: "bg-orange-50 text-orange-700 ring-orange-600/20",
-      title:
+      title: translator.translateText(
         "At least one occurrence escaped its span without being caught by application code.",
+      ),
       testId: "exception-summary-unhandled",
     });
   }
@@ -140,9 +146,9 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
 
   if (errorClassLabel) {
     pills.push({
-      label: errorClassLabel,
+      label: translator.translateText(errorClassLabel) as string,
       className: NEUTRAL_PILL_CLASS_NAME,
-      title: "Fault domain from AI triage",
+      title: translator.translateText("Fault domain from AI triage"),
       testId: "exception-summary-error-class",
     });
   }
@@ -152,7 +158,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
       label: props.exception.environment,
       icon: IconProp.Globe,
       className: NEUTRAL_PILL_CLASS_NAME,
-      title: "Environment",
+      title: translator.translateText("Environment"),
       testId: "exception-summary-environment",
     });
   }
@@ -170,24 +176,30 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
   ) => string | undefined = (
     release: string | undefined,
   ): string | undefined => {
-    return release ? `in ${release}` : undefined;
+    return release
+      ? translator.translateTemplate("in {{release}}", { release })
+      : undefined;
   };
 
   const statItems: Array<SummaryStat> = [
     {
       label: "Occurrences",
       value: formatOccurrenceCount(props.exception.occuranceCount),
-      detail: "all time",
+      detail: translator.translateText("all time"),
     },
     {
       label: "First seen",
-      value: formatRelativeTime(props.exception.firstSeenAt) || "Not recorded",
+      value:
+        formatRelativeTime(props.exception.firstSeenAt) ||
+        translator.translateText("Not recorded"),
       detail: getReleaseDetail(props.exception.firstSeenInRelease),
       title: getAbsoluteTime(props.exception.firstSeenAt),
     },
     {
       label: "Last seen",
-      value: formatRelativeTime(props.exception.lastSeenAt) || "Not recorded",
+      value:
+        formatRelativeTime(props.exception.lastSeenAt) ||
+        translator.translateText("Not recorded"),
       detail: getReleaseDetail(props.exception.lastSeenInRelease),
       title: getAbsoluteTime(props.exception.lastSeenAt),
     },
@@ -199,7 +211,11 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
           primaryEntityType={props.exception.primaryEntityType}
           services={props.services}
           className="min-w-0 truncate"
-          fallback={<span className="text-gray-900">Not recorded</span>}
+          fallback={
+            <span className="text-gray-900">
+              {translator.translateText("Not recorded")}
+            </span>
+          }
         />
       ),
     },
@@ -207,7 +223,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      aria-label="Exception summary"
+      aria-label={translator.translateText("Exception summary")}
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
       data-testid="exception-summary"
     >
@@ -247,7 +263,8 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
                 className="mt-2 break-words text-lg font-semibold leading-7 text-gray-900"
                 data-testid="exception-summary-type"
               >
-                {props.exception.exceptionType || "Application exception"}
+                {props.exception.exceptionType ||
+                  translator.translateText("Application exception")}
               </h2>
 
               <div className="mt-1 flex items-start gap-2">
@@ -277,17 +294,19 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
                   type="button"
                   aria-controls={messageId}
                   aria-expanded={isMessageExpanded}
-                  aria-label={
+                  aria-label={translator.translateText(
                     isMessageExpanded
                       ? "Collapse exception message"
-                      : "Expand exception message"
-                  }
+                      : "Expand exception message",
+                  )}
                   className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   onClick={() => {
                     setIsMessageExpanded(!isMessageExpanded);
                   }}
                 >
-                  {isMessageExpanded ? "Show less" : "Show more"}
+                  {translator.translateText(
+                    isMessageExpanded ? "Show less" : "Show more",
+                  )}
                 </button>
               )}
             </div>
@@ -315,7 +334,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
                 .replace(/\s+/g, "-")}`}
             >
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                {item.label}
+                {translator.translateText(item.label)}
               </dt>
               <dd
                 className="mt-1 truncate text-sm font-semibold text-gray-900"

@@ -3,6 +3,8 @@ import DashboardTextComponent from "Common/Types/Dashboard/DashboardComponents/D
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTextComponent;
@@ -11,6 +13,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (props.component.arguments.isMarkdown) {
     return (
       <div className="h-full overflow-auto p-2">
@@ -34,7 +37,9 @@ const DashboardTextComponentElement: FunctionComponent<ComponentProps> = (
         }}
       >
         {props.component.arguments.text || (
-          <span className="text-gray-300 text-sm">No text configured</span>
+          <span className="text-gray-300 text-sm">
+            {translator.translateText("No text configured")}
+          </span>
         )}
       </div>
     </div>

@@ -34,7 +34,7 @@ Da usare quando: la pagina è solo interna o è ancora in costruzione. Disattiva
 
 **Pagine di stato → la tua pagina → Branding → Intestazione** (`{id}/header-style`). Nonostante il nome nel menu laterale, è qui che vivono i tuoi due asset di marca più importanti.
 
-La prima scheda si intitola **Logo, copertina e favicon**, con un pulsante **Edit Images**:
+La prima scheda si intitola **Logo e immagine di copertina**, con un pulsante **Edit Images**:
 
 - **Logo** — caricamento immagine, segnaposto `Upload logo`.
 - **Logo Alt Text** — segnaposto `Logo of My Company`. Se lo lasci vuoto viene usato il titolo della pagina di stato.
@@ -64,7 +64,7 @@ Qui vanno i link legali, la privacy e i termini. I link dell'intestazione servon
 - **Colore predefinito della barra del grafico cronologico** — **Edit Default Bar Color** apre il selettore **Colore predefinito della barra**, il colore usato quando nessuna regola corrisponde.
 - **Percentuale di uptime complessiva** — **Edit Settings** apre l'interruttore **Mostra percentuale di uptime complessiva** e un menu **Seleziona precisione del tempo di attività**, che per impostazione predefinita usa due decimali (`99.99% (Two Decimal)`).
 
-**Quanti giorni copre il grafico non si imposta qui.** Quello è **Mostra cronologia uptime (in giorni)**, in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`), valido da 1 a 90.
+**Quanti giorni copre il grafico non si imposta qui.** Quello è **Cronologia uptime**, nella scheda **Cosa mostra la tua pagina di stato** in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`), da 1 a 90 giorni.
 
 ## HTML, CSS e JavaScript personalizzati
 
@@ -152,7 +152,7 @@ Se una riga resta ferma su "Action Required: Please add your CNAME record." molt
 
 ## Powered by OneUptime
 
-La riga "Offerto da OneUptime" non è un'impostazione della sezione branding. Sta in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`), nella scheda **Branding "Powered By OneUptime"**, come singolo interruttore: **Nascondi il marchio Powered By OneUptime**. **Edit Settings** lo apre, come per ogni altra scheda di quella pagina.
+La riga "Offerto da OneUptime" non è un'impostazione della sezione branding. È l'ultimo interruttore della scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`): **Mostra il marchio Powered By OneUptime**, attivo per impostazione predefinita. Disattivalo per nascondere la riga; viene salvato subito. Su OneUptime Cloud, nasconderla richiede il piano **Scale**.
 
 ## Dove leggere ora
 

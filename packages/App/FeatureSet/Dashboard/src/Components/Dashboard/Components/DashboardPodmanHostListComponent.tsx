@@ -32,6 +32,8 @@ import ObjectID from "Common/Types/ObjectID";
 import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardPodmanHostListComponent;
@@ -56,6 +58,7 @@ const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
 const DashboardPodmanHostListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hosts, setHosts] = useState<Array<PodmanHost>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -225,7 +228,9 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
                   : "var(--ou-text-muted, #6b7280)",
               }}
             >
-              {isConnected ? "Connected" : "Disconnected"}
+              {translator.translateText(
+                isConnected ? "Connected" : "Disconnected",
+              )}
             </span>
           </span>
         </td>

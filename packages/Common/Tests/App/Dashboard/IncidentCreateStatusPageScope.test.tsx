@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -631,6 +638,47 @@ describe("warnings where the scope meets other fields", () => {
       expect(fieldFor("isPrivate").getFooterElement!(values)).toBeUndefined();
     },
   );
+
+  /*
+   * Private Incident sits under Advanced on Incident Details, and the pages
+   * are picked on Resources Affected, the step after. Whichever is set
+   * second says so where it is set: the picker warns too, on its own step.
+   */
+  test("a private incident with pages picked: the picker says private wins too", async () => {
+    await renderCreate();
+
+    const footer: HTMLElement = await renderAlone(
+      fieldFor("statusPages").getFooterElement!({
+        isPrivate: true,
+        statusPages: [SITE_03],
+      }),
+    );
+
+    expect(
+      within(footer).getByTestId("incident-create-private-scope-warning"),
+    ).toHaveTextContent(IncidentStatusPageScopeCopy.privateIncidentWarning);
+  });
+
+  test.each([
+    [
+      "the incident is not private",
+      { isPrivate: false, statusPages: [SITE_03] },
+    ],
+    ["no status page is picked", { isPrivate: true, statusPages: [] }],
+  ])(
+    "no private warning under the picker when %s",
+    async (_label: string, values: Record<string, unknown>) => {
+      await renderCreate();
+
+      const footer: HTMLElement = await renderAlone(
+        fieldFor("statusPages").getFooterElement!(values),
+      );
+
+      expect(
+        within(footer).queryByTestId("incident-create-private-scope-warning"),
+      ).toBeNull();
+    },
+  );
 });
 
 describe("the audience on the last step", () => {
@@ -870,7 +918,8 @@ describe("the audience on the last step", () => {
     expect(field.description).toBe(
       "Should status page subscribers be notified when this incident is created?",
     );
-    expect(field.stepId).toBe("more");
+    // On Resources Affected, with the monitors and pages it reaches.
+    expect(field.stepId).toBe("resources-affected");
   });
 });
 

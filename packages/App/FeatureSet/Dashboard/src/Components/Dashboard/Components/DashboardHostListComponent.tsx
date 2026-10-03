@@ -37,6 +37,8 @@ import {
 import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostListComponent;
@@ -103,6 +105,7 @@ function formatRelative(date: Date | undefined | null): string {
 const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [hosts, setHosts] = useState<Array<Host>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -291,7 +294,9 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
                   : "var(--ou-text-muted, #6b7280)",
               }}
             >
-              {isConnected ? "Connected" : "Disconnected"}
+              {translator.translateText(
+                isConnected ? "Connected" : "Disconnected",
+              )}
             </span>
           </span>
         </td>

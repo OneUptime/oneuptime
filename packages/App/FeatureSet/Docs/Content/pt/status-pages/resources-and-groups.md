@@ -52,7 +52,7 @@ O passo **Avançado** é o mesmo no formulário de adição individual e no moda
 
 ## Percentuais de disponibilidade e gráficos de histórico
 
-Tanto **Mostrar % de tempo de atividade** quanto **Mostrar gráfico de histórico de status** dependem de uma configuração que fica em outro lugar. A janela que eles cobrem é **Mostrar histórico de tempo de atividade (em dias)**, em **Páginas de status → sua página → Avançado → Configurações avançadas**, no cartão **Configurações do Histórico de Disponibilidade**. Ela aceita de 1 a 90 dias e o padrão é 90.
+Tanto **Mostrar % de tempo de atividade** quanto **Mostrar gráfico de histórico de status** dependem de uma configuração que fica em outro lugar. A janela que eles cobrem é **Histórico de tempo de atividade**, no cartão **O que sua página de status mostra** em **Páginas de status → sua página → Avançado → Configurações avançadas**. Ela aceita de 1 a 90 dias e o padrão é 90.
 
 A sequência, então, é: ative as chaves recurso a recurso e depois defina a janela uma vez para a página inteira.
 

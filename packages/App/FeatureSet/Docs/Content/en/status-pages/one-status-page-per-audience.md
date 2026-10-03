@@ -46,7 +46,7 @@ An incident episode reaches a page when at least one of its incidents does. Its 
 
 1. **Create a status page for each audience**, for example `Site 01` to `Site 10`. Make them private if the audience is internal (see [Restricting who can see the page](/docs/status-pages/index#restricting-who-can-see-the-page)). Subscribers of a private page can still unsubscribe without signing in, through the link in every message (see [Managing and canceling a subscription](/docs/status-pages/subscribers#managing-and-canceling-a-subscription)). Give them labels such as `Region East`, so the picker can add every page with a label in one click.
 2. **Put the shared monitor on each page** as a resource (see [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)). A rule under **Resources → Monitor Rules** can do this for you from the monitor's labels.
-3. **Turn on Only Show Incidents Scoped to This Page** on each of those pages. It is on **Status Pages → your page → Advanced → Advanced Settings**, behind **Edit Settings** on the **Incident Settings** card. From then on, nothing reaches a site page unless someone picks it.
+3. **Turn on Only Show Incidents Scoped to This Page** on each of those pages. It is in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings**, under **Show Incidents**, and it saves the moment you flip it. From then on, nothing reaches a site page unless someone picks it.
 4. **Add each audience's subscribers** to its page. For staff, use **Add in Bulk** on **Email Subscribers**, and prefer each person's own address to a mailing list such as `site03-all@`: anyone on the list can unsubscribe it for everyone on it. If a subscriber you added unsubscribes, the page's owners and whoever added it are emailed (see [Shared addresses and mailing lists](/docs/status-pages/subscribers#shared-addresses-and-mailing-lists)).
 5. **Let responders read status pages.** The picker lists only the status pages the person can read, and the incident roles cannot read status pages. Give responders the **Status Page Viewer** role next to their incident role; it can be limited to pages with certain labels. Without it the picker is empty.
 6. **Decide what every message says.** At **Incidents → Settings → Custom Fields**, define the incident custom fields your team answers every time, for example `Impact` (a dropdown), `Expected Resolution` (a date and time) and `Acknowledgement` (a yes/no switch). Drag them into the **Order** you want them asked and listed in, and turn on **Show on Create** so the declare form asks for them, **Required on Create** where an answer is a must, and **Include in Subscriber Notifications** for the ones every audience may read. Those are then in the default email of every page. See [Custom fields](/docs/incidents/settings#custom-fields).
@@ -63,8 +63,8 @@ On **Incidents → All Incidents → Declare Incident**, the **Resources Affecte
 The form warns you:
 
 - when a picked page lists none of the incident's monitors, or no monitor is attached at all. The incident will not show on that page or notify its subscribers;
-- when you also set **Change Monitor Status to**. See [Monitor status is shared](#monitor-status-is-shared);
-- when you also tick **Private Incident** on the **More** step. Private incidents are hidden from all status pages, including the ones you picked.
+- when you also set **Change Monitor Status to**, under **Advanced** on the same step. See [Monitor status is shared](#monitor-status-is-shared);
+- when you also tick **Private Incident**, under **Advanced** on the **Incident Details** step. Private incidents are hidden from all status pages, including the ones you picked.
 
 The **Details** step, right after **Resources Affected**, asks for the incident custom fields marked **Show on Create** (see [Declaring Incidents](/docs/incidents/declaring-incidents)). Its answers go to every page the incident reaches: custom field values belong to the incident, not to a status page.
 
@@ -72,7 +72,7 @@ The **Details** step, right after **Resources Affected**, asks for the incident 
 
 ### Who will be notified
 
-Under **Notify Status Page Subscribers** on the **More** step, and again on the summary before you submit, the form shows who the incident will reach:
+Under **Notify Status Page Subscribers**, right below the picker on the **Resources Affected** step, and again on the summary before you submit, the form shows who the incident will reach:
 
 > Will notify:
 >

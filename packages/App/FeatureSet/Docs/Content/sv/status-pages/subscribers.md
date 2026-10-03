@@ -8,19 +8,22 @@ Den här sidan täcker båda delarna: de fem prenumerationskanalerna och hur bes
 
 ## Prenumerationskanaler
 
-En statussida stöder fem kanaler, var och en med sin egen växel på statussidan. Gå till **Statussidor → din sida → Prenumeranter → Prenumerantinställningar**:
+En statussida stöder fem kanaler. De och sidan där besökare anmäler sig styrs från ett ställe: kortet **Kanaler** under **Statussidor → din sida → Prenumeranter → Prenumerantinställningar**. Varje växel sparas så fort du slår om den:
 
-- **Aktivera e-postprenumeranter** (`enableEmailSubscribers`) — på som standard. Allt annat är avslaget tills du slår på det.
-- **Aktivera SMS-prenumeranter** (`enableSmsSubscribers`) — av som standard.
-- **Aktivera Slack-prenumeranter** (`enableSlackSubscribers`) — av som standard.
-- **Aktivera Microsoft Teams-prenumeranter** (`enableMicrosoftTeamsSubscribers`) — av som standard.
-- **Aktivera webhook-prenumeranter** (`enableWebhookSubscribers`) — av som standard.
+- **Visa prenumerantsida** (`showSubscriberPageOnStatusPage`) — på som standard. Lägger posten **Prenumerera** i statussidans navigeringsrad, där besökare anmäler sig via kanalerna nedan.
+- **E-post** (`enableEmailSubscribers`) — på som standard. Allt annat är avslaget tills du slår på det.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betalas varje SMS från projektets saldo för SMS och samtal, om inte sidan har en egen **Twilio-konfiguration**. För att slå på den måste även **Aktivera SMS-aviseringar** vara på för projektet, under **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+- **Slack** (`enableSlackSubscribers`) — av som standard.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
+- **Webhook** (`enableWebhookSubscribers`) — av som standard.
 
-Varje kanal får också en egen lista i statussidans vänstermeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **MS Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vilka som anmält sig, lägger till någon för hand, eller lämnar en **Anteckningar**-notering (`internalNote`) till dig själv på en enskild prenumerant.
+Växlarna avgör hur besökare själva kan anmäla sig: statussidan avvisar en anmälan via en kanal som är av. De stoppar inte aviseringar: prenumeranter som ditt team lägger till i instrumentpanelen, via API:t eller med ett arbetsflöde får uppdateringar oavsett vilka kanaler som är på.
 
-**En växel räcker inte.** Posten **Prenumerera** i statussidans navigeringsrad dyker upp först när **Visa prenumerantsida** (`showSubscriberPageOnStatusPage`) är på *och* minst en kanal är aktiverad. Slår du på **Aktivera e-postprenumeranter** men låter **Visa prenumerantsida** vara av har besökarna ingen väg fram till formuläret.
+På OneUptime Cloud står namnet på planen bredvid en växel som din plan inte omfattar: **Growth** för **SMS** och **Visa prenumerantsida**, **Scale** för **Slack**, **Microsoft Teams** och **Webhook**.
 
-Samma fem växlar dyker upp en gång till i kortet **Prenumerantinställningar** på **Avancerade inställningar**, bredvid **Visa prenumerantsida**. Det är samma kolumner under ytan — välj en skärm och håll dig till den, och håll dig helst till den dedikerade sidan **Prenumerantinställningar**, eftersom det är där resten av prenumerantkonfigurationen bor.
+Varje kanal får också en egen lista i statussidans vänstermeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **MS Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vilka som anmält sig, lägger till någon för hand, eller lämnar en **Anteckningar**-notering (`internalNote`) till dig själv på en enskild prenumerant. Så länge en kanal är av står det högst upp i dess lista, med kanalens växel precis där, så att du kan slå på den utan att lämna listan.
+
+**En växel räcker inte.** Posten **Prenumerera** i statussidans navigeringsrad dyker upp först när **Visa prenumerantsida** är på *och* minst en kanal är på. Slår du på **E-post** men låter **Visa prenumerantsida** vara av har besökarna ingen väg fram till formuläret.
 
 ## Vad en besökare ser på prenumerationssidan
 
@@ -127,14 +130,14 @@ Bilagor serveras från `GET {statusPageCrudPath}/status-page-announcement/attach
 **Show At** (`showAnnouncementAt`) och **End At** (`endAnnouncementAt`) styr allt, men översiktssidan och meddelandelistan ställer olika frågor, och skillnaden får folk att snubbla.
 
 - **Översiktssidan** visar ett meddelande när `showAnnouncementAt` ligger bakåt i tiden och `endAnnouncementAt` antingen ligger framåt i tiden eller är tomt.
-- **Listan `/announcements`** visar meddelanden vars `showAnnouncementAt` faller inom **Visa meddelandehistorik (i dagar)** (`showAnnouncementHistoryInDays`, standard 14), och delar sedan upp dem i aktiva och tidigare på klientsidan.
+- **Listan `/announcements`** visar meddelanden vars `showAnnouncementAt` faller inom meddelandenas historikfönster (`showAnnouncementHistoryInDays`, standard 14), och delar sedan upp dem i aktiva och tidigare på klientsidan.
 
 Två följder värda att planera för:
 
 - **Ett meddelande utan slutdatum löper aldrig ut.** Lämnar du **Sluta visa meddelande vid** tomt sitter det fastnålat på översiktssidan i all evighet. Sätt ett slutdatum på allt som är tidsbundet.
 - **Ett gammalt men fortfarande aktivt meddelande kan försvinna ur listan.** Startade det för mer än `showAnnouncementHistoryInDays` sedan trillar det av `/announcements` men ligger kvar på översikten. Höj historikfönstret om ni har långvariga notiser.
 
-Om meddelanden syns över huvud taget styrs av kortet **Meddelandeinställningar** på **Avancerade inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och **Visa meddelandehistorik (i dagar)** (standard 14). Med **Visa meddelanden** avslaget avvisar meddelande-endpointen förfrågan rakt av.
+Om meddelanden syns över huvud taget ställs in i kortet **Vad din statussida visar** på **Avancerade inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och under den **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14). Med **Visa meddelanden** avslaget avvisar meddelande-endpointen förfrågan rakt av.
 
 ## Meddelandemallar
 

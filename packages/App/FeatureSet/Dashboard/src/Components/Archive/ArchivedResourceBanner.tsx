@@ -20,6 +20,11 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import {
+  translateNamedAction,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -50,6 +55,7 @@ const ArchivedResourceBanner: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isArchived, setIsArchived] = useState<boolean>(false);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -171,7 +177,7 @@ const ArchivedResourceBanner: <TBaseModel extends BaseModel>(
         }
       >
         <Fragment>
-          <p>{props.copy.bannerBody}</p>
+          <p>{translator.translateText(props.copy.bannerBody)}</p>
           {error ? (
             <p
               className="mt-1 text-sm text-red-600"
@@ -186,7 +192,10 @@ const ArchivedResourceBanner: <TBaseModel extends BaseModel>(
       </AlertBanner>
       {showConfirm ? (
         <ConfirmModal
-          title={`Unarchive ${props.copy.singularName}`}
+          title={translateNamedAction(translator, {
+            template: "Unarchive {{itemName}}",
+            itemName: props.copy.singularName,
+          })}
           description={props.copy.unarchiveConfirmMessage}
           submitButtonText="Unarchive"
           submitButtonType={ButtonStyleType.PRIMARY}

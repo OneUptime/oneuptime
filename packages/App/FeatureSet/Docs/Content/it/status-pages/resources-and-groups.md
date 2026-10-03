@@ -52,7 +52,7 @@ Anche **Nome visualizzato** (`displayName`) e **Descrizione** (`displayDescripti
 
 ## Percentuali di uptime e grafici cronologici
 
-Sia **Mostra % di uptime** sia **Mostra grafico cronologia stato** dipendono da un'impostazione che sta da un'altra parte. La finestra temporale che coprono è **Mostra cronologia uptime (in giorni)**, in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate**, nella scheda **Impostazioni cronologia di disponibilità**. Accetta da 1 a 90 giorni e il valore predefinito è 90.
+Sia **Mostra % di uptime** sia **Mostra grafico cronologia stato** dipendono da un'impostazione che sta da un'altra parte. La finestra temporale che coprono è **Cronologia uptime**, nella scheda **Cosa mostra la tua pagina di stato** in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate**. Accetta da 1 a 90 giorni e il valore predefinito è 90.
 
 La sequenza quindi è: attivi gli interruttori risorsa per risorsa, poi imposti la finestra una volta sola per tutta la pagina.
 

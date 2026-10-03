@@ -31,6 +31,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { CustomFieldDefinition } from "Common/Types/CustomField/CustomFieldDefinition";
 import { CUSTOM_FIELD_FACET_KEY_PREFIX as SAVED_VIEW_CUSTOM_FIELD_FACET_KEY_PREFIX } from "Common/Types/CustomField/CustomFieldSavedViews";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Custom fields as chips in the facet bar.
@@ -495,8 +496,8 @@ export const buildCustomFieldFacets: BuildCustomFieldFacetsFunction = (
             : undefined,
         searchPlaceholder:
           kind === "options"
-            ? `Search ${definition.name}...`
-            : `Enter ${definition.name}`,
+            ? translateTemplate("Search {{name}}...", { name: definition.name })
+            : translateTemplate("Enter {{name}}", { name: definition.name }),
         supportedOperators: getCustomFieldFacetOperators(definition),
         queryField: CUSTOM_FIELD_QUERY_FIELD,
         /*
