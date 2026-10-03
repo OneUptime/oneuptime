@@ -379,9 +379,11 @@ describe("Settings > MCP Server in German", () => {
   test("a client with no name falls back to the English sentence that has no German yet", async () => {
     renderPage();
 
-    const unnamed: McpOAuthGrant = connectedGrant();
+    // A client that never said what it is called.
+    const unnamed: McpOAuthGrant = new McpOAuthGrant();
 
-    unnamed.name = undefined;
+    unnamed._id = ObjectID.generate().toString();
+    unnamed.activatedAt = CONNECTED_ON;
 
     const confirmation: MockDeleteConfirmation =
       await mockTableProps!.getDeleteConfirmation!(unnamed);
