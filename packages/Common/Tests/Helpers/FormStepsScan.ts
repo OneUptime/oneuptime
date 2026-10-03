@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import { RULE_ENABLED_COLUMN } from "../../UI/Components/RuleRun/RuleEnabledField";
 
 /*
  * The detector behind the "long forms walk steps" guard
@@ -73,33 +74,73 @@ export type FormHostName =
   | "BasicForm"
   | "DuplicateModel";
 
+interface CreateFormSpec {
+  // Where the Create form takes the values it starts with.
+  initialValues: string;
+  // An attribute written true offers a Create form (a table's isCreateable).
+  offeredBy?: string | undefined;
+  // An attribute holding FormType.Create makes the form one (formType).
+  formTypeAt?: string | undefined;
+}
+
 interface HostSpec {
   // Where the host takes its fields: a JSX attribute, or a key of formProps.
   fields: string;
   steps?: string | undefined;
   summary?: string | undefined;
+  /*
+   * A host that creates a model through ModelForm: how its Create form is
+   * read (see FormFacts.hasCreateForm and createInitialValueKeys).
+   */
+  createForm?: CreateFormSpec | undefined;
 }
+
+const CREATE_FORM_TYPE: RegExp = /^FormType\.Create$/;
+const UPDATE_FORM_TYPE: RegExp = /^FormType\.Update$/;
+
+const TABLE_CREATE_FORM: CreateFormSpec = {
+  initialValues: "createInitialValues",
+  offeredBy: "isCreateable",
+};
 
 export const FORM_HOSTS: Record<FormHostName, HostSpec> = {
   ModelTable: {
     fields: "formFields",
     steps: "formSteps",
     summary: "formSummary",
+    createForm: TABLE_CREATE_FORM,
   },
-  RuleTable: { fields: "formFields", steps: "formSteps" },
-  LabelRuleTable: { fields: "formFields", steps: "formSteps" },
+  RuleTable: {
+    fields: "formFields",
+    steps: "formSteps",
+    createForm: TABLE_CREATE_FORM,
+  },
+  LabelRuleTable: {
+    fields: "formFields",
+    steps: "formSteps",
+    createForm: TABLE_CREATE_FORM,
+  },
   CardModelDetail: { fields: "formFields", steps: "formSteps" },
   ModelFormModal: {
     fields: "formProps.fields",
     steps: "formProps.steps",
     summary: "formProps.summary",
+    createForm: {
+      initialValues: "initialValues",
+      formTypeAt: "formProps.formType",
+    },
   },
   BasicFormModal: {
     fields: "formProps.fields",
     steps: "formProps.steps",
     summary: "formProps.summary",
   },
-  ModelForm: { fields: "fields", steps: "steps", summary: "summary" },
+  ModelForm: {
+    fields: "fields",
+    steps: "steps",
+    summary: "summary",
+    createForm: { initialValues: "initialValues", formTypeAt: "formType" },
+  },
   BasicForm: { fields: "fields", steps: "steps", summary: "summary" },
   // Its own BasicFormModal receives these as props; the callers are counted.
   DuplicateModel: { fields: "fieldsToChange" },
@@ -124,6 +165,17 @@ export interface FormFieldFacts {
   isCreateOnly: boolean;
   // doNotShowWhenCreating - the Edit form only.
   isEditOnly: boolean;
+  /*
+   * The defaultValue as written ("true", "60", "Mode.Suggest"), or undefined
+   * when the field writes none. hasDefault also counts a getDefaultValue.
+   */
+  defaultValue: string | undefined;
+  hasDefault: boolean;
+  /*
+   * The field object spreads another one in (`...someField`), which can
+   * carry properties - a default among them - this scan does not see.
+   */
+  hasSpread: boolean;
   /*
    * The field's collapsibleSection as written (whitespace dropped), or
    * undefined when it is not in one. Fields next to each other with the same
@@ -170,13 +222,33 @@ export interface FormFacts {
    * the fields listed on it (RuleCriteriaModelForm).
    */
   isRuleModel: boolean;
+  /*
+   * The model the form saves, as its modelType names it: the identifier,
+   * and the repository path of the file it is imported from - null when it
+   * is not imported (a generic prop, a class declared in the file). Null
+   * when the host takes no modelType written as a plain identifier.
+   */
+  modelType: { name: string; file: string | null } | null;
+  /*
+   * Whether the host draws a Create form through ModelForm: a table that is
+   * isCreateable, a ModelForm or ModelFormModal whose formType is
+   * FormType.Create. Null when that is decided at runtime.
+   */
+  hasCreateForm: boolean | null;
+  /*
+   * The keys of the values the Create form starts with (a table's
+   * createInitialValues, a form's initialValues) when they are written as an
+   * object literal, [] when there are none, null when they cannot be read.
+   */
+  createInitialValueKeys: Array<string> | null;
 }
 
 export type FormStepProblemKind =
   | "field-without-step"
   | "field-on-undeclared-step"
   | "empty-step"
-  | "empty-step-on-edit";
+  | "empty-step-on-edit"
+  | "empty-step-on-create";
 
 export interface FormStepProblem {
   kind: FormStepProblemKind;
@@ -1214,12 +1286,26 @@ export class FormStepsScanner {
 
     const fields: Array<FormFieldFacts> = fieldResolution.items.map(
       (item: ResolvedItem) => {
-        return this.describeField(
+        const facts: FormFieldFacts = this.describeField(
           item.parsed,
           item.node,
           fieldResolution.plain.has(item.node),
           item.call,
         );
+
+        /*
+         * RuleTable (and LabelRuleTable, built on it) leaves a rule's
+         * Enabled switch off the create form: RuleEnabledField.
+         */
+        if (
+          (hostName === "RuleTable" || hostName === "LabelRuleTable") &&
+          facts.key === RULE_ENABLED_COLUMN &&
+          isSwitchFieldType(facts.fieldType)
+        ) {
+          facts.isEditOnly = true;
+        }
+
+        return facts;
       },
     );
 
@@ -1290,6 +1376,12 @@ export class FormStepsScanner {
       this.readHostValue(parsed, attributes, "modelDetailProps.modelType") ||
       this.readHostValue(parsed, attributes, "formProps.modelType");
 
+    const hasCreateForm: boolean | null = this.readHasCreateForm(
+      parsed,
+      attributes,
+      spec.createForm,
+    );
+
     return {
       file: toRepositoryPath(this.repositoryRoot, parsed.file),
       line:
@@ -1311,7 +1403,145 @@ export class FormStepsScanner {
       isRuleModel: modelTypeExpression
         ? this.isRuleModelType(parsed, modelTypeExpression)
         : false,
+      modelType: modelTypeExpression
+        ? this.describeModelType(parsed, modelTypeExpression)
+        : null,
+      hasCreateForm,
+      createInitialValueKeys:
+        spec.createForm && hasCreateForm !== false
+          ? this.readObjectKeys(
+              parsed,
+              this.readHostValue(
+                parsed,
+                attributes,
+                spec.createForm.initialValues,
+              ),
+            )
+          : [],
     };
+  }
+
+  private describeModelType(
+    parsed: ParsedFile,
+    expression: ts.Expression,
+  ): { name: string; file: string | null } | null {
+    const value: ts.Node = unwrap(expression);
+
+    if (!ts.isIdentifier(value)) {
+      return null;
+    }
+
+    const imported: { file: string; exported: string } | undefined =
+      parsed.imports.get(value.text);
+
+    return {
+      name: value.text,
+      file: imported
+        ? toRepositoryPath(this.repositoryRoot, imported.file)
+        : null,
+    };
+  }
+
+  private readHasCreateForm(
+    parsed: ParsedFile,
+    attributes: Map<string, ts.JsxAttribute>,
+    createForm: CreateFormSpec | undefined,
+  ): boolean | null {
+    if (!createForm) {
+      return false;
+    }
+
+    if (createForm.offeredBy) {
+      return this.readBooleanAttribute(
+        parsed,
+        attributes,
+        createForm.offeredBy,
+      );
+    }
+
+    if (createForm.formTypeAt) {
+      const formType: ts.Expression | null = this.readHostValue(
+        parsed,
+        attributes,
+        createForm.formTypeAt,
+      );
+
+      if (!formType) {
+        return false;
+      }
+
+      const text: string = unwrap(formType).getText(parsed.sourceFile);
+
+      if (CREATE_FORM_TYPE.test(text)) {
+        return true;
+      }
+
+      if (UPDATE_FORM_TYPE.test(text)) {
+        return false;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * The keys an object literal writes - directly, or through a constant it
+   * is declared as. [] when there is no object; null when it is something
+   * else, or spreads in keys that are not written down.
+   */
+  private readObjectKeys(
+    parsed: ParsedFile,
+    expression: ts.Expression | null,
+  ): Array<string> | null {
+    if (!expression) {
+      return [];
+    }
+
+    let value: ts.Node = unwrap(expression);
+
+    if (ts.isIdentifier(value)) {
+      if (value.text === "undefined") {
+        return [];
+      }
+
+      const found: { parsed: ParsedFile; node: ts.Node } | null = this.lookup(
+        parsed,
+        value.text,
+        0,
+      );
+
+      if (!found) {
+        return null;
+      }
+
+      value = unwrap(found.node);
+    }
+
+    if (!ts.isObjectLiteralExpression(value)) {
+      return null;
+    }
+
+    const keys: Array<string> = [];
+
+    for (const property of value.properties) {
+      if (
+        (ts.isPropertyAssignment(property) ||
+          ts.isShorthandPropertyAssignment(property)) &&
+        property.name
+      ) {
+        keys.push(
+          property.name
+            .getText(value.getSourceFile())
+            .replace(/^\[|\]$/g, "")
+            .replace(/^["']|["']$/g, ""),
+        );
+        continue;
+      }
+
+      return null;
+    }
+
+    return keys;
   }
 
   /*
@@ -1525,6 +1755,12 @@ export class FormStepsScanner {
     }
 
     const title: ts.Node | null = initializerOf("title");
+    const defaultValue: ts.Node | null = initializerOf("defaultValue");
+    const hasDefaultValue: boolean = Boolean(
+      defaultValue &&
+        defaultValue.kind !== ts.SyntaxKind.UndefinedKeyword &&
+        !(ts.isIdentifier(defaultValue) && defaultValue.text === "undefined"),
+    );
     const stepId: ts.Node | null = initializerOf("stepId");
     const showIf: ts.Node | null = initializerOf("showIf");
     const collapsibleSection: ts.Node | null =
@@ -1561,6 +1797,22 @@ export class FormStepsScanner {
       isConditional: Boolean(showIf && !isConstantFalseFunction(showIf)),
       isCreateOnly: isTrue("doNotShowWhenEditing"),
       isEditOnly: isTrue("doNotShowWhenCreating"),
+      defaultValue:
+        defaultValue && hasDefaultValue
+          ? defaultValue.getText(defaultValue.getSourceFile())
+          : undefined,
+      hasDefault: hasDefaultValue || Boolean(initializerOf("getDefaultValue")),
+      hasSpread: [node, call].some(
+        (container: ts.ObjectLiteralExpression | undefined): boolean => {
+          return Boolean(
+            container?.properties.some(
+              (candidate: ts.ObjectLiteralElementLike): boolean => {
+                return ts.isSpreadAssignment(candidate);
+              },
+            ),
+          );
+        },
+      ),
       collapsibleSection:
         collapsibleSection &&
         collapsibleSection.kind !== ts.SyntaxKind.UndefinedKeyword &&
@@ -1618,6 +1870,21 @@ export class FormStepsScanner {
 
     return { id, title, isConditional };
   }
+}
+
+// The hosts that draw a Create and an Edit form from one field list.
+const TABLE_HOSTS: ReadonlySet<FormHostName> = new Set<FormHostName>([
+  "ModelTable",
+  "RuleTable",
+  "LabelRuleTable",
+]);
+
+// A switch, as a field's fieldType is written: Toggle or Checkbox.
+export function isSwitchFieldType(fieldType: string): boolean {
+  return (
+    fieldType === "FormFieldSchemaType.Toggle" ||
+    fieldType === "FormFieldSchemaType.Checkbox"
+  );
 }
 
 function isConstantFalseFunction(node: ts.Node): boolean {
@@ -1878,6 +2145,26 @@ export function findStepProblems(
           kind: "empty-step-on-edit",
           form,
           message: `every field on step "${stepId}" is doNotShowWhenEditing, so the Edit form walks through an empty page.`,
+        });
+      }
+
+      /*
+       * And the other way round: a step whose every field is left off the
+       * Create form (doNotShowWhenCreating - a rule's Enabled switch, which
+       * RuleTable leaves off on its own) is an empty page in the create
+       * wizard.
+       */
+      if (
+        TABLE_HOSTS.has(form.host) &&
+        form.hasCreateForm !== false &&
+        onStep.every((field: FormFieldFacts): boolean => {
+          return field.isEditOnly;
+        })
+      ) {
+        problems.push({
+          kind: "empty-step-on-create",
+          form,
+          message: `every field on step "${stepId}" is left off the Create form (doNotShowWhenCreating), so the create wizard walks through an empty page.`,
         });
       }
     }

@@ -53,10 +53,11 @@ import {
  * written `sr-only sm:not-sr-only` - visible from sm up, read-only to screen
  * readers below it - collapses to a 1px clip at every width. That is how the
  * screenshot dock's "Copy image" and "Download", the Send Test badges, the
- * session replay's collapsible action labels and the feed's "Filter & Sort"
- * would have become icon-only on a wide screen. The fix wrote them
- * `max-sm:sr-only sm:not-sr-only` (max-xl for the feed), which behaves the
- * same everywhere and never carries the class the foreign rule targets.
+ * session replay's collapsible action labels and the feed's old "Filter &
+ * Sort" button would have become icon-only on a wide screen. The fix wrote
+ * them `max-sm:sr-only sm:not-sr-only`, which behaves the same everywhere and
+ * never carries the class the foreign rule targets. (The feed's button has
+ * since gone: its sort and filter live in the feed's ⋯ menu.)
  *
  * Skip links keep `sr-only focus:not-sr-only` on purpose. They must be
  * hidden at EVERY width until focused, so a max-width form would be wrong,
@@ -265,8 +266,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import { DEFAULT_FEED_OPTIONS } from "../../../UI/Components/Feed/FeedOptions";
-import FeedOptionsButton from "../../../UI/Components/Feed/FeedOptionsButton";
 import MasterPage from "../../../UI/Components/MasterPage/MasterPage";
 import { ReplayToolButton } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi";
 import ReplayScreenshotActions from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayScreenshotActions";
@@ -367,22 +366,6 @@ interface CollapsibleLabelCase {
 }
 
 const COLLAPSIBLE_LABELS: Array<CollapsibleLabelCase> = [
-  {
-    name: 'FeedOptionsButton "Filter & Sort"',
-    breakpoint: "xl",
-    preFixClass: "sr-only xl:not-sr-only",
-    renderLabel: async (): Promise<HTMLElement> => {
-      render(
-        <FeedOptionsButton
-          value={DEFAULT_FEED_OPTIONS}
-          eventTypeOptions={[]}
-          onChange={noop}
-        />,
-      );
-
-      return screen.getByTestId("feed-options-label");
-    },
-  },
   {
     name: "ReplayToolButton collapsible action label",
     breakpoint: "sm",
@@ -512,7 +495,6 @@ const SKIP_LINK_FILES: Array<string> = [
 
 // The modules whose labels the fix converted.
 const CONVERTED_LABEL_FILES: Array<string> = [
-  "packages/Common/UI/Components/Feed/FeedOptionsButton.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayScreenshotActions.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/Workspace/SendTestNotificationButton.tsx",

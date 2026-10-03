@@ -3,11 +3,12 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../../Types/Icon/IconProp";
+import { translationKey } from "../../Utils/TranslateTemplate";
 
 /*
- * What a reader can change about a dashboard activity feed from its one
- * "Filter & Sort" button: which way the timeline runs, and which kinds of
- * event it shows.
+ * What a reader can change about a dashboard activity feed from the ⋯ More
+ * menu in its header (FeedMoreMenu): which way the timeline runs, and which
+ * kinds of event it shows.
  *
  * Both are applied by the API, never to the rows already in the browser. A
  * feed is read a window at a time (see useFeedItems), so filtering the loaded
@@ -166,8 +167,8 @@ type GetFeedEventTypeOptions = (data: {
 }) => Array<FeedEventTypeOption>;
 
 /*
- * The checklist behind the button: one entry per event type, alphabetical by
- * label so the reader can scan for the one they want.
+ * The checklist of the event type filter: one entry per event type,
+ * alphabetical by label so the reader can scan for the one they want.
  */
 export const getFeedEventTypeOptions: GetFeedEventTypeOptions = (data: {
   eventTypes: Array<string>;
@@ -301,127 +302,56 @@ export const getFeedNoItemsMessage: GetFeedNoItemsMessage = (data: {
 };
 
 /*
- * The control's own sentences, as the English keys the dashboard's locale
- * files translate (see Utils/Translation). The ones with placeholders are
- * looked up whole and filled afterwards, so a translation can reorder the
- * words around the numbers.
+ * The sentences of a feed's ⋯ menu, its event type filter and the box that
+ * says the feed is filtered, as the English keys the dashboard's locale files
+ * translate. The ones with placeholders are looked up whole and filled
+ * afterwards (translateTemplate), so a translation can put the numbers where
+ * its grammar wants them.
  */
 export const FEED_OPTIONS_TEXT: {
-  triggerLabel: string;
-  searchResults: string;
-  panelLabel: string;
   sortHeading: string;
-  eventTypesHeading: string;
+  filter: string;
+  refresh: string;
+  appliedFiltersTitle: string;
+  moreEventTypes: string;
+  eventTypesLabel: string;
   showAll: string;
   searchPlaceholder: string;
+  searchResults: string;
   showingEveryEventType: string;
   showingSomeEventTypes: string;
   noSearchMatches: string;
   noEventTypes: string;
-  reset: string;
-  summaryAllEventTypes: string;
-  summarySomeEventTypes: string;
-  summarySomeOfOneEventType: string;
+  applyFilters: string;
 } = {
-  triggerLabel: "Filter & Sort",
-  searchResults: "Matching event types: {{count}}",
-  panelLabel: "Filter and sort feed",
-  sortHeading: "Sort by time",
-  eventTypesHeading: "Event types",
-  showAll: "Show all",
-  searchPlaceholder: "Search event types",
-  showingEveryEventType:
+  // The ⋯ menu.
+  sortHeading: translationKey("Sort by time"),
+  filter: translationKey("Filter by event type"),
+  refresh: translationKey("Refresh"),
+  // The box over a filtered feed.
+  appliedFiltersTitle: translationKey(
+    "Showing {{selected}} of {{total}} event types",
+  ),
+  moreEventTypes: translationKey("and {{remaining}} more"),
+  // The filter dialog.
+  eventTypesLabel: translationKey("Event types"),
+  showAll: translationKey("Show all"),
+  searchPlaceholder: translationKey("Search event types"),
+  searchResults: translationKey("Matching event types: {{count}}"),
+  showingEveryEventType: translationKey(
     "Showing every event type. Tick one or more to narrow the feed.",
-  showingSomeEventTypes: "Showing {{selected}} of {{total}} event types.",
-  noSearchMatches: 'No event types match "{{search}}".',
-  noEventTypes: "This feed has no event types to filter by.",
-  reset: "Reset to default",
-  summaryAllEventTypes: "{{sortOrder}}, all event types",
-  summarySomeEventTypes: "{{sortOrder}}, {{selected}} of {{total}} event types",
-  summarySomeOfOneEventType:
-    "{{sortOrder}}, {{selected}} of {{total}} event type",
+  ),
+  showingSomeEventTypes: translationKey(
+    "Showing {{selected}} of {{total}} event types.",
+  ),
+  noSearchMatches: translationKey('No event types match "{{search}}".'),
+  noEventTypes: translationKey("This feed has no event types to filter by."),
+  applyFilters: translationKey("Apply Filters"),
 };
-
-// Looks a sentence up in the reader's language; undefined means "as written".
-export type FeedOptionsTranslateFunction = (
-  text: string | undefined,
-) => string | undefined;
-
-const PLACEHOLDER_PATTERN: RegExp = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
-
-type TranslateFeedOptionsText = (data: {
-  text: string;
-  values?: Record<string, string | number> | undefined;
-  translate?: FeedOptionsTranslateFunction | undefined;
-}) => string;
 
 /*
- * Translate, then fill the placeholders. A placeholder with no value is left
- * showing, so a broken translation is visible rather than a sentence with a
- * hole in it.
+ * The box over a filtered feed shows the chosen event types as chips, and
+ * folds the rest into "and N more" past this many, so ticking most of a long
+ * checklist does not push the feed itself down the page.
  */
-export const translateFeedOptionsText: TranslateFeedOptionsText = (data: {
-  text: string;
-  values?: Record<string, string | number> | undefined;
-  translate?: FeedOptionsTranslateFunction | undefined;
-}): string => {
-  const translated: string =
-    (data.translate ? data.translate(data.text) : undefined) || data.text;
-  const values: Record<string, string | number> = data.values || {};
-
-  return translated.replace(
-    PLACEHOLDER_PATTERN,
-    (placeholder: string, name: string): string => {
-      const value: string | number | undefined = values[name];
-
-      return value === undefined ? placeholder : String(value);
-    },
-  );
-};
-
-type GetFeedOptionsSummary = (data: {
-  options: FeedOptions;
-  eventTypeCount: number;
-  translate?: FeedOptionsTranslateFunction | undefined;
-}) => string;
-
-/*
- * One sentence for the trigger's accessible name and tooltip, so the state
- * hidden behind the button can be read without opening it.
- */
-export const getFeedOptionsSummary: GetFeedOptionsSummary = (data: {
-  options: FeedOptions;
-  eventTypeCount: number;
-  translate?: FeedOptionsTranslateFunction | undefined;
-}): string => {
-  const sortOrder: string = translateFeedOptionsText({
-    text:
-      FEED_SORT_ORDER_OPTIONS.find((option: FeedSortOrderOption) => {
-        return option.value === data.options.sortOrder;
-      })?.label || "Newest first",
-    translate: data.translate,
-  });
-
-  const selectedCount: number = data.options.eventTypes.length;
-
-  if (selectedCount === 0) {
-    return translateFeedOptionsText({
-      text: FEED_OPTIONS_TEXT.summaryAllEventTypes,
-      values: { sortOrder },
-      translate: data.translate,
-    });
-  }
-
-  return translateFeedOptionsText({
-    text:
-      data.eventTypeCount === 1
-        ? FEED_OPTIONS_TEXT.summarySomeOfOneEventType
-        : FEED_OPTIONS_TEXT.summarySomeEventTypes,
-    values: {
-      sortOrder,
-      selected: selectedCount,
-      total: data.eventTypeCount,
-    },
-    translate: data.translate,
-  });
-};
+export const FEED_APPLIED_FILTERS_CHIP_LIMIT: number = 8;

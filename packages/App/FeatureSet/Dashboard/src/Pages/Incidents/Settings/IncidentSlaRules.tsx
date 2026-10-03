@@ -239,6 +239,8 @@ const IncidentSlaRulesPage: FunctionComponent<
             title: "Enabled",
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
+            // A rule starts on: the switch is on its edit form only.
+            doNotShowWhenCreating: true,
             required: false,
             description: "Enable or disable this SLA rule.",
           },

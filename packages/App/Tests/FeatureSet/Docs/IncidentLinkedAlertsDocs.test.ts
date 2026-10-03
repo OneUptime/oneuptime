@@ -1373,7 +1373,8 @@ describe("Incident Linked Alerts docs", () => {
           });
         }
 
-        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.triggerLabel}**`);
+        // The filter that lists them: the feed ⋯ menu's item, named as it is there.
+        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.filter}**`);
       }
     });
 

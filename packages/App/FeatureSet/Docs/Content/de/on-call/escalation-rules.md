@@ -4,7 +4,7 @@ Eine Bereitschaftsrichtlinie alarmiert Personen in Stufen. Jede Eskalationsregel
 
 ## Eine Eskalationsregel hinzufügen
 
-Öffnen Sie die Bereitschaftsrichtlinie, wählen Sie im Seitenmenü **Eskalationsregeln** und klicken Sie auf **Add Escalation Rule**. Der Dialog ist eine kurze Seite mit zwei Fragen:
+Öffnen Sie die Bereitschaftsrichtlinie, wählen Sie im Seitenmenü **Eskalationsregeln** und klicken Sie auf **Eskalationsregel hinzufügen**. Der Dialog ist eine kurze Seite mit zwei Fragen:
 
 - **Benachrichtigen** — wer auf dieser Stufe alarmiert wird. Eine Auswahl umfasst Bereitschaftspläne, Teams und Personen: Klicken Sie auf **Empfänger hinzufügen**, suchen Sie und wählen Sie so viele aus, wie Sie brauchen. Mindestens einer ist nötig.
   - Ein **Bereitschaftsplan** alarmiert, wer gerade Bereitschaft hat, wenn die Stufe ausgelöst wird, nicht eine feste Person.
@@ -27,9 +27,9 @@ Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: 
 
 ## Regeln bearbeiten, umsortieren und löschen
 
-- **Edit rule** öffnet denselben einseitigen Dialog, ausgefüllt mit der Regel, wie sie ist: ihre Empfänger, ihre Wartezeit sowie Name und Beschreibung unter **Erweitert**. Fügen Sie Empfänger hinzu oder entfernen Sie sie und speichern Sie. Wird der Name geleert, bekommt die Regel wieder den Namen ihrer Stufe.
-- **Move up** und **Move down** im **⋯**-Menü einer Regel ändern ihre Stufe. Eine Regel, die nach ihrer Stufe heißt, behält einen Namen, der zu ihrem Platz passt: Wenn **Level 3** an **Level 2** vorbei nach oben rückt, tauschen beide ihre Namen. Ein selbst gewählter Name wie **Manager** bleibt, wohin die Regel auch geht.
-- **Delete rule** fragt zuerst nach und sagt, wen die Stufe alarmiert. Wird eine Stufe gelöscht, rücken die Stufen darunter nach oben, und Regeln, die nach ihrer Stufe heißen, werden passend umbenannt.
+- **Regel bearbeiten** öffnet denselben einseitigen Dialog, ausgefüllt mit der Regel, wie sie ist: ihre Empfänger, ihre Wartezeit sowie Name und Beschreibung unter **Erweitert**. Fügen Sie Empfänger hinzu oder entfernen Sie sie und speichern Sie. Wird der Name geleert, bekommt die Regel wieder den Namen ihrer Stufe.
+- **Nach oben verschieben** und **Nach unten verschieben** im **⋯**-Menü einer Regel ändern ihre Stufe. Eine Regel, die nach ihrer Stufe heißt, behält einen Namen, der zu ihrem Platz passt: Wenn **Level 3** an **Level 2** vorbei nach oben rückt, tauschen beide ihre Namen. Ein selbst gewählter Name wie **Manager** bleibt, wohin die Regel auch geht.
+- **Regel löschen** fragt zuerst nach und sagt, wen die Stufe alarmiert. Wird eine Stufe gelöscht, rücken die Stufen darunter nach oben, und Regeln, die nach ihrer Stufe heißen, werden passend umbenannt.
 
 ## Regeln mit der API oder Terraform anlegen
 

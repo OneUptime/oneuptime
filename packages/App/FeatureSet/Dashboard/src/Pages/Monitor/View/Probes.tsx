@@ -216,6 +216,12 @@ const MonitorProbes: FunctionComponent<
               "When off, this probe stops monitoring this resource. It stays on the list so you can turn it back on.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            /*
+             * Adding a probe is what puts it to work, so a new one starts on
+             * (as the API's MonitorProbe.isEnabled does) and Add Probe asks
+             * only which probe. Switching one off is an edit.
+             */
+            doNotShowWhenCreating: true,
           },
         ]}
         showRefreshButton={true}

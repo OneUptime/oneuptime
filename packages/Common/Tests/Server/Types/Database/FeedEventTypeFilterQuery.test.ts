@@ -83,7 +83,8 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The server half of the dashboard feeds' "Filter & Sort" button.
+ * The server half of the dashboard feeds' sort order and event type filter
+ * (both in each feed's ⋯ More menu).
  *
  * Filtering and sorting are done by the API, never in the browser: a feed is
  * read a window at a time, so the dashboard sends
@@ -111,7 +112,7 @@ import path from "path";
  *     parameters, instead of letting it through as an object.
  *
  * The table below is checked against the model directory, so a feed model
- * added later cannot ship its Filter & Sort button without these guarantees.
+ * added later cannot ship its event type filter without these guarantees.
  */
 
 const MODELS_DIRECTORY: string = path.resolve(
@@ -127,7 +128,7 @@ const MODELS_DIRECTORY: string = path.resolve(
 /*
  * What makes a model a filterable activity feed: an exported event type enum,
  * which is what the checklist offers. The calendar feeds and ThreatIntelFeed
- * are also named *Feed but have no such enum, and no Filter & Sort button.
+ * are also named *Feed but have no such enum, and no event type filter.
  */
 const FEED_EVENT_TYPE_ENUM: RegExp = /export enum (\w+FeedEventType)\b/;
 
@@ -505,7 +506,7 @@ const rawOperatorSql: RawOperatorSqlFunction = (
 
 describe("feed event type filter - the table of feed models", () => {
   /*
-   * Without this, a new feed model gets the dashboard's Filter & Sort button
+   * Without this, a new feed model gets the dashboard's event type filter
    * (it only needs an enum and a column name) while nothing below checks that
    * its server side can actually answer it.
    */

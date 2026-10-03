@@ -60,12 +60,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  DEFAULT_FEED_OPTIONS,
-  FEED_OPTIONS_TEXT,
-  FeedOptions,
-  getFeedOptionsSummary,
-} from "../../../UI/Components/Feed/FeedOptions";
+import { FEED_OPTIONS_TEXT } from "../../../UI/Components/Feed/FeedOptions";
 
 /*
  * The SLO feed is the generic ResourceFeed, wired once in
@@ -111,7 +106,7 @@ describe("getSloResourceFeedProps", () => {
     );
     // Both the page and any embedded feed get the SLO icons from here.
     expect(props.getIcon).toBe(getSloFeedEventIcon);
-    // ...and the event types the Filter & Sort checklist offers.
+    // ...and the event types the filter's checklist offers.
     expect(props.eventTypes).toEqual(ALL_EVENT_TYPES);
   });
 
@@ -273,7 +268,7 @@ describe("SloFeed", () => {
     expect(request.query.serviceLevelObjectiveId).toBe(SLO_ID);
     expect(request.select.serviceLevelObjectiveFeedEventType).toBe(true);
     expect(request.select.postedAt).toBe(true);
-    // Untouched, Filter & Sort adds nothing to the query and keeps the order.
+    // Untouched, the sort and filter add nothing to the query and keep the order.
     expect(Object.keys(request.query)).toEqual(["serviceLevelObjectiveId"]);
     expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
   });
@@ -309,23 +304,7 @@ describe("SloFeed", () => {
     expect(screen.getByText("Recent activity")).toBeInTheDocument();
   });
 
-  test("offers Filter & Sort by its label, described by what the feed shows, and filters on the SLO's own event type column", async () => {
-    type GetExpectedSummary = (options: FeedOptions) => string;
-
-    /*
-     * Built by the same function the button uses, so the wording can change
-     * freely - what is pinned is that the description follows the feed's
-     * live order and filter, counted over the SLO's own event types.
-     */
-    const getExpectedSummary: GetExpectedSummary = (
-      options: FeedOptions,
-    ): string => {
-      return getFeedOptionsSummary({
-        options: options,
-        eventTypeCount: ALL_EVENT_TYPES.length,
-      });
-    };
-
+  test("keeps sort, filter and Refresh behind the ⋯ More button, and filters on the SLO's own event type column", async () => {
     const statusChanged: string =
       ServiceLevelObjectiveFeedEventType.StatusChanged;
 
@@ -337,28 +316,32 @@ describe("SloFeed", () => {
       ).toBeInTheDocument();
     });
 
-    /*
-     * The button is named by its visible label alone; what the feed is
-     * showing is read out as its description, so a screen reader says each
-     * once.
-     */
-    const optionsButton: HTMLElement = screen.getByRole("button", {
-      name: "Filter & Sort",
-    });
+    // One ⋯ for everything, named as a table's card-header ⋯ is.
+    const more: HTMLElement = within(
+      screen.getByTestId("feed-more-menu"),
+    ).getByRole("button", { name: "More options" });
 
-    expect(optionsButton).toHaveAccessibleDescription(
-      getExpectedSummary(DEFAULT_FEED_OPTIONS),
+    expect(screen.queryByRole("button", { name: "Refresh" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Filter|Sort/ })).toBeNull();
+    expect(screen.queryByTestId("feed-filter-summary")).toBeNull();
+
+    fireEvent.click(more);
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: FEED_OPTIONS_TEXT.filter,
+      }),
     );
 
-    fireEvent.click(optionsButton);
-
-    const panel: HTMLElement = screen.getByRole("dialog", {
-      name: FEED_OPTIONS_TEXT.panelLabel,
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: FEED_OPTIONS_TEXT.filter,
     });
 
     // StatusChanged is one of the SLO's own events, not a shared one.
     fireEvent.click(
-      within(panel).getByTestId(`feed-options-event-type-${statusChanged}`),
+      within(dialog).getByTestId(`feed-options-event-type-${statusChanged}`),
+    );
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Apply Filters" }),
     );
 
     await waitFor(() => {
@@ -381,14 +364,16 @@ describe("SloFeed", () => {
     expect((eventTypeFilter as Includes).values).toEqual([statusChanged]);
     expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
 
-    // The name stays put with a count on the button; the description moves.
+    // The box over the feed says it is narrowed, counted over the SLO's own event types.
+    const box: HTMLElement = screen.getByTestId("feed-filter-summary");
+
     expect(
-      screen.getByRole("button", { name: "Filter & Sort" }),
-    ).toHaveAccessibleDescription(
-      getExpectedSummary({
-        sortOrder: SortOrder.Descending,
-        eventTypes: [statusChanged],
-      }),
-    );
+      within(box).getByText(
+        `Showing 1 of ${ALL_EVENT_TYPES.length} event types`,
+      ),
+    ).toBeVisible();
+    expect(
+      within(box).getByTestId(`feed-filter-chip-${statusChanged}`),
+    ).toHaveTextContent("Status Changed");
   });
 });
