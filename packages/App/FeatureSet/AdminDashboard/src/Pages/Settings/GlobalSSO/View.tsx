@@ -13,11 +13,10 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
+import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
+import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
-import DigestMethod from "Common/Types/SSO/DigestMethod";
-import SignatureMethod from "Common/Types/SSO/SignatureMethod";
 import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
 import GlobalSSOProject from "Common/Models/DatabaseModels/GlobalSsoProject";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -94,117 +93,10 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={"Edit Configuration"}
-          formSteps={[
-            { title: "Basic Info", id: "basic" },
-            { title: "Sign On", id: "sign-on" },
-            { title: "Certificate", id: "certificate" },
-            { title: "More", id: "more" },
-          ]}
-          formFields={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              stepId: "basic",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Okta SAML (Company-wide)",
-              validation: {
-                minLength: 2,
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-              stepId: "basic",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Sign in with Okta",
-            },
-            {
-              field: {
-                signOnURL: true,
-              },
-              title: "Sign On URL",
-              stepId: "sign-on",
-              fieldType: FormFieldSchemaType.URL,
-              required: true,
-              placeholder: "https://yourapp.example.com/apps/appId",
-            },
-            {
-              field: {
-                issuerURL: true,
-              },
-              title: "Issuer",
-              stepId: "sign-on",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "https://example.com",
-            },
-            {
-              field: {
-                publicCertificate: true,
-              },
-              title: "Public Certificate",
-              stepId: "certificate",
-              fieldType: FormFieldSchemaType.LongText,
-              required: true,
-              placeholder: "Paste in your x509 certificate here.",
-            },
-            {
-              field: {
-                signatureMethod: true,
-              },
-              title: "Signature Method",
-              stepId: "certificate",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(SignatureMethod),
-              required: true,
-              placeholder: "RSA-SHA256",
-            },
-            {
-              field: {
-                digestMethod: true,
-              },
-              title: "Digest Method",
-              stepId: "certificate",
-              fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(DigestMethod),
-              required: true,
-              placeholder: "SHA256",
-            },
-            {
-              field: {
-                disableSignUpWithSso: true,
-              },
-              title: "Disable Sign Up with SSO",
-              stepId: "more",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
-                restrictToAttachedProjects: true,
-              },
-              title: "Restrict to Attached Projects",
-              stepId: "more",
-              description:
-                "When on, this provider only satisfies SSO enforcement for the projects attached below. Off by default, where attachments control provisioning only.",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-            {
-              field: {
-                isEnabled: true,
-              },
-              title: "Enabled",
-              stepId: "more",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-          ]}
+          formSteps={getSsoProviderFormSteps<GlobalSSO>()}
+          formFields={getSamlProviderFormFields<GlobalSSO>({
+            withGlobalAccessSwitches: true,
+          })}
           modelDetailProps={{
             modelType: GlobalSSO,
             id: "global-sso-detail",

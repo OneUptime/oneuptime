@@ -2,8 +2,8 @@ import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
@@ -22,6 +22,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import StatusPageSCIMLogsTable from "../../Components/SCIMLogs/StatusPageSCIMLogsTable";
+import { getStatusPageScimFormFields } from "../../ScimFormFields";
 import EnterpriseLicenseBanner from "../../License/EnterpriseLicenseBanner";
 import {
   EnterpriseLicenseMode,
@@ -35,6 +36,15 @@ import {
   generateScimBearerToken,
 } from "../../TightenOnly/TightenOnlyUpdates";
 
+/*
+ * Status page > SCIM: the status page's SCIM connections and their logs.
+ *
+ * Adding one asks for its name; provisioning, deprovisioning and the
+ * description wait under Advanced at their defaults (../../ScimFormFields).
+ * Once it is saved, the dialog with the SCIM URLs and the bearer token to
+ * give the identity provider opens straight away: that is the next thing to
+ * do.
+ */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
@@ -123,74 +133,24 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users with access to your private Status Page.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
-                formSteps={[
-                  {
-                    title: "Basic Info",
-                    id: "basic",
-                  },
-                  {
-                    title: "Configuration",
-                    id: "configuration",
-                  },
-                ]}
                 onBeforeCreate={(scim: StatusPageSCIM) => {
                   scim.statusPageId = modelId;
                   return Promise.resolve(scim);
                 }}
                 noItemsMessage={"No SCIM configuration found."}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                formFields={[
-                  {
-                    field: {
-                      name: true,
-                    },
-                    title: "Name",
-                    fieldType: FormFieldSchemaType.Text,
-                    required: true,
-                    description:
-                      "Friendly name to help you remember this SCIM configuration.",
-                    placeholder: "Okta SCIM for Status Page",
-                    validation: {
-                      minLength: 2,
-                    },
-                    stepId: "basic",
-                  },
-                  {
-                    field: {
-                      description: true,
-                    },
-                    title: "Description",
-                    fieldType: FormFieldSchemaType.LongText,
-                    required: false,
-                    description:
-                      "Optional description for this SCIM configuration.",
-                    placeholder:
-                      "SCIM configuration for automatic user provisioning to the Status Page from Okta",
-                    stepId: "basic",
-                  },
-                  {
-                    field: {
-                      autoProvisionUsers: true,
-                    },
-                    title: "Auto Provision Users",
-                    fieldType: FormFieldSchemaType.Checkbox,
-                    required: false,
-                    description:
-                      "Automatically create users when they are added in your identity provider.",
-                    stepId: "configuration",
-                  },
-                  {
-                    field: {
-                      autoDeprovisionUsers: true,
-                    },
-                    title: "Auto Deprovision Users",
-                    fieldType: FormFieldSchemaType.Checkbox,
-                    required: false,
-                    description:
-                      "Automatically remove users when they are removed from your identity provider.",
-                    stepId: "configuration",
-                  },
-                ]}
+                formFields={getStatusPageScimFormFields()}
+                onCreateSuccess={(
+                  item: StatusPageSCIM,
+                  modalType?: ModalType,
+                ): Promise<StatusPageSCIM> => {
+                  if (modalType === ModalType.Create && item.id) {
+                    setCurrentSCIMConfig(item);
+                    setShowSCIMUrlId(item.id.toString());
+                  }
+
+                  return Promise.resolve(item);
+                }}
                 showRefreshButton={true}
                 selectMoreFields={{
                   bearerToken: true,

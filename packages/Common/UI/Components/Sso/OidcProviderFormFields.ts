@@ -21,10 +21,16 @@ import FormValues from "../Forms/Types/FormValues";
 import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import { translateValidationMessage } from "../Forms/Validation";
 import {
+  SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
+  SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
+  SSO_GLOBAL_RESTRICT_DESCRIPTION,
   getSsoProviderDescriptionField,
+  getSsoProviderDisableSignUpField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
+  getSsoProviderRestrictToAttachedProjectsField,
   getSsoProviderTeamsField,
+  isSsoGlobalAccessAtDefaults,
   readSsoFormValue,
   ssoFormValueAsText,
 } from "./SsoProviderFormFields";
@@ -98,21 +104,18 @@ export const OIDC_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
   "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.",
 );
 
-export const GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
-  "People who sign in for the first time join the projects you attach.",
-);
-
-export const GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION: string = translationKey(
-  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.",
-);
-
 /*
- * Turning it on narrows access for people who are already signed in, which
- * the old wording said in capitals; it still says so.
+ * The instance-wide provider's switches and what its folded section says
+ * about them are the same for SAML and OIDC (SsoProviderFormFields).
  */
-export const GLOBAL_OIDC_RESTRICT_DESCRIPTION: string = translationKey(
-  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.",
-);
+export const GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY: string =
+  SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY;
+
+export const GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION: string =
+  SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION;
+
+export const GLOBAL_OIDC_RESTRICT_DESCRIPTION: string =
+  SSO_GLOBAL_RESTRICT_DESCRIPTION;
 
 type IsAtDefaultFunction = (value: unknown, defaultValue: string) => boolean;
 
@@ -170,8 +173,7 @@ export const isOidcAdvancedAtDefaults: (
 
   if (
     options?.withGlobalAccessSwitches &&
-    (Boolean(read("disableSignUpWithSso")) ||
-      Boolean(read("restrictToAttachedProjects")))
+    !isSsoGlobalAccessAtDefaults(values)
   ) {
     return false;
   }
@@ -456,26 +458,14 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
     }),
     ...(options?.withGlobalAccessSwitches
       ? [
-          {
-            field: {
-              disableSignUpWithSso: true,
-            } as unknown as SelectFormFields<TEntity>,
-            title: "Disable Sign Up with SSO",
-            fieldType: FormFieldSchemaType.Toggle,
-            description: GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION,
+          getSsoProviderDisableSignUpField<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
-          },
-          {
-            field: {
-              restrictToAttachedProjects: true,
-            } as unknown as SelectFormFields<TEntity>,
-            title: "Restrict to Attached Projects",
-            fieldType: FormFieldSchemaType.Toggle,
-            description: GLOBAL_OIDC_RESTRICT_DESCRIPTION,
+          }),
+          getSsoProviderRestrictToAttachedProjectsField<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
-          },
+          }),
         ]
       : []),
   ];
