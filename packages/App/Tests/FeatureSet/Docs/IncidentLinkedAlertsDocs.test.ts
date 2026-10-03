@@ -1373,7 +1373,8 @@ describe("Incident Linked Alerts docs", () => {
           });
         }
 
-        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.triggerLabel}**`);
+        // The filter that lists them: the feed ⋯ menu's item, named as it is there.
+        expect(translated).toContain(`**${FEED_OPTIONS_TEXT.filter}**`);
       }
     });
 
@@ -2343,7 +2344,9 @@ describe("Incident Linked Alerts docs", () => {
       const createPage: string = readSource(CREATE_INCIDENT_PAGE_FILE);
 
       expect(createPage).toContain("getAlertsKeepEscalatingNote(");
-      expect(createPage).toContain("${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}");
+      expect(createPage).toMatch(
+        /translator\.translateText\(\s*ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,?\s*\)/,
+      );
 
       const acknowledging: number = englishHeadingIndex(
         3,
@@ -2609,9 +2612,11 @@ describe("Incident Linked Alerts docs", () => {
       );
 
       // "(already linked to Incident INC-42)": the page's wording around each incident reference.
-      expect(createPage).toMatch(/\(already linked to\{" "\}/);
       expect(createPage).toContain(
-        "return `Incident ${incident.incidentNumberWithPrefix}`;",
+        'template="(already linked to {{incidents}})"',
+      );
+      expect(createPage).toMatch(
+        /return translateTemplate\("Incident \{\{number\}\}", \{\s*number: incident\.incidentNumberWithPrefix,\s*\}\);/,
       );
 
       // Each reference is a Link that opens in a new tab, which Link renders as target="_blank".

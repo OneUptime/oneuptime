@@ -326,6 +326,15 @@ function resolveMonitorSteps(
   } = pickId("IncidentSeverity", undefined, "incident severity id");
   const alertSeverity: { id: string; record: DeveloperDocsLiveRecord | null } =
     pickId("AlertSeverity", undefined, "alert severity id");
+  /*
+   * The "expires soon" warning of an SSL Certificate or Domain monitor
+   * starts on the project's second alert severity, or its only one, as in
+   * the dashboard (MonitorRecommendationSeverityMapper's Warning).
+   */
+  const warningAlertSeverity: {
+    id: string;
+    record: DeveloperDocsLiveRecord | null;
+  } = pickId("AlertSeverity", { index: 1 }, "warning alert severity id");
 
   const steps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
     monitorType: value.monitorType,
@@ -335,6 +344,7 @@ function resolveMonitorSteps(
     offlineMonitorStatusId: new ObjectID(offline.id),
     defaultIncidentSeverityId: new ObjectID(incidentSeverity.id),
     defaultAlertSeverityId: new ObjectID(alertSeverity.id),
+    warningAlertSeverityId: new ObjectID(warningAlertSeverity.id),
   });
 
   const step: MonitorStep | undefined =

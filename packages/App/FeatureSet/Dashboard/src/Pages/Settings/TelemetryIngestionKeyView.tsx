@@ -17,6 +17,8 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -26,6 +28,7 @@ export enum PermissionType {
 const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refresher, setRefresher] = React.useState<boolean>(false);
 
@@ -104,7 +107,10 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toString(),
-            description: `Ingest requests per minute accepted with this key. The limit is per key and shared by every client using it, so it has to clear your whole fleet at peak, not one browser tab. Leave it empty to use the default for a browser key (${DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE} per minute) and to leave a server key unlimited.`,
+            description: translator.translateTemplate(
+              "Ingest requests per minute accepted with this key. The limit is per key and shared by every client using it, so it has to clear your whole fleet at peak, not one browser tab. Leave it empty to use the default for a browser key ({{limit}} per minute) and to leave a server key unlimited.",
+              { limit: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE },
+            ),
             validation: {
               minValue: 1,
             },
@@ -200,9 +206,9 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                     <div>
                       <Pill color={Yellow} text="Browser" />
                       <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
-                        Safe to publish in a page. Accepted only from the
-                        allowed origins below, and only for trace, log, metric
-                        and session replay ingest.
+                        {translator.translateText(
+                          "Safe to publish in a page. Accepted only from the allowed origins below, and only for trace, log, metric and session replay ingest.",
+                        )}
                       </p>
                     </div>
                   );
@@ -212,9 +218,9 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                   <div>
                     <Pill color={Blue} text="Server" />
                     <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
-                      A secret. Full ingest access with no origin check — keep
-                      it on your servers and collectors, and never ship it to a
-                      browser.
+                      {translator.translateText(
+                        "A secret. Full ingest access with no origin check — keep it on your servers and collectors, and never ship it to a browser.",
+                      )}
                     </p>
                   </div>
                 );
@@ -266,12 +272,15 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                 if (origins.length === 0) {
                   return item.keyType === TelemetryIngestionKeyType.Browser ? (
                     <span className="text-sm text-red-600">
-                      No origins listed — this browser key is refused on every
-                      request until at least one origin is added.
+                      {translator.translateText(
+                        "No origins listed — this browser key is refused on every request until at least one origin is added.",
+                      )}
                     </span>
                   ) : (
                     <span className="text-sm text-gray-500">
-                      Not used — a server key is never origin checked.
+                      {translator.translateText(
+                        "Not used — a server key is never origin checked.",
+                      )}
                     </span>
                   );
                 }
@@ -317,18 +326,28 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
                 if (item.requestsPerMinuteLimit) {
                   return (
                     <span className="text-sm text-gray-900 tabular-nums">
-                      {item.requestsPerMinuteLimit} requests per minute
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} request per minute",
+                          other: "{{count}} requests per minute",
+                        },
+                        item.requestsPerMinuteLimit,
+                      )}
                     </span>
                   );
                 }
 
                 return item.keyType === TelemetryIngestionKeyType.Browser ? (
                   <span className="text-sm text-gray-700">
-                    {DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE} requests per
-                    minute (default for a browser key)
+                    {translator.translateTemplate(
+                      "{{limit}} requests per minute (default for a browser key)",
+                      { limit: DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE },
+                    )}
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-700">No limit</span>
+                  <span className="text-sm text-gray-700">
+                    {translator.translateText("No limit")}
+                  </span>
                 );
               },
             },

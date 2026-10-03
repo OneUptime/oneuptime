@@ -553,6 +553,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
 
     actionButtons.push({
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (
         resource: InfrastructureResource,

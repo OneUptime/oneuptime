@@ -45,6 +45,8 @@ import React, {
   useState,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How often the page polls the server for the latest execution state while
@@ -181,7 +183,7 @@ function StatusBadge({ visual }: { visual: StatusVisual }): ReactElement {
       <span
         className={`inline-block w-1.5 h-1.5 rounded-full ${visual.dot}`}
       ></span>
-      {visual.label}
+      {translateText(visual.label)}
     </span>
   );
 }
@@ -191,7 +193,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Incident
+          {translateText("Incident")}
         </span>
         <span className="text-sm text-gray-900">
           <IncidentElement incident={execution.incident as Incident} />
@@ -203,7 +205,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Alert
+          {translateText("Alert")}
         </span>
         <span className="text-sm text-gray-900">
           <AlertElement alert={execution.alert as Alert} />
@@ -217,7 +219,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Scheduled Maintenance
+          {translateText("Scheduled Maintenance")}
         </span>
         <span className="text-sm text-gray-900">
           {sm._id ? (
@@ -228,7 +230,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
                 { modelId: new ObjectID(sm._id as string) },
               )}
             >
-              <span>{sm.title || "View"}</span>
+              <span>{sm.title || translateText("View")}</span>
             </AppLink>
           ) : (
             <span>{sm.title || "—"}</span>
@@ -241,7 +243,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
     return (
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Manual run by
+          {translateText("Manual run by")}
         </span>
         <span className="text-sm text-gray-900">
           <UserElement user={execution.triggeredByUser as User} />
@@ -255,6 +257,7 @@ function renderTrigger(execution: RunbookExecution): ReactElement | null {
 const ExecutionView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const params: Readonly<Record<string, string | undefined>> = useParams();
   const navigate: ReturnType<typeof useNavigate> = useNavigate();
   const executionId: ObjectID = new ObjectID(params["subModelId"] || "");
@@ -518,7 +521,9 @@ const ExecutionView: FunctionComponent<
     return (
       <Card title="Runbook Execution" description="Not found.">
         <p className="text-sm text-gray-500">
-          This runbook execution could not be loaded. It may have been deleted.
+          {translator.translateText(
+            "This runbook execution could not be loaded. It may have been deleted.",
+          )}
         </p>
       </Card>
     );
@@ -605,16 +610,23 @@ const ExecutionView: FunctionComponent<
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Status
+                {translator.translateText("Status")}
               </div>
               <StatusBadge visual={execVisual} />
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Progress
+                {translator.translateText("Progress")}
               </div>
               <div className="text-sm font-medium text-gray-900">
-                {completedSteps} of {totalSteps} steps
+                {translator.translatePlural(
+                  {
+                    one: "{{completed}} of {{count}} step",
+                    other: "{{completed}} of {{count}} steps",
+                  },
+                  totalSteps,
+                  { completed: completedSteps },
+                )}
               </div>
               {totalSteps > 0 && (
                 <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -629,7 +641,7 @@ const ExecutionView: FunctionComponent<
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                Started
+                {translator.translateText("Started")}
               </div>
               <div className="text-sm text-gray-900">
                 {execution.startedAt
@@ -641,7 +653,9 @@ const ExecutionView: FunctionComponent<
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                {execution.completedAt ? "Completed" : "Elapsed"}
+                {execution.completedAt
+                  ? translator.translateText("Completed")
+                  : translator.translateText("Elapsed")}
               </div>
               <div className="text-sm text-gray-900">
                 {execution.completedAt
@@ -649,7 +663,7 @@ const ExecutionView: FunctionComponent<
                       execution.completedAt,
                     )
                   : execution.startedAt
-                    ? "Running..."
+                    ? translator.translateText("Running...")
                     : "—"}
               </div>
             </div>
@@ -663,7 +677,7 @@ const ExecutionView: FunctionComponent<
             return (
               <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 mb-6">
                 <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                  Triggered by
+                  {translator.translateText("Triggered by")}
                 </div>
                 {trigger}
               </div>
@@ -678,7 +692,9 @@ const ExecutionView: FunctionComponent<
                 className="text-rose-500 mt-0.5 shrink-0"
               />
               <div>
-                <div className="font-medium">Run failed</div>
+                <div className="font-medium">
+                  {translator.translateText("Run failed")}
+                </div>
                 <div className="mt-0.5 text-rose-700 whitespace-pre-wrap leading-relaxed">
                   {execution.failureReason}
                 </div>
@@ -694,18 +710,29 @@ const ExecutionView: FunctionComponent<
                 }`}
               ></span>
               {isRefreshing
-                ? "Refreshing now..."
+                ? translator.translateText("Refreshing now...")
                 : lastRefreshedAt
-                  ? `Live — last refreshed ${OneUptimeDate.getDateAsLocalFormattedString(
-                      lastRefreshedAt,
-                    )}. Auto-refreshing every ${pollSeconds} seconds.`
-                  : `Live — auto-refreshing every ${pollSeconds} seconds.`}
+                  ? translator.translateTemplate(
+                      "Live — last refreshed {{time}}. Auto-refreshing every {{seconds}} seconds.",
+                      {
+                        time: OneUptimeDate.getDateAsLocalFormattedString(
+                          lastRefreshedAt,
+                        ),
+                        seconds: pollSeconds,
+                      },
+                    )
+                  : translator.translateTemplate(
+                      "Live — auto-refreshing every {{seconds}} seconds.",
+                      { seconds: pollSeconds },
+                    )}
             </div>
           )}
 
           {steps.length === 0 ? (
             <p className="text-sm text-gray-500">
-              This runbook had no steps when it ran.
+              {translator.translateText(
+                "This runbook had no steps when it ran.",
+              )}
             </p>
           ) : (
             <div className="relative">
@@ -762,7 +789,10 @@ const ExecutionView: FunctionComponent<
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <span className="text-xs text-gray-400 font-medium">
-                                  Step {idx + 1}
+                                  {translator.translateTemplate(
+                                    "Step {{number}}",
+                                    { number: idx + 1 },
+                                  )}
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">
                                   <Icon
@@ -823,17 +853,25 @@ const ExecutionView: FunctionComponent<
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2 items-center">
                               {stepExec.startedAt && (
                                 <span>
-                                  Started{" "}
-                                  {OneUptimeDate.getDateAsLocalFormattedString(
-                                    new Date(stepExec.startedAt),
+                                  {translator.translateTemplate(
+                                    "Started {{date}}",
+                                    {
+                                      date: OneUptimeDate.getDateAsLocalFormattedString(
+                                        new Date(stepExec.startedAt),
+                                      ),
+                                    },
                                   )}
                                 </span>
                               )}
                               {stepExec.completedAt && (
                                 <span>
-                                  Finished{" "}
-                                  {OneUptimeDate.getDateAsLocalFormattedString(
-                                    new Date(stepExec.completedAt),
+                                  {translator.translateTemplate(
+                                    "Finished {{date}}",
+                                    {
+                                      date: OneUptimeDate.getDateAsLocalFormattedString(
+                                        new Date(stepExec.completedAt),
+                                      ),
+                                    },
                                   )}
                                 </span>
                               )}
@@ -845,8 +883,10 @@ const ExecutionView: FunctionComponent<
                                   <span className="inline-flex items-center gap-1">
                                     {stepExec.status ===
                                     RunbookStepExecutionStatus.Skipped
-                                      ? "Skipped by"
-                                      : "Completed by"}
+                                      ? translator.translateText("Skipped by")
+                                      : translator.translateText(
+                                          "Completed by",
+                                        )}
                                     {stepUsers.get(
                                       stepExec.completedByUserId,
                                     ) ? (
@@ -875,7 +915,9 @@ const ExecutionView: FunctionComponent<
                                 className="text-rose-500 mt-0.5 shrink-0"
                               />
                               <div>
-                                <div className="font-medium">Step failed</div>
+                                <div className="font-medium">
+                                  {translator.translateText("Step failed")}
+                                </div>
                                 <div className="mt-0.5 whitespace-pre-wrap leading-relaxed">
                                   {stepExec.errorMessage}
                                 </div>
@@ -905,13 +947,21 @@ const ExecutionView: FunctionComponent<
                                 />
                                 <span className="group-open:hidden">
                                   {stepExec.step.type === RunbookStepType.AI
-                                    ? "Show AI response"
-                                    : "Show output / logs"}
+                                    ? translator.translateText(
+                                        "Show AI response",
+                                      )
+                                    : translator.translateText(
+                                        "Show output / logs",
+                                      )}
                                 </span>
                                 <span className="inline [details:not([open])>summary>&]:hidden">
                                   {stepExec.step.type === RunbookStepType.AI
-                                    ? "Hide AI response"
-                                    : "Hide output / logs"}
+                                    ? translator.translateText(
+                                        "Hide AI response",
+                                      )
+                                    : translator.translateText(
+                                        "Hide output / logs",
+                                      )}
                                 </span>
                               </summary>
                               {stepExec.step.type === RunbookStepType.AI ? (

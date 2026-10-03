@@ -54,6 +54,9 @@ import {
   UserFlowUrlState,
 } from "../../../Components/UserFlow/UserFlowUrlState";
 import { formatUserFlowCount } from "../../../Components/UserFlow/UserFlowFormat";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * User Flows: how people actually move through the application, drawn from
@@ -93,6 +96,7 @@ function range(min: number, max: number): Array<number> {
 const RumApplicationUserFlows: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /* Route is ":id/user-flows", so the model id is one segment from the end. */
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const rumApplicationId: string = modelId.toString();
@@ -260,7 +264,7 @@ const RumApplicationUserFlows: FunctionComponent<
         <div
           className="inline-flex rounded-md shadow-sm"
           role="group"
-          aria-label="Flow direction"
+          aria-label={translator.translateText("Flow direction")}
         >
           {(
             [
@@ -293,7 +297,7 @@ const RumApplicationUserFlows: FunctionComponent<
                     setMode(item.id);
                   }}
                 >
-                  {item.label}
+                  {translator.translateText(item.label)}
                 </button>
               );
             },
@@ -302,7 +306,7 @@ const RumApplicationUserFlows: FunctionComponent<
 
         {mode !== "start" ? (
           <label className="flex items-center gap-2 text-sm text-gray-600">
-            Page
+            {translator.translateText("Page")}
             <select
               className={`${SELECT_CLASS} max-w-xs font-mono`}
               data-testid="user-flow-anchor-select"
@@ -313,7 +317,10 @@ const RumApplicationUserFlows: FunctionComponent<
             >
               {anchorMissing && options.anchorPage ? (
                 <option value={options.anchorPage}>
-                  {options.anchorPage} (not visited in this range)
+                  {translator.translateTemplate(
+                    "{{page}} (not visited in this range)",
+                    { page: options.anchorPage },
+                  )}
                 </option>
               ) : (
                 <></>
@@ -334,7 +341,7 @@ const RumApplicationUserFlows: FunctionComponent<
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
         <label className="flex items-center gap-2">
-          Steps
+          {translator.translateText("Steps")}
           <select
             className={SELECT_CLASS}
             data-testid="user-flow-steps-select"
@@ -356,7 +363,7 @@ const RumApplicationUserFlows: FunctionComponent<
         </label>
 
         <label className="flex items-center gap-2">
-          Pages per step
+          {translator.translateText("Pages per step")}
           <select
             className={SELECT_CLASS}
             data-testid="user-flow-per-step-select"
@@ -379,7 +386,7 @@ const RumApplicationUserFlows: FunctionComponent<
         </label>
 
         <label className="flex items-center gap-2">
-          Sessions
+          {translator.translateText("Sessions")}
           <select
             className={SELECT_CLASS}
             data-testid="user-flow-session-filter"
@@ -390,15 +397,21 @@ const RumApplicationUserFlows: FunctionComponent<
               });
             }}
           >
-            <option value="all">All sessions</option>
-            <option value="errors">With errors</option>
-            <option value="frustration">With frustration signals</option>
+            <option value="all">
+              {translator.translateText("All sessions")}
+            </option>
+            <option value="errors">
+              {translator.translateText("With errors")}
+            </option>
+            <option value="frustration">
+              {translator.translateText("With frustration signals")}
+            </option>
           </select>
         </label>
 
         {analysis && analysis.deviceTypes.length > 0 ? (
           <label className="flex items-center gap-2">
-            Device
+            {translator.translateText("Device")}
             <select
               className={SELECT_CLASS}
               data-testid="user-flow-device-filter"
@@ -407,7 +420,9 @@ const RumApplicationUserFlows: FunctionComponent<
                 updateOptions({ deviceType: event.target.value });
               }}
             >
-              <option value="">All devices</option>
+              <option value="">
+                {translator.translateText("All devices")}
+              </option>
               {analysis.deviceTypes.map((device: string): ReactElement => {
                 return (
                   <option key={device} value={device}>
@@ -423,7 +438,9 @@ const RumApplicationUserFlows: FunctionComponent<
 
         <label
           className="flex cursor-pointer items-center gap-2"
-          title="Treat /orders/1042 and /orders/1043 as one page, /orders/:id"
+          title={translator.translateText(
+            "Treat /orders/1042 and /orders/1043 as one page, /orders/:id",
+          )}
         >
           <input
             type="checkbox"
@@ -434,7 +451,7 @@ const RumApplicationUserFlows: FunctionComponent<
               updateOptions({ groupDynamicSegments: event.target.checked });
             }}
           />
-          Group IDs in URLs
+          {translator.translateText("Group IDs in URLs")}
         </label>
       </div>
 
@@ -443,7 +460,9 @@ const RumApplicationUserFlows: FunctionComponent<
           className="flex flex-wrap items-center gap-2 text-sm"
           data-testid="user-flow-hidden-pages"
         >
-          <span className="text-gray-500">Hidden:</span>
+          <span className="text-gray-500">
+            {translator.translateText("Hidden:")}
+          </span>
           {options.hiddenPages.map((page: string): ReactElement => {
             return (
               <span
@@ -454,7 +473,10 @@ const RumApplicationUserFlows: FunctionComponent<
                 <button
                   type="button"
                   className="rounded-full p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700"
-                  aria-label={`Show ${page} again`}
+                  aria-label={translator.translateTemplate(
+                    "Show {{page}} again",
+                    { page: page },
+                  )}
                   onClick={(): void => {
                     updateOptions({
                       hiddenPages: options.hiddenPages.filter(
@@ -508,10 +530,9 @@ const RumApplicationUserFlows: FunctionComponent<
         paddingClassName="py-16"
         description={
           <span>
-            User flows are drawn from Session Replay recordings: every recorded
-            session contributes the pages it visited, in order. Widen the time
-            range, or make sure the replay recorder is installed on this
-            application.
+            {translator.translateText(
+              "User flows are drawn from Session Replay recordings: every recorded session contributes the pages it visited, in order. Widen the time range, or make sure the replay recorder is installed on this application.",
+            )}
           </span>
         }
         footer={
@@ -519,7 +540,7 @@ const RumApplicationUserFlows: FunctionComponent<
             to={docsRoute}
             className="text-sm font-medium text-indigo-700 hover:underline"
           >
-            How to install Session Replay
+            {translator.translateTemplate("How to install Session Replay")}
           </AppLink>
         }
       />
@@ -538,7 +559,7 @@ const RumApplicationUserFlows: FunctionComponent<
         <div className="relative rounded-lg border border-gray-200 bg-gray-50/50 p-4">
           {isLoading ? (
             <div className="absolute right-4 top-4 text-xs text-gray-500">
-              Updating…
+              {translator.translateText("Updating…")}
             </div>
           ) : (
             <></>
@@ -548,18 +569,23 @@ const RumApplicationUserFlows: FunctionComponent<
               className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800"
               data-testid="user-flow-anchor-missing"
             >
-              No session visited <code>{options.anchorPage}</code> in this range
-              with the current filters. Pick another page, or{" "}
-              <button
-                type="button"
-                className="font-medium underline"
-                onClick={(): void => {
-                  setMode("start");
+              <TranslatedSentence
+                template="No session visited {{page}} in this range with the current filters. Pick another page, or {{startLink}}."
+                slots={{
+                  page: <code>{options.anchorPage}</code>,
+                  startLink: (
+                    <button
+                      type="button"
+                      className="font-medium underline"
+                      onClick={(): void => {
+                        setMode("start");
+                      }}
+                    >
+                      {translator.translateText("start from the landing page")}
+                    </button>
+                  ),
                 }}
-              >
-                start from the landing page
-              </button>
-              .
+              />
             </div>
           ) : (
             <UserFlowMap
@@ -584,10 +610,9 @@ const RumApplicationUserFlows: FunctionComponent<
           />
         ) : (
           <p className="text-xs text-gray-500">
-            Click a page or a band for details, sessions to watch and where to
-            go next. Paths are built from the pages each recorded session
-            visited, in order; a page reloaded or revisited back to back counts
-            once.
+            {translator.translateText(
+              "Click a page or a band for details, sessions to watch and where to go next. Paths are built from the pages each recorded session visited, in order; a page reloaded or revisited back to back counts once.",
+            )}
           </p>
         )}
 

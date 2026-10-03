@@ -114,7 +114,7 @@ Den besked, abonnenterne faktisk får, er skabelonstyret per statusside og per k
 
 ## Hændelsesfeedet
 
-Kortet **Hændelse Feed** sidder nederst i venstre kolonne på hændelsens side **Oversigt**. Det er hændelsens historie i rækkefølge: hvert punkt er et ikon, avataren og navnet på den, der udløste det, et relativt tidsstempel med det præcise lokale klokkeslæt ved hover, og en Markdown-brødtekst. Punkterne er sorteret ældste først.
+Kortet **Hændelse Feed** sidder nederst i venstre kolonne på hændelsens side **Oversigt**. Det er hændelsens historie i rækkefølge: hvert punkt er et ikon, avataren og navnet på den, der udløste det, et relativt tidsstempel med det præcise lokale klokkeslæt ved hover, og en Markdown-brødtekst. Som standard står de nyeste punkter øverst.
 
 Nogle punkter bærer ekstra detaljer — en ejernotifikation lister for eksempel alle, der fik post. De viser en knap **More Information**, som åbner et panel **More Information**.
 
@@ -125,7 +125,11 @@ Kortets sidehoved har også en menu **Handlinger**, så du kan handle uden at fo
 - **Add Public Note** — de samme fire felter som siden Offentlige noter, i en dialog.
 - **Tilføj privat note** — kun notetekst og vedhæftninger.
 
-Ved siden af den henter **Opdater** feedet igen.
+Alt andet ligger bag knappen **⋯** ved siden af, den samme knap **Flere indstillinger**, som en tabels korthoved har, så hovedet viser så få knapper som muligt:
+
+- **Nyeste først** / **Ældste først** — rækkefølgen, feedet læses i. Et flueben markerer den valgte, og din browser husker valget for feedet på hver hændelse.
+- **Filtrér efter begivenhedstype** — en dialog med feedets begivenhedstyper, hver med ikonet for dens punkter, og et søgefelt, når listen er lang. Sæt flueben ved dem, der skal vises, og vælg **Anvend filtre**; uden flueben vises de alle. Så længe feedet er filtreret, viser en boks over det, hvor mange begivenhedstyper det viser, med en etiket for hver, **Rediger filtre** og **Ryd filtre**. Filteret gemmes ikke: forlad hændelsen, og dens feed viser igen alt.
+- **Opdater** — henter feedet igen.
 
 **Feedet kan kun tilføjes til, og det er ikke din auditlog.** API'et tillader at oprette og læse feed-punkter, men ikke at opdatere eller slette dem, så ingen kan i stilhed skrive en hændelses historik om. Det er heller ikke permanent: på fakturerede installationer fjernes feed-rækker, der er ældre end tre år. Vil du have en varig optegnelse over, hvem der ændrede hvad, så brug **Revision → Auditlogs** i hændelsens sidemenu.
 

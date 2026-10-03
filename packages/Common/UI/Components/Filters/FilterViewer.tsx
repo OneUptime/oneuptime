@@ -4,7 +4,6 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "../Dictionary/DictionaryFilterOperator";
-import Icon, { SizeProp } from "../Icon/Icon";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
@@ -19,12 +18,12 @@ import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
-import Button, { ButtonStyleType } from "../Button/Button";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import FieldType from "../Types/FieldType";
 import FilterViewerItem from "./FilterViewerItem";
+import AppliedFilters from "./AppliedFilters";
 import FiltersForm from "./FiltersForm";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
@@ -33,7 +32,6 @@ import Search from "../../../Types/BaseDatabase/Search";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import GenericObject from "../../../Types/GenericObject";
-import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import {
   PluralTemplate,
@@ -626,58 +624,26 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     <div>
       {showViewer && (
         <div>
-          <div className="mt-4 mb-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <Icon icon={IconProp.Filter} size={SizeProp.Smaller} />
-                <span className="font-semibold">
-                  {props.pluralLabel
-                    ? translator.translateTemplate(
-                        "Showing {{itemsName}} that match",
-                        { itemsName: translatableTerm(props.pluralLabel) },
-                      )
-                    : tx("Showing results that match")}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {filterTexts.map((filterText: ReactElement, index: number) => {
-                return (
-                  <div
-                    key={index}
-                    className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm whitespace-nowrap"
-                  >
-                    <FilterViewerItem key={index} text={filterText} />
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex -ml-3 mt-3 -mb-1">
-              {/** Edit Filter Button */}
-              <Button
-                className="font-medium text-gray-900"
-                icon={IconProp.Filter}
-                onClick={props.onFilterModalOpen}
-                title={tx("Edit Filters")}
-                iconSize={SizeProp.Smaller}
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              />
-
-              {/** Clear Filter Button */}
-              <Button
-                onClick={() => {
-                  changeFilterData({});
-                  props.onFilterModalClose?.();
-                }}
-                className="font-medium text-gray-900"
-                icon={IconProp.Close}
-                title={tx("Clear Filters")}
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              />
-            </div>
-          </div>
+          <AppliedFilters
+            title={
+              props.pluralLabel
+                ? translator.translateTemplate(
+                    "Showing {{itemsName}} that match",
+                    { itemsName: translatableTerm(props.pluralLabel) },
+                  )
+                : tx("Showing results that match")
+            }
+            chips={filterTexts.map(
+              (filterText: ReactElement, index: number): ReactElement => {
+                return <FilterViewerItem key={index} text={filterText} />;
+              },
+            )}
+            onEditFilters={props.onFilterModalOpen}
+            onClearFilters={() => {
+              changeFilterData({});
+              props.onFilterModalClose?.();
+            }}
+          />
         </div>
       )}
 

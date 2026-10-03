@@ -25,6 +25,12 @@ import Permission from "../../../Types/Permission";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import {
+  TOGGLE_KNOB_OFF_CLASS,
+  TOGGLE_KNOB_ON_CLASS,
+  TOGGLE_TRACK_OFF_CLASS,
+  TOGGLE_TRACK_ON_CLASS,
+} from "../../../UI/Components/Toggle/Toggle";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -380,6 +386,37 @@ describe.each(PAGES)(
       expect(
         within(dialog()).queryByRole("button", { name: "Next" }),
       ).not.toBeInTheDocument();
+    });
+
+    /*
+     * The switch in the maintainer's screenshot: "make it just like how the
+     * rest of oneuptime looks like". It is the shared Toggle's look - a grey
+     * track with a white knob when off, the brand indigo when on, no
+     * outline.
+     */
+    test("the Secret switch is the product's switch: grey with a white knob, indigo once on", async () => {
+      const user: UserEvent = await renderForm(page);
+
+      await enterVariable(user, "PAGERDUTY_KEY");
+
+      const knob: () => HTMLElement = (): HTMLElement => {
+        return secretSwitch().querySelector(
+          "[data-ou-toggle-knob]",
+        ) as HTMLElement;
+      };
+
+      expect(secretSwitch()).toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+      expect(secretSwitch()).not.toHaveClass("border-gray-500");
+      expect(knob()).toHaveClass("bg-white", TOGGLE_KNOB_OFF_CLASS);
+
+      await user.click(secretSwitch());
+      await waitFor(() => {
+        expect(secretSwitch()).toHaveAttribute("aria-checked", "true");
+      });
+
+      expect(secretSwitch()).toHaveClass(TOGGLE_TRACK_ON_CLASS);
+      expect(secretSwitch()).not.toHaveClass(TOGGLE_TRACK_OFF_CLASS);
+      expect(knob()).toHaveClass("bg-white", TOGGLE_KNOB_ON_CLASS);
     });
 
     test("does not create a variable without content", async () => {

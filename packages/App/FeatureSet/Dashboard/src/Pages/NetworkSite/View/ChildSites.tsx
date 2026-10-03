@@ -14,6 +14,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Sites nested directly under this one. New child sites created here are
@@ -22,6 +24,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteChildSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -168,7 +171,11 @@ const NetworkSiteChildSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.networkSiteType?.name) {
-                return <span className="text-sm text-gray-400">Not set</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not set")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -189,7 +196,11 @@ const NetworkSiteChildSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {
-                return <span className="text-sm text-gray-400">No Data</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No Data")}
+                  </span>
+                );
               }
               return (
                 <MonitorStatusElement

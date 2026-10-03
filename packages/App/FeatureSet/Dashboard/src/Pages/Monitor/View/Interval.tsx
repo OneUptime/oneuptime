@@ -24,10 +24,13 @@ import React, {
 } from "react";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -87,9 +90,9 @@ const MonitorCriteria: FunctionComponent<
           title={"No Monitoring Interval for Manual Monitors"}
           description={
             <>
-              This is a manual monitor. It does not monitor anything and so, it
-              cannot have monitoring interval set. You can have monitoring
-              interval on other monitor types.{" "}
+              {translator.translateText(
+                "This is a manual monitor. It does not monitor anything and so, it cannot have monitoring interval set. You can have monitoring interval on other monitor types.",
+              )}
             </>
           }
         />
@@ -106,9 +109,9 @@ const MonitorCriteria: FunctionComponent<
           }
           description={
             <>
-              This is a incoming request / heartbeat monitor. Since OneUptime
-              does not send an outbound request, we do not need monitoring
-              interval. You can have monitoring interval on other monitor types.{" "}
+              {translator.translateText(
+                "This is a incoming request / heartbeat monitor. Since OneUptime does not send an outbound request, we do not need monitoring interval. You can have monitoring interval on other monitor types.",
+              )}
             </>
           }
         />

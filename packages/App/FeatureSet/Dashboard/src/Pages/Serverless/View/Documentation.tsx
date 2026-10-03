@@ -15,10 +15,17 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ServerlessDocumentationCard from "../../../Components/Serverless/ServerlessDocumentationCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TranslatableTerm,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const ServerlessFunctionDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [serverlessFunction, setServerlessFunction] =
@@ -63,16 +70,19 @@ const ServerlessFunctionDocumentation: FunctionComponent<
     return <ErrorMessage message="Serverless function not found." />;
   }
 
-  const label: string =
+  const label: string | TranslatableTerm =
     (serverlessFunction.functionIdentifier as string) ||
     (serverlessFunction.name as string) ||
-    "this function";
+    translatableTerm("this function");
 
   return (
     <Fragment>
       <ServerlessDocumentationCard
         title="Send telemetry to this serverless function"
-        description={`Instrument your function with OpenTelemetry so ${label} reports to OneUptime.`}
+        description={translator.translateTemplate(
+          "Instrument your function with OpenTelemetry so {{function}} reports to OneUptime.",
+          { function: label },
+        )}
         functionName={serverlessFunction.functionIdentifier as string}
         cloudPlatform={serverlessFunction.cloudPlatform as string}
       />

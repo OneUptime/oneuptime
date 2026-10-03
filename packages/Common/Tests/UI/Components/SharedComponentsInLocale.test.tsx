@@ -16,6 +16,7 @@ import {
   translatableTerm,
 } from "../../../UI/Utils/TranslateTemplate";
 import { Green } from "../../../Types/BrandColors";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * The shared components put their text props and their own sentences on the
@@ -107,6 +108,7 @@ const bulkForm: (selected: number) => ReactElement = (
       buttons={[
         {
           title: "Archive",
+          icon: IconProp.Archive,
           buttonStyleType: ButtonStyleType.NORMAL,
           onClick: (): Promise<void> => {
             return Promise.resolve();

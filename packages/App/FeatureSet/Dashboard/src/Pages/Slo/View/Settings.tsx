@@ -39,8 +39,23 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translateTemplate,
+  translateText,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const EM_DASH: string = "—";
+
+// Each mode's name (the enum value is its English name).
+const MULTI_MONITOR_MODE_NAMES: Record<SloMultiMonitorMode, string> = {
+  [SloMultiMonitorMode.AnyDown]: translationKey("Any Monitor Down"),
+  [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
+    "Monitor Seconds Average",
+  ),
+};
 
 /*
  * Shown when a status has no colour, the same neutral fallback the
@@ -86,15 +101,17 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
    */
   if (orderedStatuses.length === 0) {
     return getValueElement(
-      "Every non-operational status",
-      "The default. Statuses added to the project later are counted too.",
+      translateTemplate("Every non-operational status"),
+      translateTemplate(
+        "The default. Statuses added to the project later are counted too.",
+      ),
     );
   }
 
   return (
     <ul
       className="flex flex-wrap gap-2"
-      aria-label="Statuses that count as downtime"
+      aria-label={translateText("Statuses that count as downtime")}
     >
       {orderedStatuses.map((status: MonitorStatus, index: number) => {
         return (
@@ -111,7 +128,7 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
                   : STATUS_DOT_FALLBACK_COLOR,
               }}
             />
-            {status.name || "Unnamed status"}
+            {status.name || translateText("Unnamed status")}
           </li>
         );
       })}
@@ -122,6 +139,7 @@ const getDowntimeStatusesElement: GetDowntimeStatusesElementFunction = (
 type RefreshBannerFunction = () => void;
 
 const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // The route is <sloId>/settings, so the id is one segment back.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
@@ -221,9 +239,14 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                 return getValueElement(
                   threshold
-                    ? `${threshold} of error budget remaining`
+                    ? translator.translateTemplate(
+                        "{{threshold}} of error budget remaining",
+                        { threshold: threshold },
+                      )
                     : EM_DASH,
-                  "Below this the SLO turns At Risk.",
+                  translator.translateTemplate(
+                    "Below this the SLO turns At Risk.",
+                  ),
                 );
               },
             },
@@ -240,7 +263,9 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     windowType: item.windowType,
                     windowDays: item.windowDays,
                   }) || EM_DASH,
-                  "The downtime this objective allows before it is breached.",
+                  translator.translateTemplate(
+                    "The downtime this objective allows before it is breached.",
+                  ),
                 );
               },
             },
@@ -287,7 +312,9 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     windowDays: item.windowDays,
                     timezone: item.timezone,
                   }),
-                  SLO_WINDOW_TYPE_DESCRIPTIONS[windowType],
+                  translator.translateText(
+                    SLO_WINDOW_TYPE_DESCRIPTIONS[windowType],
+                  ),
                 );
               },
             },
@@ -304,8 +331,12 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return getValueElement(
                   item.timezone || "UTC",
                   item.timezone
-                    ? "Months start and end at midnight in this timezone."
-                    : "The default. Months start and end at midnight UTC.",
+                    ? translator.translateTemplate(
+                        "Months start and end at midnight in this timezone.",
+                      )
+                    : translator.translateTemplate(
+                        "The default. Months start and end at midnight UTC.",
+                      ),
                 );
               },
             },
@@ -342,8 +373,10 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   item.multiMonitorMode || SloMultiMonitorMode.AnyDown;
 
                 return getValueElement(
-                  mode,
-                  SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
+                  translator.translateTerm(MULTI_MONITOR_MODE_NAMES[mode]),
+                  translator.translateText(
+                    SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
+                  ),
                 );
               },
             },
@@ -403,8 +436,10 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: ServiceLevelObjective): ReactElement => {
                 if (!item.lastEvaluatedAt) {
                   return getValueElement(
-                    "Not evaluated yet",
-                    "OneUptime evaluates enabled SLOs every few minutes.",
+                    translator.translateTemplate("Not evaluated yet"),
+                    translator.translateTemplate(
+                      "OneUptime evaluates enabled SLOs every few minutes.",
+                    ),
                   );
                 }
 

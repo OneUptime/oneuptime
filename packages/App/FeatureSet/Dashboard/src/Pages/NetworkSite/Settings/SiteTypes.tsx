@@ -9,6 +9,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const networkSiteTypeDocumentation: string = `
 ### How Site Types Work
@@ -44,6 +46,7 @@ Because types are renameable, nothing in OneUptime keys off the *name* "Unit" â€
 const NetworkSiteTypesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkSiteType>
@@ -103,7 +106,11 @@ const NetworkSiteTypesPage: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSiteType): ReactElement => {
               if (!item.parentNetworkSiteType?.name) {
-                return <span className="text-gray-400">Top level</span>;
+                return (
+                  <span className="text-gray-400">
+                    {translator.translateText("Top level")}
+                  </span>
+                );
               }
 
               return <span>{item.parentNetworkSiteType.name}</span>;

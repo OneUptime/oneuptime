@@ -18,10 +18,13 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
 
@@ -218,18 +221,19 @@ const OnCallDutyPage: FunctionComponent<
                 <div className="flex flex-col gap-0.5">
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
                     <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                    No one on call
+                    {translator.translateText("No one on call")}
                   </span>
                   {item.rosterNextStartAt && item.nextUserOnRoster ? (
                     <span className="text-xs text-gray-400">
-                      Resumes{" "}
-                      {OneUptimeDate.getDateAsLocalFormattedString(
-                        item.rosterNextStartAt,
-                      )}
+                      {translator.translateTemplate("Resumes {{date}}", {
+                        date: OneUptimeDate.getDateAsLocalFormattedString(
+                          item.rosterNextStartAt,
+                        ),
+                      })}
                     </span>
                   ) : (
                     <span className="text-xs text-gray-400">
-                      No upcoming shifts
+                      {translator.translateText("No upcoming shifts")}
                     </span>
                   )}
                 </div>

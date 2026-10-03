@@ -40,8 +40,11 @@ import FetchLabels from "../../Components/Label/FetchLabels";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchAlertState from "../../Components/AlertState/FetchAlertState";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [initialValuesForAlert, setInitialValuesForAlert] =
     useState<JSONObject>({});
 
@@ -170,7 +173,13 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "Select Initial State",
                 getSummaryElement: (item: FormValues<Alert>) => {
                   if (!item.currentAlertState) {
-                    return <p>Will use first available state by priority</p>;
+                    return (
+                      <p>
+                        {translator.translateText(
+                          "Will use first available state by priority",
+                        )}
+                      </p>
+                    );
                   }
 
                   return (
@@ -199,7 +208,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "Select Monitor",
                 getSummaryElement: (item: FormValues<Alert>) => {
                   if (!item.monitor) {
-                    return <p>No monitor selected.</p>;
+                    return (
+                      <p>{translator.translateText("No monitor selected.")}</p>
+                    );
                   }
 
                   return (
@@ -227,6 +238,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
+                // The picker writes only what is picked: the form can be finished without it.
+                customElementCanBeSkipped: true,
                 getCustomElement: (
                   values: FormValues<Alert>,
                   elementProps: CustomElementProps,
@@ -295,7 +308,13 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return Array.isArray(resources) && resources.length > 0;
                   });
                   if (!hasResources) {
-                    return <p>No other resources affected by this alert.</p>;
+                    return (
+                      <p>
+                        {translator.translateText(
+                          "No other resources affected by this alert.",
+                        )}
+                      </p>
+                    );
                   }
                   return (
                     <AffectedResourcesPicker
@@ -405,8 +424,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ) {
                     return (
                       <p>
-                        No on-call policies will be executed when this alert is
-                        created.
+                        {translator.translateText(
+                          "No on-call policies will be executed when this alert is created.",
+                        )}
                       </p>
                     );
                   }
@@ -459,7 +479,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "Labels",
                 getSummaryElement: (item: FormValues<Alert>) => {
                   if (!item.labels || !Array.isArray(item.labels)) {
-                    return <p>No labels assigned.</p>;
+                    return (
+                      <p>{translator.translateText("No labels assigned.")}</p>
+                    );
                   }
 
                   const labelIds: Array<ObjectID> = [];

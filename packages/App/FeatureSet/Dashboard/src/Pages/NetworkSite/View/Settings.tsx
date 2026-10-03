@@ -19,6 +19,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Site settings: identity, hierarchy placement, and map position. The
@@ -28,6 +30,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkSiteSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -227,7 +230,11 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.networkSiteType?.name) {
-                  return <span className="text-gray-400">Not set</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Not set")}
+                    </span>
+                  );
                 }
                 return <span>{item.networkSiteType.name}</span>;
               },
@@ -242,7 +249,11 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.parentSite?.name) {
-                  return <span className="text-gray-400">Root site</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Root site")}
+                    </span>
+                  );
                 }
                 return <span>{item.parentSite.name}</span>;
               },
@@ -259,7 +270,9 @@ const NetworkSiteSettings: FunctionComponent<
                 if (!item.probe?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — devices name their own probe
+                      {translator.translateText(
+                        "None — devices name their own probe",
+                      )}
                     </span>
                   );
                 }
@@ -278,7 +291,9 @@ const NetworkSiteSettings: FunctionComponent<
                 if (!item.snmpCredentialProfile?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — devices without credentials are pinged only
+                      {translator.translateText(
+                        "None — devices without credentials are pinged only",
+                      )}
                     </span>
                   );
                 }
@@ -363,7 +378,9 @@ const NetworkSiteSettings: FunctionComponent<
                 if (!item.alertSeverity?.name) {
                   return (
                     <span className="text-gray-400">
-                      Project default (most severe)
+                      {translator.translateText(
+                        "Project default (most severe)",
+                      )}
                     </span>
                   );
                 }
@@ -461,7 +478,7 @@ const NetworkSiteSettings: FunctionComponent<
                 ) {
                   return (
                     <span className="text-gray-400">
-                      Not used by this policy
+                      {translator.translateText("Not used by this policy")}
                     </span>
                   );
                 }

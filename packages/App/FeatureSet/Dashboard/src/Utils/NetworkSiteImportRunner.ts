@@ -5,6 +5,7 @@ import {
   SkippedSiteRow,
   planSiteImport,
 } from "./NetworkSiteCsv";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The create-loop behind the Network Sites bulk import, kept react-free and
@@ -180,7 +181,10 @@ export async function runSiteImport(
             line: row.line,
             name: row.name,
             status: "skipped",
-            message: `Parent site "${row.parentName}" could not be created.`,
+            message: translateTemplate(
+              'Parent site "{{parent}}" could not be created.',
+              { parent: row.parentName || "" },
+            ),
           });
           reportProgress();
           continue;

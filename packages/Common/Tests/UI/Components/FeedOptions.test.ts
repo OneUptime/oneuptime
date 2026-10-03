@@ -1,6 +1,7 @@
 import {
   DEFAULT_FEED_OPTIONS,
   DEFAULT_FEED_SORT_ORDER,
+  FEED_APPLIED_FILTERS_CHIP_LIMIT,
   FEED_OPTIONS_TEXT,
   FEED_SORT_ORDER_OPTIONS,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
@@ -12,12 +13,10 @@ import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
   getFeedOptionsKey,
-  getFeedOptionsSummary,
   isDefaultFeedOptions,
   isFeedFiltered,
   isFeedSortOrder,
   sanitizeFeedEventTypes,
-  translateFeedOptionsText,
 } from "../../../UI/Components/Feed/FeedOptions";
 import { AlertEpisodeFeedEventType } from "../../../Models/DatabaseModels/AlertEpisodeFeed";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
@@ -60,7 +59,7 @@ interface FeedEventTypeSpec {
 }
 
 /*
- * Every dashboard activity feed that gets the "Filter & Sort" button. Each
+ * Every dashboard activity feed that gets the event type filter. Each
  * one's event types become a checklist, so every label below has to read well
  * and be told apart from its neighbours. "the feed inventory" below checks
  * this table against the models on disk, so a new feed model cannot slip
@@ -175,7 +174,7 @@ const MODELS_DIRECTORY: string = path.resolve(
 
 /*
  * A feed model is recognised by the enum of event types its timeline holds;
- * that enum is exactly what the "Filter & Sort" checklist is built from.
+ * that enum is exactly what the event type filter's checklist is built from.
  */
 const FEED_EVENT_TYPE_ENUM_PATTERN: RegExp =
   /export enum (\w+FeedEventType)\b/g;
@@ -1146,75 +1145,6 @@ describe("getFeedNoItemsMessage", () => {
   });
 });
 
-describe("getFeedOptionsSummary", () => {
-  test("an unfiltered feed shows all event types", () => {
-    expect(
-      getFeedOptionsSummary({
-        options: DEFAULT_FEED_OPTIONS,
-        eventTypeCount: 12,
-      }),
-    ).toBe("Newest first, all event types");
-  });
-
-  test("names the oldest-first order", () => {
-    expect(
-      getFeedOptionsSummary({
-        options: { sortOrder: SortOrder.Ascending, eventTypes: [] },
-        eventTypeCount: 12,
-      }),
-    ).toBe("Oldest first, all event types");
-  });
-
-  test("counts the selection against the feed's event types", () => {
-    expect(
-      getFeedOptionsSummary({
-        options: {
-          sortOrder: SortOrder.Descending,
-          eventTypes: [
-            IncidentFeedEventType.PublicNote,
-            IncidentFeedEventType.RootCause,
-          ],
-        },
-        eventTypeCount: 5,
-      }),
-    ).toBe("Newest first, 2 of 5 event types");
-
-    expect(
-      getFeedOptionsSummary({
-        options: {
-          sortOrder: SortOrder.Ascending,
-          eventTypes: [IncidentFeedEventType.PublicNote],
-        },
-        eventTypeCount: 5,
-      }),
-    ).toBe("Oldest first, 1 of 5 event types");
-  });
-
-  test("a feed with one event type reads in the singular", () => {
-    expect(
-      getFeedOptionsSummary({
-        options: {
-          sortOrder: SortOrder.Descending,
-          eventTypes: [IncidentFeedEventType.PublicNote],
-        },
-        eventTypeCount: 1,
-      }),
-    ).toBe("Newest first, 1 of 1 event type");
-  });
-
-  test("an unknown sort order reads as the default", () => {
-    expect(
-      getFeedOptionsSummary({
-        options: {
-          sortOrder: "sideways" as unknown as SortOrder,
-          eventTypes: [],
-        },
-        eventTypeCount: 3,
-      }),
-    ).toBe("Newest first, all event types");
-  });
-});
-
 describe("event types named like Object.prototype members", () => {
   /*
    * The shared label table is a Map. As an object literal, looking up
@@ -1247,84 +1177,73 @@ describe("event types named like Object.prototype members", () => {
   });
 });
 
-describe("translateFeedOptionsText", () => {
-  test("returns the English text when there is no translator", () => {
-    expect(translateFeedOptionsText({ text: "Sort by time" })).toBe(
-      "Sort by time",
+/*
+ * The words of a feed's ⋯ menu, its filter dialog and the box over a filtered
+ * feed. The dashboard translates each by its English text, so these pin the
+ * text the locale files are keyed by.
+ */
+describe("FEED_OPTIONS_TEXT", () => {
+  const SOURCE: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "UI",
+      "Components",
+      "Feed",
+      "FeedOptions.ts",
+    ),
+    "utf8",
+  );
+
+  test("names the menu's items as the table's card header names its own", () => {
+    expect(FEED_OPTIONS_TEXT.sortHeading).toBe("Sort by time");
+    expect(FEED_OPTIONS_TEXT.filter).toBe("Filter by event type");
+    // The table's ⋯ calls its refresh "Refresh", and so does a feed's.
+    expect(FEED_OPTIONS_TEXT.refresh).toBe("Refresh");
+    // The table's filter dialog applies with "Apply Filters", and so does a feed's.
+    expect(FEED_OPTIONS_TEXT.applyFilters).toBe("Apply Filters");
+  });
+
+  test("titles the box over a filtered feed with a count, as a heading with no full stop", () => {
+    expect(FEED_OPTIONS_TEXT.appliedFiltersTitle).toBe(
+      "Showing {{selected}} of {{total}} event types",
+    );
+    // The dialog's sentence about the same ticks is a sentence, and keeps its stop.
+    expect(FEED_OPTIONS_TEXT.showingSomeEventTypes).toBe(
+      `${FEED_OPTIONS_TEXT.appliedFiltersTitle}.`,
     );
   });
 
-  test("uses the translation when there is one", () => {
-    expect(
-      translateFeedOptionsText({
-        text: "Sort by time",
-        translate: (text: string | undefined): string | undefined => {
-          return text === "Sort by time" ? "Nach Zeit sortieren" : text;
-        },
-      }),
-    ).toBe("Nach Zeit sortieren");
+  test("folds the chips past the limit into the sentence the delete dialogs use", () => {
+    expect(FEED_OPTIONS_TEXT.moreEventTypes).toBe("and {{remaining}} more");
+    expect(Number.isInteger(FEED_APPLIED_FILTERS_CHIP_LIMIT)).toBe(true);
+    expect(FEED_APPLIED_FILTERS_CHIP_LIMIT).toBeGreaterThan(0);
   });
 
-  test("falls back to the English text when the translator has nothing", () => {
-    expect(
-      translateFeedOptionsText({
-        text: "Sort by time",
-        translate: (): string | undefined => {
-          return undefined;
-        },
-      }),
-    ).toBe("Sort by time");
-    expect(
-      translateFeedOptionsText({
-        text: "Sort by time",
-        translate: (): string | undefined => {
-          return "";
-        },
-      }),
-    ).toBe("Sort by time");
+  test("keeps the sentences of the checklist", () => {
+    expect(FEED_OPTIONS_TEXT.searchResults).toBe(
+      "Matching event types: {{count}}",
+    );
+    expect(FEED_OPTIONS_TEXT.showingEveryEventType).toBe(
+      "Showing every event type. Tick one or more to narrow the feed.",
+    );
+    expect(FEED_OPTIONS_TEXT.noSearchMatches).toBe(
+      'No event types match "{{search}}".',
+    );
+    expect(FEED_OPTIONS_TEXT.noEventTypes).toBe(
+      "This feed has no event types to filter by.",
+    );
   });
 
-  test("fills placeholders after looking the whole sentence up", () => {
-    const lookedUp: Array<string | undefined> = [];
-
-    expect(
-      translateFeedOptionsText({
-        text: FEED_OPTIONS_TEXT.showingSomeEventTypes,
-        values: { selected: 2, total: 23 },
-        translate: (text: string | undefined): string | undefined => {
-          lookedUp.push(text);
-          return "{{total}} Ereignistypen, davon {{selected}} angezeigt.";
-        },
-      }),
-    ).toBe("23 Ereignistypen, davon 2 angezeigt.");
-    expect(lookedUp).toEqual([FEED_OPTIONS_TEXT.showingSomeEventTypes]);
-  });
-
-  test("leaves a placeholder with no value visible", () => {
-    expect(
-      translateFeedOptionsText({
-        text: "Showing {{selected}} of {{total}} event types.",
-        values: { selected: 1 },
-      }),
-    ).toBe("Showing 1 of {{total}} event types.");
-  });
-
-  test("tolerates spaces inside the braces and repeats", () => {
-    expect(
-      translateFeedOptionsText({
-        text: "{{ a }} and {{a}}",
-        values: { a: "x" },
-      }),
-    ).toBe("x and x");
-  });
-
-  test("every template names only the placeholders the control fills", () => {
+  test("every template names only the placeholders the controls fill", () => {
     const allowed: Set<string> = new Set<string>([
       "selected",
       "total",
       "search",
-      "sortOrder",
       "count",
+      "remaining",
     ]);
 
     const unfilled: Array<string> = [];
@@ -1341,70 +1260,35 @@ describe("translateFeedOptionsText", () => {
     expect(unfilled).toEqual([]);
   });
 
-  test("the trigger has no separate accessible-name template", () => {
-    /*
-     * The button's name is its visible "Filter & Sort" label and the state
-     * summary is its description, so the old "Filter and sort feed:
-     * {{summary}}" sentence is gone rather than left untranslated.
-     */
-    expect(Object.keys(FEED_OPTIONS_TEXT)).not.toContain(
-      "triggerAccessibleName",
+  test("declares every string with translationKey, so npm run i18n:extract finds it", () => {
+    const missing: Array<string> = Object.values(FEED_OPTIONS_TEXT).filter(
+      (text: string): boolean => {
+        const literal: string = JSON.stringify(text);
+        const singleQuoted: string = `'${text}'`;
+
+        return (
+          !SOURCE.includes(`translationKey(${literal})`) &&
+          !SOURCE.includes(`translationKey(\n    ${literal},\n  )`) &&
+          !SOURCE.includes(`translationKey(${singleQuoted})`)
+        );
+      },
     );
+
+    expect(missing).toEqual([]);
   });
 
-  test("the search announcement counts the matching event types", () => {
-    expect(FEED_OPTIONS_TEXT.searchResults).toBe(
-      "Matching event types: {{count}}",
-    );
-  });
-});
+  test("has nothing left of the retired Filter & Sort button", () => {
+    const texts: Array<string> = Object.values(FEED_OPTIONS_TEXT);
 
-describe("getFeedOptionsSummary in another language", () => {
-  const GERMAN: Record<string, string> = {
-    "Newest first": "Neueste zuerst",
-    "Oldest first": "\u00c4lteste zuerst",
-    "{{sortOrder}}, all event types": "{{sortOrder}}, alle Ereignistypen",
-    "{{sortOrder}}, {{selected}} of {{total}} event types":
-      "{{sortOrder}}, {{selected}} von {{total}} Ereignistypen",
-  };
-
-  const translate: (text: string | undefined) => string | undefined = (
-    text: string | undefined,
-  ): string | undefined => {
-    return text === undefined ? undefined : GERMAN[text];
-  };
-
-  test("translates the order and the sentence around it", () => {
+    expect(texts).not.toContain("Filter & Sort");
+    expect(texts).not.toContain("Filter and sort feed");
+    expect(texts).not.toContain("Reset to default");
     expect(
-      getFeedOptionsSummary({
-        options: DEFAULT_FEED_OPTIONS,
-        eventTypeCount: 12,
-        translate,
+      texts.filter((text: string): boolean => {
+        return text.includes("{{sortOrder}}");
       }),
-    ).toBe("Neueste zuerst, alle Ereignistypen");
-
-    expect(
-      getFeedOptionsSummary({
-        options: {
-          sortOrder: SortOrder.Ascending,
-          eventTypes: [IncidentFeedEventType.PublicNote],
-        },
-        eventTypeCount: 12,
-        translate,
-      }),
-    ).toBe("\u00c4lteste zuerst, 1 von 12 Ereignistypen");
-  });
-
-  test("a sentence with no translation stays English, with its numbers", () => {
-    expect(
-      getFeedOptionsSummary({
-        options: {
-          sortOrder: SortOrder.Descending,
-          eventTypes: [IncidentFeedEventType.PublicNote],
-        },
-        eventTypeCount: 1,
-        translate,
-      }),
-    ).toBe("Neueste zuerst, 1 of 1 event type");
+    ).toEqual([]);
+    expect(Object.keys(FEED_OPTIONS_TEXT)).not.toContain("triggerLabel");
+    expect(Object.keys(FEED_OPTIONS_TEXT)).not.toContain("panelLabel");
   });
 });

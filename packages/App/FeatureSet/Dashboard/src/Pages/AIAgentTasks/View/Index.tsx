@@ -38,6 +38,8 @@ import CodeFixRunStatusPill, {
   getCodeFixTaskTypeLabel,
 } from "../../../Components/AIAgentTask/CodeFixRunStatus";
 import CodeFixRunDuration from "../../../Components/AIAgentTask/CodeFixRunDuration";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const POLL_INTERVAL_MS: number = 5000;
 // The server caps the event trail at 500 — show all of it.
@@ -97,6 +99,7 @@ const toTaskDetail: ToTaskDetailFunction = (
 const AIAgentTaskViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { id } = useParams();
 
   const [detail, setDetail] = useState<TaskDetail | undefined>(undefined);
@@ -278,7 +281,7 @@ const AIAgentTaskViewPage: FunctionComponent<
             )}
             className="text-indigo-600 hover:underline"
           >
-            <>View exception</>
+            {translator.translateText("View exception")}
           </Link>
         );
       },
@@ -354,8 +357,12 @@ const AIAgentTaskViewPage: FunctionComponent<
           ) : (
             <p className="text-sm text-gray-500">
               {isActive
-                ? "Waiting for AI to report its first step…"
-                : "No activity was recorded for this task."}
+                ? translator.translateText(
+                    "Waiting for AI to report its first step…",
+                  )
+                : translator.translateText(
+                    "No activity was recorded for this task.",
+                  )}
             </p>
           )}
         </Card>

@@ -265,27 +265,37 @@ describe("the workflow template picker in the dark theme", () => {
   test("the scan found the picker's colours at all, so it is not vacuous", () => {
     expect(colorTokensOf(PICKER_CODE)).toEqual(
       expect.arrayContaining([
-        // Rows: the name, the description, the hover and the highlight.
+        // Start from scratch: the card, its hover, the start chosen.
+        "border-gray-200",
+        "bg-white",
+        "hover:border-indigo-300",
+        "hover:bg-indigo-50/40",
+        "border-indigo-500",
+        "bg-indigo-50/50",
+        "ring-indigo-500",
+        // Its icon, in the brand's colour.
+        "bg-indigo-50",
+        "text-indigo-600",
+        "ring-indigo-200",
+        // Rows: the name, the description, the hover and the pick.
         "text-gray-900",
         "text-gray-500",
         "hover:bg-gray-50",
-        "bg-indigo-50",
-        "ring-indigo-200",
-        // The icon tiles.
+        "bg-indigo-50/60",
+        // The list's frame, and the lines between its rows and groups.
+        "divide-gray-200",
+        "divide-gray-100",
+        // A row's icon tile at rest.
         "bg-gray-100",
-        "bg-indigo-100",
-        "text-indigo-600",
-        // The search box and the plain buttons.
+        // The search box and the category select.
         "border-gray-300",
-        "bg-white",
         "placeholder-gray-400",
+        "text-gray-700",
         // The words a search matched, marked as the Add Component picker marks them.
         "text-indigo-700",
-        // The preview panel.
-        "bg-gray-50",
+        // A picked template's blocks, and the groups' headings.
         "ring-gray-200",
-        // The chosen category.
-        "text-indigo-700",
+        "bg-gray-50",
       ]),
     );
   });
@@ -333,7 +343,9 @@ describe("the workflow template picker's own rules", () => {
 
   /*
    * A dialog has one primary button, its footer's: here "Use this template".
-   * Nothing in the picker may be drawn as a second one.
+   * Nothing in the picker may be drawn as a second one - Start from scratch
+   * stands out as a card with the brand's colour on its icon, not as a
+   * filled button.
    */
   test("the picker draws no filled button", () => {
     const FILLED_BUTTON_FILL: RegExp =

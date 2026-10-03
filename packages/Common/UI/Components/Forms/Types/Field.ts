@@ -209,6 +209,17 @@ export default interface Field<TEntity> {
    * not there.
    */
   customElementDrawsOwnLabel?: boolean | undefined;
+  /*
+   * A stepped form may be finished from an earlier step without ever
+   * drawing this custom element: it writes the field's value only when the
+   * user changes something, and shows nothing that has to be read before
+   * saving - a picker that starts empty, say. Left out, a step holding the
+   * element is shown before the form can be finished from an earlier one,
+   * because an element can fill in a value of its own when it first shows
+   * (the default criteria of a monitor's type, a rule's conditions) or be a
+   * notice to read first (Forms/Utils/FinishFromAnyStep.ts).
+   */
+  customElementCanBeSkipped?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
   /*
    * For a PeoplePicker field: the kinds of record it offers (people, teams),

@@ -6,6 +6,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Cables that discovery cannot see.
@@ -23,6 +25,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkDeviceLinks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkDeviceLink>
@@ -238,7 +241,11 @@ const NetworkDeviceLinks: FunctionComponent<
              */
             getElement: (item: NetworkDeviceLink): ReactElement => {
               if (!item.parentDevice?.name) {
-                return <span className="text-sm text-gray-400">Inferred</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Inferred")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -258,7 +265,11 @@ const NetworkDeviceLinks: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkDeviceLink): ReactElement => {
               if (!item.monitor?.name) {
-                return <span className="text-sm text-gray-400">None</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("None")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">

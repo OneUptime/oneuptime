@@ -38,10 +38,13 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const VMwareVCenterClusterDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../vmware/:modelId/clusters/:subModelId — subModelId
    * is the percent-encoded inventory externalId
@@ -128,7 +131,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_hosts",
       title: "Hosts (effective vs. not effective)",
-      description: `vcenter.cluster.host.count for ${clusterName}, split by the effective attribute — a host in maintenance mode or disconnected counts as not effective.`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.host.count for {{clusterName}}, split by the effective attribute — a host in maintenance mode or disconnected counts as not effective.",
+        { clusterName: clusterName },
+      ),
       legend: "Hosts",
       legendUnit: "",
     },
@@ -149,7 +155,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_vms",
       title: "Virtual Machines by Power State",
-      description: `vcenter.cluster.vm.count for ${clusterName}, split by power_state.`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.vm.count for {{clusterName}}, split by power_state.",
+        { clusterName: clusterName },
+      ),
       legend: "VMs",
       legendUnit: "",
     },
@@ -170,7 +179,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_host_cpu",
       title: "Member Host CPU Utilization",
-      description: `vcenter.host.cpu.utilization for every ESXi host in ${clusterName} — one line per host, already a percentage.`,
+      description: translator.translateTemplate(
+        "vcenter.host.cpu.utilization for every ESXi host in {{clusterName}} — one line per host, already a percentage.",
+        { clusterName: clusterName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -191,7 +203,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_host_memory",
       title: "Member Host Memory Utilization",
-      description: `vcenter.host.memory.utilization for every ESXi host in ${clusterName} — one line per host.`,
+      description: translator.translateTemplate(
+        "vcenter.host.memory.utilization for every ESXi host in {{clusterName}} — one line per host.",
+        { clusterName: clusterName },
+      ),
       legend: "Memory",
       legendUnit: "%",
     },
@@ -212,7 +227,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_cpu_effective",
       title: "Effective CPU",
-      description: `vcenter.cluster.cpu.effective for ${clusterName} — CPU capacity DRS/HA can actually schedule (excludes hosts in maintenance).`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.cpu.effective for {{clusterName}} — CPU capacity DRS/HA can actually schedule (excludes hosts in maintenance).",
+        { clusterName: clusterName },
+      ),
       legend: "Effective CPU",
       legendUnit: "MHz",
     },
@@ -234,7 +252,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_memory_effective",
       title: "Effective Memory",
-      description: `vcenter.cluster.memory.effective for ${clusterName} — memory capacity DRS/HA can actually schedule.`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.memory.effective for {{clusterName}} — memory capacity DRS/HA can actually schedule.",
+        { clusterName: clusterName },
+      ),
       legend: "Effective Memory",
       legendUnit: "",
     },
@@ -260,7 +281,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_vsan_latency",
       title: "vSAN Latency (avg)",
-      description: `vcenter.cluster.vsan.latency.avg for ${clusterName}, per operation type. Empty unless vSAN is enabled on this cluster.`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.vsan.latency.avg for {{clusterName}}, per operation type. Empty unless vSAN is enabled on this cluster.",
+        { clusterName: clusterName },
+      ),
       legend: "Latency",
       legendUnit: "µs",
     },
@@ -281,7 +305,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_vsan_throughput",
       title: "vSAN Throughput",
-      description: `vcenter.cluster.vsan.throughput for ${clusterName}, per operation type.`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.vsan.throughput for {{clusterName}}, per operation type.",
+        { clusterName: clusterName },
+      ),
       legend: "Throughput",
       legendUnit: "",
     },
@@ -305,7 +332,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "cluster_vsan_congestions",
       title: "vSAN Congestions",
-      description: `vcenter.cluster.vsan.congestions for ${clusterName} — anything above zero means vSAN is throttling I/O.`,
+      description: translator.translateTemplate(
+        "vcenter.cluster.vsan.congestions for {{clusterName}} — anything above zero means vSAN is throttling I/O.",
+        { clusterName: clusterName },
+      ),
       legend: "Congestions",
       legendUnit: "/s",
     },
@@ -356,11 +386,21 @@ const VMwareVCenterClusterDetail: FunctionComponent<
         value:
           notEffective > 0 ? (
             <StatusBadge
-              text={`${effectiveHostCount} of ${hostCount} effective — ${notEffective} in maintenance mode or unresponsive`}
+              text={translator.translateTemplate(
+                "{{effectiveHostCount}} of {{hostCount}} effective — {{notEffective}} in maintenance mode or unresponsive",
+                {
+                  effectiveHostCount: effectiveHostCount ?? 0,
+                  hostCount: hostCount,
+                  notEffective: notEffective,
+                },
+              )}
               type={StatusBadgeType.Danger}
             />
           ) : effectiveHostCount !== null ? (
-            `${effectiveHostCount} of ${hostCount} effective`
+            translator.translateTemplate(
+              "{{effectiveHostCount}} of {{hostCount}} effective",
+              { effectiveHostCount: effectiveHostCount, hostCount: hostCount },
+            )
           ) : (
             String(hostCount)
           ),
@@ -443,7 +483,10 @@ const VMwareVCenterClusterDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Cluster Metrics: ${clusterName}`}
+          title={translator.translateTemplate(
+            "Cluster Metrics: {{clusterName}}",
+            { clusterName: clusterName },
+          )}
           description="Host and VM counts, member-host CPU and memory, effective capacity and vSAN health for this cluster over the selected time range."
         >
           <ResourceMetricsTab

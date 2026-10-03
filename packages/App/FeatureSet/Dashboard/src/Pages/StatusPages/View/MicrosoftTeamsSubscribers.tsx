@@ -8,7 +8,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import CSVFileUpload, {
   CSVColumn,
@@ -46,10 +45,13 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
   PageComponentProps
 > = (props: PageComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -271,6 +273,12 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,
+        /*
+         * Off on purpose, though the column defaults to on: someone an admin
+         * adds is sent a "you have subscribed" message only when the admin
+         * asks for one (CreateFormDefaultsGuard lists why).
+         */
+        defaultValue: false,
       },
 
       {
@@ -423,10 +431,11 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                 {
                   title: "Add in Bulk",
                   buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.UserGroup,
                   onClick: () => {
                     setShowBulkAddModal(true);
                   },
-                } as CardButtonSchema,
+                },
               ],
             }}
             noItemsMessage={"No Microsoft Teams subscribers found."}
@@ -588,8 +597,9 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                   {bulkActionInProgress ? (
                     <div className="space-y-4">
                       <p className="text-sm text-gray-500">
-                        Please wait while subscribers are being added. This may
-                        take a moment.
+                        {translator.translateText(
+                          "Please wait while subscribers are being added. This may take a moment.",
+                        )}
                       </p>
                       <ProgressBar
                         count={bulkProgress.completed}
@@ -609,11 +619,14 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                               color={Green}
                             />
                             <div className="ml-2 text-sm font-medium text-green-800">
-                              {bulkProgress.succeeded}{" "}
-                              {bulkProgress.succeeded === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              added successfully
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber added successfully",
+                                  other:
+                                    "{{count}} subscribers added successfully",
+                                },
+                                bulkProgress.succeeded,
+                              )}
                             </div>
                           </div>
                         )}
@@ -625,11 +638,13 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                               color={Red}
                             />
                             <div className="ml-2 text-sm font-medium text-red-800">
-                              {bulkProgress.failed.length}{" "}
-                              {bulkProgress.failed.length === 1
-                                ? "subscriber"
-                                : "subscribers"}{" "}
-                              failed
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} subscriber failed",
+                                  other: "{{count}} subscribers failed",
+                                },
+                                bulkProgress.failed.length,
+                              )}
                             </div>
                           </div>
                         )}

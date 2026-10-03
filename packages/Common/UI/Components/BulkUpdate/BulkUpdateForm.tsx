@@ -75,7 +75,11 @@ export interface BulkActionOnClickProps<T extends GenericObject> {
 
 export interface BulkActionButtonSchema<T extends GenericObject> {
   title: string;
-  icon?: undefined | IconProp;
+  /*
+   * Required: every item in the Bulk Actions menu has an icon, as every item
+   * in a row's ⋯ menu does (see ActionButtonSchema).
+   */
+  icon: IconProp;
   buttonStyleType: ButtonStyleType;
   isLoading?: boolean | undefined;
   isVisible?: (items: Array<T>) => boolean | undefined;

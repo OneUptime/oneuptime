@@ -43,7 +43,7 @@ import {
 } from "../BulkUpdate/BulkUpdateForm";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
-import MoreMenu from "../MoreMenu/MoreMenu";
+import CardMoreMenu from "../Card/CardMoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
   CardButtonSchema,
@@ -2966,6 +2966,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     if (props.showViewIdButton) {
       actionsSchema.push({
         title: tx("Show ID"),
+        /*
+         * An ID card: the icon "Show ID" wears in every menu, the status
+         * page's resource lists too. Not the info circle it once had there -
+         * beside "View Status Message" and "View Error", whose circle holds
+         * a "!", the two could not be told apart.
+         */
+        icon: IconProp.Identification,
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
         // A utility every row carries - it belongs in the ⋯ menu, not on the row.
@@ -3005,6 +3012,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 template: "View {{itemName}}",
                 itemName: props.singularName || model.singularName || "",
               }),
+          /*
+           * Drawn when View is in the ⋯ menu - on a table that marks one of
+           * its own actions Primary. On the row it is a label (RowActions).
+           */
+          icon: IconProp.Eye,
           buttonStyleType: ButtonStyleType.NORMAL,
           /*
            * Opening the record is what a row is for, so View is the row's one
@@ -3071,6 +3083,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       if (props.isEditable && updateGate.show) {
         actionsSchema.push({
           title: tx(props.editButtonText || "Edit"),
+          icon: IconProp.Edit,
           buttonStyleType: ButtonStyleType.OUTLINE,
           disabled: updateGate.disabled,
           tooltip: updateGate.tooltip,
@@ -4726,15 +4739,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       },
     );
 
-    return (
-      <MoreMenu
-        key="model-table-more-menu"
-        menuIcon={IconProp.EllipsisHorizontal}
-        text=""
-      >
-        {children}
-      </MoreMenu>
-    );
+    // The same ⋯ every card header has: a feed's, too.
+    return <CardMoreMenu key="model-table-more-menu">{children}</CardMoreMenu>;
   };
 
   /*

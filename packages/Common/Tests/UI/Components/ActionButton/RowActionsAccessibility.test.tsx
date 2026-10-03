@@ -88,11 +88,13 @@ describe("a locked action in the ⋯ menu", () => {
         actionButtons={[
           {
             title: "View",
+            icon: IconProp.Eye,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: noop,
           },
           {
             title: "Edit",
+            icon: IconProp.Edit,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: noop,
           },
@@ -167,11 +169,13 @@ describe("a locked action in the ⋯ menu", () => {
         actionButtons={[
           {
             title: "Edit",
+            icon: IconProp.Edit,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: noop,
           },
           {
             title: "Delete",
+            icon: IconProp.Trash,
             buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
             disabled: true,
             tooltip: DELETE_DENIED,
@@ -234,11 +238,13 @@ describe("a dialog opened from the ⋯ menu", () => {
     const actions: Array<ActionButtonSchema<Member>> = [
       {
         title: "View",
+        icon: IconProp.Eye,
         buttonStyleType: ButtonStyleType.NORMAL,
         onClick: noop,
       },
       {
         title: "Show ID",
+        icon: IconProp.Identification,
         buttonStyleType: ButtonStyleType.OUTLINE,
         onClick: (_item: Member, onComplete: () => void) => {
           setIsOpen(true);
@@ -348,11 +354,13 @@ describe("the ⋯ trigger's name", () => {
   const actions: Array<ActionButtonSchema<Member>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: noop,
     },
     {
       title: "Delete",
+      icon: IconProp.Trash,
       buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
       onClick: noop,
     },
@@ -396,6 +404,7 @@ describe("the row's one button", () => {
         actionButtons={[
           {
             title: "View",
+            icon: IconProp.Eye,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: noop,
           },

@@ -1,14 +1,22 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
 import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../Utils/Project";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import {
   PeoplePickerKind,
   PeoplePickerOption,
@@ -18,9 +26,9 @@ import {
 /*
  * What the people picker knows about each kind of record it can offer: how
  * to search it, how to look picks up by id, how to draw it, and what to call
- * it. Adding a kind (on-call schedules, say) is a member of PeoplePickerKind
- * and an entry here; the picker, its search list, the form field and the
- * read-only lists all take it from there.
+ * it. Adding a kind is a member of PeoplePickerKind and an entry here; the
+ * picker, its search list, the form field and the read-only lists all take
+ * it from there.
  */
 
 // How a pick of the kind is drawn.
@@ -307,6 +315,165 @@ const getTeamsByIds: (
     }) as Array<PeoplePickerOption>;
 };
 
+/*
+ * On-call schedules: a pick pages whoever is on call in the schedule when the
+ * escalation rule runs, not a fixed person.
+ */
+export const ON_CALL_SCHEDULE_GROUP_TITLE: string =
+  translationKey("On-call schedules");
+export const ON_CALL_SCHEDULE_TAG: string = translationKey("Schedule");
+export const UNKNOWN_ON_CALL_SCHEDULE_NAME: string =
+  translationKey("Unknown schedule");
+
+const scheduleToOption: (
+  schedule: BaseModel | undefined,
+) => PeoplePickerOption | null = (
+  schedule: BaseModel | undefined,
+): PeoplePickerOption | null => {
+  if (!schedule) {
+    return null;
+  }
+
+  const record: Record<string, unknown> = schedule as unknown as Record<
+    string,
+    unknown
+  >;
+  const id: string = readString(record["_id"]);
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    kind: PeoplePickerKind.OnCallSchedule,
+    id: id,
+    name: readString(record["name"]) || UNKNOWN_ON_CALL_SCHEDULE_NAME,
+  };
+};
+
+/*
+ * On-call schedules are a paid feature on OneUptime Cloud. A project whose
+ * plan cannot read them gets none to pick - its people and teams are still
+ * listed - rather than a search list that fails as a whole. The server's
+ * refusal (402) is read the same way, for a plan the dashboard has not
+ * caught up with.
+ */
+export const canReadOnCallSchedulesOnCurrentPlan: () => boolean =
+  (): boolean => {
+    if (!BILLING_ENABLED) {
+      return true;
+    }
+
+    try {
+      const plan: PlanType | null = ProjectUtil.getCurrentPlan();
+      const readPlan: PlanType | null =
+        new OnCallDutyPolicySchedule().getReadBillingPlan();
+
+      if (!plan || !readPlan) {
+        return true;
+      }
+
+      return SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        readPlan,
+        plan,
+        getAllEnvVars(),
+      );
+    } catch {
+      /*
+       * Plans this dashboard cannot read are not a reason to hide anything:
+       * the server decides, and its 402 is handled below.
+       */
+      return true;
+    }
+  };
+
+export const isPaymentRequiredError: (error: unknown) => boolean = (
+  error: unknown,
+): boolean => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record: Record<string, unknown> = error as Record<string, unknown>;
+
+  return (
+    record["statusCode"] === ExceptionCode.PaymentRequiredException ||
+    record["code"] === ExceptionCode.PaymentRequiredException
+  );
+};
+
+const listSchedules: (data: {
+  query: Record<string, unknown>;
+  limit: number;
+}) => Promise<Array<PeoplePickerOption>> = async (data: {
+  query: Record<string, unknown>;
+  limit: number;
+}): Promise<Array<PeoplePickerOption>> => {
+  if (!canReadOnCallSchedulesOnCurrentPlan()) {
+    return [];
+  }
+
+  let result: ListResult<OnCallDutyPolicySchedule>;
+
+  try {
+    result = await ModelAPI.getList<OnCallDutyPolicySchedule>({
+      modelType: OnCallDutyPolicySchedule,
+      query: data.query as Query<OnCallDutyPolicySchedule>,
+      limit: data.limit,
+      skip: 0,
+      select: { _id: true, name: true },
+      sort: { name: SortOrder.Ascending },
+    });
+  } catch (error) {
+    if (isPaymentRequiredError(error)) {
+      return [];
+    }
+
+    throw error;
+  }
+
+  return result.data
+    .map((schedule: OnCallDutyPolicySchedule): PeoplePickerOption | null => {
+      return scheduleToOption(schedule);
+    })
+    .filter((option: PeoplePickerOption | null): boolean => {
+      return Boolean(option);
+    }) as Array<PeoplePickerOption>;
+};
+
+const searchSchedules: (
+  data: PeoplePickerSearchData,
+) => Promise<Array<PeoplePickerOption>> = async (
+  data: PeoplePickerSearchData,
+): Promise<Array<PeoplePickerOption>> => {
+  const searchText: string = data.searchText.trim();
+  const query: Record<string, unknown> = { projectId: data.projectId };
+
+  if (searchText) {
+    query["name"] = new Search(searchText);
+  }
+
+  return await listSchedules({ query: query, limit: data.limit });
+};
+
+const getSchedulesByIds: (
+  data: PeoplePickerLookupData,
+) => Promise<Array<PeoplePickerOption>> = async (
+  data: PeoplePickerLookupData,
+): Promise<Array<PeoplePickerOption>> => {
+  if (data.ids.length === 0) {
+    return [];
+  }
+
+  return await listSchedules({
+    query: {
+      projectId: data.projectId,
+      _id: new Includes(data.ids),
+    },
+    limit: LIMIT_PER_PROJECT,
+  });
+};
+
 export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
   PeoplePickerKind,
   PeoplePickerKindDefinition
@@ -343,6 +510,22 @@ export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
     },
     search: searchTeams,
     getByIds: getTeamsByIds,
+  },
+  [PeoplePickerKind.OnCallSchedule]: {
+    kind: PeoplePickerKind.OnCallSchedule,
+    groupTitle: ON_CALL_SCHEDULE_GROUP_TITLE,
+    tag: ON_CALL_SCHEDULE_TAG,
+    unknownName: UNKNOWN_ON_CALL_SCHEDULE_NAME,
+    avatar: { type: "icon", icon: IconProp.Calendar },
+    relationSelect: {
+      _id: true,
+      name: true,
+    },
+    fromModel: (model: BaseModel): PeoplePickerOption | null => {
+      return scheduleToOption(model);
+    },
+    search: searchSchedules,
+    getByIds: getSchedulesByIds,
   },
 };
 

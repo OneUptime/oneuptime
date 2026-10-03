@@ -13,10 +13,13 @@ import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { getManagedCloudPlatformLabel } from "Common/Types/Cloud/CloudPlatform";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const CloudArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { unarchiveBulkActions } = useBulkArchiveActions<CloudResource>({
     modelType: CloudResource,
   });
@@ -94,7 +97,9 @@ const CloudArchivedPage: FunctionComponent<
                   </AppLink>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
-                      account {account}
+                      {translator.translateTemplate("account {{account}}", {
+                        account: account,
+                      })}
                     </div>
                   )}
                 </div>
@@ -119,7 +124,7 @@ const CloudArchivedPage: FunctionComponent<
                   <span>
                     {platform
                       ? getManagedCloudPlatformLabel(platform)
-                      : "unknown"}
+                      : translator.translateText("unknown")}
                   </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">

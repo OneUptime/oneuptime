@@ -85,7 +85,7 @@ const renderFeedOptions: RenderFeedOptions = (
 
 type SetFeedOptions = (hook: FeedOptionsHook, options: FeedOptions) => void;
 
-// The same call FeedOptionsButton makes when the reader changes something.
+// The same call the feed's ⋯ menu and filter dialog make when the reader changes something.
 const setFeedOptions: SetFeedOptions = (
   hook: FeedOptionsHook,
   options: FeedOptions,

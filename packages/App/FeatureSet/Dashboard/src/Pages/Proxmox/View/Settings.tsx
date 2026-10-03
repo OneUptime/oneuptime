@@ -12,10 +12,13 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProxmoxClusterSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -121,7 +124,12 @@ const ProxmoxClusterSettings: FunctionComponent<
               title: "Ceph Cluster",
               fieldType: FieldType.Element,
               getElement: (item: ProxmoxCluster): ReactElement => {
-                return <span>{item.cephCluster?.name || "Not linked"}</span>;
+                return (
+                  <span>
+                    {item.cephCluster?.name ||
+                      translator.translateText("Not linked")}
+                  </span>
+                );
               },
             },
           ],

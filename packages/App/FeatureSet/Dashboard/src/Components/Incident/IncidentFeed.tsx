@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -13,7 +12,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -26,15 +24,14 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
-import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedActionsMenu from "Common/UI/Components/Feed/FeedActionsMenu";
 import {
   getFeedEventTypeQuery,
   getFeedNoItemsMessage,
@@ -56,7 +53,7 @@ export interface ComponentProps {
 
 /*
  * One icon per event type, shared by the feed items and the event type
- * checklist behind the Filter & Sort button, so the two always match. A root
+ * filter's checklist (the feed's ⋯ menu), so the two always match. A root
  * cause posted by an AI investigation is the one item that swaps its icon
  * (see getFeedItemFromIncidentFeed).
  */
@@ -230,31 +227,15 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <Card
+    <FeedCard
       title={"Incident Feed"}
       description={
         "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
       }
-      buttons={[
-        <FeedOptionsButton
-          key="incident-feed-options"
-          value={feedOptions.options}
-          eventTypeOptions={feedOptions.eventTypeOptions}
-          onChange={feedOptions.setOptions}
-        />,
-        <MoreMenu
-          key="incident-feed-actions-menu"
-          elementToBeShownInsteadOfButton={
-            <div className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none">
-              <Icon icon={IconProp.Bolt} className="h-4 w-4 text-gray-500" />
-              <span>Actions</span>
-              <Icon
-                icon={IconProp.ChevronDown}
-                className="h-3.5 w-3.5 text-gray-400 ml-0.5"
-              />
-            </div>
-          }
-        >
+      feedOptions={feedOptions}
+      onRefresh={refresh}
+      actions={
+        <FeedActionsMenu key="incident-feed-actions-menu">
           <MoreMenuItem
             key="incident-action-run-runbook"
             text="Execute Runbook"
@@ -287,16 +268,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               setShowPrivateNoteModal(true);
             }}
           />
-        </MoreMenu>,
-        {
-          title: "Refresh",
-          buttonStyle: ButtonStyleType.ICON,
-          icon: IconProp.Refresh,
-          onClick: async () => {
-            await refresh();
-          },
-        },
-      ]}
+        </FeedActionsMenu>
+      }
     >
       <div>
         {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
@@ -531,7 +504,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           />
         )}
       </div>
-    </Card>
+    </FeedCard>
   );
 };
 

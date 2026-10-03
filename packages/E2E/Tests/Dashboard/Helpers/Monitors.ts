@@ -17,8 +17,12 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
  *   4. labels        — optional monitor labels (always the final step)
  *
- * The submit button keeps the test id "Create Monitor" on every step; on a
- * non-final step its visible text is "Next".
+ * The submit button keeps the test id "Create Monitor" on every step. It
+ * reads "Next" while a step still to come has to be shown first (the
+ * criteria, which fill in their own defaults), and "Create Monitor" once
+ * every step left is optional - from the criteria step on - with a plain
+ * Next beside it. The recipes walk with Next (clickNext) so they reach the
+ * interval and labels steps, and create on the last.
  */
 
 export interface MonitorTypeRecipe {
@@ -56,6 +60,20 @@ const monitorNameInputSelector: string =
 const submitButtonTestId: string = "Create Monitor";
 
 const cardSelectSearchTestId: string = "card-select-search";
+
+/*
+ * Walks the create form one step on: the one button that reads Next - the
+ * main button while a step to come still has to be shown, the plain one
+ * beside Create Monitor once every step left is optional. Never creates.
+ */
+export const clickNext: (data: { page: Page }) => Promise<void> = async (data: {
+  page: Page;
+}): Promise<void> => {
+  await data.page
+    .locator(monitorCreateFormSelector)
+    .getByRole("button", { name: "Next", exact: true })
+    .click();
+};
 
 /*
  * The picker is on screen once either its search box or its first card is:
@@ -331,7 +349,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   // Step 1: name + type.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
-  await page.getByTestId(submitButtonTestId).click();
+  await clickNext({ page });
 
   if (!data.recipe.skipsCriteria) {
     // Wait for the criteria step's async defaults, then fill any required data.
@@ -341,7 +359,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
     }
 
     // Advance from Criteria to either Probes & Interval or Labels.
-    await page.getByTestId(submitButtonTestId).click();
+    await clickNext({ page });
 
     if (data.recipe.hasInterval) {
       // Choose an interval, then advance to the always-final Labels step.
@@ -349,7 +367,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
         page,
         intervalLabel: data.recipe.intervalLabel,
       });
-      await page.getByTestId(submitButtonTestId).click();
+      await clickNext({ page });
     }
   }
 
@@ -537,7 +555,7 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
   // Step 1: name + type.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
-  await page.getByTestId(submitButtonTestId).click();
+  await clickNext({ page });
 
   // Criteria step: pick the seeded entity from the first dropdown.
   await page.waitForTimeout(1500);
@@ -561,7 +579,7 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
   await page.waitForTimeout(1500);
 
   // Advance from Criteria to Labels, then submit the final step.
-  await page.getByTestId(submitButtonTestId).click();
+  await clickNext({ page });
   await selectMonitorLabels({ page });
   await clickCreateUntilMonitorView({ page, projectId: data.projectId });
 
