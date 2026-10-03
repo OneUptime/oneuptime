@@ -22,8 +22,14 @@
 
 import CertificateOrder, {
   CertificateOrderOutcome,
+  CustomDomainCertificateState,
 } from "../../../../Server/Utils/Greenlock/CertificateOrder";
+import CertificateOrderLock, {
+  CertificateOrderLockHandle,
+} from "../../../../Server/Utils/Greenlock/CertificateOrderLock";
+import CertificateOrderFailures from "../../../../Server/Utils/Greenlock/CertificateOrderFailures";
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
+import { useInMemoryRedis } from "./InMemoryRedis";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Semaphore, {
   SemaphoreLockTimeoutError,
@@ -441,7 +447,7 @@ describe("CertificateOrder.orderIfMissing with a budget", () => {
     expect(order).toHaveBeenCalledTimes(1);
   });
 
-  test("a spent budget orders nothing, and releases the lock", async () => {
+  test("a spent budget orders nothing, says so, and releases the lock", async () => {
     const locks: Locks = useInMemoryLocks();
     useCertificates(new Map());
     const order: Mock<() => Promise<void>> = jest.fn(async () => {});
@@ -456,7 +462,7 @@ describe("CertificateOrder.orderIfMissing with a budget", () => {
         }) as never,
       });
 
-    expect(outcome).toBe(CertificateOrderOutcome.NotOrderedNow);
+    expect(outcome).toBe(CertificateOrderOutcome.LimitReached);
     expect(order).not.toHaveBeenCalled();
     expect(locks.held.size).toBe(0);
   });
@@ -477,6 +483,203 @@ describe("CertificateOrder.orderIfMissing with a budget", () => {
     });
 
     expect(mayOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("CertificateOrder.orderIfMissing and the order it places", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * The order goes on under the lock orderIfMissing holds: GreenlockUtil
+   * .orderCert is handed it, rather than taking it again - which would find
+   * it held, by its own caller, and order nothing.
+   */
+  test("hands the order the name's lock, held while it orders", async () => {
+    useInMemoryRedis();
+    useCertificates(new Map());
+
+    let handed: CertificateOrderLockHandle | undefined = undefined;
+    let heldDuringTheOrder: boolean = false;
+
+    await CertificateOrder.orderIfMissing({
+      domain: "Status.Acme.com",
+      recordAsOrdered: jest.fn(async () => {}) as never,
+      order: async (lock: CertificateOrderLockHandle): Promise<void> => {
+        handed = lock;
+        heldDuringTheOrder = CertificateOrderLock.isHeldFor(
+          lock,
+          "status.acme.com",
+        );
+      },
+    });
+
+    expect(heldDuringTheOrder).toBe(true);
+    // Released once the order is done.
+    expect(
+      CertificateOrderLock.isHeldFor(handed!, "status.acme.com"),
+    ).toBe(false);
+  });
+
+  test("answers with what the order answers: an order the account's budget refused is LimitReached", async () => {
+    useInMemoryRedis();
+    useCertificates(new Map());
+
+    expect(
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        recordAsOrdered: jest.fn(async () => {}) as never,
+        order: async (): Promise<CertificateOrderOutcome> => {
+          return CertificateOrderOutcome.LimitReached;
+        },
+      }),
+    ).toBe(CertificateOrderOutcome.LimitReached);
+  });
+
+  test("an expired certificate is recorded and left to the renewal run, unless renewIfExpired asks for an order", async () => {
+    useInMemoryRedis();
+    useCertificates(
+      new Map([["status.acme.com", new Date(Date.now() - 24 * 3600 * 1000)]]),
+    );
+
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+    const recordAsOrdered: Mock<() => Promise<void>> = jest.fn(async () => {});
+
+    expect(
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        order: order as never,
+        recordAsOrdered: recordAsOrdered as never,
+      }),
+    ).toBe(CertificateOrderOutcome.AlreadyIssued);
+    expect(order).not.toHaveBeenCalled();
+
+    expect(
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        order: order as never,
+        recordAsOrdered: recordAsOrdered as never,
+        renewIfExpired: true,
+      }),
+    ).toBe(CertificateOrderOutcome.Ordered);
+    expect(order).toHaveBeenCalledTimes(1);
+    expect(recordAsOrdered).toHaveBeenCalledTimes(1);
+  });
+
+  test("renewIfExpired still records a certificate that has not expired", async () => {
+    useInMemoryRedis();
+    useCertificates(new Map([["status.acme.com", IN_SIXTY_DAYS]]));
+    const order: Mock<() => Promise<void>> = jest.fn(async () => {});
+
+    expect(
+      await CertificateOrder.orderIfMissing({
+        domain: "status.acme.com",
+        order: order as never,
+        recordAsOrdered: jest.fn(async () => {}) as never,
+        renewIfExpired: true,
+      }),
+    ).toBe(CertificateOrderOutcome.AlreadyIssued);
+    expect(order).not.toHaveBeenCalled();
+  });
+});
+
+describe("CertificateOrder on-demand budget", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * Each domain has a window of its own for orders somebody asks for; this
+   * bounds them across every domain, so clicking through many failing
+   * domains cannot use up the new certificates of the whole installation.
+   */
+  test("gives out ON_DEMAND_ORDERS_PER_WINDOW orders on demand in a window, across every domain", async () => {
+    useInMemoryRedis();
+
+    const now: Date = new Date("2026-10-03T12:00:00.000Z");
+    const answers: Array<boolean> = [];
+
+    for (let i: number = 0; i < 10; i++) {
+      answers.push(await CertificateOrder.takeOnDemandOrderSlot(now));
+    }
+
+    expect(CertificateOrder.ON_DEMAND_ORDERS_PER_WINDOW).toBe(6);
+    expect(answers).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    // The next window has new ones.
+    expect(
+      await CertificateOrder.takeOnDemandOrderSlot(
+        new Date(now.getTime() + 15 * 60 * 1000),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("CertificateOrder.getCertificateStates", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("each name's certificate expiry and last failed order, in two lookups", async () => {
+    useInMemoryRedis();
+    const lookups: Array<Array<string>> = useCertificates(
+      new Map([["issued.acme.com", IN_SIXTY_DAYS]]),
+    );
+
+    const failedAt: Date = new Date("2026-10-03T11:00:00.000Z");
+
+    await CertificateOrderFailures.record({
+      domain: "failing.acme.com",
+      error: "Unable to order certificate for failing.acme.com.",
+      now: failedAt,
+    });
+
+    const states: Map<string, CustomDomainCertificateState> =
+      await CertificateOrder.getCertificateStates([
+        "Issued.Acme.com",
+        "failing.acme.com",
+        "new.acme.com",
+        "",
+      ]);
+
+    expect(lookups).toEqual([
+      ["issued.acme.com", "failing.acme.com", "new.acme.com"],
+    ]);
+    expect(states.get("issued.acme.com")).toEqual({
+      certificateExpiresAt: IN_SIXTY_DAYS,
+      lastOrderError: undefined,
+      lastOrderFailedAt: undefined,
+    });
+    expect(states.get("failing.acme.com")).toEqual({
+      certificateExpiresAt: undefined,
+      lastOrderError: "Unable to order certificate for failing.acme.com.",
+      lastOrderFailedAt: failedAt,
+    });
+    expect(states.get("new.acme.com")).toEqual({
+      certificateExpiresAt: undefined,
+      lastOrderError: undefined,
+      lastOrderFailedAt: undefined,
+    });
+  });
+
+  test("asked about nothing, it looks nothing up", async () => {
+    useInMemoryRedis();
+    const lookups: Array<Array<string>> = useCertificates(new Map());
+
+    expect((await CertificateOrder.getCertificateStates([""])).size).toBe(0);
+    expect(lookups).toEqual([]);
   });
 });
 

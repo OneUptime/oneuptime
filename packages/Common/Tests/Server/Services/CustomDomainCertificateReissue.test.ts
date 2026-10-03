@@ -5,8 +5,24 @@ import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
+import CertificateOrderLock, {
+  CertificateOrderLockHandle,
+} from "../../../Server/Utils/Greenlock/CertificateOrderLock";
+import { CertificateOrderReason } from "../../../Server/Utils/Greenlock/CertificateOrderBudget";
+import { CertificateOrderOutcome } from "../../../Server/Utils/Greenlock/CertificateOrderOutcome";
+import {
+  InMemoryRedis,
+  useInMemoryRedis,
+} from "../Utils/Greenlock/InMemoryRedis";
 import { FindOperator } from "typeorm";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * reissueCert - the service behind the dashboard's "Reissue SSL" button, on
@@ -27,9 +43,15 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *      so only a conditional update can pick a winner.
  *   3. A domain with nothing to reissue never reaches the CA at all.
  *
+ *   4. The order runs under the name's order lock, taken before the cooldown
+ *      is claimed: a reissue used to order beside a Check now or a re-order
+ *      of the same name. And when the installation's Let's Encrypt budget is
+ *      used up nothing is ordered, so the cooldown is given back.
+ *
  * No database and no ACME client: findOneBy, updateOneBy and orderCert are
- * all spied on, so what is asserted is the ORDER and the CONDITIONS of those
- * calls, which is precisely where the protection lives.
+ * all spied on, and Redis is in memory, so what is asserted is the ORDER and
+ * the CONDITIONS of those calls, which is precisely where the protection
+ * lives.
  */
 
 type DomainRow = {
@@ -73,6 +95,12 @@ type HarnessCalls = {
   }>;
   // Domains handed to orderCert, in order.
   ordered: Array<string>;
+  // What each orderCert call was handed besides the domain.
+  orderOptions: Array<{
+    reason?: CertificateOrderReason | undefined;
+    // Whether the lock it was handed held the domain's name at the time.
+    heldLock: boolean;
+  }>;
 };
 
 type SetUpHarnessFunction = (data: {
@@ -81,6 +109,7 @@ type SetUpHarnessFunction = (data: {
   // Rows the conditional claim reports as written. 1 = claim won, 0 = lost.
   claimedRowCount?: number;
   orderCertThrows?: Error;
+  orderOutcome?: CertificateOrderOutcome;
 }) => HarnessCalls;
 
 const setUpHarness: SetUpHarnessFunction = (data: {
@@ -88,8 +117,9 @@ const setUpHarness: SetUpHarnessFunction = (data: {
   domain: DomainRow | null;
   claimedRowCount?: number;
   orderCertThrows?: Error;
+  orderOutcome?: CertificateOrderOutcome;
 }): HarnessCalls => {
-  const calls: HarnessCalls = { updates: [], ordered: [] };
+  const calls: HarnessCalls = { updates: [], ordered: [], orderOptions: [] };
 
   jest
     .spyOn(data.service as never, "findOneBy")
@@ -107,14 +137,29 @@ const setUpHarness: SetUpHarnessFunction = (data: {
 
   jest
     .spyOn(data.service as never, "orderCert")
-    .mockImplementation((async (domain: {
-      fullDomain?: string;
-    }): Promise<void> => {
+    .mockImplementation((async (
+      domain: {
+        fullDomain?: string;
+      },
+      options?: {
+        reason?: CertificateOrderReason;
+        lock?: CertificateOrderLockHandle;
+      },
+    ): Promise<CertificateOrderOutcome> => {
       calls.ordered.push(domain.fullDomain as string);
+      calls.orderOptions.push({
+        reason: options?.reason,
+        heldLock: CertificateOrderLock.isHeldFor(
+          options?.lock,
+          domain.fullDomain as string,
+        ),
+      });
 
       if (data.orderCertThrows) {
         throw data.orderCertThrows;
       }
+
+      return data.orderOutcome || CertificateOrderOutcome.Ordered;
     }) as never);
 
   return calls;
@@ -126,6 +171,12 @@ const services: Array<[string, unknown]> = [
 ];
 
 describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {
+  let redis: InMemoryRedis;
+
+  beforeEach(() => {
+    redis = useInMemoryRedis();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -175,8 +226,9 @@ describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {
 
       jest
         .spyOn(service as never, "orderCert")
-        .mockImplementation((async (): Promise<void> => {
+        .mockImplementation((async (): Promise<CertificateOrderOutcome> => {
           order.push("order");
+          return CertificateOrderOutcome.Ordered;
         }) as never);
 
       await (service as ReissueService).reissueCert(DOMAIN_ID);
@@ -351,6 +403,119 @@ describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {
     });
   });
 
+  describe("one order per name, within the installation's budget", () => {
+    test("orders as a reissue, under the name's lock, and lets go of the lock after", async () => {
+      const calls: HarnessCalls = setUpHarness({
+        service,
+        domain: makeDomain(),
+      });
+
+      await (service as ReissueService).reissueCert(DOMAIN_ID);
+
+      expect(calls.orderOptions).toEqual([
+        { reason: CertificateOrderReason.Reissue, heldLock: true },
+      ]);
+      expect(redis.heldLocks.size).toBe(0);
+    });
+
+    /*
+     * Regression: a reissue ordered without the lock, so it could run beside
+     * a Check now or a re-order of the same name - two orders, and two
+     * http-01 challenges whose clean-up removes each other's challenge rows.
+     */
+    test("a name being ordered right now is refused with a 429, and the day's reissue is not spent", async () => {
+      const calls: HarnessCalls = setUpHarness({
+        service,
+        domain: makeDomain(),
+      });
+
+      redis.heldLocks.add(
+        `${CertificateOrderLock.NAMESPACE}-status.example.com`,
+      );
+
+      await expect(
+        (service as ReissueService).reissueCert(DOMAIN_ID),
+      ).rejects.toThrow(TooManyRequestsException);
+
+      await expect(
+        (service as ReissueService).reissueCert(DOMAIN_ID),
+      ).rejects.toThrow(/being ordered right now/);
+
+      expect(calls.updates).toEqual([]);
+      expect(calls.ordered).toEqual([]);
+    });
+
+    test("when the installation's Let's Encrypt orders are used up, nothing is ordered and the reissue is given back", async () => {
+      const lastReissue: Date = OneUptimeDate.addRemoveDays(
+        OneUptimeDate.getCurrentDate(),
+        -3,
+      );
+
+      const calls: HarnessCalls = setUpHarness({
+        service,
+        domain: makeDomain({ certificateReissueRequestedAt: lastReissue }),
+        orderOutcome: CertificateOrderOutcome.LimitReached,
+      });
+
+      let refusal: Error | null = null;
+
+      try {
+        await (service as ReissueService).reissueCert(DOMAIN_ID);
+      } catch (err) {
+        refusal = err as Error;
+      }
+
+      expect(refusal).toBeInstanceOf(TooManyRequestsException);
+      expect(refusal?.message).toContain("does not count as your reissue");
+
+      // The claim, then the claim given back - only if it is still ours.
+      expect(calls.updates).toHaveLength(2);
+
+      const claimedAt: Date = calls.updates[0]!.data[
+        "certificateReissueRequestedAt"
+      ] as Date;
+
+      expect(calls.updates[1]!.query).toEqual({
+        _id: DOMAIN_ID.toString(),
+        certificateReissueRequestedAt: claimedAt,
+      });
+      expect(calls.updates[1]!.data).toEqual({
+        certificateReissueRequestedAt: lastReissue,
+      });
+      expect(redis.heldLocks.size).toBe(0);
+    });
+
+    test("a never-reissued domain whose reissue is given back goes back to never reissued", async () => {
+      const calls: HarnessCalls = setUpHarness({
+        service,
+        domain: makeDomain({ certificateReissueRequestedAt: undefined }),
+        orderOutcome: CertificateOrderOutcome.LimitReached,
+      });
+
+      await expect(
+        (service as ReissueService).reissueCert(DOMAIN_ID),
+      ).rejects.toThrow(TooManyRequestsException);
+
+      expect(calls.updates[1]!.data).toEqual({
+        certificateReissueRequestedAt: null,
+      });
+    });
+
+    test("the lock is let go of when the order fails too", async () => {
+      setUpHarness({
+        service,
+        domain: makeDomain(),
+        orderCertThrows: new Error("CA refused the order"),
+      });
+
+      await expect(
+        (service as ReissueService).reissueCert(DOMAIN_ID),
+      ).rejects.toThrow("CA refused the order");
+
+      expect(redis.heldLocks.size).toBe(0);
+    });
+  });
+
   describe("domains with nothing to reissue never reach the CA", () => {
     test("a domain that does not exist", async () => {
       const calls: HarnessCalls = setUpHarness({ service, domain: null });
@@ -463,7 +628,7 @@ describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {
       jest.spyOn(service as never, "updateOneBy").mockResolvedValue(1 as never);
       jest
         .spyOn(service as never, "orderCert")
-        .mockResolvedValue(undefined as never);
+        .mockResolvedValue(CertificateOrderOutcome.Ordered as never);
 
       await (service as ReissueService).reissueCert(DOMAIN_ID);
 

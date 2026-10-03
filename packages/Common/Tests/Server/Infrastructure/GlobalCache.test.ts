@@ -168,6 +168,97 @@ describe("GlobalCache.incrementWithExpiry", () => {
   });
 });
 
+describe("GlobalCache.incrementIfBelow", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue(4),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * The read, the comparison, the INCR and the first EXPIRE in one atomic
+   * evaluation: a GET then an INCR from here would let two callers both see
+   * room for one more, and a refusal must add nothing, so that callers with
+   * a lower limit cannot use up what callers with a higher one may still
+   * take from the same counter.
+   */
+  test("compares, adds one and sets the expiry in one atomic EVAL, returning the count", async () => {
+    const count: number | null = await GlobalCache.incrementIfBelow(
+      "ns",
+      "key",
+      { limit: 12, expiresInSeconds: 1800 },
+    );
+
+    expect(count).toBe(4);
+    expect(client.eval).toHaveBeenCalledTimes(1);
+
+    const [script, keyCount, key, limit, ttl] = client.eval.mock.calls[0] as [
+      string,
+      number,
+      string,
+      string,
+      string,
+    ];
+
+    expect(script).toContain("GET");
+    expect(script).toContain(">= tonumber(ARGV[1])");
+    expect(script).toContain("INCR");
+    expect(script).toContain("EXPIRE");
+    expect(script.indexOf("return -1")).toBeLessThan(script.indexOf("INCR"));
+    expect(keyCount).toBe(1);
+    expect(key).toBe("ns-key");
+    expect(limit).toBe("12");
+    expect(ttl).toBe("1800");
+    expect(client.expire).not.toHaveBeenCalled();
+  });
+
+  test("answers null when the counter has reached its limit", async () => {
+    client.eval.mockResolvedValue(-1);
+
+    expect(
+      await GlobalCache.incrementIfBelow("ns", "key", {
+        limit: 12,
+        expiresInSeconds: 60,
+      }),
+    ).toBeNull();
+  });
+
+  test("throws on a reply that is not a number", async () => {
+    client.eval.mockResolvedValue("not a number");
+
+    await expect(
+      GlobalCache.incrementIfBelow("ns", "key", {
+        limit: 1,
+        expiresInSeconds: 60,
+      }),
+    ).rejects.toThrow();
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(
+      GlobalCache.incrementIfBelow("ns", "key", {
+        limit: 1,
+        expiresInSeconds: 60,
+      }),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+});
+
 describe("GlobalCache.deleteKey", () => {
   let client: MockClient;
 

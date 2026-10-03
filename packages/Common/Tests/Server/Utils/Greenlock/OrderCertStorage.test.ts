@@ -13,10 +13,20 @@
  */
 
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
+import { CertificateOrderReason } from "../../../../Server/Utils/Greenlock/CertificateOrderBudget";
+import { CertificateOrderOutcome } from "../../../../Server/Utils/Greenlock/CertificateOrderOutcome";
 import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateService";
 import AcmeCertificate from "../../../../Models/DatabaseModels/AcmeCertificate";
 import OneUptimeDate from "../../../../Types/Date";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { useInMemoryRedis } from "./InMemoryRedis";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 const mockIssuedAt: Date = new Date("2026-10-01T00:00:00.000Z");
@@ -98,15 +108,23 @@ function setUpStore(data: {
 }
 
 async function order(): Promise<void> {
-  await GreenlockUtil.orderCert({
+  const outcome: CertificateOrderOutcome = await GreenlockUtil.orderCert({
     domain: "Dash.Acme.com",
+    reason: CertificateOrderReason.FirstCertificate,
     validateCname: async (): Promise<boolean> => {
       return true;
     },
   });
+
+  expect(outcome).toBe(CertificateOrderOutcome.Ordered);
 }
 
 describe("GreenlockUtil.orderCert storing the issued certificate", () => {
+  beforeEach(() => {
+    // The name's order lock and the account's order budget.
+    useInMemoryRedis();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -134,48 +152,38 @@ describe("GreenlockUtil.orderCert storing the issued certificate", () => {
   });
 
   /*
-   * A failed CNAME check refuses the order. By default it also removes the
-   * name's certificate - renewal relies on that - but a caller that may be
-   * replacing a certificate that is serving (a reissue) keeps it.
+   * A failed CNAME check refuses the order and deletes nothing, for every
+   * reason an order is placed. It used to remove the name's certificate by
+   * default, so a DNS blip during a renewal or a dashboard order took a
+   * working domain off HTTPS with weeks left on its certificate.
    */
-  test("a failed CNAME check removes the name's certificate by default, and refuses", async () => {
-    setUpStore({ existingRow: true, rowsUpdated: 1 });
-    const removeSpy: SpyInstance<(domain: string) => Promise<void>> = jest
-      .spyOn(GreenlockUtil, "removeDomain")
-      .mockResolvedValue(undefined);
+  test.each(Object.values(CertificateOrderReason))(
+    "a failed CNAME check refuses a %s order and keeps the certificate",
+    async (reason: CertificateOrderReason) => {
+      const store: Store = setUpStore({ existingRow: true, rowsUpdated: 1 });
+      const removeSpy: SpyInstance<(domain: string) => Promise<void>> = jest
+        .spyOn(GreenlockUtil, "removeDomain")
+        .mockResolvedValue(undefined);
+      const deleteSpy: SpyInstance<any> = jest
+        .spyOn(AcmeCertificateService, "deleteBy")
+        .mockResolvedValue(1 as never);
 
-    await expect(
-      GreenlockUtil.orderCert({
-        domain: "dash.acme.com",
-        validateCname: async (): Promise<boolean> => {
-          return false;
-        },
-      }),
-    ).rejects.toThrow("Cname is not valid");
+      await expect(
+        GreenlockUtil.orderCert({
+          domain: "dash.acme.com",
+          reason: reason,
+          validateCname: async (): Promise<boolean> => {
+            return false;
+          },
+        }),
+      ).rejects.toThrow("Cname is not valid");
 
-    expect(removeSpy).toHaveBeenCalledWith("dash.acme.com");
-  });
-
-  test("with removeCertificateIfCnameIsInvalid false, a failed CNAME check refuses and keeps the certificate", async () => {
-    const store: Store = setUpStore({ existingRow: true, rowsUpdated: 1 });
-    const removeSpy: SpyInstance<(domain: string) => Promise<void>> = jest
-      .spyOn(GreenlockUtil, "removeDomain")
-      .mockResolvedValue(undefined);
-
-    await expect(
-      GreenlockUtil.orderCert({
-        domain: "dash.acme.com",
-        validateCname: async (): Promise<boolean> => {
-          return false;
-        },
-        removeCertificateIfCnameIsInvalid: false,
-      }),
-    ).rejects.toThrow("Cname is not valid");
-
-    expect(removeSpy).not.toHaveBeenCalled();
-    expect(store.updates).toEqual([]);
-    expect(store.creates).toEqual([]);
-  });
+      expect(removeSpy).not.toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
+      expect(store.updates).toEqual([]);
+      expect(store.creates).toEqual([]);
+    },
+  );
 
   test("creates a row when the one it found was removed before the write", async () => {
     const store: Store = setUpStore({ existingRow: true, rowsUpdated: 0 });

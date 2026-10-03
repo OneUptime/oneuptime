@@ -1,8 +1,8 @@
 /*
  * How a request to order a certificate ended, when it did not throw.
  *
- * Its own module so GreenlockUtil.orderCert (which places every order) and
- * CertificateOrder (which decides whether a first order is needed) can both
+ * Its own module so that GreenlockUtil, which places every order, and
+ * CertificateOrder, which decides whether a first order is needed, can both
  * use it without importing each other.
  */
 export enum CertificateOrderOutcome {
