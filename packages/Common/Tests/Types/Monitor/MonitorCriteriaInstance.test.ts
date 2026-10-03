@@ -627,17 +627,80 @@ describe("MonitorCriteriaInstance", () => {
         instance,
         MonitorType.Ping,
       );
-      expect(error).toContain("Name is required");
+      expect(error).toBe("Name is required for every criteria.");
     });
 
-    test("returns error when description is empty", () => {
+    test("a name of only spaces is no name", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.name = "   ";
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBe("Name is required for every criteria.");
+    });
+
+    test("the name is checked before anything that quotes it", () => {
+      /*
+       * Every other message names the criteria ("Filter is required for
+       * criteria ..."). Checked first, a criteria with no name says so,
+       * instead of quoting an empty name: 'Filter is required for criteria ""'.
+       */
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.name = "";
+      instance.data!.filters = [];
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBe("Name is required for every criteria.");
+    });
+
+    test("accepts a criteria whose description is empty", () => {
+      /*
+       * A criteria needs a name, not a description: the form used to stop
+       * every new criteria at an empty, required "Criteria Description".
+       */
       const instance: MonitorCriteriaInstance = buildValidInstance();
       instance.data!.description = "";
-      const error: string | null = MonitorCriteriaInstance.getValidationError(
-        instance,
-        MonitorType.Ping,
-      );
-      expect(error).toContain("Description is required");
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBeNull();
+    });
+
+    test("accepts a criteria that has no description at all", () => {
+      // As one sent to the API without the field arrives.
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      delete (instance.data as { description?: string }).description;
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBeNull();
+    });
+
+    test("a criteria read from JSON without a description is valid", () => {
+      const json: JSONObject = buildValidInstance().toJSON();
+      delete (json["value"] as JSONObject)["description"];
+
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.fromJSON(json);
+
+      expect(instance.data?.description).toBe("");
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBeNull();
+    });
+
+    test("the API schema documents the description as optional and the name as required", () => {
+      const valueSchema: {
+        shape: Record<string, { isOptional: () => boolean }>;
+      } = (
+        MonitorCriteriaInstance.getSchema() as unknown as {
+          shape: {
+            value: {
+              shape: Record<string, { isOptional: () => boolean }>;
+            };
+          };
+        }
+      ).shape.value;
+
+      expect(valueSchema.shape["description"]!.isOptional()).toBe(true);
+      expect(valueSchema.shape["name"]!.isOptional()).toBe(false);
     });
 
     test("returns error when an incident is missing its severity", () => {
