@@ -39,7 +39,7 @@ Como um provedor global se comporta depende de você anexar ou não algum projet
 
 - **Nenhum projeto anexado (default-all / invite-first):** Os usuários podem fazer login com o provedor e alcançar **qualquer projeto do qual já sejam membros**. Novos usuários **não** são criados automaticamente — um usuário deve primeiro ser convidado para um projeto. Use isso para SSO em toda a empresa, onde as associações são gerenciadas em outro lugar.
 
-- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Attached Projects** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão no primeiro login. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
+- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Attached Projects** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão no primeiro login. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
 
 Se você quiser impedir qualquer criação automática de conta mesmo quando há projetos anexados, habilite **Disable Sign Up with SSO** no provedor — os usuários devem então ser convidados antes de poderem fazer login.
 

@@ -129,10 +129,7 @@
       "bulkAddToProject": "加入專案",
       "bulkAddToProjectTitle": "將使用者加入專案",
       "bulkAddToProjectDescription": "選擇一個專案及其中一個團隊。除非你代其接受邀請，否則所選的 {{userCount}} 位使用者都會以待處理成員的身分加入該團隊，直到他們接受邀請為止。",
-      "bulkAddToProjectNext": "下一步",
       "bulkAddToProjectSubmit": "加入專案",
-      "bulkAddToProjectStepProject": "選擇專案",
-      "bulkAddToProjectStepTeam": "選擇團隊",
       "bulkAddToProjectFieldProject": "專案",
       "bulkAddToProjectFieldProjectDescription": "您要將所選使用者加入的專案。",
       "bulkAddToProjectFieldProjectPlaceholder": "選擇專案",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "團隊成員資格",
       "teamsCardDescription": "此使用者在所有專案中所屬的團隊。刪除某一列只會將其從該團隊中移除。",
       "teamsNoItems": "此使用者不屬於任何團隊。",
-      "stepProject": "選擇專案",
-      "stepTeam": "選擇團隊",
       "fieldProject": "專案",
       "fieldProjectDescription": "您要將此使用者加入的專案。",
       "fieldProjectPlaceholder": "選擇專案",
@@ -385,7 +380,8 @@
       "inviteUser": "邀請使用者",
       "inviteUserTitle": "邀請新使用者",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "邀請"
+      "inviteUserSubmit": "邀請",
+      "inviteTeamDescriptionWithDefault": "其所屬團隊決定了此人在此專案中可以做什麼。預設選取 {{teamName}}；如需給予不同的存取權限，請選擇其他團隊。"
     },
     "projectUserView": {
       "title": "Project User",

@@ -39,7 +39,7 @@ How a global provider behaves depends on whether you attach any projects to it:
 
 - **No projects attached (default-all / invite-first):** Users can sign in with the provider and reach **any project they are already a member of**. New users are **not** created automatically — a user must be invited to a project first. Use this for company-wide SSO where memberships are managed elsewhere.
 
-- **Projects attached (auto-provisioning):** Open the provider and use the **Attached Projects** table to attach one or more projects, each with a set of default teams. Users who sign in are **auto-provisioned** into those projects and added to the default teams on first login. Add one project + teams at a time to build the list; to change an attachment, delete it and add it again.
+- **Projects attached (auto-provisioning):** Open the provider and use the **Attached Projects** table to attach one or more projects, each with a set of default teams. Users who sign in are **auto-provisioned** into those projects and added to the default teams on first login. A project you attach starts on its members team; pick other teams if newcomers should start with different access. Add one project + teams at a time to build the list; to change an attachment, delete it and add it again.
 
 If you want to prevent any automatic account creation even when projects are attached, enable **Disable Sign Up with SSO** on the provider — users must then be invited before they can sign in.
 

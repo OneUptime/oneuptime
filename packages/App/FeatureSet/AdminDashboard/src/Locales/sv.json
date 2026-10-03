@@ -129,10 +129,7 @@
       "bulkAddToProject": "Lägg till i projekt",
       "bulkAddToProjectTitle": "Lägg till användare i projekt",
       "bulkAddToProjectDescription": "Välj ett projekt och ett av dess team. Alla {{userCount}} valda användare läggs till i teamet som väntande medlemmar tills inbjudningarna accepteras — såvida du inte accepterar inbjudningarna åt dem.",
-      "bulkAddToProjectNext": "Nästa",
       "bulkAddToProjectSubmit": "Lägg till i projekt",
-      "bulkAddToProjectStepProject": "Välj projekt",
-      "bulkAddToProjectStepTeam": "Välj team",
       "bulkAddToProjectFieldProject": "Projekt",
       "bulkAddToProjectFieldProjectDescription": "Projektet du vill lägga till de valda användarna i.",
       "bulkAddToProjectFieldProjectPlaceholder": "Välj projekt",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "Teammedlemskap",
       "teamsCardDescription": "Alla team som den här användaren tillhör, i alla projekt. Att ta bort en rad tar bara bort användaren från det teamet.",
       "teamsNoItems": "Den här användaren är inte medlem i något team.",
-      "stepProject": "Välj projekt",
-      "stepTeam": "Välj team",
       "fieldProject": "Projekt",
       "fieldProjectDescription": "Projektet du vill lägga till den här användaren i.",
       "fieldProjectPlaceholder": "Välj projekt",
@@ -385,7 +380,8 @@
       "inviteUser": "Bjud in användare",
       "inviteUserTitle": "Bjud in ny användare",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Bjud in"
+      "inviteUserSubmit": "Bjud in",
+      "inviteTeamDescriptionWithDefault": "Deras team avgör vad de kan göra i det här projektet. {{teamName}} är förvalt; välj ett annat team för att ge dem annan åtkomst."
     },
     "projectUserView": {
       "title": "Project User",

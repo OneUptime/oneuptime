@@ -13,12 +13,16 @@ import path from "path";
  * out of onSubmit, and nothing here mocks a create: a create appearing in this
  * file would mean the collecting and the creating had been fused back together,
  * which is what keeps the picker off the progress modal in the first place.
+ *
+ * It is one page: the project, the team under it - the project's members team
+ * as soon as the project is picked - and the auto-accept box. Adding people to
+ * a project's members team is a project pick and one press. The team picker
+ * on its own is tested in ProjectScopedTeamsPicker.test.tsx.
  */
 
 /*
  * Common/jest.config.json sets no testTimeout, so the default 5s has to cover
- * mounting Modal + BasicForm + the async teams fetch, twice over in the tests
- * that walk both steps.
+ * mounting Modal + BasicForm + the async teams fetch.
  */
 jest.setTimeout(30000);
 
@@ -31,14 +35,20 @@ const WAIT_FOR_TIMEOUT: number = 20000;
 const PROJECT_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162001";
 const TEAM_ENGINEERING_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162002";
 const TEAM_SUPPORT_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162003";
+const TEAM_MEMBERS_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162006";
 /*
  * A second project with a team of its own. The two team sets are disjoint on
  * purpose: it is the only way a test can tell "the team of the project that is
  * selected now" apart from "the team of the project that was selected before",
- * which is the whole of the stale-selection bug.
+ * which is the whole of the stale-selection bug. Its members team is called
+ * Billing: what makes a members team is the ProjectMember role, not the name.
  */
 const OTHER_PROJECT_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162004";
 const TEAM_BILLING_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162005";
+// A project whose teams hold no ProjectMember and none is called Members.
+const NO_MEMBERS_PROJECT_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162007";
+const TEAM_AUDITORS_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162008";
+
 const USER_ONE_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162011";
 const USER_TWO_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162012";
 const USER_THREE_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194162013";
@@ -84,7 +94,7 @@ jest.mock("react-i18next", () => {
  * The project field is an entity dropdown, so the real one would lazily search
  * the Projects endpoint. All this file needs from it is a way to say "the admin
  * picked this project", in the shape the real component reports a single
- * selection in: the bare id string, not an option object. Two projects are on
+ * selection in: the bare id string, not an option object. Three projects are on
  * offer so a test can change its mind about which one, which is what surfaces
  * the stale-team bug.
  */
@@ -111,6 +121,14 @@ jest.mock("Common/UI/Components/EntityDropdown/EntityDropdown", () => {
             }}
           >
             Choose the other project
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              props.onChange?.(NO_MEMBERS_PROJECT_ID);
+            }}
+          >
+            Choose the project with no members team
           </button>
         </div>
       );
@@ -151,8 +169,13 @@ jest.mock("Common/UI/Components/Dropdown/Dropdown", () => {
     default: (props: DropdownStubProps): React.ReactElement => {
       capturedDropdownProps = props;
 
+      const selected: DropdownStubOption | undefined = props.value as
+        | DropdownStubOption
+        | undefined;
+
       return (
         <div>
+          <p data-testid="selected-team">{selected?.label || "(none)"}</p>
           {props.options.map((option: DropdownStubOption) => {
             return (
               <button
@@ -191,17 +214,13 @@ jest.mock(
 import BulkAddUsersToProjectModal, {
   BulkAddUsersToProjectSelection,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Components/User/BulkAddUsersToProjectModal";
-/*
- * The picker is rendered by this modal, but a few of its rules cannot be driven
- * through the modal at all - an in-flight fetch and a failed fetch are states
- * the step rail cannot hold still in - so it is also exercised on its own here,
- * with the same isMultiSelect={false} wiring the modal gives it.
- */
-import ProjectScopedTeamsPicker from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/ProjectScopedTeamsPicker";
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import User from "../../../Models/DatabaseModels/User";
 
 const mockGetList: jest.MockedFunction<any> =
@@ -212,34 +231,87 @@ const LOCALE_FILE_PATH: string = path.join(
   "../../../../App/FeatureSet/AdminDashboard/src/Locales/en.json",
 );
 
-type MakeTeamFunction = (id: string, name: string) => Team;
-
-const makeTeam: MakeTeamFunction = (id: string, name: string): Team => {
-  const team: Team = new Team();
-  team._id = id;
-  team.name = name;
-  return team;
-};
-
-type TeamsOfProjectFunction = (projectId: string) => Array<Team>;
+interface TeamFixture {
+  id: string;
+  name: string;
+  permission: Permission;
+}
 
 /*
- * Two projects with nothing in common. `getList` is scoped by projectId, so a
+ * The projects, with nothing in common. `getList` is scoped by projectId, so a
  * mock that ignored the query would hand back the same teams whichever project
  * was chosen - and a picker that kept showing the old project's teams would
  * look exactly like one that had refetched.
  */
-const teamsOfProject: TeamsOfProjectFunction = (
-  projectId: string,
-): Array<Team> => {
-  if (projectId === OTHER_PROJECT_ID) {
-    return [makeTeam(TEAM_BILLING_ID, "Billing")];
+const PROJECT_TEAMS: Record<string, Array<TeamFixture>> = {
+  [PROJECT_ID]: [
+    {
+      id: TEAM_ENGINEERING_ID,
+      name: "Engineering",
+      permission: Permission.ProjectAdmin,
+    },
+    {
+      id: TEAM_MEMBERS_ID,
+      name: "Members",
+      permission: Permission.ProjectMember,
+    },
+    { id: TEAM_SUPPORT_ID, name: "Support", permission: Permission.Viewer },
+  ],
+  [OTHER_PROJECT_ID]: [
+    {
+      id: TEAM_BILLING_ID,
+      name: "Billing",
+      permission: Permission.ProjectMember,
+    },
+  ],
+  [NO_MEMBERS_PROJECT_ID]: [
+    {
+      id: TEAM_AUDITORS_ID,
+      name: "Auditors",
+      permission: Permission.Viewer,
+    },
+  ],
+};
+
+let projectTeams: Record<string, Array<TeamFixture>> = PROJECT_TEAMS;
+
+interface ListArgs {
+  modelType: unknown;
+  query?: { projectId?: ObjectID | undefined } | undefined;
+  sort?: Record<string, unknown> | undefined;
+}
+
+// The project's teams, or their permission rows, as the API answers them.
+const answerList: (args: ListArgs) => Promise<unknown> = async (
+  args: ListArgs,
+): Promise<unknown> => {
+  const fixtures: Array<TeamFixture> =
+    projectTeams[args?.query?.projectId?.toString() || ""] || [];
+
+  if (args.modelType === TeamPermission) {
+    const rows: Array<TeamPermission> = fixtures.map(
+      (fixture: TeamFixture): TeamPermission => {
+        const row: TeamPermission = new TeamPermission();
+        row._id = ObjectID.generate().toString();
+        row.teamId = new ObjectID(fixture.id);
+        row.permission = fixture.permission;
+        row.isBlockPermission = false;
+        row.scope = PermissionScope.All;
+        return row;
+      },
+    );
+
+    return { data: rows, count: rows.length };
   }
 
-  return [
-    makeTeam(TEAM_ENGINEERING_ID, "Engineering"),
-    makeTeam(TEAM_SUPPORT_ID, "Support"),
-  ];
+  const teams: Array<Team> = fixtures.map((fixture: TeamFixture): Team => {
+    const team: Team = new Team();
+    team._id = fixture.id;
+    team.name = fixture.name;
+    return team;
+  });
+
+  return { data: teams, count: teams.length };
 };
 
 type MakeUserFunction = (id: string) => User;
@@ -270,15 +342,15 @@ const renderModal: RenderModalFunction = (
   );
 };
 
-type ChooseProjectFunction = (view: ReturnType<typeof render>) => void;
+type ClickFunction = (view: ReturnType<typeof render>) => void;
 
-const chooseProject: ChooseProjectFunction = (
+const chooseProject: ClickFunction = (
   view: ReturnType<typeof render>,
 ): void => {
   fireEvent.click(view.getByRole("button", { name: "Choose a project" }));
 };
 
-const chooseOtherProject: ChooseProjectFunction = (
+const chooseOtherProject: ClickFunction = (
   view: ReturnType<typeof render>,
 ): void => {
   fireEvent.click(
@@ -286,67 +358,47 @@ const chooseOtherProject: ChooseProjectFunction = (
   );
 };
 
-type GoBackToProjectStepFunction = (
+const chooseProjectWithoutMembersTeam: ClickFunction = (
   view: ReturnType<typeof render>,
-) => Promise<void>;
-
-/*
- * The way back is the step rail, the same as in the browser: a completed step
- * is clickable and returns the form to it. There is no back button - the modal
- * footer only ever goes forward - so this is the only route an admin has to
- * change their mind about the project after picking a team.
- */
-const goBackToProjectStep: GoBackToProjectStepFunction = async (
-  view: ReturnType<typeof render>,
-): Promise<void> => {
-  fireEvent.click(view.getByText("pages.users.bulkAddToProjectStepProject"));
-
-  await waitFor(
-    () => {
-      expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-        "pages.users.bulkAddToProjectNext",
-      );
-    },
-    { timeout: WAIT_FOR_TIMEOUT },
+): void => {
+  fireEvent.click(
+    view.getByRole("button", {
+      name: "Choose the project with no members team",
+    }),
   );
 };
 
-type SubmitFunction = (view: ReturnType<typeof render>) => void;
-
-const submitModal: SubmitFunction = (view: ReturnType<typeof render>): void => {
+const submitModal: ClickFunction = (view: ReturnType<typeof render>): void => {
   fireEvent.click(view.getByTestId("modal-footer-submit-button"));
 };
 
-type GoToTeamStepFunction = (
+type WaitForTeamFunction = (
   view: ReturnType<typeof render>,
-  expectedTeamName?: string,
+  teamName: string,
 ) => Promise<void>;
 
-/*
- * Step two is where every interesting assertion lives, and getting there means
- * both the step change and the teams fetch have to have settled. The team named
- * here is the one the fetch is waited on through, so it has to be a team of the
- * project that was just chosen.
- */
-const goToTeamStep: GoToTeamStepFunction = async (
+// The picker shows this team as the one selected.
+const waitForSelectedTeam: WaitForTeamFunction = async (
   view: ReturnType<typeof render>,
-  expectedTeamName: string = "Engineering",
+  teamName: string,
 ): Promise<void> => {
-  submitModal(view);
-
   await waitFor(
     () => {
-      expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-        "pages.users.bulkAddToProjectSubmit",
-      );
+      expect(view.getByTestId("selected-team")).toHaveTextContent(teamName);
     },
     { timeout: WAIT_FOR_TIMEOUT },
   );
+};
 
+// The picker offers this team (its teams have loaded).
+const waitForTeamOnOffer: WaitForTeamFunction = async (
+  view: ReturnType<typeof render>,
+  teamName: string,
+): Promise<void> => {
   await waitFor(
     () => {
       expect(
-        view.getByRole("button", { name: `Pick ${expectedTeamName}` }),
+        view.getByRole("button", { name: `Pick ${teamName}` }),
       ).toBeVisible();
     },
     { timeout: WAIT_FOR_TIMEOUT },
@@ -386,80 +438,70 @@ const chooseTeam: ChooseTeamFunction = (
   fireEvent.click(view.getByRole("button", { name: `Pick ${teamName}` }));
 };
 
+type SettleFunction = () => Promise<void>;
+
+/*
+ * Drains the microtask queue so a `.then` that was going to fire has fired.
+ * "onSubmit was not called" is only worth anything once the promise chain the
+ * call would have come from has had its turn.
+ */
+const settle: SettleFunction = async (): Promise<void> => {
+  for (let index: number = 0; index < 10; index++) {
+    await Promise.resolve();
+  }
+};
+
 describe("BulkAddUsersToProjectModal", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     translationCalls.length = 0;
     capturedDropdownProps = null;
+    projectTeams = PROJECT_TEAMS;
 
-    mockGetList.mockImplementation(
-      async (args: {
-        query?: { projectId?: ObjectID | undefined } | undefined;
-      }): Promise<any> => {
-        const teams: Array<Team> = teamsOfProject(
-          args?.query?.projectId?.toString() || "",
-        );
-
-        return {
-          data: teams,
-          count: teams.length,
-        };
-      },
-    );
+    mockGetList.mockImplementation((args: ListArgs): Promise<unknown> => {
+      return answerList(args);
+    });
   });
 
-  type RenderPickerFunction = (overrides: {
-    projectId: ObjectID;
-    selectedTeamIds: Array<string>;
-    onChange: (teamIds: Array<string>) => void;
-  }) => ReturnType<typeof render>;
-
   /*
-   * The picker exactly as this modal configures it: one team, not a list.
+   * One page. The project, the team under it and the auto-accept box are all
+   * on screen together, with no step list and no Next: the team is the chosen
+   * project's, so until a project is picked the picker says so, and asks the
+   * server nothing - a team picker that fetched before a project exists would
+   * offer the teams of no project at all.
    */
-  const renderPicker: RenderPickerFunction = (overrides: {
-    projectId: ObjectID;
-    selectedTeamIds: Array<string>;
-    onChange: (teamIds: Array<string>) => void;
-  }): ReturnType<typeof render> => {
-    return render(
-      <ProjectScopedTeamsPicker
-        isMultiSelect={false}
-        projectId={overrides.projectId}
-        selectedTeamIds={overrides.selectedTeamIds}
-        onChange={overrides.onChange}
-      />,
-    );
-  };
-
-  type SettleFunction = () => Promise<void>;
-
-  /*
-   * Drains the microtask queue so a `.then` that was going to fire has fired.
-   * "onChange was not called" is only worth anything once the promise chain the
-   * call would have come from has had its turn.
-   */
-  const settle: SettleFunction = async (): Promise<void> => {
-    for (let index: number = 0; index < 10; index++) {
-      await Promise.resolve();
-    }
-  };
-
-  /*
-   * The teams on offer are the chosen project's, so there is nothing to ask on
-   * step one but the project. A team picker rendered alongside it would either
-   * sit there empty or - worse - fetch before a project exists and offer the
-   * teams of no project at all.
-   */
-  test("asks for the project on its own step, with no team picker beside it", () => {
+  test("asks for the project, its team and the invitations on one page", async () => {
     const view: ReturnType<typeof render> = renderModal();
 
     expect(
       view.getByText("pages.users.bulkAddToProjectFieldProject"),
     ).toBeVisible();
     expect(
-      view.queryByText("pages.users.bulkAddToProjectFieldTeam"),
+      view.getByText("pages.users.bulkAddToProjectFieldTeam"),
+    ).toBeVisible();
+    expect(
+      view.getByText("pages.users.bulkAddToProjectFieldAutoAccept"),
+    ).toBeVisible();
+
+    // Under the team, until a project is picked.
+    expect(
+      view.getByText("pages.users.bulkAddToProjectSelectProject"),
+    ).toBeVisible();
+
+    // No step list, no "Step 1 of 2", no Next.
+    expect(
+      view.queryByRole("navigation", { name: "Progress" }),
     ).not.toBeInTheDocument();
+    expect(view.queryByText(/Step 1 of/)).not.toBeInTheDocument();
+    expect(view.queryByRole("button", { name: "Next" })).toBeNull();
+
+    // The footer offers the action from the start.
+    expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "pages.users.bulkAddToProjectSubmit",
+    );
+
+    await settle();
+
     expect(capturedDropdownProps).toBeNull();
     expect(mockGetList).not.toHaveBeenCalled();
   });
@@ -469,39 +511,89 @@ describe("BulkAddUsersToProjectModal", () => {
    * would offer every team on the instance, and an admin picking one would move
    * users into a project they never chose.
    */
-  test("fetches the chosen project's teams, by name, on the team step", async () => {
+  test("picking a project loads its teams, by name, and starts on its members team", async () => {
     const view: ReturnType<typeof render> = renderModal();
 
     chooseProject(view);
-    await goToTeamStep(view);
+    await waitForSelectedTeam(view, "Members");
 
-    expect(mockGetList).toHaveBeenCalledTimes(1);
+    const calls: Array<ListArgs> = mockGetList.mock.calls.map(
+      (call: Array<unknown>): ListArgs => {
+        return call[0] as ListArgs;
+      },
+    );
 
-    const getListArgs: {
-      modelType: unknown;
-      query: Record<string, ObjectID>;
-      sort: Record<string, SortOrder>;
-    } = mockGetList.mock.calls[0]![0];
+    for (const call of calls) {
+      expect(Object.keys(call.query || {})).toEqual(["projectId"]);
+      expect(call.query?.projectId?.toString()).toBe(PROJECT_ID);
+    }
 
-    expect(getListArgs.modelType).toBe(Team);
-    expect(Object.keys(getListArgs.query)).toEqual(["projectId"]);
-    expect(getListArgs.query["projectId"]?.toString()).toBe(PROJECT_ID);
-    expect(getListArgs.sort).toEqual({ name: SortOrder.Ascending });
+    // The options, by name; the members team from the teams and their roles.
+    expect(
+      calls.filter((call: ListArgs) => {
+        return call.modelType === Team;
+      }),
+    ).toHaveLength(2);
+    expect(
+      calls.some((call: ListArgs) => {
+        return (
+          call.modelType === Team &&
+          JSON.stringify(call.sort) ===
+            JSON.stringify({ name: SortOrder.Ascending })
+        );
+      }),
+    ).toBe(true);
+    expect(
+      calls.filter((call: ListArgs) => {
+        return call.modelType === TeamPermission;
+      }),
+    ).toHaveLength(1);
+
+    // Every team of the project is still on offer.
+    expect(
+      view.getByRole("button", { name: "Pick Engineering" }),
+    ).toBeVisible();
+    expect(view.getByRole("button", { name: "Pick Support" })).toBeVisible();
   });
 
   /*
-   * The one thing this component exists to produce. hasAcceptedInvitation has
-   * to come out false when the box was never ticked rather than undefined -
-   * TeamMemberService rejects an already-accepted membership for anyone who is
-   * not a master admin, so the flag is not a field to leave unset.
+   * The one thing this component exists to produce, in two presses: the
+   * project, then Add. hasAcceptedInvitation has to come out false when the
+   * box was never ticked rather than undefined - TeamMemberService rejects an
+   * already-accepted membership for anyone who is not a master admin, so the
+   * flag is not a field to leave unset.
    */
-  test("hands the caller the chosen project and team once", async () => {
+  test("adds to the project's members team with the project picked and one press", async () => {
     const onSubmit: OnSubmitFunction = makeOnSubmit();
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
     chooseProject(view);
-    await goToTeamStep(view);
+    await waitForSelectedTeam(view, "Members");
+    submitModal(view);
+
+    await waitFor(
+      () => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const selection: BulkAddUsersToProjectSelection =
+      submittedSelection(onSubmit);
+
+    expect(selection.projectId.toString()).toBe(PROJECT_ID);
+    expect(selection.teamId.toString()).toBe(TEAM_MEMBERS_ID);
+    expect(selection.hasAcceptedInvitation).toBe(false);
+  });
+
+  test("hands the caller another team of the project when the admin picks one", async () => {
+    const onSubmit: OnSubmitFunction = makeOnSubmit();
+    const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
+
+    chooseProject(view);
+    await waitForSelectedTeam(view, "Members");
     chooseTeam(view, "Engineering");
+    await waitForSelectedTeam(view, "Engineering");
     submitModal(view);
 
     await waitFor(
@@ -516,7 +608,6 @@ describe("BulkAddUsersToProjectModal", () => {
 
     expect(selection.projectId.toString()).toBe(PROJECT_ID);
     expect(selection.teamId.toString()).toBe(TEAM_ENGINEERING_ID);
-    expect(selection.hasAcceptedInvitation).toBe(false);
   });
 
   /*
@@ -529,8 +620,7 @@ describe("BulkAddUsersToProjectModal", () => {
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
     chooseProject(view);
-    await goToTeamStep(view);
-    chooseTeam(view, "Engineering");
+    await waitForSelectedTeam(view, "Members");
     fireEvent.click(view.getByRole("checkbox"));
     submitModal(view);
 
@@ -545,236 +635,143 @@ describe("BulkAddUsersToProjectModal", () => {
   });
 
   /*
-   * A submit with no team must not reach the caller. It would either create
-   * memberships against an undefined team or - since the page closes this modal
-   * before it starts creating - tear the picker down over nothing.
-   *
-   * Which layer refuses: BasicForm's own required-field validation. `team` is
-   * `required: true`, so submitForm collects a validation error and returns
-   * before it ever calls props.onSubmit, which means the modal's own
-   * `!teamId` guard is not entered and its
-   * `pages.users.bulkAddToProjectSelectTeam` message is not what is being
-   * pinned here. This test pins the outcome - nothing reaches the caller and
-   * the form stays on the team step - not the guard.
+   * A submit with no project must not reach the caller: BasicForm's own
+   * required-field validation holds it, before the modal's guards.
    */
-  test("does not submit while no team has been chosen", async () => {
+  test("does not submit before a project is picked", async () => {
     const onSubmit: OnSubmitFunction = makeOnSubmit();
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
-    chooseProject(view);
-    await goToTeamStep(view);
     submitModal(view);
 
-    // Still on the last step, still asking - it held rather than advanced.
+    await settle();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(mockGetList).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A project without a members team (no team holds ProjectMember for the
+   * whole project and none is called Members) starts with nothing picked, as
+   * the whole form did before. A submit with no team must not reach the
+   * caller: BasicForm's required-field validation holds it, and the form
+   * stays as it is until a team is picked.
+   */
+  test("a project with no members team waits for a team to be picked", async () => {
+    const onSubmit: OnSubmitFunction = makeOnSubmit();
+    const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
+
+    chooseProjectWithoutMembersTeam(view);
+    await waitForTeamOnOffer(view, "Auditors");
+    await settle();
+
+    expect(view.getByTestId("selected-team")).toHaveTextContent("(none)");
+
+    submitModal(view);
+    await settle();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    chooseTeam(view, "Auditors");
+    submitModal(view);
+
     await waitFor(
       () => {
-        expect(
-          view.getByTestId("modal-footer-submit-button"),
-        ).toHaveTextContent("pages.users.bulkAddToProjectSubmit");
+        expect(onSubmit).toHaveBeenCalledTimes(1);
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
 
-    expect(onSubmit).not.toHaveBeenCalled();
+    expect(submittedSelection(onSubmit).projectId.toString()).toBe(
+      NO_MEMBERS_PROJECT_ID,
+    );
+    expect(submittedSelection(onSubmit).teamId.toString()).toBe(
+      TEAM_AUDITORS_ID,
+    );
   });
 
   /*
    * Changing your mind about the project after having picked a team.
    *
-   * The team lives in the form value, and the form value survives the walk back
-   * to step one. Refetching the teams alone does not fix that: the dropdown
-   * filters its selection against the options it now has, so the old project's
-   * team stops being *shown* while it is still *set*. Required-validation reads
-   * the value, not the dropdown, so the form would happily submit, and nothing
-   * downstream would catch it - TeamMemberService checks that the team exists,
-   * not that it belongs to the project being written - leaving memberships
-   * whose team is in one project and whose projectId is another.
+   * The team lives in the form value, and the form value survives the switch.
+   * Refetching the teams alone does not fix that: the dropdown filters its
+   * selection against the options it now has, so the old project's team stops
+   * being *shown* while it is still *set*. Required-validation reads the value,
+   * not the dropdown, so the form would happily submit, and nothing downstream
+   * would catch it - TeamMemberService checks that the team exists, not that it
+   * belongs to the project being written - leaving memberships whose team is in
+   * one project and whose projectId is another.
    *
-   * So: pick a project, pick its team, go back, pick the other project. The
-   * team of the first project must not come out the other end.
+   * So: pick a project, pick its team, pick the other project. The team of the
+   * first project must not come out the other end: the other project's members
+   * team takes its place.
    */
   test("does not carry a team of the old project into the new one", async () => {
     const onSubmit: OnSubmitFunction = makeOnSubmit();
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
     chooseProject(view);
-    await goToTeamStep(view);
+    await waitForSelectedTeam(view, "Members");
     chooseTeam(view, "Engineering");
+    await waitForSelectedTeam(view, "Engineering");
 
-    await goBackToProjectStep(view);
     chooseOtherProject(view);
-    await goToTeamStep(view, "Billing");
+    await waitForSelectedTeam(view, "Billing");
 
     // The refetch really was scoped to the newly chosen project.
-    expect(mockGetList).toHaveBeenCalledTimes(2);
-    expect(
-      (
-        mockGetList.mock.calls[1]![0] as {
-          query: Record<string, ObjectID>;
-        }
-      ).query["projectId"]?.toString(),
-    ).toBe(OTHER_PROJECT_ID);
+    const otherProjectCalls: Array<ListArgs> = mockGetList.mock.calls
+      .map((call: Array<unknown>): ListArgs => {
+        return call[0] as ListArgs;
+      })
+      .filter((call: ListArgs) => {
+        return call.query?.projectId?.toString() === OTHER_PROJECT_ID;
+      });
 
-    // The old project's team is not on offer, and nothing is selected anymore.
+    expect(otherProjectCalls).toHaveLength(3);
+
+    // The old project's teams are not on offer.
     expect(
       view.queryByRole("button", { name: "Pick Engineering" }),
     ).not.toBeInTheDocument();
-    expect(capturedDropdownProps!.value).toBeUndefined();
 
     submitModal(view);
 
-    /*
-     * Nothing may reach the caller carrying the first project's team. In
-     * practice the cleared value fails required-validation and the form stays
-     * on the team step, but the assertion is written to accept any outcome
-     * except a membership pointing at a team of the project that was
-     * abandoned.
-     */
     await waitFor(
       () => {
-        expect(
-          view.getByTestId("modal-footer-submit-button"),
-        ).toHaveTextContent("pages.users.bulkAddToProjectSubmit");
+        expect(onSubmit).toHaveBeenCalledTimes(1);
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
 
+    const selection: BulkAddUsersToProjectSelection =
+      submittedSelection(onSubmit);
+
+    expect(selection.projectId.toString()).toBe(OTHER_PROJECT_ID);
+    expect(selection.teamId.toString()).toBe(TEAM_BILLING_ID);
+  });
+
+  /*
+   * And the stale team is dropped even when the new project has no members
+   * team to put in its place: nothing is picked, and nothing reaches the
+   * caller carrying the first project's team.
+   */
+  test("drops the old project's team when the new one has no members team", async () => {
+    const onSubmit: OnSubmitFunction = makeOnSubmit();
+    const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
+
+    chooseProject(view);
+    await waitForSelectedTeam(view, "Members");
+
+    chooseProjectWithoutMembersTeam(view);
+    await waitForTeamOnOffer(view, "Auditors");
     await settle();
 
-    const submitMock: jest.MockedFunction<any> =
-      onSubmit as unknown as jest.MockedFunction<any>;
+    expect(view.getByTestId("selected-team")).toHaveTextContent("(none)");
 
-    const submittedTeamIds: Array<string> = submitMock.mock.calls.map(
-      (call: Array<BulkAddUsersToProjectSelection>) => {
-        return call[0]!.teamId.toString();
-      },
-    );
+    submitModal(view);
+    await settle();
 
-    expect(submittedTeamIds).not.toContain(TEAM_ENGINEERING_ID);
-    expect(submittedTeamIds).not.toContain(TEAM_SUPPORT_ID);
     expect(onSubmit).not.toHaveBeenCalled();
-  });
-
-  /*
-   * The same invariant one layer down, where it is stated rather than inferred:
-   * a selection the fetched project does not offer is dropped, and only that
-   * one - ids that ARE the project's teams stay. A blanket clear would be just
-   * as wrong in the other direction, wiping a valid pick on every refetch.
-   */
-  test("drops only the team ids the fetched project does not offer", async () => {
-    const onChange: (teamIds: Array<string>) => void = jest.fn(
-      (_teamIds: Array<string>): void => {},
-    );
-
-    renderPicker({
-      projectId: new ObjectID(OTHER_PROJECT_ID),
-      selectedTeamIds: [TEAM_ENGINEERING_ID, TEAM_BILLING_ID],
-      onChange: onChange,
-    });
-
-    await waitFor(
-      () => {
-        expect(onChange).toHaveBeenCalledTimes(1);
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
-
-    const onChangeMock: jest.MockedFunction<any> =
-      onChange as unknown as jest.MockedFunction<any>;
-
-    expect(onChangeMock.mock.calls[0]![0]).toEqual([TEAM_BILLING_ID]);
-  });
-
-  /*
-   * The other half of that: when everything selected is still a team of the
-   * project, the picker must leave the value alone. Reporting a change here
-   * would make the form dirty - and, in a form that reacted to its own onChange
-   * by re-rendering the custom element, would be a loop.
-   */
-  test("leaves a selection the fetched project does offer alone", async () => {
-    const onChange: (teamIds: Array<string>) => void = jest.fn(
-      (_teamIds: Array<string>): void => {},
-    );
-
-    const view: ReturnType<typeof render> = renderPicker({
-      projectId: new ObjectID(PROJECT_ID),
-      selectedTeamIds: [TEAM_ENGINEERING_ID],
-      onChange: onChange,
-    });
-
-    await waitFor(
-      () => {
-        expect(
-          view.getByRole("button", { name: "Pick Engineering" }),
-        ).toBeVisible();
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
-
-    await settle();
-
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  /*
-   * Clearing is bound to the fetch's success path, and this is why. While the
-   * request is in flight the picker knows nothing about which teams the project
-   * has, so a selection cleared here would be one thrown away on no evidence -
-   * and the admin, watching "Loading teams...", would never see it go.
-   */
-  test("does not clear the selection while the teams are still loading", async () => {
-    mockGetList.mockImplementation((): Promise<any> => {
-      // Never settles: the picker is held in its loading state for the test.
-      return new Promise((): void => {});
-    });
-
-    const onChange: (teamIds: Array<string>) => void = jest.fn(
-      (_teamIds: Array<string>): void => {},
-    );
-
-    const view: ReturnType<typeof render> = renderPicker({
-      projectId: new ObjectID(OTHER_PROJECT_ID),
-      selectedTeamIds: [TEAM_ENGINEERING_ID],
-      onChange: onChange,
-    });
-
-    expect(view.getByText("Loading teams...")).toBeVisible();
-
-    await settle();
-
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  /*
-   * And when the request fails outright. The teams may well be fine and the
-   * network not; discarding the pick on an error would turn a retryable blip
-   * into silently lost input, on top of the error the admin is already reading.
-   */
-  test("does not clear the selection when the teams fail to load", async () => {
-    mockGetList.mockImplementation(async (): Promise<any> => {
-      throw new Error("Teams could not be loaded.");
-    });
-
-    const onChange: (teamIds: Array<string>) => void = jest.fn(
-      (_teamIds: Array<string>): void => {},
-    );
-
-    const view: ReturnType<typeof render> = renderPicker({
-      projectId: new ObjectID(OTHER_PROJECT_ID),
-      selectedTeamIds: [TEAM_ENGINEERING_ID],
-      onChange: onChange,
-    });
-
-    await waitFor(
-      () => {
-        expect(view.getByText("Teams could not be loaded.")).toBeVisible();
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
-
-    await settle();
-
-    expect(onChange).not.toHaveBeenCalled();
   });
 
   /*
@@ -784,15 +781,12 @@ describe("BulkAddUsersToProjectModal", () => {
    * submittable out of that state.
    */
   test("cannot be submitted when the chosen project has no teams", async () => {
-    mockGetList.mockImplementation(async (): Promise<any> => {
-      return { data: [], count: 0 };
-    });
+    projectTeams = {};
 
     const onSubmit: OnSubmitFunction = makeOnSubmit();
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
     chooseProject(view);
-    submitModal(view);
 
     await waitFor(
       () => {
@@ -807,15 +801,6 @@ describe("BulkAddUsersToProjectModal", () => {
     expect(capturedDropdownProps).toBeNull();
 
     submitModal(view);
-
-    await waitFor(
-      () => {
-        expect(
-          view.getByTestId("modal-footer-submit-button"),
-        ).toHaveTextContent("pages.users.bulkAddToProjectSubmit");
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
 
     await settle();
 
@@ -838,8 +823,7 @@ describe("BulkAddUsersToProjectModal", () => {
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
     chooseProject(view);
-    await goToTeamStep(view);
-    chooseTeam(view, "Engineering");
+    await waitForSelectedTeam(view, "Members");
 
     submitModal(view);
 
@@ -871,20 +855,19 @@ describe("BulkAddUsersToProjectModal", () => {
    * `isMultiSelect ? selectedOptions : selectedOptions[0]`). Then that a second
    * pick replaces the first instead of piling up next to it, which is the
    * modal's `teamIds[0]`.
-   *
-   * What is NOT pinned: that the emitted teamId is a scalar and not an array.
-   * The Dropdown here is a stub that hands its onChange a single string in
-   * either mode, so the shape of what comes back is the stub's doing, not the
-   * component's - asserting on it would be asserting on this file.
    */
   test("takes one team, not a list of them", async () => {
     const onSubmit: OnSubmitFunction = makeOnSubmit();
     const view: ReturnType<typeof render> = renderModal({ onSubmit: onSubmit });
 
     chooseProject(view);
-    await goToTeamStep(view);
+    await waitForSelectedTeam(view, "Members");
 
     expect(capturedDropdownProps!.isMultiSelect).toBe(false);
+    expect(capturedDropdownProps!.value).toEqual({
+      label: "Members",
+      value: TEAM_MEMBERS_ID,
+    });
 
     chooseTeam(view, "Support");
 
@@ -910,26 +893,6 @@ describe("BulkAddUsersToProjectModal", () => {
 
     expect(submittedSelection(onSubmit).teamId.toString()).toBe(
       TEAM_ENGINEERING_ID,
-    );
-  });
-
-  /*
-   * The modal owns the footer button, and BasicForm's own submit button is
-   * hidden, so the two have to be kept in step by hand. A button still reading
-   * "next" on the last step is the one that looks like it did nothing.
-   */
-  test("labels the footer button for the step it is on", async () => {
-    const view: ReturnType<typeof render> = renderModal();
-
-    expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-      "pages.users.bulkAddToProjectNext",
-    );
-
-    chooseProject(view);
-    await goToTeamStep(view);
-
-    expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-      "pages.users.bulkAddToProjectSubmit",
     );
   });
 
@@ -1002,7 +965,7 @@ describe("BulkAddUsersToProjectModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     chooseProject(view);
-    await goToTeamStep(view);
+    await waitForSelectedTeam(view, "Members");
 
     const localeStrings: unknown = JSON.parse(
       fs.readFileSync(LOCALE_FILE_PATH, "utf8"),
@@ -1047,5 +1010,15 @@ describe("BulkAddUsersToProjectModal", () => {
     );
 
     expect(unresolvedKeys).toEqual([]);
+
+    // The step names and the Next of the old two-step form are gone for good.
+    for (const retired of [
+      "pages.users.bulkAddToProjectNext",
+      "pages.users.bulkAddToProjectStepProject",
+      "pages.users.bulkAddToProjectStepTeam",
+    ]) {
+      expect(requestedKeys).not.toContain(retired);
+      expect(resolveKey(retired)).toBeUndefined();
+    }
   });
 });

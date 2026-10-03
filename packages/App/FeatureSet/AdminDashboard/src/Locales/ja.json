@@ -129,10 +129,7 @@
       "bulkAddToProject": "プロジェクトに追加",
       "bulkAddToProjectTitle": "ユーザーをプロジェクトに追加",
       "bulkAddToProjectDescription": "プロジェクトとそのチームの1つを選択してください。あなたが代わりに承諾しない限り、選択した {{userCount}} 人のユーザーは全員、招待を承諾するまで保留中のメンバーとしてそのチームに追加されます。",
-      "bulkAddToProjectNext": "次へ",
       "bulkAddToProjectSubmit": "プロジェクトに追加",
-      "bulkAddToProjectStepProject": "プロジェクトを選択",
-      "bulkAddToProjectStepTeam": "チームを選択",
       "bulkAddToProjectFieldProject": "プロジェクト",
       "bulkAddToProjectFieldProjectDescription": "選択したユーザーを追加するプロジェクトです。",
       "bulkAddToProjectFieldProjectPlaceholder": "プロジェクトを選択",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "チームメンバーシップ",
       "teamsCardDescription": "すべてのプロジェクトを通じて、このユーザーが所属するチームです。行を削除すると、そのチームからのみ削除されます。",
       "teamsNoItems": "このユーザーはどのチームにも所属していません。",
-      "stepProject": "プロジェクトを選択",
-      "stepTeam": "チームを選択",
       "fieldProject": "プロジェクト",
       "fieldProjectDescription": "このユーザーを追加するプロジェクトです。",
       "fieldProjectPlaceholder": "プロジェクトを選択",
@@ -385,7 +380,8 @@
       "inviteUser": "ユーザーを招待",
       "inviteUserTitle": "新しいユーザーを招待",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "招待"
+      "inviteUserSubmit": "招待",
+      "inviteTeamDescriptionWithDefault": "所属チームによって、このプロジェクトでできることが決まります。最初は {{teamName}} が選択されています。別のアクセス権を与えるには、別のチームを選んでください。"
     },
     "projectUserView": {
       "title": "Project User",
