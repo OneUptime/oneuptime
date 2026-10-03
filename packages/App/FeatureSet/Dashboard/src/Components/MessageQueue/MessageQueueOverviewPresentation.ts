@@ -22,10 +22,7 @@ import {
   getMessagingBrokerMetricsSource,
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
-import {
-  translateTemplate,
-  translateText,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -101,11 +98,11 @@ export function getMessageQueueLivenessLabel(
 ): string {
   switch (status) {
     case MessageQueueLivenessStatus.SeenRecently:
-      return translateText("Seen recently");
+      return translateTemplate("Seen recently");
     case MessageQueueLivenessStatus.NotSeenRecently:
-      return translateText("Not seen recently");
+      return translateTemplate("Not seen recently");
     default:
-      return translateText("Never seen");
+      return translateTemplate("Never seen");
   }
 }
 
