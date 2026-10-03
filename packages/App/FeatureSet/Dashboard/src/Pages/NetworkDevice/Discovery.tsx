@@ -1292,9 +1292,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
     ? getReviewHosts(scanToReview)
     : [];
 
-  // Group sizes come off the whole scan, so every button keeps its own count.
+  /*
+   * Group sizes come off the whole scan, so every button keeps its own count.
+   * Named with this page's translator, the one the row's No SNMP pill is
+   * looked up with, so a button and the pill it filters to read alike.
+   */
   const hostFilterOptions: Array<FilterButtonOption> =
-    getDiscoveredHostFilterOptions(reviewEntries).map(
+    getDiscoveredHostFilterOptions(reviewEntries, translator).map(
       (option: DiscoveredHostFilterOption) => {
         return {
           label: option.label,

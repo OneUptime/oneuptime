@@ -80,6 +80,20 @@ function readCode(): string {
   return stripComments(readSource()).replace(/\s+/g, " ");
 }
 
+/*
+ * The Dashboard's English locale (src/Locales/en.json): every key
+ * `npm run i18n:extract` found, each mapped to itself. A sentence the page
+ * looks up that is not in here can never be translated.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(DISCOVERY_PAGE, "..", "..", "..", "Locales", "en.json"),
+      "utf8",
+    ),
+  );
+}
+
 /** Where `marker` first appears in the code, proven to exist. */
 function indexOf(marker: string | RegExp, from: number = 0): number {
   const code: string = readCode();
@@ -267,8 +281,17 @@ describe("the unnamed-host hint comes from Common and nowhere else (issue #3916)
     expect(tooltip).toMatch(
       new RegExp(`\\stext=\\{${explanation}\\.text\\}\\s`),
     );
-    // Named after the address it explains, and findable by a test id.
-    expect(tooltip).toContain("label={`why ${entry.ipAddress} has no name`}");
+    /*
+     * Named after the address it explains — one sentence in the reader's
+     * language (#4280) whose only value is the row's address — and findable
+     * by a test id.
+     */
+    expect(tooltip).toMatch(
+      /\slabel=\{translator\.translateTemplate\(\s*"why \{\{address\}\} has no name"\s*,\s*\{\s*address:\s*entry\.ipAddress\s*,?\s*\}\s*,?\s*\)\}\s/,
+    );
+    expect(readEnglishLocale()["why {{address}} has no name"]).toBe(
+      "why {{address}} has no name",
+    );
     expect(tooltip).toContain(
       "dataTestId={`discovered-device-unnamed-${entry.ipAddress}`}",
     );
@@ -277,9 +300,10 @@ describe("the unnamed-host hint comes from Common and nowhere else (issue #3916)
   test("the label and the (i) render only when there is an explanation", () => {
     const explanation: string = explanationCall().identifier;
 
+    // The label is the explanation's own, looked up in the reader's language.
     expect(nameLineSection()).toMatch(
       new RegExp(
-        `\\{${explanation}\\s*&&\\s*\\(\\s*<Fragment>\\s*<span\\s+className="[^"]*"\\s*>\\s*\\{${explanation}\\.label\\}\\s*</span>\\s*<InfoTooltip\\b[^>]*/>\\s*</Fragment>\\s*\\)\\s*\\}`,
+        `\\{${explanation}\\s*&&\\s*\\(\\s*<Fragment>\\s*<span\\s+className="[^"]*"\\s*>\\s*\\{translator\\.translateText\\(\\s*${explanation}\\.label\\s*,?\\s*\\)\\}\\s*</span>\\s*<InfoTooltip\\b[^>]*/>\\s*</Fragment>\\s*\\)\\s*\\}`,
       ),
     );
   });

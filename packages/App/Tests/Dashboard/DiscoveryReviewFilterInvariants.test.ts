@@ -58,6 +58,30 @@ function readSource(): string {
   return fs.readFileSync(DISCOVERY_PAGE, "utf8");
 }
 
+/*
+ * The Dashboard's English locale: every key `npm run i18n:extract` found,
+ * each mapped to itself. The dialog's copy is looked up in the reader's
+ * language (#4280), and a sentence that is not in here can never be
+ * translated.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Locales",
+        "en.json",
+      ),
+      "utf8",
+    ),
+  );
+}
+
 function squash(source: string): string {
   return source.replace(/\s+/g, " ");
 }
@@ -161,8 +185,12 @@ describe("the Review Discovered Devices dialog imports only what it is showing",
   test("the submit button shows that count and refuses an empty import", () => {
     const code: string = modalSection();
 
+    // One sentence in the reader's language, its {{count}} that same count.
     expect(code).toContain(
-      "submitButtonText={`Import Selected (${selectedCount})`}",
+      'submitButtonText={translator.translateTemplate( "Import Selected ({{count}})", { count: selectedCount }, )}',
+    );
+    expect(readEnglishLocale()["Import Selected ({{count}})"]).toBe(
+      "Import Selected ({{count}})",
     );
     expect(code).toContain(
       "disableSubmitButton={!isReviewReady || selectedCount === 0}",
@@ -180,14 +208,18 @@ describe("the filter row", () => {
   });
 
   test("the buttons and their counts come from the tested helper", () => {
-    // Not hand-built in JSX, where the counts could drift from the groups.
+    /*
+     * Not hand-built in JSX, where the counts could drift from the groups —
+     * and named with the page's own translator, the one the row's No SNMP
+     * pill is looked up with (see DiscoveryReviewCopy.test.ts).
+     */
     const declaration: string = section(
       "const hostFilterOptions",
       "const shownEntries",
     );
 
     expect(declaration).toContain(
-      "getDiscoveredHostFilterOptions(reviewEntries)",
+      "getDiscoveredHostFilterOptions(reviewEntries, translator)",
     );
   });
 
@@ -257,12 +289,25 @@ describe("the bulk selection control", () => {
      * this test used to do — passes just as happily with the two arms swapped,
      * i.e. with a button that says "Select all" over an already-full group and
      * clears it when pressed.
+     *
+     * Each arm is one sentence in the reader's language (#4280), its
+     * {{count}} still the shown group's selectable hosts with en-US
+     * separators.
      */
     expect(bulkControlSection()).toContain(
       "title={ areAllShownSelected " +
-        '? `Clear all (${selectableShownCount.toLocaleString("en-US")})` ' +
-        ': `Select all (${selectableShownCount.toLocaleString("en-US")})` }',
+        '? translator.translateTemplate( "Clear all ({{count}})", { count: selectableShownCount.toLocaleString("en-US"), }, ) ' +
+        ': translator.translateTemplate( "Select all ({{count}})", { count: selectableShownCount.toLocaleString("en-US"), }, ) }',
     );
+
+    const english: Record<string, string> = readEnglishLocale();
+
+    for (const sentence of [
+      "Clear all ({{count}})",
+      "Select all ({{count}})",
+    ]) {
+      expect([sentence, english[sentence]]).toEqual([sentence, sentence]);
+    }
   });
 
   test("it updates selection functionally, not from a captured value", () => {

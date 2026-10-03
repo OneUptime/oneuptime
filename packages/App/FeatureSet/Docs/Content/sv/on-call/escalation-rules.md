@@ -27,7 +27,7 @@ Rubriken för **Avancerad** visar **Konfigurerat** när regeln har en beskrivnin
 
 ## Så larmar nivåerna personer
 
-När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen kvitterar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan kvittering börjar policyn om från **Level 1** om dess **Repeat Policy** (under reglerna) säger att den ska upprepas, så många gånger den tillåter, och annars slutar den.
+När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen kvitterar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan kvittering börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger den tillåter, och annars slutar den.
 
 Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå där inte alla mottagare kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför.
 

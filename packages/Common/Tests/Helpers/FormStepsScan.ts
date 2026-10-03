@@ -171,7 +171,16 @@ export interface CustomElementComponentFacts {
 export interface FormFieldFacts {
   // The column or override key the field writes, when it is written down.
   key: string;
+  // The title written as a string, else its source text ("copy.title").
   title: string;
+  /*
+   * Every text the title can be, when it is written down as strings: the
+   * string itself, or each branch of a condition (`isIncident ? "Incident
+   * Title" : "Alert Title"`). Null when the title is computed - a variable, a
+   * property of a copy object, a call, a template with values - so a check of
+   * the English never takes source code for a title. Empty without a title.
+   */
+  titleTexts: Array<string> | null;
   // The fieldType as written ("FormFieldSchemaType.PeoplePicker"), or "".
   fieldType: string;
   /*
@@ -369,6 +378,28 @@ function unwrap(expression: ts.Node): ts.Node {
   }
 
   return node;
+}
+
+/*
+ * The strings an expression can be, when each way it can go is written as
+ * one: a string literal, or a condition whose branches are (nested ones
+ * too). Null for anything computed.
+ */
+function writtenStringsOf(expression: ts.Node): Array<string> | null {
+  const node: ts.Node = unwrap(expression);
+
+  if (ts.isStringLiteralLike(node)) {
+    return [node.text];
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    const whenTrue: Array<string> | null = writtenStringsOf(node.whenTrue);
+    const whenFalse: Array<string> | null = writtenStringsOf(node.whenFalse);
+
+    return whenTrue && whenFalse ? [...whenTrue, ...whenFalse] : null;
+  }
+
+  return null;
 }
 
 function isInsideLoop(node: ts.Node): boolean {
@@ -1835,6 +1866,7 @@ export class FormStepsScanner {
           ? title.text
           : title.getText(title.getSourceFile())
         : "",
+      titleTexts: title ? writtenStringsOf(title) : [],
       stepId: stepIdValue,
       isPlainLiteral,
       isNeverShown: Boolean(showIf && isConstantFalseFunction(showIf)),

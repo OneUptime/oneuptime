@@ -1,4 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -47,6 +48,15 @@ test.describe("Telemetry ingestion key creation wizard", () => {
 
   const modal: () => Locator = (): Locator => {
     return ctx.page.getByTestId("modal");
+  };
+
+  /*
+   * The card's own Create button. Until a test has created the project's
+   * first key the list is empty, and an empty list offers the same button
+   * again under its message.
+   */
+  const createButton: () => Locator = (): Locator => {
+    return getCardButton(ctx.page, "Create Ingestion Key");
   };
 
   // The dialog's main button: Next while it walks, then Create Ingestion Key.
@@ -200,17 +210,13 @@ test.describe("Telemetry ingestion key creation wizard", () => {
 
   test.beforeEach(async () => {
     await ctx.page.setViewportSize({ width: 1440, height: 1000 });
-    const createButton: Locator = ctx.page.getByRole("button", {
-      name: "Create Ingestion Key",
-      exact: true,
-    });
     await gotoProjectPage({
       page: ctx.page,
       projectId: ctx.projectId,
       url: ctx.ingestionKeysUrl,
-      ready: createButton,
+      ready: createButton(),
     });
-    await createButton.click();
+    await createButton().click();
     await expect(modal()).toBeVisible();
     await expect(nextButton()).toBeVisible();
   });
@@ -477,9 +483,7 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(modal()).toBeHidden();
     expect(await fetchKeys(name)).toEqual([]);
 
-    await ctx.page
-      .getByRole("button", { name: "Create Ingestion Key", exact: true })
-      .click();
+    await createButton().click();
     await expect(
       modal().getByPlaceholder("Ingestion Key Name", { exact: true }),
     ).toHaveValue("");

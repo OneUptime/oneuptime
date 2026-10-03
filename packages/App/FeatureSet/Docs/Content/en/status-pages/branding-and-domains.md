@@ -1,70 +1,84 @@
 # Branding & Custom Domains
 
-A status page is the one OneUptime surface your customers actually look at, so it should look like it belongs to you and live on your own domain. Both of those are configured from the **Branding** section of a status page's side menu, plus one setting that hides in **Advanced Settings**.
+A status page is the one OneUptime surface your customers actually look at, so it should look like it belongs to you and live on your own domain. Both of those are configured from the **Branding** section of a status page's side menu.
 
-The thing to know before you start: branding is split across seven separate screens, and the split is not always where you would guess. The logo and cover image are not on **Essential Branding** — they are on **Header**. The favicon is on **Essential Branding**. Colors are on **Overview Page**. Everything else you might think of as "theming" is Custom CSS.
-
-This page walks each screen in turn, then takes you through the full CNAME-then-SSL sequence for putting the page on `status.yourcompany.com`.
+This page walks the **Branding** page card by card, then takes you through the full CNAME-then-SSL sequence for putting the page on `status.yourcompany.com`.
 
 ## Where each branding control lives
 
-Open a status page, and the side menu's **Branding** section has seven items. Here is the map, so you stop hunting.
+Open a status page, and the side menu's **Branding** section has three items:
 
-| Page                       | What you set there                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------------------ |
-| **Essential Branding**     | Page title, page description, search engine indexing, favicon.                             |
-| **Header**                 | Logo, cover image, their alt text, and the header link bar.                                |
-| **Footer**                 | Copyright line and the footer link bar.                                                    |
-| **Overview Page**          | Overview description, history chart bar colors, downtime statuses, overall uptime percent. |
-| **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript.                                   |
-| **Custom Domains**         | Your own domain, CNAME verification, and SSL.                                              |
-| **Languages**              | Default language and the languages offered in the footer switcher.                         |
+| Page                       | What you set there                                                                                                                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Branding**               | Logo and cover image, page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **Advanced**: history chart colors, languages and search engine indexing. |
+| **Custom Domains**         | Your own domain, CNAME verification, and SSL.                                                                                                                                                                                       |
+| **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript.                                                                                                                                                                            |
 
-## Essential branding
+Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the **Overall Uptime Percent**, which **Downtime Monitor Statuses** count against uptime, and the "Powered by OneUptime" line.
 
-**Status Pages → your page → Branding → Essential Branding** (`{id}/branding`) holds three cards.
+Branding used to be split across separate **Essential Branding**, **Header**, **Footer**, **Overview Page** and **Languages** screens. Their old addresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` and `{id}/languages`) now open the **Branding** page, so old bookmarks and links still work.
+
+## The Branding page
+
+**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **Advanced**, at the bottom of the page.
+
+### Logo and cover image
+
+The first card, **Logo and Cover Image**, has an **Edit Images** button that opens two steps:
+
+- **Logo** — image upload, placeholder `Upload logo`, and **Logo Alt Text**, placeholder `Logo of My Company`. If you leave the alt text blank, the status page title is used instead.
+- **Cover Image** — **Cover**, an image upload (placeholder `Upload cover image`) for the wide banner behind the header, and **Cover Image Alt Text**. Leave the alt text blank if the cover is purely decorative.
+
+### Title, description and favicon
 
 - **Title and Description** — the card notes this is also used for SEO. **Edit** opens **Page Title** (placeholder `Please enter page title here.`) and **Page Description**. This is what search engines and link previews show, so write it for a customer, not for your team.
-- **Search Engine Indexing** — a single toggle, **Allow Search Engines to Index this Status Page**, described in the product as controlling whether Google and Bing may list the page in their results. It is on by default. Switch it off and the page is served with `noindex, nofollow` instead.
 - **Favicon** — **Edit Favicon** opens the **Favicon** image upload. This is the little icon in the browser tab.
 
-Use it when: the page is internal-only or still being set up. Turn **Allow Search Engines to Index this Status Page** off so a half-finished page does not start ranking for your brand name.
+### Header links
 
-## The header screen
-
-**Status Pages → your page → Branding → Header** (`{id}/header-style`). Despite the side-menu name, this is where your two biggest brand assets live.
-
-The first card is titled **Logo and Cover Image**, with an **Edit Images** button:
-
-- **Logo** — image upload, placeholder `Upload logo`.
-- **Logo Alt Text** — placeholder `Logo of My Company`. If you leave it blank, the status page title is used instead.
-- **Cover** — image upload, placeholder `Upload cover image`. This is the wide banner behind the header.
-- **Cover Image Alt Text** — the same idea for the cover.
-
-Below it is a **Header Links** table ("Header Links for your status page"). Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
+The **Header Links** table ("Header Links for your status page") holds the links in the status page's header. Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
 
 Good for: pointing visitors back to your marketing site, your docs, or a support portal without making them guess the URL.
 
-## The footer screen
+### Overview page description
 
-**Status Pages → your page → Branding → Footer** (`{id}/footer-style`) is the same shape as **Header**, one card and one table.
+**Overview Page Description** is the first thing on the status page's overview, above the announcements, the overall status and your resources. **Edit Description** opens a markdown field. Use it for a sentence of context: what this page covers, and where to go for support.
+
+### Footer
 
 - **Copyright Info** — **Edit Copyright** opens a single field, **Copyright Info**, with the placeholder `Acme, Inc.`.
-- **Footer Links** — the same **Title** plus **Link** pair, drag-ordered, empty message "No status footer link for this status page."
+- **Footer Links** — the same **Title** plus **Link** pair as the header links, drag-ordered, empty message "No status footer link for this status page."
 
 Legal, privacy and terms links belong here. Header links are for navigation; footer links are for the fine print.
 
-## Overview page branding
+### Advanced
 
-**Status Pages → your page → Branding → Overview Page** (`{id}/overview-page-branding`) is the one screen where colors are configurable, and it also decides what "down" means on the chart.
+The last section of the page is folded, because few people ever change what is in it. Its header says what it holds ("History chart colors, languages, and whether search engines may list this page."), and it reads **Configured** while anything in it differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it.
 
-- **Overview Page** — **Edit Branding** opens a markdown field, **Overview Page Description.**, that renders above the resource list. Use it for a sentence of context: what this page covers, and where to go for support.
-- **Rules for Bar Colors of History Chart** — an ordered, drag-sortable table of rules. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table columns read `When Uptime Percent >=` and `Then, Bar Color is`. Order matters, so arrange them the way you want them evaluated.
+**History chart colors.** These are the only built-in color controls on a status page.
+
+- **Default Bar Color of the History Chart** — **Edit Default Bar Color** opens the **Default Bar Color** picker. Every new status page starts with green. With bar color rules, it is also the color of a day no rule matches. A day the page has no data for is always drawn grey.
+- **Rules for Bar Colors of History Chart** — an ordered, drag-sortable table of rules. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table columns read `When Uptime Percent >=` and `Then, Bar Color is`. Order matters, so arrange them the way you want them evaluated. With no rules, each day's bar takes the color of the lowest monitor status of that day.
+
+How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is the **Downtime Monitor Statuses** card on the same screen.
+
+**Languages.** The **Languages** card is about the language switcher visitors get in the page footer. **Edit Languages** opens two fields:
+
+- **Default Language** — a dropdown listing each supported language by native name and English name (`Deutsch (German)`): the language first-time visitors see. Visitors can always switch from the footer. It defaults to English.
+- **Enabled Languages** — a multi-select, placeholder `All languages`. Leave it empty and every supported language is offered. Choose a few and the footer switcher lists only those.
+
+Seventeen languages ship with OneUptime: English, German, French, Spanish, Italian, Portuguese, Dutch, Danish, Norwegian, Swedish, Russian, Japanese, Korean, Chinese (Simplified), Chinese (Traditional), Hindi and Persian.
+
+**Search Engine Indexing.** A single switch, **Allow Search Engines to Index this Status Page**, controls whether Google, Bing and other search engines may list the page in their results. It is on by default. There is no **Edit** button: the switch saves the moment you flip it. Switch it off and the page is served with `noindex, nofollow` instead (a robots meta tag and an `X-Robots-Tag` header). The page stays reachable by anyone with its link. Search engines can take a few weeks to drop a page they have already indexed.
+
+Use it when: the page is internal-only or still being set up. Turn **Allow Search Engines to Index this Status Page** off so a half-finished page does not start ranking for your brand name.
+
+## Uptime percent and downtime statuses
+
+The **Overall Uptime Percent** and **Downtime Monitor Statuses** cards are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), under the **What your status page shows** card:
+
+- **Overall Uptime Percent** — **Edit Settings** opens the **Show Overall Uptime Percent** toggle and a **Select Uptime Precision** dropdown, which defaults to two decimals (`99.99% (Two Decimal)`). On OneUptime Cloud, showing the overall uptime percent needs the **Scale** plan.
 - **Downtime Monitor Statuses** — **Edit Statuses** opens a multi-select described as "These monitor statuses are considered as down". This is how you decide whether, say, a degraded status counts against uptime on this page.
-- **Default Bar Color of the History Chart** — **Edit Default Bar Color** opens the **Default Bar Color** picker, the color used when no rule matches.
-- **Overall Uptime Percent** — **Edit Settings** opens the **Show Overall Uptime Percent** toggle and a **Select Uptime Precision** dropdown, which defaults to two decimals (`99.99% (Two Decimal)`).
-
-**How many days the chart covers is not set here.** That is **Uptime History** in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`), from 1 to 90 days.
 
 ## Custom HTML, CSS and JavaScript
 
@@ -77,18 +91,9 @@ Legal, privacy and terms links belong here. Header links are for navigation; foo
 - **Custom CSS** — placeholder `Insert Custom CSS here.`
 - **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
 
-**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules on the **Overview Page** screen. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
+**There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **Advanced** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
 
 > Custom JavaScript runs in your visitors' browsers on a page people load precisely when they are worried something is broken. Keep it small, keep it self-hosted where you can, and test it before you rely on it.
-
-## Language settings
-
-**Status Pages → your page → Branding → Languages** (`{id}/languages`) has two cards, and both are about the language switcher visitors get in the page footer.
-
-- **Default Language** — **Edit Default Language** opens a dropdown listing each supported language by native name and English name (`Deutsch (German)`). The card describes it as the language first-time visitors see; visitors can always switch from the footer. It defaults to English.
-- **Enabled Languages** — **Edit Enabled Languages** opens a multi-select, placeholder `All languages`. Leave it empty and every supported language is offered. Choose a few and the footer switcher lists only those.
-
-Sixteen languages ship with OneUptime: English, German, French, Spanish, Italian, Portuguese, Dutch, Danish, Norwegian, Swedish, Russian, Japanese, Korean, Chinese (Simplified), Chinese (Traditional) and Hindi.
 
 ## Custom domains
 

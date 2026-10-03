@@ -54,7 +54,7 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **Resources**         | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**.                       |
 | **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers.                                                                                          |
-| **Branding**          | **Essential Branding**, **HTML, CSS & JavaScript**, **Custom Domains**, **Header**, **Footer**, **Overview Page**, **Languages**.              |
+| **Branding**          | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**.         |
 | **Security**          | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**.                                                                   |
 | **AI**                | **MCP**.                                                                                                                                       |
 | **Developer**         | **Terraform**, **API**, **AI Assistants** — the page as code.                                                                                  |
@@ -116,9 +116,9 @@ What visitors see is set in one card: **What your status page shows**, on **Stat
 
 Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
-Below the card are **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)).
+Below the card are **Overall Uptime Percent** and **Downtime Monitor Statuses** (see [Uptime percent and downtime statuses](/docs/status-pages/branding-and-domains#uptime-percent-and-downtime-statuses)), then **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)).
 
-**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color**, the bar-color rules, the **Downtime Monitor Statuses** and **Show Overall Uptime Percent** all live on **Status Pages → your page → Branding → Overview Page**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
+**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **Advanced** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
 
 ## Previewing before you go live
 

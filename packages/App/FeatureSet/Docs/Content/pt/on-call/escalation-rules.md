@@ -27,7 +27,7 @@ O cabeçalho de **Avançado** mostra **Configurado** quando a regra tem uma desc
 
 ## Como os níveis acionam as pessoas
 
-Quando um incidente ou alerta chega à política, **Level 1** aciona seus destinatários imediatamente. Se ninguém confirmar dentro da espera, **Level 2** é acionado, e assim por diante. Depois que a espera do último nível passa sem confirmação, a política recomeça em **Level 1** se a sua **Repeat Policy** (abaixo das regras) mandar repetir, quantas vezes ela permitir, e caso contrário para.
+Quando um incidente ou alerta chega à política, **Level 1** aciona seus destinatários imediatamente. Se ninguém confirmar dentro da espera, **Level 2** é acionado, e assim por diante. Depois que a espera do último nível passa sem confirmação, a política recomeça em **Level 1** se a sua **Política de Repetição** (abaixo das regras) mandar repetir, quantas vezes ela permitir, e caso contrário para.
 
 O resumo no topo da página **Regras de escalonamento** mostra toda a escada: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa no seu cartão; clique no rótulo para ver quem e por quê.
 

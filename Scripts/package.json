@@ -19,10 +19,8 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",
-    "@types/jest": "^28.1.4",
+    "@types/jest": "^30.0.0",
     "@types/node": "^26.1.1",
-    "jest": "^28.1.1",
-    "ts-jest": "^28.0.5",
     "typescript": "^5.9.2"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

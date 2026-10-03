@@ -1,6 +1,7 @@
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Page, expect, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { getCardButton } from "../../Helpers/CardButton";
 import { gotoProjectPage } from "./ProductOnboarding";
 
 /*
@@ -46,15 +47,21 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       )
       .toString();
 
+    /*
+     * The card's own Create button: a project's first key is created from an
+     * empty list, which offers the same button again under its message.
+     */
+    const createButton: Locator = getCardButton(page, "Create Ingestion Key");
+
     await gotoProjectPage({
       page,
       projectId: data.projectId,
       url: ingestionKeysUrl,
-      ready: page.getByRole("button", { name: "Create Ingestion Key" }),
+      ready: createButton,
     });
 
     // Open the create modal and fill in the key name.
-    await page.getByRole("button", { name: "Create Ingestion Key" }).click();
+    await createButton.click();
     await page.getByTestId("modal").waitFor({ state: "visible" });
     await page
       .locator("input[placeholder='Ingestion Key Name']")

@@ -6,11 +6,14 @@ import { I18nextProvider } from "react-i18next";
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
+import ts from "typescript";
 import {
+  getPluralOneFormKeys,
   getRuntimeLocale,
   isLocaleTree,
   RuntimeLocaleTree,
 } from "../../../UI/esbuild-locales";
+import { listScanRoots, listSourceFiles } from "../../ForeignHiddenRuleGuard";
 import {
   createTranslator,
   TemplateValues,
@@ -35,15 +38,18 @@ import IconProp from "../../../Types/Icon/IconProp";
 /*
  * The Dashboard ships its locale files without what the English fallback
  * already renders (UI/esbuild-locales.js): en.json without its identity
- * entries, every other locale without its English placeholders. That is only
- * safe if every lookup reads exactly the same from the shipped copies as from
- * the full files. This proves it on the real locale files, with i18next set up
- * the way App/FeatureSet/Dashboard/src/Utils/i18n.ts sets it up:
+ * entries and its plural "_one" forms, every other locale without its English
+ * placeholders - bar the "_one" forms a language with a "one" form reads. That
+ * is only safe if every lookup reads exactly the same from the shipped copies
+ * as from the full files. This proves it on the real locale files, with
+ * i18next set up the way App/FeatureSet/Dashboard/src/Utils/i18n.ts sets it
+ * up:
  *
  *   - every flat key (value-keyed, read as useTranslateValue does, and with a
  *     bare t()), every template with its placeholders filled, every nested key
  *     and every plural sentence at counts that pick each language's forms -
- *     in all seventeen languages;
+ *     in all seventeen languages. A "_one" key is read the way the code reads
+ *     it, as the "one" form of its plural, and no source reads it on its own;
  *   - and the shared components drawing those strings: nested keys and
  *     interpolation (EventItem), plurals (BulkUpdateForm), a whole sentence
  *     with elements in it (TranslatedSentence) and a translated text prop
@@ -53,6 +59,9 @@ import IconProp from "../../../Types/Icon/IconProp";
  * Each i18next instance reaches the components through I18nextProvider only,
  * so nothing leaks into the global instance other suites use.
  */
+
+// packages/Common/Tests/App/Dashboard -> the repository root.
+const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -201,11 +210,24 @@ const readEverything: (
     }
   };
 
+  const pluralOneForms: Set<string> = new Set<string>(
+    getPluralOneFormKeys(english),
+  );
+
   for (const key of Object.keys(english)) {
     const value: unknown = english[key];
 
     if (isLocaleTree(value)) {
       walkNested(value, [key]);
+      continue;
+    }
+
+    /*
+     * A "_one" key is the "one" form of the plural under its base key, read
+     * with that key below at every count. Nothing looks it up on its own
+     * (proved below), so it is not read on its own here either.
+     */
+    if (pluralOneForms.has(key)) {
       continue;
     }
 
@@ -279,6 +301,66 @@ describe("what the shipped locales read, against the full files", () => {
 
     expect(shippedKeys).toBeGreaterThan(0);
     expect(shippedKeys).toBeLessThan(fullKeys / 100);
+  });
+
+  /*
+   * The readings take a "_one" key only as the "one" form of its plural,
+   * because that is the only way the front ends read one: a PluralTemplate
+   * handed to translatePlural. A string literal naming a "_one" key would be
+   * a lookup of it on its own, which the shipped English - without its
+   * "_one" forms - answers with the key.
+   */
+  test("no source reads a plural _one form on its own", () => {
+    const oneForms: Set<string> = new Set<string>(
+      getPluralOneFormKeys(fullEnglish),
+    );
+    const found: Array<string> = [];
+    let scanned: number = 0;
+
+    const collect: (file: string, node: ts.Node) => void = (
+      file: string,
+      node: ts.Node,
+    ): void => {
+      if (
+        (ts.isStringLiteral(node) ||
+          ts.isNoSubstitutionTemplateLiteral(node)) &&
+        oneForms.has(node.text)
+      ) {
+        found.push(`${path.relative(REPOSITORY_ROOT, file)}: ${node.text}`);
+      }
+
+      ts.forEachChild(node, (child: ts.Node): void => {
+        collect(file, child);
+      });
+    };
+
+    for (const root of listScanRoots(REPOSITORY_ROOT)) {
+      for (const file of listSourceFiles(root)) {
+        scanned++;
+
+        const source: string = fs.readFileSync(file, "utf8");
+
+        // A file without the suffix names no "_one" key.
+        if (!source.includes("_one")) {
+          continue;
+        }
+
+        collect(
+          file,
+          ts.createSourceFile(
+            file,
+            source,
+            ts.ScriptTarget.Latest,
+            true,
+            file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+          ),
+        );
+      }
+    }
+
+    expect(oneForms.size).toBeGreaterThan(100);
+    expect(scanned).toBeGreaterThan(1000);
+    expect(found).toEqual([]);
   });
 
   test("English reads the same: value-keyed, nested, plural and interpolated", async () => {

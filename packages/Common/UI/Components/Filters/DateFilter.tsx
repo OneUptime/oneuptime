@@ -152,15 +152,12 @@ const buildValue: BuildValueFunction = (
   }
 };
 
-const DateFilter: DateFilterFunction = <T extends GenericObject>(
+// A date filter's controls. DateFilter below decides whether to draw them.
+const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
-
-  if (filter.type !== FieldType.Date && filter.type !== FieldType.DateTime) {
-    return <></>;
-  }
 
   const isDateTime: boolean = filter.type === FieldType.DateTime;
   const detected: DateState = detectState(props.filterData[filter.key]);
@@ -253,6 +250,28 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
       )}
     </div>
   );
+};
+
+/*
+ * FiltersForm draws every filter component in each of its rows, and each one
+ * draws nothing for a filter it does not own. That check calls no hook, so it
+ * lives in this wrapper and the hooks in DateFilterControls: a row whose filter
+ * changes type mounts or unmounts the controls. While the check sat below the
+ * translation hook, such a change altered how many hooks one component called,
+ * and React threw "Rendered more hooks than during the previous render" and
+ * unmounted the whole filter form.
+ */
+const DateFilter: DateFilterFunction = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  if (
+    props.filter.type !== FieldType.Date &&
+    props.filter.type !== FieldType.DateTime
+  ) {
+    return <></>;
+  }
+
+  return <DateFilterControls<T> {...props} />;
 };
 
 export default DateFilter;

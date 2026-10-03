@@ -1,4 +1,5 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -57,6 +58,15 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
   const draftName: string = "Draft telemetry pricing key";
   const draftDescription: string = "Review pricing before creating this key.";
 
+  /*
+   * The card's own Create button. These tests never create a key, so the
+   * list stays empty, and an empty list offers the same button again under
+   * its message.
+   */
+  const createButton: () => Locator = (): Locator => {
+    return getCardButton(ctx.page, "Create Ingestion Key");
+  };
+
   const advanceToBilling: () => Promise<void> = async (): Promise<void> => {
     const modal: Locator = ctx.page.getByTestId("modal");
     /*
@@ -101,17 +111,13 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
 
   test.beforeEach(async () => {
     await ctx.page.setViewportSize({ width: 1440, height: 1000 });
-    const createButton: Locator = ctx.page.getByRole("button", {
-      name: "Create Ingestion Key",
-      exact: true,
-    });
     await gotoProjectPage({
       page: ctx.page,
       projectId: ctx.projectId,
       url: ctx.ingestionKeysUrl,
-      ready: createButton,
+      ready: createButton(),
     });
-    await createButton.click();
+    await createButton().click();
     await expect(ctx.page.getByTestId("modal")).toBeVisible();
     await advanceToBilling();
   });
@@ -345,9 +351,7 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     await expect(modal).toBeHidden();
     await expect(ctx.page).toHaveURL(ctx.ingestionKeysUrl);
 
-    await ctx.page
-      .getByRole("button", { name: "Create Ingestion Key", exact: true })
-      .click();
+    await createButton().click();
     await expect(modal).toBeVisible();
     await expect(
       modal.getByPlaceholder("Ingestion Key Name", { exact: true }),
@@ -374,9 +378,7 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     await modal.getByTestId("modal-footer-close-button").click();
     await expect(modal).toBeHidden();
 
-    await ctx.page
-      .getByRole("button", { name: "Create Ingestion Key", exact: true })
-      .click();
+    await createButton().click();
     await expect(modal).toBeVisible();
     await modal
       .getByPlaceholder("Ingestion Key Name", { exact: true })

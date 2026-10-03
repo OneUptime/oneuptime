@@ -88,9 +88,11 @@ const BUILDER_STRINGS: Array<string> = Array.from(
 );
 
 /*
- * Criteria names written as plain strings on every rule form, and the ones
- * two tables build from the kind of record they match
- * (AutoRemediationRulesTable, RunbookRulesTable).
+ * Criteria names the scan cannot read off a rule form, because the table
+ * builds them from the kind of record it matches: RunbookRulesTable takes
+ * them from its copy for incidents, alerts and scheduled maintenance events
+ * (getRunbookRuleCopy). Every other name is read off the forms, both
+ * branches of a condition included (AutoRemediationRulesTable).
  */
 const COMPUTED_CRITERIA_NAMES: Array<string> = [
   "Incident Labels",
@@ -104,6 +106,11 @@ const COMPUTED_CRITERIA_NAMES: Array<string> = [
   "Event Description",
 ];
 
+// The files those names are built in.
+const COMPUTED_CRITERIA_SOURCES: Array<string> = [
+  "packages/App/FeatureSet/Dashboard/src/Components/Runbook/RunbookRulesTable.tsx",
+];
+
 const forms: Array<FormFacts> = scanFormFiles({
   repositoryRoot: REPOSITORY_ROOT,
   files: listScanRoots(REPOSITORY_ROOT).flatMap(
@@ -113,27 +120,33 @@ const forms: Array<FormFacts> = scanFormFiles({
   ),
 });
 
+const CRITERIA_FIELDS: Array<FormFieldFacts> = forms
+  .filter((form: FormFacts): boolean => {
+    return form.isRuleModel;
+  })
+  .flatMap((form: FormFacts): Array<FormFieldFacts> => {
+    return form.fields;
+  })
+  .filter((field: FormFieldFacts): boolean => {
+    return field.stepId === RULE_CRITERIA_STEP_ID;
+  });
+
 const WRITTEN_CRITERIA_NAMES: Array<string> = Array.from(
   new Set(
-    forms
-      .filter((form: FormFacts): boolean => {
-        return form.isRuleModel;
-      })
-      .flatMap((form: FormFacts): Array<FormFieldFacts> => {
-        return form.fields;
-      })
-      .filter((field: FormFieldFacts): boolean => {
-        return (
-          field.stepId === RULE_CRITERIA_STEP_ID &&
-          field.title.length > 0 &&
-          !field.title.startsWith("`")
-        );
-      })
-      .map((field: FormFieldFacts): string => {
-        return field.title;
-      }),
+    CRITERIA_FIELDS.flatMap((field: FormFieldFacts): Array<string> => {
+      return field.titleTexts || [];
+    }).filter((title: string): boolean => {
+      return title.length > 0;
+    }),
   ),
 ).sort();
+
+// Criteria whose title is computed (titleTexts null): a copy's property.
+const COMPUTED_CRITERIA_FIELDS: Array<FormFieldFacts> = CRITERIA_FIELDS.filter(
+  (field: FormFieldFacts): boolean => {
+    return field.titleTexts === null;
+  },
+);
 
 const CRITERIA_NAMES: Array<string> = Array.from(
   new Set([...WRITTEN_CRITERIA_NAMES, ...COMPUTED_CRITERIA_NAMES]),
@@ -153,6 +166,60 @@ describe("the conditions builder in every dashboard language", () => {
     expect(WRITTEN_CRITERIA_NAMES.length).toBeGreaterThan(80);
     expect(WRITTEN_CRITERIA_NAMES).toContain("Incident Title");
     expect(WRITTEN_CRITERIA_NAMES).toContain("Kubernetes Cluster Name");
+  });
+
+  /*
+   * A name the scan cannot read is checked below only if it is listed above,
+   * so every criteria name a table computes has to come from a file the list
+   * speaks for, and the list has to hold exactly the names built there.
+   */
+  test("every criteria name a table computes is listed above", () => {
+    expect(
+      Array.from(
+        new Set(
+          COMPUTED_CRITERIA_FIELDS.map((field: FormFieldFacts): string => {
+            return field.file;
+          }),
+        ),
+      ).sort(),
+    ).toEqual(COMPUTED_CRITERIA_SOURCES);
+
+    const built: Set<string> = new Set<string>();
+
+    for (const field of COMPUTED_CRITERIA_FIELDS) {
+      // `copy.labelsTitle`: every value the file gives that property.
+      const property: string | undefined =
+        field.title.match(/^\w+\.(\w+)$/)?.[1];
+
+      expect({ title: field.title, isCopyProperty: Boolean(property) }).toEqual(
+        { title: field.title, isCopyProperty: true },
+      );
+
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, field.file),
+        "utf8",
+      );
+      const values: Array<string> = [
+        ...source.matchAll(
+          new RegExp(`\\b${property}: translationKey\\(\\s*"([^"]+)"`, "g"),
+        ),
+      ].map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      expect({ title: field.title, hasValues: values.length > 0 }).toEqual({
+        title: field.title,
+        hasValues: true,
+      });
+
+      for (const value of values) {
+        built.add(value);
+      }
+    }
+
+    expect(Array.from(built).sort()).toEqual(
+      [...COMPUTED_CRITERIA_NAMES].sort(),
+    );
   });
 
   test("English maps every string to itself", () => {

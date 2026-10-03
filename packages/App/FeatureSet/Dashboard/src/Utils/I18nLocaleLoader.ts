@@ -7,8 +7,9 @@
  * `../Locales/${...}.json` pattern into one lazy chunk per matching file), so
  * a user only ever downloads the one locale they actually use instead of all
  * seventeen (~11.8MB of the old entry chunk). Each chunk holds the locale's
- * translations only: the build leaves out the strings that read the same as
- * the English fallback (Common/UI/esbuild-locales.js).
+ * translations, and the plural "_one" forms its language reads, which the
+ * English bundle leaves out: the build leaves out the strings that read the
+ * same as the English fallback (Common/UI/esbuild-locales.js).
  *
  * Kept free of React and side effects so App/Tests/Dashboard can import it
  * directly under the node test environment.

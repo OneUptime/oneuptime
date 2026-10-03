@@ -27,7 +27,7 @@ L'intestazione di **Avanzato** indica **Configurato** quando la regola ha una de
 
 ## Come i livelli avvisano le persone
 
-Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i suoi destinatari. Se nessuno conferma entro la sua attesa, viene avvisato **Level 2**, e così via lungo l'elenco. Trascorsa l'attesa dell'ultimo livello senza conferma, la policy ricomincia da **Level 1** se la sua **Repeat Policy** (sotto le regole) prevede la ripetizione, per tutte le volte consentite, altrimenti si ferma.
+Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i suoi destinatari. Se nessuno conferma entro la sua attesa, viene avvisato **Level 2**, e così via lungo l'elenco. Trascorsa l'attesa dell'ultimo livello senza conferma, la policy ricomincia da **Level 1** se il suo **Criterio di ripetizione** (sotto le regole) prevede la ripetizione, per tutte le volte consentite, altrimenti si ferma.
 
 Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala: quando viene avvisato ogni livello, chi avvisa e cosa succede dopo l'ultimo. Un livello i cui destinatari non possono essere avvisati tutti lo segnala sulla sua scheda; fai clic sull'etichetta per vedere chi e perché.
 

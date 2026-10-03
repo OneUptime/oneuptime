@@ -85,18 +85,41 @@ describe("the dashboard", () => {
     "Branding.tsx",
   );
 
-  test("offers the toggle where the other SEO settings live", () => {
+  const indexingCard: string = readCode(
+    "Dashboard",
+    "src",
+    "Components",
+    "StatusPage",
+    "SearchEngineIndexingCard.tsx",
+  );
+
+  test("offers the switch on the Branding page, where the other SEO settings live", () => {
     /*
      * "index by default, but users can turn that off" needs somewhere to turn
-     * it off. It sits beside page title and description because that is where
-     * someone looking for their status page's SEO settings goes.
+     * it off. It is on the Branding page with the page title and description
+     * because that is where someone looking for their status page's SEO
+     * settings goes - folded under Advanced there, since few people change it.
      */
-    expect(brandingPage).toContain("enableSearchEngineIndexing: true");
-    expect(brandingPage).toContain("FormFieldSchemaType.Toggle");
+    expect(brandingPage).toContain("<SearchEngineIndexingCard");
     expect(brandingPage).toContain("pageTitle: true");
+    expect(brandingPage.indexOf("<AdvancedPageSection")).toBeLessThan(
+      brandingPage.indexOf("<SearchEngineIndexingCard"),
+    );
   });
 
-  test("shows the current setting, not just an edit form", () => {
-    expect(brandingPage).toContain("FieldType.Boolean");
+  test("is a switch that saves this column the moment it is flipped, not an Edit dialog", () => {
+    expect(indexingCard).toContain("<StatusPageSwitchRow");
+    expect(indexingCard).toContain('column="enableSearchEngineIndexing"');
+    expect(indexingCard).not.toContain("CardModelDetail");
+    expect(indexingCard).not.toContain("FormFieldSchemaType.Toggle");
+    // The page itself no longer edits it with a toggle in a form.
+    expect(brandingPage).not.toContain("enableSearchEngineIndexing: true");
+    expect(brandingPage).not.toContain("FormFieldSchemaType.Toggle");
+  });
+
+  test("shows the current setting: it reads the column, and on unless it is false", () => {
+    expect(indexingCard).toContain("enableSearchEngineIndexing: true,");
+    expect(indexingCard).toContain("item.enableSearchEngineIndexing !== false");
+    expect(indexingCard).toContain("initialValue={isOn}");
   });
 });

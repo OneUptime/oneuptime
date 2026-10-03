@@ -2,6 +2,7 @@ import { BASE_URL } from "../../Config";
 import { Browser, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -113,6 +114,17 @@ type MenuLocatorFunction = (page: Page) => Locator;
 
 const sideMenuAdvancedToggle: MenuLocatorFunction = (page: Page): Locator => {
   return sideMenuSectionToggle(page, "Advanced");
+};
+
+/*
+ * The SLO list card's own Create button. The list is empty on a new project,
+ * and again once this spec archives or deletes its only SLO, and an empty
+ * list offers the same button again under its "No SLOs yet" message.
+ */
+type CreateSloButtonFunction = (page: Page) => Locator;
+
+const createSloButton: CreateSloButtonFunction = (page: Page): Locator => {
+  return getCardButton(page, "Create Service Level Objective");
 };
 
 type OpenSideMenuSectionFunction = (page: Page, title: string) => Promise<void>;
@@ -293,9 +305,7 @@ test.describe("SLOs", () => {
     });
 
     // The list page renders its ModelTable card and the create action.
-    await expect(
-      page.getByRole("button", { name: "Create Service Level Objective" }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(createSloButton(page)).toBeVisible({ timeout: 60000 });
     await expect(
       page.getByText("Reliability targets measured from monitor uptime", {
         exact: false,
@@ -327,9 +337,7 @@ test.describe("SLOs", () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: "Create Service Level Objective",
-    });
+    const createButton: Locator = createSloButton(page);
 
     await gotoProjectPage({
       page,
@@ -536,9 +544,7 @@ test.describe("SLOs", () => {
       page,
       projectId: ctx.projectId,
       url: projectUrl({ projectId: ctx.projectId, path: "/slos" }),
-      ready: page.getByRole("button", {
-        name: "Create Service Level Objective",
-      }),
+      ready: createSloButton(page),
     });
 
     /*
@@ -638,10 +644,11 @@ test.describe("SLOs", () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
-    const addMonitorsButton: Locator = page.getByRole("button", {
-      name: "Add Monitors",
-      exact: true,
-    });
+    /*
+     * The Monitors card's own button: with nothing attached the list is
+     * empty, and offers the same button again under its message.
+     */
+    const addMonitorsButton: Locator = getCardButton(page, "Add Monitors");
 
     await gotoProjectPage({
       page,
@@ -834,11 +841,15 @@ test.describe("SLOs", () => {
      * project's whole alert list — which is exactly what a broken query would
      * show.
      */
+    /*
+     * The card's title, exactly: the empty state's own heading ("This SLO
+     * has not raised any alerts") has the word in it too.
+     */
     await gotoProjectPage({
       page,
       projectId: ctx.projectId,
       url: sloUrl("/alerts"),
-      ready: page.getByRole("heading", { name: "Alerts" }),
+      ready: page.getByRole("heading", { name: "Alerts", exact: true }),
     });
 
     await expect(
@@ -1066,9 +1077,14 @@ test.describe("SLOs", () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
-    const createRuleButton: Locator = page.getByRole("button", {
-      name: "Create SLO Monitor Rule",
-    });
+    /*
+     * The Monitor Rules card's own Create button: the SLO has no rule yet,
+     * and an empty list offers the same button again under its message.
+     */
+    const createRuleButton: Locator = getCardButton(
+      page,
+      "Create SLO Monitor Rule",
+    );
 
     await gotoProjectPage({
       page,
@@ -1174,10 +1190,7 @@ test.describe("SLOs", () => {
      * the same write; the disabled button only keeps the page from offering
      * it.
      */
-    const addMonitorsButton: Locator = page.getByRole("button", {
-      name: "Add Monitors",
-      exact: true,
-    });
+    const addMonitorsButton: Locator = getCardButton(page, "Add Monitors");
 
     await gotoProjectPage({
       page,
@@ -1237,9 +1250,7 @@ test.describe("SLOs", () => {
     await page.waitForURL(new RegExp(`/dashboard/${ctx.projectId}/slos/?$`), {
       timeout: 60000,
     });
-    await expect(
-      page.getByRole("button", { name: "Create Service Level Objective" }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(createSloButton(page)).toBeVisible({ timeout: 60000 });
 
     /*
      * Wait for the table's empty state before asserting the row is gone, so a
@@ -1324,9 +1335,7 @@ test.describe("SLOs", () => {
       page,
       projectId: ctx.projectId,
       url: projectUrl({ projectId: ctx.projectId, path: "/slos" }),
-      ready: page.getByRole("button", {
-        name: "Create Service Level Objective",
-      }),
+      ready: createSloButton(page),
     });
     await expect(
       page.getByRole("row").filter({ hasText: ctx.sloName }),
@@ -1359,9 +1368,7 @@ test.describe("SLOs", () => {
     await page.waitForURL(new RegExp(`/dashboard/${ctx.projectId}/slos/?$`), {
       timeout: 60000,
     });
-    await expect(
-      page.getByRole("button", { name: "Create Service Level Objective" }),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(createSloButton(page)).toBeVisible({ timeout: 60000 });
 
     /*
      * Wait for the table to render its empty state before asserting the row is
