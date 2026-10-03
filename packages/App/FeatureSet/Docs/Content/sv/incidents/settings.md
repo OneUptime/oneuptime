@@ -67,7 +67,7 @@ Gå till **Incidenter → Inställningar → Anteckningsmallar** (`/dashboard/{p
 
 Precis som incidentmallar skapas och visas rader snarare än redigeras direkt i listan; öppna en mall för att ändra den.
 
-Anteckningsmallarna dyker upp där du faktiskt behöver dem: bekräftelsedialogerna **Acknowledge Incident** och **Resolve Incident** erbjuder båda **Välj anteckningsmall** bredvid fältet **Offentlig anteckning**. Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed) för hur offentliga och privata anteckningar skiljer sig åt.
+Anteckningsmallarna dyker upp där du faktiskt behöver dem: bekräftelsedialogerna **Bekräfta incident** och **Lös incident** erbjuder båda **Välj anteckningsmall** ovanför fältet **Offentlig anteckning**, hopfällda under **Lägg till en offentlig anteckning**. Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed) för hur offentliga och privata anteckningar skiljer sig åt.
 
 ## Postmortem-mallar
 

@@ -17,6 +17,11 @@ import {
   getSteppedFormFooter,
 } from "../Forms/Utils/FinishFromAnyStep";
 import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
+import {
+  OpenFormSections,
+  OpenFormSectionsContext,
+  useOpenFormSections,
+} from "../Forms/Utils/OpenFormSections";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
@@ -99,17 +104,24 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
 
   const [error, setError] = useState<string>("");
 
+  // Which folded sections are open: an editor in one widens the dialog.
+  const openFormSections: OpenFormSections = useOpenFormSections();
+
   let modalWidth: ModalWidth = props.modalWidth || ModalWidth.Normal;
 
   if (hasSteps) {
     modalWidth = props.modalWidth || ModalWidth.Medium;
   }
 
-  // A form with a Markdown editor opens wide, its toolbar on one line.
+  /*
+   * A form with a Markdown editor opens wide, its toolbar on one line - or
+   * grows wide when a folded section with one is opened.
+   */
   modalWidth =
     getFormModalWidth({
       fields: props.formProps.fields,
       width: modalWidth,
+      openSectionIds: openFormSections.openSectionIds,
     }) ?? modalWidth;
 
   return (
@@ -147,7 +159,9 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
       error={error}
     >
       {!error ? (
-        <>
+        <OpenFormSectionsContext.Provider
+          value={openFormSections.reportSectionOpen}
+        >
           <ModelForm<TBaseModel>
             {...props.formProps}
             name={FormAnalyticsName.resolve(
@@ -186,7 +200,7 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
           />
 
           {props.footer}
-        </>
+        </OpenFormSectionsContext.Provider>
       ) : (
         <></>
       )}

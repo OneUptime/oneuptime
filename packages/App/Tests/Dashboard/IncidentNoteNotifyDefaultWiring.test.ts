@@ -94,37 +94,38 @@ describe("incident view page", () => {
   });
 });
 
-interface ModalFormCase {
-  name: string;
-  file: Array<string>;
-  modal: RegExp;
-  flagKey: string;
-  notifyingDescription: string;
-}
-
-const MODAL_FORMS: Array<ModalFormCase> = [
-  {
-    name: "Incident change state",
-    file: ["Components", "Incident", "ChangeState.tsx"],
-    modal:
-      /\{showModal && \( <ModelFormModal [^>]*?modelType=\{IncidentStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
-    flagKey: "shouldStatusPageSubscribersBeNotified",
-    notifyingDescription: "Notify subscribers of this state change.",
-  },
-];
-
-describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
-  const source: string = readSource(...form.file);
-  const modal: string = extract(source, form.modal);
+/*
+ * The state change dialog builds its body with the shared state change
+ * fields (EventView/StateChangeFormFields): the notify checkbox open, the
+ * public note folded under it. The checkbox is the builder's; what the
+ * incident decides is what it hands the builder.
+ */
+describe("Incident change state", () => {
+  const source: string = readSource(
+    "Components",
+    "Incident",
+    "ChangeState.tsx",
+  );
+  const modal: string = extract(
+    source,
+    /\{showModal && \( <ModelFormModal [^>]*?modelType=\{IncidentStateTimeline\}[\s\S]*?formType: FormType\.Create,/,
+  );
+  const builder: string = readSource(
+    "Components",
+    "EventView",
+    "StateChangeFormFields.ts",
+  );
   const checkbox: string = extract(
-    modal,
-    new RegExp(
-      `\\{ field: \\{ ${form.flagKey}: true, \\}, fieldType: FormFieldSchemaType\\.Checkbox,[\\s\\S]*?\\}`,
-    ),
+    builder,
+    /\{ field: \{ shouldStatusPageSubscribersBeNotified: true, \} as SelectFormFields<TEntity>, fieldType: FormFieldSchemaType\.Checkbox,[\s\S]*?\}/,
   );
 
-  test("finds the modal form and its notify checkbox", () => {
+  test("finds the modal form and builds it with the shared state change fields", () => {
     expect(modal).not.toBe("");
+    expect(modal).toContain(
+      "fields: getStateChangeFormFields<IncidentStateTimeline>({",
+    );
+    expect(modal).toContain("noteType: BulkStateChangeNoteType.Public,");
     expect(checkbox).not.toBe("");
     expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
   });
@@ -140,21 +141,24 @@ describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
 
   test("seeds the flag as an initial form value, not only as the checkbox default", () => {
     expect(modal).toMatch(
-      new RegExp(
-        `initialValues=\\{\\{ ${form.flagKey}: notifySubscribersByDefault,? \\}\\}`,
-      ),
+      /initialValues=\{\{ shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,? \}\}/,
     );
   });
 
-  test("starts the checkbox from the incident's default instead of hard-coding true", () => {
-    expect(checkbox).toContain("defaultValue: notifySubscribersByDefault,");
-    expect(checkbox).not.toContain("defaultValue: true");
+  test("starts the checkbox from the incident's default and explains a quiet one", () => {
+    expect(source).toContain(HELPER_IMPORT);
+    expect(modal).toContain(
+      `notifySubscribers: { byDefault: notifySubscribersByDefault, quietDescription: ${QUIET_DESCRIPTION_REFERENCE}, },`,
+    );
   });
 
-  test("explains an unticked default with the shared description", () => {
-    expect(source).toContain(HELPER_IMPORT);
+  test("the shared checkbox starts where it is told, never hard-coded on", () => {
     expect(checkbox).toContain(
-      `description: notifySubscribersByDefault ? "${form.notifyingDescription}" : ${QUIET_DESCRIPTION_REFERENCE},`,
+      "defaultValue: options.notifySubscribers.byDefault,",
+    );
+    expect(checkbox).not.toContain("defaultValue: true");
+    expect(checkbox).toContain(
+      'description: options.notifySubscribers.byDefault || !options.notifySubscribers.quietDescription ? "Notify subscribers of this state change." : options.notifySubscribers.quietDescription,',
     );
   });
 });

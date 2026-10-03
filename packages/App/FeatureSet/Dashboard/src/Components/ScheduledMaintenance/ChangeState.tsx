@@ -1,9 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
@@ -26,7 +24,18 @@ import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/Sched
 import PublicNoteSubscriberNotificationDefault, {
   ScheduledMaintenanceStateChangeSubscriberNotificationSetting,
 } from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import {
+  BulkStateChangeNoteType,
+  toBulkStateChangeNoteTemplate,
+} from "../../Utils/BulkStateChange";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -179,6 +188,7 @@ const OverdueNotice: FunctionComponent<OverdueNoticeProps> = (
 const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
@@ -529,13 +539,33 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * "Mark as <state>" names the project's own state, so it is one sentence
+   * with the name in it - looked up whole, never glued from pieces - in the
+   * buttons and in the dialog they open alike.
+   */
+  type GetMarkAsTextFunction = (stateName: string) => string;
+
+  const getMarkAsText: GetMarkAsTextFunction = (stateName: string): string => {
+    return translator.translateTemplate("Mark as {{state}}", {
+      state: translatableTerm(stateName),
+    });
+  };
+
+  const markAsOngoingText: string = getMarkAsText(
+    ongoingState?.name || "Ongoing",
+  );
+  const markAsCompleteText: string = getMarkAsText(
+    endState?.name || "Complete",
+  );
+
   const actions: Array<EventStateAction> = [];
 
   if (stateKind === ScheduledMaintenanceStateKind.Scheduled) {
     if (ongoingState) {
       actions.push({
         stateId: ongoingState.id?.toString() || "",
-        label: "Mark as " + (ongoingState.name || "Ongoing"),
+        label: markAsOngoingText,
         icon: IconProp.Clock,
         buttonStyle: ButtonStyleType.PRIMARY,
         id: "sm-mark-ongoing-btn",
@@ -545,7 +575,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     if (endState) {
       actions.push({
         stateId: endState.id?.toString() || "",
-        label: "Mark as " + (endState.name || "Complete"),
+        label: markAsCompleteText,
         icon: IconProp.CheckCircle,
         buttonStyle: ButtonStyleType.OUTLINE,
         id: "sm-mark-complete-btn",
@@ -554,7 +584,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   } else if (stateKind === ScheduledMaintenanceStateKind.Ongoing && endState) {
     actions.push({
       stateId: endState.id?.toString() || "",
-      label: "Mark as " + (endState.name || "Complete"),
+      label: markAsCompleteText,
       icon: IconProp.CheckCircle,
       buttonStyle: ButtonStyleType.PRIMARY,
       id: "sm-mark-complete-btn",
@@ -586,6 +616,14 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
+  /*
+   * The dialog's title and button name the chosen state, in the reader's
+   * language (they were glued from English pieces before).
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedScheduledMaintenanceState?.name || "",
+  );
+
   return (
     <div className="mb-5">
       <EventStatusPanel
@@ -613,22 +651,23 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
       {showModal && (
         <ModelFormModal
-          modalWidth={ModalWidth.Large}
           modelType={ScheduledMaintenanceStateTimeline}
           name={"create-scheduledMaintenance-state-timeline"}
-          title={
-            "Mark Scheduled Maintenance as " +
-            selectedScheduledMaintenanceState?.name
-          }
-          description={
-            "This updates the event timeline. You can add an optional public note for status page subscribers."
-          }
+          title={translator.translateTemplate(
+            "Mark Scheduled Maintenance as {{state}}",
+            { state: selectedStateName },
+          )}
+          /*
+           * One sentence; the optional public note is the folded "Add a
+           * public note" line under the notify checkbox.
+           */
+          description={translationKey("This updates the event timeline.")}
           onClose={() => {
             setShowModal(false);
           }}
-          submitButtonText={
-            "Mark as " + (selectedScheduledMaintenanceState?.name || "")
-          }
+          submitButtonText={translator.translateTemplate("Mark as {{state}}", {
+            state: selectedStateName,
+          })}
           /*
            * Starts from the target state: on for an event created with
            * subscribers notified; for a quiet one, on only when it moves to
@@ -706,80 +745,27 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             name: "create-scheduled-maintenance-state-timeline",
             modelType: ScheduledMaintenanceStateTimeline,
             id: "create-scheduled-maintenance-state-timeline",
-            fields: [
+            /*
+             * "Notify Status Page Subscribers", starting where the state the
+             * event moves to puts it, then the public note folded under "Add
+             * a public note" (EventView/StateChangeFormFields).
+             */
+            fields: getStateChangeFormFields<ScheduledMaintenanceStateTimeline>(
               {
-                field: {
-                  publicNoteTemplate: true,
-                } as any,
-                onChange: (
-                  value: string,
-                  currentValues: FormValues<ScheduledMaintenanceNoteTemplate>,
-                  setNewFormValues: (
-                    currentFormValues: FormValues<ScheduledMaintenanceStateTimeline>,
-                  ) => void,
-                ) => {
-                  // get note template by id
-                  const selectedTemplate:
-                    | ScheduledMaintenanceNoteTemplate
-                    | undefined = scheduledMaintenanceNoteTemplates.find(
-                    (template: ScheduledMaintenanceNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    },
-                  );
-
-                  const note: string = selectedTemplate?.note || "";
-
-                  if (note) {
-                    setNewFormValues({
-                      ...currentValues,
-                      publicNote: note,
-                    } as any);
-                  }
-                },
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: scheduledMaintenanceNoteTemplates.map(
-                  (template: ScheduledMaintenanceNoteTemplate) => {
-                    return {
-                      value: template.id!.toString(),
-                      label: template.templateName || "",
-                    };
-                  },
-                ),
-                showIf: () => {
-                  return scheduledMaintenanceNoteTemplates.length > 0;
-                },
-                description:
-                  "If you have a template for this state change, select it here.",
-                title: "Select Note Template",
-                required: false,
-                overrideFieldKey: "publicNoteTemplate",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  publicNote: true,
-                } as any,
-                fieldType: FormFieldSchemaType.Markdown,
-                description:
+                noteType: BulkStateChangeNoteType.Public,
+                noteDescription: translationKey(
                   "Post a public note about this state change to the status page.",
-                title: "Public Note",
-                required: false,
-                overrideFieldKey: "publicNote",
-                showEvenIfPermissionDoesNotExist: true,
-              },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotified: true,
+                ),
+                noteTemplates: scheduledMaintenanceNoteTemplates.map(
+                  toBulkStateChangeNoteTemplate,
+                ),
+                notifySubscribers: {
+                  byDefault: notifySubscribersByDefault,
+                  quietDescription:
+                    PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                 },
-                fieldType: FormFieldSchemaType.Checkbox,
-                description: notifySubscribersByDefault
-                  ? "Notify subscribers of this state change."
-                  : PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
-                title: "Notify Status Page Subscribers",
-                required: false,
-                defaultValue: notifySubscribersByDefault,
               },
-            ],
+            ),
             formType: FormType.Create,
           }}
         />

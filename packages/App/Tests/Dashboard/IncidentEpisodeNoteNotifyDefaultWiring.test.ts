@@ -260,14 +260,20 @@ describe("incident episode state change", () => {
     "ChangeState.tsx",
   );
 
+  // Its body is the shared state change fields, with a private note.
   test("still has only a private note", () => {
     expect(source).toContain("modelType={IncidentEpisodeStateTimeline}");
-    expect(source).toContain("field: { privateNote: true, } as any,");
+    expect(source).toContain(
+      "fields: getStateChangeFormFields<IncidentEpisodeStateTimeline>({",
+    );
+    expect(source).toContain("noteType: BulkStateChangeNoteType.Private,");
+    expect(source).not.toContain("BulkStateChangeNoteType.Public");
     expect(source).not.toContain("publicNote");
     expect(source).not.toContain("PublicNote");
   });
 
   test("still has no notify checkbox", () => {
+    expect(source).not.toContain("notifySubscribers:");
     expect(source).not.toContain("Notify Status Page Subscribers");
     expect(source).not.toContain("shouldStatusPageSubscribersBeNotified");
     expect(source).not.toContain("notifyStatusPageSubscribersByDefault");

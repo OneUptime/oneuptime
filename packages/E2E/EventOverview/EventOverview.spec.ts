@@ -5507,6 +5507,14 @@ test.describe("incident and alert overview", () => {
     await expect(dialog).toContainText(
       "This marks the incident as resolved on the incident timeline.",
     );
+    // A confirm: whether subscribers hear about it, and the note folded.
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Resolve", exact: true })
@@ -5563,6 +5571,19 @@ test.describe("incident and alert overview", () => {
       name: "Acknowledge Alert",
     });
     await expect(dialog).toBeVisible();
+    /*
+     * A plain confirm: one sentence, the private note folded, Cancel /
+     * Acknowledge - in the short dialog, not the wide editor one.
+     */
+    await expect(dialog).toContainText(
+      "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
+    );
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(dialog.getByTestId("markdown-editor-toolbar")).toBeHidden();
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Acknowledge", exact: true })
@@ -5588,6 +5609,61 @@ test.describe("incident and alert overview", () => {
       ACKNOWLEDGED_ALERT_STATE_ID,
     );
     expect(await skeletonWasSeen(page)).toBe(false);
+  });
+
+  test("?state=created: the alert's folded note opens in the wide dialog and goes with the acknowledgement", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE, "state=created");
+
+    const actions: Locator = page.getByRole("group", { name: "Event actions" });
+    await actions.getByRole("button", { name: "Acknowledge" }).click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Alert",
+    });
+    await expect(dialog).toBeVisible();
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await noteFold.click();
+    await expect(noteFold).toHaveAttribute("aria-expanded", "true");
+
+    // Opened to write, the dialog grows so the toolbar keeps its one line.
+    const toolbar: Locator = dialog.getByTestId("markdown-editor-toolbar");
+    await expect(toolbar).toBeVisible();
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await dialog.boundingBox())!.width;
+      })
+      .toBeGreaterThan(1000);
+    await expect(toolbar.getByTitle("Bold (Ctrl+B)")).toBeVisible();
+
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the payments team.");
+
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "AlertStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    expect(JSON.stringify(creates[0]?.data)).toContain(
+      ACKNOWLEDGED_ALERT_STATE_ID,
+    );
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the payments team.",
+    );
+    await expectNoErrorStates(page);
   });
 
   test("?fail=resend keeps the incident page and shows why the resend failed", async ({
@@ -7553,6 +7629,13 @@ test.describe("scheduled maintenance overview", () => {
       name: "Mark Scheduled Maintenance as Ongoing",
     });
     await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("This updates the event timeline.");
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveAttribute("aria-expanded", "false");
     await dialog
       .getByTestId("modal-footer")
       .getByRole("button", { name: "Mark as Ongoing", exact: true })
