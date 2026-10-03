@@ -6,8 +6,11 @@ import SubscriptionPlan, {
 } from "Common/Types/Billing/SubscriptionPlan";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -47,6 +50,8 @@ export function isAIAccessibleOnCurrentPlan(): boolean {
  * when the plan is unknown (fail open), or when the plan is sufficient.
  */
 const AIPlanGate: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (isAIAccessibleOnCurrentPlan()) {
     return <></>;
   }
@@ -64,12 +69,19 @@ const AIPlanGate: FunctionComponent = (): ReactElement => {
       className="mb-5"
       title={
         <span>
-          This project is on the {currentPlan} plan, so AI requests will be
-          declined.{" "}
-          <Link to={billingRoute} className="underline">
-            Upgrade your plan in Billing settings
-          </Link>{" "}
-          to use AI chat, tasks, and code repositories.
+          <TranslatedSentence
+            template="This project is on the {{plan}} plan, so AI requests will be declined. {{upgradeLink}} to use AI chat, tasks, and code repositories."
+            values={{ plan: currentPlan || "" }}
+            slots={{
+              upgradeLink: (
+                <Link to={billingRoute} className="underline">
+                  {translator.translateText(
+                    "Upgrade your plan in Billing settings",
+                  )}
+                </Link>
+              ),
+            }}
+          />
         </span>
       }
     />
