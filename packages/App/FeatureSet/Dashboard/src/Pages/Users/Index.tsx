@@ -57,6 +57,10 @@ import {
 } from "Common/Types/Analytics/RevenueEvent";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  InviteTeam,
+  findDefaultInviteTeam,
+} from "../../Utils/DefaultInviteTeam";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -68,6 +72,40 @@ const Users: FunctionComponent<PageComponentProps> = (
     React.useState<boolean>(false);
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+
+  /*
+   * The team Invite User starts on: the project's members team, when the
+   * person inviting may invite to it (Utils/DefaultInviteTeam). Looked up
+   * when the dialog is asked for, so the form opens with it picked.
+   */
+  const [defaultInviteTeam, setDefaultInviteTeam] =
+    React.useState<InviteTeam | null>(null);
+  const [isPreparingInvite, setIsPreparingInvite] =
+    React.useState<boolean>(false);
+
+  const openInviteUserModal: () => Promise<void> = async (): Promise<void> => {
+    setIsPreparingInvite(true);
+
+    const team: InviteTeam | null = await findDefaultInviteTeam({
+      projectId: ProjectUtil.getCurrentProjectId(),
+    });
+
+    setDefaultInviteTeam(team);
+    setIsPreparingInvite(false);
+    setShowInviteUserModal(true);
+  };
+
+  // One object per lookup, so re-renders while typing hand the form the same.
+  const inviteInitialValues: FormValues<TeamMember> | undefined =
+    React.useMemo((): FormValues<TeamMember> | undefined => {
+      if (!defaultInviteTeam) {
+        return undefined;
+      }
+
+      return {
+        team: defaultInviteTeam.id,
+      } as FormValues<TeamMember>;
+    }, [defaultInviteTeam]);
 
   const { isEmailRegistered, checkEmail } = useUserEmailRegistrationStatus({
     getRequestHeaders: () => {
@@ -294,11 +332,16 @@ const Users: FunctionComponent<PageComponentProps> = (
               title: "Invite User",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Add,
+              isLoading: isPreparingInvite,
               onClick: () => {
+                if (isPreparingInvite) {
+                  return;
+                }
+
                 if (isPushGroupsManaged) {
                   setShowScimErrorModal(true);
                 } else {
-                  setShowInviteUserModal(true);
+                  void openInviteUserModal();
                 }
               },
             },
@@ -428,6 +471,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             setShowInviteUserModal(false);
           }}
           submitButtonText="Invite"
+          initialValues={inviteInitialValues}
           onSuccess={(teamMember: TeamMember | null) => {
             if (teamMember) {
               UiAnalytics.captureRevenueEvent(
@@ -493,8 +537,12 @@ const Users: FunctionComponent<PageComponentProps> = (
                   team: true,
                 },
                 title: "Team",
-                description:
-                  "Select the team you would like to add this user to.",
+                description: defaultInviteTeam
+                  ? translator.translateTemplate(
+                      "Their team decides what they can do in this project. {{teamName}} is picked to start with; choose another team to give them different access.",
+                      { teamName: defaultInviteTeam.name },
+                    )
+                  : "Their team decides what they can do in this project.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 dropdownModal: {
