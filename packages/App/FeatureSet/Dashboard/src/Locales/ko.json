@@ -24201,5 +24201,8 @@
   "Edit Languages": "언어 편집",
   "History chart colors, languages, and whether search engines may list this page.": "기록 차트 색상, 언어, 검색 엔진에 이 페이지 표시를 허용할지 여부.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "상태 페이지 개요의 맨 위, 다른 모든 내용보다 먼저 표시됩니다. Markdown을 지원합니다.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "처음 방문하는 사용자에게 표시되는 언어와 바닥글에서 전환할 수 있는 언어입니다."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "처음 방문하는 사용자에게 표시되는 언어와 바닥글에서 전환할 수 있는 언어입니다.",
+  "No action is required. We will order a free SSL certificate for this domain within 15 minutes.": "조치가 필요하지 않습니다. 15분 이내에 이 도메인의 무료 SSL 인증서를 주문합니다.",
+  "We check for this record every 15 minutes and verify your domain automatically once it is live. To check right away, click Verify CNAME.": "이 레코드는 15분마다 확인되며, 활성화되면 도메인이 자동으로 인증됩니다. 지금 바로 확인하려면 CNAME 인증을 클릭하세요.",
+  "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting up to 15 minutes, click the button below. The certificate is served within 15 minutes of being ordered.": "이 도메인의 무료 SSL 인증서는 Let's Encrypt에서 자동으로 주문됩니다. 최대 15분을 기다리지 않고 지금 주문하려면 아래 버튼을 클릭하세요. 인증서는 주문 후 15분 이내에 적용됩니다."
 }

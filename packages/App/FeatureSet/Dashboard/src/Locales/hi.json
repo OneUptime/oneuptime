@@ -24201,5 +24201,8 @@
   "Edit Languages": "भाषाएं संपादित करें",
   "History chart colors, languages, and whether search engines may list this page.": "इतिहास चार्ट के रंग, भाषाएं, और क्या सर्च इंजन इस पृष्ठ को सूचीबद्ध कर सकते हैं।",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "आपके स्थिति पृष्ठ के अवलोकन में सबसे ऊपर, बाकी सब से पहले दिखाया जाता है। Markdown समर्थित है।",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "वह भाषा जो पहली बार आने वाले विज़िटर्स देखते हैं, और वे भाषाएं जिन पर वे फ़ुटर से स्विच कर सकते हैं।"
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "वह भाषा जो पहली बार आने वाले विज़िटर्स देखते हैं, और वे भाषाएं जिन पर वे फ़ुटर से स्विच कर सकते हैं।",
+  "No action is required. We will order a free SSL certificate for this domain within 15 minutes.": "कोई कार्रवाई आवश्यक नहीं है। हम 15 मिनट के भीतर इस डोमेन के लिए एक निःशुल्क SSL प्रमाणपत्र ऑर्डर करेंगे।",
+  "We check for this record every 15 minutes and verify your domain automatically once it is live. To check right away, click Verify CNAME.": "हम हर 15 मिनट में इस रिकॉर्ड की जाँच करते हैं और इसके सक्रिय होते ही आपके डोमेन को स्वचालित रूप से सत्यापित कर देते हैं। अभी जाँचने के लिए, “CNAME सत्यापित करें” पर क्लिक करें।",
+  "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting up to 15 minutes, click the button below. The certificate is served within 15 minutes of being ordered.": "हम इस डोमेन के लिए Let's Encrypt से एक निःशुल्क SSL प्रमाणपत्र स्वचालित रूप से ऑर्डर करते हैं। 15 मिनट तक प्रतीक्षा करने के बजाय अभी ऑर्डर करने के लिए, नीचे दिए गए बटन पर क्लिक करें। ऑर्डर के 15 मिनट के भीतर प्रमाणपत्र उपयोग में आ जाता है।"
 }

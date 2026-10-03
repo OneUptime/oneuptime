@@ -24201,5 +24201,8 @@
   "Edit Languages": "Modifica lingue",
   "History chart colors, languages, and whether search engines may list this page.": "Colori del grafico cronologico, lingue e se i motori di ricerca possono elencare questa pagina.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Mostrata in cima alla panoramica della tua pagina di stato, prima di tutto il resto. Markdown è supportato.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "La lingua che vedono i visitatori la prima volta e le lingue a cui possono passare dal piè di pagina."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "La lingua che vedono i visitatori la prima volta e le lingue a cui possono passare dal piè di pagina.",
+  "No action is required. We will order a free SSL certificate for this domain within 15 minutes.": "Non è richiesta alcuna azione. Ordineremo un certificato SSL gratuito per questo dominio entro 15 minuti.",
+  "We check for this record every 15 minutes and verify your domain automatically once it is live. To check right away, click Verify CNAME.": "Controlliamo questo record ogni 15 minuti e verifichiamo automaticamente il tuo dominio non appena è attivo. Per controllare subito, fai clic su Verifica CNAME.",
+  "We order a free SSL certificate from Let's Encrypt for this domain automatically. To order it now instead of waiting up to 15 minutes, click the button below. The certificate is served within 15 minutes of being ordered.": "Ordiniamo automaticamente un certificato SSL gratuito da Let's Encrypt per questo dominio. Per ordinarlo subito invece di attendere fino a 15 minuti, fai clic sul pulsante qui sotto. Il certificato viene servito entro 15 minuti dall'ordine."
 }
