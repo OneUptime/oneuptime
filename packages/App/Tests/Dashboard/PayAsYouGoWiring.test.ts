@@ -80,7 +80,11 @@ describe("Pay as you go wiring", () => {
   });
 
   describe("the shared ingestion key create form", () => {
-    const source: string = read("Components", "Telemetry", "IngestionKeyForm.ts");
+    const source: string = read(
+      "Components",
+      "Telemetry",
+      "IngestionKeyForm.ts",
+    );
 
     test("places the pricing notice on its own billing step", () => {
       expect(source).toContain("...getTelemetryPayAsYouGoFormFields().map(");

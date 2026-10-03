@@ -75,10 +75,7 @@ const SOURCES: Array<{ file: string; source: string }> = collectSourceFiles(
  * Every JSX use of a component, as the text from its tag to the end of the
  * tag (good enough for the attributes written on it).
  */
-function findJsxUses(
-  source: string,
-  component: string,
-): Array<string> {
+function findJsxUses(source: string, component: string): Array<string> {
   const uses: Array<string> = [];
   const opening: RegExp = new RegExp(`<${component}\\b`, "g");
   let match: RegExpExecArray | null = opening.exec(source);
@@ -232,8 +229,9 @@ describe("Telemetry ingestion key create form", () => {
       // No two products name their keys the same.
       const names: Array<string> = cards.map(
         (card: { file: string; use: string }): string => {
-          return (card.use.match(/newKeyName=\{translationKey\("([^"]+)"\)\}/) ||
-            [])[1] as string;
+          return (card.use.match(
+            /newKeyName=\{translationKey\("([^"]+)"\)\}/,
+          ) || [])[1] as string;
         },
       );
       expect(new Set(names).size).toBe(names.length);
@@ -279,9 +277,9 @@ describe("Telemetry ingestion key create form", () => {
       expect(card).toContain(
         "props.getKeyTypeFilter?.(option) || TelemetryIngestionKeyType.Server",
       );
-      expect(read("Components/SecurityEvents/SecurityEventsSetupGuide.tsx")).toContain(
-        "keyTypeFilter={TelemetryIngestionKeyType.Server}",
-      );
+      expect(
+        read("Components/SecurityEvents/SecurityEventsSetupGuide.tsx"),
+      ).toContain("keyTypeFilter={TelemetryIngestionKeyType.Server}");
       expect(read("Components/Telemetry/Documentation.tsx")).toMatch(
         /isBrowserSdkGuide\s*\?\s*TelemetryIngestionKeyType\.Browser\s*:\s*TelemetryIngestionKeyType\.Server/,
       );

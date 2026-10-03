@@ -224,9 +224,7 @@ function progress(): HTMLElement | null {
 }
 
 function activeStep(): string {
-  return (
-    progress()?.querySelector('[aria-current="step"]')?.textContent || ""
-  );
+  return progress()?.querySelector('[aria-current="step"]')?.textContent || "";
 }
 
 function stepTitles(): Array<string> {
@@ -692,7 +690,9 @@ describe("Settings > Telemetry Ingestion Keys > Create", () => {
         expect(notice).toHaveTextContent("Session replay");
         expect(notice).toHaveTextContent("payment method");
         expect(activeStep()).toBe("Billing");
-        expect(within(dialog()).queryByRole("checkbox")).not.toBeInTheDocument();
+        expect(
+          within(dialog()).queryByRole("checkbox"),
+        ).not.toBeInTheDocument();
         expect(createOrUpdateMock).not.toHaveBeenCalled();
 
         const request: CreateRequest = await create(user);

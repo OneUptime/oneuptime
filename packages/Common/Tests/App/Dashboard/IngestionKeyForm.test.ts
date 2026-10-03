@@ -57,12 +57,17 @@ function fieldKey(field: Field<TelemetryIngestionKey>): string {
   return (
     field.overrideFieldKey ||
     Object.keys(field.field || {})[0] ||
-    Object.keys((field as ModelField<TelemetryIngestionKey>).overrideField || {})[0] ||
+    Object.keys(
+      (field as ModelField<TelemetryIngestionKey>).overrideField || {},
+    )[0] ||
     ""
   );
 }
 
-function fieldNamed(fields: Fields, key: string): ModelField<TelemetryIngestionKey> {
+function fieldNamed(
+  fields: Fields,
+  key: string,
+): ModelField<TelemetryIngestionKey> {
   const field: ModelField<TelemetryIngestionKey> | undefined = fields.find(
     (candidate: ModelField<TelemetryIngestionKey>): boolean => {
       return fieldKey(candidate) === key;
@@ -87,9 +92,7 @@ function layout(fields: Fields): Array<[string, string | undefined, boolean]> {
   );
 }
 
-function stepIds(
-  steps: Array<FormStep<TelemetryIngestionKey>>,
-): Array<string> {
+function stepIds(steps: Array<FormStep<TelemetryIngestionKey>>): Array<string> {
   return steps.map((step: FormStep<TelemetryIngestionKey>): string => {
     return step.id;
   });
@@ -113,7 +116,9 @@ function validate(
 ): Dictionary<string> {
   return Validation.validate<TelemetryIngestionKey>({
     formFields: fields.map(
-      (field: ModelField<TelemetryIngestionKey>): ModelField<TelemetryIngestionKey> => {
+      (
+        field: ModelField<TelemetryIngestionKey>,
+      ): ModelField<TelemetryIngestionKey> => {
         return { ...field, name: fieldKey(field) };
       },
     ),
@@ -257,9 +262,9 @@ describe("Telemetry ingestion key create form", () => {
     test.each([SETTINGS, SERVER_GUIDE, BROWSER_GUIDE])(
       "no pricing notice off the Free plan (%#)",
       (options: IngestionKeyFormOptions) => {
-        expect(
-          getIngestionKeyFormFields(options).map(fieldKey),
-        ).not.toContain("telemetryPayAsYouGoNotice");
+        expect(getIngestionKeyFormFields(options).map(fieldKey)).not.toContain(
+          "telemetryPayAsYouGoNotice",
+        );
       },
     );
 
@@ -342,9 +347,9 @@ describe("Telemetry ingestion key create form", () => {
           fields,
           key,
         );
-        expect(field.showIf?.({ keyType: TelemetryIngestionKeyType.Server })).toBe(
-          false,
-        );
+        expect(
+          field.showIf?.({ keyType: TelemetryIngestionKeyType.Server }),
+        ).toBe(false);
         expect(
           field.showIf?.({ keyType: TelemetryIngestionKeyType.Browser }),
         ).toBe(true);
@@ -360,7 +365,8 @@ describe("Telemetry ingestion key create form", () => {
   describe("the name", () => {
     test("starts as what the door says the key is for", () => {
       expect(
-        fieldNamed(getIngestionKeyFormFields(SERVER_GUIDE), "name").defaultValue,
+        fieldNamed(getIngestionKeyFormFields(SERVER_GUIDE), "name")
+          .defaultValue,
       ).toBe("Kubernetes key");
       expect(
         fieldNamed(getIngestionKeyFormFields(BROWSER_GUIDE), "name")
@@ -373,9 +379,9 @@ describe("Telemetry ingestion key create form", () => {
         fieldNamed(getIngestionKeyFormFields(SETTINGS), "name").defaultValue,
       ).toBe("Server key");
       expect(getDefaultIngestionKeyName(undefined)).toBe("Server key");
-      expect(
-        getDefaultIngestionKeyName(TelemetryIngestionKeyType.Server),
-      ).toBe(SERVER_INGESTION_KEY_NAME);
+      expect(getDefaultIngestionKeyName(TelemetryIngestionKeyType.Server)).toBe(
+        SERVER_INGESTION_KEY_NAME,
+      );
       expect(
         getDefaultIngestionKeyName(TelemetryIngestionKeyType.Browser),
       ).toBe(BROWSER_INGESTION_KEY_NAME);
@@ -477,8 +483,16 @@ describe("Telemetry ingestion key create form", () => {
         ["Kubernetes key", "Kubernetes key 2"],
         "Kubernetes key 3",
       ],
-      ["Kubernetes key", ["Kubernetes key", "Kubernetes key 3"], "Kubernetes key 2"],
-      ["Kubernetes key", [null, undefined, "", "Kubernetes key"], "Kubernetes key 2"],
+      [
+        "Kubernetes key",
+        ["Kubernetes key", "Kubernetes key 3"],
+        "Kubernetes key 2",
+      ],
+      [
+        "Kubernetes key",
+        [null, undefined, "", "Kubernetes key"],
+        "Kubernetes key 2",
+      ],
     ])(
       "%j among %j is named %j",
       (
@@ -505,7 +519,8 @@ describe("Telemetry ingestion key create form", () => {
   });
 
   describe("allowed origins", () => {
-    const ORIGINS: string = '["https://app.example.com", "app://com.example.mobile"]';
+    const ORIGINS: string =
+      '["https://app.example.com", "app://com.example.mobile"]';
 
     test.each([SETTINGS, BROWSER_GUIDE])(
       "are required on a Browser key and checked before the submit (%#)",
@@ -523,7 +538,10 @@ describe("Telemetry ingestion key create form", () => {
         for (const [value, error] of [
           ['["https://app.example.com"', /not valid JSON/],
           ["[]", /at least one allowed origin/],
-          ['{"origin":"https://app.example.com"}', /at least one allowed origin/],
+          [
+            '{"origin":"https://app.example.com"}',
+            /at least one allowed origin/,
+          ],
           ['["https://app.example.com", 17]', /must be text/],
           ['["https://app.example.com/path"]', /must not contain a path/],
         ] as Array<[string, RegExp]>) {
@@ -599,8 +617,10 @@ describe("Telemetry ingestion key create form", () => {
         ).keyType,
       ).toBe(TelemetryIngestionKeyType.Browser);
       expect(
-        prepareIngestionKeyForCreate(key({ name: "Kubernetes key" }), SERVER_GUIDE)
-          .keyType,
+        prepareIngestionKeyForCreate(
+          key({ name: "Kubernetes key" }),
+          SERVER_GUIDE,
+        ).keyType,
       ).toBe(TelemetryIngestionKeyType.Server);
     });
 

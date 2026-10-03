@@ -7,7 +7,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { translateText, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
 import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
 
@@ -384,13 +387,11 @@ export const getIngestionKeyFormFields: (
               }
 
               if (nameFollowsKeyType) {
-                const name: string | null = getIngestionKeyNameAfterTypeChange(
-                  {
-                    name: values.name,
-                    previousKeyType: values.keyType,
-                    keyType: value,
-                  },
-                );
+                const name: string | null = getIngestionKeyNameAfterTypeChange({
+                  name: values.name,
+                  previousKeyType: values.keyType,
+                  keyType: value,
+                });
 
                 if (name !== null) {
                   nextValues.name = name;

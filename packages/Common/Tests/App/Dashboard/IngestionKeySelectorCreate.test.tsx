@@ -330,9 +330,9 @@ describe("Creating an ingestion key from a setup guide", () => {
       });
       await waitFor(() => {
         const lastKey: TelemetryIngestionKey | null = onSelectedKeyChange.mock
-          .calls[onSelectedKeyChange.mock.calls.length - 1]?.[0] as
-          | TelemetryIngestionKey
-          | null;
+          .calls[
+          onSelectedKeyChange.mock.calls.length - 1
+        ]?.[0] as TelemetryIngestionKey | null;
         expect(lastKey?.name).toBe("Kubernetes key");
       });
     });
@@ -451,9 +451,12 @@ describe("Creating an ingestion key from a setup guide", () => {
       await user.click(
         within(dialog()).getByRole("button", { name: /^Advanced/ }),
       );
-      fireEvent.change(within(dialog()).getByPlaceholderText("storefront-web"), {
-        target: { value: "shop-web" },
-      });
+      fireEvent.change(
+        within(dialog()).getByPlaceholderText("storefront-web"),
+        {
+          target: { value: "shop-web" },
+        },
+      );
 
       const request: CreateRequest = await create(user);
       expect(request.model.name).toBe("RUM key");

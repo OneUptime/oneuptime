@@ -192,8 +192,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
    * what the guide is for - "Kubernetes key", or "Kubernetes key 2" when the
    * list already has one, so the two can be told apart in the picker.
    */
-  const createKeyFormOptions: IngestionKeyFormOptions = useMemo(
-    (): IngestionKeyFormOptions => {
+  const createKeyFormOptions: IngestionKeyFormOptions =
+    useMemo((): IngestionKeyFormOptions => {
       return {
         keyType: props.keyTypeFilter,
         keyName: getUniqueIngestionKeyName({
@@ -207,16 +207,12 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           ),
         }),
       };
-    },
-    [props.keyTypeFilter, props.newKeyName, ingestionKeys],
-  );
+    }, [props.keyTypeFilter, props.newKeyName, ingestionKeys]);
 
-  const createKeyFormSteps: Array<FormStep<TelemetryIngestionKey>> = useMemo(
-    (): Array<FormStep<TelemetryIngestionKey>> => {
+  const createKeyFormSteps: Array<FormStep<TelemetryIngestionKey>> =
+    useMemo((): Array<FormStep<TelemetryIngestionKey>> => {
       return getIngestionKeyFormSteps(createKeyFormOptions);
-    },
-    [createKeyFormOptions],
-  );
+    }, [createKeyFormOptions]);
 
   const createKeyFormFields: Array<ModelField<TelemetryIngestionKey>> =
     useMemo((): Array<ModelField<TelemetryIngestionKey>> => {

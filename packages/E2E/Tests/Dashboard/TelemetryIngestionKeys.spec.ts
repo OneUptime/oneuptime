@@ -142,15 +142,14 @@ test.describe("Creating a telemetry ingestion key", () => {
   };
 
   // From the Key step of a Browser key to its Browser Settings step.
-  const goToBrowserSettings: () => Promise<void> =
-    async (): Promise<void> => {
-      await pickType("Browser");
-      // Allowed Origins is still to fill in: the main button walks on.
-      await expect(mainButton()).toHaveText("Next");
-      await next();
-      await expect(activeStep()).toHaveText("Browser Settings");
-      await expect(originsInput()).toBeVisible();
-    };
+  const goToBrowserSettings: () => Promise<void> = async (): Promise<void> => {
+    await pickType("Browser");
+    // Allowed Origins is still to fill in: the main button walks on.
+    await expect(mainButton()).toHaveText("Next");
+    await next();
+    await expect(activeStep()).toHaveText("Browser Settings");
+    await expect(originsInput()).toBeVisible();
+  };
 
   /*
    * On the Free plan, the pricing on the Billing step is shown before the
@@ -219,9 +218,9 @@ test.describe("Creating a telemetry ingestion key", () => {
       ),
       { timeout: 60000 },
     );
-    await expect(ctx.page.locator('[role="hidden-text"]').first()).toBeVisible(
-      { timeout: 60000 },
-    );
+    await expect(ctx.page.locator('[role="hidden-text"]').first()).toBeVisible({
+      timeout: 60000,
+    });
     const keys: Array<StoredKey> = await fetchKeys(name);
     expect(keys).toHaveLength(1);
     return keys[0]!;

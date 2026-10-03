@@ -59,12 +59,10 @@ const TelemetryIngestionKeys: FunctionComponent<
     return getIngestionKeyFormSteps({});
   }, []);
 
-  const formFields: Array<ModelField<TelemetryIngestionKey>> = useMemo(
-    (): Array<ModelField<TelemetryIngestionKey>> => {
+  const formFields: Array<ModelField<TelemetryIngestionKey>> =
+    useMemo((): Array<ModelField<TelemetryIngestionKey>> => {
       return getIngestionKeyFormFields({});
-    },
-    [],
-  );
+    }, []);
 
   return (
     <Fragment>
