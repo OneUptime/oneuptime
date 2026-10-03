@@ -20,6 +20,10 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -36,6 +40,16 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "host-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
+
+/*
+ * A host is matched to its telemetry by host.name, and named after it unless
+ * somebody gives it a display name of their own (DiscoveredResourceCreate).
+ */
+const HOST_NAMING: DiscoveredResourceNaming<Model> = namedAfterIdentity<Model>({
+  identityColumn: "hostIdentifier",
+  resourceName: "host",
+  identityName: "host name",
+});
 
 /*
  * What `findOrCreateByHostIdentifier` memoizes: the resolved row's id plus
@@ -811,7 +825,25 @@ export class Service extends DatabaseService<Model> {
       createBy,
     });
 
+    // Named after its host name when nobody gave it a name.
+    DiscoveredResourceCreate.fillName({ createBy, naming: HOST_NAMING });
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * A host that is already there - discovered from its telemetry or added
+   * before - is refused by its host name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: HOST_NAMING,
+    });
   }
 
   /*

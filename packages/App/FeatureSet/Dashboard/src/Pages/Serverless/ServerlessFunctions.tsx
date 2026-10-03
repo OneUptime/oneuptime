@@ -17,6 +17,11 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -61,9 +66,12 @@ const ServerlessFunctions: FunctionComponent<
   }
 
   /*
-   * The create form asks for what a function cannot be created without: its
-   * name and the identifier its telemetry reports. The description and the
-   * labels fold under Advanced, so the form is three rows and has no steps.
+   * The create form asks for the one thing a function cannot be created
+   * without: the faas.name its telemetry carries (on Azure Functions,
+   * ingest fills it in from service.name). The display name follows it - a
+   * function added here is named like a discovered one - and folds under
+   * Advanced with the description and the labels, so the form is two rows
+   * (DiscoveredResourceFormFields).
    */
   const advancedSection: FormFieldCollapsibleSection<ServerlessFunction> =
     getAdvancedFormSection<ServerlessFunction>();
@@ -109,26 +117,25 @@ const ServerlessFunctions: FunctionComponent<
             "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
         }}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "checkout-handler",
-          },
-          {
+          getIdentityFormField<ServerlessFunction>({
             field: {
               functionIdentifier: true,
             },
-            title: "Function Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "Function Name (faas.name)",
             placeholder: "checkout-handler",
             description:
-              "This should match the faas.name attribute reported by the OTel collector.",
-          },
+              "The faas.name your function's telemetry carries, exactly. On Azure Functions, that is the function app's OTEL_SERVICE_NAME. Telemetry is matched to this function by it.",
+          }),
+          getDisplayNameFormField<ServerlessFunction>({
+            getDefaultName:
+              getNameFromIdentityField<ServerlessFunction>(
+                "functionIdentifier",
+              ),
+            placeholder: "Checkout handler",
+            description:
+              "Starts as the function name, the way discovered functions are named. Type a name of your own to show it instead. Telemetry is still matched by the function name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
