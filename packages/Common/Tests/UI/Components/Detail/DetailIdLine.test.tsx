@@ -171,6 +171,19 @@ describe("DetailIdLine at rest", () => {
     expect(value().style.maxWidth).toBe(SHORT_RECORD_ID_WIDTH);
   });
 
+  test("reads left to right, so its start is what shows on a right-to-left page too", () => {
+    workingClipboard();
+    render(
+      <div dir="rtl">
+        <DetailIdLine recordId={RECORD_ID} />
+      </div>,
+    );
+
+    expect(valueWrapper()).toHaveAttribute("dir", "ltr");
+    expect(valueWrapper()).toContainElement(value());
+    expect(valueWrapper()).toContainElement(ellipsis());
+  });
+
   test("ends the clipped ID with an ellipsis a screen reader skips", () => {
     workingClipboard();
     render(<DetailIdLine recordId={RECORD_ID} />);

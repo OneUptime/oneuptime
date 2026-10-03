@@ -125,10 +125,13 @@ const DetailIdLine: FunctionComponent<ComponentProps> = (
   /*
    * The ID and its ellipsis each name font-mono themselves: the Dashboard's
    * index.ejs sets Inter on `*`, which beats a font inherited from a parent.
+   * An ID reads left to right in every language, and is clipped at its end:
+   * in a right-to-left page the clip would otherwise keep its last group.
    */
   const value: ReactElement = (
     <span
       data-testid="detail-id-value-wrapper"
+      dir="ltr"
       className="inline-flex min-w-0 cursor-pointer items-baseline text-gray-600 hover:text-gray-900"
       onClick={() => {
         void copy();
