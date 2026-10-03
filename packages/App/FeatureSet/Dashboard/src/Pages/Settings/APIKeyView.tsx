@@ -1,268 +1,38 @@
-import LabelsElement from "Common/UI/Components/Label/Labels";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import ApiKeyPermissionTable, {
+  ApiKeyPermissionType,
+} from "../../Components/ApiKey/ApiKeyPermissionTable";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
-import { FormProps } from "Common/UI/Components/Forms/BasicForm";
-import PermissionPicker from "Common/UI/Components/Forms/Fields/PermissionPicker";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
-import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
-import Label from "Common/Models/DatabaseModels/Label";
-import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
-import React, {
-  Fragment,
-  FunctionComponent,
-  MutableRefObject,
-  ReactElement,
-} from "react";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-export enum PermissionType {
-  AllowPermissions = "AllowPermissions",
-  BlockPermissions = "BlockPermissions",
-}
-
+/*
+ * An API key's page, in the order it is used: what the key is (and the key
+ * itself, to copy), what it can do, resetting it, then - folded under
+ * Advanced - what it can never do, and deleting it.
+ *
+ * Block permissions are rarely needed and were always on screen, as large as
+ * what the key can do; they now sit in the Advanced section, which says
+ * "Configured" while the key has any.
+ */
 const APIKeyView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refresher, setRefresher] = React.useState<boolean>(false);
-
-  type GetPermissionTable = (data: {
-    permissionType: PermissionType;
-  }) => ReactElement;
-
-  const getPermissionTable: GetPermissionTable = (data: {
-    permissionType: PermissionType;
-  }): ReactElement => {
-    const { permissionType } = data;
-
-    const formRef: MutableRefObject<FormProps<FormValues<ApiKeyPermission>>> =
-      React.useRef<
-        FormProps<FormValues<ApiKeyPermission>>
-      >() as MutableRefObject<FormProps<FormValues<ApiKeyPermission>>>;
-
-    let tableTitle: string = "Allow Permissions";
-
-    if (permissionType === PermissionType.BlockPermissions) {
-      tableTitle = "Block Permissions";
-    }
-
-    let tableDescription: string =
-      "Here you can manage allow permissions for this API Key.";
-
-    if (permissionType === PermissionType.BlockPermissions) {
-      tableDescription =
-        "Here you can manage block permissions for this API Key. This will override any allow permissions set for this API Key.";
-    }
-
-    {
-      /* API Key Permisison Table */
-    }
-
-    return (
-      <ModelTable<ApiKeyPermission>
-        modelType={ApiKeyPermission}
-        id="api-key-permission-table"
-        userPreferencesKey="api-key-permission-table"
-        isDeleteable={true}
-        name="Settings > API Key > Permissions"
-        createEditModalWidth={ModalWidth.Large}
-        query={{
-          apiKeyId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          isBlockPermission: permissionType === PermissionType.BlockPermissions,
-        }}
-        onBeforeCreate={(item: ApiKeyPermission): Promise<ApiKeyPermission> => {
-          if (!props.currentProject || !props.currentProject._id) {
-            throw new BadDataException("Project ID cannot be null");
-          }
-
-          item.apiKeyId = modelId;
-          item.projectId = new ObjectID(props.currentProject._id);
-          item.isBlockPermission =
-            permissionType === PermissionType.BlockPermissions;
-          return Promise.resolve(item);
-        }}
-        isEditable={true}
-        isCreateable={true}
-        isViewable={false}
-        cardProps={{
-          title: tableTitle,
-          description: tableDescription,
-        }}
-        noItemsMessage={"No permissions created for this API Key so far."}
-        createEditFromRef={formRef}
-        formFields={[
-          {
-            field: {
-              permission: true,
-            },
-            onChange: async (_value: any) => {
-              await formRef.current.setFieldValue("labels", [], true);
-            },
-            title: "Permission",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: true,
-            placeholder: "Search permissions...",
-            getCustomElement: (
-              _values: FormValues<ApiKeyPermission>,
-              customElementProps: CustomElementProps,
-            ) => {
-              return (
-                <PermissionPicker
-                  onChange={(value: Permission | null) => {
-                    customElementProps.onChange?.(value);
-                  }}
-                  onBlur={customElementProps.onBlur}
-                  tabIndex={customElementProps.tabIndex}
-                  initialValue={
-                    customElementProps.initialValue as Permission | undefined
-                  }
-                  placeholder={customElementProps.placeholder}
-                  error={customElementProps.error}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Restrict to Labels",
-            description:
-              "If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            showIf: (values: FormValues<TeamPermission>): boolean => {
-              if (!values["permission"]) {
-                return false;
-              }
-
-              if (
-                values["permission"] &&
-                !PermissionHelper.isAccessControlPermission(
-                  values["permission"] as Permission,
-                )
-              ) {
-                return false;
-              }
-
-              return true;
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              permission: true,
-            },
-            title: "Permission",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-              },
-            },
-            title: "Restrict to Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              permission: true,
-            },
-            title: "Permission",
-            type: FieldType.Text,
-
-            getElement: (item: ApiKeyPermission): ReactElement => {
-              return (
-                <p>
-                  {PermissionHelper.getTitle(item["permission"] as Permission)}
-                </p>
-              );
-            },
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Restrict to Labels",
-            type: FieldType.EntityArray,
-
-            getElement: (item: ApiKeyPermission): ReactElement => {
-              if (
-                item &&
-                item["permission"] &&
-                !PermissionHelper.isAccessControlPermission(
-                  item["permission"] as Permission,
-                )
-              ) {
-                return (
-                  <p>
-                    {translator.translateText(
-                      "Restriction by labels cannot be applied to this permission.",
-                    )}
-                  </p>
-                );
-              }
-
-              if (!item["labels"] || item["labels"].length === 0) {
-                return (
-                  <p>
-                    {translator.translateText(
-                      "No restrictions has been applied to this permission.",
-                    )}
-                  </p>
-                );
-              }
-
-              return <LabelsElement labels={item["labels"] || []} />;
-            },
-          },
-        ]}
-      />
-    );
-  };
+  const [blockPermissionCount, setBlockPermissionCount] =
+    React.useState<number>(0);
 
   return (
     <Fragment>
@@ -359,6 +129,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
+      {/* What the key can do: a role, or single permissions. */}
+      <ApiKeyPermissionTable
+        apiKeyId={modelId}
+        permissionType={ApiKeyPermissionType.AllowPermissions}
+        currentProject={props.currentProject}
+      />
+
       <ResetObjectID<ApiKey>
         modelType={ApiKey}
         fieldName={"apiKey"}
@@ -370,15 +147,21 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
-      {/* Allow Permissions */}
-      {getPermissionTable({
-        permissionType: PermissionType.AllowPermissions,
-      })}
-
-      {/* Block Permissions */}
-      {getPermissionTable({
-        permissionType: PermissionType.BlockPermissions,
-      })}
+      {/* What the key can never do, folded away. */}
+      <AdvancedPageSection
+        description="Block permissions: what this key can never do, even when one of its roles or permissions allows it."
+        isConfigured={blockPermissionCount > 0}
+        dataTestId="api-key-advanced-section"
+      >
+        <ApiKeyPermissionTable
+          apiKeyId={modelId}
+          permissionType={ApiKeyPermissionType.BlockPermissions}
+          currentProject={props.currentProject}
+          onPermissionCountChange={(count: number) => {
+            setBlockPermissionCount(count);
+          }}
+        />
+      </AdvancedPageSection>
 
       {/* Delete API Key */}
 

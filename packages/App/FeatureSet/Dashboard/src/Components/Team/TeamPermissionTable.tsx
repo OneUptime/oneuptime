@@ -23,6 +23,7 @@ import {
   CardSelectOptionGroup,
 } from "Common/UI/Components/CardSelect/CardSelect";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -75,117 +76,9 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       "Here you can manage block permissions for this team. This will override any allow permissions set for this team.";
   }
 
-  const roleIconMap: Record<string, IconProp> = {
-    [Permission.ProjectOwner]: IconProp.ShieldCheck,
-    [Permission.ProjectAdmin]: IconProp.User,
-    [Permission.ProjectMember]: IconProp.Team,
-    [Permission.Viewer]: IconProp.Eye,
-
-    [Permission.IncidentAdmin]: IconProp.Alert,
-    [Permission.IncidentMember]: IconProp.Alert,
-    [Permission.IncidentViewer]: IconProp.Alert,
-
-    [Permission.AlertAdmin]: IconProp.BellAlert,
-    [Permission.AlertMember]: IconProp.BellAlert,
-    [Permission.AlertViewer]: IconProp.BellAlert,
-
-    [Permission.MonitorAdmin]: IconProp.Activity,
-    [Permission.MonitorMember]: IconProp.Activity,
-    [Permission.MonitorViewer]: IconProp.Activity,
-
-    [Permission.StatusPageAdmin]: IconProp.Globe,
-    [Permission.StatusPageMember]: IconProp.Globe,
-    [Permission.StatusPageViewer]: IconProp.Globe,
-
-    [Permission.OnCallAdmin]: IconProp.Phone,
-    [Permission.OnCallMember]: IconProp.Phone,
-    [Permission.OnCallViewer]: IconProp.Phone,
-
-    [Permission.ScheduledMaintenanceAdmin]: IconProp.Calendar,
-    [Permission.ScheduledMaintenanceMember]: IconProp.Calendar,
-    [Permission.ScheduledMaintenanceViewer]: IconProp.Calendar,
-
-    [Permission.TelemetryAdmin]: IconProp.ChartBar,
-    [Permission.TelemetryMember]: IconProp.ChartBar,
-    [Permission.TelemetryViewer]: IconProp.ChartBar,
-
-    [Permission.SecurityAdmin]: IconProp.ShieldExclamation,
-    [Permission.SecurityMember]: IconProp.ShieldExclamation,
-    [Permission.SecurityViewer]: IconProp.ShieldExclamation,
-
-    [Permission.SettingsAdmin]: IconProp.Settings,
-    [Permission.SettingsMember]: IconProp.Settings,
-    [Permission.SettingsViewer]: IconProp.Settings,
-
-    [Permission.BillingAdmin]: IconProp.CreditCard,
-    [Permission.BillingMember]: IconProp.CreditCard,
-    [Permission.BillingViewer]: IconProp.CreditCard,
-
-    [Permission.WorkflowAdmin]: IconProp.Workflow,
-    [Permission.WorkflowMember]: IconProp.Workflow,
-    [Permission.WorkflowViewer]: IconProp.Workflow,
-
-    [Permission.RunbookAdmin]: IconProp.PlayCircle,
-    [Permission.RunbookMember]: IconProp.PlayCircle,
-    [Permission.RunbookViewer]: IconProp.PlayCircle,
-  };
-
-  const ownerRoles: Array<CardSelectOption> = [];
-  const projectRoles: Array<CardSelectOption> = [];
-  const administrationRoles: Array<CardSelectOption> = [];
-  const domainRoles: Array<CardSelectOption> = [];
-
-  for (const p of PermissionHelper.getRolePermissionProps()) {
-    const option: CardSelectOption = {
-      value: p.permission,
-      title: p.title,
-      description: p.description,
-      icon: roleIconMap[p.permission] || IconProp.Lock,
-    };
-
-    if (
-      p.permission === Permission.ProjectOwner ||
-      p.permission === Permission.ProjectAdmin
-    ) {
-      ownerRoles.push(option);
-    } else if (
-      p.permission === Permission.ProjectMember ||
-      p.permission === Permission.Viewer
-    ) {
-      projectRoles.push(option);
-    } else if (
-      p.permission === Permission.SettingsAdmin ||
-      p.permission === Permission.SettingsMember ||
-      p.permission === Permission.SettingsViewer ||
-      p.permission === Permission.BillingAdmin ||
-      p.permission === Permission.BillingMember ||
-      p.permission === Permission.BillingViewer
-    ) {
-      administrationRoles.push(option);
-    } else {
-      domainRoles.push(option);
-    }
-  }
-
+  // The same role cards an API key's Add Role offers (RoleCardSelectOptions).
   const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
-    [
-      {
-        label: "Owner",
-        options: ownerRoles,
-      },
-      {
-        label: "Project Roles",
-        options: projectRoles,
-      },
-      {
-        label: "Administration",
-        options: administrationRoles,
-      },
-      {
-        label: "Domain Roles",
-        options: domainRoles,
-      },
-    ];
+    getRoleCardSelectOptions();
 
   const createButtons: Array<CardButtonSchema> = [
     {
