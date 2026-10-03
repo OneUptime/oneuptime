@@ -32,6 +32,18 @@ import {
 import Navigation from "../../../UI/Utils/Navigation";
 
 /*
+ * Storage's string index signature makes @jest/globals type a spy on
+ * Storage.prototype as never; spy through its two methods instead.
+ */
+interface StorageMethods {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+}
+
+const STORAGE_METHODS: StorageMethods =
+  Storage.prototype as unknown as StorageMethods;
+
+/*
  * The products menu's catalog rules, on their own: grouping, which category
  * starts folded, and the per-browser memory of what someone opened or
  * folded. The menus that draw them are covered in NavBarMenuFolding.test.tsx
@@ -302,7 +314,13 @@ describe("remembering folds on this browser", () => {
   });
 
   test("storage that refuses to be read means the defaults, not a crash", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    window.localStorage.setItem(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Infrastructure: true }),
+    );
+    expect(readRememberedCategoryFolds().size).toBe(1);
+
+    jest.spyOn(STORAGE_METHODS, "getItem").mockImplementation((): never => {
       throw new Error("SecurityError: storage is disabled");
     });
 
@@ -310,13 +328,18 @@ describe("remembering folds on this browser", () => {
   });
 
   test("storage that refuses a write is ignored", () => {
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    jest.spyOn(STORAGE_METHODS, "setItem").mockImplementation((): never => {
       throw new Error("QuotaExceededError");
     });
 
     expect(() => {
       rememberCategoryFold("Code", true);
     }).not.toThrow();
+    expect(STORAGE_METHODS.setItem).toHaveBeenCalledWith(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Code: true }),
+    );
+    expect(storedFolds()).toBeNull();
   });
 });
 
@@ -445,10 +468,10 @@ describe("the fold state of one open menu", () => {
   });
 
   test("a menu whose storage is blocked still folds and opens while it is open", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    jest.spyOn(STORAGE_METHODS, "getItem").mockImplementation((): never => {
       throw new Error("SecurityError");
     });
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    jest.spyOn(STORAGE_METHODS, "setItem").mockImplementation((): never => {
       throw new Error("SecurityError");
     });
 

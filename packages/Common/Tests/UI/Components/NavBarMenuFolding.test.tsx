@@ -24,6 +24,18 @@ import { CATEGORY_FOLDS_STORAGE_KEY } from "../../../UI/Components/Navbar/NavBar
 import NavBarMenuModal from "../../../UI/Components/Navbar/NavBarMenuModal";
 import Navigation from "../../../UI/Utils/Navigation";
 
+/*
+ * Storage's string index signature makes @jest/globals type a spy on
+ * Storage.prototype as never; spy through its two methods instead.
+ */
+interface StorageMethods {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+}
+
+const STORAGE_METHODS: StorageMethods =
+  Storage.prototype as unknown as StorageMethods;
+
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
     __esModule: true,
@@ -686,10 +698,15 @@ describe("what someone opens or folds is remembered on this browser", () => {
   });
 
   test("blocked storage means the defaults, and folding still works in the open menu", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    // Remembered before the storage was blocked: it can no longer be read.
+    window.localStorage.setItem(
+      CATEGORY_FOLDS_STORAGE_KEY,
+      JSON.stringify({ Settings: true, Essentials: false }),
+    );
+    jest.spyOn(STORAGE_METHODS, "getItem").mockImplementation((): never => {
       throw new Error("SecurityError: storage is disabled");
     });
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    jest.spyOn(STORAGE_METHODS, "setItem").mockImplementation((): never => {
       throw new Error("SecurityError: storage is disabled");
     });
 
