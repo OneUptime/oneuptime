@@ -1233,4 +1233,182 @@ describe("Scheduled maintenance overview page", () => {
       }
     });
   });
+
+  /*
+   * The details card's Edit walks the create form's steps for what it
+   * edits: Event (title and window) and Notify & more (status pages,
+   * reminders, and labels under Advanced). The resources, description and
+   * owners have cards and pages of their own, and whether subscribers hear
+   * about the event when it is scheduled, starts and ends cannot be changed
+   * after it is created (those columns take no updates).
+   */
+  describe("details card Edit", () => {
+    interface EditField {
+      field: Record<string, unknown>;
+      title?: string;
+      stepId?: string;
+      collapsibleSection?: { id: string; title: string };
+      getDefaultValue?: unknown;
+      defaultValue?: unknown;
+      customValidation?: (values: Record<string, unknown>) => string | null;
+      onChange?: (
+        value: unknown,
+        currentValues: Record<string, unknown>,
+        setNewFormValues: (values: Record<string, unknown>) => void,
+      ) => void;
+    }
+
+    interface EditCard {
+      formSteps: Array<{ id: string; title: string }>;
+      formFields: Array<EditField>;
+    }
+
+    async function editCard(): Promise<EditCard> {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+      await renderPage();
+      return cardProps("Scheduled Maintenance Details") as unknown as EditCard;
+    }
+
+    function keyOf(field: EditField): string {
+      return Object.keys(field.field)[0]!;
+    }
+
+    function rowsOn(card: EditCard, stepId: string): Array<string> {
+      const rows: Array<string> = [];
+
+      for (const field of card.formFields) {
+        if (field.stepId !== stepId) {
+          continue;
+        }
+
+        const section: string | undefined = field.collapsibleSection?.title;
+        const name: string = section
+          ? `${section}: ${keyOf(field)}`
+          : keyOf(field);
+
+        rows.push(name);
+      }
+
+      return rows;
+    }
+
+    function fieldOf(card: EditCard, key: string): EditField {
+      const found: EditField | undefined = card.formFields.find(
+        (field: EditField): boolean => {
+          return keyOf(field) === key;
+        },
+      );
+
+      expect(found).toBeDefined();
+
+      return found!;
+    }
+
+    test("walks Event and Notify & more", async () => {
+      const card: EditCard = await editCard();
+
+      expect(
+        card.formSteps.map((step: { id: string; title: string }): string => {
+          return `${step.id}: ${step.title}`;
+        }),
+      ).toEqual(["event: Event", "notify: Notify & more"]);
+
+      expect(rowsOn(card, "event")).toEqual(["title", "startsAt", "endsAt"]);
+      expect(rowsOn(card, "notify")).toEqual([
+        "statusPages",
+        "sendSubscriberNotificationsOnBeforeTheEvent",
+        "Advanced: labels",
+      ]);
+      // Every field is on one of the two steps.
+      expect(
+        card.formFields.filter((field: EditField): boolean => {
+          return field.stepId !== "event" && field.stepId !== "notify";
+        }),
+      ).toEqual([]);
+    });
+
+    test("leaves out the subscriber switches, which cannot change after the event is created", async () => {
+      const card: EditCard = await editCard();
+
+      const keys: Array<string> = card.formFields.map(keyOf);
+
+      for (const key of [
+        "shouldStatusPageSubscribersBeNotifiedOnEventCreated",
+        "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing",
+        "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded",
+      ]) {
+        expect(keys).not.toContain(key);
+
+        const columnAccess: { update?: Array<unknown> } | undefined = (
+          new ScheduledMaintenance().getColumnAccessControlForAllColumns() as Record<
+            string,
+            { update?: Array<unknown> }
+          >
+        )[key];
+
+        expect(columnAccess?.update || []).toEqual([]);
+      }
+    });
+
+    test("shows the event's own window: no default times on an Edit", async () => {
+      const card: EditCard = await editCard();
+
+      for (const key of ["startsAt", "endsAt"]) {
+        expect(fieldOf(card, key).getDefaultValue).toBeUndefined();
+        expect(fieldOf(card, key).defaultValue).toBeUndefined();
+      }
+    });
+
+    test("moves the end with the start, as the create form does", async () => {
+      const card: EditCard = await editCard();
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      fieldOf(card, "startsAt").onChange!(
+        "2026-10-05T14:00:00.000Z",
+        {
+          title: "Primary database failover drill",
+          startsAt: "2026-10-03T10:00:00.000Z",
+          endsAt: "2026-10-03T12:30:00.000Z",
+        },
+        setNewFormValues as unknown as (
+          values: Record<string, unknown>,
+        ) => void,
+      );
+
+      // The form writes the start itself first; the move lands after it.
+      expect(setNewFormValues).not.toHaveBeenCalled();
+      await act(async () => {});
+
+      expect(setNewFormValues).toHaveBeenCalledWith({
+        title: "Primary database failover drill",
+        startsAt: "2026-10-05T14:00:00.000Z",
+        endsAt: "2026-10-05T16:30:00.000Z",
+      });
+    });
+
+    test("will not save an event that ends before it starts", async () => {
+      const card: EditCard = await editCard();
+      const validate: (values: Record<string, unknown>) => string | null =
+        fieldOf(card, "endsAt").customValidation!;
+
+      expect(
+        validate({
+          startsAt: "2026-10-03T10:00:00.000Z",
+          endsAt: "2026-10-03T09:00:00.000Z",
+        }),
+      ).toBe("Ends At must be after Starts At.");
+      expect(
+        validate({
+          startsAt: "2026-10-03T10:00:00.000Z",
+          endsAt: "2026-10-03T10:00:00.000Z",
+        }),
+      ).toBe("Ends At must be after Starts At.");
+      expect(
+        validate({
+          startsAt: "2026-10-03T10:00:00.000Z",
+          endsAt: "2026-10-03T11:00:00.000Z",
+        }),
+      ).toBe(null);
+    });
+  });
 });

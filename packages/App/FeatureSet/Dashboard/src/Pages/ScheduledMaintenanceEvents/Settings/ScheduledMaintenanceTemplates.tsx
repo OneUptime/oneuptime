@@ -55,10 +55,11 @@ const subscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaint
   getSubscriberNotificationsSection<ScheduledMaintenanceTemplate>();
 
 // The recurring schedule is asked for, and needed, only for a recurring template.
-const isRecurring: (model: FormValues<ScheduledMaintenanceTemplate>) => boolean =
-  (model: FormValues<ScheduledMaintenanceTemplate>): boolean => {
-    return Boolean(model.isRecurringEvent);
-  };
+const isRecurring: (
+  model: FormValues<ScheduledMaintenanceTemplate>,
+) => boolean = (model: FormValues<ScheduledMaintenanceTemplate>): boolean => {
+  return Boolean(model.isRecurringEvent);
+};
 
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;

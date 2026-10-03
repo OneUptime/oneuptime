@@ -11,7 +11,10 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -35,7 +38,6 @@ import {
 } from "./ScheduledMaintenanceTemplates";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";

@@ -133,7 +133,8 @@ export const getMaintenanceEndAfterStartMoved: (data: {
     return null;
   }
 
-  const lengthInMs: number = previousEndsAt.getTime() - previousStartsAt.getTime();
+  const lengthInMs: number =
+    previousEndsAt.getTime() - previousStartsAt.getTime();
 
   if (lengthInMs <= 0) {
     return null;

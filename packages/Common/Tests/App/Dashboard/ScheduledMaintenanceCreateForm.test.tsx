@@ -123,14 +123,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import ScheduledMaintenanceCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Create";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { getSubscriberNotificationSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
-import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Route from "../../../Types/API/Route";
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -144,7 +145,9 @@ const ALL_ON_SUMMARY: string =
   "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.";
 
 const PAGE_PROPS: PageComponentProps = {
-  pageRoute: new Route("/dashboard/project/scheduled-maintenance-events/create"),
+  pageRoute: new Route(
+    "/dashboard/project/scheduled-maintenance-events/create",
+  ),
   currentProject: null,
   hasPaymentMethod: true,
 };
@@ -173,7 +176,9 @@ function inPageLanguage(english: string): string {
   return pageLanguage ? pageLanguage.t(english) : english;
 }
 
-function listOf<T extends BaseModel>(items: Array<T>): {
+function listOf<T extends BaseModel>(
+  items: Array<T>,
+): {
   data: Array<T>;
   count: number;
   skip: number;
@@ -341,9 +346,8 @@ function fieldLabelsIn(element: HTMLElement): Array<string> {
 function createdModel(): ScheduledMaintenance {
   expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
 
-  const call: Array<unknown> = createOrUpdateMock.mock.calls[0] as Array<
-    unknown
-  >;
+  const call: Array<unknown> = createOrUpdateMock.mock
+    .calls[0] as Array<unknown>;
 
   return (call[0] as { model: ScheduledMaintenance }).model;
 }
@@ -665,9 +669,7 @@ describe("Create Scheduled Maintenance Event", () => {
     fireEvent.click(notifications);
 
     expect(notifications).toHaveAttribute("aria-expanded", "false");
-    expect(
-      screen.getByTestId("collapsible-section-summary"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       "Subscribers of the event's status pages are notified when it is scheduled and when it ends.",
     );
     // The line says what is set; no "Configured" badge repeats it.
@@ -742,9 +744,7 @@ describe("Create Scheduled Maintenance Event", () => {
 
     fireEvent.click(notifications);
 
-    expect(
-      screen.getByTestId("collapsible-section-summary"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       "Subscribers of the event's status pages are notified when it starts and when it ends.",
     );
   });
@@ -781,8 +781,8 @@ describe("Create Scheduled Maintenance Event", () => {
       .join(" ");
 
     expect(summary).not.toContain("Subscribers");
-    expect(
-      screen.getByTestId("collapsible-section-summary"),
-    ).toHaveTextContent(summary);
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      summary,
+    );
   });
 });
