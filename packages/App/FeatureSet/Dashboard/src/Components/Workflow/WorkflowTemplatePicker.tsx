@@ -525,9 +525,13 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
     change(withWorkflowTemplateSelected(state, nextId));
   };
 
-  type UsePickedFunction = () => void;
+  type StartFromPickedFunction = () => void;
 
-  const usePickedTemplate: UsePickedFunction = (): void => {
+  /*
+   * Not a hook, so not named like one: React reads any use + capital name as
+   * a hook, and this one is called from a key handler.
+   */
+  const startFromPickedTemplate: StartFromPickedFunction = (): void => {
     if (activeTemplate) {
       props.onUseTemplate(activeTemplate);
     }
@@ -569,7 +573,7 @@ const WorkflowTemplatePicker: FunctionComponent<ComponentProps> = (
         return;
       case "Enter":
         event.preventDefault();
-        usePickedTemplate();
+        startFromPickedTemplate();
         return;
       case " ":
         // The list does not scroll the dialog on Space.
