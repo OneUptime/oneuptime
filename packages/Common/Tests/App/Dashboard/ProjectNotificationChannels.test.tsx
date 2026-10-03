@@ -172,6 +172,23 @@ const signIn: (session: Session) => void = (session: Session): void => {
   );
   sessionStorage.setItem("current_project_id", PROJECT_ID);
 
+  /*
+   * Every signed-in person holds these: CurrentUser is what lets someone
+   * add, read and delete their own methods.
+   */
+  localStorage.setItem(
+    "global_permissions",
+    JSON.stringify({
+      _type: "UserGlobalAccessPermission",
+      projectIds: [],
+      globalPermissions: [
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+      ],
+    }),
+  );
+
   localStorage.setItem(
     "project_permissions",
     JSON.stringify({

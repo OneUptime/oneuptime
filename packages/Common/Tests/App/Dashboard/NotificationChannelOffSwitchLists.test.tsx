@@ -229,6 +229,23 @@ const signIn: (permissions: Array<Permission>) => void = (
   localStorage.setItem("user_id", USER_ID);
   localStorage.setItem("is_master_admin", "false");
   sessionStorage.setItem("current_project_id", PROJECT_ID);
+
+  /*
+   * Every signed-in person holds these: CurrentUser is what lets someone
+   * add, read and delete their own methods.
+   */
+  localStorage.setItem(
+    "global_permissions",
+    JSON.stringify({
+      _type: "UserGlobalAccessPermission",
+      projectIds: [],
+      globalPermissions: [
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+      ],
+    }),
+  );
   localStorage.setItem(
     "project_permissions",
     JSON.stringify({
@@ -320,12 +337,25 @@ const respondWithChannels: (enabled: EnabledProjectChannels) => void = (
   });
 };
 
-// Every button that adds a method: the card's and the empty list's.
+/*
+ * Every button that adds a method: the card's and the empty list's, whether
+ * it can be pressed or not.
+ */
 const addButtons: () => Array<HTMLElement> = (): Array<HTMLElement> => {
   return screen.queryAllByRole("button").filter((button: HTMLElement) => {
     return (
       (button.textContent || "").trim().startsWith("Add ") ||
       button.getAttribute("data-testid") === "empty-table-create-button"
+    );
+  });
+};
+
+// The Add buttons a person can press.
+const usableAddButtons: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+  return addButtons().filter((button: HTMLElement) => {
+    return (
+      !button.hasAttribute("disabled") &&
+      button.getAttribute("aria-disabled") !== "true"
     );
   });
 };
@@ -462,7 +492,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     render(<list.Component />);
     await waitForList();
 
-    expect(addButtons().length).toBeGreaterThan(0);
+    expect(usableAddButtons().length).toBeGreaterThan(0);
     expect(
       screen.queryByTestId(NOTIFICATION_CHANNEL_OFF_PANEL_TEST_ID),
     ).not.toBeInTheDocument();
@@ -493,7 +523,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     render(<list.Component />);
     await waitForList();
 
-    expect(addButtons().length).toBeGreaterThan(0);
+    expect(usableAddButtons().length).toBeGreaterThan(0);
     expect(
       screen.queryByTestId(NOTIFICATION_CHANNEL_OFF_PANEL_TEST_ID),
     ).not.toBeInTheDocument();
@@ -514,6 +544,9 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
 
     const labels: Array<string> = menuLabelsOf(row!);
 
+    // It can still be removed.
+    expect(labels).toContain("Delete");
+
     if (list.isCodeActionRefusedWhileOff) {
       // The server refuses to send a code while the channel is off.
       expect(labels).not.toContain(list.codeActionTitle);
@@ -531,7 +564,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
 
     const [row] = screen.getAllByTestId("row-actions");
 
-    expect(menuLabelsOf(row!)).toContain(list.codeActionTitle);
+    expect(menuLabelsOf(row!)).toEqual([list.codeActionTitle, "Delete"]);
   });
 
   test("turned on from the panel, Add appears at once and the panel stays, saying it is on", async () => {
@@ -550,7 +583,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     });
 
     await waitFor(() => {
-      expect(addButtons().length).toBeGreaterThan(0);
+      expect(usableAddButtons().length).toBeGreaterThan(0);
     });
 
     expect(
