@@ -16,6 +16,8 @@ import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
 import FieldType from "../Types/FieldType";
 import BooleanValue from "./BooleanValue";
+import DetailIdLine from "./DetailIdLine";
+import { getRecordIdText, isRecordIdField } from "./DetailRecordId";
 import Field from "./Field";
 import FieldLabelElement from "./FieldLabel";
 import PlaceholderText from "./PlaceholderText";
@@ -431,8 +433,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
           >
             <div className="break-words leading-relaxed">{data}</div>
 
+            {/*
+             * Hidden text and an ID bring their own copy control. A second
+             * one here was handed the rendered ID element rather than the ID,
+             * so it copied "[object Object]" (the project ID on an API key).
+             */}
             {field.opts?.isCopyable &&
-              field.fieldType !== FieldType.HiddenText && (
+              field.fieldType !== FieldType.HiddenText &&
+              field.fieldType !== FieldType.ObjectID && (
                 <div className="opacity-0 group-hover/copyable:opacity-100 transition-all duration-200 transform group-hover/copyable:translate-x-0 -translate-x-1">
                   <CopyableButton textToBeCopied={data.toString()} />
                 </div>
@@ -991,40 +999,90 @@ const Detail: DetailFunction = <T extends GenericObject>(
         : "gap-0 divide-y divide-gray-100";
   }
 
+  const shownFields: Array<Field<T>> = (props.fields || []).filter(
+    (field: Field<T>) => {
+      // Filter out fields with hideOnMobile on mobile devices
+      if (field.hideOnMobile && isMobile) {
+        return false;
+      }
+
+      // check if showIf exists.
+      if (field.showIf) {
+        return field.showIf(props.item);
+      }
+
+      return true;
+    },
+  );
+
+  /*
+   * The record's own ID is not one of the fields: it goes on one small line
+   * under them, with a copy button (DetailRecordId.ts says why). A card that
+   * declared it twice still gets one line.
+   */
+  const recordIdField: Field<T> | undefined = shownFields.find(
+    (field: Field<T>) => {
+      return isRecordIdField(field);
+    },
+  );
+
+  const recordId: string =
+    recordIdField && props.item
+      ? getRecordIdText(getNestedValue(props.item, String(recordIdField.key)))
+      : "";
+
+  const gridFields: Array<Field<T>> = shownFields.filter((field: Field<T>) => {
+    return !isRecordIdField(field);
+  });
+
+  const gridClassName: string = `grid grid-cols-1 ${gapClasses} sm:grid-cols-${
+    props.showDetailsInNumberOfColumns || 1
+  } w-full`;
+
+  const renderedFields: Array<ReactElement> = gridFields.map(
+    (field: Field<T>, i: number) => {
+      return getField(field, i);
+    },
+  );
+
+  if (!recordId) {
+    return (
+      /*
+       * The id names this detail, so it belongs to the element that holds all
+       * of it. It used to be stamped on every row instead, which put the same
+       * id on as many elements as the detail had fields: invalid HTML, an
+       * anchor or getElementById that reaches only the first row, and a
+       * Playwright locator that resolves to several elements and fails strict
+       * mode - which is how the SLO settings E2E found it.
+       */
+      <div id={props.id} className={gridClassName}>
+        {renderedFields}
+      </div>
+    );
+  }
+
+  /*
+   * With an ID line the detail is the fields and the line under them, so the
+   * id moves to the element that holds both. The grid inside keeps its own
+   * classes, and its rows their first/last trims; the line draws the one
+   * divider above it, in the rhythm of the rows: the compact style's rows
+   * are py-3 apart, the others' wider.
+   */
+  const idLineClassName: string =
+    gridFields.length === 0
+      ? ""
+      : styleType === DetailStyle.Compact
+        ? "mt-3 border-t border-gray-100 pt-3"
+        : "mt-4 border-t border-gray-100 pt-3";
+
   return (
-    /*
-     * The id names this detail, so it belongs to the element that holds all of
-     * it. It used to be stamped on every row instead, which put the same id on
-     * as many elements as the detail had fields: invalid HTML, an anchor or
-     * getElementById that reaches only the first row, and a Playwright locator
-     * that resolves to several elements and fails strict mode - which is how
-     * the SLO settings E2E found it.
-     */
-    <div
-      id={props.id}
-      className={`grid grid-cols-1 ${gapClasses} sm:grid-cols-${
-        props.showDetailsInNumberOfColumns || 1
-      } w-full`}
-    >
-      {props.fields &&
-        props.fields.length > 0 &&
-        props.fields
-          .filter((field: Field<T>) => {
-            // Filter out fields with hideOnMobile on mobile devices
-            if (field.hideOnMobile && isMobile) {
-              return false;
-            }
-
-            // check if showIf exists.
-            if (field.showIf) {
-              return field.showIf(props.item);
-            }
-
-            return true;
-          })
-          .map((field: Field<T>, i: number) => {
-            return getField(field, i);
-          })}
+    <div id={props.id} className="w-full">
+      {gridFields.length > 0 ? (
+        <div className={gridClassName}>{renderedFields}</div>
+      ) : (
+        <></>
+      )}
+      <DetailIdLine recordId={recordId} className={idLineClassName} />
     </div>
   );
 };
