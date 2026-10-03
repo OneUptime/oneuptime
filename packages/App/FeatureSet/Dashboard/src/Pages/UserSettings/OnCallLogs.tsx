@@ -23,8 +23,11 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -153,7 +156,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   />
                 );
               }
-              return <p>No on-call policy.</p>;
+              return <p>{translator.translateText("No on-call policy.")}</p>;
             },
           },
           {
@@ -177,7 +180,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   />
                 );
               }
-              return <p>No escalation rule.</p>;
+              return <p>{translator.translateText("No escalation rule.")}</p>;
             },
           },
           {

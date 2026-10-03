@@ -54,6 +54,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translatePlural,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How SLOs and Error Budgets Work
@@ -176,12 +180,20 @@ export const getSloTargetAndWindowColumns: GetSloTableColumnsFunction =
         getElement: (item: ServiceLevelObjective): ReactElement => {
           if (item.windowType === SloWindowType.CalendarMonth) {
             return (
-              <span className="text-sm text-gray-900">Calendar month</span>
+              <span className="text-sm text-gray-900">
+                {translateText("Calendar month")}
+              </span>
             );
           }
           return (
             <span className="text-sm text-gray-900">
-              {item.windowDays || 30} days rolling
+              {translatePlural(
+                {
+                  one: "{{count}} day rolling",
+                  other: "{{count}} days rolling",
+                },
+                item.windowDays || 30,
+              )}
             </span>
           );
         },
@@ -205,7 +217,11 @@ export const getSloLastEvaluatedColumns: GetSloTableColumnsFunction =
         hideOnMobile: true,
         getElement: (item: ServiceLevelObjective): ReactElement => {
           if (!item.lastEvaluatedAt) {
-            return <span className="text-sm text-gray-400">Never</span>;
+            return (
+              <span className="text-sm text-gray-400">
+                {translateText("Never")}
+              </span>
+            );
           }
 
           const lastEvaluatedAt: Date = OneUptimeDate.fromString(

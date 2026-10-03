@@ -13,10 +13,14 @@ import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const StatusPageMcp: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const mcpUrl: string = `${HTTP_PROTOCOL}${HOST}/mcp`;
   const statusPageId: string = modelId.toString();
@@ -78,37 +82,41 @@ const StatusPageMcp: FunctionComponent<
         description={
           <div className="space-y-4 w-full mt-3">
             <p>
-              The Model Context Protocol (MCP) lets AI agents like Claude,
-              Cursor, and GitHub Copilot read this status page as structured
-              data instead of scraping the website. Once the toggle above is on,
-              anyone can point an MCP client at the server below and ask about
-              this page&apos;s current status, incidents, scheduled maintenance,
-              and announcements.
+              {translator.translateText(
+                "The Model Context Protocol (MCP) lets AI agents like Claude, Cursor, and GitHub Copilot read this status page as structured data instead of scraping the website. Once the toggle above is on, anyone can point an MCP client at the server below and ask about this page's current status, incidents, scheduled maintenance, and announcements.",
+              )}
             </p>
             <p>
-              These status page tools are read-only and need{" "}
-              <strong>no API key</strong> — the data they return is the same
-              data your status page already publishes publicly. Connect any MCP
-              client to:
+              <TranslatedSentence
+                template="These status page tools are read-only and need {{noApiKey}} — the data they return is the same data your status page already publishes publicly. Connect any MCP client to:"
+                slots={{
+                  noApiKey: (
+                    <strong>{translator.translateText("no API key")}</strong>
+                  ),
+                }}
+              />
             </p>
             <CodeBlock language="text" code={mcpUrl} />
             <p>
-              This one endpoint serves every status page, so it is the URL to
-              connect to no matter which page you want. Agents pick out{" "}
-              <em>this</em> page by passing a <code>statusPageIdOrDomain</code>{" "}
-              argument on each tool call. Use this page&apos;s ID:
+              <TranslatedSentence
+                template="This one endpoint serves every status page, so it is the URL to connect to no matter which page you want. Agents pick out this page by passing a {{argument}} argument on each tool call. Use this page's ID:"
+                slots={{ argument: <code>statusPageIdOrDomain</code> }}
+              />
             </p>
             <CodeBlock language="text" code={statusPageId} />
             <p>
-              If you have set up a{" "}
-              <Link to={domainsRoute} className="underline">
-                custom domain
-              </Link>{" "}
-              for this status page, you can pass that as the argument value
-              instead of the ID — for example <code>status.company.com</code>. A
-              domain is easier for an agent to remember than a UUID. Note that
-              this only changes the argument: MCP clients still connect to the
-              endpoint above, not to <code>your-domain/mcp</code>.
+              <TranslatedSentence
+                template="If you have set up a {{customDomainLink}} for this status page, you can pass that as the argument value instead of the ID — for example {{exampleDomain}}. A domain is easier for an agent to remember than a UUID. Note that this only changes the argument: MCP clients still connect to the endpoint above, not to {{domainEndpoint}}."
+                slots={{
+                  customDomainLink: (
+                    <Link to={domainsRoute} className="underline">
+                      {translator.translateText("custom domain")}
+                    </Link>
+                  ),
+                  exampleDomain: <code>status.company.com</code>,
+                  domainEndpoint: <code>your-domain/mcp</code>,
+                }}
+              />
             </p>
           </div>
         }
@@ -119,7 +127,10 @@ const StatusPageMcp: FunctionComponent<
         description={
           <div className="space-y-2 w-full mt-3">
             <p>
-              Add this to <code>claude_desktop_config.json</code>:
+              <TranslatedSentence
+                template="Add this to {{file}}:"
+                slots={{ file: <code>claude_desktop_config.json</code> }}
+              />
             </p>
             <CodeBlock
               language="json"
@@ -153,8 +164,10 @@ const StatusPageMcp: FunctionComponent<
         description={
           <div className="space-y-2 w-full mt-3">
             <p>
-              Add this to <code>.vscode/mcp.json</code> (VS Code) or your MCP
-              configuration (Cursor):
+              <TranslatedSentence
+                template="Add this to {{file}} (VS Code) or your MCP configuration (Cursor):"
+                slots={{ file: <code>.vscode/mcp.json</code> }}
+              />
             </p>
             <CodeBlock
               language="json"
@@ -176,9 +189,9 @@ const StatusPageMcp: FunctionComponent<
         description={
           <div className="space-y-4 w-full mt-3">
             <p>
-              Once the server is connected, ask your agent questions in plain
-              language. It will pick the right tool and fill in this status
-              page&apos;s identifier for you:
+              {translator.translateText(
+                "Once the server is connected, ask your agent questions in plain language. It will pick the right tool and fill in this status page's identifier for you:",
+              )}
             </p>
             <CodeBlock
               language="text"
@@ -189,9 +202,10 @@ Summarize the open incidents on status page ${statusPageId}.
 Is there any maintenance scheduled on ${statusPageId} this week?`}
             />
             <p>
-              Agents can also call the tools directly. Every tool takes{" "}
-              <code>statusPageIdOrDomain</code>, and the three list tools accept
-              an optional ID to fetch a single record:
+              <TranslatedSentence
+                template="Agents can also call the tools directly. Every tool takes {{argument}}, and the three list tools accept an optional ID to fetch a single record:"
+                slots={{ argument: <code>statusPageIdOrDomain</code> }}
+              />
             </p>
             <CodeBlock
               language="json"
@@ -212,33 +226,45 @@ Is there any maintenance scheduled on ${statusPageId} this week?`}
           <div className="space-y-4 w-full mt-3">
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <code>get_public_status_page_overview</code> — the whole page in
-                one call: name and branding, every resource and its current
-                status, active incidents, upcoming maintenance, announcements,
-                and monitor status history.
+                <TranslatedSentence
+                  template="{{tool}} — the whole page in one call: name and branding, every resource and its current status, active incidents, upcoming maintenance, announcements, and monitor status history."
+                  slots={{ tool: <code>get_public_status_page_overview</code> }}
+                />
               </li>
               <li>
-                <code>get_public_status_page_incidents</code> — active and
-                recent incidents with severity, timeline, state changes, and
-                public notes. Pass <code>incidentId</code> for one incident.
+                <TranslatedSentence
+                  template="{{tool}} — active and recent incidents with severity, timeline, state changes, and public notes. Pass {{idArgument}} for one incident."
+                  slots={{
+                    tool: <code>get_public_status_page_incidents</code>,
+                    idArgument: <code>incidentId</code>,
+                  }}
+                />
               </li>
               <li>
-                <code>get_public_status_page_scheduled_maintenance</code> —
-                upcoming and ongoing maintenance with scheduled times, timeline,
-                and public notes. Pass <code>scheduledMaintenanceId</code> for
-                one event.
+                <TranslatedSentence
+                  template="{{tool}} — upcoming and ongoing maintenance with scheduled times, timeline, and public notes. Pass {{idArgument}} for one event."
+                  slots={{
+                    tool: (
+                      <code>get_public_status_page_scheduled_maintenance</code>
+                    ),
+                    idArgument: <code>scheduledMaintenanceId</code>,
+                  }}
+                />
               </li>
               <li>
-                <code>get_public_status_page_announcements</code> — active
-                announcements with titles, descriptions, and dates. Pass{" "}
-                <code>announcementId</code> for one announcement.
+                <TranslatedSentence
+                  template="{{tool}} — active announcements with titles, descriptions, and dates. Pass {{idArgument}} for one announcement."
+                  slots={{
+                    tool: <code>get_public_status_page_announcements</code>,
+                    idArgument: <code>announcementId</code>,
+                  }}
+                />
               </li>
             </ul>
             <p>
-              All four are marked read-only, so MCP clients can auto-approve
-              them without prompting on every call. They expose only what this
-              status page already shows publicly — they cannot change anything,
-              and they never reach private resources or other status pages.
+              {translator.translateText(
+                "All four are marked read-only, so MCP clients can auto-approve them without prompting on every call. They expose only what this status page already shows publicly — they cannot change anything, and they never reach private resources or other status pages.",
+              )}
             </p>
           </div>
         }
@@ -249,33 +275,42 @@ Is there any maintenance scheduled on ${statusPageId} this week?`}
         description={
           <div className="space-y-4 w-full mt-3">
             <p>
-              MCP access is on by default. Turning off{" "}
-              <strong>Enable MCP Server</strong> gates all four tools for this
-              status page at once, and agents get back{" "}
-              <code>
-                Status page &apos;{statusPageId}&apos; is not available over
-                MCP.
-              </code>{" "}
-              — deliberately the same message they would get for a status page
-              that does not exist, so no one can use MCP to discover that this
-              page is here.
+              <TranslatedSentence
+                template="MCP access is on by default. Turning off {{toggle}} gates all four tools for this status page at once, and agents get back {{message}} — deliberately the same message they would get for a status page that does not exist, so no one can use MCP to discover that this page is here."
+                slots={{
+                  toggle: (
+                    <strong>
+                      {translator.translateText("Enable MCP Server")}
+                    </strong>
+                  ),
+                  message: (
+                    <code>
+                      Status page &apos;{statusPageId}&apos; is not available
+                      over MCP.
+                    </code>
+                  ),
+                }}
+              />
             </p>
             <p>
-              This only affects the four unauthenticated tools above. Your
-              status page website, its RSS feed, and its public JSON API keep
-              working exactly as before, so turning this off does not make a
-              public status page private. To restrict who can see the page
-              itself, use{" "}
-              <Link to={authenticationSettingsRoute} className="underline">
-                Authentication Settings
-              </Link>{" "}
-              instead.
+              <TranslatedSentence
+                template="This only affects the four unauthenticated tools above. Your status page website, its RSS feed, and its public JSON API keep working exactly as before, so turning this off does not make a public status page private. To restrict who can see the page itself, use {{authenticationSettingsLink}} instead."
+                slots={{
+                  authenticationSettingsLink: (
+                    <Link
+                      to={authenticationSettingsRoute}
+                      className="underline"
+                    >
+                      {translator.translateText("Authentication Settings")}
+                    </Link>
+                  ),
+                }}
+              />
             </p>
             <p>
-              Your own team is unaffected either way: the toggle does not apply
-              to the API-key-authenticated status page tools, so project members
-              with an API key can still read and manage this status page over
-              MCP with it switched off.
+              {translator.translateText(
+                "Your own team is unaffected either way: the toggle does not apply to the API-key-authenticated status page tools, so project members with an API key can still read and manage this status page over MCP with it switched off.",
+              )}
             </p>
           </div>
         }

@@ -12,14 +12,17 @@ import ObjectID from "../../../Types/ObjectID";
  * to ask with two dropdowns asks with one picker and saves exactly what it
  * saved before.
  *
- * Kinds are pluggable: a new one (on-call schedules, say) is a member here
- * and a definition in PeoplePickerKinds.ts - search, look up by id, avatar -
- * and every picker can offer it.
+ * Kinds are pluggable: a new one is a member here and a definition in
+ * PeoplePickerKinds.ts - search, look up by id, avatar - and every picker can
+ * offer it. An escalation rule's Notify field offers on-call schedules,
+ * teams and people in one list.
  */
 
 export enum PeoplePickerKind {
   User = "user",
   Team = "team",
+  // Pages whoever is on call in it: an escalation rule's responders.
+  OnCallSchedule = "onCallSchedule",
 }
 
 // One record the picker can show: in its search list, or as a picked chip.

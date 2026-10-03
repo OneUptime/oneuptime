@@ -744,7 +744,7 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     const code: string = dense(CREATE_PAGE);
 
     expect(code).toContain(
-      'if(!item.onCallDutyPolicies||!Array.isArray(item.onCallDutyPolicies)||item.onCallDutyPolicies.length===0){return(<p>Noon-callpolicieswillbeexecutedwhenthisincidentiscreated.{willAcknowledgeAlerts?`${ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE}`:""}</p>);}',
+      'if(!item.onCallDutyPolicies||!Array.isArray(item.onCallDutyPolicies)||item.onCallDutyPolicies.length===0){return(<p>{translator.translateText("Noon-callpolicieswillbeexecutedwhenthisincidentiscreated.",)}{willAcknowledgeAlerts?`${translator.translateText(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,)}`:""}</p>);}',
     );
   });
 });
@@ -788,9 +788,11 @@ describe("the create-incident page flagging alerts that already have an incident
     );
 
     expect(words).toContain(
-      `return alerts.length === 1 ? "${ONE_ALERT_ALL_LINKED}" : "${SEVERAL_ALERTS_ALL_LINKED}"; }`,
+      `return alerts.length === 1 ? translateTemplate( "${ONE_ALERT_ALL_LINKED}", ) : translateTemplate( "${SEVERAL_ALERTS_ALL_LINKED}", ); }`,
     );
-    expect(words).toContain(`return "${SOME_ALERTS_LINKED}"; }`);
+    expect(words).toContain(
+      `return translateTemplate( "${SOME_ALERTS_LINKED}", ); }`,
+    );
   });
 
   test("shows the note only when an alert is linked, from that one function", () => {

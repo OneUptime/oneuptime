@@ -5,6 +5,7 @@ import {
   StatusPageGroupImportPlan,
   planStatusPageGroupImport,
 } from "./StatusPageGroupCsv";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The create-loop behind the Status Page > Groups CSV import, kept react-free
@@ -169,7 +170,10 @@ export async function runStatusPageGroupImport(
             line: row.line,
             name: row.name,
             status: "skipped",
-            message: `Parent group "${row.parentName}" could not be created.`,
+            message: translateTemplate(
+              'Parent group "{{parent}}" could not be created.',
+              { parent: row.parentName || "" },
+            ),
           });
           reportProgress();
           continue;

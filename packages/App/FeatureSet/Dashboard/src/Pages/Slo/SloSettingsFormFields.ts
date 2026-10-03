@@ -10,6 +10,11 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The SLO Settings page's edit forms and the plain-language summaries its
@@ -66,10 +71,12 @@ export const SLO_MULTI_MONITOR_MODE_DESCRIPTIONS: Record<
   SloMultiMonitorMode,
   string
 > = {
-  [SloMultiMonitorMode.AnyDown]:
+  [SloMultiMonitorMode.AnyDown]: translationKey(
     "A moment counts as downtime when any attached monitor is down. Pick this when every monitor is essential, such as an API and the database behind it.",
-  [SloMultiMonitorMode.MonitorSecondsAverage]:
+  ),
+  [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
     "Downtime is averaged across monitors, so one of four monitors down for an hour costs the budget a quarter of an hour. Pick this for redundant replicas or regions, where one being down is a partial outage.",
+  ),
 };
 
 export type GetSloMultiMonitorModeDropdownOptionsFunction =
@@ -199,13 +206,21 @@ export const describeSloWindow: DescribeSloWindowFunction = (
   data: SloWindowSummaryData,
 ): string => {
   if (data.windowType === SloWindowType.CalendarMonth) {
-    return `Calendar month (${data.timezone || "UTC"})`;
+    return translateTemplate("Calendar month ({{timezone}})", {
+      timezone: data.timezone || "UTC",
+    });
   }
 
   const windowDays: number =
     toFinitePositiveNumber(data.windowDays) ?? DEFAULT_ROLLING_WINDOW_DAYS;
 
-  return `Rolling ${windowDays}-day window`;
+  return translatePlural(
+    {
+      one: "Rolling {{count}}-day window",
+      other: "Rolling {{count}}-day window",
+    },
+    windowDays,
+  );
 };
 
 export interface SloErrorBudgetSummaryData extends SloWindowSummaryData {
@@ -253,7 +268,10 @@ export const describeSloErrorBudget: DescribeSloErrorBudgetFunction = (
       Math.round(allowedFraction * 30 * SECONDS_PER_DAY),
     );
 
-    return `${allowedPercentage}% of each month: ${thirtyDayBudget} of downtime in a 30-day month`;
+    return translateTemplate(
+      "{{percentage}}% of each month: {{budget}} of downtime in a 30-day month",
+      { percentage: String(allowedPercentage), budget: thirtyDayBudget },
+    );
   }
 
   const windowDays: number =
@@ -262,7 +280,14 @@ export const describeSloErrorBudget: DescribeSloErrorBudgetFunction = (
     Math.round(allowedFraction * windowDays * SECONDS_PER_DAY),
   );
 
-  return `${budget} of downtime per ${windowDays}-day window`;
+  return translatePlural(
+    {
+      one: "{{budget}} of downtime per {{count}}-day window",
+      other: "{{budget}} of downtime per {{count}}-day window",
+    },
+    windowDays,
+    { budget: budget },
+  );
 };
 
 export type OrderDowntimeMonitorStatusesFunction = (

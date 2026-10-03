@@ -4,6 +4,7 @@ import Card from "Common/UI/Components/Card/Card";
 import { STATUS_PAGE_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -18,15 +19,21 @@ const StatusPagePreviewLink: FunctionComponent<ComponentProps> = (
         title={`Status Page Preview URL`}
         description={
           <span>
-            Here&apos;s a link to preview your status page:{" "}
-            <Link
-              openInNewTab={true}
-              to={URL.fromString(
-                `${STATUS_PAGE_URL.toString()}/${props.modelId}`,
-              )}
-            >
-              <span>{`${STATUS_PAGE_URL.toString()}/${props.modelId}`}</span>
-            </Link>
+            <TranslatedSentence
+              template="Here's a link to preview your status page: {{link}}"
+              slots={{
+                link: (
+                  <Link
+                    openInNewTab={true}
+                    to={URL.fromString(
+                      `${STATUS_PAGE_URL.toString()}/${props.modelId}`,
+                    )}
+                  >
+                    <span>{`${STATUS_PAGE_URL.toString()}/${props.modelId}`}</span>
+                  </Link>
+                ),
+              }}
+            />
           </span>
         }
       />

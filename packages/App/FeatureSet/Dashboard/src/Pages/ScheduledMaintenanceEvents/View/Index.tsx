@@ -67,6 +67,8 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // How many status page names the header lists before summarising the rest.
 const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
@@ -211,6 +213,7 @@ interface ResendNotificationErrorState {
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
@@ -675,7 +678,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     if (reminders.length === 0) {
                       return (
                         <span className="text-gray-500">
-                          No reminders configured
+                          {translator.translateText("No reminders configured")}
                         </span>
                       );
                     }
@@ -688,11 +691,15 @@ const ScheduledMaintenanceView: FunctionComponent<
                         />
                         <div className="text-xs text-gray-500">
                           {item.nextSubscriberNotificationBeforeTheEventAt
-                            ? "Next reminder: " +
-                              OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                                item.nextSubscriberNotificationBeforeTheEventAt,
+                            ? translator.translateTemplate(
+                                "Next reminder: {{date}}",
+                                {
+                                  date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                                    item.nextSubscriberNotificationBeforeTheEventAt,
+                                  ),
+                                },
                               )
-                            : "No upcoming reminders"}
+                            : translator.translateText("No upcoming reminders")}
                         </div>
                       </div>
                     );
@@ -721,8 +728,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {"Could not resend notifications: " +
-                              resendNotificationError}
+                            {translator.translateTemplate(
+                              "Could not resend notifications: {{error}}",
+                              { error: resendNotificationError },
+                            )}
                           </p>
                         )}
                       </div>

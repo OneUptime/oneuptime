@@ -31,14 +31,17 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Meaningful, non-redundant page header copy. The title is the feature name;
  * the description stays high level (the chat card below already lists the data
  * types it queries), leading with what the assistant does — answer and act.
  */
-const AI_CHAT_DESCRIPTION: string =
-  "Ask across your observability data and act on what you find — answers cite the real queries behind them, and actions run with your approval.";
+const AI_CHAT_DESCRIPTION: string = translationKey(
+  "Ask across your observability data and act on what you find — answers cite the real queries behind them, and actions run with your approval.",
+);
 
 /*
  * The full-page AI Copilot: a calm, focused workspace for asking the OneUptime
@@ -48,6 +51,7 @@ const AI_CHAT_DESCRIPTION: string =
  * page and the quick-launch popover stay in lockstep.
  */
 const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const chat: UseAiChat = useAiChat({ enabled: true });
 
   /*
@@ -185,17 +189,17 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
             >
               <Icon icon={IconProp.Add} className="h-4 w-4" />
-              New chat
+              {translator.translateText("New chat")}
             </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-4">
             <div className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              Your recent chats
+              {translator.translateText("Your recent chats")}
             </div>
             {chat.conversations.length === 0 && (
               <div className="px-2 py-2 text-xs text-gray-400">
-                No conversations yet.
+                {translator.translateText("No conversations yet.")}
               </div>
             )}
             <div className="space-y-px">
@@ -224,7 +228,8 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                             : "text-gray-700"
                         }`}
                       >
-                        {conversation.title || "Untitled conversation"}
+                        {conversation.title ||
+                          translator.translateText("Untitled conversation")}
                       </div>
                       {conversation.lastMessageAt && (
                         <div className="mt-0.5 text-[11px] text-gray-400">
@@ -234,7 +239,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     </div>
                     <button
                       type="button"
-                      title="Delete conversation"
+                      title={translator.translateText("Delete conversation")}
                       onClick={(event: React.MouseEvent) => {
                         event.stopPropagation();
                         chat.deleteConversation(conversationId);
@@ -262,12 +267,14 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="truncate text-sm font-semibold text-gray-900">
                   {chat.isConversationView
                     ? chat.activeConversationTitle
-                    : "AI"}
+                    : translator.translateText("AI")}
                 </div>
                 <div className="truncate text-xs text-gray-400">
                   {chat.isWorking
-                    ? "Investigating your data…"
-                    : "Grounded in your logs, traces, metrics, incidents & monitors"}
+                    ? translator.translateText("Investigating your data…")
+                    : translator.translateText(
+                        "Grounded in your logs, traces, metrics, incidents & monitors",
+                      )}
                 </div>
               </div>
             </div>
@@ -284,14 +291,14 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 )}
                 <button
                   type="button"
-                  title="New chat"
+                  title={translator.translateText("New chat")}
                   onClick={() => {
                     chat.newConversation();
                   }}
                   className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
-                  New chat
+                  {translator.translateText("New chat")}
                 </button>
               </div>
             )}
@@ -309,7 +316,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
               </div>
               <button
                 type="button"
-                title="Dismiss"
+                title={translator.translateText("Dismiss")}
                 onClick={() => {
                   chat.setError("");
                 }}

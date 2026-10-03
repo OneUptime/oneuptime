@@ -235,10 +235,10 @@ describe("IoT fleet overview", () => {
 
   test("the Devices needing attention card title carries its (i)", () => {
     expect(code).toContain(
-      'const ATTENTION_TITLE: string = "Devices needing attention";',
+      'const ATTENTION_TITLE: string = translationKey("Devices needing attention");',
     );
     expect(code).toContain(
-      "{ATTENTION_TITLE} <InfoTooltip label={ATTENTION_TITLE} text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention} />",
+      "{translator.translateText(ATTENTION_TITLE)} <InfoTooltip label={ATTENTION_TITLE} text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention} />",
     );
   });
 
@@ -264,7 +264,7 @@ describe("IoT fleet overview", () => {
     const hero: string = segment(code, "const specChips: Array<{", "return (");
 
     expect(hero).toMatch(
-      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: `\$\{onlineDevices\}\/\$\{totalDevices\} device/,
+      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: translator\.translatePlural\( \{ one: "\{\{online\}\}\/\{\{count\}\} device online"/,
     );
     expect(
       hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
@@ -500,16 +500,16 @@ describe("Ceph cluster overview", () => {
     );
 
     expect(hero).toContain(
-      "label: `${cluster.osdUpCount || 0}/${cluster.osdCount} OSD",
+      '{ one: "{{up}}/{{count}} OSD up", other: "{{up}}/{{count}} OSDs up" }, cluster.osdCount, { up: cluster.osdUpCount || 0 },',
     );
     expect(hero).toContain(
-      'label: `${monsInQuorum || 0}/${monsTotal} mon${monsTotal === 1 ? "" : "s"} in quorum`,',
+      '{ one: "{{inQuorum}}/{{count}} mon in quorum", other: "{{inQuorum}}/{{count}} mons in quorum", }, monsTotal, { inQuorum: monsInQuorum || 0 },',
     );
     expect(hero).toContain(
-      'label: `${cluster.monCount} mon${cluster.monCount === 1 ? "" : "s"}`,',
+      '{ one: "{{count}} mon", other: "{{count}} mons" }, cluster.monCount,',
     );
     expect(hero).toContain(
-      'label: `${cluster.poolCount} pool${cluster.poolCount === 1 ? "" : "s"}`,',
+      '{ one: "{{count}} pool", other: "{{count}} pools" }, cluster.poolCount,',
     );
     // Quorum comes from the Mon inventory rows, not from a time series.
     expect(code).toContain("if (row.inQuorum) { quorum++; }");
@@ -557,10 +557,10 @@ describe("Ceph cluster overview", () => {
     expect(count(code, RATE_CHART)).toBe(2);
     // The header also names the chart's drag-to-zoom (issue #4105).
     expect(code).toMatch(
-      /Client IOPS <InfoTooltip label="Client IOPS" text=\{CEPH_METRIC_DESCRIPTIONS\.clientIops\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd"/,
+      /\{translator\.translateText\("Client IOPS"\)\} <InfoTooltip label="Client IOPS" text=\{CEPH_METRIC_DESCRIPTIONS\.clientIops\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd"/,
     );
     expect(code).toMatch(
-      /Client Throughput <InfoTooltip label="Client Throughput" text=\{CEPH_METRIC_DESCRIPTIONS\.clientThroughput\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd_bytes"/,
+      /\{translator\.translateText\("Client Throughput"\)\} <InfoTooltip label="Client Throughput" text=\{CEPH_METRIC_DESCRIPTIONS\.clientThroughput\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd_bytes"/,
     );
   });
 
@@ -837,10 +837,10 @@ describe("Ceph pool detail", () => {
   test("each rate chart has a header with the pool's own (i)", () => {
     expect(count(code, RATE_CHART)).toBe(2);
     expect(code).toContain(
-      'Client IOPS <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.poolClientIops} />',
+      '{translator.translateText("Client IOPS")} <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.poolClientIops} />',
     );
     expect(code).toContain(
-      'Client Throughput <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput} />',
+      '{translator.translateText("Client Throughput")} <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput} />',
     );
   });
 
@@ -877,10 +877,10 @@ describe("Ceph daemons, Insights and Clusters list", () => {
     expect(count(code, RATE_CHART)).toBe(2);
     expect(count(code, INFO_TOOLTIP)).toBe(2);
     expect(code).toContain(
-      'Client IOPS <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.clientIops} />',
+      '{translator.translateText("Client IOPS")} <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.clientIops} />',
     );
     expect(code).toContain(
-      'Client Throughput <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.clientThroughput} />',
+      '{translator.translateText("Client Throughput")} <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.clientThroughput} />',
     );
   });
 

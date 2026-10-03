@@ -23,10 +23,13 @@ import AttachmentList from "../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../Utils/ModelId";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { getNotifySubscribersOfUpdateFormField } from "../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
@@ -292,7 +295,9 @@ const AnnouncementView: FunctionComponent<
                 if (!item.subscriberNotificationStatusOnAnnouncementUpdated) {
                   return (
                     <span className="text-sm text-gray-500">
-                      No update notification requested.
+                      {translator.translateText(
+                        "No update notification requested.",
+                      )}
                     </span>
                   );
                 }

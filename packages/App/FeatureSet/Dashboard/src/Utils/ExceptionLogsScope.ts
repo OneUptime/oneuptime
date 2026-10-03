@@ -3,6 +3,7 @@ import {
   OccurrenceLogWindow,
   getOccurrenceLogWindow,
 } from "./ExceptionCorrelation";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The scopes the exception Logs page can show the log viewer in. Both are
@@ -55,7 +56,10 @@ export function getExceptionLogsViewerScopes(
       key: ExceptionLogsViewerScopeKey.Trace,
       label: "Latest trace",
       description: window
-        ? `Every log written during the latest occurrence's trace, within ${WINDOW_MINUTES} minutes either side of it.`
+        ? translateTemplate(
+            "Every log written during the latest occurrence's trace, within {{minutes}} minutes either side of it.",
+            { minutes: WINDOW_MINUTES },
+          )
         : "Every log written during the latest occurrence's trace. Its time could not be read, so the viewer's default time range applies.",
       traceId,
       serviceId: null,
@@ -68,7 +72,10 @@ export function getExceptionLogsViewerScopes(
       key: ExceptionLogsViewerScopeKey.Service,
       label: "Service",
       description: window
-        ? `Everything this service logged within ${WINDOW_MINUTES} minutes either side of the latest occurrence, across all requests.`
+        ? translateTemplate(
+            "Everything this service logged within {{minutes}} minutes either side of the latest occurrence, across all requests.",
+            { minutes: WINDOW_MINUTES },
+          )
         : "Everything this service logged. The occurrence time could not be read, so the viewer's default time range applies.",
       traceId: null,
       serviceId,
