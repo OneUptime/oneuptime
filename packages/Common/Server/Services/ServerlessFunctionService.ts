@@ -11,6 +11,11 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
 import { OnCreate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
 import ServerlessFunctionLabelRuleEngineService from "./ServerlessFunctionLabelRuleEngineService";
 import ServerlessFunctionOwnerRuleEngineService from "./ServerlessFunctionOwnerRuleEngineService";
 
@@ -21,9 +26,51 @@ const LABELS_APPLIED_CACHE_NAMESPACE: string =
   "serverless-function-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+/*
+ * A function is matched to its telemetry by faas.name - which ingest fills in
+ * from service.name on a serverless platform that sets none (Azure
+ * Functions) - and named after it unless somebody gives it a display name
+ * of their own (DiscoveredResourceCreate).
+ */
+const SERVERLESS_FUNCTION_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>({
+    identityColumn: "functionIdentifier",
+    resourceName: "serverless function",
+    identityName: "function name",
+  });
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // Named after its function name when nobody gave it a name.
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    DiscoveredResourceCreate.fillName({
+      createBy,
+      naming: SERVERLESS_FUNCTION_NAMING,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * A function that is already there - discovered from its telemetry or
+   * added before - is refused by its function name, not as a clash of
+   * names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: SERVERLESS_FUNCTION_NAMING,
+    });
   }
 
   @CaptureSpan()

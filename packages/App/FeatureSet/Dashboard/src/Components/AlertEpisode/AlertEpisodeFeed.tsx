@@ -15,7 +15,6 @@ import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
-import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -33,6 +32,10 @@ import {
 } from "Common/UI/Components/Feed/FeedOptions";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { getAlertEpisodeFeedIcon } from "../EpisodeView/EpisodeFeedIcons";
+import useFeedNoteActions, {
+  FeedNoteActions,
+} from "../EventNotes/useFeedNoteActions";
+import { getAlertEpisodePrivateNoteKind } from "../EventNotes/NoteKinds/AlertEpisodeNoteKinds";
 
 export interface ComponentProps {
   alertEpisodeId: ObjectID;
@@ -58,9 +61,6 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
-    React.useState<boolean>(false);
-
-  const [showPrivateNoteModal, setShowPrivateNoteModal] =
     React.useState<boolean>(false);
 
   type GetFeedItemsFromEpisodeFeeds = (
@@ -154,6 +154,19 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     },
   });
 
+  // "Add Private Note": the episode's Notes page composer, in a dialog.
+  const noteActions: FeedNoteActions = useFeedNoteActions({
+    keyPrefix: "alert-episode",
+    privateNoteKind: getAlertEpisodePrivateNoteKind({
+      alertEpisodeId: props.alertEpisodeId,
+    }),
+    onPosted: () => {
+      refresh().catch((err: unknown) => {
+        setError(API.getFriendlyMessage(err as Exception));
+      });
+    },
+  });
+
   return (
     <FeedCard
       title={"Episode Feed"}
@@ -164,22 +177,17 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       onRefresh={refresh}
       actions={
         <FeedActionsMenu key="alert-episode-feed-actions-menu">
-          <MoreMenuItem
-            key="alert-episode-action-execute-policy"
-            text="Execute On-Call Policy"
-            icon={IconProp.Call}
-            onClick={() => {
-              setShowOnCallPolicyModal(true);
-            }}
-          />
-          <MoreMenuItem
-            key="alert-episode-action-private-note"
-            text="Add Private Note"
-            icon={IconProp.Lock}
-            onClick={() => {
-              setShowPrivateNoteModal(true);
-            }}
-          />
+          {[
+            <MoreMenuItem
+              key="alert-episode-action-execute-policy"
+              text="Execute On-Call Policy"
+              icon={IconProp.Call}
+              onClick={() => {
+                setShowOnCallPolicyModal(true);
+              }}
+            />,
+            ...noteActions.menuItems,
+          ]}
         </FeedActionsMenu>
       }
     >
@@ -253,53 +261,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {showPrivateNoteModal && (
-          <ModelFormModal
-            modalWidth={ModalWidth.Large}
-            modelType={AlertEpisodeInternalNote}
-            name={"create-episode-internal-note"}
-            title={"Add Private Note to this Episode"}
-            description={
-              "Add a private note to this episode. This note will be visible only to the team members of this episode."
-            }
-            onClose={() => {
-              setShowPrivateNoteModal(false);
-            }}
-            submitButtonText="Save"
-            onBeforeCreate={async (model: AlertEpisodeInternalNote) => {
-              model.alertEpisodeId = props.alertEpisodeId!;
-              return model;
-            }}
-            onSuccess={() => {
-              setShowPrivateNoteModal(false);
-              refresh().catch((err: unknown) => {
-                setError(API.getFriendlyMessage(err as Exception));
-              });
-            }}
-            formProps={{
-              summary: {
-                enabled: true,
-                defaultStepName: "Private Note",
-              },
-              name: "create-episode-internal-note",
-              modelType: AlertEpisodeInternalNote,
-              id: "create-episode-internal-note",
-              fields: [
-                {
-                  field: {
-                    note: true,
-                  },
-                  fieldType: FormFieldSchemaType.Markdown,
-                  description:
-                    "Post a private note about this episode. This note will be visible only to the team members of this episode.",
-                  title: "Private Note",
-                  required: true,
-                },
-              ],
-              formType: FormType.Create,
-            }}
-          />
-        )}
+        {noteActions.dialog}
       </div>
     </FeedCard>
   );

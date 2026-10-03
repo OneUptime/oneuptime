@@ -67,7 +67,7 @@ Andate su **Incidenti → Impostazioni → Modelli di note** (`/dashboard/{proje
 
 Come per i modelli di incidente, le righe si creano e si consultano invece di modificarle sul posto; aprite un modello per cambiarlo.
 
-I modelli di note compaiono dove servono davvero: le finestre di conferma **Acknowledge Incident** e **Resolve Incident** offrono entrambe **Seleziona modello di nota** accanto al campo **Nota pubblica**. Per la differenza tra note pubbliche e private, vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
+I modelli di note compaiono dove servono davvero: le finestre di conferma **Riconosci incidente** e **Risolvi incidente** offrono entrambe **Seleziona modello di nota** sopra il campo **Nota pubblica**, ripiegati sotto **Aggiungi una nota pubblica**. Per la differenza tra note pubbliche e private, vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
 
 ## Modelli post-mortem
 

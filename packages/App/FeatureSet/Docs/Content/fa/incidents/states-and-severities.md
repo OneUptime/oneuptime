@@ -97,7 +97,7 @@
 
 چهار راه هست که حادثه‌ای وضعیت عوض می‌کند:
 
-- **دکمه‌های سرصفحه.** حادثه‌ای را باز کنید. اگر وضعیت جاری‌اش پیش از وضعیت acknowledged باشد، **Acknowledge** و **Resolve** می‌گیرید؛ اگر میان آن دو باشد، **Resolve** می‌گیرید. هرکدام پنجره تأییدی باز می‌کنند — **Acknowledge Incident** یا **Resolve Incident** — که **Select Note Template**، **Public Note** و **Notify Status Page Subscribers** را هم ارائه می‌دهد.
+- **دکمه‌های سرصفحه.** حادثه‌ای را باز کنید. اگر وضعیت جاری‌اش پیش از وضعیت acknowledged باشد، **Acknowledge** و **Resolve** می‌گیرید؛ اگر میان آن دو باشد، **Resolve** می‌گیرید. هرکدام یک پنجره تأیید کوتاه باز می‌کنند — **Acknowledge Incident** یا **Resolve Incident** — با **Notify Status Page Subscribers** و، تاشده زیر **Add a public note**، فیلد اختیاری **Public Note** و انتخابگر **Select Note Template** (وقتی پروژه قالب یادداشت دارد). تأیید حادثه هر تشدید آنکال آن را هم متوقف می‌کند.
 - **خط زمانی وضعیت.** از صفحه **State Timeline** حادثه سطری دستی با **Incident Status**، **Starts At** و **Notify Status Page Subscribers** بیفزایید.
 - **تغییر انبوه.** فهرست حادثه‌ها کنش انبوه **Change State** را برای بردن چند حادثه با هم دارد.
 - **خودکار.** معیاری از مانیتور با **Auto Resolve Incident** فعال، حادثه‌اش را وقتی معیار دیگر برآورده نشود برطرف می‌کند، و API می‌تواند وضعیت را از راه `/api/incident-state-timeline` به‌روزرسانی کند.

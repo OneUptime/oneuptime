@@ -490,16 +490,18 @@ describe("scheduled maintenance overview: affected resources", () => {
 });
 
 describe("scheduled maintenance feed", () => {
-  test("fixes the note modal names and copy", () => {
-    expect(feed).not.toContain("scheduledMaintenancet");
-    expect(feed).not.toContain("create-scheduledMaintenance-internal-note");
-    expect(count(feed, '"create-scheduled-maintenance-public-note"')).toBe(3);
-    expect(count(feed, '"create-scheduled-maintenance-internal-note"')).toBe(3);
-    // The public note form no longer borrows the state timeline form's id.
-    expect(feed).not.toContain("create-scheduled-maintenance-state-timeline");
-    expect(feed).not.toContain(
-      "Post a public note about this state change to the status page.",
+  test("writes its notes in the event's Notes page composer, not a form of its own", () => {
+    expect(feed).toContain(
+      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "scheduled-maintenance",',
     );
+    expect(feed).toContain("{noteActions.dialog}");
+    // The old modal forms, their misspelt ids and borrowed copy are gone.
+    expect(feed).not.toContain("<ModelFormModal");
+    expect(feed).not.toContain("scheduledMaintenancet");
+    expect(feed).not.toContain("create-scheduled-maintenance-public-note");
+    expect(feed).not.toContain("create-scheduled-maintenance-internal-note");
+    expect(feed).not.toContain("create-scheduled-maintenance-state-timeline");
+    expect(feed).not.toContain("state change");
   });
 
   test("maps every feed event type to an icon through a typed record", () => {

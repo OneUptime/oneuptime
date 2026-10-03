@@ -97,7 +97,7 @@ Donde la severidad hace algo más que describir: en **Incidentes → Reglas → 
 
 Hay cuatro maneras de que un incidente cambie de estado:
 
-- **Los botones de la cabecera.** Abre un incidente. Si su estado actual está antes del estado de reconocimiento, obtienes **Acknowledge** y **Resolver**; si está entre los dos, obtienes **Resolver**. Cada uno abre un modal de confirmación —**Acknowledge Incident** o **Resolve Incident**— que ofrece además **Seleccionar plantilla de nota**, **Nota pública** y **Notificar a suscriptores de la página de estado**.
+- **Los botones de la cabecera.** Abre un incidente. Si su estado actual está antes del estado de reconocimiento, obtienes **Reconocer** y **Resolver**; si está entre los dos, obtienes **Resolver**. Cada uno abre una confirmación breve —**Reconocer incidente** o **Resolver incidente**— con **Notificar a suscriptores de la página de estado** y, plegados bajo **Añadir una nota pública**, el campo opcional **Nota pública** y el selector **Seleccionar plantilla de nota** (si el proyecto tiene plantillas de notas). Reconocer también detiene cualquier escalado de guardia del incidente.
 - **La línea de tiempo de estado.** Añade una fila a mano desde la página **Línea de Tiempo de Estado** del incidente, con **Estado del incidente**, **Comienza en** y **Notificar a suscriptores de la página de estado**.
 - **Cambio masivo.** La lista de incidentes tiene una acción masiva **Cambiar estado** para mover varios incidentes a la vez.
 - **Automáticamente.** Un criterio de monitor con **Resolver incidente automáticamente** activado resuelve su incidente cuando el criterio deja de cumplirse, y la API puede actualizar el estado a través de `/api/incident-state-timeline`.

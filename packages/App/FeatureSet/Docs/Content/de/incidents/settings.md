@@ -67,7 +67,7 @@ Gehen Sie zu **Vorfälle → Einstellungen → Notiz-Vorlagen** (`/dashboard/{pr
 
 Wie bei Vorfall-Vorlagen werden Zeilen angelegt und angesehen, nicht direkt in der Liste bearbeitet; öffnen Sie eine Vorlage, um sie zu ändern.
 
-Notiz-Vorlagen tauchen dort auf, wo Sie sie wirklich brauchen: Die Bestätigungsdialoge **Acknowledge Incident** und **Resolve Incident** bieten beide neben dem Feld **Öffentliche Notiz** die Auswahl **Notizvorlage auswählen**. Wie sich öffentliche und private Notizen unterscheiden, steht unter [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed).
+Notiz-Vorlagen tauchen dort auf, wo Sie sie wirklich brauchen: Die Bestätigungsdialoge **Vorfall bestätigen** und **Vorfall beheben** bieten beide über dem Feld **Öffentliche Notiz** die Auswahl **Notizvorlage auswählen**, eingeklappt unter **Öffentliche Notiz hinzufügen**. Wie sich öffentliche und private Notizen unterscheiden, steht unter [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed).
 
 ## Postmortem-Vorlagen
 

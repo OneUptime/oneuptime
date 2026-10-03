@@ -122,8 +122,8 @@ L'intestazione della scheda ha anche un menu **Azioni**, così potete agire senz
 
 - **Execute Runbook** — avviate un [runbook](/docs/runbooks/index) su questo incidente.
 - **Esegui criterio di reperibilità** — chiamate una policy su richiesta.
-- **Add Public Note** — gli stessi quattro campi della pagina Note pubbliche, in una finestra.
-- **Aggiungi nota privata** — solo corpo della nota e allegati.
+- **Add Public Note** — l'editor della pagina Note pubbliche, in una finestra: scrivi la nota, poi **Post update**. Modelli, **Draft with AI**, allegati, **Notify status page subscribers** con chi raggiungerà e **Preview notification** ci sono tutti. La nota viene pubblicata ora; per retrodatarla scegli **Posted now**.
+- **Aggiungi nota privata** — l'editor della pagina Note private, in una finestra: scrivi la nota, poi **Add note**.
 
 Tutto il resto è dietro il pulsante **⋯** accanto, lo stesso pulsante **Altre opzioni** dell'intestazione della scheda di una tabella, così l'intestazione mostra meno pulsanti possibile:
 
