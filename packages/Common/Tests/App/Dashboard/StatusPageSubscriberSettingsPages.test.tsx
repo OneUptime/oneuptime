@@ -363,6 +363,43 @@ describe("Subscriber Settings", () => {
     ]);
   });
 
+  test("with no subscriber timezones, says what subscribers see in text that wraps, not in a no-wrap chip", async () => {
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+    const advanced: Record<string, unknown> | undefined =
+      recordedDetailCards.find((card: Record<string, unknown>): boolean => {
+        return (
+          (card["cardProps"] as Record<string, unknown>)["title"] ===
+          "Advanced Subscriber Settings"
+        );
+      });
+
+    expect(advanced).toBeDefined();
+
+    const timezones:
+      | { field?: unknown; getElement?: (item: StatusPage) => ReactElement }
+      | undefined = (
+      (advanced!["modelDetailProps"] as Record<string, unknown>)[
+        "fields"
+      ] as Array<{
+        field?: unknown;
+        getElement?: (item: StatusPage) => ReactElement;
+      }>
+    ).find((field: { field?: unknown }): boolean => {
+      return fieldKey(field) === "subscriberTimezones";
+    });
+
+    expect(timezones?.getElement).toBeDefined();
+
+    const { container } = render(timezones!.getElement!(new StatusPage()));
+
+    expect(container.textContent).toBe(
+      "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
+    );
+    // The two sentences ran past the card's edge in the placeholder chip.
+    expect(container.innerHTML).not.toContain("whitespace-nowrap");
+  });
+
   describe("the Notification Templates tab", () => {
     async function openTemplates(): Promise<void> {
       await renderPage(<SubscriberSettings {...PAGE_PROPS} />);

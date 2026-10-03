@@ -254,8 +254,17 @@ const StatusPageSubscriberSettings: FunctionComponent<
                     <TimezonesElement timezones={item["subscriberTimezones"]} />
                   );
                 }
+                /*
+                 * Two sentences, so plain text that wraps: in the no-wrap
+                 * placeholder chip they ran past the card's edge, on a
+                 * phone and at desktop widths alike.
+                 */
                 return (
-                  <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
+                  <p className="text-sm text-gray-500">
+                    {translator.translateText(
+                      "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
+                    )}
+                  </p>
                 );
               },
             },
@@ -453,6 +462,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
           type={AlertType.WARNING}
           strongTitle="Custom Templates Require Configuration"
           dataTestId="custom-templates-require-configuration"
+          className="mb-5"
           title={
             templateWarning === TemplateConfigurationWarning.SmtpAndTwilio
               ? "Custom SMTP and Twilio Config are not configured for this status page. Custom notification templates for Email and SMS will not be used. Please configure them in the Settings tab above to use custom templates."

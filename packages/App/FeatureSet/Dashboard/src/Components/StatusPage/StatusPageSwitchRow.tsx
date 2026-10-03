@@ -155,8 +155,13 @@ const StatusPageSwitchRow: FunctionComponent<ComponentProps> = (
   );
 
   return (
+    /*
+     * The plan's pill sits to the right of the switch's text from sm up. On
+     * a phone it goes under the text, lined up with it (the switch is 44px
+     * and 12px from its text: pl-14), so the sentence keeps the width.
+     */
     <div
-      className="flex items-start justify-between gap-4"
+      className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
       data-testid={props.dataTestId ? `${props.dataTestId}-row` : undefined}
     >
       <div className="min-w-0 flex-1">
@@ -174,7 +179,7 @@ const StatusPageSwitchRow: FunctionComponent<ComponentProps> = (
         />
       </div>
       {planNeeded ? (
-        <div className="flex-shrink-0 pt-0.5">
+        <div className="flex-shrink-0 pl-14 sm:pl-0 sm:pt-0.5">
           <Pill
             text={translator.translateTemplate("{{planName}} Plan", {
               planName: planNeeded,
