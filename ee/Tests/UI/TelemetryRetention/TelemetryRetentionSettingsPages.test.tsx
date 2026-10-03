@@ -192,7 +192,9 @@ jest.mock(
 
 import CephSettings from "@oneuptime/dashboard/Pages/Ceph/View/Settings";
 import CloudSettings from "@oneuptime/dashboard/Pages/Cloud/View/Settings";
-import DatabaseServerSettings from "@oneuptime/dashboard/Pages/Database/View/Settings";
+import DatabaseServerSettings, {
+  DATABASE_RETENTION_SCOPE_NOTE,
+} from "@oneuptime/dashboard/Pages/Database/View/Settings";
 import DockerSettings from "@oneuptime/dashboard/Pages/Docker/View/Settings";
 import DockerSwarmSettings from "@oneuptime/dashboard/Pages/DockerSwarm/View/Settings";
 import HostSettings from "@oneuptime/dashboard/Pages/Host/View/Settings";
@@ -260,6 +262,8 @@ interface ResourceSettingsCase<
   settingsKey: PageMap;
   detailIdPrefix: string;
   hasSessionReplayRetention: boolean;
+  // Which of the resource's telemetry its retention covers, when not all.
+  scopeNote?: string | undefined;
 }
 
 const RESOURCES: Array<ResourceSettingsCase> = [
@@ -374,6 +378,7 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     settingsKey: PageMap.DATABASE_SERVER_VIEW_SETTINGS,
     detailIdPrefix: "database-server",
     hasSessionReplayRetention: false,
+    scopeNote: DATABASE_RETENTION_SCOPE_NOTE,
   },
 ];
 
@@ -625,6 +630,16 @@ describe.each(RESOURCES)(
           }),
         ).toBeInTheDocument();
         expectReadFor(resource, "sessionReplayRetentionInDays");
+        /*
+         * Shown here, edited on the application's Replay Policy: the one
+         * button opens it, and no editor of its own is left on this page.
+         */
+        expect(
+          screen.getByRole("button", { name: "Edit on Replay Policy" }),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole("button", { name: "Edit Replay Retention" }),
+        ).not.toBeInTheDocument();
       } else {
         expect(
           screen.queryByRole("heading", {
@@ -636,9 +651,74 @@ describe.each(RESOURCES)(
 
       // The archive card is still on the page, after the retention cards.
       expect(screen.getByTestId("archive-resource-card")).toBeInTheDocument();
+
+      // A scope note is the first card's to say, and only where one is given.
+      if (resource.scopeNote) {
+        expect(
+          screen.getByTestId("telemetry-retention-scope-note"),
+        ).toHaveTextContent(resource.scopeNote);
+      } else {
+        expect(
+          screen.queryByTestId("telemetry-retention-scope-note"),
+        ).not.toBeInTheDocument();
+      }
     });
   },
 );
+
+/*
+ * A database's retention covers its engine metrics and logs, not the traces
+ * of the queries applications send it. That used to be a blue "Which
+ * telemetry this covers." banner above the cards, on every visit; it is the
+ * retention card's description now, after the card's own sentence.
+ */
+describe("database retention scope", () => {
+  test("is said in the Telemetry Data Retention card's description, with no banner above the cards", async () => {
+    const resource: ResourceSettingsCase = resourceNamed("database");
+
+    await renderSettings(resource, modelFor(resource));
+
+    const note: HTMLElement = screen.getByTestId(
+      "telemetry-retention-scope-note",
+    );
+    const card: HTMLElement = note.closest(
+      '[data-testid="card"]',
+    ) as HTMLElement;
+
+    expect(
+      within(card).getByRole("heading", { name: "Telemetry Data Retention" }),
+    ).toBeInTheDocument();
+    expect(within(card).getByTestId("card-description")).toHaveTextContent(
+      `Set the default retention for telemetry collected from this database. ${DATABASE_RETENTION_SCOPE_NOTE}`,
+    );
+    expect(note).toHaveTextContent(
+      "The traces of the queries your applications send it belong to the calling services and follow their retention.",
+    );
+    expect(
+      screen.queryByText("Which telemetry this covers."),
+    ).not.toBeInTheDocument();
+  });
+
+  test("leaves the other cards' descriptions as they were", async () => {
+    const resource: ResourceSettingsCase = resourceNamed("host");
+
+    await renderSettings(resource, modelFor(resource));
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "Telemetry Data Retention",
+    });
+    const card: HTMLElement = heading.closest(
+      '[data-testid="card"]',
+    ) as HTMLElement;
+
+    expect(within(card).getByTestId("card-description")).toHaveTextContent(
+      "Set the default retention for telemetry collected from this host.",
+    );
+    expect(within(card).getByTestId("card-description").textContent).toBe(
+      "Set the default retention for telemetry collected from this host.",
+    );
+  });
+});
 
 describe.each([
   resourceNamed("service"),

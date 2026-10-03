@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} har redan sitt gratis SSL-certifikat, och vi förnyar det automatiskt.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} visas med certifikatet du laddade upp.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Din CNAME-post är verifierad, men det gratis SSL-certifikatet för den här domänen är inte utfärdat ännu. Klicka på Kontrollera nu för att försöka igen och se varför.",
-  "{{teamName}} was created without access.": "Teamet {{teamName}} skapades utan åtkomst."
+  "{{teamName}} was created without access.": "Teamet {{teamName}} skapades utan åtkomst.",
+  "Archived Items": "Arkiverade objekt",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "Varje applikations inspelningspolicy i en överblick. Öppna en applikation för att ändra dess policy, kontrollera inspelningarnas status, testa installationen eller spela in en viss användares nästa session.",
+  "Edit on Replay Policy": "Redigera i Replay Policy",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "Objekt som du har arkiverat. De är dolda i huvudlistan, men inget stoppas eller raderas: de behåller sin identitet och fortsätter att samla in telemetri. Välj objekt för att avarkivera dem.",
+  "No archived items.": "Inga arkiverade objekt.",
+  "Session replays are kept for {{count}} days.": "Sessionsuppspelningar sparas i {{count}} dagar.",
+  "Session replays are kept for {{count}} days._one": "Sessionsuppspelningar sparas i {{count}} dag.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Detta omfattar motorns mätvärden och loggar som Database Agent eller din OpenTelemetry Collector samlar in från den här databasen. Spåren från de frågor som dina applikationer skickar till den hör till de anropande tjänsterna och följer deras lagringstid."
 }

@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "У {{domain}} уже есть бесплатный SSL-сертификат, и мы продлеваем его автоматически.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} обслуживается с загруженным вами сертификатом.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Ваша CNAME-запись подтверждена, но бесплатный SSL-сертификат для этого домена ещё не выпущен. Нажмите «Проверить сейчас», чтобы повторить попытку и узнать причину.",
-  "{{teamName}} was created without access.": "Команда {{teamName}} создана без доступа."
+  "{{teamName}} was created without access.": "Команда {{teamName}} создана без доступа.",
+  "Archived Items": "Архивированные элементы",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "Политика записи каждого приложения на одном экране. Откройте приложение, чтобы изменить его политику, проверить состояние записи, протестировать установку или записать следующий сеанс определённого пользователя.",
+  "Edit on Replay Policy": "Изменить в Replay Policy",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "Элементы, которые вы архивировали. Они скрыты из основного списка, но ничего не останавливается и не удаляется: они сохраняют свою идентичность и продолжают собирать телеметрию. Выберите элементы, чтобы извлечь их из архива.",
+  "No archived items.": "Нет архивированных элементов.",
+  "Session replays are kept for {{count}} days.": "Записи сеансов хранятся {{count}} дн.",
+  "Session replays are kept for {{count}} days._one": "Записи сеансов хранятся {{count}} день.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Сюда относятся метрики движка и логи, которые Database Agent или ваш OpenTelemetry Collector собирает с этой базы данных. Трассировки запросов, которые ваши приложения отправляют в неё, относятся к вызывающим сервисам и следуют их сроку хранения."
 }

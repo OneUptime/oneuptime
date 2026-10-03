@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} heeft al een gratis SSL-certificaat, en we verlengen het automatisch.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} wordt aangeboden met het certificaat dat u hebt geüpload.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Uw CNAME-record is geverifieerd, maar het gratis SSL-certificaat voor dit domein is nog niet uitgegeven. Klik op Nu controleren om het opnieuw te proberen en te zien waarom.",
-  "{{teamName}} was created without access.": "Team {{teamName}} is aangemaakt zonder toegang."
+  "{{teamName}} was created without access.": "Team {{teamName}} is aangemaakt zonder toegang.",
+  "Archived Items": "Gearchiveerde items",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "Het opnamebeleid van elke applicatie in één oogopslag. Open een applicatie om het beleid te wijzigen, de opnamestatus te controleren, de installatie te testen of de volgende sessie van een specifieke gebruiker op te nemen.",
+  "Edit on Replay Policy": "Bewerken in Replay Policy",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "Items die u hebt gearchiveerd. Ze zijn verborgen in de hoofdlijst, maar niets wordt gestopt of verwijderd: ze behouden hun identiteit en blijven telemetrie verzamelen. Selecteer items om ze uit het archief te halen.",
+  "No archived items.": "Geen gearchiveerde items.",
+  "Session replays are kept for {{count}} days.": "Sessie-replays worden {{count}} dagen bewaard.",
+  "Session replays are kept for {{count}} days._one": "Sessie-replays worden {{count}} dag bewaard.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Dit omvat de engine-metrics en logs die de Database Agent of uw OpenTelemetry Collector van deze database verzamelt. De traces van de queries die uw applicaties ernaar sturen, horen bij de aanroepende services en volgen hun bewaartermijn."
 }

@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} के पास पहले से ही निःशुल्क SSL प्रमाणपत्र है, और हम उसे अपने आप नवीनीकृत करते हैं।",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} आपके अपलोड किए गए प्रमाणपत्र के साथ दिखाया जाता है।",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "आपका CNAME रिकॉर्ड सत्यापित है, लेकिन इस डोमेन का निःशुल्क SSL प्रमाणपत्र अभी जारी नहीं हुआ है। फिर से प्रयास करने और कारण देखने के लिए अभी जाँचें पर क्लिक करें।",
-  "{{teamName}} was created without access.": "{{teamName}} टीम बिना एक्सेस के बनाई गई।"
+  "{{teamName}} was created without access.": "{{teamName}} टीम बिना एक्सेस के बनाई गई।",
+  "Archived Items": "संग्रहीत आइटम",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "हर एप्लिकेशन की रिकॉर्डिंग नीति एक नज़र में। किसी एप्लिकेशन को खोलकर उसकी नीति बदलें, उसकी रिकॉर्डिंग की स्थिति जाँचें, उसका इंस्टॉलेशन टेस्ट करें या किसी खास उपयोगकर्ता का अगला सेशन रिकॉर्ड करें।",
+  "Edit on Replay Policy": "Replay Policy में संपादित करें",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "वे आइटम जिन्हें आपने संग्रहीत किया है। वे मुख्य सूची से छिपे रहते हैं, लेकिन कुछ भी रोका या हटाया नहीं जाता: वे अपनी पहचान बनाए रखते हैं और टेलीमेट्री एकत्र करते रहते हैं। अनसंग्रहीत करने के लिए आइटम चुनें।",
+  "No archived items.": "कोई संग्रहीत आइटम नहीं।",
+  "Session replays are kept for {{count}} days.": "सेशन रीप्ले {{count}} दिनों तक रखे जाते हैं।",
+  "Session replays are kept for {{count}} days._one": "सेशन रीप्ले {{count}} दिन तक रखे जाते हैं।",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "इसमें वे इंजन मेट्रिक्स और लॉग आते हैं जिन्हें Database Agent या आपका OpenTelemetry Collector इस डेटाबेस से एकत्र करता है। आपके एप्लिकेशन इसे जो क्वेरी भेजते हैं, उनके ट्रेस कॉल करने वाली सेवाओं के होते हैं और उन्हीं की रिटेंशन का पालन करते हैं।"
 }

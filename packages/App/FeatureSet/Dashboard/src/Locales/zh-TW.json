@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} 已有免費的 SSL 憑證，我們會自動為其續約。",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} 使用您上傳的憑證提供服務。",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "您的 CNAME 記錄已驗證，但此網域的免費 SSL 憑證尚未核發。請按一下「立即檢查」重試並查看原因。",
-  "{{teamName}} was created without access.": "團隊 {{teamName}} 已建立，但沒有任何存取權限。"
+  "{{teamName}} was created without access.": "團隊 {{teamName}} 已建立，但沒有任何存取權限。",
+  "Archived Items": "已封存的項目",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "一覽每個應用程式的錄製政策。開啟應用程式即可變更其政策、檢查錄製健康狀態、測試安裝，或錄製特定使用者的下一個工作階段。",
+  "Edit on Replay Policy": "在 Replay Policy 中編輯",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "您已封存的項目。它們在主清單中隱藏，但不會停止或刪除任何內容：它們保留自己的識別資訊並繼續收集遙測資料。選取項目即可取消封存。",
+  "No archived items.": "沒有已封存的項目。",
+  "Session replays are kept for {{count}} days.": "工作階段重播會保留 {{count}} 天。",
+  "Session replays are kept for {{count}} days._one": "工作階段重播會保留 {{count}} 天。",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "這涵蓋 Database Agent 或您的 OpenTelemetry Collector 從此資料庫收集的引擎指標與記錄。您的應用程式傳送給它的查詢追蹤屬於呼叫端服務，並遵循這些服務的保留期間。"
 }

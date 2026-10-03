@@ -233,14 +233,21 @@ test.describe.skip("Inventory Product", () => {
     await page.goto(itemsUrl);
     await expect(page.getByText(itemName)).toHaveCount(0, { timeout: 30000 });
 
-    // ...and present in the archived one, which says it is not decommissioned.
+    /*
+     * ...and present in the archived one, whose card description says it is
+     * not decommissioned (there is no banner above the list any more).
+     */
     await page.goto(
       `${page.url().split("/dashboard")[0]}/dashboard/${projectId}/inventory/archived`,
     );
     await expect(page.getByText(itemName).first()).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("These are hidden, not gone")).toBeVisible({
+    await expect(
+      page.getByText(
+        "nothing is stopped or deleted: they keep their identity and keep collecting telemetry",
+      ),
+    ).toBeVisible({
       timeout: 30000,
     });
   });

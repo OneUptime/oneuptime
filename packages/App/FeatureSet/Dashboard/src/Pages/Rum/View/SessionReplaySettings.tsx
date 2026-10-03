@@ -59,6 +59,18 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * capture, before anything is uploaded. So loosening masking cannot be
  * undone for recordings already taken, and tightening it does not scrub
  * recordings already stored.
+ *
+ * The page opens on the health card, with no banner above it. The project's
+ * switch is on unless someone turned it off (Project.isSessionReplayAllowed
+ * defaults to true), and when it is off the health card says "Session replay
+ * is switched off for this project" with a "Turn it on" action - the
+ * disabled-project diagnosis in Common/Utils/Rum/SessionReplayHealth.ts. A
+ * blue "Recording must also be allowed for the project" banner used to sit
+ * here on every visit, saying so in the case nothing was wrong.
+ *
+ * This is also the one place an application's replay retention is edited
+ * (Edit Policy > Limits). The application's Settings page shows the value
+ * and links here (SessionReplayRetentionSettingsCard).
  */
 
 /* The in-page anchor the privacy summary's "Change" links jump to. */
@@ -220,12 +232,6 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
 
   return (
     <Fragment>
-      <Alert
-        type={AlertType.INFO}
-        strongTitle="Recording must also be allowed for the project"
-        title="These settings only take effect while session replay is allowed project-wide. That master switch lives under Real User Monitoring > Settings > Session Replay; the health card below says whether it is on."
-      />
-
       <RecordingHealthCard rumApplicationId={modelId} />
 
       {recordsNothing && (

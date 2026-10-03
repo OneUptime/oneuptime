@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}}에는 이미 무료 SSL 인증서가 있으며 자동으로 갱신됩니다.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}}은(는) 업로드한 인증서로 제공됩니다.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "CNAME 레코드는 인증되었지만 이 도메인의 무료 SSL 인증서가 아직 발급되지 않았습니다. 지금 확인을 클릭하여 다시 시도하고 이유를 확인하세요.",
-  "{{teamName}} was created without access.": "{{teamName}} 팀이 접근 권한 없이 생성되었습니다."
+  "{{teamName}} was created without access.": "{{teamName}} 팀이 접근 권한 없이 생성되었습니다.",
+  "Archived Items": "보관된 항목",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "각 애플리케이션의 녹화 정책을 한눈에 볼 수 있습니다. 애플리케이션을 열어 정책을 변경하거나, 녹화 상태를 확인하거나, 설치를 테스트하거나, 특정 사용자의 다음 세션을 녹화하세요.",
+  "Edit on Replay Policy": "Replay Policy에서 편집",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "보관한 항목입니다. 기본 목록에서는 숨겨지지만 중지되거나 삭제되는 것은 없습니다. 식별 정보를 유지하고 텔레메트리를 계속 수집합니다. 보관을 취소하려면 항목을 선택하세요.",
+  "No archived items.": "보관된 항목이 없습니다.",
+  "Session replays are kept for {{count}} days.": "세션 리플레이는 {{count}}일 동안 보관됩니다.",
+  "Session replays are kept for {{count}} days._one": "세션 리플레이는 {{count}}일 동안 보관됩니다.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Database Agent 또는 OpenTelemetry Collector가 이 데이터베이스에서 수집하는 엔진 메트릭과 로그가 대상입니다. 애플리케이션이 이 데이터베이스로 보내는 쿼리의 트레이스는 호출한 서비스에 속하며 해당 서비스의 보존 기간을 따릅니다."
 }

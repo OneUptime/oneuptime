@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} hat bereits sein kostenloses SSL-Zertifikat, und wir erneuern es automatisch.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} wird mit dem von Ihnen hochgeladenen Zertifikat bereitgestellt.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Ihr CNAME-Eintrag ist verifiziert, aber das kostenlose SSL-Zertifikat für diese Domain ist noch nicht ausgestellt. Klicken Sie auf „Jetzt prüfen“, um es erneut zu versuchen und den Grund zu sehen.",
-  "{{teamName}} was created without access.": "{{teamName}} wurde ohne Zugriff erstellt."
+  "{{teamName}} was created without access.": "{{teamName}} wurde ohne Zugriff erstellt.",
+  "Archived Items": "Archivierte Elemente",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "Die Aufzeichnungsrichtlinie jeder Anwendung auf einen Blick. Öffnen Sie eine Anwendung, um ihre Richtlinie zu ändern, ihren Aufzeichnungszustand zu prüfen, ihre Installation zu testen oder die nächste Sitzung eines bestimmten Benutzers aufzuzeichnen.",
+  "Edit on Replay Policy": "In der Wiedergaberichtlinie bearbeiten",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "Elemente, die Sie archiviert haben. Sie sind in der Hauptliste ausgeblendet, aber nichts wird gestoppt oder gelöscht: Sie behalten ihre Identität und erfassen weiterhin Telemetrie. Wählen Sie Elemente aus, um ihre Archivierung aufzuheben.",
+  "No archived items.": "Keine archivierten Elemente.",
+  "Session replays are kept for {{count}} days.": "Sitzungswiedergaben werden {{count}} Tage aufbewahrt.",
+  "Session replays are kept for {{count}} days._one": "Sitzungswiedergaben werden {{count}} Tag aufbewahrt.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Dies umfasst die Engine-Metriken und Logs, die der Database Agent oder Ihr OpenTelemetry Collector von dieser Datenbank erfasst. Die Traces der Abfragen, die Ihre Anwendungen an sie senden, gehören zu den aufrufenden Diensten und folgen deren Aufbewahrung."
 }

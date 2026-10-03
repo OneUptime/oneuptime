@@ -387,10 +387,10 @@ function importSpecifierFor(
 }
 
 /*
- * Replay retention has a small card of its own and may import its closed-set
- * options from a sibling helper. Follow both imports so the assertion reaches
- * the actual field and the shared allowed-day constant, while still accepting
- * a future implementation that puts the card directly in the page.
+ * Replay retention is shown on the Settings page by a small read-only card
+ * of its own. Follow its import (and an options helper, if it ever imports
+ * one) so the assertions reach what the card actually does, while still
+ * accepting a future implementation that puts the line directly in the page.
  */
 function rumReplaySettingsSource(): ReplaySettingsSource {
   const pageFilename: string = settingsFilename("Rum");
@@ -424,25 +424,62 @@ function rumReplaySettingsSource(): ReplaySettingsSource {
   };
 }
 
+const REPLAY_POLICY_FILENAME: string = path.join(
+  DASHBOARD_SRC,
+  "Pages/Rum/View/SessionReplaySettings.tsx",
+);
+
 describe("RUM session replay retention Settings", () => {
-  test("RUM exposes the dedicated replay field with the closed-set dropdown", () => {
+  /*
+   * Replay retention is edited in one place: the application's Replay
+   * Policy (Edit Policy > Limits). The Settings page used to be a second
+   * editor for the same column; it now shows the value, read-only, next to
+   * the other retention controls, and links to the policy.
+   */
+  test("RUM Settings shows replay retention read-only and links to the Replay Policy", () => {
     const source: ReplaySettingsSource = rumReplaySettingsSource();
 
     expect(source.controlPosition).toBeGreaterThanOrEqual(0);
     expect(
       fieldBindingCount(source.combined, "sessionReplayRetentionInDays"),
-    ).toBeGreaterThanOrEqual(2);
-    expect(source.combined).toContain("SESSION_REPLAY_ALLOWED_RETENTION_DAYS");
+    ).toBe(0);
     expect(source.combined).toMatch(
+      new RegExp(
+        "select\\s*:\\s*\\{\\s*sessionReplayRetentionInDays\\s*:\\s*true",
+      ),
+    );
+    expect(source.combined).toContain(
+      "PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
+    );
+    expect(source.combined).not.toContain("FormFieldSchemaType");
+
+    const archivePosition: number = source.page.indexOf("<ArchiveResourceCard");
+
+    expect(archivePosition).toBeGreaterThan(source.controlPosition);
+  });
+
+  test("the Replay Policy edits it with the closed-set dropdown", () => {
+    const policy: string = readFile(REPLAY_POLICY_FILENAME);
+    const optionsImport: string | null = importSpecifierFor(
+      policy,
+      "SESSION_REPLAY_RETENTION_OPTIONS",
+    );
+
+    expect(optionsImport).not.toBeNull();
+
+    const options: string = readFile(
+      resolveImport(REPLAY_POLICY_FILENAME, optionsImport || ""),
+    );
+
+    // The Limits step's field and the read view's row.
+    expect(fieldBindingCount(policy, "sessionReplayRetentionInDays")).toBe(2);
+    expect(options).toContain("SESSION_REPLAY_ALLOWED_RETENTION_DAYS");
+    expect(policy).toMatch(
       new RegExp(
         "sessionReplayRetentionInDays\\s*:\\s*true\\s*\\}[\\s\\S]{0,800}" +
           "fieldType\\s*:\\s*FormFieldSchemaType\\.Dropdown",
       ),
     );
-
-    const archivePosition: number = source.page.indexOf("<ArchiveResourceCard");
-
-    expect(archivePosition).toBeGreaterThan(source.controlPosition);
   });
 
   test.each([

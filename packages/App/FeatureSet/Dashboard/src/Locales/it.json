@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} ha già il suo certificato SSL gratuito, e lo rinnoviamo automaticamente.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} è servito con il certificato che hai caricato.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Il tuo record CNAME è verificato, ma il certificato SSL gratuito per questo dominio non è ancora stato emesso. Fai clic su Verifica ora per riprovare e vedere perché.",
-  "{{teamName}} was created without access.": "Il team {{teamName}} è stato creato senza accesso."
+  "{{teamName}} was created without access.": "Il team {{teamName}} è stato creato senza accesso.",
+  "Archived Items": "Elementi archiviati",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "La policy di registrazione di ogni applicazione a colpo d'occhio. Apri un'applicazione per modificarne la policy, controllare lo stato delle registrazioni, testare l'installazione o registrare la prossima sessione di un utente specifico.",
+  "Edit on Replay Policy": "Modifica in Replay Policy",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "Elementi che hai archiviato. Sono nascosti dall'elenco principale, ma nulla viene interrotto o eliminato: mantengono la loro identità e continuano a raccogliere telemetria. Seleziona gli elementi per annullarne l'archiviazione.",
+  "No archived items.": "Nessun elemento archiviato.",
+  "Session replays are kept for {{count}} days.": "I replay delle sessioni vengono conservati per {{count}} giorni.",
+  "Session replays are kept for {{count}} days._one": "I replay delle sessioni vengono conservati per {{count}} giorno.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Comprende le metriche del motore e i log che il Database Agent o il tuo OpenTelemetry Collector raccoglie da questo database. Le tracce delle query che le tue applicazioni gli inviano appartengono ai servizi chiamanti e seguono la loro conservazione."
 }

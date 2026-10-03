@@ -24470,5 +24470,13 @@
   "{{domain}} already has its free SSL certificate, and we renew it automatically.": "{{domain}} ya tiene su certificado SSL gratuito, y lo renovamos automáticamente.",
   "{{domain}} is served with the certificate you uploaded.": "{{domain}} se sirve con el certificado que subiste.",
   "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.": "Tu registro CNAME está verificado, pero el certificado SSL gratuito de este dominio aún no se ha emitido. Haz clic en Comprobar ahora para volver a intentarlo y ver por qué.",
-  "{{teamName}} was created without access.": "El equipo {{teamName}} se creó sin acceso."
+  "{{teamName}} was created without access.": "El equipo {{teamName}} se creó sin acceso.",
+  "Archived Items": "Elementos archivados",
+  "Each application's recording policy at a glance. Open an application to change its policy, check its recording health, test its installation or record a specific user's next session.": "La política de grabación de cada aplicación de un vistazo. Abre una aplicación para cambiar su política, comprobar el estado de sus grabaciones, probar su instalación o grabar la próxima sesión de un usuario concreto.",
+  "Edit on Replay Policy": "Editar en Política de reproducción",
+  "Items you have archived. They are hidden from the main list, but nothing is stopped or deleted: they keep their identity and keep collecting telemetry. Select items to unarchive them.": "Elementos que has archivado. Están ocultos en la lista principal, pero no se detiene ni se elimina nada: conservan su identidad y siguen recopilando telemetría. Selecciona elementos para desarchivarlos.",
+  "No archived items.": "No hay elementos archivados.",
+  "Session replays are kept for {{count}} days.": "Las reproducciones de sesiones se conservan durante {{count}} días.",
+  "Session replays are kept for {{count}} days._one": "Las reproducciones de sesiones se conservan durante {{count}} día.",
+  "This covers the engine metrics and logs the Database Agent or your OpenTelemetry Collector collects from it. The traces of the queries your applications send it belong to the calling services and follow their retention.": "Esto abarca las métricas del motor y los logs que el Database Agent o tu OpenTelemetry Collector recopila de esta base de datos. Las trazas de las consultas que tus aplicaciones le envían pertenecen a los servicios que las llaman y siguen su retención."
 }
