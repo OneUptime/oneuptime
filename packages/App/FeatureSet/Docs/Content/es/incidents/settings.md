@@ -140,7 +140,7 @@ El formulario de creación tiene tres pasos:
 
 - **Información básica** — **Nombre** (el marcador de posición sugiere algo como avisar al equipo de bases de datos ante cualquier incidente de BD), **Descripción** y un interruptor **Habilitado**. La lista muestra por regla una píldora verde **Habilitado** o roja **Deshabilitado**.
 - **Criterios de coincidencia** — **Monitores**, **Incidente Severidades**, **Etiquetas de incidentes**, **Etiquetas del monitor**, más campos de expresión regular sin distinción de mayúsculas para el título del incidente, la descripción del incidente, el nombre del monitor y la descripción del monitor.
-- **Políticas de Guardia** — las políticas que ejecuta esta regla.
+- **Políticas de guardia** — las políticas que ejecuta esta regla.
 
 ### Cómo se resuelven las coincidencias
 
