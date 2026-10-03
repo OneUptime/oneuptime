@@ -34,7 +34,7 @@ Select the group you want the resource to land in (or **Top of page** for an ung
 
 Pick a monitor, click **Add Monitor**, and the row is on the page. In a grid group the dialog also asks for the row and the column the monitor goes in, above **Advanced** — see [List layout vs grid layout](#list-layout-vs-grid-layout).
 
-If your project has monitor groups enabled, a link under the dropdown reads **Add a Monitor Group instead.** — click it and the **Monitor** dropdown is swapped for a **Monitor Group** dropdown (**Select Monitor Group**). The link then flips to **Add a Monitor instead.** so you can go back. Use a monitor group when you want one row on the page to represent several checks rolled together.
+If your project has monitor groups turned on (the **Monitor Groups** switch on **Project Settings** > **Advanced** > **Feature Flags**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** — click it and the **Monitor** dropdown is swapped for a **Monitor Group** dropdown (**Select Monitor Group**). The link then flips to **Add a Monitor instead.** so you can go back. Use a monitor group when you want one row on the page to represent several checks rolled together.
 
 ### Adding several at once
 
