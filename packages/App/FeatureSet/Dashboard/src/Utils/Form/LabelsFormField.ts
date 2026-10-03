@@ -86,9 +86,10 @@ export const getLabelsFormField: GetLabelsFormFieldFunction = <TEntity>(
   const { collapsibleSection, ...rest } = options || {};
 
   return {
-    title: "Labels",
+    // The one thing a form may word its own way (a template's hand-on).
     description: LABELS_FORM_FIELD_DESCRIPTION,
     ...rest,
+    title: "Labels",
     field: { labels: true } as unknown as SelectFormFields<TEntity>,
     fieldType: FormFieldSchemaType.MultiSelectDropdown,
     dropdownModal: {

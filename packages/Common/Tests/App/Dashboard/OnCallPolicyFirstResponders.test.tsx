@@ -431,7 +431,9 @@ describe("the Create On-Call Policy form", () => {
 
     expect(advancedHeader(modal)).toHaveAttribute("aria-expanded", "true");
     expect(within(modal).getByPlaceholderText("Description")).toBeVisible();
-    expect(within(modal).getByText(LABELS_FORM_FIELD_DESCRIPTION)).toBeVisible();
+    expect(
+      within(modal).getByText(LABELS_FORM_FIELD_DESCRIPTION),
+    ).toBeVisible();
   });
 
   test("the picker offers on-call schedules, teams and people", async () => {

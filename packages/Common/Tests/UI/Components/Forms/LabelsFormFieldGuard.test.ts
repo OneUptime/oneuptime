@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 import {
   listScanRoots,
   listSourceFiles,
@@ -326,7 +327,9 @@ export function findStepperForThreeRows(
     .map((form: FormFacts): LabelsProblem => {
       return {
         form,
-        message: `${form.visibleFieldCount} rows walk steps (${(form.steps || [])
+        message: `${form.visibleFieldCount} rows walk steps (${(
+          form.steps || []
+        )
           .map((step: FormStepFacts): string => {
             return step.id || "?";
           })
@@ -335,9 +338,11 @@ export function findStepperForThreeRows(
     });
 }
 
-// ---------------------------------------------------------------------------
-// The detector, on inline snippets first.
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The detector, on inline snippets first.
+ * ---------------------------------------------------------------------------
+ */
 
 const VIRTUAL_ROOT: string = "/repo";
 
@@ -583,9 +588,11 @@ describe("the labels detector", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// The project's forms.
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The project's forms.
+ * ---------------------------------------------------------------------------
+ */
 
 /*
  * What a form shows on one step ("" for a form without steps): the fields
@@ -761,7 +768,11 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       "ModelTable: Kubernetes Clusters",
       "clusterIdentifier",
     ],
-    ["Rum/RumApplications.tsx", "ModelTable: RUM Applications", "appIdentifier"],
+    [
+      "Rum/RumApplications.tsx",
+      "ModelTable: RUM Applications",
+      "appIdentifier",
+    ],
     [
       "Serverless/ServerlessFunctions.tsx",
       "ModelTable: Serverless Functions",
@@ -842,7 +853,12 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   {
     file: `${DASHBOARD}/Pages/Monitor/Settings/MonitorTemplates.tsx`,
     label: "ModelTable: Settings > Monitor Templates",
-    steps: ["template-info", "monitor-defaults", "criteria", "monitoring-interval"],
+    steps: [
+      "template-info",
+      "monitor-defaults",
+      "criteria",
+      "monitoring-interval",
+    ],
     rows: {
       "monitor-defaults": {
         open: ["monitorName", "monitorDescription", "monitorType"],
@@ -857,12 +873,22 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
      * The Owners and Labels steps, one optional field each, fold under
      * Advanced on Incident Details, as a maintenance template's do on Event.
      */
-    steps: ["template-info", "incident-details", "resources-affected", "on-call"],
+    steps: [
+      "template-info",
+      "incident-details",
+      "resources-affected",
+      "on-call",
+    ],
     uncountable:
       "Its custom field steps are spread in between, from the project's custom fields at runtime.",
     rows: {
       "incident-details": {
-        open: ["title", "description", "incidentSeverity", "initialIncidentState"],
+        open: [
+          "title",
+          "description",
+          "incidentSeverity",
+          "initialIncidentState",
+        ],
         folded: ["owners", "labels"],
       },
     },
@@ -873,7 +899,12 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     steps: ["template-info", "incident-details", "on-call"],
     rows: {
       "incident-details": {
-        open: ["title", "description", "incidentSeverity", "initialIncidentState"],
+        open: [
+          "title",
+          "description",
+          "incidentSeverity",
+          "initialIncidentState",
+        ],
         folded: LABELS_ONLY,
       },
     },
@@ -924,6 +955,78 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     },
   },
 ];
+
+/*
+ * The forms that hand getLabelsFormField a description of their own, in
+ * file order: the templates, whose labels are handed on.
+ */
+const TEMPLATES_WORDING_THEIR_OWN_LABELS_HELP: Array<string> = [
+  `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplates.tsx: Incidents declared from this template start with these labels.`,
+  `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplatesView.tsx: Incidents declared from this template start with these labels.`,
+  `${DASHBOARD}/Pages/Monitor/Settings/MonitorTemplates.tsx: Default labels applied to monitors created from this template.`,
+  `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx: Events scheduled from this template start with these labels.`,
+];
+
+/*
+ * Every getLabelsFormField call that hands the helper a description, as
+ * "file: description", sorted by file.
+ */
+export function findLabelsDescriptionOverrides(
+  files: Array<string>,
+): Array<string> {
+  const found: Array<string> = [];
+
+  for (const file of files) {
+    const text: string = fs.readFileSync(file, "utf8");
+
+    if (!text.includes(LABELS_FORM_FIELD_HELPER)) {
+      continue;
+    }
+
+    const source: ts.SourceFile = ts.createSourceFile(
+      file,
+      text,
+      ts.ScriptTarget.Latest,
+      true,
+      file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === LABELS_FORM_FIELD_HELPER
+      ) {
+        const options: ts.Expression | undefined = node.arguments[0];
+
+        if (options && ts.isObjectLiteralExpression(options)) {
+          for (const property of options.properties) {
+            if (
+              ts.isPropertyAssignment(property) &&
+              property.name.getText(source) === "description"
+            ) {
+              const value: ts.Expression = property.initializer;
+
+              found.push(
+                `${path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/")}: ${
+                  ts.isStringLiteralLike(value)
+                    ? value.text
+                    : value.getText(source)
+                }`,
+              );
+            }
+          }
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+  }
+
+  return found.sort();
+}
 
 // What a helper's field asks, for the shapes above.
 const HELPER_KEYS: Record<string, string> = {
@@ -1054,9 +1157,9 @@ describe("labels on the project's forms", () => {
         });
 
         // The folded ones are one section, after everything open.
-        expect(
-          onStep.slice(onStep.length - folded.length).map(keyOf),
-        ).toEqual(folded.map(keyOf));
+        expect(onStep.slice(onStep.length - folded.length).map(keyOf)).toEqual(
+          folded.map(keyOf),
+        );
         expect(
           new Set(
             folded.map((field: FormFieldFacts): string | undefined => {
@@ -1079,10 +1182,29 @@ describe("labels on the project's forms", () => {
    */
   test("the Workflows table carries no form of its own", () => {
     expect(
-      forms.filter((form: FormFacts): boolean => {
-        return form.file === `${DASHBOARD}/Pages/Workflow/Workflows.tsx`;
-      }),
-    ).toEqual([]);
+      forms
+        .filter((form: FormFacts): boolean => {
+          return form.file === `${DASHBOARD}/Pages/Workflow/Workflows.tsx`;
+        })
+        .map((form: FormFacts): string => {
+          return form.label;
+        }),
+    ).not.toContain("ModelTable: Workflows");
+  });
+
+  /*
+   * One sentence says what labels do, on every form. Only a template words
+   * its own: its labels are not the template's access, they are handed on
+   * to what it creates, so it says that instead.
+   */
+  test("keep the shared help, except on a template, which says what it hands on", () => {
+    expect(
+      findLabelsDescriptionOverrides(
+        files.filter((file: string): boolean => {
+          return file.includes(`${path.sep}FeatureSet${path.sep}`);
+        }),
+      ),
+    ).toEqual(TEMPLATES_WORDING_THEIR_OWN_LABELS_HELP);
   });
 
   /*
@@ -1097,13 +1219,14 @@ describe("labels on the project's forms", () => {
       },
     );
     const offenders: Array<string> = [];
+    const titleWithTrailingSpace: RegExp = /title: "Labels "/;
 
     for (const file of dashboardFiles) {
       const text: string = fs.readFileSync(file, "utf8");
 
       if (
         text.includes("This is optional and an advanced feature.") ||
-        /title: "Labels "/.test(text)
+        titleWithTrailingSpace.test(text)
       ) {
         offenders.push(path.relative(REPOSITORY_ROOT, file));
       }
