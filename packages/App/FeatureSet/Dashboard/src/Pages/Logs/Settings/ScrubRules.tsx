@@ -20,6 +20,8 @@ import {
   Indigo500,
 } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface PillConfig {
   label: string;
@@ -181,6 +183,7 @@ Rules are evaluated in the order shown in the table. Drag and drop to reorder. E
 const LogScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelTable<LogScrubRule>
       modelType={LogScrubRule}
@@ -409,7 +412,7 @@ const LogScrubRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

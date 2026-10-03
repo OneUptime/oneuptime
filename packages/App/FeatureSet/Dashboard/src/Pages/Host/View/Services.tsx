@@ -53,6 +53,8 @@ import {
   startupModeLabel,
   encodeServiceNameForUrl,
 } from "../Utils/WindowsServices";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface ServiceRow {
   key: string;
@@ -76,6 +78,7 @@ const PAGE_SIZE: number = 25;
 const HostServices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [host, setHost] = useState<Host | null>(null);
@@ -253,12 +256,15 @@ const HostServices: FunctionComponent<
       .map(([label, info]: [string, { count: number; hex: string }]) => {
         return {
           value: label,
-          label: label,
-          sublabel: `${info.count} service${info.count === 1 ? "" : "s"}`,
+          label: translator.translateTerm(label),
+          sublabel: translator.translatePlural(
+            { one: "{{count}} service", other: "{{count}} services" },
+            info.count,
+          ),
           color: info.hex,
         };
       });
-  }, [rows]);
+  }, [rows, translator.language]);
 
   const startupOptions: Array<FilterChipDropdownOption> = useMemo(() => {
     const counts: Map<string, number> = new Map();
@@ -272,11 +278,14 @@ const HostServices: FunctionComponent<
       .map(([label, count]: [string, number]) => {
         return {
           value: label,
-          label: label,
-          sublabel: `${count} service${count === 1 ? "" : "s"}`,
+          label: translator.translateTerm(label),
+          sublabel: translator.translatePlural(
+            { one: "{{count}} service", other: "{{count}} services" },
+            count,
+          ),
         };
       });
-  }, [rows]);
+  }, [rows, translator.language]);
 
   // Search + facet filters + sort, all client-side over the snapshot.
   const processedData: Array<ServiceRow> = useMemo(() => {
@@ -383,7 +392,9 @@ const HostServices: FunctionComponent<
         hideOnMobile: true,
         getElement: (row: ServiceRow): ReactElement => {
           return (
-            <span className="text-sm text-gray-600">{row.startupLabel}</span>
+            <span className="text-sm text-gray-600">
+              {translator.translateText(row.startupLabel)}
+            </span>
           );
         },
       },
@@ -399,7 +410,7 @@ const HostServices: FunctionComponent<
               className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${meta.pill}`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-              {meta.label}
+              {translator.translateText(meta.label)}
             </span>
           );
         },
@@ -496,7 +507,7 @@ const HostServices: FunctionComponent<
             setSearchText(e.target.value);
             setCurrentPage(1);
           }}
-          placeholder="Search services..."
+          placeholder={translator.translateText("Search services...")}
           className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
         />
       </div>
@@ -534,13 +545,23 @@ const HostServices: FunctionComponent<
           onClick={clearFilters}
           className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
         >
-          Clear filters
+          {translator.translateText("Clear filters")}
         </button>
       )}
       <span className="ml-auto text-xs text-gray-500">
         {hasActiveFilters
-          ? `${processedData.length} of ${rows.length} services`
-          : `${rows.length} service${rows.length === 1 ? "" : "s"}`}
+          ? translator.translatePlural(
+              {
+                one: "{{shown}} of {{count}} service",
+                other: "{{shown}} of {{count}} services",
+              },
+              rows.length,
+              { shown: translator.formatNumber(processedData.length) },
+            )
+          : translator.translatePlural(
+              { one: "{{count}} service", other: "{{count}} services" },
+              rows.length,
+            )}
       </span>
     </div>
   );

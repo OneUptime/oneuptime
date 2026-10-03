@@ -159,7 +159,7 @@ const TopologyPage: FunctionComponent<
                 Navigation.reload();
               }}
             >
-              {translateString("Reload page") || "Reload page"}
+              {translateString("Reload page")}
             </button>
           ) : (
             <button
@@ -169,7 +169,7 @@ const TopologyPage: FunctionComponent<
                 topology.retry(view);
               }}
             >
-              {translateString("Try again") || "Try again"}
+              {translateString("Try again")}
             </button>
           )}
         </div>
@@ -317,7 +317,7 @@ const TopologyPage: FunctionComponent<
     <div className="space-y-5">
       <nav
         role="tablist"
-        aria-label={translateString("Topology views") || "Topology views"}
+        aria-label={translateString("Topology views")}
         className="grid gap-3 sm:grid-cols-3"
       >
         {TAB_NAMES.map((tabName: TopologyView, index: number): ReactElement => {
@@ -412,9 +412,7 @@ const TopologyPage: FunctionComponent<
             />
             <button
               type="button"
-              aria-label={
-                translateString("Refresh topology") || "Refresh topology"
-              }
+              aria-label={translateString("Refresh topology")}
               title={
                 activeTab?.loadedAt
                   ? `${translateString("Last refreshed")}: ${activeTab.loadedAt.toLocaleTimeString()}`

@@ -15,6 +15,8 @@ import TraceRecordingRuleDefinition, {
 import TraceRecordingRuleDefinitionEditor from "../../../Components/Traces/RecordingRule/TraceRecordingRuleDefinitionEditor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Trace Recording Rules Work
@@ -47,6 +49,7 @@ Every materialized row carries \`oneuptime.derived.trace_rule_id\` plus the grou
 const TraceRecordingRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * "Create metric…" in the traces analytics view deep-links here with a
    * `?prefill=<json definition>` param — open the create form with the
@@ -311,7 +314,7 @@ const TraceRecordingRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

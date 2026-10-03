@@ -40,6 +40,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RECENT_SCAN_LIMIT: number = 5;
 
@@ -65,6 +67,7 @@ const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";
 const NetworkOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [summary, setSummary] = useState<NetworkOverviewSummary | null>(null);
   const [recentScans, setRecentScans] = useState<
     Array<NetworkDeviceDiscoveryScan>
@@ -226,7 +229,10 @@ const NetworkOverview: FunctionComponent<
               </div>
               <div className="mt-2 text-sm">
                 <span className="font-medium text-emerald-600">
-                  {fleet.up} up
+                  {translator.translatePlural(
+                    { one: "{{count}} up", other: "{{count}} up" },
+                    fleet.up,
+                  )}
                 </span>
                 <span className="text-gray-400"> · </span>
                 <span
@@ -236,13 +242,22 @@ const NetworkOverview: FunctionComponent<
                       : "text-gray-500"
                   }
                 >
-                  {fleet.down} down
+                  {translator.translatePlural(
+                    { one: "{{count}} down", other: "{{count}} down" },
+                    fleet.down,
+                  )}
                 </span>
                 {fleet.pending > 0 && (
                   <Fragment>
                     <span className="text-gray-400"> · </span>
                     <span className="text-gray-500">
-                      {fleet.pending} pending
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} pending",
+                          other: "{{count}} pending",
+                        },
+                        fleet.pending,
+                      )}
                     </span>
                   </Fragment>
                 )}
@@ -263,7 +278,7 @@ const NetworkOverview: FunctionComponent<
                 {fleet.interfacesDown}
               </div>
               <div className="mt-2 text-sm text-gray-500">
-                Across all devices.
+                {translator.translateText("Across all devices.")}
               </div>
             </div>
           }
@@ -279,10 +294,18 @@ const NetworkOverview: FunctionComponent<
               <div className="mt-2 text-sm">
                 {unhealthySiteCount > 0 ? (
                   <span className="font-medium text-red-600">
-                    {unhealthySiteCount} unhealthy
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} unhealthy",
+                        other: "{{count}} unhealthy",
+                      },
+                      unhealthySiteCount,
+                    )}
                   </span>
                 ) : (
-                  <span className="text-gray-500">All healthy</span>
+                  <span className="text-gray-500">
+                    {translator.translateText("All healthy")}
+                  </span>
                 )}
               </div>
             </div>
@@ -297,7 +320,7 @@ const NetworkOverview: FunctionComponent<
                 {endpointCount}
               </div>
               <div className="mt-2 text-sm text-gray-500">
-                Discovered via ARP / FDB.
+                {translator.translateText("Discovered via ARP / FDB.")}
               </div>
             </div>
           }
@@ -311,8 +334,9 @@ const NetworkOverview: FunctionComponent<
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Every device is reachable, every SNMP walk is succeeding and no
-              interfaces are down. Nothing needs you here.
+              {translator.translateText(
+                "Every device is reachable, every SNMP walk is succeeding and no interfaces are down. Nothing needs you here.",
+              )}
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -333,12 +357,21 @@ const NetworkOverview: FunctionComponent<
                         {device.isDown ? (
                           <span className="font-medium text-red-600">
                             {device.isMonitorBacked
-                              ? "Monitor reports offline"
+                              ? translator.translateText(
+                                  "Monitor reports offline",
+                                )
                               : device.lastSeenAt
-                                ? `Last seen ${OneUptimeDate.fromNow(
-                                    OneUptimeDate.fromString(device.lastSeenAt),
-                                  )}`
-                                : "Never answered"}
+                                ? translator.translateTemplate(
+                                    "Last seen {{time}}",
+                                    {
+                                      time: OneUptimeDate.fromNow(
+                                        OneUptimeDate.fromString(
+                                          device.lastSeenAt,
+                                        ),
+                                      ),
+                                    },
+                                  )
+                                : translator.translateText("Never answered")}
                           </span>
                         ) : device.isSnmpFailing ? (
                           /*
@@ -348,14 +381,21 @@ const NetworkOverview: FunctionComponent<
                            */
                           <span
                             className="font-medium text-amber-700"
-                            title="The device answers ping but its SNMP walk is failing — check its credentials or that SNMP is enabled on the device."
+                            title={translator.translateText(
+                              "The device answers ping but its SNMP walk is failing — check its credentials or that SNMP is enabled on the device.",
+                            )}
                           >
-                            SNMP failing
+                            {translator.translateText("SNMP failing")}
                           </span>
                         ) : (
                           <span className="font-medium text-amber-700">
-                            {device.interfacesDown} interface
-                            {device.interfacesDown === 1 ? "" : "s"} down
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} interface down",
+                                other: "{{count}} interfaces down",
+                              },
+                              device.interfacesDown,
+                            )}
                           </span>
                         )}
                       </div>
@@ -373,7 +413,9 @@ const NetworkOverview: FunctionComponent<
         >
           {attentionSites.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Every site with monitored devices is rolling up healthy.
+              {translator.translateText(
+                "Every site with monitored devices is rolling up healthy.",
+              )}
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -434,8 +476,9 @@ const NetworkOverview: FunctionComponent<
         >
           {vendors.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Vendor identity appears after a device&apos;s first successful
-              SNMP walk — pinged-only devices have none.
+              {translator.translateText(
+                "Vendor identity appears after a device's first successful SNMP walk — pinged-only devices have none.",
+              )}
             </p>
           ) : (
             <div className="space-y-3">
@@ -447,7 +490,13 @@ const NetworkOverview: FunctionComponent<
                         {vendor.vendor}
                       </span>
                       <span className="text-gray-500">
-                        {vendor.count} device{vendor.count === 1 ? "" : "s"}
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} device",
+                            other: "{{count}} devices",
+                          },
+                          vendor.count,
+                        )}
                       </span>
                     </div>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -485,8 +534,9 @@ const NetworkOverview: FunctionComponent<
         >
           {recentScans.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              No scans yet. Point one at a subnet or octet range and import what
-              answers.
+              {translator.translateText(
+                "No scans yet. Point one at a subnet or octet range and import what answers.",
+              )}
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -544,8 +594,13 @@ const NetworkOverview: FunctionComponent<
                         {scan.respondedHostCount !== undefined &&
                           scan.respondedHostCount !== null && (
                             <span className="text-gray-500">
-                              {scan.respondedHostCount} host
-                              {scan.respondedHostCount === 1 ? "" : "s"}
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} host",
+                                  other: "{{count}} hosts",
+                                },
+                                scan.respondedHostCount,
+                              )}
                             </span>
                           )}
                         <span className={`font-medium ${statusClassName}`}>

@@ -30,6 +30,8 @@ import React, {
   MutableRefObject,
   ReactElement,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export enum PermissionType {
   AllowPermissions = "AllowPermissions",
@@ -39,6 +41,7 @@ export enum PermissionType {
 const APIKeyView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refresher, setRefresher] = React.useState<boolean>(false);
 
@@ -236,14 +239,20 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
               ) {
                 return (
                   <p>
-                    Restriction by labels cannot be applied to this permission.
+                    {translator.translateText(
+                      "Restriction by labels cannot be applied to this permission.",
+                    )}
                   </p>
                 );
               }
 
               if (!item["labels"] || item["labels"].length === 0) {
                 return (
-                  <p>No restrictions has been applied to this permission.</p>
+                  <p>
+                    {translator.translateText(
+                      "No restrictions has been applied to this permission.",
+                    )}
+                  </p>
                 );
               }
 

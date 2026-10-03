@@ -338,7 +338,10 @@ describe("the messages people act on name Runbooks", () => {
     );
 
     expect(steps).toContain(
-      'No Runners in this project yet. Create one under{" "} <strong>Runbooks &rsaquo; Runners</strong>',
+      'template="No Runners in this project yet. Create one under {{location}}, then come back to pick it here."',
+    );
+    expect(steps).toContain(
+      '<strong> {translator.translateText("Runbooks › Runners")} </strong>',
     );
   });
 

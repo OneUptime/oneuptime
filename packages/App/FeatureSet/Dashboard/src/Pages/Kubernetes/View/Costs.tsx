@@ -53,6 +53,10 @@ import KubernetesRightSizingCard from "./KubernetesRightSizingCard";
 import KubernetesCostTrendChart from "./KubernetesCostTrendChart";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * `description` explains a section whose chart has no title of its own -
@@ -74,10 +78,10 @@ function getSectionTitle(
 
 function sentinelDisplayName(namespace: string): string {
   if (namespace === IDLE_NAMESPACE) {
-    return "Idle capacity";
+    return translateTemplate("Idle capacity");
   }
   if (namespace === UNALLOCATED_NAMESPACE) {
-    return "Unallocated";
+    return translateTemplate("Unallocated");
   }
   return namespace;
 }
@@ -98,7 +102,9 @@ function getNamespaceCellElement(namespace: string): ReactElement {
       <span className="inline-flex rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
         {sentinelDisplayName(namespace)}
       </span>
-      <span className="text-xs text-gray-400">not a workload</span>
+      <span className="text-xs text-gray-400">
+        {translateText("not a workload")}
+      </span>
     </span>
   );
 }

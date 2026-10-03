@@ -29,6 +29,8 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // Custom headers and per-type options, folded at the end of Authentication.
 const advancedSection: FormFieldCollapsibleSection<DataSource> =
@@ -37,6 +39,7 @@ const advancedSection: FormFieldCollapsibleSection<DataSource> =
 const DataSourcesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
@@ -89,27 +92,15 @@ const DataSourcesPage: FunctionComponent<
               />
               <div>
                 <span className="font-medium">
-                  Build dashboards on external data
+                  {translator.translateText(
+                    "Build dashboards on external data",
+                  )}
                 </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - Chart Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse,
-                  Loki, Elasticsearch, or REST API data right next to your
-                  OneUptime data
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <Icon
-                icon={IconProp.CheckCircle}
-                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
-              />
-              <div>
-                <span className="font-medium">Credentials stay secret</span>
-                <span className="text-gray-500">
-                  {" "}
-                  - Passwords, API tokens, and custom headers are encrypted at
-                  rest and never returned by the API
+                  {" - "}
+                  {translator.translateText(
+                    "Chart Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch, or REST API data right next to your OneUptime data",
+                  )}
                 </span>
               </div>
             </div>
@@ -119,11 +110,31 @@ const DataSourcesPage: FunctionComponent<
                 className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
               />
               <div>
-                <span className="font-medium">Use read-only accounts</span>
+                <span className="font-medium">
+                  {translator.translateText("Credentials stay secret")}
+                </span>
                 <span className="text-gray-500">
-                  {" "}
-                  - We strongly recommend connecting databases with a read-only
-                  account. Dashboards only ever read data
+                  {" - "}
+                  {translator.translateText(
+                    "Passwords, API tokens, and custom headers are encrypted at rest and never returned by the API",
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <Icon
+                icon={IconProp.CheckCircle}
+                className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0"
+              />
+              <div>
+                <span className="font-medium">
+                  {translator.translateText("Use read-only accounts")}
+                </span>
+                <span className="text-gray-500">
+                  {" - "}
+                  {translator.translateText(
+                    "We strongly recommend connecting databases with a read-only account. Dashboards only ever read data",
+                  )}
                 </span>
               </div>
             </div>

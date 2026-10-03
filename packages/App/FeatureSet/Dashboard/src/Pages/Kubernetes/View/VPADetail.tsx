@@ -29,10 +29,13 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterVPADetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const vpaName: string = Navigation.getLastParamAsString();
 
@@ -166,13 +169,21 @@ const KubernetesClusterVPADetail: FunctionComponent<
     if (hasRecommendations) {
       for (const rec of objectData.status.recommendation
         .containerRecommendations) {
-        const targetCpu: string = rec.target["cpu"] || "N/A";
-        const targetMemory: string = rec.target["memory"] || "N/A";
+        const targetCpu: string =
+          rec.target["cpu"] || translator.translateTerm("N/A");
+        const targetMemory: string =
+          rec.target["memory"] || translator.translateTerm("N/A");
         summaryFields.push({
-          title: `Recommendation (${rec.containerName})`,
+          title: translator.translateTemplate(
+            "Recommendation ({{containerName}})",
+            { containerName: rec.containerName },
+          ),
           description:
             KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.vpaRecommendation,
-          value: `CPU: ${targetCpu}, Memory: ${targetMemory}`,
+          value: translator.translateTemplate(
+            "CPU: {{cpu}}, Memory: {{memory}}",
+            { cpu: targetCpu, memory: targetMemory },
+          ),
         });
       }
     }

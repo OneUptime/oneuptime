@@ -36,6 +36,8 @@ import DockerSwarmDocumentationCard from "../../Components/DockerSwarm/Documenta
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WI-18: while the project has no clusters yet, re-count on this
@@ -47,6 +49,7 @@ const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
 const DockerSwarmClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -288,7 +291,9 @@ const DockerSwarmClusters: FunctionComponent<
                       isConnected ? "text-emerald-700" : "text-red-700"
                     }`}
                   >
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected
+                      ? translator.translateText("Connected")
+                      : translator.translateText("Disconnected")}
                   </span>
                 </div>
               );
@@ -320,7 +325,10 @@ const DockerSwarmClusters: FunctionComponent<
                     allReady ? "text-gray-900" : "text-red-700"
                   }`}
                 >
-                  {ready}/{total} ready
+                  {translator.translateTemplate("{{ready}}/{{total}} ready", {
+                    ready: ready,
+                    total: total,
+                  })}
                 </span>
               );
             },
@@ -358,7 +366,10 @@ const DockerSwarmClusters: FunctionComponent<
               const running: number = item.runningTaskCount || 0;
               return (
                 <span className="text-sm text-gray-700">
-                  {running}/{total} running
+                  {translator.translateTemplate(
+                    "{{running}}/{{total}} running",
+                    { running: running, total: total },
+                  )}
                 </span>
               );
             },

@@ -29,10 +29,13 @@ import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
 import Page from "Common/UI/Components/Page/Page";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const AnnouncementCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -197,7 +200,11 @@ const AnnouncementCreate: FunctionComponent<
                   ) => {
                     if (!item.statusPages || !Array.isArray(item.statusPages)) {
                       return (
-                        <p>No status pages selected for this announcement.</p>
+                        <p>
+                          {translator.translateText(
+                            "No status pages selected for this announcement.",
+                          )}
+                        </p>
                       );
                     }
 
@@ -251,8 +258,9 @@ const AnnouncementCreate: FunctionComponent<
                     if (!item.monitors || !Array.isArray(item.monitors)) {
                       return (
                         <p>
-                          No monitors selected. All subscribers will be
-                          notified.
+                          {translator.translateText(
+                            "No monitors selected. All subscribers will be notified.",
+                          )}
                         </p>
                       );
                     }

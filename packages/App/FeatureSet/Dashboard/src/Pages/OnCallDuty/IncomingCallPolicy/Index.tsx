@@ -39,10 +39,14 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { includeLegacyIncomingCallPolicyPhoneNumber } from "../../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
@@ -316,7 +320,9 @@ const IncomingCallPolicyView: FunctionComponent<
                           {policy?.projectCallSMSConfig?.name}
                         </p>
                         <p className="text-sm text-green-600">
-                          Twilio configuration selected
+                          {translator.translateText(
+                            "Twilio configuration selected",
+                          )}
                         </p>
                       </div>
                     </div>
@@ -330,20 +336,30 @@ const IncomingCallPolicyView: FunctionComponent<
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          Select Twilio Configuration
+                          {translator.translateText(
+                            "Select Twilio Configuration",
+                          )}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Choose which Twilio account to use or{" "}
-                          <Link
-                            to={
-                              RouteMap[
-                                PageMap.SETTINGS_NOTIFICATION_SETTINGS
-                              ] as Route
-                            }
-                            className="text-blue-600 hover:underline"
-                          >
-                            create one in Project Settings
-                          </Link>
+                          <TranslatedSentence
+                            template="Choose which Twilio account to use or {{createLink}}"
+                            slots={{
+                              createLink: (
+                                <Link
+                                  to={
+                                    RouteMap[
+                                      PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                                    ] as Route
+                                  }
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  {translator.translateText(
+                                    "create one in Project Settings",
+                                  )}
+                                </Link>
+                              ),
+                            }}
+                          />
                         </p>
                       </div>
                     </div>
@@ -351,7 +367,9 @@ const IncomingCallPolicyView: FunctionComponent<
                 </div>
                 {hasPhoneNumbers ? (
                   <p className="text-xs text-gray-400 text-right">
-                    Remove all phone numbers to change
+                    {translator.translateText(
+                      "Remove all phone numbers to change",
+                    )}
                   </p>
                 ) : (
                   <Button
@@ -381,7 +399,11 @@ const IncomingCallPolicyView: FunctionComponent<
                 {!hasTwilioConfig && !hasPhoneNumbers ? (
                   <div className="flex items-center space-x-3 text-gray-400 pt-1">
                     <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                    <p>Complete Step 1 to add phone numbers</p>
+                    <p>
+                      {translator.translateText(
+                        "Complete Step 1 to add phone numbers",
+                      )}
+                    </p>
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
@@ -411,7 +433,11 @@ const IncomingCallPolicyView: FunctionComponent<
                   {!hasPhoneNumbers ? (
                     <div className="flex items-center space-x-3 text-gray-400">
                       <Icon icon={IconProp.Lock} className="h-5 w-5" />
-                      <p>Complete Step 2 to add escalation rules</p>
+                      <p>
+                        {translator.translateText(
+                          "Complete Step 2 to add escalation rules",
+                        )}
+                      </p>
                     </div>
                   ) : hasEscalationRules ? (
                     <div className="flex items-center space-x-3">
@@ -423,11 +449,16 @@ const IncomingCallPolicyView: FunctionComponent<
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          Escalation Rules
+                          {translator.translateText("Escalation Rules")}
                         </p>
                         <p className="text-sm text-green-600">
-                          {escalationRulesCount} rule
-                          {escalationRulesCount !== 1 ? "s" : ""} configured
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} rule configured",
+                              other: "{{count}} rules configured",
+                            },
+                            escalationRulesCount,
+                          )}
                         </p>
                       </div>
                     </div>
@@ -441,11 +472,12 @@ const IncomingCallPolicyView: FunctionComponent<
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          Escalation Rules
+                          {translator.translateText("Escalation Rules")}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Add on-call schedules, teams, or users to handle
-                          incoming calls
+                          {translator.translateText(
+                            "Add on-call schedules, teams, or users to handle incoming calls",
+                          )}
                         </p>
                       </div>
                     </div>
@@ -496,7 +528,7 @@ const IncomingCallPolicyView: FunctionComponent<
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">
-                      Twilio Configuration
+                      {translator.translateText("Twilio Configuration")}
                     </p>
                     <p className="font-medium text-gray-900">
                       {policy?.projectCallSMSConfig?.name}
@@ -504,7 +536,9 @@ const IncomingCallPolicyView: FunctionComponent<
                   </div>
                 </div>
                 <p className="text-xs text-gray-400">
-                  Remove all phone numbers to change
+                  {translator.translateText(
+                    "Remove all phone numbers to change",
+                  )}
                 </p>
               </div>
 
@@ -544,10 +578,17 @@ const IncomingCallPolicyView: FunctionComponent<
                     />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Escalation Rules</p>
+                    <p className="text-sm text-gray-500">
+                      {translator.translateText("Escalation Rules")}
+                    </p>
                     <p className="font-medium text-gray-900">
-                      {escalationRulesCount} rule
-                      {escalationRulesCount !== 1 ? "s" : ""} configured
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} rule configured",
+                          other: "{{count}} rules configured",
+                        },
+                        escalationRulesCount,
+                      )}
                     </p>
                   </div>
                 </div>

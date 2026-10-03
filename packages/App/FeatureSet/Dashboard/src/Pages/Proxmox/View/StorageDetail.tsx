@@ -44,6 +44,8 @@ import {
 } from "../Utils/ProxmoxResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WI-29: window for the client-side linear growth fit — same 24 h
@@ -54,6 +56,7 @@ const PROJECTION_WINDOW_HOURS: number = 24;
 const ProxmoxClusterStorageDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../proxmox/:modelId/storage/:subModelId — subModelId
    * is the percent-encoded pve externalId ("storage/local", or
@@ -254,7 +257,10 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "storage_usage",
       title: "Storage Usage",
-      description: `Disk space used on storage volume ${storageName} over time.`,
+      description: translator.translateTemplate(
+        "Disk space used on storage volume {{storageName}} over time.",
+        { storageName: storageName },
+      ),
       legend: "Used",
       legendUnit: "",
     },
@@ -276,7 +282,10 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "storage_size",
       title: "Storage Size",
-      description: `Total capacity of storage volume ${storageName}.`,
+      description: translator.translateTemplate(
+        "Total capacity of storage volume {{storageName}}.",
+        { storageName: storageName },
+      ),
       legend: "Total",
       legendUnit: "",
     },
@@ -404,7 +413,10 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Storage Metrics: ${storageName}`}
+          title={translator.translateTemplate(
+            "Storage Metrics: {{storageName}}",
+            { storageName: storageName },
+          )}
           description="Usage against capacity for this storage volume over the selected time range."
         >
           <ResourceMetricsTab queryConfigs={[usageQuery, sizeQuery]} />

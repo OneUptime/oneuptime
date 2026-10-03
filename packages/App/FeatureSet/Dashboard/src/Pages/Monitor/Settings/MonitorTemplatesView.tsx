@@ -62,10 +62,17 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorTemplatesView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Memoize modelId so child components (CardModelDetail / ModelDetail) get a
    * stable reference. Without this, Navigation.getLastParamAsObjectID() returns
@@ -253,7 +260,7 @@ const MonitorTemplatesView: FunctionComponent<
         (response.data["totalLinkedMonitors"] as number) || 0;
 
       const summary: SyncResultSummary = buildSyncResultSummary({
-        subject: "criteria",
+        subject: translationKey("criteria"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
       });
@@ -296,7 +303,7 @@ const MonitorTemplatesView: FunctionComponent<
         (response.data["totalLinkedMonitors"] as number) || 0;
 
       const summary: SyncResultSummary = buildSyncResultSummary({
-        subject: "monitoring interval",
+        subject: translationKey("monitoring interval"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
       });
@@ -339,7 +346,7 @@ const MonitorTemplatesView: FunctionComponent<
         (response.data["totalLinkedMonitors"] as number) || 0;
 
       const summary: SyncResultSummary = buildSyncResultSummary({
-        subject: "labels",
+        subject: translationKey("labels"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
       });
@@ -393,7 +400,7 @@ const MonitorTemplatesView: FunctionComponent<
           (response.data["totalLinkedMonitors"] as number) || 0;
 
         const summary: SyncResultSummary = buildSyncResultSummary({
-          subject: "custom field defaults",
+          subject: translationKey("custom field defaults"),
           syncedMonitors: synced,
           totalLinkedMonitors: total,
         });
@@ -918,7 +925,11 @@ const MonitorTemplatesView: FunctionComponent<
                 fieldType: FieldType.Element,
                 getElement: (item: MonitorTemplate): ReactElement => {
                   if (!item.monitorSteps) {
-                    return <p>No criteria configured.</p>;
+                    return (
+                      <p>
+                        {translator.translateText("No criteria configured.")}
+                      </p>
+                    );
                   }
                   return (
                     <>
@@ -1223,7 +1234,15 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Criteria to Linked Monitors"
           description={
             <span>
-              {`This will copy the template's criteria and step settings, including destinations and request options where applicable, to ${linkedMonitorCount} linked monitor${linkedMonitorCount === 1 ? "" : "s"}. ${protectedFieldsSummary} Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
+              {translator.translatePlural(
+                {
+                  one: "This will copy the template's criteria and step settings, including destinations and request options where applicable, to {{count}} linked monitor. {{protectedFields}} Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                  other:
+                    "This will copy the template's criteria and step settings, including destinations and request options where applicable, to {{count}} linked monitors. {{protectedFields}} Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                },
+                linkedMonitorCount ?? 0,
+                { protectedFields: protectedFieldsSummary },
+              )}
             </span>
           }
           submitButtonText="Sync Criteria"
@@ -1243,7 +1262,14 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Interval to Linked Monitors"
           description={
             <span>
-              {`This will overwrite the monitoring interval and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
+              {translator.translatePlural(
+                {
+                  one: "This will overwrite the monitoring interval and minimum probe agreement on {{count}} monitor created from this template. Criteria, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                  other:
+                    "This will overwrite the monitoring interval and minimum probe agreement on {{count}} monitors created from this template. Criteria, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                },
+                linkedMonitorCount ?? 0,
+              )}
             </span>
           }
           submitButtonText="Sync Interval"
@@ -1263,7 +1289,14 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Labels to Linked Monitors"
           description={
             <span>
-              {`This will overwrite ONLY the labels on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, monitoring interval, minimum probe agreement, name, description, and custom field values will be left alone. This cannot be undone.`}
+              {translator.translatePlural(
+                {
+                  one: "This will overwrite ONLY the labels on {{count}} monitor created from this template. Criteria, monitoring interval, minimum probe agreement, name, description, and custom field values will be left alone. This cannot be undone.",
+                  other:
+                    "This will overwrite ONLY the labels on {{count}} monitors created from this template. Criteria, monitoring interval, minimum probe agreement, name, description, and custom field values will be left alone. This cannot be undone.",
+                },
+                linkedMonitorCount ?? 0,
+              )}
             </span>
           }
           submitButtonText="Sync Labels"
@@ -1283,7 +1316,24 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Custom Fields to Linked Monitors"
           description={
             <span>
-              {`This will overwrite the ${customFieldDefaultNames.length} custom field${customFieldDefaultNames.length === 1 ? "" : "s"} this template defaults (${customFieldDefaultNames.join(", ")}) on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template, replacing any value entered on those monitors. Custom fields this template leaves blank are not touched, and neither are criteria, monitoring interval, labels, name, or description. This cannot be undone.`}
+              {translator.translatePlural(
+                {
+                  one: "This will overwrite the {{customFields}} this template defaults ({{fieldNames}}) on {{count}} monitor created from this template, replacing any value entered on that monitor. Custom fields this template leaves blank are not touched, and neither are criteria, monitoring interval, labels, name, or description. This cannot be undone.",
+                  other:
+                    "This will overwrite the {{customFields}} this template defaults ({{fieldNames}}) on {{count}} monitors created from this template, replacing any value entered on those monitors. Custom fields this template leaves blank are not touched, and neither are criteria, monitoring interval, labels, name, or description. This cannot be undone.",
+                },
+                linkedMonitorCount ?? 0,
+                {
+                  customFields: translator.translatePlural(
+                    {
+                      one: "{{count}} custom field",
+                      other: "{{count}} custom fields",
+                    },
+                    customFieldDefaultNames.length,
+                  ),
+                  fieldNames: customFieldDefaultNames.join(", "),
+                },
+              )}
             </span>
           }
           submitButtonText="Sync Custom Fields"
@@ -1303,7 +1353,14 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Monitor from Template"
           description={
             <span>
-              {`This will copy the template's criteria and step settings, including destinations and request options where applicable, plus its monitoring interval, minimum probe agreement, and labels to "${singleSyncMonitor.name || "this monitor"}". ${protectedFieldsSummary} Name, description, and custom field values will be left alone. This cannot be undone.`}
+              {translator.translateTemplate(
+                'This will copy the template\'s criteria and step settings, including destinations and request options where applicable, plus its monitoring interval, minimum probe agreement, and labels to "{{monitorName}}". {{protectedFields}} Name, description, and custom field values will be left alone. This cannot be undone.',
+                {
+                  monitorName:
+                    singleSyncMonitor.name || translatableTerm("this monitor"),
+                  protectedFields: protectedFieldsSummary,
+                },
+              )}
             </span>
           }
           submitButtonText="Sync Now"
@@ -1324,7 +1381,14 @@ const MonitorTemplatesView: FunctionComponent<
           description={
             isLoadingEligibleMonitors
               ? "Loading monitors that can be linked…"
-              : `Select ${monitorType ? monitorType : ""} monitors in this project to link to this template. Monitors already linked here are hidden; monitors linked to a different template will be moved to this one.`
+              : monitorType
+                ? translator.translateTemplate(
+                    "Select {{monitorType}} monitors in this project to link to this template. Monitors already linked here are hidden; monitors linked to a different template will be moved to this one.",
+                    { monitorType: translatableTerm(monitorType) },
+                  )
+                : translator.translateTemplate(
+                    "Select monitors in this project to link to this template. Monitors already linked here are hidden; monitors linked to a different template will be moved to this one.",
+                  )
           }
           submitButtonText="Link"
           isLoading={isLinking}
@@ -1365,7 +1429,13 @@ const MonitorTemplatesView: FunctionComponent<
           title="Unlink Monitor from Template"
           description={
             <span>
-              {`This will detach "${unlinkTarget.name || "this monitor"}" from this template. The monitor keeps its current criteria, interval, and other settings — but it will no longer receive sync updates from this template.`}
+              {translator.translateTemplate(
+                'This will detach "{{monitorName}}" from this template. The monitor keeps its current criteria, interval, and other settings — but it will no longer receive sync updates from this template.',
+                {
+                  monitorName:
+                    unlinkTarget.name || translatableTerm("this monitor"),
+                },
+              )}
             </span>
           }
           submitButtonText="Unlink"

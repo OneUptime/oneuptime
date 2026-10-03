@@ -17,6 +17,8 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Project-level session replay controls, under Real User Monitoring >
@@ -68,6 +70,7 @@ export function isInCurrentUtcMonth(
 const RumSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <CardModelDetail<Project>
@@ -197,7 +200,9 @@ const RumSessionReplaySettings: FunctionComponent<
             getElement: (item: RumApplication): ReactElement => {
               if (!item.sessionReplayLastChunkReceivedAt) {
                 return (
-                  <span className="text-xs text-amber-700">Never received</span>
+                  <span className="text-xs text-amber-700">
+                    {translator.translateText("Never received")}
+                  </span>
                 );
               }
 
@@ -246,8 +251,8 @@ const RumSessionReplaySettings: FunctionComponent<
                 <span className="text-xs text-gray-700">
                   {item.sessionReplayConsentMode ===
                   SessionReplayConsentMode.RequireExplicit
-                    ? "Explicit consent required"
-                    : "Not required"}
+                    ? translator.translateText("Explicit consent required")
+                    : translator.translateText("Not required")}
                 </span>
               );
             },
@@ -262,7 +267,11 @@ const RumSessionReplaySettings: FunctionComponent<
                 item.sessionReplaySamplePercentage === undefined ||
                 item.sessionReplaySamplePercentage === null
               ) {
-                return <span className="text-xs text-gray-500">not set</span>;
+                return (
+                  <span className="text-xs text-gray-500">
+                    {translator.translateText("not set")}
+                  </span>
+                );
               }
 
               return (
@@ -288,7 +297,7 @@ const RumSessionReplaySettings: FunctionComponent<
               if (origins.length === 0) {
                 return (
                   <span className="text-xs text-amber-700">
-                    Any origin the key allows
+                    {translator.translateText("Any origin the key allows")}
                   </span>
                 );
               }
