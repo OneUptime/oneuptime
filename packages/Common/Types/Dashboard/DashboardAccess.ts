@@ -223,7 +223,8 @@ export const isDashboardPasswordNeededFor: (data: {
   to: DashboardAccess;
 }): boolean => {
   return (
-    data.to === DashboardAccess.AnyoneWithPassword && !data.from.hasMasterPassword
+    data.to === DashboardAccess.AnyoneWithPassword &&
+    !data.from.hasMasterPassword
   );
 };
 

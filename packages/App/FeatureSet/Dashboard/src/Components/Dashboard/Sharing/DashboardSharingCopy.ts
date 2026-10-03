@@ -1,5 +1,4 @@
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import URL from "Common/Types/API/URL";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   DASHBOARD_MASTER_PASSWORD_COLUMN,
@@ -9,8 +8,6 @@ import {
   getDashboardAccessColumnsWritten,
   isDashboardPasswordNeededFor,
 } from "Common/Types/Dashboard/DashboardAccess";
-import ObjectID from "Common/Types/ObjectID";
-import { PUBLIC_DASHBOARD_URL } from "Common/UI/Config";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -36,9 +33,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * under the public choice in force. The IP allowlist, which few dashboards
  * need, is folded under Advanced and saves on its own.
  *
- * Kept free of React so the card, the page and App/Tests read these exact
- * strings and decisions. Every sentence is wrapped in translationKey() so
- * npm run i18n:extract finds it.
+ * Kept free of React (and of the browser's config, so App/Tests can load
+ * it) so the card, the page and App/Tests read these exact strings and
+ * decisions. Every sentence is wrapped in translationKey() so
+ * npm run i18n:extract finds it. The public link's address is worked out in
+ * PublicDashboardUrl.
  */
 
 export interface DashboardAccessChoiceCopy {
@@ -156,9 +155,6 @@ export const getDashboardAccessConfirmationCopy: (data: {
 };
 
 export const DashboardSharingCopy: {
-  // The page, in the side menu, the breadcrumbs and the dashboard's ⋯ menu.
-  pageTitle: string;
-  shareMenuItem: string;
   cardTitle: string;
   cardDescription: string;
   notFound: string;
@@ -186,8 +182,6 @@ export const DashboardSharingCopy: {
   ipAllowlistEmpty: string;
   ipAllowlistNoAddress: string;
 } = {
-  pageTitle: translationKey("Sharing"),
-  shareMenuItem: translationKey("Share"),
   cardTitle: translationKey("Who can view this dashboard"),
   cardDescription: translationKey(
     "Pick who can open this dashboard. A change asks you to confirm, then applies at once.",
@@ -262,18 +256,6 @@ export const getDashboardAccessChoiceTestId: (
   access: DashboardAccess,
 ) => string = (access: DashboardAccess): string => {
   return `dashboard-access-${access}`;
-};
-
-/*
- * The dashboard's public link: the address its public viewer answers on
- * for any dashboard, custom domain or not.
- */
-export const getPublicDashboardUrl: (dashboardId: ObjectID | string) => URL = (
-  dashboardId: ObjectID | string,
-): URL => {
-  return URL.fromString(
-    `${PUBLIC_DASHBOARD_URL.toString()}/${dashboardId.toString()}`,
-  );
 };
 
 /*

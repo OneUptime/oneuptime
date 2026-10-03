@@ -176,8 +176,14 @@ describe("one place for the choice", () => {
           return path.relative(DASHBOARD_SRC, file).split(path.sep).join("/");
         })
         .filter((file: string): boolean => {
-          // A dashboard (not a status page) has a master password of its own.
-          return !file.startsWith("Pages/Dashboards/");
+          /*
+           * A dashboard (not a status page) has a master password of its
+           * own: its pages, and its Sharing card, which reads and writes it.
+           */
+          return (
+            !file.startsWith("Pages/Dashboards/") &&
+            !file.startsWith("Components/Dashboard/Sharing/")
+          );
         });
 
       expect(

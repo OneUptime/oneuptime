@@ -9,6 +9,7 @@ import {
   FormFieldFacts,
   getOnlyVisibleField,
   isOneSwitchForm,
+  isSwitchFieldType,
   scanFormFiles,
   SourceFileSystem,
 } from "../../../Helpers/FormStepsScan";
@@ -35,7 +36,10 @@ import {
  * Dashboard's Pages/Monitor or Pages/StatusPages may be listed. Who can see
  * a status page is one choice on its Access page (anyone with the link,
  * only people who sign in, anyone with the password), and requiring SSO
- * for its sign-in is a switch on its SSO page. So are incidents, alerts,
+ * for its sign-in is a switch on its SSO page. So are dashboards: who can
+ * view one is one choice on its Sharing page (only people in the project,
+ * anyone with the link, anyone with the link and a password), and no card
+ * under Pages/Dashboards may be listed. So are incidents, alerts,
  * episodes, scheduled maintenance, runbooks, SLOs and RUM: their
  * reminders, privacy, status page visibility and on/off switches save on
  * flip, and no card under those pages may be listed. So are the AI
@@ -70,10 +74,7 @@ const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
  * an entry's owner is a name someone can look up. "" for a card no task in
  * the batch converts yet.
  */
-export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [
-  "dashboard-sharing-one-choice",
-  "",
-];
+export const ONE_SWITCH_CARD_TASKS: ReadonlyArray<string> = [""];
 
 export interface OneSwitchCardLeft {
   // Repository-relative, with "/".
@@ -88,26 +89,12 @@ export interface OneSwitchCardLeft {
   reason: string;
 }
 
-const DASHBOARD_SHARING_TASK: string = "dashboard-sharing-one-choice";
-
-export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [
-  // Who may see a dashboard.
-  {
-    file: `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
-    column: "isPublicDashboard",
-    card: "Dashboard > Authentication Settings (Is Visible to Public)",
-    task: DASHBOARD_SHARING_TASK,
-    reason:
-      "Part of who may view a dashboard, which its task turns into one choice rather than a switch.",
-  },
-  {
-    file: `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
-    column: "enableMasterPassword",
-    card: "Dashboard > Master Password",
-    task: DASHBOARD_SHARING_TASK,
-    reason: "Part of who may view a dashboard, with its public switch.",
-  },
-];
+/*
+ * Empty: every one-switch card the batch found is converted. The last two,
+ * who may view a dashboard (its public switch and its password switch),
+ * became one choice on the dashboard's Sharing page.
+ */
+export const ONE_SWITCH_CARDS_LEFT: Array<OneSwitchCardLeft> = [];
 
 // The cards one-switch cards are judged on.
 function isCard(form: FormFacts): boolean {
@@ -271,11 +258,25 @@ describe("one-switch cards in the frontends", () => {
     });
   };
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. No one-switch card is
+   * left, so the walk is proven by the cards it reads that hold a switch
+   * beside other fields: the detector sees their switches, and judges them
+   * (as above) to be forms.
+   */
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
     expect(forms.filter(isCard).length).toBeGreaterThan(100);
-    expect(cards.length).toBeGreaterThan(0);
+    expect(
+      forms.filter((form: FormFacts): boolean => {
+        return (
+          isCard(form) &&
+          form.fields.some((field: FormFieldFacts): boolean => {
+            return isSwitchFieldType(field.fieldType);
+          })
+        );
+      }).length,
+    ).toBeGreaterThan(0);
   });
 
   test("every card that is one switch is converted, or listed with its task", () => {
@@ -379,6 +380,36 @@ describe("one-switch cards in the frontends", () => {
   });
 
   /*
+   * Who can view a dashboard is one choice on its Sharing page
+   * (Components/Dashboard/Sharing/DashboardSharingCard): no card under the
+   * dashboards may be one switch, and none may be listed.
+   */
+  test("no dashboard page has a one-switch card", () => {
+    const dashboardCards: Array<string> = cards
+      .filter((form: FormFacts): boolean => {
+        return form.file.startsWith(`${DASHBOARD}/Pages/Dashboards/`);
+      })
+      .map(describeCard);
+
+    expect(dashboardCards).toEqual([]);
+    expect(
+      ONE_SWITCH_CARDS_LEFT.filter((entry: OneSwitchCardLeft): boolean => {
+        return entry.file.startsWith(`${DASHBOARD}/Pages/Dashboards/`);
+      }),
+    ).toEqual([]);
+
+    // The walk really reads the dashboards' pages (Sharing's IP allowlist).
+    expect(
+      forms.filter((form: FormFacts): boolean => {
+        return (
+          form.file === `${DASHBOARD}/Pages/Dashboards/View/Sharing.tsx` &&
+          isCard(form)
+        );
+      }).length,
+    ).toBe(1);
+  });
+
+  /*
    * Incidents, alerts, episodes, scheduled maintenance, runbooks, SLOs, RUM
    * and AI Insights: every one-switch card there saves on flip now, the
    * incident and alert AI settings included, and none may be listed.
@@ -436,7 +467,7 @@ describe("one-switch cards in the frontends", () => {
     }
   });
 
-  test("the cards the monitor, status page, event, runbook, SLO, RUM and AI areas converted stay converted", () => {
+  test("the cards the monitor, status page, dashboard, event, runbook, SLO, RUM and AI areas converted stay converted", () => {
     const retired: Array<{ file: string; column: string }> = [
       {
         file: `${DASHBOARD}/Pages/Monitor/View/Settings.tsx`,
@@ -471,6 +502,20 @@ describe("one-switch cards in the frontends", () => {
         file: `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
         column: "requireSsoForLogin",
       },
+      /*
+       * Who can view a dashboard: one choice on Sharing (the old
+       * Authentication page, at the same address), whose file was renamed.
+       */
+      ...[
+        `${DASHBOARD}/Pages/Dashboards/View/Sharing.tsx`,
+        `${DASHBOARD}/Pages/Dashboards/View/AuthenticationSettings.tsx`,
+      ].flatMap((file: string): Array<{ file: string; column: string }> => {
+        return ["isPublicDashboard", "enableMasterPassword"].map(
+          (column: string): { file: string; column: string } => {
+            return { file, column };
+          },
+        );
+      }),
       {
         file: `${DASHBOARD}/Pages/Incidents/View/Settings.tsx`,
         column: "enableReminders",

@@ -63,9 +63,9 @@ import DashboardSharingCopy, {
   getDashboardAccessSelect,
   getDashboardAccessState,
   getPlanNeededForDashboardAccess,
-  getPublicDashboardUrl,
   isDashboardPasswordRequiredInDialog,
 } from "./DashboardSharingCopy";
+import { getPublicDashboardUrl } from "./PublicDashboardUrl";
 
 /*
  * "Who can view this dashboard", on a dashboard's Sharing page: only people
@@ -298,7 +298,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
           <Link
             to={url}
             openInNewTab={true}
-            className="min-w-0 break-all font-mono text-sm text-indigo-600 underline decoration-indigo-200 underline-offset-2 hover:text-indigo-800"
+            className="min-w-0 break-all font-mono text-sm text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
           >
             {url.toString()}
           </Link>
