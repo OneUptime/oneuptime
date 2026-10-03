@@ -1,7 +1,11 @@
 /**
- * A status page custom domain's certificate, end to end: Check now, the four
- * StatusPageCerts sweeps, and the order itself, run together the way the
- * worker and the API run them.
+ * A custom domain's certificate, end to end - a status page's and a
+ * dashboard's alike: Check now, the four sweeps of its worker job
+ * (StatusPageCerts, DashboardCerts), and the order itself, run together the
+ * way the worker and the API run them. Every scenario runs for both kinds:
+ * dashboard custom domains got the status page flow (Check now orders the
+ * certificate, the CNAME sweep orders what it verifies) and its guarantees,
+ * and this is where the two are held to be the same.
  *
  * Check now (the verify-cname route) now orders the free certificate the
  * moment it finds the domain's record, while the 15-minute sweeps keep
@@ -33,18 +37,22 @@
  *   - Check now, the sweeps and the renewal run together stay within the
  *     installation's Let's Encrypt budget.
  *
- * Real: StatusPageDomainService (the sweeps, isCnameValid, orderCert,
- * orderCertIfMissing, orderCertOnceCnameIsVerified, reissueCert, the
- * renewal run), CertificateOrder, CertificateOrderBudget,
- * CertificateOrderFailures and GreenlockUtil.orderCert. Replaced: the two
- * tables (in memory), the Let's Encrypt client, the DNS and HTTP checks of
- * the customer's domain, and Redis (InMemoryRedis: a held lock refuses at
- * once, as Redis does).
+ * Real: StatusPageDomainService and DashboardDomainService (the sweeps,
+ * isCnameValid, orderCert, orderCertIfMissing, orderCertOnceCnameIsVerified,
+ * reissueCert, the renewal run), CustomDomainOrders, CertificateOrder,
+ * CertificateOrderBudget, CertificateOrderFailures and GreenlockUtil's
+ * order. Replaced: the two tables (in memory), the Let's Encrypt client, the
+ * DNS and HTTP checks of the customer's domain, and Redis (InMemoryRedis: a
+ * held lock refuses at once, as Redis does).
  */
 
 import StatusPageDomainService, {
   Service as StatusPageDomainServiceClass,
 } from "../../../Server/Services/StatusPageDomainService";
+import DashboardDomainService, {
+  Service as DashboardDomainServiceClass,
+} from "../../../Server/Services/DashboardDomainService";
+import GreenlockUtil from "../../../Server/Utils/Greenlock/Greenlock";
 import AcmeCertificateService from "../../../Server/Services/AcmeCertificateService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Domain from "../../../Server/Types/Domain";
@@ -73,7 +81,42 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
-const mockCnameRecord: string = "statuspage.example.com";
+/*
+ * The two kinds of custom domain. Their services have the same methods,
+ * each over its own table; the tests call them through the status page
+ * service's type, since every row they pass is a plain object.
+ */
+interface Kind {
+  name: string;
+  service: StatusPageDomainServiceClass;
+  orderMaxPerRun: number;
+  // How many certificates one renewal run renews at most.
+  renewalsPerRun: number;
+  // What a domain's CNAME record points to, as the installation is set up.
+  cnameRecord: string;
+}
+
+const KINDS: Array<Kind> = [
+  {
+    name: "a status page",
+    service: StatusPageDomainService,
+    orderMaxPerRun: StatusPageDomainServiceClass.ORDER_MAX_PER_RUN,
+    renewalsPerRun: GreenlockUtil.RENEW_MAX_PER_RUN,
+    cnameRecord: "statuspage.example.com",
+  },
+  {
+    name: "a dashboard",
+    service: DashboardDomainService as unknown as StatusPageDomainServiceClass,
+    orderMaxPerRun: DashboardDomainServiceClass.ORDER_MAX_PER_RUN,
+    // The dashboard renewal run renews ORDER_MAX_PER_RUN at most.
+    renewalsPerRun: DashboardDomainServiceClass.ORDER_MAX_PER_RUN,
+    cnameRecord: "dashboards.example.com",
+  },
+];
+
+// The kind the running test is about, and its service.
+let kind: Kind = KINDS[0]!;
+let service: StatusPageDomainServiceClass = kind.service;
 
 // What the CA does with the next order; the default issues at once.
 let mockAuto: () => Promise<string> = async (): Promise<string> => {
@@ -124,8 +167,9 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     __esModule: true,
     LetsEncryptAccountKey: Buffer.from("account key").toString("base64"),
     LetsEncryptNotificationEmail: "certificates@example.com",
-    // The same as mockCnameRecord: the factory runs before that is set.
+    // The same as KINDS' cnameRecord: the factory runs before that is set.
     StatusPageCNameRecord: "statuspage.example.com",
+    DashboardCNameRecord: "dashboards.example.com",
   };
 });
 
@@ -249,7 +293,10 @@ function addCertificate(domain: string, expiresInDays: number): void {
  */
 let holdOrderSweepRead: Promise<void> | null = null;
 
-function setUpWorld(): void {
+function setUpWorld(forKind: Kind): void {
+  kind = forKind;
+  service = forKind.service;
+
   const redis: InMemoryRedis = useInMemoryRedis();
 
   world = {
@@ -271,9 +318,9 @@ function setUpWorld(): void {
     return { inList: values.map(String) };
   }) as never);
 
-  // The status page domain table.
+  // The kind's domain table.
   jest
-    .spyOn(StatusPageDomainService, "findBy")
+    .spyOn(service, "findBy")
     .mockImplementation((async (call: {
       query: Record<string, unknown>;
       skip?: number;
@@ -298,7 +345,7 @@ function setUpWorld(): void {
     }) as never);
 
   jest
-    .spyOn(StatusPageDomainService, "findOneBy")
+    .spyOn(service, "findOneBy")
     .mockImplementation((async (call: { query: Record<string, unknown> }) => {
       const row: DomainRow | undefined = world.domains.find(
         (row: DomainRow) => {
@@ -310,7 +357,7 @@ function setUpWorld(): void {
     }) as never);
 
   jest
-    .spyOn(StatusPageDomainService, "updateOneById")
+    .spyOn(service, "updateOneById")
     .mockImplementation((async (update: {
       id: ObjectID;
       data: Partial<DomainRow>;
@@ -323,7 +370,7 @@ function setUpWorld(): void {
     }) as never);
 
   jest
-    .spyOn(StatusPageDomainService, "updateOneBy")
+    .spyOn(service, "updateOneBy")
     .mockImplementation((async (update: {
       query: Record<string, unknown>;
       data: Partial<DomainRow>;
@@ -344,7 +391,7 @@ function setUpWorld(): void {
 
   // Every row the query matches: the one write that records many domains.
   jest
-    .spyOn(StatusPageDomainService, "updateBy")
+    .spyOn(service, "updateBy")
     .mockImplementation((async (update: {
       query: Record<string, unknown>;
       data: Partial<DomainRow>;
@@ -467,7 +514,7 @@ function setUpWorld(): void {
   jest.spyOn(Domain, "getCnameRecords").mockImplementation((async (data: {
     domain: string;
   }) => {
-    return world.dnsLive.has(data.domain) ? [mockCnameRecord] : [];
+    return world.dnsLive.has(data.domain) ? [kind.cnameRecord] : [];
   }) as never);
 
   /*
@@ -503,7 +550,7 @@ async function clickCheckNow(
 ): Promise<CustomDomainVerificationResult | null> {
   const asRead: DomainRow = copyOf(rowById(domain.id)!);
 
-  const isValid: boolean = await StatusPageDomainService.isCnameValid(
+  const isValid: boolean = await service.isCnameValid(
     asRead.fullDomain,
   );
 
@@ -515,7 +562,7 @@ async function clickCheckNow(
     world.dnsLive.delete(asRead.fullDomain);
   }
 
-  return await StatusPageDomainService.orderCertOnceCnameIsVerified(
+  return await service.orderCertOnceCnameIsVerified(
     asRead as never,
     options,
   );
@@ -524,10 +571,10 @@ async function clickCheckNow(
 // Every sweep of the StatusPageCerts worker but renewal, as one tick.
 async function runSweeps(): Promise<void> {
   await Promise.all([
-    StatusPageDomainService.verifyCnameWhoseCnameisNotVerified(),
-    StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet(),
-    StatusPageDomainService.checkOrderStatus(),
-    StatusPageDomainService.updateSslProvisioningStatusForAllDomains(),
+    service.verifyCnameWhoseCnameisNotVerified(),
+    service.orderSSLForDomainsWhichAreNotOrderedYet(),
+    service.checkOrderStatus(),
+    service.updateSslProvisioningStatusForAllDomains(),
   ]);
 }
 
@@ -574,10 +621,10 @@ async function settle(): Promise<void> {
 
 const DEFAULT_AUTO: () => Promise<string> = mockAuto;
 
-describe("a status page custom domain's certificate, Check now and the sweeps together", () => {
+describe.each(KINDS)("$name custom domain's certificate, Check now and the sweeps together", (forKind: Kind) => {
   beforeEach(() => {
     mockAuto = DEFAULT_AUTO;
-    setUpWorld();
+    setUpWorld(forKind);
   });
 
   afterEach(() => {
@@ -662,7 +709,7 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     });
 
     const sweep: Promise<void> =
-      StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+      service.orderSSLForDomainsWhichAreNotOrderedYet();
 
     await settle();
 
@@ -784,7 +831,7 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     world.dnsLive.delete("status.acme.com");
 
     await expect(
-      StatusPageDomainService.reissueCert(domain.id),
+      service.reissueCert(domain.id),
     ).rejects.toThrow("Cname is not valid");
 
     expect(world.deletedCertificates).toEqual([]);
@@ -846,7 +893,7 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     expect(domain.isCnameVerified).toBe(false);
 
     world.dnsLive.add("status.acme.com");
-    await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
+    await service.verifyCnameWhoseCnameisNotVerified();
 
     expect(domain.isCnameVerified).toBe(true);
     expect(domain.isSslOrdered).toBe(true);
@@ -974,7 +1021,7 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
    * no more than ORDER_MAX_PER_RUN in a window: one budget.
    */
   test("the ordering sweeps together order at most ORDER_MAX_PER_RUN in a window", async () => {
-    const max: number = StatusPageDomainServiceClass.ORDER_MAX_PER_RUN;
+    const max: number = kind.orderMaxPerRun;
 
     // Verified and waiting for the order sweep.
     for (let i: number = 0; i < max; i++) {
@@ -1045,10 +1092,10 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
   });
 });
 
-describe("custom domain certificates, hardened: the review's findings end to end", () => {
+describe.each(KINDS)("$name custom domain's certificate, hardened: the review's findings end to end", (forKind: Kind) => {
   beforeEach(() => {
     mockAuto = DEFAULT_AUTO;
-    setUpWorld();
+    setUpWorld(forKind);
   });
 
   afterEach(() => {
@@ -1071,11 +1118,11 @@ describe("custom domain certificates, hardened: the review's findings end to end
     // The certificate went missing; the re-order sweep is ordering it.
     const ca: { release: () => void; started: Promise<void> } =
       holdTheNextOrder();
-    const reorder: Promise<void> = StatusPageDomainService.checkOrderStatus();
+    const reorder: Promise<void> = service.checkOrderStatus();
     await ca.started;
 
     await expect(
-      StatusPageDomainService.reissueCert(domain.id),
+      service.reissueCert(domain.id),
     ).rejects.toThrow(TooManyRequestsException);
 
     expect(mockCaOrders).toEqual(["status.acme.com"]);
@@ -1085,7 +1132,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
     await reorder;
 
     // Nothing runs now: the reissue goes ahead, once.
-    await StatusPageDomainService.reissueCert(domain.id);
+    await service.reissueCert(domain.id);
 
     expect(mockCaOrders).toEqual(["status.acme.com", "status.acme.com"]);
     expect(domain.certificateReissueRequestedAt).toBeInstanceOf(Date);
@@ -1103,7 +1150,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
 
     const ca: { release: () => void; started: Promise<void> } =
       holdTheNextOrder();
-    const reissue: Promise<void> = StatusPageDomainService.reissueCert(
+    const reissue: Promise<void> = service.reissueCert(
       domain.id,
     );
     await ca.started;
@@ -1150,11 +1197,10 @@ describe("custom domain certificates, hardened: the review's findings end to end
     world.domains.push(domain);
     world.dnsLive.add("status.acme.com");
 
-    const isCnameValid: SpyInstance<
-      typeof StatusPageDomainService.isCnameValid
-    > = jest.spyOn(StatusPageDomainService, "isCnameValid");
+    const isCnameValid: SpyInstance<typeof service.isCnameValid> =
+      jest.spyOn(service, "isCnameValid");
 
-    await StatusPageDomainService.verifyCnameWhoseCnameisNotVerified();
+    await service.verifyCnameWhoseCnameisNotVerified();
 
     expect(mockCaOrders).toEqual(["status.acme.com"]);
     expect(isCnameValid).toHaveBeenCalledTimes(1);
@@ -1179,7 +1225,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
 
     // The sweep's own check of the domain, during a blip.
     world.dnsLive.delete("status.acme.com");
-    await StatusPageDomainService.isCnameValid("status.acme.com");
+    await service.isCnameValid("status.acme.com");
 
     expect(domain.isCnameVerified).toBe(false);
 
@@ -1206,11 +1252,11 @@ describe("custom domain certificates, hardened: the review's findings end to end
     });
 
     const sweep: Promise<void> =
-      StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+      service.orderSSLForDomainsWhichAreNotOrderedYet();
     await settle();
 
     holdOrderSweepRead = null;
-    await StatusPageDomainService.isCnameValid("status.acme.com");
+    await service.isCnameValid("status.acme.com");
 
     letTheSweepGoOn();
     await sweep;
@@ -1301,7 +1347,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
     await runSweeps();
 
     const failed: Array<CustomDomainCertificate> =
-      await StatusPageDomainService.getCertificates([domain as never]);
+      await service.getCertificates([domain as never]);
 
     expect(failed).toEqual([
       {
@@ -1319,7 +1365,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
     await runSweeps();
 
     const issued: Array<CustomDomainCertificate> =
-      await StatusPageDomainService.getCertificates([domain as never]);
+      await service.getCertificates([domain as never]);
 
     expect(issued[0]!.lastOrderError).toBeUndefined();
     expect(issued[0]!.expiresAt).toBeInstanceOf(Date);
@@ -1398,7 +1444,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
       await clickCheckNow(domain);
     }
 
-    await StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet();
+    await service.orderSSLForDomainsWhichAreNotOrderedYet();
 
     const newCertificates: number = mockCaOrders.length;
 
@@ -1407,14 +1453,18 @@ describe("custom domain certificates, hardened: the review's findings end to end
     );
 
     // ...and the renewals still have their share.
-    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await service.renewCertsWhichAreExpiringSoon();
 
     expect(mockCaOrders.length).toBeLessThanOrEqual(
       CertificateOrderBudget.ORDERS_PER_WINDOW,
     );
+    // As many as the run renews, up to what the new certificates left.
     expect(mockCaOrders.length - newCertificates).toBeGreaterThanOrEqual(
-      CertificateOrderBudget.ORDERS_PER_WINDOW -
-        CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW,
+      Math.min(
+        kind.renewalsPerRun,
+        CertificateOrderBudget.ORDERS_PER_WINDOW -
+          CertificateOrderBudget.NEW_CERTIFICATE_ORDERS_PER_WINDOW,
+      ),
     );
     expect(world.deletedCertificates).toEqual([]);
   });
@@ -1439,7 +1489,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
     const before: string =
       world.certificates.get("status.acme.com")!.certificate;
 
-    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await service.renewCertsWhichAreExpiringSoon();
 
     expect(world.deletedCertificates).toEqual([]);
     expect(world.certificates.get("status.acme.com")?.certificate).toBe(before);
@@ -1452,7 +1502,7 @@ describe("custom domain certificates, hardened: the review's findings end to end
 
     // ...and the Status column learns why the renewal did not happen.
     const certificates: Array<CustomDomainCertificate> =
-      await StatusPageDomainService.getCertificates([domain as never]);
+      await service.getCertificates([domain as never]);
 
     expect(certificates[0]!.lastOrderError).toContain(
       "CNAME record could not be verified",
@@ -1461,18 +1511,18 @@ describe("custom domain certificates, hardened: the review's findings end to end
     world.dnsLive.add("status.acme.com");
 
     // The name waits a little before the next try...
-    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await service.renewCertsWhichAreExpiringSoon();
 
     expect(mockCaOrders).toEqual([]);
 
     // ...and is renewed once its delay is up.
     minutesLater(15);
-    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await service.renewCertsWhichAreExpiringSoon();
 
     expect(mockCaOrders).toEqual(["status.acme.com"]);
     expect(world.deletedCertificates).toEqual([]);
     expect(
-      (await StatusPageDomainService.getCertificates([domain as never]))[0]!
+      (await service.getCertificates([domain as never]))[0]!
         .lastOrderError,
     ).toBeUndefined();
   });

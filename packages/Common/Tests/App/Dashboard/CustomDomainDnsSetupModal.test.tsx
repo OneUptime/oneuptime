@@ -20,16 +20,18 @@ import type { Mock } from "jest-mock";
 import * as React from "react";
 
 /*
- * DNS Setup: the dialog a status page custom domain opens when it is added,
- * and from its DNS Setup row action until its record is verified.
+ * DNS Setup: the dialog a custom domain - a status page's or a dashboard's -
+ * opens when it is added, and from its DNS Setup row action until its record
+ * is verified.
  *
  * It replaced "Add CNAME" (which added nothing - it showed the record, with a
  * Verify CNAME button) and "Order Free SSL" (an order the worker placed on
- * its own anyway). What it has to do:
+ * its own anyway). What it has to do, for both kinds:
  *
  *   - show the record the way DNS providers ask for it - type, name, value
  *     - each with a copy button;
- *   - Check now verifies the record at once, through verify-cname;
+ *   - Check now verifies the record at once, through the kind's own
+ *     verify-cname;
  *   - a record that is not found keeps the dialog open with the reason;
  *   - a record that is found says what happens to the certificate next:
  *     issued within 15 minutes, already there, the uploaded one, or - when
@@ -42,19 +44,22 @@ import * as React from "react";
 let mockCnameRecord: string = "statuspage.oneuptime.com";
 
 /*
- * A getter defined on the copy, not in an object literal: the compiled
- * spread copies a literal's getter once, as a value.
+ * Getters defined on the copy, not in an object literal: the compiled
+ * spread copies a literal's getter once, as a value. Both kinds read the
+ * same record here; one dialog is rendered at a time.
  */
 jest.mock("../../../UI/Config", () => {
   const mocked: Record<string, unknown> = {
     ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
   };
 
-  Object.defineProperty(mocked, "StatusPageCNameRecord", {
-    get: (): string => {
-      return mockCnameRecord;
-    },
-  });
+  for (const name of ["StatusPageCNameRecord", "DashboardCNameRecord"]) {
+    Object.defineProperty(mocked, name, {
+      get: (): string => {
+        return mockCnameRecord;
+      },
+    });
+  }
 
   return mocked;
 });
@@ -82,36 +87,55 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
-import StatusPageDomainDnsSetupModal from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageDomainDnsSetupModal";
+import CustomDomainDnsSetupModal from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainDnsSetupModal";
 import {
+  CustomDomainCopy,
   DNS_SETUP_TEST_IDS,
-  StatusPageCustomDomainCopy,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/CustomDomain/StatusPageCustomDomainCopy";
-import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
+import {
+  CustomDomainKind,
+  CustomDomainModel,
+  DASHBOARD_CUSTOM_DOMAINS,
+  STATUS_PAGE_CUSTOM_DOMAINS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
 import ObjectID from "../../../Types/ObjectID";
-import { CustomDomainCertificateStatus } from "../../../Types/StatusPage/CustomDomainVerification";
+import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 import Clipboard from "../../../UI/Utils/Clipboard";
 
 const DOMAIN_ID: string = "0193c0de-0000-4aaa-8bbb-00000000d0d0";
 
-function domain(
-  extra: {
-    subdomain?: string;
-    isCustomCertificate?: boolean;
-    isCnameVerified?: boolean;
-  } = {},
-): StatusPageDomain {
-  const row: StatusPageDomain = new StatusPageDomain();
-  row._id = DOMAIN_ID;
-  row.fullDomain =
-    extra.subdomain === ""
-      ? "acme.com"
-      : `${extra.subdomain ?? "status"}.acme.com`;
-  row.subdomain = extra.subdomain ?? "status";
-  row.isCustomCertificate = extra.isCustomCertificate ?? false;
-  row.isCnameVerified = extra.isCnameVerified ?? false;
-  return row;
+interface KindCase {
+  name: string;
+  kind: CustomDomainKind;
+  cnameRecord: string;
+  // What DNS Setup's first sentence says the domain points to.
+  pointsTo: string;
+  verifyRoute: string;
+  // The setting that switches this kind's custom domains on.
+  variable: string;
+  helmValue: string;
 }
+
+const KINDS: Array<KindCase> = [
+  {
+    name: "a status page's",
+    kind: STATUS_PAGE_CUSTOM_DOMAINS,
+    cnameRecord: "statuspage.oneuptime.com",
+    pointsTo: "your status page",
+    verifyRoute: "/status-page-domain/verify-cname/",
+    variable: "STATUS_PAGE_CNAME_RECORD",
+    helmValue: "statusPage.cnameRecord",
+  },
+  {
+    name: "a dashboard's",
+    kind: DASHBOARD_CUSTOM_DOMAINS,
+    cnameRecord: "dashboards.oneuptime.com",
+    pointsTo: "your dashboard",
+    verifyRoute: "/dashboard-domain/verify-cname/",
+    variable: "DASHBOARD_CNAME_RECORD",
+    helmValue: "dashboard.cnameRecord",
+  },
+];
 
 // What verify-cname answers for a found record.
 function found(body: Record<string, unknown>): unknown {
@@ -138,25 +162,6 @@ type Rendered = {
   onVerified: Mock<() => void>;
 };
 
-function renderDialog(
-  row: StatusPageDomain = domain(),
-  options?: { hasExpiredCertificate?: boolean },
-): Rendered {
-  const onClose: Mock<() => void> = jest.fn();
-  const onVerified: Mock<() => void> = jest.fn();
-
-  render(
-    <StatusPageDomainDnsSetupModal
-      domain={row}
-      hasExpiredCertificate={options?.hasExpiredCertificate}
-      onClose={onClose as never}
-      onVerified={onVerified as never}
-    />,
-  );
-
-  return { onClose, onVerified };
-}
-
 function dialog(): HTMLElement {
   return screen.getByTestId("modal");
 }
@@ -169,9 +174,48 @@ async function clickCheckNow(): Promise<void> {
   });
 }
 
-describe("the DNS Setup dialog", () => {
+describe.each(KINDS)("the DNS Setup dialog of $name domain", (kindCase: KindCase) => {
+  function domain(
+    extra: {
+      subdomain?: string;
+      isCustomCertificate?: boolean;
+      isCnameVerified?: boolean;
+    } = {},
+  ): CustomDomainModel {
+    const row: CustomDomainModel = new kindCase.kind.modelType();
+    row._id = DOMAIN_ID;
+    row.fullDomain =
+      extra.subdomain === ""
+        ? "acme.com"
+        : `${extra.subdomain ?? "status"}.acme.com`;
+    row.subdomain = extra.subdomain ?? "status";
+    row.isCustomCertificate = extra.isCustomCertificate ?? false;
+    row.isCnameVerified = extra.isCnameVerified ?? false;
+    return row;
+  }
+
+  function renderDialog(
+    row: CustomDomainModel = domain(),
+    options?: { hasExpiredCertificate?: boolean },
+  ): Rendered {
+    const onClose: Mock<() => void> = jest.fn();
+    const onVerified: Mock<() => void> = jest.fn();
+
+    render(
+      <CustomDomainDnsSetupModal
+        kind={kindCase.kind}
+        domain={row}
+        hasExpiredCertificate={options?.hasExpiredCertificate}
+        onClose={onClose as never}
+        onVerified={onVerified as never}
+      />,
+    );
+
+    return { onClose, onVerified };
+  }
+
   beforeEach(() => {
-    mockCnameRecord = "statuspage.oneuptime.com";
+    mockCnameRecord = kindCase.cnameRecord;
     mockApiGetCalls.length = 0;
     mockApiGet = async (): Promise<unknown> => {
       return found({
@@ -197,9 +241,9 @@ describe("the DNS Setup dialog", () => {
     expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordName)).toHaveTextContent(
       /^status\.acme\.com$/,
     );
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.recordValue),
-    ).toHaveTextContent(/^statuspage\.oneuptime\.com$/);
+    expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordValue)).toHaveTextContent(
+      kindCase.cnameRecord,
+    );
 
     const record: HTMLElement = screen.getByTestId(DNS_SETUP_TEST_IDS.record);
     expect(within(record).getByText("Type")).toBeInTheDocument();
@@ -211,11 +255,9 @@ describe("the DNS Setup dialog", () => {
     renderDialog();
 
     expect(dialog()).toHaveTextContent(
-      "Add this record at your DNS provider to point status.acme.com to your status page.",
+      `Add this record at your DNS provider to point status.acme.com to ${kindCase.pointsTo}.`,
     );
-    expect(dialog()).toHaveTextContent(
-      StatusPageCustomDomainCopy.dnsSetupWhatHappensNext,
-    );
+    expect(dialog()).toHaveTextContent(CustomDomainCopy.dnsSetupWhatHappensNext);
     expect(dialog()).not.toHaveTextContent("24 hours");
   });
 
@@ -233,7 +275,7 @@ describe("the DNS Setup dialog", () => {
     for (const [name, value] of [
       ["Copy record type", "CNAME"],
       ["Copy record name", "status.acme.com"],
-      ["Copy record value", "statuspage.oneuptime.com"],
+      ["Copy record value", kindCase.cnameRecord],
     ] as Array<[string, string]>) {
       await act(async (): Promise<void> => {
         fireEvent.click(within(dialog()).getByRole("button", { name }));
@@ -264,7 +306,7 @@ describe("the DNS Setup dialog", () => {
     renderDialog(domain({ isCustomCertificate: true }));
 
     expect(dialog()).toHaveTextContent(
-      StatusPageCustomDomainCopy.dnsSetupWhatHappensNextUploaded,
+      CustomDomainCopy.dnsSetupWhatHappensNextUploaded,
     );
   });
 
@@ -278,9 +320,9 @@ describe("the DNS Setup dialog", () => {
 
     expect(
       screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
-    ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued);
+    ).toHaveTextContent(CustomDomainCopy.dnsSetupVerifiedNotIssued);
     expect(dialog()).not.toHaveTextContent(
-      StatusPageCustomDomainCopy.dnsSetupWhatHappensNext,
+      CustomDomainCopy.dnsSetupWhatHappensNext,
     );
     // The record is still there to check against.
     expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordName)).toHaveTextContent(
@@ -303,9 +345,9 @@ describe("the DNS Setup dialog", () => {
 
     expect(
       screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
-    ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupVerifiedExpired);
+    ).toHaveTextContent(CustomDomainCopy.dnsSetupVerifiedExpired);
     expect(dialog()).not.toHaveTextContent(
-      StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued,
+      CustomDomainCopy.dnsSetupVerifiedNotIssued,
     );
     expect(
       within(dialog()).getByRole("button", { name: "Check now" }),
@@ -319,24 +361,24 @@ describe("the DNS Setup dialog", () => {
 
     expect(
       screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
-    ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupWhatHappensNext);
+    ).toHaveTextContent(CustomDomainCopy.dnsSetupWhatHappensNext);
   });
 
-  test("Check now asks verify-cname about this domain", async () => {
+  test("Check now asks this kind's verify-cname about this domain", async () => {
     renderDialog();
 
     await clickCheckNow();
 
     expect(mockApiGetCalls).toHaveLength(1);
     expect(mockApiGetCalls[0]!.url.toString()).toContain(
-      `/status-page-domain/verify-cname/${DOMAIN_ID}`,
+      `${kindCase.verifyRoute}${DOMAIN_ID}`,
     );
   });
 
   test("a record that is not found keeps the dialog open with the reason, and Check now can be tried again", async () => {
     mockApiGet = async (): Promise<unknown> => {
       return notFound(
-        "We could not find a CNAME record for status.acme.com that points to statuspage.oneuptime.com yet.",
+        `We could not find a CNAME record for status.acme.com that points to ${kindCase.cnameRecord} yet.`,
       );
     };
 
@@ -431,6 +473,11 @@ describe("the DNS Setup dialog", () => {
     expect(rendered.onVerified).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * A server from before Check now ordered - the dashboard route answered
+   * an empty body until now - reads as issuing, which is what the domain's
+   * certificate then does.
+   */
   test("an answer from an older server, with no body, reads as issuing", async () => {
     mockApiGet = async (): Promise<unknown> => {
       return found({});
@@ -454,11 +501,11 @@ describe("the DNS Setup dialog", () => {
   });
 
   /*
-   * An installation without STATUS_PAGE_CNAME_RECORD cannot verify any
+   * An installation without this kind's CNAME record cannot verify any
    * domain; the dialog says how to switch custom domains on, and offers no
    * Check now that could only fail.
    */
-  test("without a status page CNAME record it says how to enable custom domains, with no Check now", () => {
+  test("without this kind's CNAME record it says how to enable custom domains, with no Check now", () => {
     mockCnameRecord = "";
 
     renderDialog();
@@ -466,7 +513,8 @@ describe("the DNS Setup dialog", () => {
     expect(dialog()).toHaveTextContent(
       "Custom Domains not enabled for this OneUptime installation.",
     );
-    expect(dialog()).toHaveTextContent("STATUS_PAGE_CNAME_RECORD");
+    expect(dialog()).toHaveTextContent(kindCase.variable);
+    expect(dialog()).toHaveTextContent(kindCase.helmValue);
     expect(
       within(dialog()).queryByRole("button", { name: "Check now" }),
     ).toBeNull();
@@ -474,7 +522,7 @@ describe("the DNS Setup dialog", () => {
   });
 
   test("the id in the request is the domain's own", async () => {
-    const row: StatusPageDomain = domain();
+    const row: CustomDomainModel = domain();
     row._id = ObjectID.generate().toString();
 
     renderDialog(row);
