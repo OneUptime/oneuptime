@@ -6,6 +6,8 @@ import MonitorCriteriaAlignmentUtil, {
   CriteriaSeedOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitorCriteriaAlignment";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   CheckOn,
@@ -786,4 +788,44 @@ describe("a monitor type change repairs filters, and a generated name follows th
       repairFor(criteriaWith({ name: "Slow or broken", filters: filters })),
     ).toBe("Slow or broken");
   });
+});
+
+describe("what the monitor docs say about criteria names", () => {
+  /*
+   * The Website and API monitor pages tell readers what "Add Criteria" names
+   * a criteria, with an example. The example has to be the name the form
+   * really gives, or the docs teach a name nobody will see.
+   */
+  const DOCS: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "..",
+    "App",
+    "FeatureSet",
+    "Docs",
+    "Content",
+    "en",
+    "monitor",
+  );
+
+  test.each(["website-monitor.md", "api-monitor.md"])(
+    "%s gives an example name the form really gives, and says where the fallback status lives",
+    (fileName: string) => {
+      const page: string = fs.readFileSync(path.join(DOCS, fileName), "utf8");
+
+      const example: string = CriteriaNameUtil.getNameFromFilters({
+        filters: [filter({ checkOn: CheckOn.ResponseTime, value: 3000 })],
+      });
+
+      expect(page).toContain(
+        `**Add Criteria** adds a criteria that is already named after its filter, for example _${example}_.`,
+      );
+      expect(page).toContain("A description is optional");
+      expect(page).toContain(
+        "When none of them matches, the monitor falls back to its default status: **Operational**, unless you pick another under **Advanced**",
+      );
+    },
+  );
 });
