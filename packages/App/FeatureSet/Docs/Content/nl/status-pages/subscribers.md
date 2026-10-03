@@ -12,7 +12,7 @@ Een statuspagina ondersteunt vijf kanalen. Die en de pagina waarop bezoekers zic
 
 - **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) — standaard aan. Zet het item **Abonneren** in de navigatiebalk van de statuspagina, waar bezoekers zich aanmelden via de kanalen hieronder.
 - **E-mail** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit tot je het aanzet.
-- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft. Om het aan te zetten moet voor het project ook **SMS-meldingen inschakelen** aan staan, onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft. Om het aan te zetten moet voor het project ook **SMS** aan staan, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
 - **Slack** (`enableSlackSubscribers`) — standaard uit.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
 - **Webhook** (`enableWebhookSubscribers`) — standaard uit.

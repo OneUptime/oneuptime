@@ -12,7 +12,7 @@ A status page supports five channels. They, and the page visitors sign up on, ar
 
 - **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — on by default. Puts the **Subscribe** item in the status page nav bar, where visitors sign up by the channels below.
 - **Email** (`enableEmailSubscribers`) — on by default. Everything else is off until you turn it on.
-- **SMS** (`enableSmsSubscribers`) — off by default. On OneUptime Cloud each text is paid from the project's SMS and call balance, unless the page has its own **Twilio Config** (see [below](#email-footer-custom-smtp-and-twilio)). Turning it on also needs **Enable SMS Notifications** on for the project, in **Project Settings > Notifications > Notification Settings**.
+- **SMS** (`enableSmsSubscribers`) — off by default. On OneUptime Cloud each text is paid from the project's SMS and call balance, unless the page has its own **Twilio Config** (see [below](#email-footer-custom-smtp-and-twilio)). Turning it on also needs **SMS** switched on for the project, in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings**.
 - **Slack** (`enableSlackSubscribers`) — off by default.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — off by default.
 - **Webhook** (`enableWebhookSubscribers`) — off by default.
