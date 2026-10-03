@@ -75,7 +75,8 @@ const SessionReplayRetentionSettingsCard: FunctionComponent<ComponentProps> = (
         }
 
         if (!item) {
-          setError(translator.translateText("RUM application not found."));
+          // ErrorMessage translates it.
+          setError("RUM application not found.");
         } else {
           setRetentionInDays(
             getEffectiveSessionReplayRetentionDays(
