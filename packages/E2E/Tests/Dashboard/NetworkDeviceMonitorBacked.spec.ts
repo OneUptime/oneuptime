@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../Config";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -71,6 +72,10 @@ test.skip(({ browserName }: { browserName: string }): boolean => {
  */
 const UNROUTABLE_HOSTNAME: string = "192.0.2.10";
 
+/*
+ * The devices card's own Create button: the first device is created from an
+ * empty list, which offers the same button again under its message.
+ */
 const CREATE_DEVICE_BUTTON_NAME: string = "Create Network Device";
 
 /*
@@ -128,7 +133,7 @@ const openDevicesList: OpenDevicesListFunction = async (data: {
     page: data.page,
     projectId: data.projectId,
     url: devicesUrl(data.projectId),
-    ready: data.page.getByRole("button", { name: CREATE_DEVICE_BUTTON_NAME }),
+    ready: getCardButton(data.page, CREATE_DEVICE_BUTTON_NAME),
   });
 };
 
@@ -283,7 +288,7 @@ const createDevice: CreateDeviceFunction = async (data: {
 
   await openDevicesList({ page, projectId: data.projectId });
 
-  await page.getByRole("button", { name: CREATE_DEVICE_BUTTON_NAME }).click();
+  await getCardButton(page, CREATE_DEVICE_BUTTON_NAME).click();
 
   const modal: Locator = page.getByTestId("modal");
   await modal.waitFor({ state: "visible", timeout: 30000 });

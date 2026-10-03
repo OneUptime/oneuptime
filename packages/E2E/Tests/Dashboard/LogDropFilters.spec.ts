@@ -2,6 +2,7 @@ import { BASE_URL } from "../../Config";
 import { Browser, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -44,6 +45,11 @@ test.describe.configure({ mode: "serial" });
 // ModelTable names its create form after the model class.
 const createFormSelector: string = "#create-LogDropFilter-from";
 
+/*
+ * The card's own Create button: the first filter is created from an empty
+ * list, which offers the same button again under its "No drop filters
+ * found" message.
+ */
 const createButtonName: string = "Create Log Drop Filter";
 
 interface SharedContext {
@@ -100,9 +106,7 @@ test.describe("Log Drop Filters", () => {
   async function openCreateModalAndFillConditions(name: string): Promise<void> {
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: createButtonName,
-    });
+    const createButton: Locator = getCardButton(page, createButtonName);
 
     await gotoProjectPage({
       page,
@@ -148,9 +152,7 @@ test.describe("Log Drop Filters", () => {
     test.setTimeout(120000);
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: createButtonName,
-    });
+    const createButton: Locator = getCardButton(page, createButtonName);
 
     await gotoProjectPage({
       page,
