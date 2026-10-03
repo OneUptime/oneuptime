@@ -1,6 +1,7 @@
 import BadDataException from "../Exception/BadDataException";
-import { JSONObject, ObjectType } from "../JSON";
+import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import { readMiscDataId } from "./MiscDataId";
 
 /*
  * WHO GETS PAGED FIRST.
@@ -71,36 +72,6 @@ export const countFirstResponders: (ids: FirstResponderIds) => number = (
   );
 };
 
-/*
- * The id one entry of a list names: a string (what the dashboard sends), an
- * ObjectID (what the API's deserializer makes of { _type: "ObjectID" }), or
- * that JSON itself when a caller inside the server passes it on.
- */
-const readId: (entry: unknown) => string | null = (
-  entry: unknown,
-): string | null => {
-  if (typeof entry === "string") {
-    return entry.trim() || null;
-  }
-
-  if (entry instanceof ObjectID) {
-    return entry.toString().trim() || null;
-  }
-
-  if (entry && typeof entry === "object" && !Array.isArray(entry)) {
-    const record: JSONObject = entry as JSONObject;
-
-    if (
-      record["_type"] === ObjectType.ObjectID &&
-      typeof record["value"] === "string"
-    ) {
-      return record["value"].trim() || null;
-    }
-  }
-
-  return null;
-};
-
 /**
  * Who a policy create asks to page first, read from its misc data.
  *
@@ -139,7 +110,7 @@ export const readFirstResponderIds: (
     }
 
     for (const entry of value) {
-      const id: string | null = readId(entry);
+      const id: string | null = readMiscDataId(entry);
 
       if (!id || !ObjectID.isValidUUID(id)) {
         throw new BadDataException(
