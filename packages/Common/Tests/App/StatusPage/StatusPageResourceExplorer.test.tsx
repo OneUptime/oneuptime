@@ -186,6 +186,7 @@ import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResourc
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageGroupViewMode from "../../../Types/StatusPage/StatusPageGroupViewMode";
+import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { MemoryRouter } from "react-router-dom";
 
@@ -3025,5 +3026,107 @@ describe("Status Page > Resources", () => {
       expect(within(form).getByText("Group Name")).toBeVisible();
       expect(within(form).getByText("Parent Group")).toBeVisible();
     });
+
+    /*
+     * An existing group opened for editing: its Advanced section says
+     * "Configured" only when something in it is off its default. A group
+     * left expanded, with its status shown and no uptime, is at its defaults
+     * - the column defaults isExpandedByDefault to on, and the form must
+     * know that on Edit too, or every ordinary group would say "Configured".
+     */
+    test.each([
+      [
+        "a group at its defaults says nothing",
+        {
+          isExpandedByDefault: true,
+          showCurrentStatus: true,
+          showUptimePercent: false,
+        },
+        false,
+      ],
+      [
+        "a group published collapsed says Configured",
+        {
+          isExpandedByDefault: false,
+          showCurrentStatus: true,
+          showUptimePercent: false,
+        },
+        true,
+      ],
+      [
+        "a group with uptime shown says Configured",
+        {
+          isExpandedByDefault: true,
+          showCurrentStatus: true,
+          showUptimePercent: true,
+          uptimePercentPrecision: UptimePrecision.ONE_DECIMAL,
+        },
+        true,
+      ],
+      [
+        "a group with a description says Configured",
+        {
+          isExpandedByDefault: true,
+          showCurrentStatus: true,
+          showUptimePercent: false,
+          description: "Everything behind the checkout.",
+        },
+        true,
+      ],
+    ])(
+      "Edit: %s on the folded Advanced header",
+      async (_title: string, settings: any, isConfigured: boolean) => {
+        setUpApi({ groups: buildHierarchy() });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        fireEvent.click(screen.getByText("New Group"));
+        await flushEffects();
+
+        const fields: Array<any> = lastFormModal().formProps.fields;
+
+        const expandField: any = fields.find((field: any): boolean => {
+          return Boolean(field.field?.isExpandedByDefault);
+        });
+
+        // The column's default, written on the field itself.
+        expect(expandField.defaultValue).toBe(true);
+
+        const view: ReturnType<typeof render> = render(
+          <BasicForm
+            id="status-page-group-edit-under-test"
+            name="Status Page Group"
+            fields={fields}
+            initialValues={{
+              name: "Corporate",
+              viewMode: StatusPageGroupViewMode.List,
+              ...settings,
+            }}
+            onSubmit={() => {
+              // Not submitted.
+            }}
+            submitButtonText="Save Changes"
+          />,
+        );
+
+        const form: HTMLElement = view.container;
+
+        const advancedHeader: HTMLElement = await within(form).findByRole(
+          "button",
+          { name: /^Advanced/ },
+        );
+
+        // Folded either way: Edit never opens Advanced by itself.
+        expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
+
+        if (isConfigured) {
+          expect(advancedHeader).toHaveTextContent("Configured");
+        } else {
+          expect(advancedHeader).not.toHaveTextContent("Configured");
+        }
+      },
+    );
   });
 });

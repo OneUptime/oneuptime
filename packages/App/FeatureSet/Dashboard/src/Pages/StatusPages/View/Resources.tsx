@@ -910,6 +910,12 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         title: "Expand on Status Page by Default",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
+        /*
+         * The column's own default, written down so Edit knows it too: a
+         * group left expanded is at its default, and the folded Advanced
+         * section says "Configured" only for one published collapsed.
+         */
+        defaultValue: true,
         collapsibleSection: advancedSection,
       },
       {
