@@ -355,6 +355,15 @@ export default class Queue {
     return serverAdapter.getRouter();
   }
 
+  /**
+   * Admit a one-off job using BullMQ's native custom-ID deduplication. An ID still
+   * present in the queue (including retained completed/failed jobs) is not
+   * replaced or restarted. Use a new ID for new work, or the explicit retry /
+   * removal APIs for an intentional rerun. The returned Job can contain the
+   * submitted data even on a duplicate; it is not a read of the stored payload.
+   * Calls with scheduleAt or repeatableKey retain the existing non-atomic
+   * remove-before-add lifecycle; they do not have this failure-safety guarantee.
+   */
   @CaptureSpan()
   public static async addJob(
     queueName: QueueName,
@@ -384,11 +393,9 @@ export default class Queue {
        */
       backoffDelayInMs?: number | undefined;
       /**
-       * Skip the getJob()+remove() round trips that guard against
-       * duplicate job ids. Safe (and two Redis calls cheaper per
-       * enqueue) when the caller's job ids are globally unique, e.g.
-       * the telemetry enqueue path which suffixes ids with a unix-nano
-       * timestamp.
+       * @deprecated One-off adds always use native job-ID deduplication.
+       * Kept for caller compatibility; still skips the legacy job lookup and
+       * removal for calls with scheduleAt or repeatableKey.
        */
       skipExistenceCheck?: boolean | undefined;
       /**
@@ -456,7 +463,15 @@ export default class Queue {
       }
     }
 
-    if (!options?.skipExistenceCheck) {
+    /*
+     * One-off admission uses BullMQ's native ID deduplication: never delete
+     * admitted work before an add that can fail. Repeatable lifecycle changes
+     * are deliberately separate; preserve their existing replacement order.
+     */
+    if (
+      (options?.scheduleAt || options?.repeatableKey) &&
+      !options?.skipExistenceCheck
+    ) {
       const job: Job | undefined = await queue.getJob(sanitizedJobId);
 
       if (job) {

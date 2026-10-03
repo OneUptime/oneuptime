@@ -1,4 +1,5 @@
 import JobDictionary from "./JobDictionary";
+import { randomUUID } from "crypto";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import logger from "Common/Server/Utils/Logger";
@@ -70,13 +71,25 @@ const RunCron: RunCronFunction = (
           return logger.error(err, { service: "workers" });
         });
 
-        // Run the job immediately on startup if specified
+        /*
+         * Each startup request needs a fresh ID: completed/failed jobs may
+         * still be retained, and the best-effort startup sweep can race this
+         * add. Coalesce concurrent startup requests while one is unfinished
+         * using a separate simple-mode deduplication key, released by BullMQ
+         * on completion/failure. Do not request another run while active.
+         * This does not coalesce with scheduled iterations or legacy startup
+         * jobs already queued before this identity scheme was introduced.
+         */
         if (options.runOnStartup) {
-          Queue.addJob(queueName, jobName, jobName, {}, {}).catch(
-            (err: Error) => {
-              return logger.error(err, { service: "workers" });
-            },
-          );
+          Queue.addJob(
+            queueName,
+            `startup-${jobName}-${randomUUID()}`,
+            jobName,
+            {},
+            { deduplication: { id: `startup-${jobName}` } },
+          ).catch((err: Error) => {
+            return logger.error(err, { service: "workers" });
+          });
         }
       } catch (err) {
         // log this error
