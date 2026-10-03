@@ -236,7 +236,7 @@ describe("Resource feed pages", () => {
   );
 
   test.each(FEED_PAGES)(
-    "$product's feed page offers its own model's event types to Filter & Sort",
+    "$product's feed page offers its own model's event types to the event type filter",
     (spec: FeedPageSpec) => {
       const page: string = read(
         "Pages",

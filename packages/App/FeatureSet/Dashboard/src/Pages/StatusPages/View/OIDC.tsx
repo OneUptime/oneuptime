@@ -196,6 +196,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           actionButtons={[
             {
               title: "View OIDC Config",
+              icon: IconProp.Settings,
               buttonStyleType: ButtonStyleType.NORMAL,
               onClick: async (
                 item: StatusPageOIDC,

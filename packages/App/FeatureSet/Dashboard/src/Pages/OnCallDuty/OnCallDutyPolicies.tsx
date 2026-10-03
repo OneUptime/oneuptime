@@ -58,6 +58,7 @@ const OnCallDutyPage: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -80,6 +81,7 @@ const OnCallDutyPage: FunctionComponent<
         userPreferencesKey="on-call-duty-table"
         customFieldsModelType={OnCallDutyPolicyCustomField}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

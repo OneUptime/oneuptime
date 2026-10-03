@@ -88,6 +88,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
 import SubscriberAudienceSummary from "../../Components/Incident/SubscriberAudienceSummary";
+import { SubscriberAudienceRequest } from "../../Components/Incident/useSubscriberAudience";
+import BooleanValue from "Common/UI/Components/Detail/BooleanValue";
 import SubscriberNotificationPreviewButton from "../../Components/Incident/SubscriberNotificationPreviewButton";
 import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
@@ -202,36 +204,77 @@ const toSeverityForMapping: ToSeverityForMappingFunction = (
   };
 };
 
-/*
- * Why no status page subscriber will hear about the incident being declared,
- * whatever pages it reaches - or undefined when they may.
- */
-type GetAudienceQuietReasonFunction = (
+type IncidentFormPredicate = (values: FormValues<Incident>) => boolean;
+
+// 'Notify Status Page Subscribers', which starts ticked.
+const isNotifyTicked: IncidentFormPredicate = (
   values: FormValues<Incident>,
-) => string | undefined;
-
-const getAudienceQuietReason: GetAudienceQuietReasonFunction = (
-  values: FormValues<Incident>,
-): string | undefined => {
-  const formValues: Record<string, unknown> = values as Record<string, unknown>;
-
-  if (formValues["isPrivate"] === true) {
-    return IncidentStatusPageScopeCopy.audiencePrivateIncident;
-  }
-
-  if (
-    formValues["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"] ===
-    false
-  ) {
-    return IncidentStatusPageScopeCopy.audienceNotifyOff;
-  }
-
-  return undefined;
+): boolean => {
+  return (
+    (values as Record<string, unknown>)[
+      "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+    ] !== false
+  );
 };
 
 /*
- * "Will notify: ..." for the incident as the form stands: its monitors and
- * the status pages it is limited to.
+ * Whether status page subscribers can hear about the incident being
+ * declared at all: notifying is on, and it is not private - private
+ * incidents are hidden from every status page.
+ */
+const isNotifyingSubscribers: IncidentFormPredicate = (
+  values: FormValues<Incident>,
+): boolean => {
+  return (
+    isNotifyTicked(values) &&
+    (values as Record<string, unknown>)["isPrivate"] !== true
+  );
+};
+
+// Status pages show an incident, and tell their subscribers, through its monitors.
+const hasMonitors: IncidentFormPredicate = (
+  values: FormValues<Incident>,
+): boolean => {
+  return getIdsFromFormValue(values.monitors).length > 0;
+};
+
+/*
+ * What "Will notify" asks about for the incident as the form stands: its
+ * monitors and the status pages it is limited to. Nothing is asked, and so
+ * nothing is shown, when nothing will be sent whatever the audience
+ * (notifying is off, or the incident will be private - the boxes right there
+ * say so), or when the form names neither a monitor nor a status page: the
+ * incident can reach no status page then, and has no scope to get wrong.
+ */
+type GetAudienceRequestFunction = (
+  values: FormValues<Incident>,
+) => SubscriberAudienceRequest | null;
+
+const getAudienceRequest: GetAudienceRequestFunction = (
+  values: FormValues<Incident>,
+): SubscriberAudienceRequest | null => {
+  if (!isNotifyingSubscribers(values)) {
+    return null;
+  }
+
+  if (
+    !hasMonitors(values) &&
+    getIdsFromFormValue(values.statusPages).length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    monitorIds: values.monitors,
+    statusPageIds: values.statusPages,
+  };
+};
+
+/*
+ * "Will notify: ..." for the incident as the form stands. It says nothing
+ * when no status page subscriber was going to hear about the incident
+ * anyway (no monitors, no status page that lists them, no subscribers yet),
+ * and warns only when the status page scope keeps pages from being told.
  */
 type GetAudienceSummaryFunction = (
   values: FormValues<Incident>,
@@ -243,11 +286,7 @@ const getAudienceSummary: GetAudienceSummaryFunction = (
   return (
     <SubscriberAudienceSummary
       dataTestId="incident-create-subscriber-audience"
-      request={{
-        monitorIds: values.monitors,
-        statusPageIds: values.statusPages,
-      }}
-      quietReason={getAudienceQuietReason(values)}
+      request={getAudienceRequest(values)}
     />
   );
 };
@@ -1960,27 +1999,39 @@ const IncidentCreate: FunctionComponent<
                     return getAudienceSummary(values);
                   },
                   /*
-                   * On the last step, also what they will be sent: each
-                   * status page's email, from the incident as declared here.
+                   * On the last step: whether the box is ticked, as every
+                   * other box there says it; who that reaches; and what they
+                   * will be sent - each status page's email, from the
+                   * incident as declared here. There is nothing to preview
+                   * when nothing will be sent: notifying is off, the
+                   * incident will be private, or it is on no monitor.
                    */
                   getSummaryElement: (item: FormValues<Incident>) => {
                     return (
                       <>
-                        {getAudienceSummary(item)}
-                        <SubscriberNotificationPreviewButton
-                          dataTestId="incident-create-preview-notification"
-                          getRequest={() => {
-                            return getIncidentCreatedPreviewRequest({
-                              values: item as Record<string, unknown>,
-                              customFields: packCustomFieldFormValues({
-                                definitions: detailsStepDefinitions,
-                                formValues: item as JSONObject,
-                                startingCustomFields: startingCustomFields,
-                                isShown: isAskedOnIncidentForm,
-                              }),
-                            });
-                          }}
+                        <BooleanValue
+                          value={isNotifyTicked(item)}
+                          dataTestId="incident-create-notify-subscribers-value"
                         />
+                        {getAudienceSummary(item)}
+                        {isNotifyingSubscribers(item) && hasMonitors(item) ? (
+                          <SubscriberNotificationPreviewButton
+                            dataTestId="incident-create-preview-notification"
+                            getRequest={() => {
+                              return getIncidentCreatedPreviewRequest({
+                                values: item as Record<string, unknown>,
+                                customFields: packCustomFieldFormValues({
+                                  definitions: detailsStepDefinitions,
+                                  formValues: item as JSONObject,
+                                  startingCustomFields: startingCustomFields,
+                                  isShown: isAskedOnIncidentForm,
+                                }),
+                              });
+                            }}
+                          />
+                        ) : (
+                          <></>
+                        )}
                       </>
                     );
                   },

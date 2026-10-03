@@ -8,7 +8,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 import CSVFileUpload, {
   CSVColumn,
@@ -274,6 +273,12 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,
+        /*
+         * Off on purpose, though the column defaults to on: someone an admin
+         * adds is sent a "you have subscribed" message only when the admin
+         * asks for one (CreateFormDefaultsGuard lists why).
+         */
+        defaultValue: false,
       },
 
       {
@@ -426,10 +431,11 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
                 {
                   title: "Add in Bulk",
                   buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.UserGroup,
                   onClick: () => {
                     setShowBulkAddModal(true);
                   },
-                } as CardButtonSchema,
+                },
               ],
             }}
             noItemsMessage={"No Microsoft Teams subscribers found."}

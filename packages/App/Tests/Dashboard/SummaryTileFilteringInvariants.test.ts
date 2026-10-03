@@ -286,16 +286,15 @@ describe("the Devices page wires its table to the facet bar", () => {
   });
 
   /*
-   * "No network device" under a filter that matched nothing reads as an empty
-   * project. The gate is what makes the copy honest in both states.
+   * "No network devices yet" under a filter that matched nothing reads as an
+   * empty project. The chips are the bar's own state, so the table hears
+   * about them through the hook's emptyState: it then says nothing matches
+   * and offers to clear them, in both states honestly.
    */
   test("an empty filtered table explains itself", () => {
-    expect(destructured).toContain("hasActiveFilters,");
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        'noItemsMessage={ hasActiveFilters ? "No network device matches the filters above." : undefined }',
-      ),
-    );
+    expect(destructured).toContain("emptyState: facetEmptyState,");
+    expect(DEVICES_PAGE).toContain("emptyState={facetEmptyState}");
+    expect(DEVICES_PAGE).not.toContain("No network device matches");
   });
 });
 
@@ -470,12 +469,9 @@ describe("the Sites page wires its table to the facet bar", () => {
   });
 
   test("an empty filtered table explains itself", () => {
-    expect(destructured).toContain("hasActiveFilters,");
-    expect(SITES_PAGE).toContain(
-      squash(
-        'noItemsMessage={ hasActiveFilters ? "No network site matches the filters above." : undefined }',
-      ),
-    );
+    expect(destructured).toContain("emptyState: facetEmptyState,");
+    expect(SITES_PAGE).toContain("emptyState={facetEmptyState}");
+    expect(SITES_PAGE).not.toContain("No network site matches");
   });
 
   /*

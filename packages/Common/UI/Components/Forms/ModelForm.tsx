@@ -34,6 +34,10 @@ import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import {
+  CreateFormColumnDefault,
+  getCreateFormColumnDefault,
+} from "./Utils/CreateFormDefaults";
+import {
   getPeoplePickerValueKeys,
   toPeoplePickerIds,
 } from "../PeoplePicker/PeoplePickerTypes";
@@ -465,8 +469,23 @@ const ModelForm: <TBaseModel extends BaseModel>(
             };
           }
 
+          /*
+           * A Create form starts from the model's own column defaults - what
+           * the server stores for a field left out - unless the field or the
+           * form's initial values say otherwise (Utils/CreateFormDefaults).
+           * Without this a switch whose column defaults to on was drawn off
+           * and saved off. An Edit form shows the record as it is.
+           */
+          const columnDefault: CreateFormColumnDefault | undefined =
+            props.formType === FormType.Create
+              ? getCreateFormColumnDefault(model, field)
+              : undefined;
+
           fieldsToSet.push({
             ...field,
+            ...(columnDefault !== undefined
+              ? { defaultValue: columnDefault }
+              : {}),
             field: {
               [key]: true,
             } as SelectFormFields<TBaseModel>,
@@ -976,8 +995,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
    * so a form that mounts before its id is known still fetches once it
    * arrives. It used to run only on mount, which left an Update form showing
    * blank defaults: submitting that silently wrote empty values - and false
-   * for every Toggle, since BasicForm defaults untouched toggles to false -
-   * over the real record.
+   * for every Toggle, since BasicForm sends an untouched toggle as false -
+   * over the real record. (A Create form starts from the column defaults
+   * instead; an Update form only ever from the record it fetched.)
    */
   useAsyncEffect(async () => {
     if (props.formType !== FormType.Update || props.doNotFetchExistingModel) {

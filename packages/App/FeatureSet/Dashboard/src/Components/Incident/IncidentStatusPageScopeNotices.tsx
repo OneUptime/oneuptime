@@ -91,20 +91,27 @@ export const TranslatedScopeText: FunctionComponent<{
 /*
  * Picked status pages that list none of the incident's monitors. The scope
  * only narrows where the monitors already reach, so the incident will not
- * show on these pages or notify their subscribers. Asked of the same endpoint
- * as the audience summary, so monitor groups count the way they do when the
- * notifications go out.
+ * show on these pages or notify their subscribers. That includes every
+ * picked page while no monitor is attached at all: status pages show an
+ * incident through its monitors. Asked of the same endpoint as the audience
+ * summary, so monitor groups count the way they do when the notifications go
+ * out.
+ *
+ * This is where picking pages without a monitor is caught. The audience
+ * summary under 'Notify Status Page Subscribers' no longer says "no monitors
+ * are attached" on every incident without one - most incidents have none,
+ * and pick no status page either.
  */
 export const StatusPagesNotListingMonitorsWarning: FunctionComponent<{
+  // The incident's monitors, as the form holds them. None is none.
   monitorIds: unknown;
   statusPageIds: unknown;
 }> = (props: { monitorIds: unknown; statusPageIds: unknown }): ReactElement => {
-  const hasBoth: boolean =
-    getIdsFromFormValue(props.monitorIds).length > 0 &&
+  const hasPickedPages: boolean =
     getIdsFromFormValue(props.statusPageIds).length > 0;
 
   const { audience }: SubscriberAudienceState = useSubscriberAudience(
-    hasBoth
+    hasPickedPages
       ? {
           monitorIds: props.monitorIds,
           statusPageIds: props.statusPageIds,
@@ -115,7 +122,7 @@ export const StatusPagesNotListingMonitorsWarning: FunctionComponent<{
   const notListing: Array<IncidentSubscriberAudienceNamedStatusPage> =
     audience?.selectedStatusPagesNotListingMonitors || [];
 
-  if (!hasBoth || notListing.length === 0) {
+  if (!hasPickedPages || notListing.length === 0) {
     return <></>;
   }
 

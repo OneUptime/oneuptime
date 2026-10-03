@@ -68,7 +68,8 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
           PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
         /*
          * Who the note will reach: the status pages this incident's scope
-         * lets through, with an "up to" count per channel.
+         * lets through, with an "up to" count per channel. Nothing when
+         * no subscriber was going to hear about it anyway.
          */
         audienceSummary: (
           <SubscriberAudienceSummary
@@ -107,13 +108,15 @@ const IncidentPublicNotes: FunctionComponent<PageComponentProps> = (
         /*
          * A note whose notification went out can be sent again (Resend),
          * one that failed retried; both ask first, naming the status pages
-         * the incident's scope reaches now - where it would go.
+         * the incident's scope reaches now - where it would go, or that it
+         * would reach no one.
          */
         resend: {
           audience: (
             <SubscriberAudienceSummary
               request={{ incidentId: modelId }}
               dataTestId="incident-public-note-resend-audience"
+              saysWhenNobodyIsNotified={true}
             />
           ),
         },

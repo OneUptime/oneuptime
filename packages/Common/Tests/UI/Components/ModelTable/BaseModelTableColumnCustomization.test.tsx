@@ -99,6 +99,7 @@ import UserPreferences, {
   UserPreferenceType,
 } from "../../../../Utils/UserPreferences";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 const PREFS_KEY: string = "monitors-columns-table";
 
@@ -428,6 +429,7 @@ describe("BaseModelTable column customization", () => {
               buttons: [
                 {
                   title: "Archive",
+                  icon: IconProp.Archive,
                   buttonStyleType: ButtonStyleType.NORMAL,
                   onClick: async (): Promise<void> => {
                     return Promise.resolve();

@@ -90,6 +90,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -169,6 +170,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="iot-fleets-table"
         userPreferencesKey="iot-fleets-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

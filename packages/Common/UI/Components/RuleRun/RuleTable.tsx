@@ -16,6 +16,7 @@ import { BulkActionProps } from "../ModelTable/BaseModelTable";
 import ModelTable, {
   ComponentProps as ModelTableComponentProps,
 } from "../ModelTable/ModelTable";
+import { withRuleEnabledOnEditOnly } from "./RuleEnabledField";
 import RuleView from "./RuleView";
 import RunRuleNowModal from "./RunRuleNowModal";
 import getRunRulesBulkAction from "./RunRulesBulkAction";
@@ -51,6 +52,9 @@ function getParentRoute(): Route {
  * A table of rules. For rules that can be run - label, owner, privacy, and
  * status page and SLO monitor rules - it adds "Run Now" to each row and to
  * the bulk actions, and makes each rule viewable on its own page.
+ *
+ * Every rule starts on: the create form leaves out the rule's Enabled
+ * switch, which stays on the edit form and in the table (RuleEnabledField).
  */
 const RuleTable: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -144,6 +148,14 @@ const RuleTable: <TBaseModel extends BaseModel>(
     };
   }
 
+  // Every rule starts on: its create form leaves the Enabled switch out.
+  const ruleTableProps: ModelTableComponentProps<TBaseModel> = {
+    ...tableProps,
+    formFields: tableProps.formFields
+      ? withRuleEnabledOnEditOnly<TBaseModel>(tableProps.formFields)
+      : tableProps.formFields,
+  };
+
   const isViewable: boolean =
     props.isViewable ??
     Boolean(ruleType && (getRuleViewRoute || props.viewPageRoute));
@@ -151,7 +163,7 @@ const RuleTable: <TBaseModel extends BaseModel>(
   return (
     <Fragment>
       <ModelTable<TBaseModel>
-        {...tableProps}
+        {...ruleTableProps}
         actionButtons={actionButtons}
         bulkActions={bulkActions}
         isViewable={isViewable}

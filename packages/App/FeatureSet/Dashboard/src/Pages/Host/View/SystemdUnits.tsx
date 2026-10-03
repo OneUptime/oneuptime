@@ -30,6 +30,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Table from "Common/UI/Components/Table/Table";
+import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
+import { getFilteredEmptyStateProps } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -415,6 +417,7 @@ const HostSystemdUnits: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<SystemdUnitRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (row: SystemdUnitRow): boolean => {
         return unitViewRouteFor(row) !== null;
@@ -580,6 +583,18 @@ const HostSystemdUnits: FunctionComponent<
       ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES} minutes. Unit state comes from the "systemd" receiver (alpha, Linux-only), which needs otelcol-contrib ${MIN_OTELCOL_CONTRIB_VERSION} or newer. Make sure this host runs a native collector with systemd added to the metrics pipeline, alongside resourcedetection — without it the samples never attach to a host. See the Documentation tab for setup steps.`
       : "No units match the current filters.";
 
+  /*
+   * Rows came back and the chips hide every one of them: a filtered empty
+   * state, with the bar's own Clear filters as its way back.
+   */
+  const filteredEmptyState: TableEmptyStateProps | undefined =
+    rows.length > 0
+      ? getFilteredEmptyStateProps({
+          title: noItemsMessage,
+          onClear: clearFilters,
+        })
+      : undefined;
+
   return (
     <Card title="Systemd Units" description={description} buttons={cardButtons}>
       <div>
@@ -610,6 +625,7 @@ const HostSystemdUnits: FunctionComponent<
             setCurrentPage(1);
           }}
           noItemsMessage={noItemsMessage}
+          emptyStateProps={filteredEmptyState}
         />
       </div>
     </Card>

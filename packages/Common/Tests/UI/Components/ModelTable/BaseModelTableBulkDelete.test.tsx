@@ -126,6 +126,7 @@ const ROWS: Array<Row> = [
 
 const ARCHIVE_ACTION: unknown = {
   title: "Archive",
+  icon: IconProp.Archive,
   buttonStyleType: ButtonStyleType.NORMAL,
   onClick: async (): Promise<void> => {
     return Promise.resolve();
@@ -465,6 +466,7 @@ describe("BaseModelTable bulk Delete", () => {
           ARCHIVE_ACTION,
           {
             title: "Delete",
+            icon: IconProp.Trash,
             buttonStyleType: ButtonStyleType.DANGER,
             onClick: async (): Promise<void> => {
               return Promise.resolve();
@@ -817,6 +819,7 @@ describe("BaseModelTable bulk Delete", () => {
           ARCHIVE_ACTION,
           {
             title: "Unlink",
+            icon: IconProp.LinkSlash,
             buttonStyleType: ButtonStyleType.DANGER,
             onClick: async (): Promise<void> => {
               return Promise.resolve();

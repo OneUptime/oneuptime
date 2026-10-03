@@ -68,8 +68,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 /*
  * The real Icon draws an SVG that says nothing about which icon it is. This
- * one names the icon, so the checklist's icons and the trigger's glyph can be
- * read back off the page. Everything else the module exports (SizeProp,
+ * one names the icon, so the checklist's icons and the ⋯ button's glyph can
+ * be read back off the page. Everything else the module exports (SizeProp,
  * ThickProp, IconType) stays real - components across the feed read those at
  * render time.
  */
@@ -102,11 +102,8 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import {
-  DEFAULT_FEED_OPTIONS,
   FEED_OPTIONS_TEXT,
   FILTERED_FEED_NO_ITEMS_MESSAGE,
-  FeedOptions,
-  getFeedOptionsSummary,
 } from "../../../UI/Components/Feed/FeedOptions";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
@@ -201,61 +198,117 @@ const waitForFeed: WaitForFeed = async (
   });
 };
 
-type GetFilterAndSortButton = () => HTMLElement;
+type GetMoreButton = () => HTMLElement;
 
 /*
- * Found the way a screen reader finds it: by its label. What the feed is
- * showing is the button's description, not part of its name, so the name
- * stays "Filter & Sort" whatever is chosen - and the count badge, which is
- * aria-hidden, never joins it either.
+ * The ⋯ More button of the feed's header - the card-header button a table
+ * has - found the way a screen reader finds it, by its name.
  */
-const getFilterAndSortButton: GetFilterAndSortButton = (): HTMLElement => {
-  return screen.getByRole("button", { name: "Filter & Sort" });
-};
-
-type OpenFilterAndSort = () => HTMLElement;
-
-// Presses Filter & Sort and returns the panel it opens.
-const openFilterAndSort: OpenFilterAndSort = (): HTMLElement => {
-  fireEvent.click(getFilterAndSortButton());
-
-  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel });
-};
-
-type CloseFilterAndSort = () => void;
-
-// A press anywhere outside the panel - on the way to another page, say.
-const closeFilterAndSort: CloseFilterAndSort = (): void => {
-  fireEvent.mouseDown(document.body);
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-};
-
-type GetExpectedSummary = (options: FeedOptions) => string;
-
-/*
- * The sentence the trigger is described by, for this feed's event types.
- * Built by the same function the button uses, so the wording can change
- * without this suite noticing - what is pinned is that the description
- * follows the feed's live order and filter, counted over this feed's own
- * event types.
- */
-const getExpectedSummary: GetExpectedSummary = (
-  options: FeedOptions,
-): string => {
-  return getFeedOptionsSummary({
-    options: options,
-    eventTypeCount: ALL_EVENT_TYPES.length,
+const getMoreButton: GetMoreButton = (): HTMLElement => {
+  return within(screen.getByTestId("feed-more-menu")).getByRole("button", {
+    name: "More options",
   });
 };
 
-type GetTriggerIcon = () => string | null;
+type PickFromMoreMenu = (name: string, role?: string) => void;
 
-// The glyph in front of the trigger's label: a funnel, or the sort arrows.
-const getTriggerIcon: GetTriggerIcon = (): string | null => {
+// Opens the ⋯ menu and picks one of its items.
+const pickFromMoreMenu: PickFromMoreMenu = (
+  name: string,
+  role: string = "menuitem",
+): void => {
+  fireEvent.click(getMoreButton());
+  fireEvent.click(within(screen.getByRole("menu")).getByRole(role, { name }));
+};
+
+type ChooseSortOrder = (label: "Newest first" | "Oldest first") => void;
+
+const chooseSortOrder: ChooseSortOrder = (
+  label: "Newest first" | "Oldest first",
+): void => {
+  pickFromMoreMenu(label, "menuitemradio");
+};
+
+type GetCheckedSortOrder = () => string;
+
+// The order the ⋯ menu ticks, as a screen reader hears it; the menu is closed again after.
+const getCheckedSortOrder: GetCheckedSortOrder = (): string => {
+  fireEvent.click(getMoreButton());
+
+  const checked: Array<string> = within(screen.getByRole("menu"))
+    .getAllByRole("menuitemradio")
+    .filter((radio: HTMLElement): boolean => {
+      return radio.getAttribute("aria-checked") === "true";
+    })
+    .map((radio: HTMLElement): string => {
+      return (radio.textContent || "").trim();
+    });
+
+  fireEvent.click(getMoreButton());
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(checked).toHaveLength(1);
+
+  return checked[0]!;
+};
+
+type OpenFilterDialog = () => HTMLElement;
+
+// The ⋯ menu's "Filter by event type", and the dialog it opens.
+const openFilterDialog: OpenFilterDialog = (): HTMLElement => {
+  pickFromMoreMenu(FEED_OPTIONS_TEXT.filter);
+
+  return screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter });
+};
+
+type CancelFilterDialog = () => void;
+
+const cancelFilterDialog: CancelFilterDialog = (): void => {
+  fireEvent.click(
+    within(
+      screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.filter }),
+    ).getByRole("button", { name: "Cancel" }),
+  );
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+};
+
+type ApplyEventTypes = (eventTypes: Array<string>) => void;
+
+// Ticks these in the filter dialog and applies them together.
+const applyEventTypes: ApplyEventTypes = (eventTypes: Array<string>): void => {
+  const dialog: HTMLElement = openFilterDialog();
+
+  for (const eventType of eventTypes) {
+    fireEvent.click(
+      within(dialog).getByTestId(`feed-options-event-type-${eventType}`),
+    );
+  }
+
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Apply Filters" }),
+  );
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+};
+
+type GetFilterBoxTitle = () => string | null;
+
+/*
+ * The title of the box over a filtered feed, counted over this feed's own
+ * event types, or null while it shows them all and has no box.
+ */
+const getFilterBoxTitle: GetFilterBoxTitle = (): string | null => {
+  const box: HTMLElement | null = screen.queryByTestId("feed-filter-summary");
+
+  return box
+    ? within(box).getByText(/^Showing \d+ of \d+ event types$/).textContent
+    : null;
+};
+
+type GetMoreButtonIcon = () => string | null;
+
+const getMoreButtonIcon: GetMoreButtonIcon = (): string | null => {
   return (
-    getFilterAndSortButton()
-      .querySelector("[data-icon]")
-      ?.getAttribute("data-icon") || null
+    getMoreButton().querySelector("[data-icon]")?.getAttribute("data-icon") ||
+    null
   );
 };
 
@@ -449,7 +502,7 @@ describe("ResourceFeed", () => {
     expect(mockGetListCalls[2]?.["limit"]).toBe(DEFAULT_LIMIT * 3);
     expect(screen.queryByRole("button", { name: "More" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    pickFromMoreMenu("Refresh");
     await waitFor(() => {
       expect(mockGetListCalls).toHaveLength(4);
     });
@@ -904,7 +957,7 @@ describe("ResourceFeed - a feed's own icons", () => {
     );
   });
 
-  test("gives the Filter & Sort checklist the same icons, one entry per event type", async () => {
+  test("gives the event type filter's checklist the same icons, one entry per event type", async () => {
     const askedEventTypes: Array<string> = [];
 
     /*
@@ -948,7 +1001,7 @@ describe("ResourceFeed - a feed's own icons", () => {
       expect(askedEventTypes).toContain(eventType);
     }
 
-    const panel: HTMLElement = openFilterAndSort();
+    const panel: HTMLElement = openFilterDialog();
 
     /*
      * Exactly one box per event type of this feed's own enum: none missing,
@@ -993,12 +1046,13 @@ describe("ResourceFeed - a feed's own icons", () => {
 });
 
 /*
- * Filter & Sort is applied by the API, not to the rows already loaded, and
- * the event type filter is keyed by the same string column as the icon - so
- * a typo there would filter on a column that does not exist.
+ * The ⋯ menu's sort order and event type filter are applied by the API, not
+ * to the rows already loaded, and the event type filter is keyed by the same
+ * string column as the icon - so a typo there would filter on a column that
+ * does not exist.
  */
-describe("ResourceFeed - Filter & Sort", () => {
-  test("puts Filter & Sort first in the header, and an untouched feed sends exactly the query it always sent", async () => {
+describe("ResourceFeed - sort, filter and Refresh in the ⋯ menu", () => {
+  test("keeps sort, filter and Refresh behind one ⋯ More button, and an untouched feed sends exactly the query it always sent", async () => {
     renderFeed();
 
     await waitFor(() => {
@@ -1009,31 +1063,44 @@ describe("ResourceFeed - Filter & Sort", () => {
       Object.keys(mockGetListCalls[0]!["query"] as Record<string, unknown>),
     ).toEqual(["kubernetesClusterId"]);
 
-    const optionsButton: HTMLElement = getFilterAndSortButton();
-    const refreshButton: HTMLElement = screen.getByRole("button", {
-      name: "Refresh",
-    });
+    const card: HTMLElement = screen.getByTestId("card");
+    const more: HTMLElement = getMoreButton();
+
+    // The ⋯ is the header's only control: a resource feed has no Actions.
+    expect(Array.from(card.querySelectorAll('[aria-haspopup="menu"]'))).toEqual(
+      [more],
+    );
+    expect(within(card).queryByRole("button", { name: "Refresh" })).toBeNull();
+    expect(
+      within(card).queryByRole("button", { name: /Filter|Sort/ }),
+    ).toBeNull();
+    expect(more.textContent).toBe("");
+    expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
+
+    fireEvent.click(more);
 
     expect(
-      optionsButton.compareDocumentPosition(refreshButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      Array.from(
+        screen
+          .getByRole("menu")
+          .querySelectorAll('[role="menuitemradio"], [role="menuitem"]'),
+      ).map((item: Element): string => {
+        return (item.textContent || "").trim();
+      }),
+    ).toEqual([
+      "Newest first",
+      "Oldest first",
+      "Filter by event type",
+      "Refresh",
+    ]);
 
-    /*
-     * The state behind the button is read out as its description - and shown
-     * as its tooltip - so the reader need not open it to know what the feed
-     * is showing.
-     */
-    const summary: string = getExpectedSummary(DEFAULT_FEED_OPTIONS);
+    fireEvent.click(more);
 
-    expect(summary.length).toBeGreaterThan(0);
-    expect(optionsButton).toHaveAccessibleDescription(summary);
-    expect(optionsButton).toHaveAttribute("title", summary);
-
-    // An untouched feed: the funnel, no count, and nothing remembered.
-    expect(getTriggerIcon()).toBe(IconProp.Filter);
-    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
+    // An untouched feed: newest first, no filter box, and nothing remembered.
+    expect(getCheckedSortOrder()).toBe("Newest first");
+    expect(getFilterBoxTitle()).toBeNull();
     expect(getStoredSortOrderKeys()).toEqual([]);
+    expect(mockGetListCalls).toHaveLength(1);
   });
 
   test("filters on the feed's own event type column and says so when nothing matches", async () => {
@@ -1043,13 +1110,7 @@ describe("ResourceFeed - Filter & Sort", () => {
       expect(screen.getByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
     });
 
-    const panel: HTMLElement = openFilterAndSort();
-
-    fireEvent.click(
-      within(panel).getByTestId(
-        `feed-options-event-type-${KubernetesClusterFeedEventType.OwnerUserAdded}`,
-      ),
-    );
+    applyEventTypes([KubernetesClusterFeedEventType.OwnerUserAdded]);
 
     await waitFor(() => {
       expect(mockGetListCalls).toHaveLength(2);
@@ -1080,21 +1141,19 @@ describe("ResourceFeed - Filter & Sort", () => {
     expect(screen.queryByText(NO_ITEMS_MESSAGE)).not.toBeInTheDocument();
 
     /*
-     * The trigger keeps its name with a count on it, and its description now
-     * says the feed is narrowed - to one of this feed's event types.
+     * The box over the feed says it is narrowed - to one of this feed's own
+     * event types - and names that type.
      */
-    const optionsButton: HTMLElement = getFilterAndSortButton();
-
-    expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
-    expect(optionsButton).toHaveAccessibleDescription(
-      getExpectedSummary({
-        sortOrder: SortOrder.Descending,
-        eventTypes: [KubernetesClusterFeedEventType.OwnerUserAdded],
-      }),
+    expect(getFilterBoxTitle()).toBe(
+      `Showing 1 of ${ALL_EVENT_TYPES.length} event types`,
     );
-    expect(optionsButton).not.toHaveAccessibleDescription(
-      getExpectedSummary(DEFAULT_FEED_OPTIONS),
-    );
+    expect(
+      screen.getByTestId(
+        `feed-filter-chip-${KubernetesClusterFeedEventType.OwnerUserAdded}`,
+      ),
+    ).toHaveTextContent("User Added as Owner");
+    // ...while the ⋯ itself does not change.
+    expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
   });
 
   test("Oldest first re-reads the first window in ascending order, draws it exactly as the API returned it, and remembers it under this feed's key only", async () => {
@@ -1166,11 +1225,7 @@ describe("ResourceFeed - Filter & Sort", () => {
     // Nothing is remembered until the reader changes something.
     expect(getStoredSortOrderKeys()).toEqual([]);
 
-    const panel: HTMLElement = openFilterAndSort();
-
-    fireEvent.click(
-      within(panel).getByTestId(`feed-options-sort-${SortOrder.Ascending}`),
-    );
+    chooseSortOrder("Oldest first");
 
     await waitForFeed(3);
 
@@ -1190,14 +1245,9 @@ describe("ResourceFeed - Filter & Sort", () => {
       );
     });
 
-    /*
-     * The trigger says so without being opened: the sort glyph instead of the
-     * funnel, and a description that leads with the new order.
-     */
-    expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
-    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
-    );
+    // The ⋯ menu ticks the new order; a reversed feed is not a filtered one.
+    expect(getCheckedSortOrder()).toBe("Oldest first");
+    expect(getFilterBoxTitle()).toBeNull();
 
     /*
      * Remembered under this feed's own key, and only there: another
@@ -1247,9 +1297,9 @@ describe("ResourceFeed - Filter & Sort", () => {
 
     type ExpectNothingTicked = () => void;
 
-    // Reopens the panel on the feed as it is now, and closes it again.
+    // Reopens the filter dialog on the feed as it is now, and cancels it.
     const expectNothingTicked: ExpectNothingTicked = (): void => {
-      const reopenedPanel: HTMLElement = openFilterAndSort();
+      const reopenedPanel: HTMLElement = openFilterDialog();
       const checkboxes: Array<HTMLElement> =
         within(reopenedPanel).getAllByRole("checkbox");
 
@@ -1259,31 +1309,19 @@ describe("ResourceFeed - Filter & Sort", () => {
         expect(checkbox).not.toBeChecked();
       }
 
-      expect(
-        within(reopenedPanel).getByTestId(
-          `feed-options-sort-${SortOrder.Ascending}`,
-        ),
-      ).toHaveAttribute("aria-checked", "true");
+      cancelFilterDialog();
 
-      closeFilterAndSort();
+      expect(getCheckedSortOrder()).toBe("Oldest first");
     };
 
     const view: ReturnType<typeof render> = renderFeed(clusterA);
     await waitForFeed(1);
 
     // On cluster A: oldest first, then only owners being added.
-    const panel: HTMLElement = openFilterAndSort();
-
-    fireEvent.click(
-      within(panel).getByTestId(`feed-options-sort-${SortOrder.Ascending}`),
-    );
+    chooseSortOrder("Oldest first");
     await waitForFeed(2);
 
-    fireEvent.click(
-      within(
-        screen.getByRole("dialog", { name: FEED_OPTIONS_TEXT.panelLabel }),
-      ).getByTestId(`feed-options-event-type-${tickedEventType}`),
-    );
+    applyEventTypes([tickedEventType]);
     await waitForFeed(3);
 
     const filteredRequest: GetListRequest = mockGetListCalls[2]!;
@@ -1293,9 +1331,9 @@ describe("ResourceFeed - Filter & Sort", () => {
     expect(eventTypeFilter).toBeInstanceOf(Includes);
     expect((eventTypeFilter as Includes).values).toEqual([tickedEventType]);
     expect(filteredRequest["sort"]).toEqual({ postedAt: SortOrder.Ascending });
-    expect(screen.getByTestId("feed-options-count")).toHaveTextContent(/^1$/);
-
-    closeFilterAndSort();
+    expect(getFilterBoxTitle()).toBe(
+      `Showing 1 of ${ALL_EVENT_TYPES.length} event types`,
+    );
 
     // To cluster B.
     view.rerender(getFeedElement(clusterB));
@@ -1316,11 +1354,8 @@ describe("ResourceFeed - Filter & Sort", () => {
       screen.queryByText(FILTERED_FEED_NO_ITEMS_MESSAGE),
     ).not.toBeInTheDocument();
 
-    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
-    expect(getTriggerIcon()).toBe(IconProp.BarsArrowUp);
-    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
-    );
+    expect(getFilterBoxTitle()).toBeNull();
+    expect(getMoreButtonIcon()).toBe(IconProp.EllipsisHorizontal);
     expectNothingTicked();
 
     // Nothing asked B for the old filter afterwards either.
@@ -1348,10 +1383,7 @@ describe("ResourceFeed - Filter & Sort", () => {
     expectUnfilteredOldestFirst(requestsAfterReturn[0]!, clusterA);
 
     expect(await screen.findByText(NO_ITEMS_MESSAGE)).toBeInTheDocument();
-    expect(screen.queryByTestId("feed-options-count")).not.toBeInTheDocument();
-    expect(getFilterAndSortButton()).toHaveAccessibleDescription(
-      getExpectedSummary({ sortOrder: SortOrder.Ascending, eventTypes: [] }),
-    );
+    expect(getFilterBoxTitle()).toBeNull();
     expectNothingTicked();
   });
 });

@@ -101,6 +101,7 @@ const MonitorGroupMonitors: FunctionComponent<
           {
             buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
             title: "Unassign",
+            icon: IconProp.Close,
             onClick: (monitor: Monitor, onCompleteAction: VoidFunction) => {
               setSelectedMonitor(monitor);
               setShowUnassignModal(true);

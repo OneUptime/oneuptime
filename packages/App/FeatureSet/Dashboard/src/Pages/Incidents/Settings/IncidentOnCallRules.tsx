@@ -158,6 +158,8 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           title: "Enabled",
           stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
           description: "Enable or disable this rule.",
         },
@@ -358,6 +360,8 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           title: "Enabled",
           stepId: "basic-info",
           fieldType: FormFieldSchemaType.Toggle,
+          // A rule starts on: the switch is on its edit form only.
+          doNotShowWhenCreating: true,
           required: false,
         },
         {

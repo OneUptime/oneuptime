@@ -82,6 +82,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -129,6 +130,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="docker-hosts-table"
         userPreferencesKey="docker-hosts-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

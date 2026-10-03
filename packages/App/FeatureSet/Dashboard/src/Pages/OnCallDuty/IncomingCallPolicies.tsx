@@ -93,6 +93,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -193,6 +194,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}

@@ -1,15 +1,15 @@
 # Einen Workflow erstellen
 
-Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Ein Assistent namens **Create a workflow** führt Sie hindurch: zuerst **Start from**, dann **Name**, und zum Schluss ein Schritt **Konfigurieren**, der nur auftaucht, wenn die gewählte Vorlage eigene Einstellungen verlangt.
+Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Der Dialog **Workflow erstellen** fragt zuerst, wie Sie beginnen möchten, und dann nach einem Namen. Eine Vorlage, die eigene Einstellungen braucht, etwa eine Slack-Webhook-URL, fragt in einem weiteren Schritt danach.
 
-Unter **Start from** wählen Sie, wie Sie beginnen:
+Wählen Sie, wie Sie beginnen:
 
-- **Ohne Vorlage beginnen**, neben dem Suchfeld, gibt Ihnen eine leere Arbeitsfläche.
-- Eine Vorlage gibt Ihnen einen funktionierenden Workflow, den Sie anpassen können. Der Schritt öffnet mit einigen Vorlagen unter **Empfohlen**. Die übrigen liegen in ihren Kategorien, etwa **Vorfälle**, **Monitore** und **Jira**, jeweils mit der Zahl ihrer Vorlagen, und **Alle Vorlagen** listet jede einzelne auf. Eine Suche durchsucht alle: Jedes eingegebene Wort muss passen, und jede Kategorie zeigt, wie viele ihrer Vorlagen passen.
+- **Ohne Vorlage beginnen**, ganz oben im Dialog, gibt Ihnen eine leere Arbeitsfläche. Die meisten Workflows beginnen hier.
+- **Oder mit einer Vorlage beginnen** listet einige Vorlagen unter **Empfohlen** auf. Für die übrigen wählen Sie neben dem Suchfeld eine Kategorie, etwa **Vorfälle**, **Monitore** oder **Jira**, oder **Alle Vorlagen**, oder Sie tippen in **Vorlagen durchsuchen…**. Jedes eingegebene Wort muss passen.
 
-Klicken Sie auf eine Vorlage, um vor der Auswahl zu sehen, was sie tut: ihren Trigger, die Schritte, aus denen sie besteht, und die Einstellungen, nach denen sie fragt. **Diese Vorlage verwenden** bringt Sie mit ihr zu **Name**, ebenso **Enter** und ein Doppelklick. Mit den Pfeiltasten bewegen Sie sich durch die Liste, und `/` springt zurück ins Suchfeld.
+Klicken Sie auf eine Vorlage, um zu sehen, was sie tut: ihren Trigger, die Blöcke, aus denen sie besteht, und die Einstellungen, nach denen sie fragt. Klicken Sie dann auf **Diese Vorlage verwenden**, oder doppelklicken Sie auf die Vorlage. Im Suchfeld wählen die Pfeiltasten eine Vorlage aus, und **Enter** verwendet sie. `/` bringt Sie zurück ins Suchfeld.
 
-Sobald er angelegt ist, öffnen Sie **Builder** im linken Menü. Das ist die Arbeitsfläche, auf der Sie den Workflow entwerfen.
+Workflows werden ausgeschaltet angelegt, sodass nichts ausgeführt wird, bis Sie sie einschalten. Ein neuer Workflow öffnet sich im **Builder**, der Arbeitsfläche, auf der Sie ihn entwerfen.
 
 ## Die Arbeitsfläche
 

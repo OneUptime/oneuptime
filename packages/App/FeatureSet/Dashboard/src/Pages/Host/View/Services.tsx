@@ -29,6 +29,8 @@ import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Table from "Common/UI/Components/Table/Table";
+import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
+import { getFilteredEmptyStateProps } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -425,6 +427,7 @@ const HostServices: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<ServiceRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       isVisible: (row: ServiceRow): boolean => {
         return serviceViewRouteFor(row) !== null;
@@ -585,6 +588,18 @@ const HostServices: FunctionComponent<
       ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver (alpha, Windows-only), which is bundled in the upstream otelcol-contrib build from v0.155.0. Make sure the host runs otelcol-contrib v0.155.0+ with windows_service added to the metrics pipeline — see the Documentation tab for setup steps.`
       : "No services match the current filters.";
 
+  /*
+   * Rows came back and the chips hide every one of them: a filtered empty
+   * state, with the bar's own Clear filters as its way back.
+   */
+  const filteredEmptyState: TableEmptyStateProps | undefined =
+    rows.length > 0
+      ? getFilteredEmptyStateProps({
+          title: noItemsMessage,
+          onClear: clearFilters,
+        })
+      : undefined;
+
   return (
     <Card
       title="Windows Services"
@@ -619,6 +634,7 @@ const HostServices: FunctionComponent<
             setCurrentPage(1);
           }}
           noItemsMessage={noItemsMessage}
+          emptyStateProps={filteredEmptyState}
         />
       </div>
     </Card>

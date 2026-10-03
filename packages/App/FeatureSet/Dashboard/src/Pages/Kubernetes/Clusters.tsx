@@ -84,6 +84,7 @@ const KubernetesClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -131,6 +132,7 @@ const KubernetesClusters: FunctionComponent<
         id="kubernetes-clusters-table"
         userPreferencesKey="kubernetes-clusters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

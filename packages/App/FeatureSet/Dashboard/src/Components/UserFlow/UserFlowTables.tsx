@@ -223,6 +223,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
   const pageActions: Array<ActionButtonSchema<UserFlowPageStats>> = [
     {
       title: "Paths before",
+      icon: IconProp.ArrowLeft,
       buttonStyleType: ButtonStyleType.OUTLINE,
       onClick: (
         page: UserFlowPageStats,
@@ -234,6 +235,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Paths after",
+      icon: IconProp.ArrowRight,
       buttonStyleType: ButtonStyleType.OUTLINE,
       placement: ActionButtonPlacement.Primary,
       onClick: (

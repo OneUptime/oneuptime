@@ -91,6 +91,7 @@ const VMwareVCenters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -170,6 +171,7 @@ const VMwareVCenters: FunctionComponent<
         id="vmware-vcenters-table"
         userPreferencesKey="vmware-vcenters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

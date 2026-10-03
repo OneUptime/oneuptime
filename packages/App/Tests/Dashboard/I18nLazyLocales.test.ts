@@ -144,6 +144,43 @@ describe("dashboard locale bundling contract (source-pinned)", () => {
     expect(i18nSource).toMatch(/type:\s*["']backend["']/);
   });
 
+  /*
+   * The build ships every locale without the strings English already reads
+   * the same (Common/UI/esbuild-locales.js). That is only safe while English
+   * is the fallback and is bundled with the entry, so it is in memory
+   * whatever language is loaded.
+   */
+  test("i18n.ts falls back to the statically bundled English", () => {
+    const i18nSource: string = readDashboardCode("Utils", "i18n.ts");
+
+    expect(i18nSource).toMatch(/fallbackLng:\s*DEFAULT_LANGUAGE\b/);
+    expect(i18nSource).toMatch(
+      /DEFAULT_LANGUAGE:\s*string\s*=\s*DEFAULT_DASHBOARD_LANGUAGE\b/,
+    );
+    expect(i18nSource).toMatch(
+      /resources:\s*\{\s*en:\s*\{\s*translation:\s*en\s*\}\s*,?\s*\}/,
+    );
+    expect(DEFAULT_DASHBOARD_LANGUAGE).toBe("en");
+  });
+
+  test("the build ships src/Locales through the runtime-locales plugin, English as the fallback", () => {
+    const buildConfig: string = stripComments(
+      fs.readFileSync(
+        path.join(DASHBOARD_SRC, "..", "esbuild.config.js"),
+        "utf8",
+      ),
+    ).replace(/\s+/g, " ");
+
+    expect(buildConfig).toContain('require("Common/UI/esbuild-locales")');
+    expect(buildConfig).toMatch(
+      /additionalPlugins: \[ createRuntimeLocalesPlugin\(\{ localesDirectory: path\.join\(__dirname, "src", "Locales"\), fallbackLanguage: "en", \}\), \]/,
+    );
+    // The directory the plugin is pointed at is the one the loader imports.
+    expect(fs.existsSync(path.join(DASHBOARD_SRC, "Locales", "en.json"))).toBe(
+      true,
+    );
+  });
+
   test("the first render waits for i18next readiness so a non-English boot never paints raw keys", () => {
     const indexSource: string = readDashboardCode("Index.tsx");
 

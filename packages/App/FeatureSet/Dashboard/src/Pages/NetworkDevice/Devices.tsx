@@ -535,8 +535,8 @@ const NetworkDevices: FunctionComponent<
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
-    hasActiveFilters,
     facetSelections,
     facetOperators,
     setFacetSelection,
@@ -848,18 +848,11 @@ const NetworkDevices: FunctionComponent<
          */
         topContent={filterBar}
         /*
-         * "No network device" under a chip that matched nothing reads as an empty
-         * project. This says the fleet is there and the bar is what is hiding it.
-         *
-         * Only the chips — `hasActiveFilters` is the bar's own state, so a search
-         * term or a popup filter that matches nothing still falls through to the
-         * table's default copy.
+         * "No network devices yet" under a chip that matched nothing reads as
+         * an empty project. The chips are the bar's own state, so the table is
+         * told about them: it says nothing matches and offers to clear them.
          */
-        noItemsMessage={
-          hasActiveFilters
-            ? "No network device matches the filters above."
-            : undefined
-        }
+        emptyState={facetEmptyState}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

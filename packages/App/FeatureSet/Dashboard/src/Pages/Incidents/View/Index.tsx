@@ -1385,7 +1385,8 @@ const IncidentView: FunctionComponent<
                            * each confirmed with who it reaches now: the
                            * pages of the incident's current scope - for a
                            * Retry, without the pages already sent it in
-                           * full, which it skips.
+                           * full, which it skips - or that it reaches no
+                           * one.
                            */
                           resendConfirmation={
                             canSendCreatedNotificationAgain
@@ -1402,6 +1403,7 @@ const IncidentView: FunctionComponent<
                                     <SubscriberAudienceSummary
                                       request={{ incidentId: modelId }}
                                       dataTestId="incident-created-resend-audience"
+                                      saysWhenNobodyIsNotified={true}
                                     />
                                   ),
                                   retryAudience: (
@@ -1412,6 +1414,7 @@ const IncidentView: FunctionComponent<
                                           true,
                                       }}
                                       dataTestId="incident-created-retry-audience"
+                                      saysWhenNobodyIsNotified={true}
                                     />
                                   ),
                                 }

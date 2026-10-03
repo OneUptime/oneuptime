@@ -91,6 +91,7 @@ const ProxmoxClusters: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -170,6 +171,7 @@ const ProxmoxClusters: FunctionComponent<
         id="proxmox-clusters-table"
         userPreferencesKey="proxmox-clusters-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

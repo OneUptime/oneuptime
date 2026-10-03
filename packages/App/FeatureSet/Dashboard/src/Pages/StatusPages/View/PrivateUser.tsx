@@ -5,7 +5,6 @@ import Email from "Common/Types/Email";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -233,10 +232,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             {
               title: "Add in Bulk",
               buttonStyle: ButtonStyleType.OUTLINE,
+              icon: IconProp.UserGroup,
               onClick: () => {
                 setShowBulkAddModal(true);
               },
-            } as CardButtonSchema,
+            },
           ],
         }}
         noItemsMessage={"No private users created for this status page."}

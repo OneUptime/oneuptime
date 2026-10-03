@@ -214,6 +214,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           actionButtons={[
             {
               title: "View SSO Config",
+              icon: IconProp.Settings,
               buttonStyleType: ButtonStyleType.NORMAL,
               onClick: async (
                 item: StatusPageSSO,

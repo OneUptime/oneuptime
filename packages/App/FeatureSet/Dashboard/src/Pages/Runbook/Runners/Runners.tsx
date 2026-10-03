@@ -11,6 +11,7 @@ import {
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -104,6 +105,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         actionButtons={[
           {
             title: "Show setup instructions",
+            icon: IconProp.CommandLine,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: Runner,

@@ -65,6 +65,7 @@ const actionsFor: (data: {
   return [
     {
       title: "Edit",
+      icon: IconProp.Edit,
       buttonStyleType: ButtonStyleType.OUTLINE,
       onClick: data.onEdit,
     },
@@ -94,6 +95,7 @@ afterEach(() => {
 describe("getActionButtonLock", () => {
   const button: ActionButtonSchema<Row> = {
     title: "Delete",
+    icon: IconProp.Trash,
     buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
     tooltip: "Delete this state",
     getDisabledReason: (row: Row): string | undefined => {
@@ -135,6 +137,7 @@ describe("getActionButtonLock", () => {
   test("an action with no row lock is as it always was", () => {
     const plain: ActionButtonSchema<Row> = {
       title: "Edit",
+      icon: IconProp.Edit,
       buttonStyleType: ButtonStyleType.OUTLINE,
       onClick: (): void => {},
     };
@@ -151,6 +154,7 @@ describe("splitActionButtons with a row lock", () => {
     const actions: Array<ActionButtonSchema<Row>> = [
       {
         title: "Rename",
+        icon: IconProp.Edit,
         buttonStyleType: ButtonStyleType.OUTLINE,
         getDisabledReason: (row: Row): string | undefined => {
           return row.isBuiltIn ? "Locked" : undefined;
@@ -159,6 +163,7 @@ describe("splitActionButtons with a row lock", () => {
       },
       {
         title: "Edit",
+        icon: IconProp.Edit,
         buttonStyleType: ButtonStyleType.OUTLINE,
         onClick: (): void => {},
       },
@@ -287,6 +292,7 @@ describe("RowActions with a row lock", () => {
         actionButtons={[
           {
             title: "Remove",
+            icon: IconProp.Close,
             buttonStyleType: ButtonStyleType.NORMAL,
             getDisabledReason: (): string => {
               return LOCKED_REASON;
