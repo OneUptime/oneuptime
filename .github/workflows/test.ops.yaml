@@ -113,6 +113,12 @@ jobs:
       # traces and SDK spans kept. A wrong condition here is not a crash, it
       # is a customer's traces quietly missing (or the one-span flood back).
       - run: bash Tests/Ops/agent-trace-filter-behaviour.sh
+      # The same for the agent's metrics: filter/ebpf-node-inspector as the
+      # chart renders it, in the same collector image, fed datapoints shaped
+      # like OBI's. The http.server.* datapoints of OBI's own Node.js
+      # inspector requests are dropped; an app's own routes, other ports,
+      # other methods and SDK metrics are kept.
+      - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and

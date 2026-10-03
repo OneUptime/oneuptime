@@ -1,0 +1,156 @@
+# OBI v0.14 starts tracing a Node.js process before it injects its Node.js
+# agent through the process's inspector, so its own GET /json/list (and
+# GET /json/version), and the WebSocket upgrade after them, on 127.0.0.1:9229
+# are counted in the app's http.server.* metrics: routes /json/list,
+# /json/version and /* (101) on server.port 9229, re-exported every interval.
+# OneUptime drops the matching spans on ingest; the agent's collector drops
+# these datapoints (ebpf.dropNodeInspectorMetrics).
+#
+# These tests pin the condition text (its behaviour against a real collector
+# is covered by Tests/Ops/agent-metric-filter-behaviour.sh), its switch, and
+# its position in the metrics pipeline.
+suite: collector drops OBI's Node.js inspector metrics
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/configmap-daemonset.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: defines the filter by default, scoped to OBI's http.server datapoints for GET on port 9229 of the inspector's routes
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-node-inspector:\\n    error_mode: ignore\\n    metrics:\\n      datapoint:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and IsMatch\\(metric\\.name, \"\\^http\\\\\\\\\\.server\\\\\\\\\\.\"\\) and attributes\\[\"server\\.port\"\\] == 9229 and attributes\\[\"http\\.request\\.method\"\\] == \"GET\" and \\(attributes\\[\"http\\.route\"\\] == \"/json/list\" or attributes\\[\"http\\.route\"\\] == \"/json/version\" or \\(attributes\\[\"http\\.route\"\\] == \"/\\*\" and attributes\\[\"http\\.response\\.status_code\"\\] == 101\\)\\)'\\n"
+
+  - it: has exactly one condition, and nothing for spans or whole metrics
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-node-inspector:\\n    error_mode: ignore\\n    metrics:\\n      datapoint:\\n        - '[^\\n]*'\\n(?:\\n|  [#a-z])"
+
+  - it: runs it in the metrics pipeline right after the metadata processors, before batch
+    asserts:
+      # A strict line chain, not a [\s\S]*? gap: a lazy gap can run out of the
+      # metrics pipeline and match something in another one.
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
+
+  - it: runs it after the user's metric filters and the resource processor
+    set:
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [noisy]
+          scopes: [metrics]
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - filter/telemetry\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
+
+  - it: never runs it on traces or logs
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- filter/ebpf-node-inspector\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    logs:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- filter/ebpf-node-inspector\\n"
+
+  - it: can be turned off, leaving neither the definition nor a dangling pipeline reference
+    set:
+      ebpf.dropNodeInspectorMetrics: false
+    asserts:
+      # A processor referenced but not defined (or the reverse) is a collector
+      # that refuses to start.
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-node-inspector"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n    logs:\\n"
+
+  - it: stays on for a release upgraded with --reuse-values from values that predate it
+    set:
+      ebpf.dropNodeInspectorMetrics: null
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-node-inspector:\\n"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
+
+  - it: does not exist when eBPF is off, since nothing sends OBI's metrics then
+    set:
+      ebpf.enabled: false
+      ebpf.dropNodeInspectorMetrics: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-node-inspector"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n"
+
+  - it: is its own switch, apart from the database span filters
+    set:
+      ebpf.dropDatabaseServerSpans: false
+      ebpf.dropUnlinkedDatabaseCalls: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-db"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-node-inspector:\\n"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - filter/ebpf-node-inspector\\n"
+
+  - it: leaves the database span filter alone when turned off
+    set:
+      ebpf.dropNodeInspectorMetrics: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - filter/ebpf-unlinked-db\\n"
+
+  - it: is never added to the node collector, which does not receive OBI's metrics
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-node-inspector"
+
+  - it: refuses a value that is not a boolean
+    set:
+      ebpf.dropNodeInspectorMetrics: "no"
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        failedTemplate:
+          errorPattern: "dropNodeInspectorMetrics"
