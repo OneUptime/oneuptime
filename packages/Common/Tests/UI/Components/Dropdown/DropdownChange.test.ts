@@ -46,18 +46,18 @@ describe("flattenDropdownOptions", () => {
 
 describe("getDropdownOptionsForValue", () => {
   test("finds a value among the options, inside groups too", () => {
-    expect(getDropdownOptionsForValue({ options: GROUPED, value: "low" })).toEqual(
-      [LOW],
-    );
+    expect(
+      getDropdownOptionsForValue({ options: GROUPED, value: "low" }),
+    ).toEqual([LOW]);
   });
 
   test("finds numbers and booleans as the form keeps them", () => {
     expect(getDropdownOptionsForValue({ options: GROUPED, value: 1 })).toEqual([
       ONE,
     ]);
-    expect(getDropdownOptionsForValue({ options: GROUPED, value: true })).toEqual(
-      [YES],
-    );
+    expect(
+      getDropdownOptionsForValue({ options: GROUPED, value: true }),
+    ).toEqual([YES]);
   });
 
   test("finds a record's id whether it is held as a string or an ObjectID", () => {
@@ -75,9 +75,9 @@ describe("getDropdownOptionsForValue", () => {
   test("takes a value that is an option already as it is", () => {
     const picked: DropdownOption = { value: "elsewhere", label: "Elsewhere" };
 
-    expect(getDropdownOptionsForValue({ options: GROUPED, value: picked })).toEqual(
-      [picked],
-    );
+    expect(
+      getDropdownOptionsForValue({ options: GROUPED, value: picked }),
+    ).toEqual([picked]);
   });
 
   test("follows a multi-select's order", () => {
@@ -107,13 +107,21 @@ describe("getDropdownOptionsForValue", () => {
 describe("getDropdownChange", () => {
   test("says what is picked now and what was picked before", () => {
     expect(
-      getDropdownChange({ options: GROUPED, value: "low", previousValue: "high" }),
+      getDropdownChange({
+        options: GROUPED,
+        value: "low",
+        previousValue: "high",
+      }),
     ).toEqual({ selectedOptions: [LOW], previousOptions: [HIGH] });
   });
 
   test("says a cleared pick: nothing now, and what was there", () => {
     expect(
-      getDropdownChange({ options: GROUPED, value: null, previousValue: "high" }),
+      getDropdownChange({
+        options: GROUPED,
+        value: null,
+        previousValue: "high",
+      }),
     ).toEqual({ selectedOptions: [], previousOptions: [HIGH] });
   });
 

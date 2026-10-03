@@ -641,9 +641,7 @@ describe("Add Monitor, as somebody fills it in", () => {
           }
           formType={formType}
           modelIdToEdit={
-            formType === FormType.Update
-              ? new ObjectID(RESOURCE_ID)
-              : undefined
+            formType === FormType.Update ? new ObjectID(RESOURCE_ID) : undefined
           }
           onSuccess={(): void => {
             // Not asserted on.

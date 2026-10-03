@@ -760,9 +760,9 @@ describe("the group form survived the merge intact", () => {
     expect(groupForm).toContain(
       "const advancedSection: FormFieldCollapsibleSection<StatusPageGroup> = getAdvancedFormSection<StatusPageGroup>();",
     );
-    expect(groupForm.split("collapsibleSection: layoutSection,").length - 1).toBe(
-      5,
-    );
+    expect(
+      groupForm.split("collapsibleSection: layoutSection,").length - 1,
+    ).toBe(5);
     expect(
       groupForm.split("collapsibleSection: advancedSection,").length - 1,
     ).toBe(5);

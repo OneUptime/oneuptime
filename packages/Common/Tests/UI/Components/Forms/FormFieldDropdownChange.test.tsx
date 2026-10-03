@@ -140,7 +140,9 @@ describe("FormField: a list of records tells onChange what was picked", () => {
 
     // The dropdown shows its selection as a button until it is opened.
     fireEvent.click(screen.getByText("Developer portal").closest("button")!);
-    fireEvent.click(await screen.findByRole("option", { name: /Payments API/ }));
+    fireEvent.click(
+      await screen.findByRole("option", { name: /Payments API/ }),
+    );
 
     expect(onChange).toHaveBeenCalledTimes(1);
 
@@ -190,7 +192,9 @@ describe("FormField: a list of records tells onChange what was picked", () => {
     });
 
     await user.click(screen.getByRole("combobox", { name: "Monitor" }));
-    await user.click(await screen.findByRole("option", { name: /Payments API/ }));
+    await user.click(
+      await screen.findByRole("option", { name: /Payments API/ }),
+    );
 
     expect(setFormValues).toHaveBeenCalledWith({ severity: "high" });
   });

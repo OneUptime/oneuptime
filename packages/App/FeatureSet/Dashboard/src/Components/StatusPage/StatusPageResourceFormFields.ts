@@ -54,43 +54,42 @@ export type GetDisplayNameAfterPickFunction = (data: {
  * when it stays as it is: somebody typed a name of their own, the pick was
  * cleared, or the list could not say what was picked.
  */
-export const getDisplayNameAfterPick: GetDisplayNameAfterPickFunction =
-  (data: {
-    displayName: unknown;
-    filledInDisplayName: unknown;
-    change: DropdownChange | undefined;
-  }): string | null => {
-    const pickedName: string | null = getPickedLabel(
-      data.change?.selectedOptions,
-    );
+export const getDisplayNameAfterPick: GetDisplayNameAfterPickFunction = (data: {
+  displayName: unknown;
+  filledInDisplayName: unknown;
+  change: DropdownChange | undefined;
+}): string | null => {
+  const pickedName: string | null = getPickedLabel(
+    data.change?.selectedOptions,
+  );
 
-    if (pickedName === null) {
-      return null;
-    }
+  if (pickedName === null) {
+    return null;
+  }
 
-    const displayName: string =
-      typeof data.displayName === "string" ? data.displayName : "";
+  const displayName: string =
+    typeof data.displayName === "string" ? data.displayName : "";
 
-    const filledInDisplayName: string | null =
-      typeof data.filledInDisplayName === "string"
-        ? data.filledInDisplayName
-        : null;
+  const filledInDisplayName: string | null =
+    typeof data.filledInDisplayName === "string"
+      ? data.filledInDisplayName
+      : null;
 
-    const previousName: string | null = getPickedLabel(
-      data.change?.previousOptions,
-    );
+  const previousName: string | null = getPickedLabel(
+    data.change?.previousOptions,
+  );
 
-    const isTheFormsOwn: boolean =
-      displayName.trim().length === 0 ||
-      displayName === filledInDisplayName ||
-      displayName === previousName;
+  const isTheFormsOwn: boolean =
+    displayName.trim().length === 0 ||
+    displayName === filledInDisplayName ||
+    displayName === previousName;
 
-    if (!isTheFormsOwn) {
-      return null;
-    }
+  if (!isTheFormsOwn) {
+    return null;
+  }
 
-    return pickedName;
-  };
+  return pickedName;
+};
 
 type FollowPickFunction = (
   value: unknown,

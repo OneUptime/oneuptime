@@ -2935,12 +2935,12 @@ describe("Status Page > Resources", () => {
       expect(
         layout.getSummary({ viewMode: StatusPageGroupViewMode.Grid }),
       ).toEqual(["Grid"]);
-      expect(layout.isConfigured({ viewMode: StatusPageGroupViewMode.Grid })).toBe(
-        true,
-      );
-      expect(layout.isConfigured({ viewMode: StatusPageGroupViewMode.List })).toBe(
-        false,
-      );
+      expect(
+        layout.isConfigured({ viewMode: StatusPageGroupViewMode.Grid }),
+      ).toBe(true);
+      expect(
+        layout.isConfigured({ viewMode: StatusPageGroupViewMode.List }),
+      ).toBe(false);
     });
 
     /*
