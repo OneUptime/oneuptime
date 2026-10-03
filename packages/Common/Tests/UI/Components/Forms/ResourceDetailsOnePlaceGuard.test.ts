@@ -5,7 +5,6 @@ import ts from "typescript";
 import { listSourceFiles } from "../../../ForeignHiddenRuleGuard";
 import {
   FormFacts,
-  FormFieldFacts,
   MIN_SCANNED_FORMS,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
@@ -342,8 +341,7 @@ function readDetailsCardUses(
         line:
           sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
             .line + 1,
-        model:
-          modelType && ts.isIdentifier(modelType) ? modelType.text : "",
+        model: modelType && ts.isIdentifier(modelType) ? modelType.text : "",
         title: stringOf(attributeExpression(node.attributes, "title")),
         nameTitle:
           nameField && ts.isObjectLiteralExpression(nameField)
@@ -373,8 +371,7 @@ function readDetailsCardUses(
  * under Advanced (ResourceDetailsCard.isResourceColumnEditable).
  */
 function editPlacesOfCard(use: DetailsCardUse): Array<EditPlace> {
-  const modelType: { new (): BaseModel } | undefined =
-    MODEL_TYPES[use.model];
+  const modelType: { new (): BaseModel } | undefined = MODEL_TYPES[use.model];
 
   const keys: Array<string> = ["name", "description", "labels"];
 
@@ -399,9 +396,10 @@ function isEditableColumn(
   modelType: { new (): BaseModel },
   column: string,
 ): boolean {
-  const update: Array<unknown> | undefined = new modelType()
-    .getColumnAccessControlFor(column)
-    ?.update as Array<unknown> | undefined;
+  const update: Array<unknown> | undefined =
+    new modelType().getColumnAccessControlFor(column)?.update as
+      | Array<unknown>
+      | undefined;
 
   return Array.isArray(update) && update.length > 0;
 }
@@ -549,7 +547,12 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     ["cloudPlatform", "cloudAccountId", "cloudRegion"],
     [],
   ),
-  matchedOnName("CephCluster", "Ceph", "Index.tsx", "CEPH_CLUSTER_VIEW_SETTINGS"),
+  matchedOnName(
+    "CephCluster",
+    "Ceph",
+    "Index.tsx",
+    "CEPH_CLUSTER_VIEW_SETTINGS",
+  ),
   matchedOnName(
     "ProxmoxCluster",
     "Proxmox",
@@ -633,17 +636,16 @@ export const OTHER_ONE_PLACES: Array<OnePlace> = [
  * Overviews of records that are not discovered resources but used to edit
  * their details too, and the Settings page each links to now.
  */
-const OTHER_OVERVIEW_LINKS: Array<{ overviewPage: string; pageKey: string }> =
-  [
-    {
-      overviewPage: `${PAGES}/NetworkSite/View/Index.tsx`,
-      pageKey: "NETWORK_SITE_VIEW_SETTINGS",
-    },
-    {
-      overviewPage: `${PAGES}/NetworkDevice/View/Index.tsx`,
-      pageKey: "NETWORK_DEVICE_VIEW_SETTINGS",
-    },
-  ];
+const OTHER_OVERVIEW_LINKS: Array<{ overviewPage: string; pageKey: string }> = [
+  {
+    overviewPage: `${PAGES}/NetworkSite/View/Index.tsx`,
+    pageKey: "NETWORK_SITE_VIEW_SETTINGS",
+  },
+  {
+    overviewPage: `${PAGES}/NetworkDevice/View/Index.tsx`,
+    pageKey: "NETWORK_DEVICE_VIEW_SETTINGS",
+  },
+];
 
 // The words a list, an Overview or a form used before the create forms' wording.
 const RETIRED_IDENTITY_TITLES: Array<string> = [

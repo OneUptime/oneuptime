@@ -1,7 +1,10 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
 import PageComponentProps from "../../PageComponentProps";
-import { RUNNER_FORM_STEPS, getRunnerCreateFormFields } from "./RunnerFormFields";
+import {
+  RUNNER_FORM_STEPS,
+  getRunnerCreateFormFields,
+} from "./RunnerFormFields";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";

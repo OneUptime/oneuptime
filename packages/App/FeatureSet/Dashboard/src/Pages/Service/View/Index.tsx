@@ -82,7 +82,6 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
   return sum / series.length;
 };
 
-
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 

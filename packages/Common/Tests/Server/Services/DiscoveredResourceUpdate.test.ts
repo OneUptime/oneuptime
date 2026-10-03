@@ -299,23 +299,32 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
   test("refuses another host's identifier, saying which", async () => {
     clash = storedHost("web-02", ObjectID.generate());
 
-    await expect(check(hostUpdate({ hostIdentifier: "web-02" }))).rejects.toThrow(
-      new BadDataException('A host with the host name "web-02" already exists.'),
+    await expect(
+      check(hostUpdate({ hostIdentifier: "web-02" })),
+    ).rejects.toThrow(
+      new BadDataException(
+        'A host with the host name "web-02" already exists.',
+      ),
     );
   });
 
   test("says when the host that has it is archived", async () => {
-    clash = storedHost("web-02", ObjectID.generate());
-    clash.isArchived = true;
+    const archived: Host = storedHost("web-02", ObjectID.generate());
+    archived.isArchived = true;
+    clash = archived;
 
-    await expect(check(hostUpdate({ hostIdentifier: "web-02" }))).rejects.toThrow(
+    await expect(
+      check(hostUpdate({ hostIdentifier: "web-02" })),
+    ).rejects.toThrow(
       `A host with the host name "web-02" already exists. ${ARCHIVED_RESOURCE_HINT}`,
     );
   });
 
   test("refuses a blank identifier without looking anything up", async () => {
     await expect(check(hostUpdate({ hostIdentifier: "   " }))).rejects.toThrow(
-      new BadDataException("Enter the host name this host's telemetry reports."),
+      new BadDataException(
+        "Enter the host name this host's telemetry reports.",
+      ),
     );
 
     expect(finds).toEqual([]);
@@ -381,7 +390,9 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
   test("refuses one write that would give a host name to two hosts", async () => {
     targets = [storedHost("web-01"), storedHost("web-03", ObjectID.generate())];
 
-    await expect(check(hostUpdate({ hostIdentifier: "web-02" }))).rejects.toThrow(
+    await expect(
+      check(hostUpdate({ hostIdentifier: "web-02" })),
+    ).rejects.toThrow(
       new BadDataException("Each host needs a host name of its own."),
     );
 

@@ -106,9 +106,10 @@ export function isResourceColumnEditable<TBaseModel extends BaseModel>(
   modelType: { new (): TBaseModel },
   column: string,
 ): boolean {
-  const update: Array<unknown> | undefined = new modelType()
-    .getColumnAccessControlFor(column)
-    ?.update as Array<unknown> | undefined;
+  const update: Array<unknown> | undefined =
+    new modelType().getColumnAccessControlFor(column)?.update as
+      | Array<unknown>
+      | undefined;
 
   return Array.isArray(update) && update.length > 0;
 }

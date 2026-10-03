@@ -183,11 +183,7 @@ async function openEditDialog(): Promise<HTMLElement> {
     {},
     { timeout: WAIT_TIMEOUT },
   );
-  await within(dialog).findByText(
-    "Description",
-    {},
-    { timeout: WAIT_TIMEOUT },
-  );
+  await within(dialog).findByText("Description", {}, { timeout: WAIT_TIMEOUT });
   return dialog;
 }
 
@@ -378,11 +374,7 @@ describe("a resource matched on its name", () => {
     stored = cluster;
 
     openSettings(ProxmoxClusterSettings, PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS);
-    await screen.findAllByText(
-      "pve-production",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
+    await screen.findAllByText("pve-production", {}, { timeout: WAIT_TIMEOUT });
 
     expect(screen.getByText("Ceph Storage Link")).toBeInTheDocument();
 
@@ -408,7 +400,10 @@ describe("a resource matched on its name", () => {
       .map((heading: HTMLElement): string => {
         return heading.textContent || "";
       });
-    expect(headings.slice(0, 2)).toEqual(["Service Details", "Service Settings"]);
+    expect(headings.slice(0, 2)).toEqual([
+      "Service Details",
+      "Service Settings",
+    ]);
   });
 });
 
