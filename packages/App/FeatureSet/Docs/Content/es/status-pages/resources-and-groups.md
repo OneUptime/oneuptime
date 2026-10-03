@@ -52,7 +52,7 @@ El paso **Avanzado** es idéntico en el formulario de alta individual y en el mo
 
 ## Porcentajes de tiempo de actividad y gráficos de historial
 
-Tanto **Mostrar % de tiempo de actividad** como **Mostrar gráfico de historial de estado** dependen de un ajuste que vive en otro sitio. La ventana que cubren es **Mostrar historial de tiempo de actividad (en días)**, en **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**, dentro de la tarjeta **Ajustes del historial de tiempo de actividad**. Acepta de 1 a 90 días y su valor predeterminado es 90.
+Tanto **Mostrar % de tiempo de actividad** como **Mostrar gráfico de historial de estado** dependen de un ajuste que vive en otro sitio. La ventana que cubren es **Historial de tiempo de actividad**, en la tarjeta **Lo que muestra su página de estado** de **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**. Acepta de 1 a 90 días y su valor predeterminado es 90.
 
 Así que la secuencia es: activas los interruptores recurso a recurso y luego fijas la ventana una vez para toda la página.
 

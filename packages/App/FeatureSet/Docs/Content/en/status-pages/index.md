@@ -11,7 +11,7 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 - **Created with two fields.** A new status page only asks for **Name** and **Description**. Resources, branding and domains are all configured afterwards.
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
-- **Visitor-facing routes are gated by settings.** Incidents, announcements, scheduled events and the subscribe page each appear only when their toggle on **Advanced Settings** is on.
+- **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
 - **Three ways to make it private.** Private users, a master password, or SAML SSO / OIDC — plus an IP whitelist.
 - **Subscribers get told automatically.** Email, SMS, Slack, Microsoft Teams and webhook subscribers can all follow a page, each channel behind its own toggle.
 
@@ -100,39 +100,23 @@ For what puts an incident on this page in the first place, and what takes it off
 
 ## Choosing what shows on the page
 
-Most of the display switches live in one place: **Status Pages → your page → Advanced → Advanced Settings**. Each card has its own **Edit Settings** button.
+What visitors see is set in one card: **What your status page shows**, on **Status Pages → your page → Advanced → Advanced Settings**. It has a row for each list the page can show, then **Uptime History** and the "Powered by OneUptime" line. There is no Edit button: a switch saves the moment you flip it, and a number of days when you leave its box or press Enter.
 
-**Incident Settings**:
+- **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Under it, **Show the last … days** (`showIncidentHistoryInDays`, default 14) is how far back the incident list reaches, and **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) is off by default.
+- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — also in the incidents row, off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. It also decides which incidents bring their episodes onto the page, so it stays when **Show Incidents** is off. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Show Episodes** (`showEpisodesOnStatusPage`) — on by default, with **Show the last … days** (`showEpisodeHistoryInDays`, default 14) and **Show Episode Labels** (`showEpisodeLabelsOnStatusPage`, off by default). Episodes are their own model with their own endpoints, not a view of incidents.
+- **Show Announcements** (`showAnnouncementsOnStatusPage`) — on by default, with **Show the last … days** (`showAnnouncementHistoryInDays`, default 14).
+- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default, with **Show the last … days** (`showScheduledEventHistoryInDays`, default 14) and **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`, off by default).
+- **Uptime History** — **Show the last … days** (`showUptimeHistoryInDays`) is the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number.
+- **Show Powered By OneUptime Branding** — on by default, so the visitor footer reads "Powered by OneUptime". Turn it off to hide the line. The column stores it the other way round, as `hidePoweredByOneUptimeBranding`.
 
-- **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Turning it off also removes the **Incidents** nav item.
-- **Show Incident History (in days)** (`showIncidentHistoryInDays`) — how far back the incident list reaches. Defaults to 14.
-- **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) — off by default.
-- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+**A list that is off** is gone from the page, with its item in the nav bar if it has one; its public endpoint refuses, and the page's subscribers are not notified about that kind of event. Its row then shows only its switch: how far back a hidden list goes, and whether it shows labels, change nothing.
 
-**Episode Settings** — the same three switches for incident episodes: **Show Episodes** (`showEpisodesOnStatusPage`, on by default), **Show Episode History (in days)** (default 14), and **Show Episode Labels** (off by default). Episodes are their own model with their own endpoints, not a view of incidents.
+**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; hiding the "Powered by OneUptime" line needs **Scale**. The other history windows, **Uptime History** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own.
 
-**Announcement Settings**:
+Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
-- **Show Announcements** (`showAnnouncementsOnStatusPage`) — on by default.
-- **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`) — defaults to 14.
-
-**Scheduled Event Settings**:
-
-- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default.
-- **Show Scheduled Event History (in days)** (`showScheduledEventHistoryInDays`) — defaults to 14.
-- **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`) — off by default.
-
-**Uptime History Settings**:
-
-- **Show Uptime History (in days)** (`showUptimeHistoryInDays`) — the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number.
-
-**Subscriber Settings**:
-
-- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — on by default, plus the five per-channel enable toggles. The same channel toggles also appear on the dedicated **Subscriber Settings** screen under the **Subscribers** section; treat that one as the canonical place to set them.
-
-**Powered By OneUptime Branding**:
-
-- **Hide Powered By OneUptime Branding** — off by default, so the visitor footer reads "Powered by OneUptime" until you turn this on.
+Below the card are **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)).
 
 **Where the colors are.** The uptime bar colors are not here — the **Default Bar Color**, the bar-color rules, the **Downtime Monitor Statuses** and **Show Overall Uptime Percent** all live on **Status Pages → your page → Branding → Overview Page**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
 

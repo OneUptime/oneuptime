@@ -20,6 +20,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import Column from "Common/UI/Components/ModelTable/Column";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
@@ -80,10 +81,17 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ObjectID from "Common/Types/ObjectID";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProbeUtil from "../../Utils/Probe";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -105,6 +113,7 @@ export interface ComponentProps {
 const MonitorsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [showAddProbesModal, setShowAddProbesModal] = useState<boolean>(false);
   const [showRemoveProbesModal, setShowRemoveProbesModal] =
@@ -385,6 +394,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -454,7 +464,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         ) {
           failedItems.push({
             item: monitor,
-            failedMessage: "This monitor type does not support probes",
+            failedMessage: translator.translateTemplate(
+              "This monitor type does not support probes",
+            ),
           });
 
           onProgressInfo({
@@ -487,7 +499,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         if (existingProbes.data.length > 0) {
           failedItems.push({
             item: monitor,
-            failedMessage: "Probe is already assigned to this monitor",
+            failedMessage: translator.translateTemplate(
+              "Probe is already assigned to this monitor",
+            ),
           });
         } else {
           const monitorProbe: MonitorProbe = new MonitorProbe();
@@ -556,7 +570,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         ) {
           failedItems.push({
             item: monitor,
-            failedMessage: "This monitor type does not support probes",
+            failedMessage: translator.translateTemplate(
+              "This monitor type does not support probes",
+            ),
           });
 
           onProgressInfo({
@@ -589,7 +605,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         if (existingProbes.data.length === 0) {
           failedItems.push({
             item: monitor,
-            failedMessage: "Probe is not assigned to this monitor",
+            failedMessage: translator.translateTemplate(
+              "Probe is not assigned to this monitor",
+            ),
           });
         } else {
           await ModelAPI.deleteItem<MonitorProbe>({
@@ -775,10 +793,23 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
                   icon: IconProp.Stop,
                   confirmTitle: (items: Array<Monitor>) => {
-                    return `Disable ${items.length} Monitor(s)`;
+                    return translator.translatePlural(
+                      {
+                        one: "Disable {{count}} Monitor",
+                        other: "Disable {{count}} Monitors",
+                      },
+                      items.length,
+                    );
                   },
                   confirmMessage: (items: Array<Monitor>) => {
-                    return `Are you sure you want to disable ${items.length} monitor(s)?`;
+                    return translator.translatePlural(
+                      {
+                        one: "Are you sure you want to disable {{count}} monitor?",
+                        other:
+                          "Are you sure you want to disable {{count}} monitors?",
+                      },
+                      items.length,
+                    );
                   },
                 },
                 {
@@ -834,10 +865,23 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
                   icon: IconProp.Play,
                   confirmTitle: (items: Array<Monitor>) => {
-                    return `Enable ${items.length} Monitor(s)`;
+                    return translator.translatePlural(
+                      {
+                        one: "Enable {{count}} Monitor",
+                        other: "Enable {{count}} Monitors",
+                      },
+                      items.length,
+                    );
                   },
                   confirmMessage: (items: Array<Monitor>) => {
-                    return `Are you sure you want to enable ${items.length} monitor(s) for active monitoring?`;
+                    return translator.translatePlural(
+                      {
+                        one: "Are you sure you want to enable {{count}} monitor for active monitoring?",
+                        other:
+                          "Are you sure you want to enable {{count}} monitors for active monitoring?",
+                      },
+                      items.length,
+                    );
                   },
                 },
                 getBulkAddProbesAction(),
@@ -856,6 +900,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         refreshToggle={props.refreshToggle}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(scopedQuery)}

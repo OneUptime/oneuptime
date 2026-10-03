@@ -30,6 +30,7 @@ import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 import IncidentWorkspaceConnectionSlack from "../Pages/Incidents/WorkspaceConnectionSlack";
 
 import IncidentWorkspaceConnectionMicrosoftTeams from "../Pages/Incidents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import IncidentViewStateTimeline from "../Pages/Incidents/View/StateTimeline";
 
@@ -254,6 +255,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTIONS] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               }
             />
           }

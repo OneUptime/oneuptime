@@ -8,6 +8,7 @@ import SideMenu, {
 } from "Common/UI/Components/SideMenu/SideMenu";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 
 const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   let subItemMenuLink: Link | undefined = undefined;
@@ -22,6 +23,18 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       to: Navigation.getCurrentRoute(),
     };
   }
+
+  /*
+   * Your own Slack and Microsoft Teams accounts are linked here, which only
+   * means something once the project has connected that workspace. So the
+   * Workspace section lists the connected ones, and is left out when the
+   * project has none (WorkspaceSideMenuSection.ts).
+   */
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.USER_SETTINGS_SLACK_INTEGRATION,
+      microsoftTeams: PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
+    });
 
   /*
    * Get Started and Alerts & Notifications start open: the checklist that
@@ -196,31 +209,6 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     {
-      title: "Workspace",
-      items: [
-        {
-          link: {
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route,
-            ),
-          },
-          icon: IconProp.Slack,
-        },
-        {
-          link: {
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
-              ] as Route,
-            ),
-          },
-          icon: IconProp.MicrosoftTeams,
-        },
-      ],
-    },
-    {
       title: "Profile",
       defaultCollapsed: true,
       items: [
@@ -235,6 +223,12 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    /*
+     * Last: it is there only in projects with a workspace connected, and at
+     * the bottom it can come and go (on a first visit, before the answer is
+     * in) without moving any section above it.
+     */
+    ...(workspaceSection ? [workspaceSection] : []),
   ];
 
   return <SideMenu sections={sections} />;

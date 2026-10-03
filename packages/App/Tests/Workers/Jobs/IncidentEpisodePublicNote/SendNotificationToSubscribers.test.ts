@@ -1681,7 +1681,7 @@ describe("IncidentEpisodePublicNote custom template variable values", () => {
         }
       ).select;
       expect(select["title"]).toBe(true);
-      expect(select["incidentSeverity"]).toEqual({ name: true });
+      expect(select["incidentSeverity"]).toEqual({ name: true, color: true });
 
       const calls: Array<CompileCall> = compileCalls();
       expect(calls).toHaveLength(5);

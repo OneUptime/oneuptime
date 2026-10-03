@@ -22,6 +22,8 @@ import {
   DEVELOPER_DOCS_NOT_FOUND_MESSAGE,
   DeveloperDocsGuide,
   DeveloperDocsRecord,
+  DeveloperDocsSample,
+  DeveloperDocsSection,
   DeveloperDocsStep,
   getDeveloperDocsGuide,
 } from "./DeveloperDocsGuides";
@@ -37,13 +39,28 @@ import BaseModel, {
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { PermissionHelper } from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { getApiReadSelect } from "Common/Utils/DeveloperDocs/ExampleBuilder";
+import {
+  addDeveloperDocsLookupResult,
+  DeveloperDocsLiveData,
+  DeveloperDocsLiveRecord,
+  DeveloperDocsLookup,
+  getEmptyDeveloperDocsLiveData,
+  toDeveloperDocsLiveRecord,
+} from "Common/Utils/DeveloperDocs/LiveData";
+import {
+  DeveloperDocsPageKind,
+  getDeveloperDocsPageLookups,
+} from "Common/Utils/DeveloperDocs/PageLookups";
 import {
   getNameColumn,
   getTerraformAttributes,
@@ -74,20 +91,38 @@ import { useParams } from "react-router-dom";
  * A Developer page: Terraform, API or AI Assistants, for one resource (its
  * view menu) or for its type (its list menu). One component for every
  * resource; what it says comes from DeveloperDocsGuides, written from the
- * model's metadata and, on a view page, from the record as it is now.
+ * model's metadata, the resource's profile, and the project as it is now:
+ * the record itself on a view page, and a few of the records its examples
+ * point at (the project's severities, monitors, teams), so the examples are
+ * the project's own and every id names its record.
  *
- * Laid out like the product's setup guides: numbered steps, then folded
- * extras under "More", then links to the full documentation.
+ * Laid out like the product's setup guides: numbered steps, then ready-made
+ * recipes, then folded extras under "More", then links to the full
+ * documentation.
  *
  * Secrets never reach this page: the record is fetched without the fields
- * that hold them (TerraformSchema marks them), so they cannot leak into the
- * configuration, a curl command or a prompt even by mistake.
+ * that hold them (TerraformSchema marks them), and the lookups ask for ids,
+ * names and a few yes/no flags only, so no secret can leak into the
+ * configuration, a curl command or a prompt even by mistake. Every request
+ * asks only for what the viewer may read; a lookup that fails all the same
+ * only costs its examples their real values.
  */
 
 export interface ComponentProps extends PageComponentProps {
   resource: DeveloperDocsResource;
   scope: DeveloperDocsScope;
   page: DeveloperDocsPageType;
+}
+
+// Columns every request may select (ColumnPermissions.getExcludedColumnNames).
+const ALWAYS_READABLE_COLUMNS: ReadonlyArray<string> = [
+  "_id",
+  "createdAt",
+  "updatedAt",
+];
+
+function getViewerPermissions(): Array<Permission> {
+  return PermissionUtil.getAllPermissions();
 }
 
 // Whether the viewer may read a column (ModelDetail's rule).
@@ -97,20 +132,63 @@ function canReadColumn(descriptor: TerraformAttributeDescriptor): boolean {
   }
 
   return PermissionHelper.doesPermissionsIntersect(
-    PermissionUtil.getAllPermissions(),
+    getViewerPermissions(),
     descriptor.readPermissions,
   );
 }
 
+// Whether the viewer may read a column of any model, by name.
+function canReadModelColumn(
+  modelType: DatabaseBaseModelType,
+  column: string,
+): boolean {
+  if (User.isMasterAdmin() || ALWAYS_READABLE_COLUMNS.includes(column)) {
+    return true;
+  }
+
+  const access: ColumnAccessControl | null =
+    new modelType().getColumnAccessControlFor(column);
+
+  return PermissionHelper.doesPermissionsIntersect(
+    getViewerPermissions(),
+    access?.read || [],
+  );
+}
+
+// Whether the viewer may list a model at all.
+function canReadModel(modelType: DatabaseBaseModelType): boolean {
+  if (User.isMasterAdmin()) {
+    return true;
+  }
+
+  return PermissionHelper.doesPermissionsIntersect(
+    getViewerPermissions(),
+    new modelType().readRecordPermissions || [],
+  );
+}
+
+function toPageKind(page: DeveloperDocsPageType): DeveloperDocsPageKind {
+  switch (page) {
+    case DeveloperDocsPageType.Terraform:
+      return "terraform";
+    case DeveloperDocsPageType.Api:
+      return "api";
+    case DeveloperDocsPageType.AiAssistants:
+      return "ai-assistants";
+  }
+}
+
 /*
- * What to fetch for the record: its name always, and on the Terraform page
- * every attribute the configuration may carry that the viewer may read.
- * Secret fields are never asked for.
+ * What to fetch for the record: its name always; on the Terraform page
+ * every attribute the configuration may carry, and on the API page the
+ * fields its read example asks for, in both cases only those the viewer may
+ * read. Secret fields are never asked for.
  */
 export function getDeveloperDocsRecordSelect(data: {
   modelType: DatabaseBaseModelType;
   page: DeveloperDocsPageType;
   canRead: (descriptor: TerraformAttributeDescriptor) => boolean;
+  canReadColumn?: ((column: string) => boolean) | undefined;
 }): JSONObject {
   const select: JSONObject = { _id: true };
   const nameColumn: string | null = getNameColumn(data.modelType);
@@ -123,6 +201,29 @@ export function getDeveloperDocsRecordSelect(data: {
 
   if (nameColumn && (!nameAttribute || data.canRead(nameAttribute))) {
     select[nameColumn] = true;
+  }
+
+  if (data.page === DeveloperDocsPageType.Api) {
+    const secrets: Set<string> = new Set<string>(
+      attributes
+        .filter((descriptor: TerraformAttributeDescriptor): boolean => {
+          return Boolean(descriptor.secretKind);
+        })
+        .map((descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.columnName;
+        }),
+    );
+
+    for (const column of Object.keys(getApiReadSelect(data.modelType))) {
+      if (
+        !secrets.has(column) &&
+        (data.canReadColumn ? data.canReadColumn(column) : true)
+      ) {
+        select[column] = true;
+      }
+    }
+
+    return select;
   }
 
   if (data.page !== DeveloperDocsPageType.Terraform) {
@@ -169,6 +270,115 @@ function getPageDefinition(
   );
 }
 
+/*
+ * One lookup, as the viewer may make it: only the columns they may read,
+ * and not at all when they may not list the table. Null when there is
+ * nothing to ask.
+ */
+export function getReadableDeveloperDocsLookup(
+  lookup: DeveloperDocsLookup,
+  canRead: {
+    model: (modelType: DatabaseBaseModelType) => boolean;
+    column: (modelType: DatabaseBaseModelType, column: string) => boolean;
+  },
+): DeveloperDocsLookup | null {
+  if (!canRead.model(lookup.modelType)) {
+    return null;
+  }
+
+  const select: Dictionary<boolean> = {};
+
+  for (const column of Object.keys(lookup.select)) {
+    if (canRead.column(lookup.modelType, column)) {
+      select[column] = true;
+    }
+  }
+
+  // Naming records is the point of a lookup by id.
+  const nameColumn: string | null = getNameColumn(lookup.modelType);
+
+  if (lookup.ids && (!nameColumn || !select[nameColumn])) {
+    return null;
+  }
+
+  return { ...lookup, select };
+}
+
+// Runs the lookups side by side; one that fails leaves its examples as placeholders.
+async function runLookups(
+  lookups: Array<DeveloperDocsLookup>,
+  live: DeveloperDocsLiveData,
+): Promise<DeveloperDocsLiveData> {
+  const results: Array<{
+    lookup: DeveloperDocsLookup;
+    records: Array<DeveloperDocsLiveRecord>;
+  } | null> = await Promise.all(
+    lookups.map(
+      async (
+        lookup: DeveloperDocsLookup,
+      ): Promise<{
+        lookup: DeveloperDocsLookup;
+        records: Array<DeveloperDocsLiveRecord>;
+      } | null> => {
+        try {
+          const list: ListResult<BaseModel> = await ModelAPI.getList({
+            modelType: lookup.modelType,
+            query: (lookup.ids
+              ? { _id: new Includes(lookup.ids) }
+              : {}) as never,
+            select: lookup.select as never,
+            sort: Object.fromEntries(
+              Object.entries(lookup.sort).map(
+                ([column, order]: [string, "ASC" | "DESC"]) => {
+                  return [
+                    column,
+                    order === "ASC"
+                      ? SortOrder.Ascending
+                      : SortOrder.Descending,
+                  ];
+                },
+              ),
+            ) as never,
+            limit: lookup.limit,
+            skip: 0,
+          });
+
+          return {
+            lookup,
+            records: list.data
+              .map((item: BaseModel): DeveloperDocsLiveRecord | null => {
+                return toDeveloperDocsLiveRecord({
+                  modelType: lookup.modelType,
+                  json: BaseModel.toJSON(item, lookup.modelType),
+                });
+              })
+              .filter(
+                (
+                  record: DeveloperDocsLiveRecord | null,
+                ): record is DeveloperDocsLiveRecord => {
+                  return record !== null;
+                },
+              ),
+          };
+        } catch {
+          // Its examples keep their placeholders.
+          return null;
+        }
+      },
+    ),
+  );
+
+  let result: DeveloperDocsLiveData = live;
+
+  for (const item of results) {
+    if (item) {
+      result = addDeveloperDocsLookupResult(result, item.lookup, item.records);
+    }
+  }
+
+  return result;
+}
+
 export interface PromptListProps {
   prompts: Array<string>;
 }
@@ -204,6 +414,19 @@ export const DeveloperDocsPromptList: FunctionComponent<PromptListProps> = (
   );
 };
 
+function toVariantViews(
+  variants: Array<SetupGuideStepVariant>,
+): Array<SetupGuideStepVariantView> {
+  return variants.map(
+    (variant: SetupGuideStepVariant): SetupGuideStepVariantView => {
+      return {
+        label: variant.label,
+        content: <SetupGuideMarkdown text={variant.markdown} />,
+      };
+    },
+  );
+}
+
 function toStepView(step: DeveloperDocsStep): SetupGuideStepView {
   return {
     title: step.title,
@@ -212,16 +435,7 @@ function toStepView(step: DeveloperDocsStep): SetupGuideStepView {
       <div className="space-y-3">
         {step.markdown && <SetupGuideMarkdown text={step.markdown} />}
         {step.variants && step.variants.length > 0 && (
-          <SetupGuideStepVariants
-            variants={step.variants.map(
-              (variant: SetupGuideStepVariant): SetupGuideStepVariantView => {
-                return {
-                  label: variant.label,
-                  content: <SetupGuideMarkdown text={variant.markdown} />,
-                };
-              },
-            )}
-          />
+          <SetupGuideStepVariants variants={toVariantViews(step.variants)} />
         )}
         {step.prompts && step.prompts.length > 0 && (
           <DeveloperDocsPromptList prompts={step.prompts} />
@@ -230,6 +444,41 @@ function toStepView(step: DeveloperDocsStep): SetupGuideStepView {
     ),
   };
 }
+
+export interface SectionViewProps {
+  section: DeveloperDocsSection;
+}
+
+/*
+ * A section after the steps: ready-made recipes, one tab each, or a
+ * reference table. Headed like a step, but not numbered: none of it has to
+ * be done, or done in order.
+ */
+export const DeveloperDocsSectionView: FunctionComponent<SectionViewProps> = (
+  props: SectionViewProps,
+): ReactElement => {
+  const section: DeveloperDocsSection = props.section;
+
+  return (
+    <section
+      className="mt-8 border-t border-gray-100 pt-6"
+      data-testid="developer-docs-section"
+    >
+      <h3 className="text-sm font-semibold text-gray-900">{section.title}</h3>
+      {section.description && (
+        <p className="mb-3 mt-0.5 text-sm leading-relaxed text-gray-500">
+          {section.description}
+        </p>
+      )}
+      <div className="space-y-3">
+        {section.markdown && <SetupGuideMarkdown text={section.markdown} />}
+        {section.variants && section.variants.length > 0 && (
+          <SetupGuideStepVariants variants={toVariantViews(section.variants)} />
+        )}
+      </div>
+    </section>
+  );
+};
 
 export interface GuideViewProps {
   guide: DeveloperDocsGuide;
@@ -281,6 +530,12 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
 
           <SetupGuideSteps steps={guide.steps.map(toStepView)} />
 
+          {guide.sections.map((section: DeveloperDocsSection) => {
+            return (
+              <DeveloperDocsSectionView key={section.title} section={section} />
+            );
+          })}
+
           {topics.length > 0 && (
             <div className="mt-8">
               <SetupGuideTopics
@@ -327,16 +582,29 @@ export const DeveloperDocsGuideView: FunctionComponent<GuideViewProps> = (
   );
 };
 
+function getCurrentUserId(): string | undefined {
+  try {
+    const id: string = User.getUserId().toString();
+    return id || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { id } = useParams();
   const modelType: DatabaseBaseModelType = props.resource.modelType;
   const isView: boolean = props.scope === DeveloperDocsScope.View;
-  const needsList: boolean =
+  const needsImports: boolean =
     !isView && props.page === DeveloperDocsPageType.Terraform;
+  const needsSample: boolean =
+    !isView && props.page === DeveloperDocsPageType.Api;
+  const usesLiveData: boolean =
+    props.page !== DeveloperDocsPageType.AiAssistants;
 
-  const [isLoading, setIsLoading] = useState<boolean>(isView || needsList);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [record, setRecord] = useState<DeveloperDocsRecord | undefined>(
     undefined,
@@ -345,12 +613,20 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
     Array<TerraformImportTarget>
   >([]);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [sample, setSample] = useState<DeveloperDocsSample | undefined>(
+    undefined,
+  );
+  const [live, setLive] = useState<DeveloperDocsLiveData>(
+    getEmptyDeveloperDocsLiveData(new Date()),
+  );
 
   const load: () => Promise<void> = async (): Promise<void> => {
     setError("");
     setIsLoading(true);
 
     try {
+      let nextRecord: DeveloperDocsRecord | undefined = undefined;
+
       if (isView) {
         const modelId: ObjectID = new ObjectID(id || "");
         const item: BaseModel | null = await ModelAPI.getItem({
@@ -360,6 +636,9 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
             modelType,
             page: props.page,
             canRead: canReadColumn,
+            canReadColumn: (column: string): boolean => {
+              return canReadModelColumn(modelType, column);
+            },
           }) as never,
         });
 
@@ -370,14 +649,14 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
 
         const json: JSONObject = BaseModel.toJSON(item, modelType);
 
-        setRecord({
+        nextRecord = {
           id: modelId.toString(),
           displayName: getDisplayName(modelType, json),
           json,
-        });
+        };
       }
 
-      if (needsList) {
+      if (needsImports) {
         const nameColumn: string | null = getNameColumn(modelType);
         const select: Dictionary<boolean> = { _id: true };
 
@@ -406,6 +685,74 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
           }),
         );
       }
+
+      let nextSample: DeveloperDocsSample | undefined = undefined;
+
+      if (needsSample && canReadModel(modelType)) {
+        // The first record as the list example returns it; without it the page shows no response.
+        try {
+          const select: Dictionary<boolean> = {};
+
+          for (const column of Object.keys(getApiReadSelect(modelType))) {
+            if (canReadModelColumn(modelType, column)) {
+              select[column] = true;
+            }
+          }
+
+          const list: ListResult<BaseModel> = await ModelAPI.getList({
+            modelType,
+            query: {},
+            select: select as never,
+            sort: { createdAt: SortOrder.Descending } as never,
+            limit: 1,
+            skip: 0,
+          });
+
+          nextSample = {
+            records: list.data.map((item: BaseModel): JSONObject => {
+              return BaseModel.toJSON(item, modelType);
+            }),
+            count: list.count,
+          };
+        } catch {
+          nextSample = undefined;
+        }
+      }
+
+      let nextLive: DeveloperDocsLiveData = {
+        ...getEmptyDeveloperDocsLiveData(new Date()),
+        currentUserId: getCurrentUserId(),
+      };
+
+      if (usesLiveData) {
+        const lookups: Array<DeveloperDocsLookup> = getDeveloperDocsPageLookups(
+          {
+            modelType,
+            scope: isView ? "view" : "list",
+            page: toPageKind(props.page),
+            json: nextRecord?.json,
+          },
+        )
+          .map((lookup: DeveloperDocsLookup): DeveloperDocsLookup | null => {
+            return getReadableDeveloperDocsLookup(lookup, {
+              model: canReadModel,
+              column: canReadModelColumn,
+            });
+          })
+          .filter(
+            (
+              lookup: DeveloperDocsLookup | null,
+            ): lookup is DeveloperDocsLookup => {
+              return lookup !== null;
+            },
+          );
+
+        nextLive = await runLookups(lookups, nextLive);
+      }
+
+      setRecord(nextRecord);
+      setSample(nextSample);
+      setLive(nextLive);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -450,6 +797,8 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
     record,
     importTargets,
     totalCount,
+    live,
+    sample,
   });
 
   return (

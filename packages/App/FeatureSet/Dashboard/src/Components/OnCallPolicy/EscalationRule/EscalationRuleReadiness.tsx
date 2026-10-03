@@ -38,6 +38,12 @@ import {
   getStatusConsequence,
   getVerifiedMethods,
 } from "../Readiness/ReadinessTypes";
+import {
+  translatePlural,
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * THE READINESS WARNING, ON THE PAGE RATHER THAN IN THE MODAL.
@@ -159,7 +165,9 @@ export const getResponderGroupName: (
     return group.label;
   }
 
-  return group.kind === "team" ? "a team" : "a schedule";
+  return group.kind === "team"
+    ? translateTemplate("a team")
+    : translateTemplate("a schedule");
 };
 
 /*
@@ -562,7 +570,11 @@ export const readSetupReminderStatuses: (
     byUserId[userId] = {
       state: outcome === "Failed" ? "failed" : "skipped",
       message:
-        message || `The server reported "${outcome}" without an explanation.`,
+        message ||
+        translateTemplate(
+          'The server reported "{{outcome}}" without an explanation.',
+          { outcome: outcome },
+        ),
     };
   }
 
@@ -571,7 +583,9 @@ export const readSetupReminderStatuses: (
   for (const userId of userIds) {
     statuses[userId] = byUserId[userId] || {
       state: "unknown",
-      message: "The server did not report an outcome for this reminder.",
+      message: translateTemplate(
+        "The server did not report an outcome for this reminder.",
+      ),
     };
   }
 
@@ -871,7 +885,7 @@ export const buildRuleReadinessReport: (params: {
       if (params.isTruncated) {
         unchecked.push({
           userId: reached.userId,
-          name: reached.name || "This responder",
+          name: reached.name || translateTemplate("This responder"),
           kind: "unchecked",
           readiness: null,
           via: reached.via,
@@ -968,24 +982,36 @@ export const getRuleWarningLabel: (
   const level: RuleWarningLevel = getRuleWarningLevel(report, delivery);
 
   if (level === "critical") {
-    return report.unreachable.length === 1
-      ? "1 person can't be paged"
-      : `${report.unreachable.length} people can't be paged`;
+    return translatePlural(
+      {
+        one: "{{count}} person can't be paged",
+        other: "{{count}} people can't be paged",
+      },
+      report.unreachable.length,
+    );
   }
 
   if (level === "warning") {
-    return report.gaps.length === 1
-      ? "1 person loses pages"
-      : `${report.gaps.length} people lose pages`;
+    return translatePlural(
+      {
+        one: "{{count}} person loses pages",
+        other: "{{count}} people lose pages",
+      },
+      report.gaps.length,
+    );
   }
 
   if (level === "unknown") {
     const uncheckedCount: number =
       report.unchecked.length + report.unreadableGroups.length;
 
-    return uncheckedCount === 1
-      ? "1 responder not checked"
-      : `${uncheckedCount} responders not checked`;
+    return translatePlural(
+      {
+        one: "{{count}} responder not checked",
+        other: "{{count}} responders not checked",
+      },
+      uncheckedCount,
+    );
   }
 
   return "";
@@ -1004,7 +1030,7 @@ export const describeResponderVia: (via: Array<ResponderVia>) => string = (
 ): string => {
   const parts: Array<string> = via.map((entry: ResponderVia): string => {
     if (entry.kind === "direct") {
-      return "directly";
+      return translateTemplate("directly");
     }
 
     const name: string = getResponderGroupName({
@@ -1013,8 +1039,8 @@ export const describeResponderVia: (via: Array<ResponderVia>) => string = (
     });
 
     return entry.kind === "team"
-      ? `through the ${name} team`
-      : `through the ${name} schedule`;
+      ? translateTemplate("through the {{name}} team", { name: name })
+      : translateTemplate("through the {{name}} schedule", { name: name });
   });
 
   if (parts.length === 0) {
@@ -1022,12 +1048,15 @@ export const describeResponderVia: (via: Array<ResponderVia>) => string = (
   }
 
   if (parts.length === 1) {
-    return `Reached ${parts[0]}.`;
+    return translateTemplate("Reached {{routes}}.", { routes: parts[0]! });
   }
 
-  return `Reached ${parts.slice(0, -1).join(", ")} and ${
-    parts[parts.length - 1]
-  }.`;
+  return translateTemplate("Reached {{routes}}.", {
+    routes: translateTemplate("{{items}} and {{last}}", {
+      items: parts.slice(0, -1).join(", "),
+      last: parts[parts.length - 1]!,
+    }),
+  });
 };
 
 /*
@@ -1080,6 +1109,7 @@ const LABEL_TONES: Record<
 export const RuleReadinessLabel: FunctionComponent<RuleReadinessLabelProps> = (
   props: RuleReadinessLabelProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const level: RuleWarningLevel = getRuleWarningLevel(
     props.report,
     props.delivery,
@@ -1098,7 +1128,10 @@ export const RuleReadinessLabel: FunctionComponent<RuleReadinessLabelProps> = (
       type="button"
       data-testid="rule-readiness-label"
       data-warning-level={level}
-      aria-label={`${text} on ${props.ruleName}. See who, and send a setup reminder.`}
+      aria-label={translator.translateTemplate(
+        "{{warning}} on {{rule}}. See who, and send a setup reminder.",
+        { warning: text, rule: props.ruleName },
+      )}
       onClick={props.onClick}
       className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition-colors ${tone.className}`}
     >
@@ -1124,12 +1157,15 @@ const getReminderRow: (params: {
   issue: ResponderIssue;
   status: SetupReminderStatus;
   onSend: (userId: string) => void;
+  translator: Translator;
 }) => ReactElement = (params: {
   issue: ResponderIssue;
   status: SetupReminderStatus;
   onSend: (userId: string) => void;
+  translator: Translator;
 }): ReactElement => {
   const name: string = params.issue.name;
+  const translator: Translator = params.translator;
 
   /*
    * The one terminal state. Nothing else here claims a person was told, because
@@ -1148,7 +1184,9 @@ const getReminderRow: (params: {
         className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
       >
         <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
-        Setup reminder sent to {name}.
+        {translator.translateTemplate("Setup reminder sent to {{name}}.", {
+          name: name,
+        })}
       </span>
     );
   }
@@ -1180,8 +1218,10 @@ const getReminderRow: (params: {
           data-testid="setup-reminder-not-sent"
           className="mt-2 text-xs font-medium leading-relaxed text-red-700"
         >
-          No reminder was sent. {params.status.message} Ask {name} to finish
-          their notification setup in User Settings.
+          {translator.translateTemplate(
+            "No reminder was sent. {{reason}} Ask {{name}} to finish their notification setup in User Settings.",
+            { reason: params.status.message, name: name },
+          )}
         </p>
       ) : (
         <></>
@@ -1197,9 +1237,14 @@ const getReminderRow: (params: {
           data-testid="setup-reminder-unknown"
           className="mt-2 text-xs font-medium leading-relaxed text-amber-800"
         >
-          We could not confirm whether a reminder reached {name}.{" "}
-          {params.status.message} Check with {getFirstName(name)} before sending
-          another.
+          {translator.translateTemplate(
+            "We could not confirm whether a reminder reached {{name}}. {{reason}} Check with {{firstName}} before sending another.",
+            {
+              name: name,
+              reason: params.status.message,
+              firstName: getFirstName(name),
+            },
+          )}
         </p>
       ) : (
         <></>
@@ -1208,28 +1253,36 @@ const getReminderRow: (params: {
   );
 };
 
-const getMethodSummary: (readiness: UserReadinessWire) => ReactElement = (
+const getMethodSummary: (
   readiness: UserReadinessWire,
+  translator: Translator,
+) => ReactElement = (
+  readiness: UserReadinessWire,
+  translator: Translator,
 ): ReactElement => {
   const verified: Array<ReadinessMethodWire> = getVerifiedMethods(readiness);
 
   if (verified.length === 0) {
     return (
       <p className="mt-1.5 text-xs text-gray-500">
-        No verified notification method on their account.
+        {translator.translateText(
+          "No verified notification method on their account.",
+        )}
       </p>
     );
   }
 
   return (
     <p className="mt-1.5 text-xs text-gray-500">
-      Verified:{" "}
-      {verified
-        .map((method: ReadinessMethodWire): string => {
-          return `${method.methodType} ${method.maskedIdentifier}`.trim();
-        })
-        .join(", ")}
-      .
+      {translator.translateTemplate("Verified: {{methods}}.", {
+        methods: verified
+          .map((method: ReadinessMethodWire): string => {
+            return `${translator.translateTerm(method.methodType)} ${
+              method.maskedIdentifier
+            }`.trim();
+          })
+          .join(", "),
+      })}
     </p>
   );
 };
@@ -1284,6 +1337,7 @@ export interface RuleReadinessDetailsProps {
 export const RuleReadinessDetails: FunctionComponent<
   RuleReadinessDetailsProps
 > = (props: RuleReadinessDetailsProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const report: RuleReadinessReport = props.report;
 
   /*
@@ -1365,7 +1419,7 @@ export const RuleReadinessDetails: FunctionComponent<
               <></>
             )}
             {issue.readiness && isCritical ? (
-              getMethodSummary(issue.readiness)
+              getMethodSummary(issue.readiness, translator)
             ) : (
               <></>
             )}
@@ -1384,6 +1438,7 @@ export const RuleReadinessDetails: FunctionComponent<
                   onSend: (userId: string) => {
                     props.onSendReminder([userId]);
                   },
+                  translator: translator,
                 })
               : null}
           </div>
@@ -1413,21 +1468,25 @@ export const RuleReadinessDetails: FunctionComponent<
           />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-gray-800">
-              {report.isResolving
-                ? "Still checking who this level reaches"
-                : "Not checked"}
+              {translator.translateText(
+                report.isResolving
+                  ? "Still checking who this level reaches"
+                  : "Not checked",
+              )}
             </p>
 
             {report.unchecked.length > 0 ? (
               <p className="mt-0.5 text-sm leading-relaxed text-gray-600">
-                The readiness answer for this policy does not cover{" "}
-                {report.unchecked
-                  .map((issue: ResponderIssue): string => {
-                    return issue.name;
-                  })
-                  .join(", ")}
-                , so they are unknown rather than ready. Open On-Call &gt;
-                Readiness for the full list.
+                {translator.translateTemplate(
+                  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.",
+                  {
+                    names: report.unchecked
+                      .map((issue: ResponderIssue): string => {
+                        return issue.name;
+                      })
+                      .join(", "),
+                  },
+                )}
               </p>
             ) : (
               <></>
@@ -1440,8 +1499,12 @@ export const RuleReadinessDetails: FunctionComponent<
                     key={getResponderGroupKey(group.kind, group.id)}
                     className="mt-0.5 text-sm leading-relaxed text-gray-600"
                   >
-                    We could not read who is in {getResponderGroupName(group)},
-                    so nobody on that {group.kind} has been checked.
+                    {translator.translateTemplate(
+                      group.kind === "team"
+                        ? "We could not read who is in {{group}}, so nobody on that team has been checked."
+                        : "We could not read who is in {{group}}, so nobody on that schedule has been checked.",
+                      { group: getResponderGroupName(group) },
+                    )}
                   </p>
                 );
               },
@@ -1449,7 +1512,9 @@ export const RuleReadinessDetails: FunctionComponent<
 
             {report.isResolving && report.unchecked.length === 0 ? (
               <p className="mt-0.5 text-sm leading-relaxed text-gray-600">
-                Reading the teams and schedules this level notifies.
+                {translator.translateText(
+                  "Reading the teams and schedules this level notifies.",
+                )}
               </p>
             ) : (
               <></>
@@ -1470,15 +1535,22 @@ export const RuleReadinessDetails: FunctionComponent<
   return (
     <Modal
       title={props.ruleName}
-      description={`Whether the ${report.responderCount} ${
-        report.responderCount === 1 ? "person" : "people"
-      } this level notifies can actually be paged.`}
+      description={translator.translatePlural(
+        {
+          one: "Whether the {{count}} person this level notifies can actually be paged.",
+          other:
+            "Whether the {{count}} people this level notifies can actually be paged.",
+        },
+        report.responderCount,
+      )}
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText="Close"
       submitButtonText={
         remindableUserIds.length > 1
-          ? `Remind all ${remindableUserIds.length}`
+          ? translator.translateTemplate("Remind all {{count}}", {
+              count: remindableUserIds.length,
+            })
           : undefined
       }
       isLoading={props.isSendingReminders}
@@ -1496,10 +1568,13 @@ export const RuleReadinessDetails: FunctionComponent<
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                Cannot be paged
+                {translator.translateText("Cannot be paged")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">
-                {report.unreachable.length} of {report.responderCount}
+                {translator.translateTemplate("{{count}} of {{total}}", {
+                  count: report.unreachable.length,
+                  total: report.responderCount,
+                })}
               </span>
             </div>
             <div className="space-y-2.5">
@@ -1514,9 +1589,9 @@ export const RuleReadinessDetails: FunctionComponent<
              * nudge rather than an edit.
              */}
             <p className="mt-2.5 text-xs leading-relaxed text-gray-500">
-              Only these people can add and verify a notification method on
-              their own account, so the fix from here is a reminder rather than
-              an edit.
+              {translator.translateText(
+                "Only these people can add and verify a notification method on their own account, so the fix from here is a reminder rather than an edit.",
+              )}
             </p>
           </div>
         ) : (
@@ -1526,9 +1601,11 @@ export const RuleReadinessDetails: FunctionComponent<
         {report.gaps.length > 0 ? (
           <div>
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {props.delivery.isFallbackEnabled
-                ? "Paged, but not the way they asked"
-                : "Pages dropped - no fallback in this project"}
+              {translator.translateText(
+                props.delivery.isFallbackEnabled
+                  ? "Paged, but not the way they asked"
+                  : "Pages dropped - no fallback in this project",
+              )}
             </div>
             <div className="space-y-2.5">
               {report.gaps.map((issue: ResponderIssue): ReactElement => {
@@ -1553,8 +1630,9 @@ export const RuleReadinessDetails: FunctionComponent<
                 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500"
               />
               <p className="text-sm leading-relaxed text-emerald-800">
-                Everyone this level notifies has a verified notification method
-                and a rule for every severity and rule type.
+                {translator.translateText(
+                  "Everyone this level notifies has a verified notification method and a rule for every severity and rule type.",
+                )}
               </p>
             </div>
           </div>

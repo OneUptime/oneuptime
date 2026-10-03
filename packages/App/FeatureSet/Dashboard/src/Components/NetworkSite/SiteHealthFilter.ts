@@ -17,6 +17,7 @@
  */
 
 import { HealthTone, unitRollupTone } from "./SiteMapViewModel";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 export type SiteHealthState = "attention" | "operational" | "unknown";
 
@@ -290,7 +291,9 @@ export function buildSiteHealthFilterOptions(
     {
       value: "all" as SiteHealthFilterMode,
       label: "All",
-      description: `Show every ${childTypeLabel} at this level.`,
+      description: translateTemplate("Show every {{siteType}} at this level.", {
+        siteType: childTypeLabel,
+      }),
       color: undefined,
       count: summary.total,
       testId: "network-map-health-filter-all",

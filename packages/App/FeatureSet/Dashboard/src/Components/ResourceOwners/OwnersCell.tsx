@@ -6,6 +6,8 @@ import PeopleAvatar, {
 } from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import { ResourceOwnerEntry } from "./OwnerEntry";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   owners: Array<ResourceOwnerEntry> | undefined;
@@ -49,6 +51,7 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
   props: OwnerCircleProps,
 ): ReactElement => {
   const { item } = props;
+  const translator: Translator = useTranslator();
 
   const tooltipContent: ReactElement = (
     <div className="flex items-center gap-3 p-1.5 min-w-[180px]">
@@ -60,7 +63,9 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
           {item.name}
         </div>
         <div className="text-xs text-gray-500 truncate">
-          {item.kind === PeoplePickerKind.Team ? "Team" : item.email || "Owner"}
+          {item.kind === PeoplePickerKind.Team
+            ? translator.translateText("Team")
+            : item.email || translator.translateText("Owner")}
         </div>
       </div>
     </div>
@@ -80,14 +85,20 @@ const OwnerCircle: FunctionComponent<OwnerCircleProps> = (
 const OwnersCell: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (props.isLoading && !props.owners) {
-    return <p className="text-gray-400">Loading...</p>;
+    return (
+      <p className="text-gray-400">{translator.translateText("Loading...")}</p>
+    );
   }
 
   const owners: Array<ResourceOwnerEntry> = props.owners || [];
 
   if (owners.length === 0) {
-    return <p className="text-gray-400">No owners.</p>;
+    return (
+      <p className="text-gray-400">{translator.translateText("No owners.")}</p>
+    );
   }
 
   const cellOwners: Array<CellOwner> = owners.map(toCellOwner);
@@ -111,7 +122,9 @@ const OwnersCell: FunctionComponent<ComponentProps> = (
                 </div>
               ) : null}
               {owner.kind === PeoplePickerKind.Team ? (
-                <div className="text-xs text-gray-500">Team</div>
+                <div className="text-xs text-gray-500">
+                  {translator.translateText("Team")}
+                </div>
               ) : null}
             </div>
           </div>

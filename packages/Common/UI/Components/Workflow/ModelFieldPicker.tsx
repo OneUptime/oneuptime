@@ -6,6 +6,15 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateText,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import API from "../../Utils/API/API";
 import { WORKFLOW_URL } from "../../Config";
 import URL from "../../../Types/API/URL";
@@ -115,7 +124,7 @@ const classifyCompatibility: (
     }
     return {
       compatible: false,
-      reasons: ["The current value isn't valid JSON."],
+      reasons: [translateText("The current value isn't valid JSON.") || ""],
       parsed: null,
     };
   }
@@ -130,7 +139,11 @@ const classifyCompatibility: (
     const column: PickerColumn | undefined = columnsById[key];
 
     if (!column) {
-      reasons.push(`"${key}" isn't a readable field on this model.`);
+      reasons.push(
+        translateTemplate('"{{key}}" isn\'t a readable field on this model.', {
+          key: key,
+        }),
+      );
       continue;
     }
 
@@ -143,13 +156,18 @@ const classifyCompatibility: (
          * the picker UI on purpose.
          */
         reasons.push(
-          `"${key}" selects the whole relation. The picker requires you to pick specific sub-fields.`,
+          translateTemplate(
+            '"{{key}}" selects the whole relation. The picker requires you to pick specific sub-fields.',
+            { key: key },
+          ),
         );
         continue;
       }
 
       if (value === null || typeof value !== "object" || Array.isArray(value)) {
-        reasons.push(`"${key}" has an unexpected value.`);
+        reasons.push(
+          translateTemplate('"{{key}}" has an unexpected value.', { key: key }),
+        );
         continue;
       }
 
@@ -164,14 +182,19 @@ const classifyCompatibility: (
 
         if (!subColumn) {
           reasons.push(
-            `"${key}.${subKey}" isn't a readable field on the related model.`,
+            translateTemplate(
+              '"{{key}}" isn\'t a readable field on the related model.',
+              { key: `${key}.${subKey}` },
+            ),
           );
           continue;
         }
 
         if (subColumn.isRelation) {
           reasons.push(
-            `"${key}.${subKey}" is nested more than one level deep.`,
+            translateTemplate('"{{key}}" is nested more than one level deep.', {
+              key: `${key}.${subKey}`,
+            }),
           );
           continue;
         }
@@ -179,10 +202,19 @@ const classifyCompatibility: (
         if (typeof subValue !== "boolean") {
           if (typeof subValue === "object" && subValue !== null) {
             reasons.push(
-              `"${key}.${subKey}" is nested more than one level deep.`,
+              translateTemplate(
+                '"{{key}}" is nested more than one level deep.',
+                {
+                  key: `${key}.${subKey}`,
+                },
+              ),
             );
           } else {
-            reasons.push(`"${key}.${subKey}" has an unexpected value.`);
+            reasons.push(
+              translateTemplate('"{{key}}" has an unexpected value.', {
+                key: `${key}.${subKey}`,
+              }),
+            );
           }
         }
       }
@@ -191,7 +223,9 @@ const classifyCompatibility: (
 
     // Scalar column.
     if (typeof value !== "boolean") {
-      reasons.push(`"${key}" has an unexpected value.`);
+      reasons.push(
+        translateTemplate('"{{key}}" has an unexpected value.', { key: key }),
+      );
     }
   }
 
@@ -337,6 +371,7 @@ const PickerCheckbox: FunctionComponent<PickerCheckboxProps> = (
 const ModelFieldPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [columns, setColumns] = useState<Array<PickerColumn> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -820,11 +855,11 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                   : "font-medium text-gray-800"
               }`}
             >
-              {column.title}
+              {translator.translateText(column.title)}
             </span>
             {typeLabel && (
               <span className="ml-auto flex-shrink-0 text-[11px] uppercase tracking-wider text-gray-400 group-hover:text-gray-500">
-                {typeLabel}
+                {translator.translateText(typeLabel)}
               </span>
             )}
           </span>
@@ -854,17 +889,17 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     let toggleIcon: IconProp;
     let toggleHandler: () => void;
     if (isLockedToJson) {
-      toggleLabel = "Reset to picker";
+      toggleLabel = translationKey("Reset to picker");
       toggleIcon = IconProp.Refresh;
       toggleHandler = resetToPicker;
     } else if (viewMode === "picker") {
-      toggleLabel = "JSON";
+      toggleLabel = translationKey("JSON");
       toggleIcon = IconProp.Code;
       toggleHandler = (): void => {
         setViewMode("json");
       };
     } else {
-      toggleLabel = "Picker";
+      toggleLabel = translationKey("Picker");
       toggleIcon = IconProp.ListBullet;
       toggleHandler = onUsePickerClicked;
     }
@@ -885,7 +920,13 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 return onSearchChange(e.target.value);
               }}
-              placeholder={`Search ${totalAvailable} fields`}
+              placeholder={translator.translatePlural(
+                {
+                  one: "Search {{count}} field",
+                  other: "Search {{count}} fields",
+                },
+                totalAvailable,
+              )}
               className="block w-full rounded-md border border-gray-200 bg-white pl-9 pr-8 py-1.5 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             {searchQuery && (
@@ -895,7 +936,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                   return setSearchQuery("");
                 }}
                 className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
+                aria-label={translator.translateText("Clear search")}
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
               </button>
@@ -924,7 +965,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           <Icon icon={toggleIcon} className="h-3.5 w-3.5 text-gray-500" />
-          {toggleLabel}
+          {translator.translateText(toggleLabel)}
         </button>
       </div>
     );
@@ -940,7 +981,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">
-          {args.label}
+          {translator.translateText(args.label)}
         </span>
         {args.actions ? (
           <div className="flex items-center gap-1 text-[11px]">
@@ -965,7 +1006,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           onClick={args.onSelectAll}
           className="font-medium text-indigo-600 hover:text-indigo-700"
         >
-          Select all
+          {translator.translateText("Select all")}
         </button>
         <span className="text-gray-300">·</span>
         <button
@@ -973,7 +1014,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
           onClick={args.onClear}
           className="font-medium text-gray-500 hover:text-gray-700"
         >
-          Clear
+          {translator.translateText("Clear")}
         </button>
       </>
     );
@@ -990,7 +1031,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0"
           />
           <div>
-            <p className="font-semibold">Could not load fields</p>
+            <p className="font-semibold">
+              {translator.translateText("Could not load fields")}
+            </p>
             <p className="text-red-700">{loadError}</p>
           </div>
         </div>
@@ -1004,15 +1047,25 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
               className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0"
             />
             <div className="text-xs text-amber-900 space-y-1">
-              <p className="font-semibold">Keeping your selection as JSON</p>
+              <p className="font-semibold">
+                {translator.translateText("Keeping your selection as JSON")}
+              </p>
               <ul className="text-amber-800 space-y-0.5 list-disc pl-4">
                 {incompatibilityReasons.map((reason: string, i: number) => {
                   return <li key={i}>{reason}</li>;
                 })}
               </ul>
               <p className="pt-0.5 text-amber-700/80">
-                Your workflow keeps running unchanged. Edit the JSON below, or
-                click <strong>Reset to picker</strong> to start fresh.
+                <TranslatedSentence
+                  template="Your workflow keeps running unchanged. Edit the JSON below, or click {{reset}} to start fresh."
+                  slots={{
+                    reset: (
+                      <strong>
+                        {translator.translateText("Reset to picker")}
+                      </strong>
+                    ),
+                  }}
+                />
               </p>
             </div>
           </div>
@@ -1041,7 +1094,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 className="h-6 w-6 mx-auto text-gray-300 mb-2"
               />
               <p className="text-sm text-gray-500">
-                No readable fields are available for this model.
+                {translator.translateText(
+                  "No readable fields are available for this model.",
+                )}
               </p>
             </div>
           )}
@@ -1053,10 +1108,16 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 className="h-5 w-5 mx-auto text-gray-300 mb-2"
               />
               <p className="text-sm text-gray-600">
-                No fields match{" "}
-                <span className="font-medium text-gray-900">
-                  &ldquo;{searchQuery}&rdquo;
-                </span>
+                <TranslatedSentence
+                  template="No fields match {{search}}"
+                  slots={{
+                    search: (
+                      <span className="font-medium text-gray-900">
+                        &ldquo;{searchQuery}&rdquo;
+                      </span>
+                    ),
+                  }}
+                />
               </p>
               <button
                 type="button"
@@ -1065,7 +1126,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 }}
                 className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
               >
-                Clear search
+                {translator.translateText("Clear search")}
               </button>
             </div>
           )}
@@ -1107,7 +1168,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                 label: "Related records",
                 actions: (
                   <span className="text-[10px] font-medium uppercase tracking-wider text-gray-300">
-                    1 level
+                    {translator.translateText("1 level")}
                   </span>
                 ),
               })}
@@ -1187,7 +1248,12 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                             checked={allChecked}
                             indeterminate={someChecked}
                             onChange={toggleAllSubs}
-                            ariaLabel={`Select all from ${column.title}`}
+                            ariaLabel={translator.translateTemplate(
+                              "Select all from {{field}}",
+                              {
+                                field: translatableTerm(column.title),
+                              },
+                            )}
                           />
                           <button
                             type="button"
@@ -1204,7 +1270,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                                     : "text-gray-800"
                                 }`}
                               >
-                                {column.title}
+                                {translator.translateText(column.title)}
                               </span>
                               {column.relatedTableName && (
                                 <span className="text-[11px] text-gray-400">
@@ -1242,7 +1308,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
                           <div className="pl-7 pr-0 pb-1 border-l-2 border-indigo-100 ml-5 mb-1">
                             <div className="flex items-center justify-between px-3 py-1.5">
                               <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
-                                Sub-fields
+                                {translator.translateText("Sub-fields")}
                               </span>
                               <div className="flex items-center gap-1 text-[11px]">
                                 {renderSectionActions({

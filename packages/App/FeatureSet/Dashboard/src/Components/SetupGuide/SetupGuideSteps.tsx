@@ -1,7 +1,6 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useId,
   useRef,
   useState,
@@ -108,10 +107,17 @@ export const SetupGuideStepVariants: FunctionComponent<
     })
     .join("\n");
 
-  // A different set of tabs (another option picked above) starts on the first.
-  useEffect(() => {
+  /*
+   * A different set of tabs (another option picked above) starts on the
+   * first. This is settled while rendering, not in an effect: an effect runs
+   * once the tabs are already on screen, so a tab picked before it ran would
+   * be switched back to the first one.
+   */
+  const [shownLabels, setShownLabels] = useState<string>(labels);
+  if (shownLabels !== labels) {
+    setShownLabels(labels);
     setSelectedIndex(0);
-  }, [labels]);
+  }
 
   if (props.variants.length === 0) {
     return <></>;

@@ -44,8 +44,12 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 const SHARED_FALLBACK_FILE: string =
   "packages/Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage.tsx";
 
-// "delete this ${", "remove this ${": a sentence about a kind, not a record.
-const NAMELESS_TEMPLATE_PATTERN: RegExp = /\b(delete|remove) this \$\{/i;
+/*
+ * "delete this ${", "remove this ${": a sentence about a kind, not a record -
+ * written as a template literal, or as a translation template with a
+ * {{placeholder}} for the kind.
+ */
+const NAMELESS_TEMPLATE_PATTERN: RegExp = /\b(delete|remove) this (\$\{|\{\{)/i;
 
 const NAMELESS_SENTENCE_PATTERN: RegExp = /\b(delete|remove) this\b/i;
 
@@ -58,6 +62,12 @@ const TRANSLATION_FUNCTIONS: ReadonlySet<string> = new Set<string>([
   "tx",
   "translateString",
   "translateValue",
+]);
+
+// Calls whose first argument is a whole sentence with {{placeholders}}.
+const TEMPLATE_FUNCTIONS: ReadonlySet<string> = new Set<string>([
+  "translateTemplate",
+  "translatePlural",
 ]);
 
 type DialogRule = "says-this" | "names-nothing";
@@ -81,9 +91,15 @@ interface AllowedNamelessTemplate {
 const ALLOWED_NAMELESS_TEMPLATES: Array<AllowedNamelessTemplate> = [
   {
     file: "packages/App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods.tsx",
-    text: "title={`Remove this ${methodToDelete.methodType} method?`}",
+    text: '"Remove this {{methodType}} method?",',
     reason:
       "Only the title asks about the kind of method. The body, getDeletionDescription, names it by its masked address or number and the user it belongs to, and counts the notification rules that go with it.",
+  },
+  {
+    file: "packages/Common/UI/Utils/PermissionGate.ts",
+    text: '"You do not have permission to delete this {{itemName}}.",',
+    reason:
+      "Not a confirmation: the tooltip on a Delete action the reader may not use, which is about the kind of record by design.",
   },
 ];
 
@@ -143,6 +159,51 @@ function readWritten(
     value.arguments.length > 0
   ) {
     return readWritten(value.arguments[0]);
+  }
+
+  /*
+   * A whole translated sentence: translator.translateTemplate("Delete
+   * {{itemName}}", ...), or translateNamedAction(translator, { template:
+   * "Delete {{itemName}}" }). A {{placeholder}} is a value filled in, like
+   * a template literal's substitution.
+   */
+  const calleeName: string | undefined = ts.isCallExpression(value)
+    ? ts.isIdentifier(value.expression)
+      ? value.expression.text
+      : ts.isPropertyAccessExpression(value.expression)
+        ? value.expression.name.text
+        : undefined
+    : undefined;
+
+  if (ts.isCallExpression(value) && calleeName) {
+    let template: WrittenValue | null = null;
+
+    if (TEMPLATE_FUNCTIONS.has(calleeName) && value.arguments.length > 0) {
+      template = readWritten(value.arguments[0]);
+    }
+
+    if (calleeName === "translateNamedAction" && value.arguments[1]) {
+      const options: ts.Expression = unwrap(value.arguments[1]);
+
+      if (ts.isObjectLiteralExpression(options)) {
+        for (const property of options.properties) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            ts.isIdentifier(property.name) &&
+            property.name.text === "template"
+          ) {
+            template = readWritten(property.initializer);
+          }
+        }
+      }
+    }
+
+    if (template) {
+      return {
+        text: template.text.replace(/\{\{\s*[\w.]+\s*\}\}/g, "${…}"),
+        isFixed: template.isFixed && !template.text.includes("{{"),
+      };
+    }
   }
 
   return null;

@@ -130,6 +130,9 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
               type: AlertState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {

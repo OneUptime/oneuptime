@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import EventStatBar, { EventStatBarColumns } from "./EventStatBar";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   // How many cells the real stat bar under the hero has. Defaults to 3.
@@ -63,6 +65,7 @@ const CardPlaceholder: FunctionComponent<CardPlaceholderProps> = (
 const EventOverviewSkeleton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const statCount: EventStatBarColumns = props.statCount || 3;
 
   return (
@@ -71,7 +74,9 @@ const EventOverviewSkeleton: FunctionComponent<ComponentProps> = (
       aria-live="polite"
       className={`w-full ${props.className || ""}`}
     >
-      <span className="sr-only">{props.loadingText || "Loading"}</span>
+      <span className="sr-only">
+        {translator.translateText(props.loadingText || "Loading")}
+      </span>
       <div aria-hidden="true" className="space-y-5 motion-safe:animate-pulse">
         <div
           data-testid="event-overview-skeleton-hero"

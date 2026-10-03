@@ -6,10 +6,13 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const NetworkSiteLinks: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkSiteLink>
@@ -179,7 +182,11 @@ const NetworkSiteLinks: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkSiteLink): ReactElement => {
               if (!item.monitor?.name) {
-                return <span className="text-sm text-gray-400">None</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("None")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">

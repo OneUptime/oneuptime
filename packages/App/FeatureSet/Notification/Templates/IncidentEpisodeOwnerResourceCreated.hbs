@@ -10,10 +10,10 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Episode Title:" text=episodeTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
+{{> DetailBoxField title="Current State: " plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Episode Created By: " text=declaredBy  }}
 {{> DetailBoxField title="Episode Created At: " text=declaredAt  }}
-{{> DetailBoxField title="Severity: " text=episodeSeverity  }}
+{{> DetailBoxField title="Severity: " plainText=episodeSeverity color=episodeSeverityColor textColor=episodeSeverityTextColor }}
 {{> DetailBoxField title="Description: " text=episodeDescription  }}
 {{> DetailBoxEnd this }}
 

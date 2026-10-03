@@ -22,8 +22,9 @@ import {
   AttributeEntry,
   filterAttributeEntries,
   flattenSpanAttributes,
-  pluralize,
 } from "../../Utils/TraceDetailPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   instance: ExceptionInstance | undefined;
@@ -43,6 +44,7 @@ export const OCCURRENCE_ATTRIBUTE_FILTER_THRESHOLD: number = 8;
 const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [view, setView] = useAttributesView();
   const [filterText, setFilterText] = useState<string>("");
 
@@ -77,7 +79,9 @@ const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={IconProp.List} className="h-5 w-5 text-gray-400" />
           <p className="text-sm text-gray-600">
-            The latest occurrence was recorded without attributes.
+            {translator.translateText(
+              "The latest occurrence was recorded without attributes.",
+            )}
           </p>
         </div>
       );
@@ -104,8 +108,14 @@ const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
             <input
               type="search"
               value={filterText}
-              placeholder={`Filter ${entries.length} attributes`}
-              aria-label="Filter attributes"
+              placeholder={translator.translatePlural(
+                {
+                  one: "Filter {{count}} attribute",
+                  other: "Filter {{count}} attributes",
+                },
+                entries.length,
+              )}
+              aria-label={translator.translateText("Filter attributes")}
               className="w-full rounded-md border border-gray-200 py-1.5 pl-8 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setFilterText(event.target.value);
@@ -115,7 +125,7 @@ const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
         )}
         {visibleEntries.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">
-            No attributes match this filter.
+            {translator.translateText("No attributes match this filter.")}
           </div>
         ) : (
           <dl
@@ -143,7 +153,9 @@ const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
                         textToBeCopied={entry.value}
                         iconOnly={true}
                         size="xs"
-                        title={`Copy ${entry.key}`}
+                        title={translator.translateTemplate("Copy {{name}}", {
+                          name: entry.key,
+                        })}
                       />
                     </span>
                   </dd>
@@ -161,7 +173,14 @@ const ExceptionOccurrenceAttributes: FunctionComponent<ComponentProps> = (
       title="Attributes"
       description={
         hasAttributes
-          ? `${pluralize(entries.length, "attribute")} recorded with the latest occurrence of this exception.`
+          ? translator.translatePlural(
+              {
+                one: "{{count}} attribute recorded with the latest occurrence of this exception.",
+                other:
+                  "{{count}} attributes recorded with the latest occurrence of this exception.",
+              },
+              entries.length,
+            )
           : "Attributes recorded with the latest occurrence of this exception."
       }
       rightElement={

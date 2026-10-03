@@ -42,6 +42,9 @@ import {
   STATUS_LABELS,
   getStatusDotClasses,
 } from "../../Components/AIInsights/InsightPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const INSIGHTS_PER_PAGE: number = 20;
 
@@ -136,6 +139,7 @@ const readFilterParam: ReadFilterParamFunction = (
 const AIInsightsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const settingsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.AI_INSIGHTS_SETTINGS] as Route,
   );
@@ -448,10 +452,16 @@ const AIInsightsPage: FunctionComponent<
   const getListHeader: GetListHeaderFunction = (): ReactElement => {
     return (
       <div className="max-xl:hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
-        <span className="flex-1">Insight</span>
-        <span className="w-32 flex-shrink-0">Status</span>
-        <span className="w-24 flex-shrink-0 text-right">Detections</span>
-        <span className="w-36 flex-shrink-0 text-right">Last seen</span>
+        <span className="flex-1">{translator.translateText("Insight")}</span>
+        <span className="w-32 flex-shrink-0">
+          {translator.translateText("Status")}
+        </span>
+        <span className="w-24 flex-shrink-0 text-right">
+          {translator.translateText("Detections")}
+        </span>
+        <span className="w-36 flex-shrink-0 text-right">
+          {translator.translateText("Last seen")}
+        </span>
         <span className="w-5 flex-shrink-0" />
       </div>
     );
@@ -478,7 +488,9 @@ const AIInsightsPage: FunctionComponent<
           aria-live="polite"
           className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
         >
-          <span className="sr-only">Loading insights…</span>
+          <span className="sr-only">
+            {translator.translateText("Loading insights…")}
+          </span>
           {getListHeader()}
           <InsightListSkeleton rowCount={SKELETON_ROW_COUNT} />
         </div>
@@ -492,14 +504,7 @@ const AIInsightsPage: FunctionComponent<
           icon={IconProp.LightBulb}
           showSolidBackground={true}
           title="No insights yet"
-          description={
-            <span>
-              When AI Insights is enabled, OneUptime AI continuously watches
-              this project&apos;s telemetry and files a quiet insight whenever a
-              deterministic sensor finds something — without paging anyone or
-              opening incidents.
-            </span>
-          }
+          description="When AI Insights is enabled, OneUptime AI continuously watches this project's telemetry and files a quiet insight whenever a deterministic sensor finds something — without paging anyone or opening incidents."
           footer={
             <Button
               title="Go to Insights Settings"
@@ -527,11 +532,12 @@ const AIInsightsPage: FunctionComponent<
               <Icon icon={IconProp.Search} className="h-6 w-6" />
             </span>
             <h3 className="mt-4 text-sm font-semibold text-gray-900">
-              No insights match your filters
+              {translator.translateText("No insights match your filters")}
             </h3>
             <p className="mt-1 max-w-sm text-sm text-gray-500">
-              Try a different status or severity, or clear your search to see
-              everything OneUptime AI has found.
+              {translator.translateText(
+                "Try a different status or severity, or clear your search to see everything OneUptime AI has found.",
+              )}
             </p>
             <div className="mt-5">
               <Button
@@ -551,7 +557,10 @@ const AIInsightsPage: FunctionComponent<
       <div className="space-y-3">
         {error ? (
           <p className="text-sm text-red-500">
-            Could not refresh insights: {error}
+            {translator.translateTemplate(
+              "Could not refresh insights: {{error}}",
+              { error: error },
+            )}
           </p>
         ) : (
           <></>
@@ -570,12 +579,25 @@ const AIInsightsPage: FunctionComponent<
 
           <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex-row">
             <p className="text-xs text-gray-500">
-              Showing{" "}
-              <span className="font-medium text-gray-700">
-                {insights.length}
-              </span>{" "}
-              of <span className="font-medium text-gray-700">{totalCount}</span>{" "}
-              {totalCount === 1 ? "insight" : "insights"}
+              <TranslatedSentence
+                template={{
+                  one: "Showing {{shown}} of {{total}} insight",
+                  other: "Showing {{shown}} of {{total}} insights",
+                }}
+                count={totalCount}
+                slots={{
+                  shown: (
+                    <span className="font-medium text-gray-700">
+                      {translator.formatNumber(insights.length)}
+                    </span>
+                  ),
+                  total: (
+                    <span className="font-medium text-gray-700">
+                      {translator.formatNumber(totalCount)}
+                    </span>
+                  ),
+                }}
+              />
             </p>
 
             {insights.length < totalCount ? (
@@ -601,7 +623,10 @@ const AIInsightsPage: FunctionComponent<
 
         {loadMoreError ? (
           <p className="text-center text-sm text-red-500">
-            Could not load more insights: {loadMoreError}
+            {translator.translateTemplate(
+              "Could not load more insights: {{error}}",
+              { error: loadMoreError },
+            )}
           </p>
         ) : (
           <></>
@@ -615,10 +640,9 @@ const AIInsightsPage: FunctionComponent<
       <AIPlanGate />
 
       <p className="max-w-3xl text-sm leading-6 text-gray-500">
-        Proactive findings from OneUptime AI&apos;s deterministic telemetry
-        sensors — new or spiking exceptions, error-log spikes, latency
-        regressions and metric drift. Insights never page and never open
-        incidents.
+        {translator.translateText(
+          "Proactive findings from OneUptime AI's deterministic telemetry sensors — new or spiking exceptions, error-log spikes, latency regressions and metric drift. Insights never page and never open incidents.",
+        )}
       </p>
 
       <InsightStatusSummary

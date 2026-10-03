@@ -27,6 +27,9 @@ import React, {
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Settings > OIDC: the project's OpenID Connect sign-on providers and the
@@ -35,6 +38,8 @@ import Link from "Common/UI/Components/Link/Link";
 const OIDCSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const testUrl: string = `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`;
   const [showOidcConfigId, setShowOidcConfigId] = useState<string>("");
 
   return (
@@ -191,6 +196,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           actionButtons={[
             {
               title: "View OIDC Config",
+              icon: IconProp.Settings,
               buttonStyleType: ButtonStyleType.NORMAL,
               onClick: async (
                 item: ProjectOIDC,
@@ -255,16 +261,16 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           title={`Test OpenID Connect (OIDC)`}
           description={
             <span>
-              Here&apos;s a link which will help you test OIDC integration
-              before you force it on your organization:{" "}
-              <Link
-                openInNewTab={true}
-                to={URL.fromString(
-                  `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`,
-                )}
-              >
-                <span>{`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`}</span>
-              </Link>
+              <TranslatedSentence
+                template="Here's a link which will help you test OIDC integration before you force it on your organization: {{link}}"
+                slots={{
+                  link: (
+                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
+                      <span>{testUrl}</span>
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           }
         />
@@ -276,7 +282,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
               <div>
                 <div>
                   <div className="font-semibold">
-                    Redirect URI (Callback URL):
+                    {translator.translateText("Redirect URI (Callback URL):")}
                   </div>
                   <div>
                     {`${URL.fromString(IDENTITY_URL.toString()).addRoute(
@@ -286,14 +292,16 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
                   <br />
                 </div>
                 <div>
-                  <div className="font-semibold">Identifier (audience): </div>
+                  <div className="font-semibold">
+                    {translator.translateText("Identifier (audience):")}
+                  </div>
                   <div>{`${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`}</div>
                   <br />
                 </div>
                 <div className="text-sm text-gray-500">
-                  Configure your identity provider to redirect to the URL above
-                  after authentication. The client must be permitted to use the
-                  authorization code flow with PKCE.
+                  {translator.translateText(
+                    "Configure your identity provider to redirect to the URL above after authentication. The client must be permitted to use the authorization code flow with PKCE.",
+                  )}
                 </div>
               </div>
             }

@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
+import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
@@ -26,6 +27,8 @@ import {
   DroppableProvided,
   DropResult,
 } from "react-beautiful-dnd";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   value: MonitorCriteria | undefined;
@@ -68,6 +71,7 @@ interface CriteriaCollapsedState {
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showCantDeleteModal, setShowCantDeleteModal] =
     React.useState<boolean>(false);
 
@@ -97,19 +101,35 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     const filterCondition: FilterCondition =
       instance.data?.filterCondition || FilterCondition.All;
     parts.push(
-      `${filterCount} filter${filterCount !== 1 ? "s" : ""}${filterCount > 1 ? ` (${filterCondition === FilterCondition.All ? "ALL" : "ANY"})` : ""}`,
+      filterCount > 1
+        ? translator.translatePlural(
+            {
+              one: "{{count}} filter ({{condition}})",
+              other: "{{count}} filters ({{condition}})",
+            },
+            filterCount,
+            {
+              condition: translator.translateText(
+                filterCondition === FilterCondition.All ? "ALL" : "ANY",
+              ) as string,
+            },
+          )
+        : translator.translatePlural(
+            { one: "{{count}} filter", other: "{{count}} filters" },
+            filterCount,
+          ),
     );
 
     // Actions
     const actions: Array<string> = [];
     if (instance.data?.monitorStatusId) {
-      actions.push("status change");
+      actions.push(translator.translateText("status change") as string);
     }
     if (instance.data?.createAlerts) {
-      actions.push("alerts");
+      actions.push(translator.translateText("alerts") as string);
     }
     if (instance.data?.createIncidents) {
-      actions.push("incidents");
+      actions.push(translator.translateText("incidents") as string);
     }
 
     if (actions.length > 0) {
@@ -178,7 +198,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                     const isCollapsed: boolean =
                       collapsedState[criteriaId] || false;
                     const criteriaName: string =
-                      i.data?.name || "Unnamed Criteria";
+                      i.data?.name ||
+                      (translator.translateText("Unnamed Criteria") as string);
                     const isCriteriaDisabled: boolean =
                       i.data?.isEnabled === false;
 
@@ -221,8 +242,12 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                       e.stopPropagation();
                                     }}
                                     className="mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
-                                    aria-label="Drag to reorder criteria"
-                                    title="Drag to reorder"
+                                    aria-label={translator.translateText(
+                                      "Drag to reorder criteria",
+                                    )}
+                                    title={translator.translateText(
+                                      "Drag to reorder",
+                                    )}
                                   >
                                     <Icon
                                       icon={IconProp.GripVertical}
@@ -250,7 +275,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                       </span>
                                       {isCriteriaDisabled && (
                                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-                                          Disabled
+                                          {translator.translateText("Disabled")}
                                         </span>
                                       )}
                                       {isCollapsed && (
@@ -268,11 +293,16 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 </div>
                                 <div className="flex items-center ml-2">
                                   <span className="text-xs text-gray-400 mr-2">
-                                    {index + 1} of{" "}
-                                    {
-                                      monitorCriteria.data
-                                        ?.monitorCriteriaInstanceArray.length
-                                    }
+                                    {translator.translateTemplate(
+                                      "{{position}} of {{total}}",
+                                      {
+                                        position: index + 1,
+                                        total:
+                                          monitorCriteria.data
+                                            ?.monitorCriteriaInstanceArray
+                                            .length || 0,
+                                      },
+                                    )}
                                   </span>
                                 </div>
                               </div>
@@ -433,6 +463,15 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
               newMonitorCriteria.data.filters = [
                 CriteriaFilterUtil.getDefaultCriteriaFilter(props.monitorType),
               ];
+
+              /*
+               * Named after that filter, so the criteria is ready to save
+               * without anyone inventing a name. The name follows the
+               * filters as they are edited, until the user types their own.
+               */
+              newMonitorCriteria.setName(
+                CriteriaNameUtil.getNameForCriteria(newMonitorCriteria),
+              );
             }
 
             newMonitorCriterias.push(newMonitorCriteria);

@@ -59,20 +59,24 @@ describe("FormField - a Markdown field's image upload", () => {
   test("offers image upload when the field does not say", () => {
     renderMarkdownField();
 
-    expect(within(editorToolbar()).getByTitle("Image")).toBeInTheDocument();
+    expect(
+      within(editorToolbar()).getByTitle("Upload Image"),
+    ).toBeInTheDocument();
     expect(editorToolbar().querySelector('input[type="file"]')).not.toBeNull();
   });
 
   test("offers image upload when the field turns it on", () => {
     renderMarkdownField({ allowImageUpload: true });
 
-    expect(within(editorToolbar()).getByTitle("Image")).toBeInTheDocument();
+    expect(
+      within(editorToolbar()).getByTitle("Upload Image"),
+    ).toBeInTheDocument();
   });
 
   test("hands allowImageUpload: false to the editor", () => {
     renderMarkdownField({ allowImageUpload: false });
 
-    expect(within(editorToolbar()).queryByTitle("Image")).toBeNull();
+    expect(within(editorToolbar()).queryByTitle("Upload Image")).toBeNull();
     expect(editorToolbar().querySelector('input[type="file"]')).toBeNull();
     // Only the image controls go; the rest of the editor is there.
     expect(within(editorToolbar()).getByTitle("Link")).toBeInTheDocument();
@@ -117,10 +121,12 @@ describe("BasicForm - a Markdown field on a form open to anyone", () => {
     );
 
     expect(
-      within(screen.getByTestId("public-description")).queryByTitle("Image"),
+      within(screen.getByTestId("public-description")).queryByTitle(
+        "Upload Image",
+      ),
     ).toBeNull();
     expect(
-      within(screen.getByTestId("internal-notes")).getByTitle("Image"),
+      within(screen.getByTestId("internal-notes")).getByTitle("Upload Image"),
     ).toBeInTheDocument();
   });
 });

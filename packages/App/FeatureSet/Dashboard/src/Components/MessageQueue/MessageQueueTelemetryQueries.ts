@@ -35,6 +35,10 @@ import {
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
 import { getMessagingSystemDescriptor } from "Common/Types/MessageQueue/MessagingSystem";
 import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
   MessageQueueSourceWindowFloor,
   getMessageQueueMetricFilterAttributeKeys,
   getMessageQueueSourceWindowFloor,
@@ -2200,8 +2204,9 @@ export const MESSAGE_QUEUE_METRIC_DELTA_COUNTER_AGGREGATIONS: ReadonlyArray<Aggr
   ];
 
 // What the chart of a cumulative counter says, curated or not.
-export const MESSAGE_QUEUE_METRIC_CHART_COUNTER_NOTE: string =
-  "A cumulative counter, charted as a per-second rate: each series' rate, added up.";
+export const MESSAGE_QUEUE_METRIC_CHART_COUNTER_NOTE: string = translationKey(
+  "A cumulative counter, charted as a per-second rate: each series' rate, added up.",
+);
 
 /*
  * "rate": a cumulative counter as a per-second rate, per series then
@@ -2224,7 +2229,10 @@ export interface MessageQueueMetricChartSpec {
   isDistribution: boolean;
   // The metric's own unit (UCUM, from the metric list) for formatting.
   unit: string;
-  // One line under the picker saying how the metric is charted.
+  /*
+   * One line under the picker saying how the metric is charted: an English
+   * translation key, translated where the chart modal draws it.
+   */
   note: string;
 }
 
@@ -2255,7 +2263,9 @@ export function getMessageQueueMetricChartSpec(
       isRate: false,
       isDistribution: true,
       unit: unit,
-      note: "A distribution: percentiles are computed from its buckets, Average is the mean of every observation.",
+      note: translationKey(
+        "A distribution: percentiles are computed from its buckets, Average is the mean of every observation.",
+      ),
     };
   }
 
@@ -2270,7 +2280,9 @@ export function getMessageQueueMetricChartSpec(
         isRate: false,
         isDistribution: false,
         unit: unit,
-        note: "A delta counter: Sum is the total counted in each interval.",
+        note: translationKey(
+          "A delta counter: Sum is the total counted in each interval.",
+        ),
       };
     }
     if (
@@ -2279,7 +2291,9 @@ export function getMessageQueueMetricChartSpec(
     ) {
       return {
         metricName: name,
-        title: `${name} (per second)`,
+        title: translateTemplate("{{metricName}} (per second)", {
+          metricName: name,
+        }),
         mode: "rate",
         aggregations: [],
         defaultAggregation: AggregationType.Max,

@@ -18,9 +18,11 @@ import {
   test,
 } from "@jest/globals";
 import WorkflowTemplatePicker, {
+  WORKFLOW_START_FROM_SCRATCH_ID,
   WORKFLOW_TEMPLATE_LISTBOX_ID,
+  WORKFLOW_TEMPLATE_SEARCH_INPUT_ID,
+  WORKFLOW_TEMPLATE_VIEW_SELECT_ID,
   workflowTemplateOptionDomId,
-  workflowTemplateViewDomId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workflow/WorkflowTemplatePicker";
 import {
   INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
@@ -29,6 +31,7 @@ import {
   WorkflowTemplatePickerView,
   WorkflowTemplatePickerViewInfo,
   getWorkflowTemplateCategoryLabel,
+  getWorkflowTemplatePickerCounts,
   getWorkflowTemplatePickerViews,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
 import {
@@ -36,27 +39,40 @@ import {
   WorkflowTemplate,
   WorkflowTemplateCategories,
   WorkflowTemplateCategory,
+  WorkflowTemplateVariable,
   getWorkflowTemplate,
-  getWorkflowTemplateCategoryInfo,
   getWorkflowTemplates,
   getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
 /*
- * The template picker on its own: the "Start from" step of Create a
- * workflow. It replaced a grid of every template at once, as equally large
- * cards, that the maintainer called decision paralysis. These tests hold the
- * new shape to what it promises: a handful of recommended templates first,
- * the rest one click away under categories with counts, compact rows, a
- * preview of what a template does before it is chosen, a search that reads
- * every word, a keyboard that works like the command palette's, and a
- * narrow-screen layout where the preview takes the list's place. The wizard
- * around it is covered in CreateWorkflowModal.test.tsx.
+ * The template picker on its own: the first step of Create a workflow.
+ *
+ * The maintainer, about the version before this one: "This select template
+ * for workflow is extremely hard to use because it shows a lot of
+ * information on the modal. Can you please make sure the modal is very
+ * simple to use? ... 'Start from scratch' should be more visible as well
+ * because that's the most commonly used option." That version had a column
+ * of twelve categories with counts, the list, a preview column that was
+ * always open, keyboard hints, and Start from scratch as a small button
+ * beside the search.
+ *
+ * These tests hold the new shape to what it promises: Start from scratch
+ * first, prominent and one click away; a few recommended templates as
+ * one-line rows; a quiet search and a category select with no counts; a
+ * template's details only once it is picked, inside its own row; and the
+ * keyboard of the command palette, unchanged. The wizard around it is
+ * covered in CreateWorkflowModal.test.tsx, and the dialog in a real
+ * browser in packages/E2E/WorkflowBuilder/CreateWorkflowDialog.spec.ts.
  */
 
 const ALL_TEMPLATES: Array<WorkflowTemplate> = getWorkflowTemplates();
 const OPTION_PREFIX: string = "workflow-template-option-";
+const RECOMMENDED: Array<string> = [...RECOMMENDED_WORKFLOW_TEMPLATE_IDS];
+
+// Named: eslint's wrap-regex and prettier disagree on a bare /re/.test().
+const DIGIT: RegExp = /\d/;
 
 interface Harness {
   view: RenderResult;
@@ -129,6 +145,16 @@ const renderPicker: RenderPickerFunction = (
   };
 };
 
+type StateFunction = (
+  changes: Partial<WorkflowTemplatePickerState>,
+) => WorkflowTemplatePickerState;
+
+const stateWith: StateFunction = (
+  changes: Partial<WorkflowTemplatePickerState>,
+): WorkflowTemplatePickerState => {
+  return { ...INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE, ...changes };
+};
+
 type TemplateFunction = (templateId: string) => WorkflowTemplate;
 
 const template: TemplateFunction = (templateId: string): WorkflowTemplate => {
@@ -143,20 +169,26 @@ const template: TemplateFunction = (templateId: string): WorkflowTemplate => {
 
 type ElementFunction = () => HTMLElement;
 
+const getScratch: ElementFunction = (): HTMLElement => {
+  return screen.getByTestId("workflow-start-from-scratch");
+};
+
 const getSearch: ElementFunction = (): HTMLElement => {
   return screen.getByTestId("workflow-template-search");
+};
+
+const getSelect: ElementFunction = (): HTMLElement => {
+  return screen.getByTestId("workflow-template-view-select");
 };
 
 const getListbox: ElementFunction = (): HTMLElement => {
   return screen.getByRole("listbox");
 };
 
-const getCategories: ElementFunction = (): HTMLElement => {
-  return screen.getByRole("radiogroup", { name: "Template categories" });
-};
+type RowFunction = (templateId: string) => HTMLElement;
 
-const getPreview: ElementFunction = (): HTMLElement => {
-  return screen.getByTestId("workflow-template-preview");
+const row: RowFunction = (templateId: string): HTMLElement => {
+  return screen.getByTestId(workflowTemplateOptionDomId(templateId));
 };
 
 type ListedIdsFunction = (container?: HTMLElement) => Array<string>;
@@ -174,9 +206,10 @@ const listedIds: ListedIdsFunction = (
     });
 };
 
-type ActiveIdFunction = () => string | null;
+type PickedIdFunction = () => string | null;
 
-const activeId: ActiveIdFunction = (): string | null => {
+/** The template picked: the one row marked selected. */
+const pickedId: PickedIdFunction = (): string | null => {
   const selected: Array<HTMLElement> = within(getListbox())
     .queryAllByRole("option")
     .filter((option: HTMLElement) => {
@@ -192,18 +225,17 @@ const activeId: ActiveIdFunction = (): string | null => {
     : null;
 };
 
-type CategoryRadioFunction = (view: WorkflowTemplatePickerView) => HTMLElement;
+type DetailsFunction = () => Array<HTMLElement>;
 
-const categoryRadio: CategoryRadioFunction = (
-  view: WorkflowTemplatePickerView,
-): HTMLElement => {
-  return screen.getByTestId(workflowTemplateViewDomId(view));
+/** Every open details panel. There is never more than one. */
+const openDetails: DetailsFunction = (): Array<HTMLElement> => {
+  return screen.queryAllByTestId("workflow-template-details");
 };
 
 type ShowViewFunction = (view: WorkflowTemplatePickerView) => void;
 
 const showView: ShowViewFunction = (view: WorkflowTemplatePickerView): void => {
-  fireEvent.click(categoryRadio(view));
+  fireEvent.change(getSelect(), { target: { value: String(view) } });
 };
 
 type TypeFunction = (text: string) => void;
@@ -212,12 +244,17 @@ const typeSearch: TypeFunction = (text: string): void => {
   fireEvent.change(getSearch(), { target: { value: text } });
 };
 
-type PreviewTitleFunction = () => string;
+type PickFunction = (templateId: string) => HTMLElement;
 
-const previewTitle: PreviewTitleFunction = (): string => {
-  return (
-    within(getPreview()).getByRole("heading", { level: 3 }).textContent || ""
-  );
+/** Click a template's row, opening All templates first if it is not listed. */
+const pick: PickFunction = (templateId: string): HTMLElement => {
+  if (!screen.queryByTestId(workflowTemplateOptionDomId(templateId))) {
+    showView(WorkflowTemplateCollection.All);
+  }
+
+  fireEvent.click(row(templateId));
+
+  return row(templateId);
 };
 
 type KeyFunction = (element: HTMLElement, key: string) => boolean;
@@ -225,6 +262,16 @@ type KeyFunction = (element: HTMLElement, key: string) => boolean;
 /** Press a key on an element; true when the picker handled it (default prevented). */
 const press: KeyFunction = (element: HTMLElement, key: string): boolean => {
   return !fireEvent.keyDown(element, { key: key });
+};
+
+type OptionTextsFunction = () => Array<string>;
+
+const selectOptionTexts: OptionTextsFunction = (): Array<string> => {
+  return Array.from((getSelect() as HTMLSelectElement).options).map(
+    (option: HTMLOptionElement): string => {
+      return option.textContent || "";
+    },
+  );
 };
 
 const scrollIntoView: MockFunction = getJestMockFunction();
@@ -241,157 +288,262 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("the two ways to start", () => {
-  test("Start from scratch is a plain button beside the search, and starts with an empty canvas", () => {
-    const harness: Harness = renderPicker();
-    const scratch: HTMLElement = screen.getByTestId(
-      "workflow-start-from-scratch",
-    );
+describe("Start from scratch, the first and most visible choice", () => {
+  test("it comes first: before the search, the categories and the templates", () => {
+    renderPicker();
 
-    expect(scratch).toHaveTextContent("Start from scratch");
+    const scratch: HTMLElement = getScratch();
+    const follows: (later: HTMLElement) => boolean = (
+      later: HTMLElement,
+    ): boolean => {
+      return Boolean(
+        scratch.compareDocumentPosition(later) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    };
+
+    expect(follows(getSearch())).toBe(true);
+    expect(follows(getSelect())).toBe(true);
+    expect(follows(getListbox())).toBe(true);
+
+    // The first control in the step.
+    const firstControl: Element | null = screen
+      .getByTestId("workflow-template-picker")
+      .querySelector("button, input, select, [tabindex]");
+
+    expect(firstControl).toBe(scratch);
+  });
+
+  test("it is a button that says what it is and what it gives you", () => {
+    renderPicker();
+
+    const scratch: HTMLElement = getScratch();
+
+    expect(scratch.tagName).toBe("BUTTON");
     expect(scratch).toHaveAttribute("type", "button");
-    // Plain, never filled: the dialog's one primary button is Use this template.
-    expect(scratch.className).toContain("bg-white");
-    expect(scratch.className).not.toMatch(/\bbg-indigo-\d+/);
+    expect(scratch).toHaveAttribute("id", WORKFLOW_START_FROM_SCRATCH_ID);
+    expect(scratch).toHaveTextContent("Start from scratch");
+    expect(
+      screen.getByRole("button", {
+        name: "Start from scratch Begin with an empty canvas and add your own trigger and steps.",
+      }),
+    ).toBe(scratch);
+    expect(scratch).toHaveAccessibleDescription(
+      "Begin with an empty canvas and add your own trigger and steps.",
+    );
+  });
 
-    fireEvent.click(scratch);
+  test("one click starts from scratch, and uses no template", () => {
+    const harness: Harness = renderPicker();
+
+    fireEvent.click(getScratch());
 
     expect(harness.onStartFromScratch).toHaveBeenCalledTimes(1);
     expect(harness.onUseTemplate).not.toHaveBeenCalled();
   });
 
-  test("Start from scratch shows when it is the start already chosen", () => {
-    renderPicker({ isStartFromScratchChosen: true });
+  test("it works with a template picked too: it is always one click away", () => {
+    const harness: Harness = renderPicker();
 
-    const scratch: HTMLElement = screen.getByTestId(
-      "workflow-start-from-scratch",
-    );
+    pick(RECOMMENDED[1]!);
+    fireEvent.click(getScratch());
 
-    expect(scratch).toHaveAttribute("aria-pressed", "true");
-    expect(scratch.className).toContain("border-indigo-500");
+    expect(harness.onStartFromScratch).toHaveBeenCalledTimes(1);
+    expect(harness.onUseTemplate).not.toHaveBeenCalled();
   });
 
-  test("it is not pressed otherwise", () => {
+  test("it has the focus when the step opens, so Enter takes the most common way in", () => {
     renderPicker();
 
-    expect(screen.getByTestId("workflow-start-from-scratch")).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(getScratch()).toHaveFocus();
+  });
+
+  /*
+   * The step's one card, with the brand colour on its icon; the template
+   * rows below it are neutral until one is picked. Not a filled button: the
+   * dialog's one primary button is Use this template, in its footer.
+   */
+  test("it stands out as a card with the brand's colour, without being a filled button", () => {
+    renderPicker();
+
+    const scratch: HTMLElement = getScratch();
+
+    expect(scratch.className).toContain("rounded-xl");
+    expect(scratch.className).toContain("border");
+    expect(scratch.className).toContain("shadow-sm");
+    expect(scratch.className).not.toMatch(/\bbg-indigo-(?:5|6|7)00\b/);
+    expect(scratch.querySelector(".text-indigo-600")).not.toBeNull();
+
+    for (const templateId of RECOMMENDED) {
+      expect({
+        templateId: templateId,
+        tinted: row(templateId).querySelector(".text-indigo-600") !== null,
+      }).toEqual({ templateId: templateId, tinted: false });
+    }
+  });
+
+  test("it says when it is the start already chosen, as after Back from Name", () => {
+    renderPicker({ isStartFromScratchChosen: true });
+
+    const scratch: HTMLElement = getScratch();
+
+    expect(scratch).toHaveAttribute("aria-current", "true");
+    expect(scratch.className).toContain("border-indigo-500");
+    expect(scratch.className).toContain("ring-indigo-500");
+  });
+
+  test("otherwise it is not marked", () => {
+    renderPicker();
+
+    expect(getScratch()).not.toHaveAttribute("aria-current");
+    expect(getScratch().className).not.toContain("border-indigo-500");
   });
 });
 
-describe("what the picker opens on", () => {
+describe("what the step opens on", () => {
   test("the recommended handful, in their order, and nothing else", () => {
     renderPicker();
 
-    expect(listedIds()).toEqual([...RECOMMENDED_WORKFLOW_TEMPLATE_IDS]);
+    expect(listedIds()).toEqual(RECOMMENDED);
     expect(listedIds().length).toBeLessThanOrEqual(8);
     expect(ALL_TEMPLATES.length).toBeGreaterThan(listedIds().length * 5);
   });
 
-  test("headed Recommended, with a line saying what they are", () => {
+  test("under one heading, which names the list", () => {
     renderPicker();
 
     expect(
-      screen.getByRole("heading", { level: 3, name: "Recommended" }),
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Or start from a template",
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText("A few good places to start.")).toBeInTheDocument();
-    expect(getListbox()).toHaveAccessibleName("Recommended");
+    expect(getListbox()).toHaveAccessibleName("Or start from a template");
+    expect(screen.getAllByRole("heading")).toHaveLength(1);
   });
 
-  test("compact rows: no subheadings and no category tags", () => {
+  test("nothing picked, and no template's details open", () => {
     renderPicker();
 
+    expect(pickedId()).toBeNull();
+    expect(openDetails()).toEqual([]);
+    expect(getSearch()).not.toHaveAttribute("aria-activedescendant");
+    expect(getListbox()).not.toHaveAttribute("aria-activedescendant");
+  });
+
+  test("each row is its template's name and one line of description, and nothing else", () => {
+    renderPicker();
+
+    for (const templateId of RECOMMENDED) {
+      const option: HTMLElement = row(templateId);
+
+      expect(option.textContent).toBe(
+        `${template(templateId).name}${template(templateId).description}`,
+      );
+      expect(option).toHaveAccessibleName(template(templateId).name);
+      expect(option).toHaveAccessibleDescription(
+        template(templateId).description,
+      );
+
+      const description: HTMLElement = document.getElementById(
+        `${workflowTemplateOptionDomId(templateId)}-description`,
+      ) as HTMLElement;
+
+      // One line: cut short with an ellipsis rather than wrapped.
+      expect(description.className).toContain("truncate");
+    }
+  });
+
+  test("one list, with no headings inside it, though Recommended holds a Jira template", () => {
+    renderPicker();
+
+    expect(
+      RECOMMENDED.some((templateId: string) => {
+        return template(templateId).category === WorkflowTemplateCategory.Jira;
+      }),
+    ).toBe(true);
     expect(within(getListbox()).queryAllByRole("group")).toEqual([]);
+  });
+
+  /*
+   * What the version before this one drew, and the maintainer found too much:
+   * a column of categories with counts, a preview that was always open, a
+   * keyboard hint under the list, and a category tag on search results.
+   */
+  test("none of what made the old step crowded", () => {
+    renderPicker();
+
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("workflow-template-categories"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("workflow-template-preview"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("workflow-template-preview-column"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("to move")).not.toBeInTheDocument();
+    expect(screen.queryByText("to use")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("A few good places to start."),
+    ).not.toBeInTheDocument();
+
+    typeSearch("slack");
+
     expect(screen.queryAllByTestId("workflow-template-row-category")).toEqual(
       [],
     );
   });
 
-  test("each row shows the template's name and description, and nothing else to read", () => {
+  test("no counts anywhere: not beside the categories, not in the heading", () => {
     renderPicker();
 
-    for (const templateId of RECOMMENDED_WORKFLOW_TEMPLATE_IDS) {
-      const row: HTMLElement = screen.getByTestId(
-        workflowTemplateOptionDomId(templateId),
-      );
-
-      expect(row).toHaveTextContent(
-        `${template(templateId).name}${template(templateId).description}`,
-      );
+    for (const text of selectOptionTexts()) {
+      expect({ text: text, hasDigit: DIGIT.test(text) }).toEqual({
+        text: text,
+        hasDigit: false,
+      });
     }
+
+    expect(
+      screen.getByRole("heading", { level: 3 }).textContent || "",
+    ).not.toMatch(DIGIT);
   });
 
-  test("the first one highlighted and previewed, with the search box focused", () => {
+  test("the only controls are Start from scratch, the search, the category select and the list", () => {
     renderPicker();
 
-    expect(activeId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]);
-    expect(previewTitle()).toBe(
-      template(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!).name,
-    );
-    expect(getSearch()).toHaveFocus();
-  });
+    const picker: HTMLElement = screen.getByTestId("workflow-template-picker");
 
-  test("a hint for the keyboard under the list", () => {
-    renderPicker();
-
-    expect(screen.getByText("to move")).toBeInTheDocument();
-    expect(screen.getByText("to use")).toBeInTheDocument();
+    expect(within(picker).getAllByRole("button")).toEqual([getScratch()]);
+    expect(
+      Array.from(
+        picker.querySelectorAll("input, select, textarea, [tabindex]"),
+      ),
+    ).toEqual([getSearch(), getSelect(), getListbox()]);
   });
 });
 
-describe("the categories", () => {
-  test("Recommended, every category, then All templates, each with its count", () => {
+describe("the category select", () => {
+  test("offers Recommended, every category, then All templates, by name alone", () => {
     renderPicker();
 
-    const radios: Array<HTMLElement> =
-      within(getCategories()).getAllByRole("radio");
-
-    expect(
-      radios.map((radio: HTMLElement): string => {
-        return radio.getAttribute("aria-label") || "";
-      }),
-    ).toEqual([
-      `Recommended (${RECOMMENDED_WORKFLOW_TEMPLATE_IDS.length})`,
-      ...WorkflowTemplateCategories.map(
-        (category: WorkflowTemplateCategory): string => {
-          return `${getWorkflowTemplateCategoryInfo(category).label} (${
-            getWorkflowTemplatesByCategory(category).length
-          })`;
+    expect(getSelect().tagName).toBe("SELECT");
+    expect(getSelect()).toHaveAttribute("id", WORKFLOW_TEMPLATE_VIEW_SELECT_ID);
+    expect(getSelect()).toHaveAccessibleName("Template categories");
+    expect(selectOptionTexts()).toEqual(
+      getWorkflowTemplatePickerViews().map(
+        (info: WorkflowTemplatePickerViewInfo): string => {
+          return info.label;
         },
       ),
-      `All templates (${ALL_TEMPLATES.length})`,
-    ]);
-  });
-
-  test("a name cut short for room can still be read whole, on hover", () => {
-    renderPicker();
-
-    for (const info of getWorkflowTemplatePickerViews()) {
-      expect(categoryRadio(info.view)).toHaveAttribute("title", info.label);
-    }
-  });
-
-  test("one is chosen at a time, and only it is in the tab order", () => {
-    renderPicker();
-
-    const radios: Array<HTMLElement> =
-      within(getCategories()).getAllByRole("radio");
-    const checked: Array<HTMLElement> = radios.filter((radio: HTMLElement) => {
-      return radio.getAttribute("aria-checked") === "true";
-    });
-
-    expect(checked).toEqual([
-      categoryRadio(WorkflowTemplateCollection.Recommended),
-    ]);
-
-    for (const radio of radios) {
-      expect(radio).toHaveAttribute(
-        "tabindex",
-        radio === checked[0] ? "0" : "-1",
-      );
-    }
+    );
+    expect(selectOptionTexts()[0]).toBe("Recommended");
+    expect(selectOptionTexts()[selectOptionTexts().length - 1]).toBe(
+      "All templates",
+    );
+    expect(getSelect()).toHaveValue(WorkflowTemplateCollection.Recommended);
   });
 
   test.each(
@@ -399,34 +551,25 @@ describe("the categories", () => {
       return [category];
     }),
   )(
-    "%s lists its own templates, under its label and description",
+    "%s lists its own templates, in the catalog's order",
     (category: WorkflowTemplateCategory) => {
       renderPicker();
       showView(category);
 
-      const expectedIds: Array<string> = getWorkflowTemplatesByCategory(
-        category,
-      ).map((candidate: WorkflowTemplate): string => {
-        return candidate.id;
-      });
-
-      expect(listedIds()).toEqual(expectedIds);
-      expect(categoryRadio(category)).toHaveAttribute("aria-checked", "true");
-      expect(
-        screen.getByRole("heading", {
-          level: 3,
-          name: getWorkflowTemplateCategoryInfo(category).label,
-        }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(getWorkflowTemplateCategoryInfo(category).description),
-      ).toBeInTheDocument();
-      // The first of them is highlighted.
-      expect(activeId()).toBe(expectedIds[0]);
+      expect(getSelect()).toHaveValue(category);
+      expect(listedIds()).toEqual(
+        getWorkflowTemplatesByCategory(category).map(
+          (candidate: WorkflowTemplate): string => {
+            return candidate.id;
+          },
+        ),
+      );
+      expect(pickedId()).toBeNull();
+      expect(openDetails()).toEqual([]);
     },
   );
 
-  test("Jira's seventeen are split into its incident and its alert templates", () => {
+  test("Jira's seventeen come in two parts, its incident and its alert templates", () => {
     renderPicker();
     showView(WorkflowTemplateCategory.Jira);
 
@@ -434,195 +577,348 @@ describe("the categories", () => {
       within(getListbox()).getAllByRole("group");
 
     expect(
-      groups.map((group: HTMLElement) => {
-        return [group.getAttribute("aria-label"), listedIds(group).length];
+      groups.map((group: HTMLElement): string => {
+        return group.getAttribute("aria-label") || "";
       }),
-    ).toEqual([
-      ["Incidents", 9],
-      ["Alerts", 8],
-    ]);
+    ).toEqual(["Incidents", "Alerts"]);
+    expect(listedIds()).toHaveLength(17);
 
     for (const group of groups) {
-      const noun: string =
-        group.getAttribute("aria-label") === "Incidents" ? "incident" : "alert";
+      const part: string = group.getAttribute("aria-label") || "";
+
+      // The part's heading is drawn over its rows.
+      expect(group).toHaveTextContent(part);
 
       for (const templateId of listedIds(group)) {
-        expect(template(templateId).subcategory).toBe(
-          group.getAttribute("aria-label"),
-        );
-        expect(templateId).toContain(`-${noun}`);
+        expect(template(templateId).subcategory).toBe(part);
       }
     }
   });
 
-  /*
-   * Nothing may go missing in the new layout: All templates is the one place
-   * where every template is listed, each under its category's heading.
-   */
   test("All templates lists every template exactly once, under its category", () => {
     renderPicker();
     showView(WorkflowTemplateCollection.All);
 
-    expect(listedIds().sort()).toEqual(
-      ALL_TEMPLATES.map((candidate: WorkflowTemplate): string => {
-        return candidate.id;
-      }).sort(),
-    );
+    const groups: Array<HTMLElement> =
+      within(getListbox()).getAllByRole("group");
 
-    for (const group of within(getListbox()).getAllByRole("group")) {
+    expect(listedIds()).toHaveLength(ALL_TEMPLATES.length);
+    expect(new Set(listedIds()).size).toBe(ALL_TEMPLATES.length);
+
+    for (const group of groups) {
+      const label: string = group.getAttribute("aria-label") || "";
+
       for (const templateId of listedIds(group)) {
         expect(
           getWorkflowTemplateCategoryLabel(template(templateId).category),
-        ).toBe(group.getAttribute("aria-label"));
+        ).toBe(label);
       }
     }
+  });
 
+  test("a group's heading carries no count", () => {
+    renderPicker();
+    showView(WorkflowTemplateCollection.All);
+
+    for (const group of within(getListbox()).getAllByRole("group")) {
+      const heading: Element | null = group.querySelector(
+        "[aria-hidden='true']",
+      );
+
+      expect(heading?.textContent).toBe(group.getAttribute("aria-label"));
+    }
+  });
+
+  test("choosing another category closes the details of the template picked", () => {
+    renderPicker();
+    pick(RECOMMENDED[0]!);
+
+    expect(openDetails()).toHaveLength(1);
+
+    showView(WorkflowTemplateCategory.Incidents);
+
+    expect(listedIds()).toContain(RECOMMENDED[0]);
+    expect(pickedId()).toBeNull();
+    expect(openDetails()).toEqual([]);
+  });
+
+  test("it follows a search: All templates while searching, back to what was browsed after", () => {
+    renderPicker();
+    showView(WorkflowTemplateCategory.OnCall);
+    typeSearch("slack");
+
+    expect(getSelect()).toHaveValue(WorkflowTemplateCollection.All);
+
+    typeSearch("");
+
+    expect(getSelect()).toHaveValue(WorkflowTemplateCategory.OnCall);
+  });
+});
+
+describe("picking a template", () => {
+  test("a click picks it and opens its details inside its own row", () => {
+    const harness: Harness = renderPicker();
+    const option: HTMLElement = pick(RECOMMENDED[3]!);
+
+    expect(pickedId()).toBe(RECOMMENDED[3]);
+    expect(openDetails()).toHaveLength(1);
+    expect(within(option).getByTestId("workflow-template-details")).toBe(
+      openDetails()[0],
+    );
+    // A click looks; it does not create anything.
+    expect(harness.onUseTemplate).not.toHaveBeenCalled();
+  });
+
+  test("the picked row shows its whole description, the others one line", () => {
+    renderPicker();
+    pick(RECOMMENDED[2]!);
+
+    const description: (templateId: string) => HTMLElement = (
+      templateId: string,
+    ): HTMLElement => {
+      return document.getElementById(
+        `${workflowTemplateOptionDomId(templateId)}-description`,
+      ) as HTMLElement;
+    };
+
+    expect(description(RECOMMENDED[2]!).className).not.toContain("truncate");
+    expect(description(RECOMMENDED[1]!).className).toContain("truncate");
+  });
+
+  test("picking another moves the details: one row is open at a time", () => {
+    renderPicker();
+    pick(RECOMMENDED[0]!);
+    pick(RECOMMENDED[4]!);
+
+    expect(pickedId()).toBe(RECOMMENDED[4]);
+    expect(openDetails()).toHaveLength(1);
     expect(
-      within(getListbox())
-        .getAllByRole("group")
-        .map((group: HTMLElement) => {
-          return group.getAttribute("aria-label");
+      within(row(RECOMMENDED[4]!)).getByTestId("workflow-template-details"),
+    ).toBeInTheDocument();
+    expect(
+      within(row(RECOMMENDED[0]!)).queryByTestId("workflow-template-details"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a click on the template already picked keeps it picked", () => {
+    renderPicker();
+    pick(RECOMMENDED[1]!);
+    fireEvent.click(row(RECOMMENDED[1]!));
+
+    expect(pickedId()).toBe(RECOMMENDED[1]);
+    expect(openDetails()).toHaveLength(1);
+  });
+
+  test("a double-click uses the template", () => {
+    const harness: Harness = renderPicker();
+
+    fireEvent.doubleClick(row(RECOMMENDED[2]!));
+
+    expect(harness.onUseTemplate).toHaveBeenCalledTimes(1);
+    expect(harness.onUseTemplate.mock.calls[0]?.[0]).toEqual(
+      template(RECOMMENDED[2]!),
+    );
+    expect(harness.onStartFromScratch).not.toHaveBeenCalled();
+  });
+
+  test("the pick is a tint on the row, not a filled button", () => {
+    renderPicker();
+    pick(RECOMMENDED[0]!);
+
+    const picked: HTMLElement = row(RECOMMENDED[0]!);
+    const other: HTMLElement = row(RECOMMENDED[1]!);
+
+    expect(picked.className).toContain("bg-indigo-50/60");
+    expect(picked.className).not.toMatch(/\bbg-indigo-(?:5|6|7)00\b/);
+    expect(other.className).toContain("hover:bg-gray-50");
+    expect(other.className).not.toContain("bg-indigo-50");
+    // The picked row's icon takes the brand colour; the others stay grey.
+    expect(picked.querySelector(".text-indigo-600")).not.toBeNull();
+    expect(other.querySelector(".text-indigo-600")).toBeNull();
+  });
+
+  test("the search box and the list name the picked row as the active one", () => {
+    renderPicker();
+    pick(RECOMMENDED[3]!);
+
+    expect(getSearch()).toHaveAttribute(
+      "aria-activedescendant",
+      workflowTemplateOptionDomId(RECOMMENDED[3]!),
+    );
+    expect(getListbox()).toHaveAttribute(
+      "aria-activedescendant",
+      workflowTemplateOptionDomId(RECOMMENDED[3]!),
+    );
+  });
+});
+
+describe("a picked template's details", () => {
+  type DetailsOfFunction = (templateId: string) => HTMLElement;
+
+  const detailsOf: DetailsOfFunction = (templateId: string): HTMLElement => {
+    return within(pick(templateId)).getByTestId("workflow-template-details");
+  };
+
+  test("how it works: the trigger, then the other blocks, as the canvas names them", () => {
+    renderPicker();
+
+    const details: HTMLElement = detailsOf("scheduled-check-alert-slack");
+    const blocks: HTMLElement = within(details).getByTestId(
+      "workflow-template-details-blocks",
+    );
+
+    // Drawn in capitals; the text is the product's existing "How It Works".
+    expect(within(details).getByText("How It Works")).toBeInTheDocument();
+    expect(
+      within(blocks).getByTestId("workflow-template-details-trigger"),
+    ).toHaveTextContent("Schedule");
+    expect(
+      within(blocks)
+        .getAllByTestId("workflow-template-details-step")
+        .map((step: HTMLElement) => {
+          return step.textContent;
+        }),
+    ).toEqual(["API Get (JSON)", "Send Message to Slack", "Log"]);
+  });
+
+  test("the trigger comes first, and says it is the trigger to a screen reader", () => {
+    renderPicker();
+
+    const blocks: HTMLElement = within(
+      detailsOf("incident-created-slack"),
+    ).getByTestId("workflow-template-details-blocks");
+    const items: Array<HTMLElement> = within(blocks).getAllByRole("listitem");
+    const trigger: HTMLElement = within(blocks).getByTestId(
+      "workflow-template-details-trigger",
+    );
+
+    expect(items[0]).toContainElement(trigger);
+    expect(trigger).toHaveTextContent("Trigger: On Create Incident");
+    expect(within(trigger).getByText("Trigger:").className).toContain(
+      "sr-only",
+    );
+    expect(items).toHaveLength(3);
+  });
+
+  test("what you'll need: each setting in order, the secret and the optional ones said so", () => {
+    renderPicker();
+
+    const details: HTMLElement = detailsOf("scheduled-email-digest");
+    const settings: HTMLElement = within(details).getByTestId(
+      "workflow-template-details-settings",
+    );
+    const variables: Array<WorkflowTemplateVariable> = template(
+      "scheduled-email-digest",
+    ).variables;
+
+    expect(within(details).getByText("What you'll need")).toBeInTheDocument();
+    expect(
+      within(settings)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return (item.getAttribute("data-testid") || "").replace(
+            "workflow-template-details-setting-",
+            "",
+          );
         }),
     ).toEqual(
-      WorkflowTemplateCategories.map((category: WorkflowTemplateCategory) => {
-        return getWorkflowTemplateCategoryInfo(category).label;
-      }),
-    );
-  });
-
-  test("a group's heading says how many templates are under it", () => {
-    renderPicker();
-    showView(WorkflowTemplateCategory.Jira);
-
-    const incidents: HTMLElement = screen.getByTestId(
-      "workflow-template-section-incidents",
-    );
-
-    expect(incidents.firstElementChild).toHaveTextContent("Incidents9");
-    expect(incidents.firstElementChild).toHaveAttribute("aria-hidden", "true");
-  });
-
-  test("the arrow keys move between categories, choosing as they go, and wrap round", () => {
-    renderPicker();
-
-    const recommended: HTMLElement = categoryRadio(
-      WorkflowTemplateCollection.Recommended,
-    );
-    const views: Array<WorkflowTemplatePickerViewInfo> =
-      getWorkflowTemplatePickerViews();
-
-    recommended.focus();
-
-    expect(press(recommended, "ArrowDown")).toBe(true);
-    expect(categoryRadio(views[1]!.view)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    expect(categoryRadio(views[1]!.view)).toHaveFocus();
-    expect(listedIds()).toEqual(
-      getWorkflowTemplatesByCategory(
-        views[1]!.view as WorkflowTemplateCategory,
-      ).map((candidate: WorkflowTemplate) => {
-        return candidate.id;
+      variables.map((variable: WorkflowTemplateVariable): string => {
+        return variable.name;
       }),
     );
 
-    press(categoryRadio(views[1]!.view), "ArrowRight");
-    expect(categoryRadio(views[2]!.view)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    for (const variable of variables) {
+      const item: HTMLElement = within(settings).getByTestId(
+        `workflow-template-details-setting-${variable.name}`,
+      );
 
-    press(categoryRadio(views[2]!.view), "ArrowLeft");
-    press(categoryRadio(views[1]!.view), "ArrowUp");
-    expect(recommended).toHaveAttribute("aria-checked", "true");
-
-    // Up from the first goes round to the last.
-    press(recommended, "ArrowUp");
-    expect(categoryRadio(WorkflowTemplateCollection.All)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    expect(categoryRadio(WorkflowTemplateCollection.All)).toHaveFocus();
-
-    press(categoryRadio(WorkflowTemplateCollection.All), "Home");
-    expect(recommended).toHaveAttribute("aria-checked", "true");
-
-    press(recommended, "End");
-    expect(categoryRadio(WorkflowTemplateCollection.All)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+      expect(item).toHaveTextContent(variable.title);
+      expect({
+        variable: variable.name,
+        optional: (item.textContent || "").includes("(Optional)"),
+        secret: (item.textContent || "").includes(", Secret"),
+      }).toEqual({
+        variable: variable.name,
+        optional: !variable.required,
+        secret: variable.isSecret,
+      });
+    }
   });
 
-  test("other keys are left alone", () => {
+  test("a Jira template that calls Jira asks for its site and its token, and only the token is secret", () => {
     renderPicker();
+
+    const settings: HTMLElement = within(
+      detailsOf("jira-create-issue-for-incident"),
+    ).getByTestId("workflow-template-details-settings");
 
     expect(
-      press(categoryRadio(WorkflowTemplateCollection.Recommended), "a"),
-    ).toBe(false);
-  });
-
-  /*
-   * Below the widest screens the categories are a select over the list: as
-   * a wrapping row of twelve chips they took three lines.
-   */
-  test("narrower screens choose the category from a select, which says the same", () => {
-    renderPicker();
-
-    const select: HTMLSelectElement = screen.getByTestId(
-      "workflow-template-view-select",
-    ) as HTMLSelectElement;
-
-    expect(select).toHaveAccessibleName("Template categories");
-    expect(
-      Array.from(select.options).map((option: HTMLOptionElement) => {
-        return option.textContent;
-      }),
-    ).toEqual(
-      within(getCategories())
-        .getAllByRole("radio")
-        .map((radio: HTMLElement) => {
-          return radio.getAttribute("aria-label");
-        }),
-    );
-    expect(select.value).toBe(WorkflowTemplateCollection.Recommended);
-
-    fireEvent.change(select, {
-      target: { value: WorkflowTemplateCategory.Monitors },
-    });
-
-    expect(listedIds()).toEqual(
-      getWorkflowTemplatesByCategory(WorkflowTemplateCategory.Monitors).map(
-        (candidate: WorkflowTemplate) => {
-          return candidate.id;
-        },
+      within(settings).getByTestId(
+        "workflow-template-details-setting-jiraBasicAuthToken",
       ),
-    );
-    expect(categoryRadio(WorkflowTemplateCategory.Monitors)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    ).toHaveTextContent("Secret");
+    expect(
+      within(settings).getByTestId(
+        "workflow-template-details-setting-jiraBaseUrl",
+      ),
+    ).not.toHaveTextContent("Secret");
   });
 
-  test("the list of categories is a column only on wide screens, and the select is the rest of the time", () => {
+  test("a template that asks for nothing says so", () => {
     renderPicker();
 
-    expect(getCategories().className).toContain("max-xl:hidden");
-    expect(getCategories().className).toContain("xl:flex");
+    const details: HTMLElement = detailsOf("manual-log");
+
     expect(
-      screen.getByTestId("workflow-template-view-select").parentElement
-        ?.className,
-    ).toContain("xl:hidden");
+      within(details).getByTestId("workflow-template-details-no-settings"),
+    ).toHaveTextContent("Nothing to fill in.");
+    expect(
+      within(details).queryByTestId("workflow-template-details-settings"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("every template's details open, with its trigger and every setting it asks for", () => {
+    renderPicker();
+    showView(WorkflowTemplateCollection.All);
+
+    for (const candidate of ALL_TEMPLATES) {
+      const details: HTMLElement = within(pick(candidate.id)).getByTestId(
+        "workflow-template-details",
+      );
+
+      expect({
+        template: candidate.id,
+        trigger: within(details).queryAllByTestId(
+          "workflow-template-details-trigger",
+        ).length,
+        settings: within(details)
+          .queryAllByTestId(/^workflow-template-details-setting-/)
+          .map((item: HTMLElement): string => {
+            return (item.getAttribute("data-testid") || "").replace(
+              "workflow-template-details-setting-",
+              "",
+            );
+          }),
+      }).toEqual({
+        template: candidate.id,
+        trigger: 1,
+        settings: candidate.variables.map(
+          (variable: WorkflowTemplateVariable): string => {
+            return variable.name;
+          },
+        ),
+      });
+    }
   });
 });
 
 describe("the search", () => {
-  test("is a combobox over the list", () => {
+  test("is a quiet combobox over the list", () => {
     renderPicker();
 
     const search: HTMLElement = getSearch();
 
+    expect(search).toHaveAttribute("id", WORKFLOW_TEMPLATE_SEARCH_INPUT_ID);
     expect(search).toHaveAttribute("role", "combobox");
     expect(search).toHaveAttribute(
       "aria-controls",
@@ -631,12 +927,11 @@ describe("the search", () => {
     expect(search).toHaveAttribute("aria-expanded", "true");
     expect(search).toHaveAttribute("aria-autocomplete", "list");
     expect(search).toHaveAttribute("autocomplete", "off");
+    expect(search).toHaveAttribute("placeholder", "Search templates…");
     expect(search).toHaveAccessibleName("Search templates…");
-    expect(search).toHaveAttribute(
-      "aria-activedescendant",
-      workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!),
-    );
     expect(getListbox()).toHaveAttribute("id", WORKFLOW_TEMPLATE_LISTBOX_ID);
+    // Not focused on its own: the step opens on Start from scratch.
+    expect(search).not.toHaveFocus();
   });
 
   test("looks through every template, whichever category was open", () => {
@@ -645,85 +940,30 @@ describe("the search", () => {
     typeSearch("discord");
 
     expect(listedIds()).toEqual(["incident-created-discord"]);
-    expect(categoryRadio(WorkflowTemplateCollection.All)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    expect(getSelect()).toHaveValue(WorkflowTemplateCollection.All);
   });
 
-  test("says how many it found, and where", () => {
+  test("picks its best match and opens its details, so Enter takes it", () => {
     renderPicker();
-    typeSearch("slack");
+    typeSearch("heartbeat");
 
-    const results: number = listedIds().length;
-
-    expect(results).toBeGreaterThan(1);
+    expect(pickedId()).toBe("scheduled-heartbeat");
     expect(
-      screen.getByRole("heading", { level: 3, name: `${results} results` }),
+      within(row("scheduled-heartbeat")).getByTestId(
+        "workflow-template-details",
+      ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("workflow-template-result-count"),
-    ).toHaveTextContent(`${results} results`);
-    expect(
-      screen.getByTestId("workflow-template-result-count"),
-    ).toHaveAttribute("aria-live", "polite");
-    expect(categoryRadio(WorkflowTemplateCategory.Jira)).toHaveAttribute(
-      "aria-label",
-      "Jira (0)",
-    );
-    expect(categoryRadio(WorkflowTemplateCollection.All)).toHaveAttribute(
-      "aria-label",
-      `All templates (${results})`,
+    expect(getSearch()).toHaveAttribute(
+      "aria-activedescendant",
+      workflowTemplateOptionDomId("scheduled-heartbeat"),
     );
   });
 
-  test("one result is a result, not results", () => {
-    renderPicker();
-    typeSearch("discord");
-
-    expect(
-      screen.getByRole("heading", { level: 3, name: "1 result" }),
-    ).toBeInTheDocument();
-  });
-
-  test("dims the categories it found nothing in", () => {
-    renderPicker();
-    typeSearch("slack");
-
-    expect(categoryRadio(WorkflowTemplateCategory.Jira).className).toContain(
-      "text-gray-400",
-    );
-    expect(
-      categoryRadio(WorkflowTemplateCategory.Incidents).className,
-    ).toContain("text-gray-700");
-  });
-
-  test("tags each result with its category, where the results mix them", () => {
-    renderPicker();
-    typeSearch("slack");
-
-    const tags: Array<string> = screen
-      .getAllByTestId("workflow-template-row-category")
-      .map((tag: HTMLElement) => {
-        return tag.textContent || "";
-      });
-
-    expect(tags).toHaveLength(listedIds().length);
-    expect(tags).toEqual(
-      listedIds().map((templateId: string): string => {
-        return getWorkflowTemplateCategoryLabel(template(templateId).category);
-      }),
-    );
-  });
-
-  test("narrowed to one category, the results need no tags", () => {
+  test("narrowed to a category, it finds only that category's matches", () => {
     renderPicker();
     typeSearch("slack");
     showView(WorkflowTemplateCategory.Monitors);
 
-    expect(screen.queryAllByTestId("workflow-template-row-category")).toEqual(
-      [],
-    );
     expect(listedIds().length).toBeGreaterThan(0);
 
     for (const templateId of listedIds()) {
@@ -733,41 +973,51 @@ describe("the search", () => {
     }
   });
 
+  test("tells a screen reader how many it found, and says nothing while browsing", () => {
+    renderPicker();
+
+    const count: HTMLElement = screen.getByTestId(
+      "workflow-template-result-count",
+    );
+
+    expect(count).toHaveAttribute("aria-live", "polite");
+    expect(count.className).toContain("sr-only");
+    expect(count.textContent).toBe("");
+
+    typeSearch("slack");
+
+    expect(count).toHaveTextContent(`${listedIds().length} results`);
+
+    typeSearch("discord");
+
+    expect(count).toHaveTextContent("1 result");
+  });
+
   test("marks the words it matched", () => {
     renderPicker();
     typeSearch("teams incident");
 
-    const row: HTMLElement = screen.getByTestId(
-      workflowTemplateOptionDomId("incident-created-teams"),
-    );
-    const marks: Array<string> = Array.from(row.querySelectorAll("mark")).map(
-      (mark: Element) => {
-        return mark.textContent || "";
-      },
-    );
+    const marks: Array<string> = Array.from(
+      row("incident-created-teams").querySelectorAll("mark"),
+    ).map((mark: Element) => {
+      return mark.textContent || "";
+    });
 
     expect(marks).toContain("Teams");
     expect(marks).toContain("incident");
   });
 
-  /*
-   * Read as the Add Component picker reads it: a word that matches nothing as
-   * typed is taken for a typo, and the word it was read as is marked whole.
-   */
   test("forgives a typo, and marks the word it was read as", () => {
     renderPicker();
     typeSearch("incidnet");
 
     expect(listedIds()).toContain("incident-created-slack");
-
-    const row: HTMLElement = screen.getByTestId(
-      workflowTemplateOptionDomId("incident-created-slack"),
-    );
-
     expect(
-      Array.from(row.querySelectorAll("mark")).map((mark: Element) => {
-        return mark.textContent;
-      }),
+      Array.from(row("incident-created-slack").querySelectorAll("mark")).map(
+        (mark: Element) => {
+          return mark.textContent;
+        },
+      ),
     ).toContain("incident");
   });
 
@@ -778,14 +1028,6 @@ describe("the search", () => {
     expect(listedIds()).toContain("webhook-relay");
   });
 
-  test("highlights the best match", () => {
-    renderPicker();
-    typeSearch("heartbeat");
-
-    expect(activeId()).toBe("scheduled-heartbeat");
-    expect(previewTitle()).toBe(template("scheduled-heartbeat").name);
-  });
-
   test("a clear button takes the search away and gives the focus back to the box", () => {
     renderPicker();
 
@@ -794,27 +1036,23 @@ describe("the search", () => {
     ).not.toBeInTheDocument();
 
     typeSearch("slack");
-    fireEvent.click(screen.getByTestId("workflow-template-search-clear"));
+
+    const clear: HTMLElement = screen.getByTestId(
+      "workflow-template-search-clear",
+    );
+
+    expect(clear).toHaveAccessibleName("Clear search");
+
+    fireEvent.click(clear);
 
     expect(getSearch()).toHaveValue("");
     expect(getSearch()).toHaveFocus();
-    expect(listedIds()).toEqual([...RECOMMENDED_WORKFLOW_TEMPLATE_IDS]);
-  });
-
-  test("clearing the search goes back to the category that was being browsed", () => {
-    renderPicker();
-    showView(WorkflowTemplateCategory.OnCall);
-    typeSearch("slack");
-    typeSearch("");
-
-    expect(categoryRadio(WorkflowTemplateCategory.OnCall)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    expect(listedIds()).toEqual(RECOMMENDED);
+    expect(pickedId()).toBeNull();
   });
 
   describe("when nothing matches", () => {
-    test("it says so, offers to clear the search, and previews nothing", () => {
+    test("it says so, offers to clear the search, and picks nothing", () => {
       renderPicker();
       typeSearch("pagerduty");
 
@@ -825,9 +1063,7 @@ describe("the search", () => {
         "Try other words, or start from scratch.",
       );
       expect(listedIds()).toEqual([]);
-      expect(
-        screen.queryByTestId("workflow-template-preview"),
-      ).not.toBeInTheDocument();
+      expect(openDetails()).toEqual([]);
       expect(getSearch()).not.toHaveAttribute("aria-activedescendant");
       // There is nothing else to search.
       expect(
@@ -837,10 +1073,21 @@ describe("the search", () => {
       fireEvent.click(screen.getByTestId("workflow-template-empty-clear"));
 
       expect(getSearch()).toHaveValue("");
-      expect(listedIds()).toEqual([...RECOMMENDED_WORKFLOW_TEMPLATE_IDS]);
+      expect(getSearch()).toHaveFocus();
+      expect(listedIds()).toEqual(RECOMMENDED);
     });
 
-    test("narrowed to a category, it offers the matches elsewhere", () => {
+    test("the empty list draws no frame of its own; the message does", () => {
+      renderPicker();
+      typeSearch("pagerduty");
+
+      expect(getListbox().className).not.toContain("border-gray-200");
+      expect(screen.getByTestId("workflow-template-empty").className).toContain(
+        "border-dashed",
+      );
+    });
+
+    test("narrowed to a category, it offers the matches elsewhere, with how many", () => {
       renderPicker();
       typeSearch("slack");
       showView(WorkflowTemplateCategory.Jira);
@@ -850,86 +1097,91 @@ describe("the search", () => {
       const everywhere: HTMLElement = screen.getByTestId(
         "workflow-template-search-everywhere",
       );
-      const allCount: string = (
-        categoryRadio(WorkflowTemplateCollection.All).getAttribute(
-          "aria-label",
-        ) || ""
-      ).replace(/^All templates /, "");
+      const matches: number =
+        getWorkflowTemplatePickerCounts("slack").get(
+          WorkflowTemplateCollection.All,
+        ) || 0;
 
-      expect(everywhere).toHaveTextContent(`Search all templates ${allCount}`);
+      expect(matches).toBeGreaterThan(1);
+
+      expect(everywhere).toHaveTextContent(`Search all templates (${matches})`);
 
       fireEvent.click(everywhere);
 
-      expect(categoryRadio(WorkflowTemplateCollection.All)).toHaveAttribute(
-        "aria-checked",
-        "true",
-      );
-      expect(listedIds().length).toBeGreaterThan(0);
+      expect(getSelect()).toHaveValue(WorkflowTemplateCollection.All);
+      expect(listedIds()).toHaveLength(matches);
       expect(getSearch()).toHaveValue("slack");
-    });
-
-    test("no keyboard hint, since there is nothing to move to", () => {
-      renderPicker();
-      typeSearch("pagerduty");
-
-      expect(screen.queryByText("to move")).not.toBeInTheDocument();
     });
   });
 });
 
 describe("the keyboard, from the search box", () => {
-  test("the arrow keys move the highlight, and the preview follows", () => {
+  test("with nothing picked, down picks the first template and opens its details", () => {
     renderPicker();
-
-    const recommended: Array<string> = [...RECOMMENDED_WORKFLOW_TEMPLATE_IDS];
+    getSearch().focus();
 
     expect(press(getSearch(), "ArrowDown")).toBe(true);
-    expect(activeId()).toBe(recommended[1]);
+    expect(pickedId()).toBe(RECOMMENDED[0]);
+    expect(openDetails()).toHaveLength(1);
     expect(getSearch()).toHaveAttribute(
       "aria-activedescendant",
-      workflowTemplateOptionDomId(recommended[1]!),
+      workflowTemplateOptionDomId(RECOMMENDED[0]!),
     );
-    expect(previewTitle()).toBe(template(recommended[1]!).name);
-
-    press(getSearch(), "ArrowDown");
-    press(getSearch(), "ArrowUp");
-
-    expect(activeId()).toBe(recommended[1]);
     // The focus stays in the box, so typing goes on.
     expect(getSearch()).toHaveFocus();
   });
 
-  test("the highlight is scrolled into view as it moves", () => {
+  test("with nothing picked, up picks the last template", () => {
+    renderPicker();
+
+    expect(press(getSearch(), "ArrowUp")).toBe(true);
+    expect(pickedId()).toBe(RECOMMENDED[RECOMMENDED.length - 1]);
+  });
+
+  test("the arrow keys then move the pick, one row at a time", () => {
+    renderPicker();
+
+    press(getSearch(), "ArrowDown");
+    press(getSearch(), "ArrowDown");
+    press(getSearch(), "ArrowDown");
+    press(getSearch(), "ArrowUp");
+
+    expect(pickedId()).toBe(RECOMMENDED[1]);
+  });
+
+  test("the picked row is scrolled into view as the pick moves", () => {
     renderPicker();
     press(getSearch(), "ArrowDown");
 
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
-  test("it stops at the top and the bottom of the list", () => {
+  test("a click does not scroll: the row is where the pointer is", () => {
+    renderPicker();
+    pick(RECOMMENDED[2]!);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  test("it stops at the bottom of the list", () => {
     renderPicker();
 
-    const recommended: Array<string> = [...RECOMMENDED_WORKFLOW_TEMPLATE_IDS];
-
-    press(getSearch(), "ArrowUp");
-    expect(activeId()).toBe(recommended[0]);
-
-    for (let i: number = 0; i < recommended.length + 3; i++) {
+    for (let i: number = 0; i < RECOMMENDED.length + 3; i++) {
       press(getSearch(), "ArrowDown");
     }
 
-    expect(activeId()).toBe(recommended[recommended.length - 1]);
+    expect(pickedId()).toBe(RECOMMENDED[RECOMMENDED.length - 1]);
   });
 
-  test("Home and End move the caret in the box, not the highlight", () => {
+  test("Home and End move the caret in the box, not the pick", () => {
     renderPicker();
 
     expect(press(getSearch(), "End")).toBe(false);
     expect(press(getSearch(), "Home")).toBe(false);
-    expect(activeId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]);
+    expect(pickedId()).toBeNull();
   });
 
-  test("Enter uses the highlighted template", () => {
+  test("Enter uses the template picked, which after typing is the best match", () => {
     const harness: Harness = renderPicker();
 
     typeSearch("telegram");
@@ -941,9 +1193,19 @@ describe("the keyboard, from the search box", () => {
     );
   });
 
+  test("Enter with nothing picked does nothing", () => {
+    const harness: Harness = renderPicker();
+
+    expect(press(getSearch(), "Enter")).toBe(true);
+
+    expect(harness.onUseTemplate).not.toHaveBeenCalled();
+    expect(harness.onStartFromScratch).not.toHaveBeenCalled();
+  });
+
   test("Enter while an input method is still composing does nothing", () => {
     const harness: Harness = renderPicker();
 
+    typeSearch("telegram");
     fireEvent.keyDown(getSearch(), { key: "Enter", isComposing: true });
 
     expect(harness.onUseTemplate).not.toHaveBeenCalled();
@@ -980,30 +1242,33 @@ describe("the keyboard, in the list", () => {
     renderPicker();
 
     const listbox: HTMLElement = getListbox();
-    const recommended: Array<string> = [...RECOMMENDED_WORKFLOW_TEMPLATE_IDS];
 
     expect(listbox).toHaveAttribute("tabindex", "0");
 
     listbox.focus();
 
     press(listbox, "ArrowDown");
-    expect(activeId()).toBe(recommended[1]);
+    expect(pickedId()).toBe(RECOMMENDED[0]);
+
+    press(listbox, "ArrowDown");
+    expect(pickedId()).toBe(RECOMMENDED[1]);
     expect(listbox).toHaveAttribute(
       "aria-activedescendant",
-      workflowTemplateOptionDomId(recommended[1]!),
+      workflowTemplateOptionDomId(RECOMMENDED[1]!),
     );
 
     expect(press(listbox, "End")).toBe(true);
-    expect(activeId()).toBe(recommended[recommended.length - 1]);
+    expect(pickedId()).toBe(RECOMMENDED[RECOMMENDED.length - 1]);
 
     expect(press(listbox, "Home")).toBe(true);
-    expect(activeId()).toBe(recommended[0]);
+    expect(pickedId()).toBe(RECOMMENDED[0]);
   });
 
-  test("Enter uses the highlighted template, and Space does not scroll the dialog", () => {
+  test("Enter uses the template picked, and Space does not scroll the dialog", () => {
     const harness: Harness = renderPicker();
     const listbox: HTMLElement = getListbox();
 
+    press(listbox, "ArrowDown");
     press(listbox, "ArrowDown");
     expect(press(listbox, " ")).toBe(true);
     expect(harness.onUseTemplate).not.toHaveBeenCalled();
@@ -1011,7 +1276,7 @@ describe("the keyboard, in the list", () => {
     press(listbox, "Enter");
 
     expect(harness.onUseTemplate.mock.calls[0]?.[0]).toEqual(
-      template(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]!),
+      template(RECOMMENDED[1]!),
     );
   });
 
@@ -1024,12 +1289,10 @@ describe("the keyboard, in the list", () => {
     const lastIncident: string = listedIds(groups[0]).pop() as string;
     const firstAlert: string = listedIds(groups[1])[0] as string;
 
-    fireEvent.click(
-      screen.getByTestId(workflowTemplateOptionDomId(lastIncident)),
-    );
+    pick(lastIncident);
     press(listbox, "ArrowDown");
 
-    expect(activeId()).toBe(firstAlert);
+    expect(pickedId()).toBe(firstAlert);
   });
 
   test("Escape in the list is left to the dialog", () => {
@@ -1038,15 +1301,26 @@ describe("the keyboard, in the list", () => {
     expect(press(getListbox(), "Escape")).toBe(false);
   });
 
-  test("a slash anywhere outside a text box goes back to the search", () => {
+  test("a slash anywhere outside a text box goes to the search", () => {
     renderPicker();
 
-    const listbox: HTMLElement = getListbox();
-
-    listbox.focus();
-
-    expect(press(listbox, "/")).toBe(true);
+    expect(getScratch()).toHaveFocus();
+    expect(press(getScratch(), "/")).toBe(true);
     expect(getSearch()).toHaveFocus();
+
+    getListbox().focus();
+
+    expect(press(getListbox(), "/")).toBe(true);
+    expect(getSearch()).toHaveFocus();
+  });
+
+  test("a slash in the category select is the select's", () => {
+    renderPicker();
+
+    getSelect().focus();
+
+    expect(press(getSelect(), "/")).toBe(false);
+    expect(getSelect()).toHaveFocus();
   });
 
   test("a slash with a modifier is not taken", () => {
@@ -1076,281 +1350,6 @@ describe("the keyboard, in the list", () => {
   });
 });
 
-describe("the mouse", () => {
-  test("a click highlights a template and previews it, without using it", () => {
-    const harness: Harness = renderPicker();
-    const pick: string = RECOMMENDED_WORKFLOW_TEMPLATE_IDS[3]!;
-
-    fireEvent.click(screen.getByTestId(workflowTemplateOptionDomId(pick)));
-
-    expect(activeId()).toBe(pick);
-    expect(previewTitle()).toBe(template(pick).name);
-    expect(harness.onUseTemplate).not.toHaveBeenCalled();
-  });
-
-  test("a double-click uses the template", () => {
-    const harness: Harness = renderPicker();
-    const pick: string = RECOMMENDED_WORKFLOW_TEMPLATE_IDS[2]!;
-
-    fireEvent.doubleClick(
-      screen.getByTestId(workflowTemplateOptionDomId(pick)),
-    );
-
-    expect(harness.onUseTemplate).toHaveBeenCalledTimes(1);
-    expect(harness.onUseTemplate.mock.calls[0]?.[0]).toEqual(template(pick));
-  });
-
-  test("the highlight is a tint on the row, not a filled button", () => {
-    renderPicker();
-
-    const active: HTMLElement = screen.getByTestId(
-      workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[0]!),
-    );
-    const other: HTMLElement = screen.getByTestId(
-      workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]!),
-    );
-
-    expect(active.className).toContain("bg-indigo-50");
-    expect(other.className).toContain("hover:bg-gray-50");
-    expect(other.className).not.toContain("bg-indigo-50");
-  });
-});
-
-describe("the preview", () => {
-  type ShowFunction = (templateId: string) => HTMLElement;
-
-  const show: ShowFunction = (templateId: string): HTMLElement => {
-    showView(WorkflowTemplateCollection.All);
-    fireEvent.click(
-      screen.getByTestId(workflowTemplateOptionDomId(templateId)),
-    );
-
-    return getPreview();
-  };
-
-  test("names the template, its category and its size, and says what it does", () => {
-    renderPicker();
-
-    const preview: HTMLElement = show("incident-created-slack");
-
-    expect(
-      within(preview).getByRole("heading", { level: 3 }),
-    ).toHaveTextContent("Tell Slack when an incident opens");
-    expect(preview).toHaveAccessibleName("Tell Slack when an incident opens");
-    expect(
-      within(preview).getByTestId("workflow-template-preview-meta"),
-    ).toHaveTextContent("Incidents · 3 blocks");
-    expect(preview).toHaveTextContent(
-      template("incident-created-slack").description,
-    );
-  });
-
-  test("a Jira template's size line says which part it is from", () => {
-    renderPicker();
-
-    expect(
-      within(show("jira-create-issue-for-alert")).getByTestId(
-        "workflow-template-preview-meta",
-      ),
-    ).toHaveTextContent("Jira · Alerts · 8 blocks");
-  });
-
-  test("how it works: the trigger, then the other blocks, as the canvas names them", () => {
-    renderPicker();
-
-    const preview: HTMLElement = show("scheduled-check-alert-slack");
-    const blocks: HTMLElement = within(preview).getByTestId(
-      "workflow-template-preview-blocks",
-    );
-
-    // Drawn in capitals; the text is the product's existing "How It Works".
-    expect(within(preview).getByText("How It Works")).toBeInTheDocument();
-    expect(within(blocks).getByText("Trigger")).toBeInTheDocument();
-    expect(within(blocks).getByText("Steps")).toBeInTheDocument();
-    expect(
-      within(blocks).getByTestId("workflow-template-preview-trigger"),
-    ).toHaveTextContent("Schedule");
-    expect(
-      within(blocks)
-        .getAllByTestId("workflow-template-preview-step")
-        .map((step: HTMLElement) => {
-          return step.textContent;
-        }),
-    ).toEqual(["API Get (JSON)", "Send Message to Slack", "Log"]);
-  });
-
-  test("what you'll need: each setting, the secret ones and the optional ones said so", () => {
-    renderPicker();
-
-    const preview: HTMLElement = show("scheduled-email-digest");
-    const settings: HTMLElement = within(preview).getByTestId(
-      "workflow-template-preview-settings",
-    );
-    const variables: Array<{
-      name: string;
-      title: string;
-      required: boolean;
-      isSecret: boolean;
-    }> = template("scheduled-email-digest").variables;
-
-    expect(within(preview).getByText("What you'll need")).toBeInTheDocument();
-    expect(within(settings).getAllByRole("listitem")).toHaveLength(
-      variables.length,
-    );
-
-    for (const variable of variables) {
-      const row: HTMLElement = within(settings).getByTestId(
-        `workflow-template-preview-setting-${variable.name}`,
-      );
-
-      expect(row).toHaveTextContent(variable.title);
-      expect({
-        variable: variable.name,
-        optional: (row.textContent || "").includes("(Optional)"),
-        secret: (row.textContent || "").includes("Secret"),
-      }).toEqual({
-        variable: variable.name,
-        optional: !variable.required,
-        secret: variable.isSecret,
-      });
-    }
-  });
-
-  test("a template that asks for nothing says so", () => {
-    renderPicker();
-
-    const preview: HTMLElement = show("manual-log");
-
-    expect(
-      within(preview).getByTestId("workflow-template-preview-no-settings"),
-    ).toHaveTextContent("Nothing to fill in.");
-    expect(
-      within(preview).queryByTestId("workflow-template-preview-settings"),
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe("on a narrow screen", () => {
-  test("opening a template shows its preview in the list's place, and Back to templates returns", () => {
-    renderPicker();
-
-    const listColumn: HTMLElement = screen.getByTestId(
-      "workflow-template-list-column",
-    );
-    const previewColumn: HTMLElement = screen.getByTestId(
-      "workflow-template-preview-column",
-    );
-
-    // Before: the list shows, the preview waits.
-    expect(listColumn.className).not.toContain("max-md:hidden");
-    expect(previewColumn.className).toContain("max-md:hidden");
-
-    fireEvent.click(
-      screen.getByTestId(
-        workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]!),
-      ),
-    );
-
-    expect(listColumn.className).toContain("max-md:hidden");
-    expect(previewColumn.className).not.toContain("max-md:hidden");
-
-    const back: HTMLElement = screen.getByTestId(
-      "workflow-template-preview-back",
-    );
-
-    expect(back).toHaveTextContent("Back to templates");
-    // Only drawn where the preview takes the list's place.
-    expect(back.className).toContain("md:hidden");
-
-    fireEvent.click(back);
-
-    expect(listColumn.className).not.toContain("max-md:hidden");
-    expect(previewColumn.className).toContain("max-md:hidden");
-    // The template stays highlighted.
-    expect(activeId()).toBe(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]);
-  });
-
-  /*
-   * jsdom draws nothing, so the list column is made to report what a phone's
-   * browser would once the preview has taken its place.
-   */
-  test("the focus follows: to Back to templates, then to the list again", () => {
-    renderPicker();
-
-    const listColumn: HTMLElement = screen.getByTestId(
-      "workflow-template-list-column",
-    );
-    const realGetComputedStyle: typeof window.getComputedStyle =
-      window.getComputedStyle.bind(window);
-
-    jest
-      .spyOn(window, "getComputedStyle")
-      .mockImplementation((element: Element): CSSStyleDeclaration => {
-        const style: CSSStyleDeclaration = realGetComputedStyle(element);
-
-        if (
-          element === listColumn &&
-          listColumn.className.includes("max-md:hidden")
-        ) {
-          return { ...style, display: "none" } as CSSStyleDeclaration;
-        }
-
-        return style;
-      });
-
-    fireEvent.click(
-      screen.getByTestId(
-        workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[2]!),
-      ),
-    );
-
-    expect(screen.getByTestId("workflow-template-preview-back")).toHaveFocus();
-
-    fireEvent.click(screen.getByTestId("workflow-template-preview-back"));
-
-    expect(getListbox()).toHaveFocus();
-  });
-
-  test("where the list and the preview sit side by side, a click leaves the focus where it was", () => {
-    renderPicker();
-
-    const listbox: HTMLElement = getListbox();
-
-    listbox.focus();
-    fireEvent.click(
-      screen.getByTestId(
-        workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[2]!),
-      ),
-    );
-
-    expect(listbox).toHaveFocus();
-  });
-
-  test("a new search or another category closes the preview again", () => {
-    renderPicker();
-
-    fireEvent.click(
-      screen.getByTestId(
-        workflowTemplateOptionDomId(RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1]!),
-      ),
-    );
-    typeSearch("slack");
-
-    expect(
-      screen.getByTestId("workflow-template-list-column").className,
-    ).not.toContain("max-md:hidden");
-
-    fireEvent.click(
-      screen.getByTestId(workflowTemplateOptionDomId("incident-created-slack")),
-    );
-    showView(WorkflowTemplateCategory.Jira);
-
-    expect(
-      screen.getByTestId("workflow-template-list-column").className,
-    ).not.toContain("max-md:hidden");
-  });
-});
-
 describe("the state it reports", () => {
   test("is the whole state, as the wizard keeps it", () => {
     const harness: Harness = renderPicker();
@@ -1361,8 +1360,7 @@ describe("the state it reports", () => {
       search: "slack",
       browseView: WorkflowTemplateCollection.Recommended,
       searchView: WorkflowTemplateCollection.All,
-      activeTemplateId: null,
-      isPreviewOpen: false,
+      selectedTemplateId: null,
     });
 
     showView(WorkflowTemplateCategory.Monitors);
@@ -1371,46 +1369,20 @@ describe("the state it reports", () => {
       search: "slack",
       browseView: WorkflowTemplateCollection.Recommended,
       searchView: WorkflowTemplateCategory.Monitors,
-      activeTemplateId: null,
-      isPreviewOpen: false,
+      selectedTemplateId: null,
     });
 
-    fireEvent.click(
-      screen.getByTestId(
-        workflowTemplateOptionDomId("monitor-offline-only-slack"),
-      ),
-    );
+    fireEvent.click(row("monitor-offline-only-slack"));
 
     expect(harness.onStateChange).toHaveBeenLastCalledWith({
       search: "slack",
       browseView: WorkflowTemplateCollection.Recommended,
       searchView: WorkflowTemplateCategory.Monitors,
-      activeTemplateId: "monitor-offline-only-slack",
-      isPreviewOpen: true,
+      selectedTemplateId: "monitor-offline-only-slack",
     });
   });
 
-  test("a picker given a state shows it: the search, the category and the template", () => {
-    renderPicker({
-      initialState: {
-        search: "slack",
-        browseView: WorkflowTemplateCategory.Jira,
-        searchView: WorkflowTemplateCategory.Monitors,
-        activeTemplateId: "monitor-offline-only-slack",
-        isPreviewOpen: false,
-      },
-    });
-
-    expect(getSearch()).toHaveValue("slack");
-    expect(categoryRadio(WorkflowTemplateCategory.Monitors)).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    expect(activeId()).toBe("monitor-offline-only-slack");
-    expect(previewTitle()).toBe(template("monitor-offline-only-slack").name);
-  });
-
-  test("moving with the keyboard reports only the new highlight", () => {
+  test("moving with the keyboard reports only the new pick", () => {
     const harness: Harness = renderPicker();
 
     act(() => {
@@ -1419,7 +1391,60 @@ describe("the state it reports", () => {
 
     expect(harness.onStateChange).toHaveBeenLastCalledWith({
       ...INITIAL_WORKFLOW_TEMPLATE_PICKER_STATE,
-      activeTemplateId: RECOMMENDED_WORKFLOW_TEMPLATE_IDS[1],
+      selectedTemplateId: RECOMMENDED[0],
     });
+  });
+
+  test("Start from scratch changes nothing in the picker itself", () => {
+    const harness: Harness = renderPicker();
+
+    fireEvent.click(getScratch());
+
+    expect(harness.onStateChange).not.toHaveBeenCalled();
+  });
+
+  test("a picker given a state shows it: the search, the category and the template", () => {
+    renderPicker({
+      initialState: stateWith({
+        search: "slack",
+        browseView: WorkflowTemplateCategory.Jira,
+        searchView: WorkflowTemplateCategory.Monitors,
+        selectedTemplateId: "monitor-offline-only-slack",
+      }),
+    });
+
+    expect(getSearch()).toHaveValue("slack");
+    expect(getSelect()).toHaveValue(WorkflowTemplateCategory.Monitors);
+    expect(pickedId()).toBe("monitor-offline-only-slack");
+    expect(
+      within(row("monitor-offline-only-slack")).getByTestId(
+        "workflow-template-details",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * Back from Name puts the focus on what was chosen: the list, with the
+   * template open, or Start from scratch.
+   */
+  test("coming back to a picked template, the focus is on the list", () => {
+    renderPicker({
+      initialState: stateWith({ selectedTemplateId: RECOMMENDED[2]! }),
+    });
+
+    expect(getListbox()).toHaveFocus();
+    expect(getListbox()).toHaveAttribute(
+      "aria-activedescendant",
+      workflowTemplateOptionDomId(RECOMMENDED[2]!),
+    );
+  });
+
+  test("coming back to Start from scratch, the focus is on it", () => {
+    renderPicker({
+      initialState: stateWith({ selectedTemplateId: RECOMMENDED[2]! }),
+      isStartFromScratchChosen: true,
+    });
+
+    expect(getScratch()).toHaveFocus();
   });
 });

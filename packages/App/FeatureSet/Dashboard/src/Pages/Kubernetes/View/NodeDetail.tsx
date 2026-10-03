@@ -40,10 +40,13 @@ import StatusBadge, {
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const nodeName: string = Navigation.getLastParamAsString();
 
@@ -130,7 +133,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_cpu",
       title: "CPU Utilization",
-      description: `CPU usage as a percentage of allocatable CPU for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "CPU usage as a percentage of allocatable CPU for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -156,7 +162,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_memory",
       title: "Memory Usage",
-      description: `Memory usage for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "Memory usage for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -181,7 +190,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "node_filesystem",
       title: "Filesystem Usage",
-      description: `Filesystem usage for node ${nodeName}`,
+      description: translator.translateTemplate(
+        "Filesystem usage for node {{nodeName}}",
+        { nodeName: nodeName },
+      ),
       legend: "Filesystem",
       legendUnit: "",
     },
@@ -389,7 +401,9 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Node Metrics: ${nodeName}`}
+          title={translator.translateTemplate("Node Metrics: {{nodeName}}", {
+            nodeName: nodeName,
+          })}
           description="CPU, memory, filesystem, and network usage for this node over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
@@ -403,7 +417,9 @@ const KubernetesClusterNodeDetail: FunctionComponent<
               return (
                 <div className="group/zoomhint mt-4">
                   <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                    <span>Network Throughput</span>
+                    <span>
+                      {translator.translateText("Network Throughput")}
+                    </span>
                     <InfoTooltip
                       label="Network Throughput"
                       text={

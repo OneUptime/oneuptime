@@ -17,6 +17,8 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -113,6 +115,7 @@ interface FailedRates {
 const ProxmoxRateChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // null until the first load lands.
   const [loaded, setLoaded] = useState<LoadedRates | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -290,8 +293,10 @@ const ProxmoxRateChart: FunctionComponent<ComponentProps> = (
           style={{ height: `${heightInPx}px` }}
           onDoubleClick={zoom?.onTimeRangeReset}
         >
-          {props.emptyMessage ||
-            "No data reported for the selected time range."}
+          {translator.translateText(
+            props.emptyMessage ||
+              "No data reported for the selected time range.",
+          )}
         </div>
       </ChartRefetchFrame>
     );

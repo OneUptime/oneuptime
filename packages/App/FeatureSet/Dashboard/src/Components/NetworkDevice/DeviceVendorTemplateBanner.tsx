@@ -5,6 +5,8 @@ import SnmpVendorTemplateUtil, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   FunctionComponent,
@@ -26,6 +28,7 @@ export interface ComponentProps {
 const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [sysObjectId, setSysObjectId] = useState<string | undefined>(undefined);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
 
@@ -65,7 +68,10 @@ const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
     <Alert
       type={AlertType.INFO}
       strongTitle="Vendor template available"
-      title={`This looks like a ${vendorName} device — the ${template.label} OID template is recommended when creating monitors.`}
+      title={translator.translateTemplate(
+        "This looks like a {{vendor}} device — the {{template}} OID template is recommended when creating monitors.",
+        { vendor: vendorName, template: template.label },
+      )}
       onClose={() => {
         setIsDismissed(true);
       }}

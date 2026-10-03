@@ -35,10 +35,13 @@ import MonitorTestForm from "../../../Components/Form/Monitor/MonitorTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
 import { ButtonSize } from "Common/UI/Components/Button/Button";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -108,8 +111,9 @@ const MonitorCriteria: FunctionComponent<
           title={"No Criteria for Manual Monitors"}
           description={
             <>
-              This is a manual monitor and it cannot have any criteria set. You
-              can have monitoring criteria on other monitor types.{" "}
+              {translator.translateText(
+                "This is a manual monitor and it cannot have any criteria set. You can have monitoring criteria on other monitor types.",
+              )}
             </>
           }
         />

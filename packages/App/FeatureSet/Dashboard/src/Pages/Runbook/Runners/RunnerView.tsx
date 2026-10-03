@@ -23,9 +23,6 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import useTranslateValue, {
-  UseTranslateValueResult,
-} from "Common/UI/Utils/Translation";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
@@ -36,6 +33,8 @@ import React, {
   useState,
 } from "react";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RunnerView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -53,7 +52,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   const kubernetesAgentRunnerNote: string | null =
     getKubernetesAgentRunnerFormNote(formRestrictions);
 
-  const { translateString }: UseTranslateValueResult = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   /*
    * Reused by the three Status-card fields that have nothing to show until the
@@ -68,7 +67,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   const notReportedYet: GetReactElementFunction = (): ReactElement => {
     return (
       <span className="text-gray-500">
-        {translateString("Not reported yet") || "Not reported yet"}
+        {translator.translateText("Not reported yet")}
       </span>
     );
   };
@@ -81,8 +80,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
           title: "Runner Details",
           description: kubernetesAgentRunnerNote ? (
             <span>
-              {translateString("Here are more details for this Runner.") ||
-                "Here are more details for this Runner."}{" "}
+              {translator.translateText(
+                "Here are more details for this Runner.",
+              )}{" "}
               <span data-testid="kubernetes-agent-runner-note">
                 {kubernetesAgentRunnerNote}
               </span>
@@ -122,6 +122,13 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
               field: { _id: true },
               title: "Runner ID",
               fieldType: FieldType.ObjectID,
+              /*
+               * A Runner is installed with its ID and its key
+               * (ONEUPTIME_RUNNER_ID, ONEUPTIME_RUNNER_KEY), so the ID stays
+               * a field, read beside the key, rather than going to the
+               * card's ID line.
+               */
+              showIdAsField: true,
             },
             {
               field: { name: true },
@@ -342,10 +349,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         title={"Reset Runner Key"}
         description={
           <p className="mt-2">
-            Resetting the secret key will generate a new key. The secret is used
-            to authenticate this Runner&apos;s requests. This Runner will stop
-            connecting until the new key is configured on it, so re-run the
-            setup command on its host afterwards.
+            {translator.translateText(
+              "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.",
+            )}
           </p>
         }
         modelId={modelId}

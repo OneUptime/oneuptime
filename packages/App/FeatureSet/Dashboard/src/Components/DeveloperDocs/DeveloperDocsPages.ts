@@ -2,8 +2,6 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONValue } from "Common/Types/JSON";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 
 /*
  * The Developer pages (Terraform, API, AI Assistants) as routes: which pages
@@ -444,22 +442,20 @@ export function getDeveloperDocsParentPage(
   );
 }
 
+/*
+ * How the pages call a resource, when the model's own names do not read
+ * well. What its examples set lives in its profile
+ * (Common/Utils/DeveloperDocs/ResourceProfiles), with the model.
+ */
 export interface DeveloperDocsResourceOptions {
-  // How the pages call the resource, when the model's own names do not read well.
   singularName?: string | undefined;
   pluralName?: string | undefined;
-  /*
-   * Values for the "create one" examples, by column, where the generic ones
-   * would not make a good start (a manual monitor needs no probes or steps).
-   */
-  exampleValues?: Record<string, JSONValue> | undefined;
 }
 
-// Per-model wording and examples, by table name.
+// Per-model wording, by table name.
 export const DEVELOPER_DOCS_RESOURCE_OPTIONS: Readonly<
   Record<string, DeveloperDocsResourceOptions>
 > = {
-  Monitor: { exampleValues: { monitorType: MonitorType.Manual } },
   StatusPageAnnouncement: {
     singularName: "Announcement",
     pluralName: "Announcements",

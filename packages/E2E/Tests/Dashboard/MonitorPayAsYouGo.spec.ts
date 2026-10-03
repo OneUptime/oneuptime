@@ -3,7 +3,7 @@ import {
   gotoProjectPage,
   registerAndCreateProject,
 } from "./Helpers/ProductOnboarding";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
 import {
   APIResponse,
   Browser,
@@ -252,7 +252,14 @@ test.describe("Monitor pay-as-you-go pricing", () => {
     await expect(
       form.getByRole("checkbox", { name: "I agree to these usage charges" }),
     ).toHaveCount(0);
-    await ctx.page.getByTestId("Create Monitor").click();
+    /*
+     * A Manual monitor asks nothing more: Create Monitor is on offer from the
+     * first step, and Next leads to its optional labels.
+     */
+    await expect(ctx.page.getByTestId("Create Monitor")).toHaveText(
+      "Create Monitor",
+    );
+    await clickNext({ page: ctx.page });
     await expect(
       ctx.page.getByRole("combobox", { name: /^Labels\b/ }),
     ).toBeVisible();

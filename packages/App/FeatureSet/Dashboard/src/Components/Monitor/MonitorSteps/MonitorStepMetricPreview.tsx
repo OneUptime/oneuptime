@@ -4,6 +4,11 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -20,6 +25,7 @@ export interface ComponentProps {
 const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const rollingTime: RollingTime = props.rollingTime || RollingTime.Past1Minute;
 
   /*
@@ -42,7 +48,10 @@ const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
     <div className="mt-5" data-testid="monitor-step-metric-preview">
       <FieldLabelElement
         title="Metric Preview"
-        description={`The metrics this monitor evaluates, over the ${rollingTime.toLowerCase()}.`}
+        description={translator.translateTemplate(
+          "The metrics this monitor evaluates, over the {{window}}.",
+          { window: translatableTerm(rollingTime, { inSentence: true }) },
+        )}
       />
       <div className="mt-3">
         <MetricView

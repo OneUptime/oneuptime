@@ -49,15 +49,26 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     return ctx.page.getByTestId("modal");
   };
 
-  const nextButton: () => Locator = (): Locator => {
+  // The dialog's main button: Next while it walks, then Create Ingestion Key.
+  const mainButton: () => Locator = (): Locator => {
     return modal().getByTestId("modal-footer-submit-button");
+  };
+
+  /*
+   * The one button that reads Next: the main button while a step still to
+   * come asks for something (or, on the Free plan, the Billing step has not
+   * been read), and the plain one beside Create Ingestion Key once every
+   * step left is optional.
+   */
+  const nextButton: () => Locator = (): Locator => {
+    return modal().getByRole("button", { name: "Next", exact: true });
   };
 
   const next: () => Promise<void> = async (): Promise<void> => {
     await expect(
       modal().getByRole("button", { name: "Back", exact: true }),
     ).toHaveCount(0);
-    await expect(nextButton()).toHaveText("Next");
+    await expect(nextButton()).toHaveCount(1);
     await nextButton().click();
   };
 
@@ -120,7 +131,8 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(modal().locator('[aria-current="step"]')).toHaveText(
       "Summary",
     );
-    await expect(nextButton()).toHaveText("Create Ingestion Key");
+    await expect(mainButton()).toHaveText("Create Ingestion Key");
+    await expect(nextButton()).toHaveCount(0);
   };
 
   const fetchKeys: (name: string) => Promise<Array<StoredKey>> = async (
@@ -160,8 +172,8 @@ test.describe("Telemetry ingestion key creation wizard", () => {
   ): Promise<StoredKey> => {
     // Reaching Summary must not create a key as a side effect of Next.
     expect(await fetchKeys(name)).toEqual([]);
-    await expect(nextButton()).toHaveText("Create Ingestion Key");
-    await nextButton().click();
+    await expect(mainButton()).toHaveText("Create Ingestion Key");
+    await mainButton().click();
     await expect(modal()).toBeHidden({ timeout: 30000 });
     await expect(
       ctx.page.getByRole("row").filter({ hasText: name }),
@@ -200,7 +212,7 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     });
     await createButton.click();
     await expect(modal()).toBeVisible();
-    await expect(nextButton()).toHaveText("Next");
+    await expect(nextButton()).toBeVisible();
   });
 
   test.afterAll(async () => {
@@ -266,6 +278,34 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(name).toHaveValue("Validated draft key");
     await expect(description).toHaveValue("Preserved across form steps.");
     expect(await fetchKeys("Validated draft key")).toEqual([]);
+  });
+
+  test("offers Create Ingestion Key once every step left is optional, and not before the Free plan's Billing step is read", async () => {
+    const name: string = "Server key created early";
+    await fillDetails(name);
+
+    if (IS_BILLING_ENABLED) {
+      // The pricing on the Billing step is read before a key can be created.
+      await expect(mainButton()).toHaveText("Next");
+      await next();
+      await expect(mainButton()).toHaveText("Next");
+      await next();
+      await expect(
+        modal().getByRole("region", { name: "Telemetry pricing", exact: true }),
+      ).toBeVisible();
+    }
+
+    // Only optional steps are left: the main button creates the key.
+    await expect(mainButton()).toHaveText("Create Ingestion Key");
+    await expect(modal().getByTestId("modal-footer-next-button")).toHaveText(
+      "Next",
+    );
+    await expect(
+      modal().getByRole("button", { name: "Back", exact: true }),
+    ).toHaveCount(0);
+
+    const key: StoredKey = await createAndRead(name);
+    expect(key.keyType).toBe("Server");
   });
 
   test("creates a Server key only after the summary and keeps Description optional", async () => {
@@ -506,7 +546,7 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(modal().getByText(description, { exact: true })).toBeVisible();
     await expect(modal().getByText(serviceName, { exact: true })).toBeVisible();
     await expect(modal().getByTestId("modal-content")).toContainText(origin);
-    await expect(nextButton()).toBeVisible();
+    await expect(mainButton()).toBeVisible();
     expect(await fetchKeys(name)).toEqual([]);
     await modal().getByTestId("modal-footer-close-button").click();
   });

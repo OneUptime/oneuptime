@@ -8,6 +8,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -38,6 +39,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import ObjectID from "Common/Types/ObjectID";
@@ -55,10 +57,14 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
   noItemsMessage?: string | undefined;
+  // The page's own words for the empty state. See EmptyStateOptions.
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
@@ -67,6 +73,7 @@ export interface ComponentProps {
 const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
@@ -295,6 +302,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           }) as Array<CardButtonSchema>,
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
+        emptyState={props.emptyState}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
@@ -499,7 +507,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
               if (item["alertGroupingRule"]) {
                 return <span>{item.alertGroupingRule.name || "-"}</span>;
               }
-              return <span>Manual</span>;
+              return <span>{translator.translateText("Manual")}</span>;
             },
           },
           {
@@ -553,11 +561,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           title="Change Episode State"
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated."
           stateFieldKey="alertStateId"
-          stateOptions={alertStates.map((state: AlertState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: alertStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Private}
           noteTitle="Private Note"

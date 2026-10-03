@@ -14,6 +14,7 @@ import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import { consumePressForAnchoredPopup } from "../../Types/LayeredDismissal";
 import Button, { ButtonStyleType } from "../Button/Button";
 import DROPDOWN_MENU_Z_INDEX from "../Dropdown/DropdownMenuZIndex";
+import useTranslateValue from "../../Utils/Translation";
 
 export interface ComponentProps {
   children: Array<ReactElement>;
@@ -56,6 +57,16 @@ export interface ComponentProps {
    */
   isMenuPortaled?: boolean | undefined;
 }
+
+/*
+ * Every role a menu's items can have: an action (menuitem), and one choice of
+ * several (menuitemradio, a feed's sort order) or an on/off item
+ * (menuitemcheckbox). All three take part in the roving focus and close the
+ * menu when picked; leaving the last two out would also have the promotion
+ * in getMenuItems rewrite a choice's role to plain menuitem.
+ */
+export const MENU_ITEM_SELECTOR: string =
+  '[role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]';
 
 // Matches the mt-2 / mb-2 gap the in-place menu keeps from its trigger.
 const PORTALED_MENU_GAP_PX: number = 8;
@@ -106,6 +117,11 @@ const MoreMenu: React.ForwardRefExoticComponent<
   ComponentProps & React.RefAttributes<unknown>
 > = forwardRef(
   (props: ComponentProps, componentRef: React.ForwardedRef<unknown>) => {
+    const { translateString } = useTranslateValue();
+    const text: string | undefined = translateString(props.text);
+    const ariaLabel: string | undefined = translateString(props.ariaLabel);
+    const moreOptionsLabel: string =
+      translateString("More options") || "More options";
     const uniqueId: string = useId();
     const menuId: string = `menu-${uniqueId}`;
     const buttonId: string = `menu-button-${uniqueId}`;
@@ -148,13 +164,13 @@ const MoreMenu: React.ForwardRefExoticComponent<
             'button, a[href], [role="button"]',
           ),
         ).forEach((item: HTMLElement) => {
-          if (!item.closest('[role="menuitem"]')) {
+          if (!item.closest(MENU_ITEM_SELECTOR)) {
             item.setAttribute("role", "menuitem");
           }
         });
 
         return Array.from(
-          menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+          menuElement.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR),
         ).filter((item: HTMLElement) => {
           /*
            * A locked item that explains itself (MoreMenuItem with a tooltip)
@@ -595,7 +611,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         return;
       }
 
-      const menuItem: Element | null = eventTarget.closest('[role="menuitem"]');
+      const menuItem: Element | null = eventTarget.closest(MENU_ITEM_SELECTOR);
 
       if (
         menuItem instanceof HTMLElement &&
@@ -626,7 +642,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
         return;
       }
 
-      const menuItem: Element | null = eventTarget.closest('[role="menuitem"]');
+      const menuItem: Element | null = eventTarget.closest(MENU_ITEM_SELECTOR);
 
       if (
         menuItem instanceof HTMLElement &&
@@ -663,9 +679,9 @@ const MoreMenu: React.ForwardRefExoticComponent<
           "aria-disabled": isTriggerDisabled,
           "aria-label":
             trigger.props["aria-label"] ||
-            props.ariaLabel ||
-            props.text ||
-            "More options",
+            ariaLabel ||
+            text ||
+            moreOptionsLabel,
           "aria-haspopup": "menu",
           "aria-expanded": isComponentVisible,
           "aria-controls": isComponentVisible ? menuId : undefined,
@@ -745,14 +761,14 @@ const MoreMenu: React.ForwardRefExoticComponent<
           <Button
             id={buttonId}
             icon={props.menuIcon || IconProp.More}
-            title={props.text || ""}
+            title={text || ""}
             buttonStyle={ButtonStyleType.OUTLINE}
             disabled={props.isDisabled}
             dataTestId={props.dataTestId}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
-            ariaLabel={props.ariaLabel || props.text || "More options"}
+            ariaLabel={ariaLabel || text || moreOptionsLabel}
             ariaExpanded={isComponentVisible}
             ariaHaspopup="menu"
             ariaControls={isComponentVisible ? menuId : undefined}
@@ -773,7 +789,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
               onClick={() => {
                 setIsComponentVisible(!isDropdownVisible);
               }}
-              aria-label={props.ariaLabel || props.text || "More options"}
+              aria-label={ariaLabel || text || moreOptionsLabel}
               aria-haspopup="menu"
               aria-expanded={isComponentVisible}
               aria-controls={isComponentVisible ? menuId : undefined}
@@ -796,7 +812,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
               role="button"
               tabIndex={props.isDisabled ? -1 : 0}
               data-testid={props.dataTestId}
-              aria-label={props.ariaLabel || props.text || undefined}
+              aria-label={ariaLabel || text || undefined}
               aria-haspopup="menu"
               aria-expanded={isComponentVisible}
               aria-controls={isComponentVisible ? menuId : undefined}

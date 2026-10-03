@@ -8,19 +8,22 @@ Esta página cubre las dos cosas: los cinco canales de suscripción y cómo se a
 
 ## Canales de suscripción
 
-Una página de estado admite cinco canales, cada uno con su propio interruptor en la página de estado. Ve a **Páginas de Estado → tu página → Suscriptores → Ajustes de Suscriptores**:
+Una página de estado admite cinco canales. Ellos y la página en la que se suscriben los visitantes se activan en un solo lugar: la tarjeta **Canales** en **Páginas de Estado → tu página → Suscriptores → Ajustes de Suscriptores**. Cada interruptor se guarda en cuanto lo cambias:
 
-- **Habilitar suscriptores por correo electrónico** (`enableEmailSubscribers`) — activado por defecto. Todo lo demás está apagado hasta que tú lo enciendas.
-- **Habilitar suscriptores por SMS** (`enableSmsSubscribers`) — apagado por defecto.
-- **Habilitar suscriptores de Slack** (`enableSlackSubscribers`) — apagado por defecto.
-- **Habilitar suscriptores de Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — apagado por defecto.
-- **Habilitar suscriptores de webhook** (`enableWebhookSubscribers`) — apagado por defecto.
+- **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado por defecto. Pone el elemento **Suscribirse** en la barra de navegación de la página de estado, donde los visitantes se suscriben por los canales de abajo.
+- **Correo electrónico** (`enableEmailSubscribers`) — activado por defecto. Todo lo demás está apagado hasta que tú lo enciendas.
+- **SMS** (`enableSmsSubscribers`) — apagado por defecto. En OneUptime Cloud cada SMS se paga con el saldo de SMS y llamadas del proyecto, salvo que la página tenga su propia **Configuración de Twilio**. Para encenderlo, el proyecto también necesita **Habilitar notificaciones por SMS** activado, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
+- **Slack** (`enableSlackSubscribers`) — apagado por defecto.
+- **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — apagado por defecto.
+- **Webhook** (`enableWebhookSubscribers`) — apagado por defecto.
 
-Cada canal tiene además su propia lista en el menú lateral de la página de estado, bajo **Suscriptores**: **Suscriptores de Correo**, **Suscriptores SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams** y **Suscriptores de webhook**. Ahí es donde miras quién se ha apuntado, añades a alguien a mano o te dejas una entrada de **Notas** (`internalNote`) sobre un suscriptor concreto.
+Los interruptores deciden cómo pueden suscribirse los visitantes por su cuenta: la página de estado rechaza una suscripción por un canal apagado. No detienen las notificaciones: los suscriptores que tu equipo añade desde el panel, con la API o mediante un flujo de trabajo reciben las actualizaciones, estén encendidos los canales que estén.
 
-**Con un solo interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) está activado *y* hay al menos un canal habilitado. Si activas **Habilitar suscriptores por correo electrónico** pero dejas **Mostrar página de suscriptores** apagado, los visitantes no tienen forma de llegar al formulario.
+En OneUptime Cloud, junto a un interruptor que tu plan no incluye aparece el nombre del plan: **Growth** para **SMS** y **Mostrar página de suscriptores**, **Scale** para **Slack**, **Microsoft Teams** y **Webhook**.
 
-Esos mismos cinco interruptores aparecen una segunda vez dentro de la tarjeta **Ajustes de Suscriptores** de **Ajustes Avanzados**, junto a **Mostrar página de suscriptores**. Por debajo son las mismas columnas — elige una pantalla y quédate en ella, y mejor la página dedicada de **Ajustes de Suscriptores**, porque ahí es donde vive el resto de la configuración de suscriptores.
+Cada canal tiene además su propia lista en el menú lateral de la página de estado, bajo **Suscriptores**: **Suscriptores de Correo**, **Suscriptores SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams** y **Suscriptores de webhook**. Ahí es donde miras quién se ha apuntado, añades a alguien a mano o te dejas una entrada de **Notas** (`internalNote`) sobre un suscriptor concreto. Mientras un canal está apagado, la parte superior de su lista lo indica, con el interruptor del canal justo ahí, para que lo enciendas sin salir de la lista.
+
+**Con un solo interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado *y* hay al menos un canal encendido. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** apagado, los visitantes no tienen forma de llegar al formulario.
 
 ## Qué ve un visitante en la página Suscribirse
 
@@ -127,14 +130,14 @@ Los adjuntos se sirven desde `GET {statusPageCrudPath}/status-page-announcement/
 **Show At** (`showAnnouncementAt`) y **End At** (`endAnnouncementAt`) lo gobiernan todo, pero la página de resumen y la lista de anuncios hacen preguntas distintas, y esa diferencia despista.
 
 - **La página de resumen** muestra un anuncio cuando `showAnnouncementAt` ya pasó y `endAnnouncementAt` está en el futuro o vacío.
-- **La lista `/announcements`** muestra los anuncios cuyo `showAnnouncementAt` cae dentro de **Mostrar historial de anuncios (en días)** (`showAnnouncementHistoryInDays`, 14 por defecto) y luego los separa en el cliente entre activos y pasados.
+- **La lista `/announcements`** muestra los anuncios cuyo `showAnnouncementAt` cae dentro de la ventana de historial de los anuncios (`showAnnouncementHistoryInDays`, 14 por defecto) y luego los separa en el cliente entre activos y pasados.
 
 Dos consecuencias que conviene tener previstas:
 
 - **Un anuncio sin fecha de fin no caduca nunca.** Deja **Dejar de mostrar el anuncio el** vacío y se queda fijado en la página de resumen indefinidamente. Pon fecha de fin a todo lo que tenga plazo.
 - **Un anuncio antiguo pero aún activo puede desaparecer de la lista.** Si empezó hace más de `showAnnouncementHistoryInDays`, se cae de `/announcements` aunque siga en la página de resumen. Amplía la ventana de historial si mantienes avisos de larga duración.
 
-Que los anuncios aparezcan siquiera lo controla la tarjeta **Ajustes del anuncio** de **Ajustes Avanzados**: **Mostrar anuncios** (`showAnnouncementsOnStatusPage`, true por defecto) y **Mostrar historial de anuncios (en días)** (14 por defecto). Con **Mostrar anuncios** apagado, el endpoint de anuncios rechaza la solicitud de plano.
+Que los anuncios aparezcan siquiera se ajusta en la tarjeta **Lo que muestra su página de estado** de **Ajustes Avanzados**: **Mostrar anuncios** (`showAnnouncementsOnStatusPage`, true por defecto) y, debajo, **Mostrar … días de historial** (`showAnnouncementHistoryInDays`, 14 por defecto). Con **Mostrar anuncios** apagado, el endpoint de anuncios rechaza la solicitud de plano.
 
 ## Plantillas de anuncios
 

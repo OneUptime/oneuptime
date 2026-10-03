@@ -6,6 +6,8 @@ import React, {
   useId,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import {
   NON_NUMERIC_TIMEOUT_MESSAGE,
   TimeoutBounds,
@@ -38,6 +40,7 @@ export interface ComponentProps {
 const StepTimeoutInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const uniqueId: string = useId();
   const inputId: string = `step-timeout-${uniqueId}`;
   const describedById: string = `step-timeout-help-${uniqueId}`;
@@ -101,11 +104,14 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
    * unusable falls back to the default instead, so the two cases need
    * different copy.
    */
-  const consequence: string = hasUnparseableInput
-    ? "The saved value is unchanged."
-    : willTimeoutBeClamped(text, props.bounds)
-      ? "Values outside the range are clamped when the step runs."
-      : "Leave the field blank to use the default.";
+  const consequence: string =
+    translator.translateText(
+      hasUnparseableInput
+        ? "The saved value is unchanged."
+        : willTimeoutBeClamped(text, props.bounds)
+          ? "Values outside the range are clamped when the step runs."
+          : "Leave the field blank to use the default.",
+    ) || "";
 
   let inputClassName: string =
     "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
@@ -125,9 +131,9 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
         htmlFor={inputId}
         className="block text-xs font-medium text-gray-700 mb-1.5"
       >
-        {props.label}
+        {translator.translateText(props.label)}
         <span className="ml-2 text-[10px] font-normal text-gray-400">
-          seconds
+          {translator.translateText("seconds")}
         </span>
       </label>
       <input
@@ -157,13 +163,18 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
       />
       <p id={describedById} className="text-xs text-gray-500 mt-1.5">
         {props.description ? <>{props.description} </> : null}
-        Leave blank to use the default of {defaultInSeconds} seconds. Allowed
-        range: {props.bounds.minInMs / 1000}–{props.bounds.maxInMs / 1000}{" "}
-        seconds.
+        {translator.translateTemplate(
+          "Leave blank to use the default of {{default}} seconds. Allowed range: {{min}}–{{max}} seconds.",
+          {
+            default: defaultInSeconds,
+            min: props.bounds.minInMs / 1000,
+            max: props.bounds.maxInMs / 1000,
+          },
+        )}
       </p>
       {validationError ? (
         <p id={errorId} role="alert" className="text-xs text-red-600 mt-1">
-          {validationError} {consequence}
+          {translator.translateText(validationError)} {consequence}
         </p>
       ) : null}
     </div>

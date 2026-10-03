@@ -32,6 +32,9 @@ import {
   getDashboardDateTime,
 } from "../Utils/DashboardDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTableComponent;
@@ -77,6 +80,7 @@ interface ResolvedQueryData {
 const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
@@ -672,8 +676,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                 onBlur={(): void => {
                   setSearchFocused(false);
                 }}
-                placeholder="Search rows…"
-                aria-label="Search rows"
+                placeholder={translator.translateText("Search rows…")}
+                aria-label={translator.translateText("Search rows")}
                 className="w-full h-8 pl-8 pr-7 text-xs rounded-md border border-gray-200 bg-white text-gray-700 placeholder-gray-400 shadow-sm transition-colors focus:outline-none focus:border-indigo-400 hover:border-gray-300"
               />
               {searchText.length > 0 && (
@@ -682,8 +686,8 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   onClick={(): void => {
                     setSearchText("");
                   }}
-                  aria-label="Clear search"
-                  title="Clear search"
+                  aria-label={translator.translateText("Clear search")}
+                  title={translator.translateText("Clear search")}
                   className="absolute right-1.5 inline-flex h-5 w-5 items-center justify-center rounded text-gray-300 hover:text-gray-600 hover:bg-gray-100"
                 >
                   <span className="h-3 w-3">
@@ -697,18 +701,25 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
             {isGroupedMode &&
             searchText.trim() !== "" &&
             allRowTuples.length !== rowCount ? (
-              <>
-                <span className="font-medium text-gray-500">{rowCount}</span>
-                <span className="text-gray-300">
-                  {" "}
-                  of {allRowTuples.length}{" "}
-                </span>
-                {allRowTuples.length === 1 ? "row" : "rows"}
-              </>
+              <TranslatedSentence
+                template={{
+                  one: "{{shown}} of {{count}} row",
+                  other: "{{shown}} of {{count}} rows",
+                }}
+                count={allRowTuples.length}
+                slots={{
+                  shown: (
+                    <span className="font-medium text-gray-500">
+                      {translator.formatNumber(rowCount)}
+                    </span>
+                  ),
+                }}
+              />
             ) : (
-              <>
-                {rowCount} {rowCount === 1 ? "row" : "rows"}
-              </>
+              translator.translatePlural(
+                { one: "{{count}} row", other: "{{count}} rows" },
+                rowCount,
+              )
             )}
           </span>
         </div>
@@ -731,7 +742,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                           onClick={(): void => {
                             toggleSort(columnKey, "asc");
                           }}
-                          title="Click to sort"
+                          title={translator.translateText("Click to sort")}
                         >
                           {renderSortableHeaderContent(
                             attr.header || attr.key,
@@ -749,10 +760,10 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       onClick={(): void => {
                         toggleSort(TIMESTAMP_SORT_KEY, "desc");
                       }}
-                      title="Click to sort"
+                      title={translator.translateText("Click to sort")}
                     >
                       {renderSortableHeaderContent(
-                        "Timestamp",
+                        translator.translateText("Timestamp") as string,
                         TIMESTAMP_SORT_KEY,
                         "left",
                       )}
@@ -766,7 +777,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                     onClick={(): void => {
                       toggleSort(column.key, "desc");
                     }}
-                    title="Click to sort"
+                    title={translator.translateText("Click to sort")}
                   >
                     {renderSortableHeaderContent(
                       column.label,
@@ -887,7 +898,9 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   colSpan={totalColumnCount}
                   className="px-4 py-8 text-center text-gray-400 text-sm"
                 >
-                  No data available for the selected time range.
+                  {translator.translateText(
+                    "No data available for the selected time range.",
+                  )}
                 </td>
               </tr>
             )}

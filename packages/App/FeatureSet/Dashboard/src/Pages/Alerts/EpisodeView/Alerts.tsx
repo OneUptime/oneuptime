@@ -1,3 +1,4 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -22,6 +23,7 @@ import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -50,8 +52,11 @@ const EpisodeAlerts: FunctionComponent<
               _id: true,
               name: true,
               color: true,
+              order: true,
             },
-            sort: {},
+            sort: {
+              order: SortOrder.Ascending,
+            },
           });
         setAlertStates(result.data);
       } catch {
@@ -112,6 +117,7 @@ const EpisodeAlerts: FunctionComponent<
       actionButtons={[
         {
           title: "View Alert",
+          icon: IconProp.Eye,
           buttonStyleType: ButtonStyleType.OUTLINE,
           onClick: (item: AlertEpisodeMember, onCompleteAction: () => void) => {
             if (item.alert?._id) {

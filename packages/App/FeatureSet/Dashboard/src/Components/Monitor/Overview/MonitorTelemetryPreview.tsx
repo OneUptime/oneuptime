@@ -7,6 +7,10 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import Card from "Common/UI/Components/Card/Card";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -17,8 +21,14 @@ export const getTelemetryPreviewDescription: (stepCount: number) => string = (
   stepCount: number,
 ): string => {
   return stepCount > 1
-    ? `Previewing the first of ${stepCount} criteria steps.`
-    : "Preview of what this monitor's filter matches.";
+    ? translatePlural(
+        {
+          one: "Previewing the first of {{count}} criteria step.",
+          other: "Previewing the first of {{count}} criteria steps.",
+        },
+        stepCount,
+      )
+    : translateTemplate("Preview of what this monitor's filter matches.");
 };
 
 /*

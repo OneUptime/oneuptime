@@ -36,6 +36,8 @@ import {
 import { makeExceptionSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 import { buildExceptionOccurrenceQuery } from "../../Utils/ExceptionDetailData";
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 function toOccurrenceDate(value: unknown): Date | undefined {
   if (!value) {
@@ -56,6 +58,7 @@ export interface ComponentProps {
 const OccouranceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * A replay link needs the session's application id, which an occurrence
    * row does not carry. Resolved per fetched page through ONE batched read
@@ -230,7 +233,11 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                 );
 
                 if (!occurredAt) {
-                  return <span className="text-gray-400">Unknown</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Unknown")}
+                    </span>
+                  );
                 }
 
                 return (
@@ -302,11 +309,11 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
               ): ReactElement => {
                 return exceptionInstance.escaped ? (
                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                    Unhandled
+                    {translator.translateText("Unhandled")}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                    Handled
+                    {translator.translateText("Handled")}
                   </span>
                 );
               },
@@ -327,7 +334,9 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                         {exceptionInstance.release}
                       </div>
                     ) : (
-                      <div className="text-gray-400">No release</div>
+                      <div className="text-gray-400">
+                        {translator.translateText("No release")}
+                      </div>
                     )}
                     {exceptionInstance.environment && (
                       <div className="mt-0.5 text-xs text-gray-500">
@@ -421,7 +430,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                           className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
                         >
                           <Icon icon={IconProp.Logs} className="h-4 w-4" />
-                          <span>Logs</span>
+                          <span>{translator.translateText("Logs")}</span>
                         </AppLink>
                       </span>
                     )}

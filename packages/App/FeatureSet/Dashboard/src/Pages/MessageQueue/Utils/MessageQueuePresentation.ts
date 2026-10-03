@@ -20,6 +20,7 @@ import {
   ManualMessageQueueCheck,
   checkManualMessageQueue,
 } from "Common/Types/MessageQueue/MessageQueueManualIdentity";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the Queues pages describe a MessageQueue row: the options of the
@@ -289,11 +290,21 @@ export function getMessageQueueBrokerLabel(
 ): MessageQueueBrokerLabel {
   const namespace: string = (source?.brokerScope || "").toString().trim();
   if (namespace) {
-    return { text: namespace, title: `Azure namespace ${namespace}` };
+    return {
+      text: namespace,
+      title: translateTemplate("Azure namespace {{namespace}}", {
+        namespace: namespace,
+      }),
+    };
   }
   const address: string = (source?.brokerAddress || "").toString().trim();
   if (address) {
-    return { text: address, title: `Broker address ${address}` };
+    return {
+      text: address,
+      title: translateTemplate("Broker address {{address}}", {
+        address: address,
+      }),
+    };
   }
   return { text: "", title: "" };
 }

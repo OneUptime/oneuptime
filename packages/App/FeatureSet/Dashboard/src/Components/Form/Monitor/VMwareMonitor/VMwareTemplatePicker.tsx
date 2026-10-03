@@ -6,6 +6,8 @@ import {
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   selectedTemplateId?: string | undefined;
@@ -74,14 +76,15 @@ const categories: Array<{
 const VMwareTemplatePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const allTemplates: Array<VMwareAlertTemplate> = getAllVMwareAlertTemplates();
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
-        Select a pre-built alert template to quickly set up vCenter monitoring.
-        The template will auto-configure the metric, the per-object grouping,
-        aggregation, time range, and thresholds.
+        {translator.translateText(
+          "Select a pre-built alert template to quickly set up vCenter monitoring. The template will auto-configure the metric, the per-object grouping, aggregation, time range, and thresholds.",
+        )}
       </p>
 
       {categories.map(
@@ -105,10 +108,12 @@ const VMwareTemplatePicker: FunctionComponent<ComponentProps> = (
               <div className="flex items-center mb-2">
                 <Icon icon={cat.icon} className="mr-2 h-4 w-4 text-gray-500" />
                 <h4 className="text-sm font-semibold text-gray-700">
-                  {cat.label}
+                  {translator.translateText(cat.label)}
                 </h4>
               </div>
-              <p className="text-xs text-gray-400 mb-2">{cat.description}</p>
+              <p className="text-xs text-gray-400 mb-2">
+                {translator.translateText(cat.description)}
+              </p>
               <div className="grid grid-cols-1 gap-2 mb-4">
                 {categoryTemplates.map((template: VMwareAlertTemplate) => {
                   const isSelected: boolean =
@@ -137,7 +142,7 @@ const VMwareTemplatePicker: FunctionComponent<ComponentProps> = (
                         <div className="flex-1">
                           <div className="flex items-center">
                             <span className="text-sm font-medium text-gray-900">
-                              {template.name}
+                              {translator.translateText(template.name)}
                             </span>
                             <span
                               className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -146,11 +151,11 @@ const VMwareTemplatePicker: FunctionComponent<ComponentProps> = (
                                   : "bg-yellow-100 text-yellow-800"
                               }`}
                             >
-                              {template.severity}
+                              {translator.translateText(template.severity)}
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-gray-500">
-                            {template.description}
+                            {translator.translateText(template.description)}
                           </p>
                         </div>
                         {isSelected && (

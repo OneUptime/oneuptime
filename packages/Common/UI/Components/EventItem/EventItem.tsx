@@ -167,7 +167,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
           <div key={0}>
             <div className="flex flex-wrap gap-y-4 space-x-1 active-event-box-body-reesources">
               <div className="text-sm text-gray-400 mr-3 mt-1">
-                {t("eventItem.affectedResources")}
+                {t("eventItem.affectedResources", "Affected resources")}
               </div>
               {props.eventResourcesAffected?.map((item: string, i: number) => {
                 return <Pill key={i} text={item} color={VeryLightGray} />;
@@ -223,7 +223,10 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                 <span className="font-medium text-gray-900 mr-1">
                                   {props.eventType}
                                 </span>
-                                {t("eventItem.stateChangedTo")}
+                                {t(
+                                  "eventItem.stateChangedTo",
+                                  "state changed to",
+                                )}
                               </span>
                               <span className="mr-1">
                                 <Pill
@@ -300,11 +303,13 @@ const EventItem: FunctionComponent<ComponentProps> = (
                                     ? item.title
                                     : t("eventItem.updateTo", {
                                         eventType: props.eventType,
+                                        defaultValue:
+                                          "Update to this {{eventType}}",
                                       })}
                                 </span>
                               </div>
                               <p className="mt-0.5 text-sm text-gray-500">
-                                {t("eventItem.postedOn")}{" "}
+                                {t("eventItem.postedOn", "posted on")}{" "}
                                 {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                                   item.date,
                                 )}
@@ -354,7 +359,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 className="cursor-pointer text-gray-400 hover:text-gray-500 text-sm"
                 to={props.eventViewRoute}
               >
-                <>{t("eventItem.view", { eventType: props.eventType })}</>
+                <>
+                  {t("eventItem.view", {
+                    eventType: props.eventType,
+                    defaultValue: "View {{eventType}}",
+                  })}
+                </>
               </Link>
             </span>
           ) : (

@@ -30,7 +30,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import IncidentStatusPageScopeView from "../../../Components/Incident/IncidentStatusPageScopeView";
 import {
-  StatusPagePickerAccessHint,
   StatusPagesNotListingMonitorsWarning,
   TranslatedScopeNotice,
 } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
@@ -43,9 +42,6 @@ import {
   NamedStatusPage,
 } from "../../../Components/Incident/IncidentStatusPageScopeForm";
 import { getIncidentScopeAddedPagesFormField } from "../../../Components/Incident/IncidentScopeAddedPagesFormField";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../../Components/Incident/useStatusPagePickerAccess";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
@@ -140,9 +136,6 @@ const IncidentDelete: FunctionComponent<
    */
   const [settingsRefresher, setSettingsRefresher] = useState<boolean>(false);
   const [scopeRefresher, setScopeRefresher] = useState<boolean>(false);
-
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
 
   const loadedStatusPages: Array<NamedStatusPage> = getNamedStatusPages(
     scopeIncident?.statusPages,
@@ -245,11 +238,19 @@ const IncidentDelete: FunctionComponent<
 
           return (
             <>
-              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
-              <StatusPagesNotListingMonitorsWarning
-                monitorIds={scopeIncident?.monitors}
-                statusPageIds={formValue}
-              />
+              {/*
+               * Only once the incident is loaded: until then its monitors
+               * are unknown, not none, and every picked page would look
+               * like one that lists none of them.
+               */}
+              {scopeIncident ? (
+                <StatusPagesNotListingMonitorsWarning
+                  monitorIds={scopeIncident.monitors}
+                  statusPageIds={formValue}
+                />
+              ) : (
+                <></>
+              )}
               {removingNotified.length > 0 ? (
                 <TranslatedScopeNotice
                   text={
@@ -292,7 +293,7 @@ const IncidentDelete: FunctionComponent<
     }
 
     return fields;
-  }, [scopeIncident, statusPagePickerAccess, notifiedStatusPages]);
+  }, [scopeIncident, notifiedStatusPages]);
 
   return (
     <Fragment>

@@ -6,6 +6,8 @@ import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
 import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -40,6 +42,7 @@ export interface ComponentProps {
 const ColorPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [color, setColor] = useState<string>("");
   const {
     anchorRef,
@@ -146,8 +149,8 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
            */
           <button
             type="button"
-            aria-label="Clear color"
-            title="Clear color"
+            aria-label={translator.translateText("Clear color")}
+            title={translator.translateText("Clear color")}
             className="flex items-center text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
             onClick={() => {
               setColor("");
@@ -171,7 +174,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
               data-testid="color-picker-popup"
               id={popupId}
               role="dialog"
-              aria-label="Color picker"
+              aria-label={translator.translateText("Color picker")}
               tabIndex={-1}
               className="fixed overflow-auto rounded-md shadow-lg"
               style={{

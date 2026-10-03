@@ -34,7 +34,8 @@ function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
-  const { moreMenuItems } = useDashboardNavigationItems();
+  const { moreMenuItems, moreMenuCategoriesOpenByDefault } =
+    useDashboardNavigationItems();
 
   if (showNavbar) {
     const projectPath = location.pathname.split("/").slice(0, 3).join("/");
@@ -63,6 +64,8 @@ function Fixture() {
       {isOpen && (
         <NavBarMenuModal
           items={moreMenuItems}
+          // As the Dashboard's NavBar passes it: open on Essentials.
+          categoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
           onClose={() => setIsOpen(false)}
           showCommandKShortcutHint={false}
         />

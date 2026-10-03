@@ -14,6 +14,7 @@ import {
 } from "../../../Types/CustomField/CustomFieldDropdownOption";
 import { JSONObject } from "../../../Types/JSON";
 import React, { ReactElement } from "react";
+import { translateText } from "../../Utils/TranslateTemplate";
 
 /*
  * ---------------------------------------------------------------------------
@@ -197,7 +198,7 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
             : "inline-flex items-center px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium ring-1 ring-inset ring-gray-500/10"
         }
       >
-        {isTrue ? "Yes" : "No"}
+        {translateText(isTrue ? "Yes" : "No")}
       </span>
     );
   }

@@ -19,6 +19,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface InsertValueButtonProps {
   onPick: (reference: string) => void;
@@ -43,6 +45,7 @@ const DEFAULT_CLASS: string =
 const InsertValueButton: FunctionComponent<InsertValueButtonProps> = (
   props: InsertValueButtonProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
   const anchorRef: React.MutableRefObject<HTMLButtonElement | null> =
     useRef<HTMLButtonElement | null>(null);
@@ -58,10 +61,10 @@ const InsertValueButton: FunctionComponent<InsertValueButtonProps> = (
         ref={anchorRef}
         type="button"
         className={props.className || DEFAULT_CLASS}
-        aria-label={
-          props.ariaLabel || (props.children ? undefined : INSERT_VALUE_LABEL)
-        }
-        title={props.ariaLabel || INSERT_VALUE_LABEL}
+        aria-label={translator.translateText(
+          props.ariaLabel || (props.children ? undefined : INSERT_VALUE_LABEL),
+        )}
+        title={translator.translateText(props.ariaLabel || INSERT_VALUE_LABEL)}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         data-testid={props.dataTestId || "insert-value-button"}
@@ -75,7 +78,7 @@ const InsertValueButton: FunctionComponent<InsertValueButtonProps> = (
         {props.children || (
           <>
             <span className="font-mono text-[11px] leading-none">{"{ }"}</span>
-            Insert value
+            {translator.translateText("Insert value")}
           </>
         )}
       </button>

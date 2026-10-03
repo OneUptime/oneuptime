@@ -58,6 +58,88 @@ export function toSentenceCaseName(name: string): string {
     .join(" ");
 }
 
+/*
+ * Words that start with a vowel letter but a consonant sound ("a user", "a
+ * unique name", "a one-off job"), and the acronyms people read as a word
+ * rather than letter by letter ("a RUM application", not "an R-U-M").
+ */
+const VOWEL_LETTER_CONSONANT_SOUND: ReadonlyArray<string> = [
+  "one",
+  "once",
+  "uniform",
+  "union",
+  "unique",
+  "unit",
+  "universal",
+  "url",
+  "usage",
+  "use",
+  "used",
+  "user",
+  "users",
+  "usual",
+  "utility",
+  "uuid",
+];
+
+const ACRONYMS_READ_AS_WORDS: ReadonlyArray<string> = ["RUM", "SAML", "SCIM"];
+
+/*
+ * Letters whose name starts with a vowel sound, for acronyms read letter by
+ * letter: "an SLO" (es-el-oh), "an HTTP monitor", "an MCP tool", but "a
+ * DNS record", "a TLS certificate".
+ */
+const VOWEL_SOUND_LETTERS: string = "AEFHILMNORSX";
+
+// A word made of capitals (and digits), at least two letters: "SLO", "IoT" is not one.
+const ACRONYM: RegExp = /^[A-Z][A-Z0-9]+$/;
+
+// "IoT", "vCenter": a lower-case letter where a word would have a capital.
+const MIXED_CASE_ACRONYM: RegExp = /^[A-Za-z][a-z]?[A-Z]/;
+
+/*
+ * The indefinite article for a phrase: "an incident", "a monitor", "an
+ * on-call policy", "an SLO", "an IoT fleet", "a RUM application", "a user".
+ */
+export function getIndefiniteArticle(phrase: string): "a" | "an" {
+  const firstWord: string = phrase.trim().split(/[\s-]+/)[0] || "";
+
+  if (!firstWord) {
+    return "a";
+  }
+
+  if (ACRONYMS_READ_AS_WORDS.includes(firstWord)) {
+    return "a";
+  }
+
+  /*
+   * Read letter by letter, so the name of the first letter decides: "an
+   * SLO", "an IoT fleet", "a vCenter" (vee-center), "a URL" (you-are-el).
+   */
+  if (ACRONYM.test(firstWord) || MIXED_CASE_ACRONYM.test(firstWord)) {
+    return VOWEL_SOUND_LETTERS.includes(firstWord.charAt(0).toUpperCase())
+      ? "an"
+      : "a";
+  }
+
+  const lower: string = firstWord.toLowerCase();
+
+  if (
+    VOWEL_LETTER_CONSONANT_SOUND.some((word: string): boolean => {
+      return lower === word || lower.startsWith(`${word}-`);
+    })
+  ) {
+    return "a";
+  }
+
+  return "aeiou".includes(lower.charAt(0)) ? "an" : "a";
+}
+
+// "an incident", "a monitor", "an SLO".
+export function withIndefiniteArticle(phrase: string): string {
+  return `${getIndefiniteArticle(phrase)} ${phrase}`;
+}
+
 // `export ONEUPTIME_API_KEY="your-api-key"`.
 export function getApiKeyExportCommand(): string {
   return `export ${ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE}="your-api-key"`;

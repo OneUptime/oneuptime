@@ -12,6 +12,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitors: Array<Monitor>;
@@ -53,6 +55,8 @@ export interface ComponentProps {
 const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   type GetCardContentFunction = () => ReactElement;
 
   const getCardContent: GetCardContentFunction = (): ReactElement => {
@@ -68,9 +72,11 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
       return (
         <div className="text-center py-10">
           <p className="text-sm text-gray-500">
-            {props.isMonitorBacked
-              ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled by a probe at all, and its status stays "Pending" until a monitor is bound. The button below creates a Ping monitor on this device's address and binds it to the device for you. To use a monitor that already exists instead, bind it under Settings → Monitor. To have a probe ping it directly instead, switch it to probe polling under Settings.`
-              : `No monitors are alerting on this device yet. Its probe already pings it on schedule, so it has a status either way — a monitor is what turns a failure into an incident. Create one here, or cover this device and others like it at once with an alert policy under Network settings.`}
+            {translator.translateText(
+              props.isMonitorBacked
+                ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled by a probe at all, and its status stays "Pending" until a monitor is bound. The button below creates a Ping monitor on this device's address and binds it to the device for you. To use a monitor that already exists instead, bind it under Settings → Monitor. To have a probe ping it directly instead, switch it to probe polling under Settings.`
+                : `No monitors are alerting on this device yet. Its probe already pings it on schedule, so it has a status either way — a monitor is what turns a failure into an incident. Create one here, or cover this device and others like it at once with an alert policy under Network settings.`,
+            )}
           </p>
           <div className="mt-4 flex justify-center">
             <Button
@@ -117,8 +123,9 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
                  */}
                 {monitor.networkAlertPolicyId && (
                   <div className="mt-0.5 text-xs font-normal text-gray-500">
-                    Managed by an alert policy. Edit the policy rather than this
-                    monitor.
+                    {translator.translateText(
+                      "Managed by an alert policy. Edit the policy rather than this monitor.",
+                    )}
                   </div>
                 )}
               </div>

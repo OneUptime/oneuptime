@@ -5,6 +5,8 @@ import SeriesLabelDisplay, {
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Table from "../Table/Table";
 import FieldType from "../Types/FieldType";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -28,6 +30,7 @@ export interface ComponentProps {
 const SeriesLabelsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const labels: Array<DisplaySeriesLabel> = SeriesLabelDisplay.getDisplayLabels(
     props.seriesLabels,
   );
@@ -35,7 +38,7 @@ const SeriesLabelsViewer: FunctionComponent<ComponentProps> = (
   if (labels.length === 0) {
     return (
       <div className="text-gray-400 text-sm py-2">
-        No resource labels on this alert.
+        {translator.translateText("No resource labels on this alert.")}
       </div>
     );
   }

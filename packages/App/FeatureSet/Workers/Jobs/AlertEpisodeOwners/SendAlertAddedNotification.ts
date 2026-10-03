@@ -30,6 +30,7 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 
 /*
  * Cap the number of alerts we list inline in the email body. Anything beyond
@@ -142,9 +143,11 @@ RunCron(
             } as Select<Project>,
             currentAlertState: {
               name: true,
+              color: true,
             } as Select<AlertState>,
             alertSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
@@ -184,6 +187,7 @@ RunCron(
           alertNumberWithPrefix: true,
           alertSeverity: {
             name: true,
+            color: true,
           },
         },
       });
@@ -282,6 +286,10 @@ RunCron(
                 alertTitle: alert.title || "",
                 alertNumber: alertNumberStr,
                 alertSeverity: alert.alertSeverity?.name || "Not Set",
+                ...EmailColorUtil.getTemplateVariables(
+                  "alertSeverity",
+                  alert.alertSeverity?.color,
+                ),
                 addedAt:
                   OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                     date:
@@ -299,7 +307,15 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "currentState",
+              episode.currentAlertState?.color,
+            ),
             episodeSeverity: episode.alertSeverity?.name || "Not Set",
+            ...EmailColorUtil.getTemplateVariables(
+              "episodeSeverity",
+              episode.alertSeverity?.color,
+            ),
             alertCount: alertCountInBatch.toString(),
             alertCountLabel: alertCountInBatch === 1 ? "alert" : "alerts",
             remainingCount: remainingCount.toString(),

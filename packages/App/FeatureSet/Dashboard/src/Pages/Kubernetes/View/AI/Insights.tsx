@@ -56,6 +56,14 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The cluster's AI Insights page: what OneUptime AI investigated and changed
@@ -373,11 +381,11 @@ export function getFixStatusLook(status: string): StatusLook {
 
 export function describeFixType(suggestionType: string | null): string | null {
   if (suggestionType === AutoRemediationSuggestionType.CommandPlan) {
-    return "Command plan";
+    return translationKey("Command plan");
   }
 
   if (suggestionType === AutoRemediationSuggestionType.Runbook) {
-    return "Runbook";
+    return translationKey("Runbook");
   }
 
   return null;
@@ -388,15 +396,23 @@ export function describeInvestigationSubject(
   investigation: KubernetesAiInsightsInvestigation,
 ): { text: string; incidentId: string | null; alertId: string | null } {
   if (investigation.incident) {
-    const number: string =
-      investigation.incident.number !== null
-        ? ` #${investigation.incident.number}`
-        : "";
-    const title: string = investigation.incident.title
-      ? `: ${investigation.incident.title}`
-      : "";
+    const number: number | null = investigation.incident.number;
+    const title: string | null = investigation.incident.title || null;
+    let text: string = translateTerm("Incident");
+
+    if (number !== null && title) {
+      text = translateTemplate("Incident #{{number}}: {{title}}", {
+        number: number,
+        title: title,
+      });
+    } else if (number !== null) {
+      text = translateTemplate("Incident #{{number}}", { number: number });
+    } else if (title) {
+      text = translateTemplate("Incident: {{title}}", { title: title });
+    }
+
     return {
-      text: `Incident${number}${title}`,
+      text: text,
       incidentId: investigation.incident.id,
       alertId: null,
     };
@@ -404,13 +420,21 @@ export function describeInvestigationSubject(
 
   if (investigation.alert) {
     return {
-      text: `Alert${investigation.alert.title ? `: ${investigation.alert.title}` : ""}`,
+      text: investigation.alert.title
+        ? translateTemplate("Alert: {{title}}", {
+            title: investigation.alert.title,
+          })
+        : translateTerm("Alert"),
       incidentId: null,
       alertId: investigation.alert.id,
     };
   }
 
-  return { text: "Investigation", incidentId: null, alertId: null };
+  return {
+    text: translateTerm("Investigation"),
+    incidentId: null,
+    alertId: null,
+  };
 }
 
 // What an investigation found, or why there is nothing to show yet.
@@ -425,10 +449,10 @@ export function getInvestigationSummary(
     investigation.status === AIRunStatus.Queued ||
     investigation.status === AIRunStatus.Running
   ) {
-    return "Still investigating.";
+    return translationKey("Still investigating.");
   }
 
-  return "No summary was recorded.";
+  return translationKey("No summary was recorded.");
 }
 
 /*
@@ -445,14 +469,18 @@ export function getAgentPageHint(
   }
 
   if (!status.isInvestigationReady) {
-    return "OneUptime AI can't run kubectl on this cluster right now.";
+    return translationKey(
+      "OneUptime AI can't run kubectl on this cluster right now.",
+    );
   }
 
   const automatic: KubernetesAiAutomaticInvestigationSettings | null =
     getAutomaticInvestigation(status);
 
   if (automatic && !automatic.incidents && !automatic.alerts) {
-    return "Automatic investigation is off for new incidents and alerts in this project.";
+    return translationKey(
+      "Automatic investigation is off for new incidents and alerts in this project.",
+    );
   }
 
   return null;
@@ -500,9 +528,11 @@ function AgentPageLink(props: {
   hint: string;
   testId: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <p className="text-sm text-gray-600" data-testid={props.testId}>
-      {props.hint}{" "}
+      {translator.translateText(props.hint)}{" "}
       <Link
         to={RouteUtil.populateRouteParams(
           RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT] as Route,
@@ -510,7 +540,7 @@ function AgentPageLink(props: {
         )}
         className="font-medium text-indigo-600 hover:text-indigo-800 underline"
       >
-        Open the AI agent page
+        {translator.translateText("Open the AI agent page")}
       </Link>
     </p>
   );
@@ -519,6 +549,7 @@ function AgentPageLink(props: {
 function InvestigationRow(props: {
   investigation: KubernetesAiInsightsInvestigation;
 }): ReactElement {
+  const translator: Translator = useTranslator();
   const subject: {
     text: string;
     incidentId: string | null;
@@ -551,21 +582,28 @@ function InvestigationRow(props: {
         </div>
       </div>
       <p className="mt-1 break-words text-sm text-gray-600">
-        {getInvestigationSummary(props.investigation)}
+        {translator.translateText(getInvestigationSummary(props.investigation))}
       </p>
     </li>
   );
 }
 
 function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
+  const translator: Translator = useTranslator();
   const look: StatusLook | null = props.fix.status
     ? getFixStatusLook(props.fix.status)
     : null;
   const type: string | null = describeFixType(props.fix.suggestionType);
   const target: { route: Route; label: string } | null = props.fix.incidentId
-    ? { route: getIncidentRoute(props.fix.incidentId), label: "Open incident" }
+    ? {
+        route: getIncidentRoute(props.fix.incidentId),
+        label: translationKey("Open incident"),
+      }
     : props.fix.alertId
-      ? { route: getAlertRoute(props.fix.alertId), label: "Open alert" }
+      ? {
+          route: getAlertRoute(props.fix.alertId),
+          label: translationKey("Open alert"),
+        }
       : null;
 
   return (
@@ -573,7 +611,11 @@ function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {look ? <Pill text={look.label} color={look.color} /> : null}
-          {type ? <span className="text-xs text-gray-500">{type}</span> : null}
+          {type ? (
+            <span className="text-xs text-gray-500">
+              {translator.translateText(type)}
+            </span>
+          ) : null}
         </div>
         <div className="flex items-center gap-3">
           {target ? (
@@ -581,14 +623,15 @@ function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
               to={target.route}
               className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
             >
-              {target.label}
+              {translator.translateText(target.label)}
             </Link>
           ) : null}
           <When at={props.fix.createdAt} />
         </div>
       </div>
       <p className="mt-1 break-words text-sm text-gray-600">
-        {props.fix.rationale || "No reason was recorded."}
+        {props.fix.rationale ||
+          translator.translateText("No reason was recorded.")}
       </p>
     </li>
   );
@@ -597,6 +640,7 @@ function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
 const KubernetesClusterAIInsights: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { id } = useParams();
   /*
    * Memoized on the string it was read from: a fresh ObjectID every render
@@ -798,7 +842,7 @@ const KubernetesClusterAIInsights: FunctionComponent<
               className="text-sm text-gray-500"
               data-testid="ai-insights-no-investigations"
             >
-              No investigations yet.
+              {translator.translateText("No investigations yet.")}
             </p>
           )}
         </Card>
@@ -820,7 +864,7 @@ const KubernetesClusterAIInsights: FunctionComponent<
               className="text-sm text-gray-500"
               data-testid="ai-insights-no-fixes"
             >
-              No fixes yet.
+              {translator.translateText("No fixes yet.")}
             </p>
           )}
         </Card>
@@ -959,7 +1003,13 @@ const KubernetesClusterAIInsights: FunctionComponent<
                     <Pill
                       text={
                         typeof item.exitCode === "number"
-                          ? `${statusText} (exit ${item.exitCode})`
+                          ? translator.translateTemplate(
+                              "{{status}} (exit {{exitCode}})",
+                              {
+                                status: translatableTerm(statusText),
+                                exitCode: item.exitCode,
+                              },
+                            )
                           : statusText
                       }
                       color={color}
@@ -991,10 +1041,10 @@ const KubernetesClusterAIInsights: FunctionComponent<
             className="text-sm text-gray-600"
             data-testid="kubectl-jobs-permission-note"
           >
-            Seeing the commands needs permission to read Runner jobs (one of:{" "}
-            {getKubectlJobsPermissionTitles().join(", ")}). Commands AI ran
-            while investigating or fixing an incident or alert also appear on
-            that incident or alert.
+            {translator.translateTemplate(
+              "Seeing the commands needs permission to read Runner jobs (one of: {{permissions}}). Commands AI ran while investigating or fixing an incident or alert also appear on that incident or alert.",
+              { permissions: getKubectlJobsPermissionTitles().join(", ") },
+            )}
           </p>
         </Card>
       )}

@@ -2156,6 +2156,35 @@ jobs:
           echo "GET /api/global-config/license:"
           curl -sS --max-time 15 http://localhost/api/global-config/license
           echo ""
+      # PHASE A, setup: wait for the trial. A brand-new install can read its
+      # license before the AddDefaultGlobalConfig data migration has created
+      # the GlobalConfig row its trial is stamped on; it then reports
+      # "missing", and serves that for LICENSE_INPUTS_CACHE_TTL_IN_MS (60s,
+      # ee/Server/License/LicenseSettings.ts) until a later read stamps the row
+      # (ee/Server/License/LicenseStore.ts) and the trial starts. So poll the
+      # public license endpoint - it awaits the reload - until it reports a
+      # usable license, as phase B polls for the lapse. This used to be
+      # covered only by accident: the e2e image was built or pulled between the
+      # boot and phase A, and that took longer than the cache.
+      - name: Wait for the trial to start (phase A setup)
+        run: |
+          set -uo pipefail
+          DEADLINE=$(( $(date +%s) + 180 ))
+          ATTEMPT=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            PAYLOAD="$(curl -sS --max-time 15 http://localhost/api/global-config/license || true)"
+            echo "attempt ${ATTEMPT}: ${PAYLOAD}"
+            STATUS="$(printf '%s' "$PAYLOAD" | jq -r '.status' 2>/dev/null || true)"
+            VALID="$(printf '%s' "$PAYLOAD" | jq -r '.licenseValid' 2>/dev/null || true)"
+            if [ "$VALID" = "true" ] && { [ "$STATUS" = "grace" ] || [ "$STATUS" = "valid" ]; }; then
+              echo "The license is usable after ${ATTEMPT} attempt(s)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::A fresh Enterprise install never started its trial within 180s of booting. Expected GET /api/global-config/license to report licenseValid=true with status=grace (or valid); the license inputs cache is 60s. The last payload is in this step's log above." >&2
+          exit 1
       # PHASE A. A fresh Enterprise install is inside its unlicensed 14-day
       # trial, so the license is usable and every enterprise feature is on.
       #

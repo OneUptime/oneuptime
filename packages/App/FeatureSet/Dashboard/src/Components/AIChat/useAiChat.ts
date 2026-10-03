@@ -24,6 +24,8 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
@@ -131,6 +133,7 @@ export interface UseAiChat {
  * output only while the user is pinned to the bottom.
  */
 export function useAiChat(options: { enabled: boolean }): UseAiChat {
+  const translator: Translator = useTranslator();
   const { enabled } = options;
 
   /*
@@ -242,7 +245,8 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       .find((conversation: AIConversation) => {
         return conversation.id?.toString() === activeConversationId;
       })
-      ?.title?.toString() || "Conversation";
+      ?.title?.toString() ||
+    (translator.translateText("Conversation") as string);
 
   const isConversationView: boolean =
     Boolean(activeConversationId) || messages.length > 0 || isAwaitingResponse;

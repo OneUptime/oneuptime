@@ -8,6 +8,7 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -37,14 +38,10 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
-  StatusPagePickerAccessHint,
   TranslatedScopeNotice,
   TranslatedScopeText,
 } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
 import { isScopedToDeletedStatusPages } from "../../../Components/Incident/IncidentStatusPageScopeForm";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../../Components/Incident/useStatusPagePickerAccess";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import IncidentCustomFieldsCopy from "../../../Components/Incident/IncidentCustomFieldsCopy";
@@ -52,14 +49,13 @@ import IncidentCustomFieldSettingsCard from "../../../Components/Incident/Incide
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-  // Picking status pages needs status page read access (see the hint).
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
 
   return (
     <Fragment>
@@ -151,6 +147,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Incident Severity",
@@ -164,10 +163,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description:
               "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
             fieldType: FormFieldSchemaType.Dropdown,
+            // In the same order, with the same colours, as on create.
             dropdownModal: {
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Initial State",
@@ -253,7 +256,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Entity,
               getElement: (item: IncidentTemplate): ReactElement => {
                 if (!item["incidentSeverity"]) {
-                  return <p>No incident severity.</p>;
+                  return (
+                    <p>{translator.translateText("No incident severity.")}</p>
+                  );
                 }
 
                 return (
@@ -275,7 +280,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Entity,
               getElement: (item: IncidentTemplate): ReactElement => {
                 if (!item["initialIncidentState"]) {
-                  return <p>Uses default &apos;Created&apos; state</p>;
+                  return (
+                    <p>
+                      {translator.translateText("Uses default 'Created' state")}
+                    </p>
+                  );
                 }
 
                 return (
@@ -449,6 +458,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",
@@ -534,9 +546,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             required: false,
             placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
-            footerElement: (
-              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
-            ),
           },
         ]}
         modelDetailProps={{

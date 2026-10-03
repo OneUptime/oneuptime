@@ -178,9 +178,375 @@ describe("MonitorCriteriaInstance", () => {
       expect(instance?.data?.filters[1]?.checkOn).toBe(CheckOn.DomainIsExpired);
       expect(instance?.data?.filters[1]?.filterType).toBe(FilterType.False);
     });
+
+    /*
+     * The probe calls any answer "online", so the status code is what
+     * separates a healthy endpoint from a failing one. Requiring exactly 200
+     * marked a health check answering 201 or 204 - or a redirect watched
+     * with "Do not follow redirects" on - as down from its first check.
+     */
+    test.each([MonitorType.Website, MonitorType.API])(
+      "%s monitor is online on any 2xx or 3xx answer, not just 200",
+      (monitorType: MonitorType) => {
+        const instance: MonitorCriteriaInstance | null =
+          MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+            monitorType: monitorType,
+            monitorStatusId,
+            monitorName: "Acme",
+          });
+
+        expect(instance?.data?.filterCondition).toBe(FilterCondition.All);
+        expect(instance?.data?.filters).toEqual([
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: 200,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.LessThan,
+            value: 400,
+          },
+        ]);
+        expect(instance?.data?.changeMonitorStatus).toBe(true);
+        expect(instance?.data?.createIncidents).toBe(false);
+        expect(instance?.data?.createAlerts).toBe(false);
+        expect(instance?.data?.name).toBe("Check if Acme is online");
+        expect(instance?.data?.description).toContain("2xx or 3xx");
+      },
+    );
+
+    test("the healthy status range is the one the constants name", () => {
+      expect(MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_FROM).toBe(
+        200,
+      );
+      expect(MonitorCriteriaInstance.DEFAULT_HEALTHY_STATUS_CODE_BELOW).toBe(
+        400,
+      );
+    });
+
+    test.each([MonitorType.Ping, MonitorType.IP, MonitorType.Port])(
+      "%s monitor has no status code to check, so it is online on Is Online alone",
+      (monitorType: MonitorType) => {
+        const instance: MonitorCriteriaInstance | null =
+          MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+            monitorType: monitorType,
+            monitorStatusId,
+            monitorName: "Acme",
+          });
+
+        expect(instance?.data?.filters).toEqual([
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        ]);
+        expect(instance?.data?.description).toBe(
+          "This criteria checks if the Acme is online",
+        );
+      },
+    );
+
+    test("SSL Certificate monitor is online while its certificate is valid, and says so", () => {
+      const instance: MonitorCriteriaInstance | null =
+        MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+          monitorType: MonitorType.SSLCertificate,
+          monitorStatusId,
+          monitorName: "Acme",
+        });
+
+      expect(instance?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      ]);
+      expect(instance?.data?.name).toBe("Check if Acme certificate is valid");
+      expect(instance?.data?.description).toBe(
+        "This criteria checks if the Acme SSL certificate is valid",
+      );
+      expect(instance?.data?.monitorStatusId?.toString()).toBe(
+        monitorStatusId.toString(),
+      );
+    });
+  });
+
+  describe("getDefaultWarningMonitorCriteriaInstance", () => {
+    const alertSeverityId: ObjectID = new ObjectID("eeeeeeeeeeeeeeeeeeeeeeee");
+
+    test("SSL Certificate monitor warns while a valid certificate has 14 days or less left", () => {
+      const instance: MonitorCriteriaInstance | null =
+        MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+          monitorType: MonitorType.SSLCertificate,
+          alertSeverityId,
+          monitorName: "Acme",
+        });
+
+      expect(instance).not.toBeNull();
+      expect(instance?.data?.filterCondition).toBe(FilterCondition.All);
+      expect(instance?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+        {
+          checkOn: CheckOn.ExpiresInDays,
+          filterType: FilterType.LessThanOrEqualTo,
+          value: 14,
+        },
+      ]);
+      expect(instance?.data?.name).toBe(
+        "Check if Acme certificate expires soon",
+      );
+      expect(instance?.data?.description).toBe(
+        "This criteria checks if the Acme SSL certificate is valid but expires in 14 days or less",
+      );
+      expect(instance?.data?.alerts[0]?.title).toBe(
+        "Acme certificate expires soon",
+      );
+      expect(instance?.data?.alerts[0]?.description).toContain("Renew it");
+    });
+
+    test("Domain monitor warns while a registration that has not expired has 30 days or less left", () => {
+      const instance: MonitorCriteriaInstance | null =
+        MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+          monitorType: MonitorType.Domain,
+          alertSeverityId,
+          monitorName: "acme.example",
+        });
+
+      expect(instance).not.toBeNull();
+      expect(instance?.data?.filterCondition).toBe(FilterCondition.All);
+      expect(instance?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.DomainIsExpired,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+        {
+          checkOn: CheckOn.DomainExpiresDaysIn,
+          filterType: FilterType.LessThanOrEqualTo,
+          value: 30,
+        },
+      ]);
+      expect(instance?.data?.name).toBe(
+        "Check if acme.example domain expires soon",
+      );
+      expect(instance?.data?.description).toBe(
+        "This criteria checks if the acme.example domain registration expires in 30 days or less",
+      );
+      expect(instance?.data?.alerts[0]?.title).toBe(
+        "acme.example domain expires soon",
+      );
+      expect(instance?.data?.alerts[0]?.description).toContain("registrar");
+    });
+
+    test("the warning periods are the ones the constants name", () => {
+      expect(
+        MonitorCriteriaInstance.DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS,
+      ).toBe(14);
+      expect(MonitorCriteriaInstance.DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS).toBe(
+        30,
+      );
+    });
+
+    /*
+     * A heads-up, not an outage: an alert reaches the team, nothing opens an
+     * incident or shows on a status page, and the monitor's status is left
+     * where it is. The form keeps "Change monitor status" off by leaving the
+     * status empty - a status id alone would show the switch on.
+     */
+    test.each([MonitorType.SSLCertificate, MonitorType.Domain])(
+      "%s warning raises an alert and nothing else",
+      (monitorType: MonitorType) => {
+        const instance: MonitorCriteriaInstance =
+          MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+            monitorType: monitorType,
+            alertSeverityId,
+            monitorName: "Acme",
+          })!;
+
+        expect(instance.data?.createAlerts).toBe(true);
+        expect(instance.data?.createIncidents).toBe(false);
+        expect(instance.data?.incidents).toEqual([]);
+        expect(instance.data?.changeMonitorStatus).toBe(false);
+        expect(instance.data?.monitorStatusId).toBeUndefined();
+        // Unset reads as on, as for every other seeded criteria.
+        expect(instance.data?.isEnabled).not.toBe(false);
+        expect(instance.data?.alerts).toHaveLength(1);
+        expect(instance.data?.alerts[0]?.alertSeverityId?.toString()).toBe(
+          alertSeverityId.toString(),
+        );
+        // Resolves itself once the renewal is picked up.
+        expect(instance.data?.alerts[0]?.autoResolveAlert).toBe(true);
+        // Nobody is paged unless someone adds an on-call policy.
+        expect(instance.data?.alerts[0]?.onCallPolicyIds).toEqual([]);
+      },
+    );
+
+    test.each([MonitorType.SSLCertificate, MonitorType.Domain])(
+      "%s warning passes the same validation the criteria form applies",
+      (monitorType: MonitorType) => {
+        const instance: MonitorCriteriaInstance =
+          MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+            monitorType: monitorType,
+            alertSeverityId,
+            monitorName: "Acme",
+          })!;
+
+        expect(
+          MonitorCriteriaInstance.getValidationError(instance, monitorType),
+        ).toBeNull();
+      },
+    );
+
+    test.each([MonitorType.SSLCertificate, MonitorType.Domain])(
+      "%s warning survives a save and a reload exactly",
+      (monitorType: MonitorType) => {
+        const instance: MonitorCriteriaInstance =
+          MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+            monitorType: monitorType,
+            alertSeverityId,
+            monitorName: "Acme",
+          })!;
+
+        const restored: MonitorCriteriaInstance =
+          MonitorCriteriaInstance.fromJSON(
+            JSON.parse(JSON.stringify(instance.toJSON())),
+          );
+
+        expect(restored.data?.changeMonitorStatus).toBe(false);
+        expect(restored.data?.monitorStatusId).toBeUndefined();
+        expect(restored.data?.createAlerts).toBe(true);
+        expect(restored.data?.createIncidents).toBe(false);
+        expect(restored.data?.filters).toEqual(instance.data?.filters);
+        expect(restored.data?.alerts[0]?.title).toBe(
+          instance.data?.alerts[0]?.title,
+        );
+        expect(restored.data?.alerts[0]?.alertSeverityId?.toString()).toBe(
+          alertSeverityId.toString(),
+        );
+      },
+    );
+
+    test.each(
+      (Object.values(MonitorType) as Array<MonitorType>).filter(
+        (monitorType: MonitorType) => {
+          return (
+            monitorType !== MonitorType.SSLCertificate &&
+            monitorType !== MonitorType.Domain
+          );
+        },
+      ),
+    )("%s monitor has no expiry warning", (monitorType: MonitorType) => {
+      expect(
+        MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+          monitorType: monitorType,
+          alertSeverityId,
+          monitorName: "Acme",
+        }),
+      ).toBeNull();
+    });
   });
 
   describe("getDefaultOfflineMonitorCriteriaInstance", () => {
+    test.each([MonitorType.Website, MonitorType.API])(
+      "%s monitor is offline when it does not answer, or answers outside 2xx-3xx",
+      (monitorType: MonitorType) => {
+        const incidentSeverityId: ObjectID = new ObjectID(
+          "cccccccccccccccccccccccc",
+        );
+
+        const instance: MonitorCriteriaInstance =
+          MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance({
+            monitorType: monitorType,
+            monitorStatusId: new ObjectID("bbbbbbbbbbbbbbbbbbbbbbbb"),
+            incidentSeverityId,
+            alertSeverityId: new ObjectID("dddddddddddddddddddddddd"),
+            monitorName: "Acme",
+          });
+
+        expect(instance.data?.filterCondition).toBe(FilterCondition.Any);
+        expect(instance.data?.filters).toEqual([
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: 400,
+          },
+          {
+            checkOn: CheckOn.ResponseStatusCode,
+            filterType: FilterType.LessThan,
+            value: 200,
+          },
+        ]);
+
+        // Still a real outage: it opens an incident and goes offline.
+        expect(instance.data?.createIncidents).toBe(true);
+        expect(instance.data?.changeMonitorStatus).toBe(true);
+        expect(instance.data?.createAlerts).toBe(false);
+        expect(instance.data?.incidents[0]?.title).toBe("Acme is offline");
+        expect(instance.data?.incidents[0]?.description).toBe(
+          "Acme is not responding, or is responding with an error status code.",
+        );
+        expect(
+          instance.data?.incidents[0]?.incidentSeverityId?.toString(),
+        ).toBe(incidentSeverityId.toString());
+        expect(instance.data?.incidents[0]?.autoResolveIncident).toBe(true);
+      },
+    );
+
+    /*
+     * "<name> is offline" described none of the reasons an SSL Certificate
+     * monitor fails - an expired, self-signed or mismatched certificate, or
+     * an endpoint that did not answer - and the site behind it may well be
+     * up.
+     */
+    test("SSL Certificate offline criteria is named for the certificate", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance({
+          monitorType: MonitorType.SSLCertificate,
+          monitorStatusId: new ObjectID("bbbbbbbbbbbbbbbbbbbbbbbb"),
+          incidentSeverityId: new ObjectID("cccccccccccccccccccccccc"),
+          alertSeverityId: new ObjectID("dddddddddddddddddddddddd"),
+          monitorName: "Acme",
+        });
+
+      expect(instance.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      ]);
+      expect(instance.data?.name).toBe(
+        "Check if Acme certificate is not valid",
+      );
+      expect(instance.data?.incidents[0]?.title).toBe(
+        "Acme certificate is not valid",
+      );
+      expect(instance.data?.alerts[0]?.title).toBe(
+        "Acme certificate is not valid",
+      );
+      expect(instance.data?.incidents[0]?.description).toBe(
+        "The SSL certificate of Acme is not valid, or could not be checked.",
+      );
+      expect(instance.data?.createIncidents).toBe(true);
+      expect(instance.data?.changeMonitorStatus).toBe(true);
+    });
+
     test("Ping offline criteria populates incident and alert with severities", () => {
       const monitorStatusId: ObjectID = new ObjectID(
         "bbbbbbbbbbbbbbbbbbbbbbbb",
@@ -261,17 +627,80 @@ describe("MonitorCriteriaInstance", () => {
         instance,
         MonitorType.Ping,
       );
-      expect(error).toContain("Name is required");
+      expect(error).toBe("Name is required for every criteria.");
     });
 
-    test("returns error when description is empty", () => {
+    test("a name of only spaces is no name", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.name = "   ";
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBe("Name is required for every criteria.");
+    });
+
+    test("the name is checked before anything that quotes it", () => {
+      /*
+       * Every other message names the criteria ("Filter is required for
+       * criteria ..."). Checked first, a criteria with no name says so,
+       * instead of quoting an empty name: 'Filter is required for criteria ""'.
+       */
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.name = "";
+      instance.data!.filters = [];
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBe("Name is required for every criteria.");
+    });
+
+    test("accepts a criteria whose description is empty", () => {
+      /*
+       * A criteria needs a name, not a description: the form used to stop
+       * every new criteria at an empty, required "Criteria Description".
+       */
       const instance: MonitorCriteriaInstance = buildValidInstance();
       instance.data!.description = "";
-      const error: string | null = MonitorCriteriaInstance.getValidationError(
-        instance,
-        MonitorType.Ping,
-      );
-      expect(error).toContain("Description is required");
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBeNull();
+    });
+
+    test("accepts a criteria that has no description at all", () => {
+      // As one sent to the API without the field arrives.
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      delete (instance.data as { description?: string }).description;
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBeNull();
+    });
+
+    test("a criteria read from JSON without a description is valid", () => {
+      const json: JSONObject = buildValidInstance().toJSON();
+      delete (json["value"] as JSONObject)["description"];
+
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.fromJSON(json);
+
+      expect(instance.data?.description).toBe("");
+      expect(
+        MonitorCriteriaInstance.getValidationError(instance, MonitorType.Ping),
+      ).toBeNull();
+    });
+
+    test("the API schema documents the description as optional and the name as required", () => {
+      const valueSchema: {
+        shape: Record<string, { isOptional: () => boolean }>;
+      } = (
+        MonitorCriteriaInstance.getSchema() as unknown as {
+          shape: {
+            value: {
+              shape: Record<string, { isOptional: () => boolean }>;
+            };
+          };
+        }
+      ).shape.value;
+
+      expect(valueSchema.shape["description"]!.isOptional()).toBe(true);
+      expect(valueSchema.shape["name"]!.isOptional()).toBe(false);
     });
 
     test("returns error when an incident is missing its severity", () => {

@@ -114,7 +114,7 @@ Die Nachricht, die Abonnenten tatsächlich erhalten, wird pro Statusseite und pr
 
 ## Der Vorfall-Feed
 
-Die Karte **Vorfall Feed** sitzt unten in der linken Spalte auf der Seite **Übersicht** des Vorfalls. Sie ist die Geschichte des Vorfalls der Reihe nach: Jedes Element besteht aus einem Symbol, dem Avatar und Namen dessen, der es ausgelöst hat, einem relativen Zeitstempel mit der genauen Ortszeit beim Überfahren und einem Markdown-Text. Sortiert wird älteste zuerst.
+Die Karte **Vorfall Feed** sitzt unten in der linken Spalte auf der Seite **Übersicht** des Vorfalls. Sie ist die Geschichte des Vorfalls der Reihe nach: Jedes Element besteht aus einem Symbol, dem Avatar und Namen dessen, der es ausgelöst hat, einem relativen Zeitstempel mit der genauen Ortszeit beim Überfahren und einem Markdown-Text. Standardmäßig stehen die neuesten Einträge oben.
 
 Manche Elemente tragen zusätzliche Details – eine Eigentümerbenachrichtigung listet zum Beispiel alle Angeschriebenen auf. Diese zeigen eine Schaltfläche **More Information**, die ein Panel **More Information** öffnet.
 
@@ -125,7 +125,11 @@ Der Kartenkopf hat außerdem ein Menü **Aktionen**, damit Sie handeln können, 
 - **Add Public Note** – dieselben vier Felder wie auf der Seite Öffentliche Notizen, in einem Dialog.
 - **Private Notiz hinzufügen** – nur Notiztext und Anhänge.
 
-Daneben holt **Aktualisieren** den Feed neu.
+Alles Weitere liegt hinter der Schaltfläche **⋯** daneben, derselben Schaltfläche **Weitere Optionen**, die auch der Kartenkopf einer Tabelle hat, damit der Kopf so wenige Schaltflächen wie möglich zeigt:
+
+- **Neueste zuerst** / **Älteste zuerst** – die Reihenfolge, in der der Feed gelesen wird. Ein Häkchen markiert die gewählte, und Ihr Browser merkt sich die Wahl für den Feed jedes Vorfalls.
+- **Nach Ereignistyp filtern** – ein Dialog mit den Ereignistypen des Feeds, jeder mit dem Symbol seiner Einträge, und einem Suchfeld, wenn die Liste lang ist. Haken Sie die gewünschten an und wählen Sie **Filter anwenden**; ohne Haken werden alle gezeigt. Solange der Feed gefiltert ist, sagt ein Kasten darüber, wie viele Ereignistypen er zeigt, mit einem Chip für jeden, **Filter bearbeiten** und **Filter löschen**. Der Filter wird nicht gespeichert: Verlassen Sie den Vorfall, zeigt sein Feed wieder alles.
+- **Aktualisieren** – holt den Feed neu.
 
 **Der Feed wird nur ergänzt, und er ist nicht Ihr Audit-Log.** Die API erlaubt es, Feed-Elemente anzulegen und zu lesen, aber nicht zu ändern oder zu löschen – niemand kann also klammheimlich die Geschichte eines Vorfalls umschreiben. Dauerhaft ist er trotzdem nicht: Auf abgerechneten Installationen werden Feed-Zeilen entfernt, die älter als drei Jahre sind. Für einen belastbaren Nachweis, wer was geändert hat, nutzen Sie **Audit → Audit-Protokolle** im Seitenmenü des Vorfalls.
 

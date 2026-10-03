@@ -11,7 +11,7 @@ Statusseiten liegen unter **Statusseiten** in der linken Navigation des Dashboar
 - **Mit zwei Feldern angelegt.** Eine neue Statusseite fragt nur nach **Name** und **Beschreibung**. Ressourcen, Branding und Domains richten Sie danach ein.
 - **Ressourcen sind das, was Besucher sehen.** Jede Zeile der Seite ist eine **Statusseite Ressource** – ein Monitor (oder eine Monitorgruppe) mit eigenem Anzeigenamen, eigenem Tooltip und eigenen Verfügbarkeitsoptionen. Gruppen teilen eine lange Seite in Abschnitte und lassen sich verschachteln.
 - **Eine Vorschau-URL ab dem ersten Tag.** Jede Statusseite bekommt einen Vorschaulink, damit Sie sie ansehen können, bevor es überhaupt eine eigene Domain gibt.
-- **Die besucherseitigen Routen hängen an Einstellungen.** Vorfälle, Ankündigungen, geplante Ereignisse und die Abonnentenseite erscheinen jeweils nur, wenn ihr Schalter unter **Erweiterte Einstellungen** aktiviert ist.
+- **Die besucherseitigen Routen hängen an Einstellungen.** Vorfälle, Episoden, Ankündigungen und geplante Ereignisse erscheinen jeweils nur, solange ihr Schalter in **Was Ihre Statusseite zeigt** (unter **Erweiterte Einstellungen**) an ist, die Abonnentenseite nur, solange **Abonnentenseite anzeigen** an ist.
 - **Drei Wege, die Seite privat zu machen.** Private Benutzer, ein Master-Passwort oder SAML-SSO / OIDC – dazu eine IP-Whitelist.
 - **Abonnenten werden automatisch informiert.** Abonnenten per E-Mail, SMS, Slack, Microsoft Teams und Webhook können einer Seite folgen, jeder Kanal hinter einem eigenen Schalter.
 
@@ -98,38 +98,23 @@ Was einen Vorfall überhaupt auf diese Seite bringt und was ihn wieder heruntern
 
 ## Auswählen, was auf der Seite erscheint
 
-Die meisten Anzeigeschalter liegen an einer Stelle: **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**. Jede Karte hat ihre eigene Schaltfläche **Edit Settings**.
+Was Besucher sehen, legen Sie in einer einzigen Karte fest: **Was Ihre Statusseite zeigt**, unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**. Sie hat eine Zeile für jede Liste, die die Seite zeigen kann, danach **Verfügbarkeitsverlauf** und die Zeile „Powered by OneUptime“. Eine Bearbeiten-Schaltfläche gibt es nicht: Ein Schalter speichert, sobald Sie ihn umlegen, eine Anzahl Tage, sobald Sie das Feld verlassen oder die Eingabetaste drücken.
 
-**Vorfall-Einstellungen**:
+- **Vorfälle anzeigen** (`showIncidentsOnStatusPage`) – standardmäßig an. Darunter legt **Die letzten … Tage anzeigen** (`showIncidentHistoryInDays`, Standard 14) fest, wie weit die Vorfallliste zurückreicht; **Vorfallbeschriftungen anzeigen** (`showIncidentLabelsOnStatusPage`) ist standardmäßig aus.
+- **Nur auf diese Seite beschränkte Vorfälle anzeigen** (`onlyShowScopedIncidents`) – ebenfalls in der Vorfallzeile, standardmäßig aus. Ist der Schalter an, zeigt die Seite nur die Vorfälle, die mit **Auf diese Statusseiten beschränken** auf sie beschränkt sind, und benachrichtigt ihre Abonnenten nur über diese. Er entscheidet auch, welche Vorfälle ihre Episoden auf die Seite bringen, deshalb bleibt er, wenn **Vorfälle anzeigen** aus ist.
+- **Episoden anzeigen** (`showEpisodesOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showEpisodeHistoryInDays`, Standard 14) und **Episodenbeschriftungen anzeigen** (`showEpisodeLabelsOnStatusPage`, standardmäßig aus). Episoden sind ein eigenes Modell mit eigenen Endpunkten, keine Ansicht auf Vorfälle.
+- **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showAnnouncementHistoryInDays`, Standard 14).
+- **Geplante Wartungsereignisse anzeigen** (`showScheduledMaintenanceEventsOnStatusPage`) – standardmäßig an, mit **Die letzten … Tage anzeigen** (`showScheduledEventHistoryInDays`, Standard 14) und **Ereignisbeschriftungen anzeigen** (`showScheduledEventLabelsOnStatusPage`, standardmäßig aus).
+- **Verfügbarkeitsverlauf** – **Die letzten … Tage anzeigen** (`showUptimeHistoryInDays`) ist die Länge des Verfügbarkeitsbalkens neben jeder Ressource. Standard 90, erlaubt sind 1 bis 90. Jede Option **Verfügbarkeit % anzeigen** und **Statusverlaufsdiagramm anzeigen** an einer Ressource oder Gruppe liest diesen Wert.
+- **Branding "Powered By OneUptime" anzeigen** – standardmäßig an, in der Besucher-Fußzeile steht also „Powered by OneUptime“. Schalten Sie ihn aus, um die Zeile auszublenden. Die Spalte speichert es umgekehrt, als `hidePoweredByOneUptimeBranding`.
 
-- **Vorfälle anzeigen** (`showIncidentsOnStatusPage`) – standardmäßig an. Schalten Sie den Schalter aus, verschwindet auch der Navigationseintrag **Vorfälle**.
-- **Vorfallverlauf anzeigen (in Tagen)** (`showIncidentHistoryInDays`) – wie weit die Vorfallliste zurückreicht. Standard: 14.
-- **Vorfallbeschriftungen anzeigen** (`showIncidentLabelsOnStatusPage`) – standardmäßig aus.
+**Eine ausgeschaltete Liste** verschwindet von der Seite, samt ihrem Eintrag in der Navigationsleiste, falls sie einen hat; ihr öffentlicher Endpunkt lehnt ab, und die Abonnenten der Seite werden über diese Art von Ereignis nicht benachrichtigt. Ihre Zeile zeigt dann nur noch den Schalter: Wie weit eine ausgeblendete Liste zurückreicht und ob sie Beschriftungen zeigt, ändert nichts.
 
-**Episodeneinstellungen** – dieselben drei Schalter für Vorfall-Episoden: **Episoden anzeigen** (`showEpisodesOnStatusPage`, standardmäßig an), **Episodenverlauf anzeigen (in Tagen)** (Standard 14) und **Episodenbeschriftungen anzeigen** (standardmäßig aus). Episoden sind ein eigenes Modell mit eigenen Endpunkten, keine Ansicht auf Vorfälle.
+**Tarife.** In OneUptime Cloud steht neben einer Einstellung, die Ihr Tarif nicht ändern darf, der nötige Tarif. Die vier Listenschalter, die drei Beschriftungsschalter und der Episodenverlauf brauchen **Growth**; die Zeile „Powered by OneUptime“ auszublenden braucht **Scale**. Die übrigen Verlaufszeiträume, **Verfügbarkeitsverlauf** und **Nur auf diese Seite beschränkte Vorfälle anzeigen** lassen sich in jedem Tarif ändern, und jede Einstellung speichert für sich.
 
-**Ankündigungseinstellungen**:
+Ob die Seite einen Eintrag **Abonnieren** zeigt (**Abonnentenseite anzeigen**, `showSubscriberPageOnStatusPage`, standardmäßig an) und über welche Kanäle Besucher abonnieren können, legen Sie nicht hier fest: Beides steht in der Karte **Kanäle** unter **Abonnenten → Abonnenten-Einstellungen** (siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers)).
 
-- **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`) – standardmäßig an.
-- **Ankündigungsverlauf anzeigen (in Tagen)** (`showAnnouncementHistoryInDays`) – Standard: 14.
-
-**Einstellungen für geplante Ereignisse**:
-
-- **Geplante Wartungsereignisse anzeigen** (`showScheduledMaintenanceEventsOnStatusPage`) – standardmäßig an.
-- **Verlauf geplanter Ereignisse anzeigen (in Tagen)** (`showScheduledEventHistoryInDays`) – Standard: 14.
-- **Ereignisbeschriftungen anzeigen** (`showScheduledEventLabelsOnStatusPage`) – standardmäßig aus.
-
-**Einstellungen für Verfügbarkeitsverlauf**:
-
-- **Verfügbarkeitsverlauf anzeigen (in Tagen)** (`showUptimeHistoryInDays`) – die Länge des Verfügbarkeitsbalkens neben jeder Ressource. Standard 90, erlaubt sind 1 bis 90. Jede Option **Verfügbarkeit % anzeigen** und **Statusverlaufsdiagramm anzeigen** an einer Ressource oder Gruppe liest diesen Wert.
-
-**Abonnenten-Einstellungen**:
-
-- **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an, dazu die fünf Schalter für die einzelnen Kanäle. Dieselben Kanalschalter erscheinen auch auf dem eigenen Bildschirm **Abonnenten-Einstellungen** im Abschnitt **Abonnenten**; behandeln Sie diesen als den maßgeblichen Ort dafür.
-
-**Branding „Powered By OneUptime“**:
-
-- **Branding "Powered By OneUptime" ausblenden** – standardmäßig aus, in der Besucher-Fußzeile steht also „Powered by OneUptime“, bis Sie den Schalter umlegen.
+Unter der Karte folgen eine Karte, die die Einstellungen der Statusseite als JSON-Datei exportiert, die Sie später wieder importieren können, und die Karte zum Archivieren der Statusseite.
 
 **Wo die Farben stecken.** Die Farben der Verfügbarkeitsbalken sind nicht hier – **Standard-Balkenfarbe**, die Balkenfarb-Regeln, **Ausfallzeit-Monitorstatus** und **Gesamtprozentsatz der Verfügbarkeit anzeigen** liegen allesamt unter **Statusseiten → Ihre Seite → Branding → Übersichtsseite**. Eine Theme- oder Markenfarben-Einstellung gibt es nirgends; alles darüber hinaus machen Sie mit **Benutzerdefiniertes CSS**.
 

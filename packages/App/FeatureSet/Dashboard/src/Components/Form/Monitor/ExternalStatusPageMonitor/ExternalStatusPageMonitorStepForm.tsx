@@ -10,6 +10,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepExternalStatusPageMonitor: MonitorStepExternalStatusPageMonitor;
@@ -19,6 +21,7 @@ export interface ComponentProps {
 const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
 
@@ -87,7 +90,9 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       {showAdvancedOptions && (
         <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
+          <h4 className="font-medium">
+            {translator.translateText("Advanced Options")}
+          </h4>
 
           <div>
             <FieldLabelElement

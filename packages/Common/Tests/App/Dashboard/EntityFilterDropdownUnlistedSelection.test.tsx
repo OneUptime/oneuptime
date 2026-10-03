@@ -211,19 +211,30 @@ afterEach(() => {
   cleanup();
 });
 
+interface LookupCase {
+  type: EntityFilterModelType;
+  modelType: unknown;
+  select: Record<string, true>;
+}
+
+const LOOKUP_CASES: Array<LookupCase> = [
+  {
+    type: EntityFilterModelType.Monitor,
+    modelType: Monitor,
+    select: { _id: true, name: true },
+  },
+  {
+    type: EntityFilterModelType.Label,
+    modelType: Label,
+    // A label is shown with its colour, so the lookup reads it too.
+    select: { _id: true, name: true, color: true },
+  },
+];
+
 describe("EntityFilterDropdown keeps a saved selection past the list's row cap", () => {
-  test.each([
-    { type: EntityFilterModelType.Monitor, modelType: Monitor },
-    { type: EntityFilterModelType.Label, modelType: Label },
-  ])(
+  test.each(LOOKUP_CASES)(
     "$type multi-select: looks up the unlisted id and shows both chips by name",
-    async ({
-      type,
-      modelType,
-    }: {
-      type: EntityFilterModelType;
-      modelType: unknown;
-    }) => {
+    async ({ type, modelType, select }: LookupCase) => {
       renderPicker({
         type: type,
         isMultiSelect: true,
@@ -251,7 +262,7 @@ describe("EntityFilterDropdown keeps a saved selection past the list's row cap",
         PROJECT_ID.toString(),
       );
       expect(lookup.limit).toBe(1);
-      expect(lookup.select).toEqual({ _id: true, name: true });
+      expect(lookup.select).toEqual(select);
     },
   );
 

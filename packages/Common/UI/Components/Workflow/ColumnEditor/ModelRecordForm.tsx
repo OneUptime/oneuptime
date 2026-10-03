@@ -18,6 +18,8 @@ import ColumnFieldRow from "./ColumnFieldRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
 import { ColumnUse } from "./ColumnUse";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface ComponentProps {
   rows: Array<ModelColumnRow>;
@@ -34,6 +36,7 @@ export interface ComponentProps {
 const ModelRecordForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * The row just added from the picker, so its value control can take focus.
    * Without it the picker's list closes and focus falls to the document body,
@@ -74,6 +77,14 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
     return column.title;
   });
 
+  // The first three by name, in the reader's language; the rest are counted.
+  const shownUnofferableTitles: string = unofferableColumnTitles
+    .slice(0, 3)
+    .map((title: string) => {
+      return translator.translateText(title) ?? title;
+    })
+    .join(", ");
+
   const knownColumnIds: Array<string> = props.columns.map(
     (column: ModelSchemaColumn) => {
       return column.id;
@@ -101,10 +112,12 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
               className="mx-auto h-6 w-6 text-gray-300"
             />
             <p className="mt-2 text-sm font-medium text-gray-700">
-              No fields set yet
+              {translator.translateText("No fields set yet")}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              Pick a field below to start building this record.
+              {translator.translateText(
+                "Pick a field below to start building this record.",
+              )}
             </p>
           </div>
         ) : (
@@ -139,7 +152,7 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
             columns={offerableColumns}
             use={props.use}
             requiredColumnIds={requiredColumnIds}
-            triggerLabel="Add a field"
+            triggerLabel={translationKey("Add a field")}
             allowCustomColumn={true}
             dataTestId="model-column-add"
             onAdd={(columnId: string) => {
@@ -156,13 +169,20 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
 
       {unofferableColumnTitles.length > 0 && (
         <p className="mt-1.5 text-xs text-gray-400">
-          {unofferableColumnTitles.slice(0, 3).join(", ")}
           {unofferableColumnTitles.length > 3
-            ? ` and ${unofferableColumnTitles.length - 3} other field${
-                unofferableColumnTitles.length - 3 === 1 ? "" : "s"
-              }`
-            : ""}{" "}
-          can only be set with Edit as JSON.
+            ? translator.translatePlural(
+                {
+                  one: "{{fields}} and {{count}} other field can only be set with Edit as JSON.",
+                  other:
+                    "{{fields}} and {{count}} other fields can only be set with Edit as JSON.",
+                },
+                unofferableColumnTitles.length - 3,
+                { fields: shownUnofferableTitles },
+              )
+            : translator.translateTemplate(
+                "{{fields}} can only be set with Edit as JSON.",
+                { fields: shownUnofferableTitles },
+              )}
         </p>
       )}
     </div>

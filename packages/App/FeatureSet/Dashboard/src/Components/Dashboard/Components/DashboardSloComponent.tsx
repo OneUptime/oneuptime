@@ -75,6 +75,8 @@ import YAxis, {
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloComponent;
@@ -111,13 +113,13 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
       </div>
       {data.title ? (
         <p className="text-xs font-medium text-gray-500 truncate max-w-full">
-          {data.title}
+          {translateText(data.title)}
         </p>
       ) : (
         <></>
       )}
       <p className="text-xs text-gray-400 text-center max-w-40">
-        {data.message}
+        {translateText(data.message)}
       </p>
     </div>
   );
@@ -126,6 +128,7 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
 const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [slo, setSlo] = useState<ServiceLevelObjective | null>(null);
   const [chartPoints, setChartPoints] = useState<Array<DataPoint>>([]);
   const [error, setError] = useState<string | null>(null);
@@ -583,7 +586,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         ? [
             {
               value: target,
-              label: `Target ${target}%`,
+              label: translator.translateTemplate("Target {{target}}%", {
+                target: target,
+              }),
               color: "#f59e0b",
               strokeDasharray: "4 4",
             },

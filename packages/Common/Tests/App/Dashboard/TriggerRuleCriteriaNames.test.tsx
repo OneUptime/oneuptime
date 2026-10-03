@@ -76,7 +76,7 @@ describe("runbook rule criteria", () => {
       "Event",
     ],
   ])(
-    "%s rules name the title and description after the %s",
+    "%s rules name their criteria after the %s, like the other rules",
     (
       triggerEntityType: RunbookRuleTriggerEntity,
       entityLabel: string,
@@ -91,10 +91,22 @@ describe("runbook rule criteria", () => {
         />,
       );
 
-      expect(criteriaTitles()).toEqual([
-        `${subject} Title`,
-        `${subject} Description`,
-      ]);
+      expect(criteriaTitles()).toEqual(
+        [
+          "Monitors",
+          triggerEntityType === RunbookRuleTriggerEntity.ScheduledMaintenance
+            ? null
+            : `${subject} Severities`,
+          `${subject} Labels`,
+          "Monitor Labels",
+          `${subject} Title`,
+          `${subject} Description`,
+          "Monitor Name",
+          "Monitor Description",
+        ].filter((title: string | null): title is string => {
+          return title !== null;
+        }),
+      );
     },
   );
 });

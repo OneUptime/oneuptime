@@ -8,6 +8,9 @@ import ScheduleTimelineLayout, {
 } from "Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The three kinds of block a timeline row draws: a shift (who is on call),
@@ -52,6 +55,7 @@ export interface ShiftBarProps {
 export const ShiftBar: FunctionComponent<ShiftBarProps> = (
   props: ShiftBarProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const shift: TimelineShift = props.positioned.item;
   const color: string = getTimelineColorForUserId(shift.userId);
   const isActive: boolean =
@@ -79,10 +83,17 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
   const hasText: boolean = fits(props.widthPx, BAR_TEXT_MIN_WIDTH_PX);
 
   const ariaLabel: string = [
-    `${shift.userName} on call for ${props.scheduleName}`,
+    translator.translateTemplate("{{name}} on call for {{schedule}}", {
+      name: shift.userName,
+      schedule: props.scheduleName,
+    }),
     interval,
-    shift.override ? `covering for ${shift.override.originalUserName}` : "",
-    isActive ? "on call now" : "",
+    shift.override
+      ? translator.translateTemplate("covering for {{name}}", {
+          name: shift.override.originalUserName,
+        })
+      : "",
+    isActive ? translator.translateTemplate("on call now") : "",
   ]
     .filter(Boolean)
     .join(", ");
@@ -112,7 +123,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
         </span>
         {isActive && (
           <span className="ml-auto shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 ring-1 ring-inset ring-green-200">
-            On call now
+            {translator.translateText("On call now")}
           </span>
         )}
       </div>
@@ -124,19 +135,29 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
       <div className="text-xs text-gray-500">{duration}</div>
       {shift.override && (
         <div className="mt-2 rounded-md bg-indigo-50 px-2 py-1.5 text-xs text-indigo-800">
-          Covering for{" "}
-          <span className="font-semibold">
-            {shift.override.originalUserName}
-          </span>
-          {shift.override.isPolicyScoped
-            ? " through a policy-scoped override."
-            : " through an override."}
+          <TranslatedSentence
+            template={
+              shift.override.isPolicyScoped
+                ? "Covering for {{name}} through a policy-scoped override."
+                : "Covering for {{name}} through an override."
+            }
+            slots={{
+              name: (
+                <span className="font-semibold">
+                  {shift.override.originalUserName}
+                </span>
+              ),
+            }}
+          />
         </div>
       )}
       <div className="mt-2 border-t border-gray-100 pt-1.5 text-[11px] text-gray-400">
         {isHighlighted
-          ? "Click to clear the highlight."
-          : `Click to highlight every shift of ${shift.userName}.`}
+          ? translator.translateText("Click to clear the highlight.")
+          : translator.translateTemplate(
+              "Click to highlight every shift of {{name}}.",
+              { name: shift.userName },
+            )}
       </div>
     </div>
   );
@@ -214,6 +235,7 @@ export interface GapBlockProps {
 export const GapBlock: FunctionComponent<GapBlockProps> = (
   props: GapBlockProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const gap: TimeInterval = props.positioned.item;
 
   const interval: string = ScheduleTimelineLayout.formatInterval({
@@ -228,12 +250,15 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
 
   const tooltip: ReactElement = (
     <div className="max-w-[300px] p-1 text-left">
-      <div className="text-sm font-semibold text-amber-800">No one on call</div>
+      <div className="text-sm font-semibold text-amber-800">
+        {translator.translateText("No one on call")}
+      </div>
       <div className="mt-1 text-xs font-medium text-gray-700">{interval}</div>
       <div className="text-xs text-gray-500">{duration}</div>
       <div className="mt-2 text-xs text-gray-500">
-        Alerts that escalate to this schedule during this time will not page
-        anyone.
+        {translator.translateText(
+          "Alerts that escalate to this schedule during this time will not page anyone.",
+        )}
       </div>
     </div>
   );
@@ -243,7 +268,10 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
       <div
         data-testid="timeline-gap"
         tabIndex={0}
-        aria-label={`No one on call, ${interval}`}
+        aria-label={translator.translateTemplate(
+          "No one on call, {{interval}}",
+          { interval: interval },
+        )}
         className={`oneuptime-schedule-timeline-gap absolute top-[9px] flex h-[30px] items-center overflow-hidden focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-amber-500 ${
           fits(props.widthPx, GAP_TEXT_MIN_WIDTH_PX) ? "px-2" : "px-0"
         }`}
@@ -256,7 +284,7 @@ export const GapBlock: FunctionComponent<GapBlockProps> = (
       >
         {fits(props.widthPx, GAP_TEXT_MIN_WIDTH_PX) && (
           <span className="truncate text-[11px] font-semibold text-amber-800">
-            No one on call
+            {translator.translateText("No one on call")}
           </span>
         )}
       </div>
@@ -281,6 +309,7 @@ export interface OverriddenSegmentProps {
 export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
   props: OverriddenSegmentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const shift: TimelineShift = props.positioned.item;
 
   if (!shift.override) {
@@ -299,26 +328,38 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
   const tooltip: ReactElement = (
     <div className="max-w-[300px] p-1 text-left text-xs text-gray-600">
       <div className="text-sm font-semibold text-gray-900">
-        {shift.override.originalUserName}&apos;s shift, overridden
+        {translator.translateTemplate("{{name}}'s shift, overridden", {
+          name: shift.override.originalUserName,
+        })}
       </div>
       <div className="mt-1">
-        <span className="font-medium text-gray-800">{shift.userName}</span> is
-        covering{" "}
-        {ScheduleTimelineLayout.formatInterval({
-          start: shift.start,
-          end: shift.end,
-          timezone: props.timezone,
-          use12HourFormat: props.use12HourFormat,
-        })}
-        .
+        <TranslatedSentence
+          template="{{name}} is covering {{interval}}."
+          values={{
+            interval: ScheduleTimelineLayout.formatInterval({
+              start: shift.start,
+              end: shift.end,
+              timezone: props.timezone,
+              use12HourFormat: props.use12HourFormat,
+            }),
+          }}
+          slots={{
+            name: (
+              <span className="font-medium text-gray-800">
+                {shift.userName}
+              </span>
+            ),
+          }}
+        />
       </div>
       <div className="mt-1 text-gray-500">
-        Override window:{" "}
-        {ScheduleTimelineLayout.formatInterval({
-          start: shift.override.start,
-          end: shift.override.end,
-          timezone: props.timezone,
-          use12HourFormat: props.use12HourFormat,
+        {translator.translateTemplate("Override window: {{interval}}", {
+          interval: ScheduleTimelineLayout.formatInterval({
+            start: shift.override.start,
+            end: shift.override.end,
+            timezone: props.timezone,
+            use12HourFormat: props.use12HourFormat,
+          }),
         })}
       </div>
     </div>
@@ -329,7 +370,13 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
       <div
         data-testid="timeline-overridden-segment"
         tabIndex={0}
-        aria-label={`${shift.override.originalUserName}'s shift, covered by ${shift.userName}`}
+        aria-label={translator.translateTemplate(
+          "{{original}}'s shift, covered by {{substitute}}",
+          {
+            original: shift.override.originalUserName,
+            substitute: shift.userName,
+          },
+        )}
         className={`absolute top-[46px] flex h-[18px] items-center gap-1 overflow-hidden rounded text-[11px] text-gray-500 focus:z-10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:!opacity-100 focus-visible:outline-indigo-500 ${
           fits(props.widthPx, BAR_TEXT_MIN_WIDTH_PX) ? "px-1.5" : "px-0"
         }`}
@@ -350,7 +397,9 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
             <span className="line-through decoration-gray-400">
               {shift.override.originalUserName}
             </span>{" "}
-            <span className="text-gray-400">(overridden)</span>
+            <span className="text-gray-400">
+              {translator.translateText("(overridden)")}
+            </span>
           </span>
         )}
       </div>

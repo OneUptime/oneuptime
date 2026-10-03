@@ -260,7 +260,9 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 import Dictionary from "Common/Types/Dictionary";
-import { Blue500, Yellow500 } from "Common/Types/BrandColors";
+import { Blue500, Green, Yellow500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import {
   StoredIncidentScope,
   allSites,
@@ -1799,6 +1801,97 @@ const TEMPLATE_SYNTAX_DESCRIPTIONS: Array<TemplateSyntaxDescription> = [
     text: "Config parser stopped at {{ on line 3",
   },
 ];
+
+/*
+ * The state-change email paints the new state and the severity the way the
+ * owner emails do: a dot in each one's own colour and the name in a
+ * readable shade of it. Only the default email gets them - SMS, chat and
+ * webhooks carry the names as before.
+ */
+describe("IncidentStateTimeline default email colours", () => {
+  test("reads the new state's colour and the severity's colour with their names", async () => {
+    await runJob();
+
+    const timelineSelect: JSONObject = (
+      mock(IncidentStateTimelineService.findBy).mock.calls[0]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+    const incidentSelect: JSONObject = (
+      mock(IncidentService.findOneById).mock.calls[0]![0] as {
+        select: JSONObject;
+      }
+    ).select;
+
+    expect(timelineSelect["incidentState"]).toEqual(
+      expect.objectContaining({ name: true, color: true }),
+    );
+    expect(incidentSelect["incidentSeverity"]).toEqual({
+      name: true,
+      color: true,
+    });
+  });
+
+  test("sends the state's and the severity's dot and name colours", async () => {
+    pendingTimelines[0]!.incidentState!.color = Green;
+    storedIncidents[INCIDENT_ID.toString()]!.incidentSeverity!.color =
+      Yellow500;
+
+    await runJob();
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        incidentState: INCIDENT_STATE_NAME,
+        ...EmailColorUtil.getTemplateVariables("incidentState", Green),
+        incidentSeverity: INCIDENT_SEVERITY,
+        ...EmailColorUtil.getTemplateVariables("incidentSeverity", Yellow500),
+      }),
+    );
+    expect(sentMail()[0]!["vars"]).toHaveProperty(
+      "incidentStateColor",
+      Green.toString(),
+    );
+    expect(sentMail()[0]!["vars"]).toHaveProperty(
+      "incidentSeverityTextColor",
+      EmailColorUtil.getColorPair(Yellow500)!.textColor,
+    );
+  });
+
+  test("an unsafe colour is dropped and the names stay plain", async () => {
+    pendingTimelines[0]!.incidentState!.color = new Color(
+      "#fff; position: fixed",
+    );
+    storedIncidents[INCIDENT_ID.toString()]!.incidentSeverity!.color =
+      new Color('#fff" onmouseover="alert(1)');
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["incidentState"]).toBe(INCIDENT_STATE_NAME);
+    expect(vars["incidentSeverity"]).toBe(INCIDENT_SEVERITY);
+    for (const name of [
+      "incidentStateColor",
+      "incidentStateTextColor",
+      "incidentSeverityColor",
+      "incidentSeverityTextColor",
+    ]) {
+      expect(vars).not.toHaveProperty(name);
+    }
+  });
+
+  test("the colours stay out of the SMS and the webhook", async () => {
+    pendingTimelines[0]!.incidentState!.color = Green;
+    storedIncidents[INCIDENT_ID.toString()]!.incidentSeverity!.color =
+      Yellow500;
+
+    await runJob();
+
+    expect(sentSms().join(" ")).not.toContain(Green.toString());
+    expect(JSON.stringify(sentWebhooks())).not.toContain(Green.toString());
+    expect(JSON.stringify(sentWebhooks())).not.toContain(Yellow500.toString());
+  });
+});
 
 describe("IncidentStateTimeline email subjects are sent as written", () => {
   test.each(TEMPLATE_SYNTAX_DESCRIPTIONS)(

@@ -29,6 +29,7 @@ import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseMode
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -149,6 +150,7 @@ RunCron(
             isVisibleOnStatusPage: true,
             incidentSeverity: {
               name: true,
+              color: true,
             },
             episodeNumber: true,
           },
@@ -724,6 +726,10 @@ RunCron(
                                 resourcesAffected: resourcesAffectedString,
                                 episodeSeverity:
                                   episode.incidentSeverity?.name || " - ",
+                                ...EmailColorUtil.getTemplateVariables(
+                                  "episodeSeverity",
+                                  episode.incidentSeverity?.color,
+                                ),
                                 episodeTitle: episode.title || "",
                                 episodeDescription: episodeDescriptionHtml,
                                 unsubscribeUrl: unsubscribeUrl,

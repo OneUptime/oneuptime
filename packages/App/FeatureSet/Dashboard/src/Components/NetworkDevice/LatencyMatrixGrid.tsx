@@ -3,6 +3,8 @@ import LatencyMatrix, {
   LatencyMatrixCell,
 } from "Common/Types/Monitor/LatencyMatrix";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   matrix: LatencyMatrix;
@@ -53,16 +55,23 @@ const LEGEND_ENTRIES: Array<LegendEntry> = [
 /**
  * Human-readable "Last checked Xm ago" for a stale cell tooltip.
  */
-const staleTooltip: (ageInSeconds: number) => string = (
+const staleTooltip: (ageInSeconds: number, translator: Translator) => string = (
   ageInSeconds: number,
+  translator: Translator,
 ): string => {
   const minutes: number = Math.round(ageInSeconds / 60);
-  return `Last checked ${minutes}m ago`;
+  return translator.translateTemplate("Last checked {{minutes}}m ago", {
+    minutes: minutes,
+  });
 };
 
 const renderCellContent: (
   cell: LatencyMatrixCell | undefined,
-) => ReactElement = (cell: LatencyMatrixCell | undefined): ReactElement => {
+  translator: Translator,
+) => ReactElement = (
+  cell: LatencyMatrixCell | undefined,
+  translator: Translator,
+): ReactElement => {
   if (!cell || !cell.hasData) {
     return (
       <td className="px-4 py-2 text-center text-sm text-gray-400 border-b border-gray-100">
@@ -74,7 +83,7 @@ const renderCellContent: (
   if (cell.isOnline === false) {
     return (
       <td className="px-4 py-2 text-center text-sm font-medium text-red-600 border-b border-gray-100">
-        Offline
+        {translator.translateText("Offline")}
       </td>
     );
   }
@@ -91,11 +100,11 @@ const renderCellContent: (
       style={isStale ? { opacity: 0.5 } : undefined}
       title={
         isStale && cell.ageInSeconds !== undefined
-          ? staleTooltip(cell.ageInSeconds)
+          ? staleTooltip(cell.ageInSeconds, translator)
           : undefined
       }
     >
-      {latency} ms
+      {translator.translateTemplate("{{latency}} ms", { latency: latency })}
     </td>
   );
 };
@@ -103,6 +112,7 @@ const renderCellContent: (
 const LatencyMatrixGrid: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const monitors: Array<LatencyMatrixAxisItem> = props.matrix?.monitors || [];
   const probes: Array<LatencyMatrixAxisItem> = props.matrix?.probes || [];
   const cells: LatencyMatrix["cells"] = props.matrix?.cells || {};
@@ -112,11 +122,12 @@ const LatencyMatrixGrid: FunctionComponent<ComponentProps> = (
       <div className="flex items-center justify-center py-16 px-6">
         <div className="text-center max-w-md">
           <div className="text-sm font-medium text-gray-900">
-            No probe latency data yet.
+            {translator.translateText("No probe latency data yet.")}
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Latency appears here once your probeable monitors run from at least
-            one probe.
+            {translator.translateText(
+              "Latency appears here once your probeable monitors run from at least one probe.",
+            )}
           </p>
         </div>
       </div>
@@ -130,7 +141,7 @@ const LatencyMatrixGrid: FunctionComponent<ComponentProps> = (
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-white px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 border-b border-gray-200">
-                Monitor
+                {translator.translateText("Monitor")}
               </th>
               {probes.map((probe: LatencyMatrixAxisItem): ReactElement => {
                 return (
@@ -159,7 +170,7 @@ const LatencyMatrixGrid: FunctionComponent<ComponentProps> = (
                   {probes.map((probe: LatencyMatrixAxisItem): ReactElement => {
                     return (
                       <React.Fragment key={`cell-${monitor.id}-${probe.id}`}>
-                        {renderCellContent(rowCells[probe.id])}
+                        {renderCellContent(rowCells[probe.id], translator)}
                       </React.Fragment>
                     );
                   })}
@@ -172,7 +183,9 @@ const LatencyMatrixGrid: FunctionComponent<ComponentProps> = (
 
       {/* Color scale legend. */}
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="text-xs font-medium text-gray-500">Latency:</span>
+        <span className="text-xs font-medium text-gray-500">
+          {translator.translateText("Latency:")}
+        </span>
         {LEGEND_ENTRIES.map((entry: LegendEntry): ReactElement => {
           return (
             <span

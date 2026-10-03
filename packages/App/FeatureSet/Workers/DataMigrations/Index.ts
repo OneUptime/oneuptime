@@ -125,6 +125,7 @@ import BackfillIncidentCustomFieldVariableKeys from "./BackfillIncidentCustomFie
 import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInvitationsOfProjectMembers";
 import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 import NormalizeListOrder from "./NormalizeListOrder";
+import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -583,6 +584,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * logged and skipped.
    */
   new NormalizeListOrder(),
+  /*
+   * A measurement's chart points are now written in its unit; this has the
+   * backfill worker write again the points of every measurement saved in
+   * minutes, hours or days, which were written in seconds. Postgres-only
+   * (the worker writes the points), never halts the chain. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new RewriteMeasurementPointsInTheirUnit(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

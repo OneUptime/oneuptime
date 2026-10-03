@@ -31,6 +31,8 @@ import {
   Gray500,
 } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface PillConfig {
   label: string;
@@ -188,6 +190,7 @@ If no filters are added, the rule applies to every metric data point.
 const MetricPipelineRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelTable<MetricPipelineRule>
       modelType={MetricPipelineRule}
@@ -423,7 +426,7 @@ const MetricPipelineRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">
@@ -464,12 +467,18 @@ const MetricPipelineRules: FunctionComponent<
             if (item.service?.name) {
               return (
                 <span className="inline-flex items-center text-sm font-medium text-gray-900">
-                  <span className="text-gray-400 mr-1">Service:</span>
+                  <span className="text-gray-400 mr-1">
+                    {translator.translateText("Service:")}
+                  </span>
                   {item.service.name}
                 </span>
               );
             }
-            return <span className="text-sm text-gray-500">Project-wide</span>;
+            return (
+              <span className="text-sm text-gray-500">
+                {translator.translateText("Project-wide")}
+              </span>
+            );
           },
         },
         {

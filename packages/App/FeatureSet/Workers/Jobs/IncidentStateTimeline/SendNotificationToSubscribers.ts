@@ -6,6 +6,7 @@ import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import SMS from "Common/Types/SMS/SMS";
@@ -110,6 +111,7 @@ RunCron(
             incidentStateId: true,
             incidentState: {
               name: true,
+              color: true,
               isCreatedState: true,
             },
           },
@@ -246,6 +248,7 @@ RunCron(
               },
               incidentSeverity: {
                 name: true,
+                color: true,
               },
               isVisibleOnStatusPage: true,
               incidentNumber: true,
@@ -788,9 +791,17 @@ RunCron(
                                   resourcesAffectedHtml || "None",
                                 incidentSeverity:
                                   incident.incidentSeverity?.name || " - ",
+                                ...EmailColorUtil.getTemplateVariables(
+                                  "incidentSeverity",
+                                  incident.incidentSeverity?.color,
+                                ),
                                 incidentTitle: incident.title || "",
 
                                 incidentState: incidentStateName,
+                                ...EmailColorUtil.getTemplateVariables(
+                                  "incidentState",
+                                  incidentStateTimeline.incidentState?.color,
+                                ),
                                 // The fields marked "Include in Subscriber Notifications".
                                 customFieldRows:
                                   pageTemplateVariables.customFieldRows as unknown as JSONObject,

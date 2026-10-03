@@ -16,6 +16,7 @@ import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/Databas
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
@@ -52,11 +53,51 @@ export interface CategoryCheckboxProps {
   options: Array<CategoryCheckboxOption>;
 }
 
+/*
+ * A folded group of fields inside a form (or inside one step of it): a
+ * header the user opens to reach them. Every field that should be in the
+ * group carries the same section (same id), and the fields must be next to
+ * each other in the list - BasicForm folds consecutive fields that share an
+ * id into one section. For the usual case, rarely needed options under
+ * "Advanced", use getAdvancedFormSection (Forms/Utils/AdvancedFormSection)
+ * rather than writing one.
+ *
+ * A folded section says "Configured" on its header while anything in it is
+ * set, and opens by itself when a field in it fails validation.
+ */
 export interface FormFieldCollapsibleSection<TEntity> {
   id: string;
   title: string;
   description?: string | undefined;
-  isConfigured: (values: FormValues<TEntity>) => boolean;
+  /*
+   * Whether anything in the section is set. Left out, the section works it
+   * out from its own fields: one of them holding a value other than empty
+   * or its default (isFormSectionConfigured).
+   */
+  isConfigured?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * Whether the section starts open when it is configured as the form
+   * opens - an edit form, or a default that fills a field in. True when left
+   * out: a section of details someone wrote opens to show them. An Advanced
+   * section sets it to false: it always starts folded, and says
+   * "Configured" on its header instead.
+   */
+  openWhenConfigured?: boolean | undefined;
+  /*
+   * What the folded fields are set to, in plain words, shown under the
+   * title while the section is folded - so the form says what will happen
+   * without being opened, and a section whose defaults are right for most
+   * people can stay folded ("Subscribers of the event's status pages are
+   * notified when it is scheduled, when it starts and when it ends.").
+   * Worked out from the form's values as they are now, so it follows what
+   * is ticked. Whole English sentences: each is looked up in the
+   * translations on its own (keep them in translationKey() so the string
+   * extractor finds them). It takes the place of the "Configured" badge,
+   * which shows as usual while nothing is returned.
+   */
+  getSummary?:
+    | ((values: FormValues<TEntity>) => Array<string> | undefined)
+    | undefined;
 }
 
 export default interface Field<TEntity> {
@@ -89,10 +130,22 @@ export default interface Field<TEntity> {
     | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
+  /*
+   * The model a dropdown lists. ModelForm fetches it with its colour column,
+   * so a state, severity or monitor status shows its colour before its name
+   * (Field.fetchDropdownOptions, when a field has one, keeps those colours).
+   */
   dropdownModal?: {
     type: DatabaseBaseModelType;
     labelField: string;
     valueField: string;
+    /*
+     * The order to list the options in, by columns of the dropdown's model -
+     * `{ order: SortOrder.Ascending }` lists states in the order an incident
+     * moves through them. Unset, the list comes in the server's default
+     * order (newest first).
+     */
+    sort?: { [columnName: string]: SortOrder } | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a
@@ -171,6 +224,17 @@ export default interface Field<TEntity> {
    * not there.
    */
   customElementDrawsOwnLabel?: boolean | undefined;
+  /*
+   * A stepped form may be finished from an earlier step without ever
+   * drawing this custom element: it writes the field's value only when the
+   * user changes something, and shows nothing that has to be read before
+   * saving - a picker that starts empty, say. Left out, a step holding the
+   * element is shown before the form can be finished from an earlier one,
+   * because an element can fill in a value of its own when it first shows
+   * (the default criteria of a monitor's type, a rule's conditions) or be a
+   * notice to read first (Forms/Utils/FinishFromAnyStep.ts).
+   */
+  customElementCanBeSkipped?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
   /*
    * For a PeoplePicker field: the kinds of record it offers (people, teams),

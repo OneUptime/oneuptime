@@ -131,6 +131,7 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import Query from "../../../../Types/BaseDatabase/Query";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 const PREFS_KEY: string = "monitors-wrap-content-table";
 
@@ -261,6 +262,7 @@ const makeColumns: MakeColumnsFunction = (): Columns<Monitor> => {
 const ACTION_BUTTONS: Array<ActionButtonSchema<Monitor>> = [
   {
     title: "Edit",
+    icon: IconProp.Edit,
     buttonStyleType: ButtonStyleType.NORMAL,
     onClick: (): void => {
       return undefined;

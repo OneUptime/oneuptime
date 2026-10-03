@@ -19,6 +19,8 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import { MonitorOverviewResponseTime } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -34,8 +36,8 @@ export const getResponseTimeCardTitle: (metric: MonitorMetricType) => string = (
   metric: MonitorMetricType,
 ): string => {
   return metric === MonitorMetricType.ExecutionTime
-    ? "Run time"
-    : "Response time";
+    ? translationKey("Run time")
+    : translationKey("Response time");
 };
 
 /*
@@ -44,23 +46,51 @@ export const getResponseTimeCardTitle: (metric: MonitorMetricType) => string = (
  * timeout or a connection error has no answer and no time, so those checks
  * are the only ones missing from the chart.
  */
-export const RESPONSE_TIME_CARD_DESCRIPTION: string =
-  "Average response time per probe. Error responses are included; timeouts and connection errors are not.";
+export const RESPONSE_TIME_CARD_DESCRIPTION: string = translationKey(
+  "Average response time per probe. Error responses are included; timeouts and connection errors are not.",
+);
 
 /*
  * "across 3 probes", or "across 2 of 3 probes" when some probes' latest
  * result had no response time to count.
  */
-export const getResponseTimeProbesText: (
+/*
+ * The latest numbers the probes reported, as one sentence: how many of
+ * them responded decides its wording.
+ */
+export const getLatestResponseTimeText: (
   responseTime: MonitorOverviewResponseTime,
-) => string = (responseTime: MonitorOverviewResponseTime): string => {
+  translator: Translator,
+) => string = (
+  responseTime: MonitorOverviewResponseTime,
+  translator: Translator,
+): string => {
+  const values: { median: number; min: number; max: number } = {
+    median: responseTime.medianMs,
+    min: responseTime.minMs,
+    max: responseTime.maxMs,
+  };
+
   if (responseTime.totalCount > responseTime.respondedCount) {
-    return `across ${responseTime.respondedCount} of ${responseTime.totalCount} probes`;
+    return translator.translateTemplate(
+      "Latest: {{median}} ms median across {{responded}} of {{total}} probes ({{min}}–{{max}} ms)",
+      {
+        ...values,
+        responded: responseTime.respondedCount,
+        total: responseTime.totalCount,
+      },
+    );
   }
 
-  return `across ${responseTime.respondedCount} ${
-    responseTime.respondedCount === 1 ? "probe" : "probes"
-  }`;
+  return translator.translatePlural(
+    {
+      one: "Latest: {{median}} ms median across {{count}} probe ({{min}}–{{max}} ms)",
+      other:
+        "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)",
+    },
+    responseTime.respondedCount,
+    values,
+  );
 };
 
 /*
@@ -72,6 +102,7 @@ export const getResponseTimeProbesText: (
 const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isExecutionTime: boolean =
     props.metric === MonitorMetricType.ExecutionTime;
   const title: string = getResponseTimeCardTitle(props.metric);
@@ -125,13 +156,13 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
       <Card title={title}>
         <div data-testid="monitor-response-time-fallback">
           <p className="text-sm text-gray-600">
-            Response-time history needs permission to read telemetry.
+            {translator.translateText(
+              "Response-time history needs permission to read telemetry.",
+            )}
           </p>
           {responseTime ? (
             <p className="mt-2 text-sm text-gray-900">
-              {`Latest: ${responseTime.medianMs} ms median ${getResponseTimeProbesText(
-                responseTime,
-              )} (${responseTime.minMs}–${responseTime.maxMs} ms)`}
+              {getLatestResponseTimeText(responseTime, translator)}
             </p>
           ) : (
             <></>

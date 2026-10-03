@@ -32,6 +32,8 @@ import InvestigationDrawer from "../../Telemetry/InvestigationDrawer";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "../../Metrics/Utils/UseEventTimeReferenceLines";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -46,6 +48,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
@@ -468,8 +471,12 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                title="Investigate this window — logs, traces, exceptions"
-                aria-label="Investigate this time window in a side panel"
+                title={translator.translateText(
+                  "Investigate this window — logs, traces, exceptions",
+                )}
+                aria-label={translator.translateText(
+                  "Investigate this time window in a side panel",
+                )}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
                   event.stopPropagation();
                   setInvestigationWindow(effectiveStartAndEndDate);
@@ -483,8 +490,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                title="Open in Metric Explorer"
-                aria-label="Open in Metric Explorer"
+                title={translator.translateText("Open in Metric Explorer")}
+                aria-label={translator.translateText("Open in Metric Explorer")}
                 onClick={handleOpenInExplorer}
               >
                 <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
@@ -500,8 +507,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             className="h-3 w-3 flex-shrink-0 text-indigo-500"
           />
           <span className="min-w-0 truncate text-[11px] text-indigo-700">
-            Zoomed:{" "}
-            {OneUptimeDate.getInBetweenDatesAsFormattedString(zoomWindow)}
+            {translator.translateTemplate("Zoomed: {{window}}", {
+              window:
+                OneUptimeDate.getInBetweenDatesAsFormattedString(zoomWindow),
+            })}
           </span>
           <button
             type="button"
@@ -511,28 +520,32 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
               setZoomWindow(null);
             }}
           >
-            Reset
+            {translator.translateText("Reset")}
           </button>
           {showOpenInExplorer ? (
             <>
               <button
                 type="button"
                 className="text-[11px] font-semibold text-indigo-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                title="Investigate this window — logs, traces, exceptions"
+                title={translator.translateText(
+                  "Investigate this window — logs, traces, exceptions",
+                )}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
                   event.stopPropagation();
                   setInvestigationWindow(zoomWindow);
                 }}
               >
-                Investigate
+                {translator.translateText("Investigate")}
               </button>
               <button
                 type="button"
                 className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                title="Open this window in Metric Explorer"
+                title={translator.translateText(
+                  "Open this window in Metric Explorer",
+                )}
                 onClick={handleOpenInExplorer}
               >
-                Open in Explorer
+                {translator.translateText("Open in Explorer")}
               </button>
             </>
           ) : null}

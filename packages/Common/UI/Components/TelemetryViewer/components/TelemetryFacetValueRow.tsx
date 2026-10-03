@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 
@@ -16,6 +18,7 @@ export interface TelemetryFacetValueRowProps {
 const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
   props: TelemetryFacetValueRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const barWidth: number =
     props.maxCount > 0
       ? Math.max(4, Math.round((props.count / props.maxCount) * 100))
@@ -40,11 +43,10 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
         onClick={() => {
           props.onInclude(props.value);
         }}
-        title={
-          isActive
-            ? `Remove filter: ${displayLabel}`
-            : `Filter to ${displayLabel}`
-        }
+        title={translator.translateTemplate(
+          isActive ? "Remove filter: {{value}}" : "Filter to {{value}}",
+          { value: displayLabel },
+        )}
       >
         {isActive ? (
           <span className="flex h-3.5 w-3.5 flex-none items-center justify-center rounded bg-indigo-500">
@@ -105,8 +107,12 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
           e.stopPropagation();
           props.onExclude(props.value);
         }}
-        title={`Exclude ${displayLabel}`}
-        aria-label={`Exclude ${displayLabel}`}
+        title={translator.translateTemplate("Exclude {{value}}", {
+          value: displayLabel,
+        })}
+        aria-label={translator.translateTemplate("Exclude {{value}}", {
+          value: displayLabel,
+        })}
       >
         -
       </button>

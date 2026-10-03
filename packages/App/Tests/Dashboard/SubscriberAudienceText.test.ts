@@ -4,6 +4,7 @@ import IncidentStatusPageScopeCopy, {
 import {
   buildSubscriberAudienceView,
   describeNotifiedStatusPage,
+  isHeldBackByStatusPageScope,
   SubscriberAudienceView,
   TranslateFunction,
 } from "../../FeatureSet/Dashboard/src/Components/Incident/SubscriberAudienceText";
@@ -17,10 +18,20 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * What the "Will notify" summary says for an audience (SubscriberAudienceText):
  * the headline, one line per page with its "up to" counts, the pages left out
- * and why, and the notes. It is worked out apart from React, so every case is
- * pinned here as the exact text an English reader sees - and, through a fake
- * translation, that every piece of it goes through the locale lookup with its
- * placeholders filled in afterwards.
+ * and why, and the notes - or nothing. It is worked out apart from React, so
+ * every case is pinned here as the exact text an English reader sees - and,
+ * through a fake translation, that every piece of it goes through the locale
+ * lookup with its placeholders filled in afterwards.
+ *
+ * "Can we please remove this warning banner as well?" - the maintainer, of
+ * "No status page subscribers will be notified: no monitors are attached.
+ * Subscribers hear about an incident through the monitors their status pages
+ * list.", which sat under 'Notify Status Page Subscribers' on every incident
+ * declared without a monitor. Under a "notify subscribers" checkbox the
+ * summary now says nothing when no status page subscriber was going to hear
+ * about the incident anyway, and warns only when the incident's status page
+ * scope keeps a page from being told. The confirmation before sending a
+ * notification again still always answers.
  */
 
 const english: TranslateFunction = (text: string): string => {
@@ -56,15 +67,61 @@ function audience(
   };
 }
 
+interface ViewOptions {
+  translate?: TranslateFunction;
+  // The confirmation before sending a notification again.
+  saysWhenNobodyIsNotified?: boolean;
+}
+
+// What the summary says, or null when it says nothing.
+function viewOrNothing(
+  partial: Partial<IncidentSubscriberAudienceResult>,
+  options: ViewOptions = {},
+): SubscriberAudienceView | null {
+  return buildSubscriberAudienceView({
+    audience: audience(partial),
+    translate: options.translate || english,
+    saysWhenNobodyIsNotified: options.saysWhenNobodyIsNotified,
+  });
+}
+
+// What the summary says, where it says something.
 function view(
   partial: Partial<IncidentSubscriberAudienceResult>,
   translate: TranslateFunction = english,
+  saysWhenNobodyIsNotified: boolean = false,
 ): SubscriberAudienceView {
-  return buildSubscriberAudienceView({
-    audience: audience(partial),
+  const result: SubscriberAudienceView | null = viewOrNothing(partial, {
     translate: translate,
+    saysWhenNobodyIsNotified: saysWhenNobodyIsNotified,
   });
+
+  expect(result).not.toBeNull();
+
+  return result!;
 }
+
+// The confirmation before sending a notification again.
+function confirmationView(
+  partial: Partial<IncidentSubscriberAudienceResult>,
+): SubscriberAudienceView {
+  return view(partial, english, true);
+}
+
+function excluded(
+  name: string,
+  reason: IncidentSubscriberAudienceExclusionReason,
+): IncidentSubscriberAudienceResult["excludedStatusPages"][number] {
+  return { statusPageId: `id-${name}`, name: name, reason: reason };
+}
+
+// The removed banner, and the two notices that only repeated a box.
+const REMOVED_TEXT: Array<string> = [
+  "No status page subscribers will be notified: no monitors are attached.",
+  "Subscribers hear about an incident through the monitors their status pages list.",
+  "Status page subscribers will not be notified: 'Notify Status Page Subscribers' is off.",
+  "Nothing will be sent: private incidents are hidden from all status pages.",
+];
 
 const SITE_03: IncidentSubscriberAudienceResult["statusPages"][number] = {
   statusPageId: "b0000000-0000-4000-8000-000000000003",
@@ -278,51 +335,422 @@ describe("buildSubscriberAudienceView", () => {
     });
   });
 
-  test("no monitors: nobody, and why", () => {
-    expect(view({ hasMonitors: false })).toEqual({
+  /*
+   * Whoever ticks "notify" on a public note cannot see from there that the
+   * incident is hidden, so a hidden incident is said under the checkbox and
+   * in the confirmation alike - even one on no monitor.
+   */
+  test.each([
+    ["under a checkbox", false],
+    ["in a confirmation", true],
+  ])(
+    "a hidden incident is said %s",
+    (_label: string, saysWhenNobodyIsNotified: boolean) => {
+      expect(
+        viewOrNothing(
+          { isHiddenFromStatusPages: true, hasMonitors: false },
+          { saysWhenNobodyIsNotified: saysWhenNobodyIsNotified },
+        )?.headline,
+      ).toBe(IncidentStatusPageScopeCopy.audienceHiddenIncident);
+    },
+  );
+});
+
+describe("under a 'notify subscribers' checkbox, when no one will be notified", () => {
+  /*
+   * Nobody was going to hear about the incident anyway, and nothing about
+   * its status page scope is why: the summary says nothing at all. The
+   * first is the banner the maintainer asked to remove.
+   */
+  test.each([
+    ["the incident is on no monitor", { hasMonitors: false }],
+    ["no status page lists its monitors", {}],
+    [
+      "the pages that show it have no subscribers yet",
+      { statusPages: [{ ...SITE_03, subscriberCounts: counts({}) }] },
+    ],
+    [
+      "it is limited to pages that show it, and they have no subscribers yet",
+      {
+        isScoped: true,
+        statusPages: [
+          { ...SITE_03, subscriberCounts: counts({}) },
+          { ...SITE_07, subscriberCounts: counts({}) },
+        ],
+      },
+    ],
+    [
+      "the only page that lists its monitors does not show incidents",
+      {
+        excludedStatusPages: [
+          excluded(
+            "Internal",
+            IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+          ),
+        ],
+      },
+    ],
+    [
+      "the only page left out was sent it in full already",
+      {
+        excludedStatusPages: [
+          excluded(
+            "Site 07",
+            IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+          ),
+        ],
+      },
+    ],
+    [
+      "a page without subscribers shows it, and one that hides incidents does not",
+      {
+        statusPages: [{ ...SITE_03, subscriberCounts: counts({}) }],
+        excludedStatusPages: [
+          excluded(
+            "Internal",
+            IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+          ),
+        ],
+      },
+    ],
+  ])(
+    "says nothing when %s",
+    (_label: string, partial: Partial<IncidentSubscriberAudienceResult>) => {
+      expect(viewOrNothing(partial)).toBeNull();
+      expect(
+        viewOrNothing(partial, { saysWhenNobodyIsNotified: false }),
+      ).toBeNull();
+    },
+  );
+
+  test("no page will show it, because a page only shows incidents limited to it: the pages left out, and why", () => {
+    expect(
+      view({
+        excludedStatusPages: [
+          excluded(
+            "Site 05",
+            IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+          ),
+        ],
+      }),
+    ).toEqual({
       tone: "warning",
-      headline: IncidentStatusPageScopeCopy.audienceNoMonitors,
+      headline: IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      pages: [],
+      notNotified: ["Site 05 (only shows incidents limited to it)"],
+      notes: [],
+    });
+  });
+
+  test("limited to other pages than the ones that list its monitors: the pages left out", () => {
+    expect(
+      view({
+        isScoped: true,
+        excludedStatusPages: [
+          excluded(
+            "Site 03",
+            IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+          ),
+        ],
+      }),
+    ).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      pages: [],
+      notNotified: [
+        "Site 03 (not one of the pages this incident is limited to)",
+      ],
+      notes: [],
+    });
+  });
+
+  test("limited to a page that lists none of its monitors: that page, and why", () => {
+    expect(
+      view({
+        isScoped: true,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: "d", name: "Site 09" },
+        ],
+      }),
+    ).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      pages: [],
+      notNotified: ["Site 09 (lists none of these monitors)"],
+      notes: [],
+    });
+  });
+
+  /*
+   * The one case the removed banner caught that matters: status pages are
+   * picked, but no monitor is attached, so none of them will show it. The
+   * server lists every picked page as not listing the monitors then.
+   */
+  test("pages picked but no monitor attached: every picked page, and why", () => {
+    expect(
+      view({
+        hasMonitors: false,
+        isScoped: true,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: "c", name: "Site 03" },
+          { statusPageId: "d", name: "Site 09" },
+        ],
+      }),
+    ).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      pages: [],
+      notNotified: [
+        "Site 03 (lists none of these monitors)",
+        "Site 09 (lists none of these monitors)",
+      ],
+      notes: [],
+    });
+  });
+
+  test("the pages it is limited to have no subscribers, and the scope leaves out a page that lists its monitors", () => {
+    expect(
+      view({
+        isScoped: true,
+        statusPages: [{ ...SITE_07, subscriberCounts: counts({}) }],
+        excludedStatusPages: [
+          excluded(
+            "Site 03",
+            IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+          ),
+        ],
+      }),
+    ).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoSubscribers,
+      pages: ["Site 07 (no subscribers yet)"],
+      notNotified: [
+        "Site 03 (not one of the pages this incident is limited to)",
+      ],
+      notes: [],
+    });
+  });
+
+  test("once it speaks, every page left out is listed, the ones the scope does not decide too", () => {
+    expect(
+      view({
+        excludedStatusPages: [
+          excluded(
+            "Internal",
+            IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+          ),
+          excluded(
+            "Site 05",
+            IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+          ),
+        ],
+      }).notNotified,
+    ).toEqual([
+      "Internal (does not show incidents)",
+      "Site 05 (only shows incidents limited to it)",
+    ]);
+  });
+});
+
+describe("in the confirmation before sending a notification again", () => {
+  test("no monitor: no page will show it", () => {
+    expect(confirmationView({ hasMonitors: false })).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoStatusPages,
       pages: [],
       notNotified: [],
       notes: [],
     });
   });
 
-  test("no page will show it: nobody, with the pages left out", () => {
-    const result: SubscriberAudienceView = view({
-      excludedStatusPages: [
-        {
-          statusPageId: "a",
-          name: "Site 05",
-          reason:
-            IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
-        },
-      ],
-    });
-
-    expect(result.tone).toBe("warning");
-    expect(result.headline).toBe(
+  test("no page lists its monitors: no page will show it", () => {
+    expect(confirmationView({}).headline).toBe(
       IncidentStatusPageScopeCopy.audienceNoStatusPages,
     );
-    expect(result.pages).toEqual([]);
-    expect(result.notNotified).toEqual([
-      "Site 05 (only shows incidents limited to it)",
-    ]);
   });
 
   test("pages without subscribers: nobody, with the pages listed", () => {
-    const result: SubscriberAudienceView = view({
-      statusPages: [{ ...SITE_03, subscriberCounts: counts({}) }],
+    expect(
+      confirmationView({
+        statusPages: [{ ...SITE_03, subscriberCounts: counts({}) }],
+      }),
+    ).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoSubscribers,
+      pages: ["Site 03 (no subscribers yet)"],
+      notNotified: [],
+      notes: [],
     });
-
-    expect(result.tone).toBe("warning");
-    expect(result.headline).toBe(
-      IncidentStatusPageScopeCopy.audienceNoSubscribers,
-    );
-    expect(result.pages).toEqual(["Site 03 (no subscribers yet)"]);
-    expect(result.notes).toEqual([]);
   });
 
+  test("a Retry that every page was sent in full already: nobody, and why", () => {
+    expect(
+      confirmationView({
+        excludedStatusPages: [
+          excluded(
+            "Site 07",
+            IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+          ),
+        ],
+      }),
+    ).toEqual({
+      tone: "warning",
+      headline: IncidentStatusPageScopeCopy.audienceNoStatusPages,
+      pages: [],
+      notNotified: ["Site 07 (already sent this notification in full)"],
+      notes: [],
+    });
+  });
+
+  test("a page that does not show incidents: nobody, and why", () => {
+    expect(
+      confirmationView({
+        excludedStatusPages: [
+          excluded(
+            "Internal",
+            IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+          ),
+        ],
+      }).notNotified,
+    ).toEqual(["Internal (does not show incidents)"]);
+  });
+
+  test("who it reaches reads the same as under a checkbox", () => {
+    const partial: Partial<IncidentSubscriberAudienceResult> = {
+      isScoped: true,
+      statusPages: [SITE_03, SITE_07],
+      excludedStatusPages: [
+        excluded(
+          "Site 05",
+          IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+        ),
+      ],
+    };
+
+    expect(confirmationView(partial)).toEqual(view(partial));
+    expect(view(partial).tone).toBe("info");
+  });
+});
+
+describe("isHeldBackByStatusPageScope", () => {
+  test("nothing left out: no", () => {
+    expect(isHeldBackByStatusPageScope(audience({}))).toBe(false);
+    expect(
+      isHeldBackByStatusPageScope(audience({ statusPages: [SITE_03] })),
+    ).toBe(false);
+  });
+
+  test.each([
+    [IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope, true],
+    [IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents, true],
+    [IncidentSubscriberAudienceExclusionReason.HidesIncidents, false],
+    [IncidentSubscriberAudienceExclusionReason.AlreadyNotified, false],
+  ])(
+    "a page left out because %s: %s",
+    (reason: IncidentSubscriberAudienceExclusionReason, expected: boolean) => {
+      expect(
+        isHeldBackByStatusPageScope(
+          audience({ excludedStatusPages: [excluded("Site 05", reason)] }),
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  test("every reason a page can be left out is decided", () => {
+    const decided: Array<string> = [
+      IncidentSubscriberAudienceExclusionReason.OutsideIncidentScope,
+      IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+      IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+      IncidentSubscriberAudienceExclusionReason.AlreadyNotified,
+    ];
+
+    expect(
+      Object.values(IncidentSubscriberAudienceExclusionReason).sort(),
+    ).toEqual(decided.sort());
+  });
+
+  test("a picked page that lists none of the monitors: yes, with monitors or without", () => {
+    for (const hasMonitors of [true, false]) {
+      expect(
+        isHeldBackByStatusPageScope(
+          audience({
+            hasMonitors: hasMonitors,
+            selectedStatusPagesNotListingMonitors: [
+              { statusPageId: "d", name: "Site 09" },
+            ],
+          }),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("one page the scope decides is enough, among others it does not", () => {
+    expect(
+      isHeldBackByStatusPageScope(
+        audience({
+          excludedStatusPages: [
+            excluded(
+              "Internal",
+              IncidentSubscriberAudienceExclusionReason.HidesIncidents,
+            ),
+            excluded(
+              "Site 05",
+              IncidentSubscriberAudienceExclusionReason.OnlyShowsScopedIncidents,
+            ),
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("the removed notices", () => {
+  test("the copy no longer has them", () => {
+    const keys: Array<string> = Object.keys(IncidentStatusPageScopeCopy);
+
+    expect(keys).not.toContain("audienceNoMonitors");
+    expect(keys).not.toContain("audienceNotifyOff");
+    expect(keys).not.toContain("audiencePrivateIncident");
+
+    for (const text of Object.values(IncidentStatusPageScopeCopy)) {
+      for (const removed of REMOVED_TEXT) {
+        expect(text).not.toContain(removed);
+      }
+
+      expect(text).not.toMatch(/no monitors are attached/i);
+    }
+  });
+
+  test("nothing the summary can say mentions monitors being attached", () => {
+    const audiences: Array<Partial<IncidentSubscriberAudienceResult>> = [
+      { hasMonitors: false },
+      {
+        hasMonitors: false,
+        selectedStatusPagesNotListingMonitors: [
+          { statusPageId: "d", name: "Site 09" },
+        ],
+      },
+      { hasMonitors: false, isHiddenFromStatusPages: true },
+      {},
+      { statusPages: [{ ...SITE_03, subscriberCounts: counts({}) }] },
+    ];
+
+    for (const partial of audiences) {
+      for (const saysWhenNobodyIsNotified of [false, true]) {
+        const result: SubscriberAudienceView | null = viewOrNothing(partial, {
+          saysWhenNobodyIsNotified: saysWhenNobodyIsNotified,
+        });
+
+        const said: string = JSON.stringify(result);
+
+        expect(said).not.toMatch(/monitors are attached/i);
+        expect(said).not.toMatch(/hear about an incident/i);
+      }
+    }
+  });
+});
+
+describe("buildSubscriberAudienceView, translated", () => {
   test("every fixed string goes through the translation", () => {
     const result: SubscriberAudienceView = view(
       {

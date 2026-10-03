@@ -21,6 +21,8 @@ import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -125,6 +127,7 @@ const renderRemediation: (remediation: string) => ReactElement = (
 const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const dbResponse: DatabaseMonitorResponse | undefined =
     props.probeMonitorResponse?.databaseMonitorResponse;
 
@@ -218,12 +221,16 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
    * opposite of what happened.
    */
   const collectionSummary: string = !isOnline
-    ? "Not attempted"
+    ? translator.translateTemplate("Not attempted")
     : unavailableGroups.length === 0
-      ? "Healthy"
-      : `${unavailableGroups.length} group${
-          unavailableGroups.length === 1 ? "" : "s"
-        } unavailable`;
+      ? translator.translateTemplate("Healthy")
+      : translator.translatePlural(
+          {
+            one: "{{count}} group unavailable",
+            other: "{{count}} groups unavailable",
+          },
+          unavailableGroups.length,
+        );
 
   const getMetricRows: (
     category: DatabaseMetricCategory,
@@ -321,11 +328,12 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
       {unavailableGroups.length > 0 && (
         <div className="rounded-md border-2 border-amber-200 bg-amber-50 p-4">
           <div className="text-sm font-medium text-amber-900 mb-1">
-            Some metrics were not collected
+            {translator.translateText("Some metrics were not collected")}
           </div>
           <div className="text-xs text-amber-800 mb-3">
-            The database answered, so the monitor stays online. These groups are
-            missing from this check, and their charts have a gap here.
+            {translator.translateText(
+              "The database answered, so the monitor stays online. These groups are missing from this check, and their charts have a gap here.",
+            )}
           </div>
 
           {degradedStatuses.length > 0 && (
@@ -359,7 +367,9 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                     "/monitor/database-health-monitor#create-a-monitoring-user",
                 )}
               >
-                Which grants each metric group needs, for every platform
+                {translator.translateText(
+                  "Which grants each metric group needs, for every platform",
+                )}
               </Link>
             </div>
           )}
@@ -373,7 +383,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
               }`}
             >
               <div className="mb-1 font-medium text-gray-600">
-                Not available on this engine
+                {translator.translateText("Not available on this engine")}
               </div>
               {unsupportedStatuses.map(renderGroupStatus)}
             </div>
@@ -405,10 +415,10 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Metric
+                        {translator.translateText("Metric")}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Value
+                        {translator.translateText("Value")}
                       </th>
                     </tr>
                   </thead>

@@ -6,6 +6,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Inventory of LAN endpoints (POS terminals, kiosks, cameras, printers,
@@ -17,6 +19,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 const NetworkEndpoints: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<NetworkEndpoint>
@@ -185,7 +188,11 @@ const NetworkEndpoints: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: NetworkEndpoint): ReactElement => {
               if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">Never</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Never")}
+                  </span>
+                );
               }
 
               const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);

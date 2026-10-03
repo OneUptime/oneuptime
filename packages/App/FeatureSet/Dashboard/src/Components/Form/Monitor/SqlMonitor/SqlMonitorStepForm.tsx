@@ -15,6 +15,9 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   monitorStepSqlMonitor: MonitorStepSqlMonitor;
@@ -24,6 +27,7 @@ export interface ComponentProps {
 const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
 
@@ -176,13 +180,16 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
             title="Password"
             description={
               <p>
-                Database password. We recommend referencing a monitor secret
-                with{" "}
-                <code className="bg-gray-100 px-1 rounded">
-                  {"{{monitorSecrets.name}}"}
-                </code>{" "}
-                instead of typing the password here, so it stays encrypted at
-                rest.{" "}
+                <TranslatedSentence
+                  template="Database password. We recommend referencing a monitor secret with {{secret}} instead of typing the password here, so it stays encrypted at rest."
+                  slots={{
+                    secret: (
+                      <code className="bg-gray-100 px-1 rounded">
+                        {"{{monitorSecrets.name}}"}
+                      </code>
+                    ),
+                  }}
+                />{" "}
                 <Link
                   className="underline"
                   openInNewTab={true}
@@ -190,7 +197,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
                     DOCS_URL.toString() + "/monitor/monitor-secrets",
                   )}
                 >
-                  Learn more about secrets.
+                  {translator.translateText("Learn more about secrets.")}
                 </Link>
               </p>
             }
@@ -271,7 +278,9 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       {showAdvancedOptions && (
         <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-          <h4 className="font-medium">Advanced Options</h4>
+          <h4 className="font-medium">
+            {translator.translateText("Advanced Options")}
+          </h4>
 
           <div>
             <FieldLabelElement

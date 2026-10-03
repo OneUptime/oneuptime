@@ -201,8 +201,12 @@ describe("episode overview layout", () => {
       expect(countOccurrences(source, '<EventStatTile variant="segment"')).toBe(
         4,
       );
-      expect(source).toContain("label={`${timing.acknowledgedStateName} in`}");
-      expect(source).toContain("label={`${timing.resolvedStateName} in`}");
+      expect(source).toContain(
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.acknowledgedStateName, })}',
+      );
+      expect(source).toContain(
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.resolvedStateName, })}',
+      );
       expect(source).toContain('label="Duration"');
       expect(source).toContain(`label="${page.countLabel}"`);
       expect(source).toContain(
@@ -390,7 +394,9 @@ describe("episode header", () => {
       expect(source).toContain(
         'episode?.episodeNumberWithPrefix || (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)',
       );
-      expect(source).toContain('title={episode?.title || "Untitled episode"}');
+      expect(source).toContain(
+        'title={episode?.title || translator.translateText("Untitled episode")}',
+      );
       expect(source).toContain("isPrivate={episode?.isPrivate === true}");
       expect(source).toContain(
         "durationStartsAt={timing.durationStartsAt} durationEndsAt={timing.durationEndsAt}",
@@ -401,15 +407,17 @@ describe("episode header", () => {
        * contradict itself.
        */
       expect(source).toContain(
-        'durationPrefix={ timing.durationStartsAt ? timing.isResolved ? "Lasted" : "Ongoing for" : undefined }',
+        'durationPrefix={ timing.durationStartsAt ? timing.isResolved ? translationKey("Lasted") : translationKey("Ongoing for") : undefined }',
       );
       expect(source).not.toContain("${timing.resolvedStateName} in");
       expect(source).toContain(page.startedAt);
-      expect(source).toContain("facts={getEpisodeHeaderFacts({");
+      expect(source).toContain("facts={getEpisodeHeaderFacts( {");
       expect(source).toContain(
         `memberNoun: "${page.memberModel.toLowerCase()}"`,
       );
-      expect(source).toContain('moreMenuTitle="Move episode to"');
+      expect(source).toContain(
+        'moreMenuTitle={translationKey("Move episode to")}',
+      );
     },
   );
 });
@@ -422,14 +430,20 @@ describe("episode feeds", () => {
 
       expect(source).toContain("refreshToken?: number | undefined;");
       expect(source).toContain("refreshToken: props.refreshToken,");
-      expect(source).toContain("<MoreMenu");
-      expect(source).toContain("<span>Actions</span>");
+      // The shared Actions menu, named in the reader's language.
+      expect(source).toContain("<FeedActionsMenu");
+      expect(source).not.toContain("<span>Actions</span>");
       expect(source).toContain('text="Execute On-Call Policy"');
       expect(source).toContain('text="Add Private Note"');
-      // The flat card buttons are gone; only the icon-only refresh remains.
+      /*
+       * The flat card buttons are gone, and so is the icon-only Refresh:
+       * Refresh, the sort order and the filter are in the feed's ⋯ menu.
+       */
       expect(source).not.toContain('title: "Execute On-Call Policy"');
       expect(source).not.toContain('title: "Add Private Note"');
-      expect(source).toContain('title: "Refresh"');
+      expect(source).not.toContain('title: "Refresh"');
+      expect(source).toContain("<FeedCard");
+      expect(source).toContain("onRefresh={refresh}");
       // Icons come from the exhaustive per-event-type table.
       expect(source).not.toContain("let icon: IconProp = IconProp.Circle;");
     },

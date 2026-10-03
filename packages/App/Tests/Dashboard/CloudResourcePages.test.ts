@@ -279,7 +279,7 @@ describe("Cloud Environment overview", () => {
 
     expect(tile).toContain("formatCompact(liveInstances.length)");
     expect(tile).toContain(
-      "sublabel: `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`",
+      'sublabel: translator.translateTemplate( "live in the last {{minutes}} min", { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES }, ),',
     );
   });
 

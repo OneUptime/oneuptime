@@ -58,13 +58,10 @@ import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
   Black,
-  Blue500,
-  Gray500,
   Green,
   Moroon500,
   Purple500,
   Red,
-  Teal500,
   Yellow,
   Yellow500,
 } from "../../Types/BrandColors";
@@ -2202,6 +2199,24 @@ These are no longer recorded against the project and have to be cancelled by han
     return createdItem;
   }
 
+  /*
+   * A new project starts with one incident role: Incident Commander, the
+   * person in charge of the response. It is the primary role: declaring an
+   * incident from the dashboard puts the declarer in it when nobody else was
+   * picked, and an incident still without one gets the first person to
+   * change its state (IncidentStateTimelineService). So it is the one role
+   * that cannot be deleted, and it is always held by one person
+   * (IncidentRoleService refuses both).
+   *
+   * Projects used to start with Responder, Communications Lead and Observer
+   * too. The maintainer: "To make things simple, can we remove all the roles
+   * except Incident Commander by default? People can add more roles if they
+   * feel like." Projects that already have those roles keep them: nothing
+   * here, or anywhere else, removes a role.
+   *
+   * Public because the AddDefaultIncidentRolesToExistingProjects data
+   * migration seeds projects that have no roles at all through it.
+   */
   public async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
 
@@ -2222,58 +2237,6 @@ These are no longer recorded against the project and have to be cancelled by han
 
       await IncidentRoleService.create({
         data: incidentCommander,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Responder")) {
-      const responder: IncidentRole = new IncidentRole();
-      responder.name = "Responder";
-      responder.description =
-        "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
-      responder.color = Blue500;
-      responder.roleIcon = IconProp.Wrench;
-      responder.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: responder,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Communications Lead")) {
-      const communicationsLead: IncidentRole = new IncidentRole();
-      communicationsLead.name = "Communications Lead";
-      communicationsLead.description =
-        "Handles stakeholder communication and status updates during an incident.";
-      communicationsLead.color = Teal500;
-      communicationsLead.roleIcon = IconProp.Announcement;
-      communicationsLead.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: communicationsLead,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Observer")) {
-      const observer: IncidentRole = new IncidentRole();
-      observer.name = "Observer";
-      observer.description =
-        "Read-only participant who monitors the incident without active involvement.";
-      observer.color = Gray500;
-      observer.roleIcon = IconProp.Activity;
-      observer.projectId = projectId;
-      observer.canAssignMultipleUsers = true;
-
-      await IncidentRoleService.create({
-        data: observer,
         props: {
           isRoot: true,
         },

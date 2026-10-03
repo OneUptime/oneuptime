@@ -11,9 +11,23 @@ export interface ComponentProps {
   title: string;
   description?: string | undefined;
   isConfigured: boolean;
+  /*
+   * Whether being configured opens the section: when the form opens with a
+   * value in it, and when a default arrives after the fields have loaded.
+   * True when left out. An Advanced section passes false and stays folded,
+   * saying "Configured" on its header instead (see
+   * FormFieldCollapsibleSection.openWhenConfigured).
+   */
+  openWhenConfigured?: boolean | undefined;
   hasError: boolean;
   validationAttempt: number;
   className: string;
+  /*
+   * What the folded fields are set to (FormFieldCollapsibleSection
+   * .getSummary): whole English sentences, each looked up on its own, shown
+   * under the title while the section is folded in place of "Configured".
+   */
+  summary?: Array<string> | undefined;
   children: ReactElement;
 }
 
@@ -21,11 +35,14 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(!props.isConfigured);
+  const openWhenConfigured: boolean = props.openWhenConfigured !== false;
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(
+    openWhenConfigured ? !props.isConfigured : true,
+  );
 
   useEffect(() => {
     // Field defaults can arrive after the form has loaded its field definitions.
-    if (props.isConfigured) {
+    if (openWhenConfigured && props.isConfigured) {
       setIsCollapsed(false);
     }
   }, [props.isConfigured]);
@@ -36,6 +53,16 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
     }
   }, [props.hasError, props.validationAttempt]);
 
+  // Each sentence on its own: a locale translates sentences, not a paragraph.
+  const summary: string = (props.summary || [])
+    .filter((sentence: string): boolean => {
+      return Boolean(sentence && sentence.trim());
+    })
+    .map((sentence: string): string => {
+      return translateString(sentence) ?? sentence;
+    })
+    .join(" ");
+
   return (
     <CollapsibleSection
       title={translateString(props.title) ?? props.title}
@@ -44,12 +71,14 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
           ? translateString(props.description) ?? props.description
           : undefined
       }
+      collapsedDescription={summary || undefined}
       variant="bordered"
       className={props.className}
       isCollapsed={isCollapsed}
       onToggle={setIsCollapsed}
       badge={
-        props.isConfigured
+        // A summary already says what is set; the badge would only repeat it.
+        props.isConfigured && !summary
           ? translateString("Configured") ?? "Configured"
           : undefined
       }

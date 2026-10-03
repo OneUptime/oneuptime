@@ -82,6 +82,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 - **API Key**: کلید API شما (برای OpenAI، ‏Azure OpenAI، ‏Anthropic، ‏Groq و Mistral الزامی؛ برای Ollama و کارسازهای سازگار با OpenAI اختیاری)
 - **Model Name**: مدل مشخصی که به کار می‌رود (برای نمونه `gpt-5.1`، `claude-sonnet-5`، `llama3.1`)
 - **Base URL** (اختیاری): نشانی سفارشی نقطه پایانی API (برای Azure OpenAI، ‏Ollama و OpenAI Compatible الزامی؛ برای بقیه اختیاری)
+- **Advanced**، بسته زیر فیلدهای بالا: **Set as Default**، که برای ارائه‌دهنده تازه روشن است چون قابلیت‌های هوش مصنوعی فقط از ارائه‌دهنده پیش‌فرض پروژه استفاده می‌کنند، و **Additional Parameters**، شیء JSON اختیاری از پارامترهای افزوده که با هر درخواست برای ارائه‌دهنده فرستاده می‌شود (برای نمونه `{"temperature": 0.2}`)
 
 ## پیکربندی ویژه هر ارائه‌دهنده
 

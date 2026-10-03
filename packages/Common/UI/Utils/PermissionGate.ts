@@ -6,7 +6,31 @@ import Permission, {
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "./TranslateTemplate";
 import User from "./User";
+
+/*
+ * The tooltip's first sentence for each operation, translated whole with the
+ * model's name in it. A table that names its own verb ("unlink") gets the
+ * verb-and-name template instead.
+ */
+const MISSING_PERMISSION_TEMPLATES: Record<string, string> = {
+  create: translationKey(
+    "You do not have permission to create this {{itemName}}.",
+  ),
+  read: translationKey("You do not have permission to read this {{itemName}}."),
+  update: translationKey(
+    "You do not have permission to update this {{itemName}}.",
+  ),
+  delete: translationKey(
+    "You do not have permission to delete this {{itemName}}.",
+  ),
+};
 
 /*
  * The four record-level operations a user can be gated on. Deliberately not the
@@ -189,13 +213,35 @@ export default class PermissionGate {
       this.getModelPermissions(model, action),
     );
 
+    const translator: Translator = getGlobalTranslator();
+    const template: string | undefined = MISSING_PERMISSION_TEMPLATES[verb];
+
+    const sentence: string = template
+      ? translator.translateTemplate(template, {
+          itemName: translatableTerm(singularName),
+        })
+      : translator.translateTemplate(
+          "You do not have permission to {{action}} this {{itemName}}.",
+          {
+            action: translatableTerm(verb),
+            itemName: translatableTerm(singularName),
+          },
+        );
+
     if (titles.length === 0) {
-      return `You do not have permission to ${verb} this ${singularName}.`;
+      return sentence;
     }
 
-    return `You do not have permission to ${verb} this ${singularName}. You need one of these permissions: ${titles.join(
-      ", ",
-    )}.`;
+    return `${sentence} ${translator.translateTemplate(
+      "You need one of these permissions: {{permissions}}.",
+      {
+        permissions: titles
+          .map((title: string): string => {
+            return translator.translateText(title) || title;
+          })
+          .join(", "),
+      },
+    )}`;
   }
 
   public static getModelPermissions(

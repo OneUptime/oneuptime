@@ -6,7 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * SubscriberNotificationPreviewBuilder: what "Preview notification" and "Send
@@ -83,6 +83,8 @@ import SubscriberNotificationPreviewBuilder, {
 } from "../../../../Server/Utils/StatusPage/SubscriberNotificationPreviewBuilder";
 import Hostname from "../../../../Types/API/Hostname";
 import Protocol from "../../../../Types/API/Protocol";
+import Color from "../../../../Types/Color";
+import EmailColorUtil from "../../../../Utils/Email/EmailColorUtil";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
 import Dictionary from "../../../../Types/Dictionary";
@@ -907,6 +909,79 @@ describe("the emails", () => {
     });
 
     expect(build.statusPages).toEqual([]);
+  });
+
+  /*
+   * A preview shows the email subscribers get, and the default email now
+   * paints the severity in its own colour - so the preview reads the colour
+   * with the name, for a draft's chosen severity and for an existing
+   * incident's alike.
+   */
+  test("a draft's default email paints its severity in the severity's own colour", async () => {
+    const severityRead: SpyInstance<typeof IncidentSeverityService.findOneBy> =
+      jest
+        .spyOn(IncidentSeverityService, "findOneBy")
+        .mockImplementation((async (): Promise<IncidentSeverity> => {
+          const severity: IncidentSeverity = new IncidentSeverity();
+          severity._id = SEVERITY_ID;
+          severity.name = "Major";
+          severity.color = new Color("#facc15");
+          return severity;
+        }) as never);
+
+    const build: SubscriberNotificationPreviewBuild = await preview(draft(), {
+      onlyStatusPageId: SITE_2,
+    });
+
+    expect(
+      (severityRead.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual(expect.objectContaining({ name: true, color: true }));
+    expect(body(build.statusPages[0]!)).toEqual(
+      expect.objectContaining({
+        incidentSeverity: "Major",
+        ...EmailColorUtil.getTemplateVariables("incidentSeverity", "#facc15"),
+      }),
+    );
+  });
+
+  test("an existing incident's preview reads its severity's colour too", async () => {
+    await preview(publicNote());
+
+    // The access check reads the incident first; the content read follows.
+    const severitySelects: Array<JSONObject> = (
+      IncidentService.findOneBy as unknown as jest.Mock
+    ).mock.calls
+      .map((call: Array<unknown>): JSONObject | undefined => {
+        return (call[0] as { select?: JSONObject }).select?.[
+          "incidentSeverity"
+        ] as JSONObject | undefined;
+      })
+      .filter((select: JSONObject | undefined): select is JSONObject => {
+        return Boolean(select);
+      });
+
+    expect(severitySelects).toEqual([{ name: true, color: true }]);
+  });
+
+  test("a severity without a usable colour previews the plain severity", async () => {
+    jest
+      .spyOn(IncidentSeverityService, "findOneBy")
+      .mockImplementation((async (): Promise<IncidentSeverity> => {
+        const severity: IncidentSeverity = new IncidentSeverity();
+        severity._id = SEVERITY_ID;
+        severity.name = "Major";
+        severity.color = new Color("#fff; position: fixed");
+        return severity;
+      }) as never);
+
+    const build: SubscriberNotificationPreviewBuild = await preview(draft(), {
+      onlyStatusPageId: SITE_2,
+    });
+
+    expect(body(build.statusPages[0]!)["incidentSeverity"]).toBe("Major");
+    expect(body(build.statusPages[0]!)).not.toHaveProperty(
+      "incidentSeverityColor",
+    );
   });
 });
 

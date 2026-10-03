@@ -45,6 +45,13 @@ import {
   getLatestTimelineStateId,
 } from "../EpisodeView/EpisodeTiming";
 import { EventStateTimelineDate } from "../../Utils/EventDuration";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   episodeId: ObjectID;
@@ -60,6 +67,7 @@ export interface ComponentProps {
 const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const episodeIdString: string = props.episodeId.toString();
 
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -363,25 +371,39 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     setShowModal(true);
   };
 
-  let modalTitle: string =
-    "Mark Episode as " + (selectedAlertState?.name || "");
-  let modalSubmitButtonText: string =
-    "Mark as " + (selectedAlertState?.name || "");
-  let modalDescription: string =
-    "You are about to mark this episode as " +
-    (selectedAlertState?.name || "") +
-    ". This will also update all alerts in this episode.";
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedAlertState?.name || "",
+  );
+
+  let modalTitle: string = translator.translateTemplate(
+    "Mark Episode as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalSubmitButtonText: string = translator.translateTemplate(
+    "Mark as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalDescription: string = translator.translateTemplate(
+    "You are about to mark this episode as {{state}}. This will also update all alerts in this episode.",
+    { state: selectedStateName },
+  );
 
   if (selectedAlertState?.isAcknowledgedState) {
-    modalTitle = "Acknowledge Episode";
-    modalSubmitButtonText = "Acknowledge";
-    modalDescription =
-      "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. You can add an optional private note.";
+    modalTitle = translationKey("Acknowledge Episode");
+    modalSubmitButtonText = translationKey("Acknowledge");
+    modalDescription = translationKey(
+      "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. You can add an optional private note.",
+    );
   } else if (selectedAlertState?.isResolvedState) {
-    modalTitle = "Resolve Episode";
-    modalSubmitButtonText = "Resolve";
-    modalDescription =
-      "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode. You can add an optional private note.";
+    modalTitle = translationKey("Resolve Episode");
+    modalSubmitButtonText = translationKey("Resolve");
+    modalDescription = translationKey(
+      "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode. You can add an optional private note.",
+    );
   }
 
   return (
@@ -398,7 +420,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
           episode?.episodeNumberWithPrefix ||
           (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)
         }
-        title={episode?.title || "Untitled episode"}
+        title={episode?.title || translator.translateText("Untitled episode")}
         currentStateId={currentAlertState?.id?.toString()}
         severity={
           episode?.alertSeverity
@@ -418,8 +440,8 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         durationPrefix={
           timing.durationStartsAt
             ? timing.isResolved
-              ? "Lasted"
-              : "Ongoing for"
+              ? translationKey("Lasted")
+              : translationKey("Ongoing for")
             : undefined
         }
         durationStartsAt={timing.durationStartsAt}
@@ -427,13 +449,19 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
-        moreMenuTitle="Move episode to"
-        facts={getEpisodeHeaderFacts({
-          groupingRuleName: episode?.alertGroupingRule?.name,
-          createdByName: getEpisodeCreatorName(episode?.createdByUser),
-          lastMemberAddedAt: episode?.lastAlertAddedAt || undefined,
-          memberNoun: "alert",
-        })}
+        moreMenuTitle={translationKey("Move episode to")}
+        facts={getEpisodeHeaderFacts(
+          {
+            groupingRuleName: episode?.alertGroupingRule?.name,
+            createdByName: getEpisodeCreatorName(
+              episode?.createdByUser,
+              translator,
+            ),
+            lastMemberAddedAt: episode?.lastAlertAddedAt || undefined,
+            memberNoun: "alert",
+          },
+          translator,
+        )}
         headerNotice={
           refreshError ? (
             <EpisodeHeaderRefreshError

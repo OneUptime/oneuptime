@@ -39,8 +39,6 @@ import {
   buildErrorPatternLogsRoute,
   buildErrorPatternTraceRoute,
   computeErrorPatternTrend,
-  describeOccurrenceCount,
-  describeTimeRange,
   getCorrelationOccurrenceTotal,
   summarizeSharedAttributes,
 } from "../../Utils/LogsInsights";
@@ -94,6 +92,12 @@ import {
   buildErrorPatternTimelineRows,
   isErrorPatternTimelineIntraday,
 } from "./ErrorPatternTimeline";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  describeLogsOccurrenceCount,
+  describeLogsTimeRange,
+} from "./LogsInsightsCopy";
 
 /*
  * The drill-down the issue asked for: pick one error out of the Top Errors
@@ -120,30 +124,30 @@ const TREND_PRESENTATION: Record<
   { label: string; className: string; icon: IconProp }
 > = {
   rising: {
-    label: "Rising",
+    label: translationKey("Rising"),
     className: "bg-red-50 text-red-700",
     icon: IconProp.ArrowUp,
   },
   falling: {
-    label: "Falling",
+    label: translationKey("Falling"),
     className: "bg-emerald-50 text-emerald-700",
     icon: IconProp.ArrowDown,
   },
   steady: {
-    label: "Steady",
+    label: translationKey("Steady"),
     className: "bg-gray-100 text-gray-600",
     icon: IconProp.Minus,
   },
   unknown: {
-    label: "Not enough data",
+    label: translationKey("Not enough data"),
     className: "bg-gray-100 text-gray-500",
     icon: IconProp.Help,
   },
 };
 
-function formatTimestamp(date: Date | null): string {
+function formatTimestamp(date: Date | null, translator: Translator): string {
   if (!date) {
-    return "unknown";
+    return translator.translateText("unknown") as string;
   }
 
   return OneUptimeDate.getDateAsLocalFormattedString(date);
@@ -156,11 +160,18 @@ const SectionHeading: FunctionComponent<{
   title: string;
   subtitle?: string | undefined;
 }): ReactElement => {
+  // The title and subtitle are English keys, or a sentence already in the reader's language.
+  const translator: Translator = useTranslator();
+
   return (
     <div className="mb-2">
-      <h4 className="text-sm font-semibold text-gray-900">{props.title}</h4>
+      <h4 className="text-sm font-semibold text-gray-900">
+        {translator.translateText(props.title)}
+      </h4>
       {props.subtitle && (
-        <p className="text-xs text-gray-500">{props.subtitle}</p>
+        <p className="text-xs text-gray-500">
+          {translator.translateText(props.subtitle)}
+        </p>
       )}
     </div>
   );
@@ -176,6 +187,7 @@ interface TimelineTooltipProps {
 const TimelineTooltip: FunctionComponent<TimelineTooltipProps> = (
   props: TimelineTooltipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const row: ErrorPatternTimelineRow | undefined = props.payload?.[0]?.payload;
 
   if (!props.active || !row) {
@@ -185,10 +197,13 @@ const TimelineTooltip: FunctionComponent<TimelineTooltipProps> = (
   return (
     <div className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs shadow-lg">
       <div className="font-medium text-gray-900">
-        {formatTimestamp(OneUptimeDate.fromString(row.time))}
+        {formatTimestamp(OneUptimeDate.fromString(row.time), translator)}
       </div>
       <div className="mt-0.5 text-gray-600">
-        {row.count.toLocaleString()} occurrence{row.count === 1 ? "" : "s"}
+        {translator.translatePlural(
+          { one: "{{count}} occurrence", other: "{{count}} occurrences" },
+          row.count,
+        )}
       </div>
     </div>
   );
@@ -212,6 +227,7 @@ interface TimelineProps {
 const Timeline: FunctionComponent<TimelineProps> = (
   props: TimelineProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const pageZoom: ChartTimeRangeZoomContextValue | null =
     useChartTimeRangeZoom();
 
@@ -272,7 +288,9 @@ const Timeline: FunctionComponent<TimelineProps> = (
         className="select-none text-sm text-gray-500"
         onDoubleClick={pageZoom?.onTimeRangeReset}
       >
-        No bucketed occurrences to chart in this window.
+        {translator.translateText(
+          "No bucketed occurrences to chart in this window.",
+        )}
       </p>
     );
   }
@@ -364,6 +382,7 @@ const Timeline: FunctionComponent<TimelineProps> = (
 const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [correlation, setCorrelation] =
     useState<ErrorPatternCorrelation | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -686,7 +705,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${trendStyle.className}`}
             >
               <Icon icon={trendStyle.icon} className="h-3 w-3" />
-              {trendStyle.label}
+              {translator.translateText(trendStyle.label)}
               {trend.direction !== "unknown" && (
                 <span className="opacity-70">
                   {trend.changePercent > 0 ? "+" : ""}
@@ -701,11 +720,22 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           </p>
 
           <p className="mt-2 text-sm text-gray-600">
-            {describeOccurrenceCount(occurrenceTotal, props.scope.timeRange)},
-            across {props.pattern.resourceCount}{" "}
-            {props.pattern.resourceCount === 1 ? "source" : "sources"}. First
-            seen {formatTimestamp(props.pattern.firstSeenAt)}, last seen{" "}
-            {formatTimestamp(props.pattern.lastSeenAt)}.
+            {translator.translateTemplate(
+              "{{occurrences}}, across {{sources}}. First seen {{first}}, last seen {{last}}.",
+              {
+                occurrences: describeLogsOccurrenceCount(
+                  occurrenceTotal,
+                  props.scope.timeRange,
+                  translator,
+                ),
+                sources: translator.translatePlural(
+                  { one: "{{count}} source", other: "{{count}} sources" },
+                  props.pattern.resourceCount,
+                ),
+                first: formatTimestamp(props.pattern.firstSeenAt, translator),
+                last: formatTimestamp(props.pattern.lastSeenAt, translator),
+              },
+            )}
           </p>
 
           {logsRoute && (
@@ -714,7 +744,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-              <span>Open matching logs</span>
+              <span>{translator.translateText("Open matching logs")}</span>
             </AppLink>
           )}
         </div>
@@ -724,38 +754,41 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">
-                Likely cause and what to check
+                {translator.translateText("Likely cause and what to check")}
               </h4>
               <p className="text-xs text-gray-500">
-                Read from this error&apos;s message and the evidence below — no
-                guesswork you cannot trace back.
+                {translator.translateText(
+                  "Read from this error's message and the evidence below — no guesswork you cannot trace back.",
+                )}
               </p>
             </div>
             <button
               type="button"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title="Open Ask AI with this error and all of its evidence as an editable prompt"
+              title={translator.translateText(
+                "Open Ask AI with this error and all of its evidence as an editable prompt",
+              )}
               onClick={explainWithAi}
             >
               <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-              Explain with AI
+              {translator.translateText("Explain with AI")}
             </button>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white">
-                {classification.title}
+                {translator.translateText(classification.title)}
               </span>
             </div>
             <p className="mt-2 text-sm text-gray-700">
-              {classification.summary}
+              {translator.translateText(classification.summary)}
             </p>
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Usually caused by
+                  {translator.translateText("Usually caused by")}
                 </p>
                 <ul className="space-y-1">
                   {classification.likelyCauses.map(
@@ -769,7 +802,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                             aria-hidden="true"
                             className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300"
                           />
-                          <span>{cause}</span>
+                          <span>{translator.translateText(cause)}</span>
                         </li>
                       );
                     },
@@ -778,7 +811,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               </div>
               <div>
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  What to check
+                  {translator.translateText("What to check")}
                 </p>
                 <ol className="space-y-1">
                   {classification.whatToCheck.map(
@@ -791,7 +824,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                           <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
                             {index + 1}
                           </span>
-                          <span>{step}</span>
+                          <span>{translator.translateText(step)}</span>
                         </li>
                       );
                     },
@@ -842,7 +875,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           />
           {events.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No deployments, incidents or alerts were recorded in this window.
+              {translator.translateText(
+                "No deployments, incidents or alerts were recorded in this window.",
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -869,7 +904,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                         </span>
                       </span>
                       <span className="flex-shrink-0 text-xs text-gray-500">
-                        {formatTimestamp(new Date(event.timeMs))}
+                        {formatTimestamp(new Date(event.timeMs), translator)}
                       </span>
                     </li>
                   );
@@ -884,7 +919,16 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           <div className="flex items-start justify-between gap-3">
             <SectionHeading
               title="When it happened"
-              subtitle={`Occurrences per ${correlation.bucketSizeInMinutes} min bucket over ${describeTimeRange(props.scope.timeRange)}.`}
+              subtitle={translator.translateTemplate(
+                "Occurrences per {{minutes}} min bucket over {{range}}.",
+                {
+                  minutes: correlation.bucketSizeInMinutes,
+                  range: describeLogsTimeRange(
+                    props.scope.timeRange,
+                    translator,
+                  ),
+                },
+              )}
             />
             {/*
              * The way back sits here as well as beside the page's picker. A
@@ -916,7 +960,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           />
           {sharedAttributes.length === 0 ? (
             <p className="text-sm text-gray-500">
-              These logs carry no attributes in common.
+              {translator.translateText(
+                "These logs carry no attributes in common.",
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -942,7 +988,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                         }`}
                       >
                         {attribute.isUniversal
-                          ? "every occurrence"
+                          ? translator.translateText("every occurrence")
                           : `${attribute.coveragePercent}%`}
                       </span>
                     </li>
@@ -960,7 +1006,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
             subtitle="Services, hosts and clusters reporting this error."
           />
           {correlation.resources.length === 0 ? (
-            <p className="text-sm text-gray-500">No sources to report.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No sources to report.")}
+            </p>
           ) : (
             <ul className="space-y-1.5">
               {correlation.resources.map(
@@ -1001,11 +1049,16 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
         <div className="py-5">
           <SectionHeading
             title="What else was failing at the same time"
-            subtitle={`Other errors that fired in the same ${correlation.bucketSizeInMinutes} min buckets as this one.`}
+            subtitle={translator.translateTemplate(
+              "Other errors that fired in the same {{minutes}} min buckets as this one.",
+              { minutes: correlation.bucketSizeInMinutes },
+            )}
           />
           {correlation.coOccurringPatterns.length === 0 ? (
             <p className="text-sm text-gray-500">
-              Nothing else was failing in the same buckets.
+              {translator.translateText(
+                "Nothing else was failing in the same buckets.",
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -1043,7 +1096,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
           />
           {correlation.traces.length === 0 ? (
             <p className="text-sm text-gray-500">
-              None of these logs carry a trace id.
+              {translator.translateText("None of these logs carry a trace id.")}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -1088,7 +1141,9 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
             subtitle="The most recent raw log lines behind this error."
           />
           {correlation.samples.length === 0 ? (
-            <p className="text-sm text-gray-500">No sample lines available.</p>
+            <p className="text-sm text-gray-500">
+              {translator.translateText("No sample lines available.")}
+            </p>
           ) : (
             <ul className="space-y-2">
               {correlation.samples.map(
@@ -1102,7 +1157,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                       className="rounded-md border border-gray-100 bg-gray-50 px-3 py-2"
                     >
                       <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        <span>{formatTimestamp(sample.time)}</span>
+                        <span>{formatTimestamp(sample.time, translator)}</span>
                         {sample.severityText && (
                           <span
                             className={`rounded-full px-1.5 py-0.5 font-medium ring-1 ring-inset ${
