@@ -41,8 +41,11 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
 
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
@@ -117,13 +120,10 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               createdAt: new InBetween(startDate, endDate),
             }}
             title="Workflow Runs"
-            description={
-              "Workflow runs in the last 30 days. Your current plan is " +
-              plan +
-              ". It currently supports " +
-              WorkflowPlan[plan] +
-              " runs in the last 30 days."
-            }
+            description={translator.translateTemplate(
+              "Workflow runs in the last 30 days. Your current plan is {{plan}}. It currently supports {{runs}} runs in the last 30 days.",
+              { plan: plan, runs: WorkflowPlan[plan] },
+            )}
           />
         )}
 

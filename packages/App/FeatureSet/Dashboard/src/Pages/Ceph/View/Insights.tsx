@@ -29,6 +29,8 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Curated MetricView presets sharing one time-range state — the Ceph
@@ -209,6 +211,7 @@ function getDataHealthQueries(cluster: string): Array<MetricQueryConfigData> {
 const CephClusterInsights: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<CephCluster | null>(null);
@@ -308,7 +311,7 @@ const CephClusterInsights: FunctionComponent<
         <div className="space-y-6">
           <div className="group/zoomhint">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              Client IOPS
+              {translator.translateText("Client IOPS")}
               <InfoTooltip
                 label="Client IOPS"
                 text={CEPH_METRIC_DESCRIPTIONS.clientIops}
@@ -333,7 +336,7 @@ const CephClusterInsights: FunctionComponent<
           </div>
           <div className="group/zoomhint">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-              Client Throughput
+              {translator.translateText("Client Throughput")}
               <InfoTooltip
                 label="Client Throughput"
                 text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}

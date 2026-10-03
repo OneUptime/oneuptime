@@ -35,6 +35,7 @@ import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import OneUptimeDate from "Common/Types/Date";
 import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
@@ -205,15 +206,19 @@ const MonitorCriteria: FunctionComponent<
               title={"Reset Incoming Request Secret Key"}
               description={
                 <p className="mt-2">
-                  Your current incoming request secret key is {"  "}
-                  <InlineCode
-                    text={
-                      monitor.incomingRequestSecretKey?.toString() ||
-                      "No key generated"
-                    }
-                  />{" "}
-                  Resetting the secret key will generate a new key. Secret is
-                  used to authenticate incoming requests.
+                  <TranslatedSentence
+                    template="Your current incoming request secret key is {{key}} Resetting the secret key will generate a new key. Secret is used to authenticate incoming requests."
+                    slots={{
+                      key: (
+                        <InlineCode
+                          text={
+                            monitor.incomingRequestSecretKey?.toString() ||
+                            "No key generated"
+                          }
+                        />
+                      ),
+                    }}
+                  />
                 </p>
               }
               modelId={modelId}
@@ -249,15 +254,19 @@ const MonitorCriteria: FunctionComponent<
               title={"Reset Server Monitor Secret Key"}
               description={
                 <p className="mt-2">
-                  Your current server monitor secret key is {"  "}
-                  <InlineCode
-                    text={
-                      monitor.serverMonitorSecretKey?.toString() ||
-                      "No key generated"
-                    }
-                  />{" "}
-                  Resetting the secret key will generate a new key. Secret is
-                  used to authenticate monitoring agents deployed on the.
+                  <TranslatedSentence
+                    template="Your current server monitor secret key is {{key}} Resetting the secret key will generate a new key. Secret is used to authenticate monitoring agents deployed on the server."
+                    slots={{
+                      key: (
+                        <InlineCode
+                          text={
+                            monitor.serverMonitorSecretKey?.toString() ||
+                            "No key generated"
+                          }
+                        />
+                      ),
+                    }}
+                  />
                 </p>
               }
               modelId={modelId}

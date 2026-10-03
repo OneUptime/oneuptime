@@ -28,6 +28,8 @@ import StatusBadge, {
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import CephResourceUtils from "../Utils/CephResourceUtils";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * OSD detail page. The route param (subModelId) is the CephResource
@@ -47,6 +49,7 @@ const formatLatencyMs: (value: number | null) => string = (
 const CephClusterOsdDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const osdName: string = Navigation.getLastParamAsString();
 
@@ -173,7 +176,10 @@ const CephClusterOsdDetail: FunctionComponent<
     buildOsdQuery({
       variable: "osd_apply_latency",
       title: "Apply Latency",
-      description: `Average time for ${osdName} to apply an operation to its backing store (ms).`,
+      description: translator.translateTemplate(
+        "Average time for {{osdName}} to apply an operation to its backing store (ms).",
+        { osdName: osdName },
+      ),
       legend: "Apply",
       legendUnit: "ms",
       metricName: "ceph_osd_apply_latency_ms",
@@ -181,7 +187,10 @@ const CephClusterOsdDetail: FunctionComponent<
     buildOsdQuery({
       variable: "osd_commit_latency",
       title: "Commit Latency",
-      description: `Average time for ${osdName} to commit an operation to its journal (ms).`,
+      description: translator.translateTemplate(
+        "Average time for {{osdName}} to commit an operation to its journal (ms).",
+        { osdName: osdName },
+      ),
       legend: "Commit",
       legendUnit: "ms",
       metricName: "ceph_osd_commit_latency_ms",
@@ -189,7 +198,10 @@ const CephClusterOsdDetail: FunctionComponent<
     buildOsdQuery({
       variable: "osd_stat_bytes_used",
       title: "Bytes Used",
-      description: `Bytes used on ${osdName}'s backing device.`,
+      description: translator.translateTemplate(
+        "Bytes used on {{osdName}}'s backing device.",
+        { osdName: osdName },
+      ),
       legend: "Used",
       legendUnit: "bytes",
       metricName: "ceph_osd_stat_bytes_used",
@@ -197,7 +209,10 @@ const CephClusterOsdDetail: FunctionComponent<
     buildOsdQuery({
       variable: "osd_numpg",
       title: "Placement Groups",
-      description: `Number of placement groups hosted on ${osdName}.`,
+      description: translator.translateTemplate(
+        "Number of placement groups hosted on {{osdName}}.",
+        { osdName: osdName },
+      ),
       legend: "PGs",
       legendUnit: "",
       metricName: "ceph_osd_numpg",
@@ -283,7 +298,10 @@ const CephClusterOsdDetail: FunctionComponent<
           labels={{}}
           annotations={{}}
           isLoading={isLoadingResource}
-          emptyMessage={`OSD ${osdName} is not in the inventory yet. It appears here a few minutes after the Ceph agent starts sending metrics.`}
+          emptyMessage={translator.translateTemplate(
+            "OSD {{osdName}} is not in the inventory yet. It appears here a few minutes after the Ceph agent starts sending metrics.",
+            { osdName: osdName },
+          )}
         />
       ),
     },
@@ -291,7 +309,9 @@ const CephClusterOsdDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`OSD Metrics: ${osdName}`}
+          title={translator.translateTemplate("OSD Metrics: {{osdName}}", {
+            osdName: osdName,
+          })}
           description="Latency, capacity, and placement-group metrics for this OSD."
         >
           <ResourceMetricsTab queryConfigs={queryConfigs} />

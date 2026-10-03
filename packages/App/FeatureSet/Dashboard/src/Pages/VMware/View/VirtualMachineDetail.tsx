@@ -40,6 +40,8 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -47,6 +49,7 @@ const KIB: number = 1024;
 const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../vmware/:modelId/virtual-machines/:subModelId —
    * subModelId is the percent-encoded inventory externalId
@@ -134,7 +137,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_cpu",
       title: "CPU Utilization",
-      description: `vcenter.vm.cpu.utilization for ${vmName} — already a percentage of the VM's configured vCPUs. Reported only while the VM is powered on.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.cpu.utilization for {{vmName}} — already a percentage of the VM's configured vCPUs. Reported only while the VM is powered on.",
+        { vmName: vmName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -155,7 +161,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_cpu_readiness",
       title: "CPU Ready",
-      description: `vcenter.vm.cpu.readiness for ${vmName} — percentage of time the VM was ready to run but waited for a physical CPU. Sustained values above ~10% mean the host is CPU-contended.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.cpu.readiness for {{vmName}} — percentage of time the VM was ready to run but waited for a physical CPU. Sustained values above ~10% mean the host is CPU-contended.",
+        { vmName: vmName },
+      ),
       legend: "CPU Ready",
       legendUnit: "%",
     },
@@ -176,7 +185,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_memory",
       title: "Memory Usage",
-      description: `vcenter.vm.memory.usage for ${vmName} (reported in MiB, shown in bytes).`,
+      description: translator.translateTemplate(
+        "vcenter.vm.memory.usage for {{vmName}} (reported in MiB, shown in bytes).",
+        { vmName: vmName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -201,7 +213,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_memory_ballooned",
       title: "Memory Ballooned",
-      description: `vcenter.vm.memory.ballooned for ${vmName} — memory the balloon driver reclaimed from the guest. Anything above zero means the host is under memory pressure.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.memory.ballooned for {{vmName}} — memory the balloon driver reclaimed from the guest. Anything above zero means the host is under memory pressure.",
+        { vmName: vmName },
+      ),
       legend: "Ballooned",
       legendUnit: "",
     },
@@ -226,7 +241,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_memory_swapped",
       title: "Memory Swapped",
-      description: `vcenter.vm.memory.swapped for ${vmName} — guest memory the hypervisor swapped to disk. Any swapping is a serious performance problem.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.memory.swapped for {{vmName}} — guest memory the hypervisor swapped to disk. Any swapping is a serious performance problem.",
+        { vmName: vmName },
+      ),
       legend: "Swapped",
       legendUnit: "",
     },
@@ -251,7 +269,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_disk_usage",
       title: "Disk Usage",
-      description: `vcenter.vm.disk.usage{disk_state=used} for ${vmName} — space consumed on its datastores.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.disk.usage{disk_state=used} for {{vmName}} — space consumed on its datastores.",
+        { vmName: vmName },
+      ),
       legend: "Used",
       legendUnit: "",
     },
@@ -273,7 +294,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_disk_utilization",
       title: "Disk Utilization",
-      description: `vcenter.vm.disk.utilization for ${vmName} — already a percentage.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.disk.utilization for {{vmName}} — already a percentage.",
+        { vmName: vmName },
+      ),
       legend: "Disk",
       legendUnit: "%",
     },
@@ -299,7 +323,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_network",
       title: "Network Throughput",
-      description: `vcenter.vm.network.throughput per direction and vNIC for ${vmName}.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.network.throughput per direction and vNIC for {{vmName}}.",
+        { vmName: vmName },
+      ),
       legend: "Network",
       legendUnit: "",
     },
@@ -323,7 +350,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_disk_throughput",
       title: "Disk Throughput",
-      description: `vcenter.vm.disk.throughput per direction and virtual disk for ${vmName}.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.disk.throughput per direction and virtual disk for {{vmName}}.",
+        { vmName: vmName },
+      ),
       legend: "Disk I/O",
       legendUnit: "",
     },
@@ -350,7 +380,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "vm_disk_latency",
       title: "Disk Latency (max)",
-      description: `vcenter.vm.disk.latency.max per virtual disk for ${vmName}.`,
+      description: translator.translateTemplate(
+        "vcenter.vm.disk.latency.max per virtual disk for {{vmName}}.",
+        { vmName: vmName },
+      ),
       legend: "Latency",
       legendUnit: "ms",
     },
@@ -450,7 +483,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
           value:
             readiness > 10 ? (
               <StatusBadge
-                text={`${formatPercent(readiness)} — CPU contention`}
+                text={translator.translateTemplate(
+                  "{{readiness}} — CPU contention",
+                  { readiness: formatPercent(readiness) },
+                )}
                 type={StatusBadgeType.Warning}
               />
             ) : (
@@ -580,7 +616,15 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`${isTemplate ? "Template" : "VM"} Metrics: ${vmName}`}
+          title={
+            isTemplate
+              ? translator.translateTemplate("Template Metrics: {{vmName}}", {
+                  vmName: vmName,
+                })
+              : translator.translateTemplate("VM Metrics: {{vmName}}", {
+                  vmName: vmName,
+                })
+          }
           description={
             isTemplate
               ? "Disk usage for this VM template over the selected time range. Templates never run, so no CPU, memory or I/O metrics exist for them."

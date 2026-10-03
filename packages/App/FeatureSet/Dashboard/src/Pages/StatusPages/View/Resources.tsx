@@ -60,6 +60,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const FORM_STEPS: Array<FormStep<StatusPageResource>> = [
   {
@@ -125,6 +127,7 @@ enum GroupFormMode {
 const StatusPageResources: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const projectId: ObjectID = new ObjectID(props.currentProject?._id || "");
 
@@ -986,8 +989,8 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         <div>
           <p>
             {addMonitorGroup
-              ? "Add a Monitor instead."
-              : "Add a Monitor Group instead."}
+              ? translator.translateText("Add a Monitor instead.")
+              : translator.translateText("Add a Monitor Group instead.")}
           </p>
         </div>
       </Link>
@@ -1172,7 +1175,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
             id="status-page-resource-group-search-label"
             className="sr-only"
           >
-            Search groups by name
+            {translator.translateText("Search groups by name")}
           </label>
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
@@ -1255,12 +1258,17 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
           className="mt-4 border-t border-gray-200 pt-3 text-xs text-gray-500 tabular-nums"
           data-testid="status-page-resource-stats"
         >
-          {groups.length.toLocaleString()}{" "}
-          {groups.length === 1 ? "group" : "groups"}
+          {translator.translatePlural(
+            { one: "{{count}} group", other: "{{count}} groups" },
+            groups.length,
+            { count: groups.length.toLocaleString() },
+          )}
           {countIndex.isComplete
-            ? ` · ${countIndex.totalCount.toLocaleString()} ${
-                countIndex.totalCount === 1 ? "resource" : "resources"
-              }`
+            ? ` · ${translator.translatePlural(
+                { one: "{{count}} resource", other: "{{count}} resources" },
+                countIndex.totalCount,
+                { count: countIndex.totalCount.toLocaleString() },
+              )}`
             : ""}
         </div>
       </Fragment>
@@ -1332,7 +1340,9 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         elementToBeShownInsteadOfButton={
           <button
             type="button"
-            aria-label="More status page resource actions"
+            aria-label={translator.translateText(
+              "More status page resource actions",
+            )}
             data-testid="status-page-resources-actions"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
@@ -1467,7 +1477,13 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
 
         {groupToDelete ? (
           <ConfirmModal
-            title={`Delete ${groupToDelete.name || "Group"}`}
+            title={
+              groupToDelete.name
+                ? translator.translateTemplate("Delete {{name}}", {
+                    name: groupToDelete.name,
+                  })
+                : translator.translateTemplate("Delete Group")
+            }
             description={getDeleteDescription()}
             submitButtonText="Delete"
             submitButtonType={ButtonStyleType.DANGER}
@@ -1490,10 +1506,17 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
 
         {groupToShowIdFor ? (
           <ConfirmModal
-            title={`${groupToShowIdFor.name || "Group"} ID`}
-            description={`Status Page Group ID: ${
-              groupToShowIdFor._id?.toString() || ""
-            }`}
+            title={
+              groupToShowIdFor.name
+                ? translator.translateTemplate("{{name}} ID", {
+                    name: groupToShowIdFor.name,
+                  })
+                : translator.translateTemplate("Group ID")
+            }
+            description={translator.translateTemplate(
+              "Status Page Group ID: {{id}}",
+              { id: groupToShowIdFor._id?.toString() || "" },
+            )}
             submitButtonText="Close"
             submitButtonType={ButtonStyleType.NORMAL}
             onSubmit={() => {

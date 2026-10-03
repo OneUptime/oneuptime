@@ -42,6 +42,8 @@ import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the postmortem says, then whether and when it goes on the status page.
@@ -122,6 +124,7 @@ const POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
 const IncidentPostmortem: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [incidentPostmortemTemplates, setIncidentPostmortemTemplates] =
@@ -413,7 +416,9 @@ const IncidentPostmortem: FunctionComponent<
                 if (!item.postmortemAttachments?.length) {
                   return (
                     <div className="text-sm text-gray-500">
-                      No postmortem attachments uploaded for this incident.
+                      {translator.translateText(
+                        "No postmortem attachments uploaded for this incident.",
+                      )}
                     </div>
                   );
                 }
@@ -421,8 +426,9 @@ const IncidentPostmortem: FunctionComponent<
                 if (!modelIdString) {
                   return (
                     <div className="text-sm text-gray-400 italic">
-                      Attachments are available but the incident identifier is
-                      missing, so they cannot be displayed.
+                      {translator.translateText(
+                        "Attachments are available but the incident identifier is missing, so they cannot be displayed.",
+                      )}
                     </div>
                   );
                 }

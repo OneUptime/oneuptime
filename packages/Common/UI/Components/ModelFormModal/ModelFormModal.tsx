@@ -11,6 +11,11 @@ import ModelForm, {
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
 import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
+import {
+  NEXT_BUTTON_TEXT,
+  SteppedFormFooter,
+  getSteppedFormFooter,
+} from "../Forms/Utils/FinishFromAnyStep";
 import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -58,17 +63,26 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
    * after validating every step; a plain Next walks on; and the step list
    * opens any step, not only the ones already passed.
    *
-   * A create form is unchanged: Next until the last step, then the action.
+   * A create form offers its action as soon as every step left is optional
+   * (Forms/Utils/FinishFromAnyStep.ts) - until then its button reads Next -
+   * with the same plain Next beside it. Its step list still opens only the
+   * steps already passed.
    */
   const isEditFormWithSteps: boolean =
     hasSteps && props.formProps.formType === FormType.Update;
 
   const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
 
-  const submitButtonText: string =
-    isEditFormWithSteps || isOnLastFormStep
-      ? props.submitButtonText || "Save"
-      : "Next";
+  const [canFinishFromCurrentStep, setCanFinishFromCurrentStep] =
+    useState<boolean>(false);
+
+  const footer: SteppedFormFooter = getSteppedFormFooter({
+    hasSteps: hasSteps,
+    isOnLastStep: isOnLastFormStep,
+    canFinishFromCurrentStep: canFinishFromCurrentStep,
+    savesFromAnyStep: isEditFormWithSteps,
+    actionText: props.submitButtonText || "Save",
+  });
 
   const formRef: MutableRefObject<FormProps<FormValues<TBaseModel>>> =
     props.formRef ||
@@ -94,14 +108,14 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
   return (
     <Modal
       {...props}
-      submitButtonText={submitButtonText}
+      submitButtonText={footer.primaryButtonText}
       modalWidth={modalWidth}
       submitButtonType={ButtonType.Submit}
       isLoading={isFormLoading}
       description={props.description}
       disableSubmitButton={isFormLoading}
       onSubmit={async () => {
-        if (isEditFormWithSteps) {
+        if (footer.primaryButtonSubmitsAllSteps) {
           (
             formRef.current as unknown as BasicFormHandle | null
           )?.submitAllSteps();
@@ -111,12 +125,14 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
         await formRef.current?.submitForm();
       }}
       secondaryButton={
-        isEditFormWithSteps && !isOnLastFormStep
+        footer.showNextButton
           ? {
-              title: "Next",
+              title: NEXT_BUTTON_TEXT,
               dataTestId: "modal-footer-next-button",
               onClick: () => {
-                void formRef.current?.submitForm();
+                (
+                  formRef.current as unknown as BasicFormHandle | null
+                )?.goToNextStep();
               },
             }
           : undefined
@@ -136,6 +152,9 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
             modelType={props.modelType}
             onIsLastFormStep={(isLastFormStep: boolean) => {
               setIsOnLastFormStep(isLastFormStep);
+            }}
+            onCanFinishFromCurrentStep={(canFinish: boolean) => {
+              setCanFinishFromCurrentStep(canFinish);
             }}
             allowAnyStepNavigation={isEditFormWithSteps}
             modelIdToEdit={props.modelIdToEdit}

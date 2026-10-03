@@ -49,10 +49,13 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProxmoxClusterGuestDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Route shape: .../proxmox/:modelId/guests/:subModelId — subModelId
    * is the percent-encoded pve externalId ("qemu/100", "lxc/101"), not
@@ -178,7 +181,10 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "guest_cpu",
       title: "CPU Utilization",
-      description: `CPU usage percent for guest ${guestName} (pve_cpu_usage_ratio × 100).`,
+      description: translator.translateTemplate(
+        "CPU usage percent for guest {{guestName}} (pve_cpu_usage_ratio × 100).",
+        { guestName: guestName },
+      ),
       legend: "CPU",
       legendUnit: "%",
     },
@@ -202,7 +208,10 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
     metricAliasData: {
       metricVariable: "guest_memory",
       title: "Memory Usage",
-      description: `Memory usage for guest ${guestName}`,
+      description: translator.translateTemplate(
+        "Memory usage for guest {{guestName}}",
+        { guestName: guestName },
+      ),
       legend: "Memory",
       legendUnit: "",
     },
@@ -374,11 +383,14 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
               className="rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 hover:shadow-sm transition-all"
             >
               <div className="text-sm font-semibold text-gray-900">
-                {linkedHost.name || linkedHost.hostIdentifier || "Host"}
+                {linkedHost.name ||
+                  linkedHost.hostIdentifier ||
+                  translator.translateText("Host")}
               </div>
               <div className="text-xs text-gray-500">
-                Processes, per-core CPU, mounts, and host-level logs for this
-                VM.
+                {translator.translateText(
+                  "Processes, per-core CPU, mounts, and host-level logs for this VM.",
+                )}
               </div>
             </Link>
           </div>
@@ -395,15 +407,14 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
         description="pve-exporter reports CPU, memory, and I/O for this guest — but not what's running inside it."
       >
         <div className="text-sm text-gray-600">
-          Install the OneUptime host agent inside this VM for process-level
-          visibility (processes, per-core CPU, mounts, host logs). Once the
-          agent reports with a host identifier matching this guest&apos;s name,
-          the host is linked here automatically.{" "}
+          {translator.translateText(
+            "Install the OneUptime host agent inside this VM for process-level visibility (processes, per-core CPU, mounts, host logs). Once the agent reports with a host identifier matching this guest's name, the host is linked here automatically.",
+          )}{" "}
           <Link
             to={hostsRoute}
             className="text-indigo-600 hover:text-indigo-900 font-medium"
           >
-            View Hosts &amp; install guide →
+            {translator.translateText("View Hosts & install guide →")}
           </Link>
         </div>
       </Card>
@@ -430,7 +441,9 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <Card
-          title={`Guest Metrics: ${guestName}`}
+          title={translator.translateTemplate("Guest Metrics: {{guestName}}", {
+            guestName: guestName,
+          })}
           description="CPU, memory, network, and disk I/O for this guest over the selected time range."
         >
           <ResourceMetricsTab
@@ -440,7 +453,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                 <div className="mt-4 space-y-6">
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      Network Throughput
+                      {translator.translateText("Network Throughput")}
                       <InfoTooltip
                         label="Network Throughput"
                         text={
@@ -471,7 +484,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                   </div>
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      Disk Throughput
+                      {translator.translateText("Disk Throughput")}
                       <InfoTooltip
                         label="Disk Throughput"
                         text={PROXMOX_METRIC_DESCRIPTIONS.guestDiskThroughput}

@@ -31,6 +31,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -231,6 +233,7 @@ function getStorageQueries(cluster: string): Array<MetricQueryConfigData> {
 const ProxmoxClusterInsights: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<ProxmoxCluster | null>(null);
@@ -334,7 +337,7 @@ const ProxmoxClusterInsights: FunctionComponent<
           return (
             <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                Disk Throughput
+                {translator.translateText("Disk Throughput")}
                 <InfoTooltip
                   label="Disk Throughput"
                   text={PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput}

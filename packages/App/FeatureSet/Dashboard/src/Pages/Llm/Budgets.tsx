@@ -10,10 +10,13 @@ import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import Service from "Common/Models/DatabaseModels/Service";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const disableTelemetryForThisProject: boolean =
     props.currentProject?.reseller?.enableTelemetryFeatures === false;
 
@@ -149,7 +152,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">
@@ -218,11 +221,15 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
               <div>
                 {item.service?.name ? (
                   <span className="inline-flex items-center text-sm font-medium text-gray-900">
-                    <span className="text-gray-400 mr-1">Service:</span>
+                    <span className="text-gray-400 mr-1">
+                      {translator.translateText("Service:")}
+                    </span>
                     {item.service.name}
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-500">Project-wide</span>
+                  <span className="text-sm text-gray-500">
+                    {translator.translateText("Project-wide")}
+                  </span>
                 )}
                 {filters.length > 0 && (
                   <div className="text-xs text-gray-500 mt-0.5">

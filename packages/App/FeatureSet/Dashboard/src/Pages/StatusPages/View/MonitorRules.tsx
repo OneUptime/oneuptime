@@ -24,6 +24,8 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const monitorRuleDocumentation: string = `
 ### How Status Page Monitor Rules Work
@@ -57,6 +59,7 @@ Disabling or deleting a rule removes the resources that rule added, and leaves e
 const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const viewRuleId: ObjectID | undefined = RuleViewPageUtil.getViewRuleId(
     props,
     StatusPageMonitorRule,
@@ -192,7 +195,12 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             title: "Adds Monitors To",
             type: FieldType.Text,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
-              return <span>{item.statusPageGroup?.name || "Top of page"}</span>;
+              return (
+                <span>
+                  {item.statusPageGroup?.name ||
+                    translator.translateText("Top of page")}
+                </span>
+              );
             },
           },
           {

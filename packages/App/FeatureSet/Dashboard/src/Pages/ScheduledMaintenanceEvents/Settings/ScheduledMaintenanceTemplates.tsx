@@ -29,6 +29,8 @@ import Recurring from "Common/Types/Events/Recurring";
 import OneUptimeDate from "Common/Types/Date";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type GetTemplateFormFieldsFunction = (data: {
   isViewPage: boolean;
@@ -323,6 +325,8 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       description:
         "Please add a list of notification options to notify subscribers before the event",
       fieldType: FormFieldSchemaType.CustomComponent,
+      // Starts with no reminders, and writes only the ones added.
+      customElementCanBeSkipped: true,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
         props: CustomElementProps,
@@ -404,6 +408,8 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       description:
         "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
       fieldType: FormFieldSchemaType.CustomComponent,
+      // Writes an interval only when one is typed or picked.
+      customElementCanBeSkipped: true,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
         props: CustomElementProps,
@@ -486,6 +492,7 @@ export const getFormSteps: GetFormStepsFunction = (data: {
 const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceTemplate>
@@ -559,12 +566,16 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
             type: FieldType.Element,
             getElement: (item: ScheduledMaintenanceTemplate) => {
               return !item.scheduleNextEventAt ? (
-                <span>No</span>
+                <span>{translator.translateText("No")}</span>
               ) : (
                 <span>
-                  Next event will be scheduled at{" "}
-                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    item.scheduleNextEventAt,
+                  {translator.translateTemplate(
+                    "Next event will be scheduled at {{date}}",
+                    {
+                      date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        item.scheduleNextEventAt,
+                      ),
+                    },
                   )}
                 </span>
               );

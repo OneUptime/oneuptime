@@ -42,6 +42,11 @@ import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
 } from "../../Utils/Workspace/ConnectedWorkspaces";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export type ChannelKey =
   | "alertByEmail"
@@ -417,6 +422,7 @@ interface ChannelCellProps {
 const ChannelCell: FunctionComponent<ChannelCellProps> = (
   props: ChannelCellProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isBusy, setIsBusy] = useState<boolean>(false);
 
   const handleClick: () => Promise<void> = async (): Promise<void> => {
@@ -440,7 +446,15 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       type="button"
       role="switch"
       aria-checked={props.enabled}
-      aria-label={`${props.channel.label}: ${props.enabled ? "On" : "Off"}. Click to ${props.enabled ? "disable" : "enable"}.`}
+      aria-label={
+        props.enabled
+          ? translator.translateTemplate("{{channel}}: On. Click to disable.", {
+              channel: translatableTerm(props.channel.label),
+            })
+          : translator.translateTemplate("{{channel}}: Off. Click to enable.", {
+              channel: translatableTerm(props.channel.label),
+            })
+      }
       onClick={handleClick}
       disabled={isBusy}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${stateClasses}`}
@@ -462,6 +476,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
   props: NotificationMatrixProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const eventTypes: Array<NotificationSettingEventType> = useMemo(() => {
     return props.section.events.map((event: EventDef) => {
       return event.type;
@@ -726,8 +741,9 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
             </table>
           </div>
           <p className="mt-4 text-xs text-gray-500">
-            Click any channel to switch it on or off. Changes save
-            automatically.
+            {translator.translateText(
+              "Click any channel to switch it on or off. Changes save automatically.",
+            )}
           </p>
         </Fragment>
       )}

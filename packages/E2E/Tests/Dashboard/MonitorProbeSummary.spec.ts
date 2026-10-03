@@ -2,7 +2,7 @@ import { BASE_URL } from "../../Config";
 import { clickRowMenuAction } from "../Helpers/RowActions";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { toId } from "./Helpers/MonitorAlerting";
-import { selectMonitorTypeCard } from "./Helpers/Monitors";
+import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
 import {
   APIResponse,
   Browser,
@@ -219,7 +219,7 @@ test.describe("Monitor summary probe picker", () => {
       .locator(`${monitorCreateFormSelector} input[placeholder='Monitor Name']`)
       .fill(monitorName);
     await selectMonitorTypeCard({ page, cardValue: "Website" });
-    await page.getByTestId(submitButtonTestId).click();
+    await clickNext({ page });
 
     // Step 2: criteria.
     await expect(page.getByText("Monitor Criteria").first()).toBeVisible({
@@ -231,7 +231,8 @@ test.describe("Monitor summary probe picker", () => {
       .first();
     await destination.waitFor({ state: "visible", timeout: 30000 });
     await destination.fill("https://oneuptime.com");
-    await page.getByTestId(submitButtonTestId).click();
+    // The steps left are optional: Next walks on to choose the probes.
+    await clickNext({ page });
 
     // Step 3: probes + interval. Clear the defaults, pick one probe only.
     const probesCombo: Locator = page.getByRole("combobox", { name: "Probes" });
@@ -254,7 +255,7 @@ test.describe("Monitor summary probe picker", () => {
       .click();
 
     // Step 4: Labels is always the final step; leave it empty here.
-    await page.getByTestId(submitButtonTestId).click();
+    await clickNext({ page });
     await expect(
       // "Labels (Optional)" is the rendered accessible name — match the prefix.
       page.getByRole("combobox", { name: /^Labels\b/ }),

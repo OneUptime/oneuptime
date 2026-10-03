@@ -912,8 +912,10 @@ export const createRumApplication: CreateRumApplicationFunction = async (data: {
 
   /*
    * The form walks two steps: Basic Info (name, identifier, description),
-   * then the optional Labels. The form's own submit - not one of the list's
-   * two Create buttons - reads "Next" on the first and creates on the last.
+   * then the optional Labels. Labels being optional, the form's own submit -
+   * not one of the list's two Create buttons - already reads Create RUM
+   * Application on the first step, with a plain Next beside it; the walk
+   * goes on to Labels so the last step stays covered.
    */
   const modal: Locator = page.getByTestId("modal");
 

@@ -9,6 +9,7 @@ import {
 import { THREAT_FEED_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Initial values for the monitor create page when it is reached from a
@@ -80,7 +81,10 @@ export function buildDetectionRuleMonitorPrefill(data: {
 
   return {
     name: `${data.ruleName} — detection findings`,
-    description: `Watches Detection Finding events written by the "${data.ruleName}" detection rule. Fires on the rate of detections, not just their occurrence.`,
+    description: translateTemplate(
+      'Watches Detection Finding events written by the "{{ruleName}}" detection rule. Fires on the rate of detections, not just their occurrence.',
+      { ruleName: data.ruleName },
+    ),
     monitorType: MonitorType.SecurityEvents,
     monitorSteps: monitorSteps.toJSON(),
   };
@@ -126,7 +130,10 @@ export function buildThreatIntelFeedMonitorPrefill(data: {
 
   return {
     name: `${data.feedName} — threat intel matches`,
-    description: `Watches Threat Intel finding events written for the "${data.feedName}" feed. Fires on the rate of indicator matches, not just their occurrence.`,
+    description: translateTemplate(
+      'Watches Threat Intel finding events written for the "{{feedName}}" feed. Fires on the rate of indicator matches, not just their occurrence.',
+      { feedName: data.feedName },
+    ),
     monitorType: MonitorType.SecurityEvents,
     monitorSteps: monitorSteps.toJSON(),
   };

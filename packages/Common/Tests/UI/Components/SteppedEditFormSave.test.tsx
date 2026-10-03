@@ -32,8 +32,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * plain Next walks on, and the step list opens any step, not only the ones
  * already passed - every step of an edit form is filled in already.
  *
- * A stepped CREATE dialog is unchanged: Next until the last step, then the
- * action, and no step can be skipped.
+ * A stepped CREATE dialog walks with Next while a later step still asks for
+ * something, and offers its action - with the same plain Next beside it - as
+ * soon as every step left is optional (Forms/Utils/FinishFromAnyStep.ts). Its
+ * step list still opens only the steps already passed.
  *
  * These drive the real CardModelDetail, ModelFormModal, ModelForm and
  * BasicForm; only transport and permissions are stubbed.
@@ -441,9 +443,10 @@ describe("A stepped create form", () => {
     return screen.getByRole("dialog", { name: "Create New Probe" });
   }
 
-  test("still walks with Next until the last step, with no second button", async () => {
+  test("walks with Next, and no second button, while a later step asks for something", async () => {
     await openCreateDialog();
 
+    // The required name is on the next step.
     await waitFor(() => {
       expect(
         within(createDialog()).getByTestId("modal-footer-submit-button"),
@@ -455,6 +458,88 @@ describe("A stepped create form", () => {
     expect(
       within(createDialog()).queryByRole("button", { name: "Create Probe" }),
     ).not.toBeInTheDocument();
+  });
+
+  test("offers the action, with a plain Next beside it, once every step left is optional", async () => {
+    const user: UserEvent = await openCreateDialog();
+
+    await user.click(
+      within(createDialog()).getByTestId("modal-footer-submit-button"),
+    );
+    await within(createDialog()).findByPlaceholderText("Probe name");
+
+    // Only the Monitoring step is left, and its switch has a default.
+    await waitFor(() => {
+      expect(
+        within(createDialog()).getByTestId("modal-footer-submit-button"),
+      ).toHaveTextContent("Create Probe");
+    });
+    expect(
+      within(createDialog()).getByTestId("modal-footer-next-button"),
+    ).toHaveTextContent("Next");
+    expect(
+      within(createDialog()).queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("creates from that step, without opening the optional one, sending its switch as it starts", async () => {
+    const user: UserEvent = await openCreateDialog();
+
+    await user.click(
+      within(createDialog()).getByTestId("modal-footer-submit-button"),
+    );
+    fireEvent.change(
+      await within(createDialog()).findByPlaceholderText("Probe name"),
+      { target: { value: "Server room" } },
+    );
+    await waitFor(() => {
+      expect(
+        within(createDialog()).getByTestId("modal-footer-submit-button"),
+      ).toHaveTextContent("Create Probe");
+    });
+    await user.click(
+      within(createDialog()).getByTestId("modal-footer-submit-button"),
+    );
+
+    await waitFor(
+      () => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(submitted()["name"]).toBe("Server room");
+    // The switch the Monitoring step would have shown, at the model's default.
+    expect(submitted()["shouldAutoEnableProbeOnNewMonitors"]).toBe(
+      new Probe().getTableColumnMetadata("shouldAutoEnableProbeOnNewMonitors")
+        .defaultValue ?? false,
+    );
+    expect(
+      within(createDialog()).queryByTestId("auto-enable-toggle"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("asks for the empty name on the step on screen when the action is pressed", async () => {
+    const user: UserEvent = await openCreateDialog();
+
+    await user.click(
+      within(createDialog()).getByTestId("modal-footer-submit-button"),
+    );
+    await within(createDialog()).findByPlaceholderText("Probe name");
+    await waitFor(() => {
+      expect(
+        within(createDialog()).getByTestId("modal-footer-submit-button"),
+      ).toHaveTextContent("Create Probe");
+    });
+
+    await user.click(
+      within(createDialog()).getByTestId("modal-footer-submit-button"),
+    );
+
+    expect(
+      await within(createDialog()).findByText("Name is required."),
+    ).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
   test("still cannot skip to a step not reached yet", async () => {
@@ -474,7 +559,7 @@ describe("A stepped create form", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("shows the action on the last step", async () => {
+  test("walks on with Next to the last step, which shows the action alone", async () => {
     const user: UserEvent = await openCreateDialog();
 
     await user.click(
@@ -484,10 +569,20 @@ describe("A stepped create form", () => {
       await within(createDialog()).findByPlaceholderText("Probe name"),
       { target: { value: "Server room" } },
     );
+    await waitFor(() => {
+      expect(
+        within(createDialog()).getByTestId("modal-footer-next-button"),
+      ).toBeInTheDocument();
+    });
     await user.click(
-      within(createDialog()).getByTestId("modal-footer-submit-button"),
+      within(createDialog()).getByTestId("modal-footer-next-button"),
     );
     await within(createDialog()).findByTestId("auto-enable-toggle");
+    await waitFor(() => {
+      expect(
+        within(createDialog()).queryByTestId("modal-footer-next-button"),
+      ).not.toBeInTheDocument();
+    });
 
     await waitFor(() => {
       expect(

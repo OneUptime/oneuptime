@@ -59,6 +59,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The "Ping only" checkbox on the SNMP step is not a column: it blanks the
@@ -70,6 +72,7 @@ export const PING_ONLY_FIELD_KEY: string = "pingOnly";
 const NetworkDeviceSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   /*
@@ -503,8 +506,12 @@ const NetworkDeviceSettings: FunctionComponent<
                     {NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
                       item.monitoringMethod,
                     )
-                      ? "Bound monitor — the bound monitor's status is this device's status"
-                      : "Probe — pinged by the assigned probe; walked over SNMP when credentials are set"}
+                      ? translator.translateText(
+                          "Bound monitor — the bound monitor's status is this device's status",
+                        )
+                      : translator.translateText(
+                          "Probe — pinged by the assigned probe; walked over SNMP when credentials are set",
+                        )}
                   </span>
                 );
               },
@@ -521,8 +528,9 @@ const NetworkDeviceSettings: FunctionComponent<
                 if (!item.snmpCredentialProfile?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      None — this device&apos;s own credentials, or its
-                      site&apos;s profile
+                      {translator.translateText(
+                        "None — this device's own credentials, or its site's profile",
+                      )}
                     </span>
                   );
                 }
@@ -555,7 +563,7 @@ const NetworkDeviceSettings: FunctionComponent<
                 if (!item.networkDeviceRole?.name) {
                   return (
                     <span className="text-sm text-gray-400">
-                      Worked out from SNMP
+                      {translator.translateText("Worked out from SNMP")}
                     </span>
                   );
                 }
@@ -722,7 +730,9 @@ const NetworkDeviceSettings: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.probe) {
-                  return <p>No probe assigned.</p>;
+                  return (
+                    <p>{translator.translateText("No probe assigned.")}</p>
+                  );
                 }
                 return <ProbeElement probe={item.probe} />;
               },
@@ -798,8 +808,13 @@ const NetworkDeviceSettings: FunctionComponent<
                   return (
                     <span>
                       {templateName
-                        ? `No health OIDs collected — ${templateName} is empty and this device adds none of its own.`
-                        : "No health OIDs configured."}
+                        ? translator.translateTemplate(
+                            "No health OIDs collected — {{templateName}} is empty and this device adds none of its own.",
+                            { templateName: templateName },
+                          )
+                        : translator.translateText(
+                            "No health OIDs configured.",
+                          )}
                     </span>
                   );
                 }
@@ -856,8 +871,10 @@ const NetworkDeviceSettings: FunctionComponent<
                             {isFromTemplate ? (
                               <span className="text-gray-500">
                                 {overriddenByDevice.has(oid.oid)
-                                  ? "from template, overridden by this device"
-                                  : "from template"}
+                                  ? translator.translateText(
+                                      "from template, overridden by this device",
+                                    )
+                                  : translator.translateText("from template")}
                               </span>
                             ) : (
                               <></>

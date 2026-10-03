@@ -43,8 +43,14 @@ import MonitorLogSummaryUtil, {
   IncomingEmailLogEntryKind,
 } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
 import { MonitorSummaryInfoProps } from "Common/Utils/Monitor/MonitorSummarySnapshotUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   // The row whose "View Summary" is open.
   const [selectedLog, setSelectedLog] = useState<MonitorLog | null>(null);
@@ -230,8 +236,9 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title={"No Logs Manual Monitors"}
           description={
             <>
-              This is a manual monitor. It does not monitor anything and so, it
-              cannot have any logs. You can have logs on other monitor types.{" "}
+              {translator.translateText(
+                "This is a manual monitor. It does not monitor anything and so, it cannot have any logs. You can have logs on other monitor types.",
+              )}
             </>
           }
         />
@@ -371,13 +378,27 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                     if (maxAttempts === 1) {
                       return (
-                        <span className="text-sm text-gray-700">1 attempt</span>
+                        <span className="text-sm text-gray-700">
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} attempt",
+                              other: "{{count}} attempts",
+                            },
+                            1,
+                          )}
+                        </span>
                       );
                     }
 
                     return (
                       <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">
-                        {maxAttempts} attempts
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} attempt",
+                            other: "{{count}} attempts",
+                          },
+                          maxAttempts,
+                        )}
                       </span>
                     );
                   },
@@ -405,7 +426,9 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               if (!evaluationSummary) {
                 return (
-                  <span className="text-sm text-gray-500">Not recorded</span>
+                  <span className="text-sm text-gray-500">
+                    {translator.translateText("Not recorded")}
+                  </span>
                 );
               }
 
@@ -419,21 +442,29 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               if (metCriteria) {
                 return (
                   <span className="text-sm text-gray-700">
-                    Criteria met:{" "}
-                    {metCriteria.criteriaName || "Unnamed criteria"}
+                    {translator.translateTemplate(
+                      "Criteria met: {{criteria}}",
+                      {
+                        criteria:
+                          metCriteria.criteriaName ||
+                          translatableTerm("Unnamed criteria"),
+                      },
+                    )}
                   </span>
                 );
               }
 
               if (evaluationSummary.criteriaResults.length > 0) {
                 return (
-                  <span className="text-sm text-gray-700">No criteria met</span>
+                  <span className="text-sm text-gray-700">
+                    {translator.translateText("No criteria met")}
+                  </span>
                 );
               }
 
               return (
                 <span className="text-sm text-gray-500">
-                  Evaluations not available
+                  {translator.translateText("Evaluations not available")}
                 </span>
               );
             },

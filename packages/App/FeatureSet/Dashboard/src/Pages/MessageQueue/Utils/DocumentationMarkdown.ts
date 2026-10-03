@@ -34,6 +34,7 @@ import {
   MessageQueueMetricDescriptor,
   getMessageQueueMetricsForSystem,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The in-app setup guide of the Queues product: the product Documentation
@@ -1510,7 +1511,10 @@ function verificationStep(context: GuideContext): SetupGuideStep {
 
     return {
       title: "Check that your queues appear",
-      description: `OneUptime looks for new queues every ${MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES} minutes.`,
+      description: translateTemplate(
+        "OneUptime looks for new queues every {{minutes}} minutes.",
+        { minutes: MESSAGE_QUEUE_DISCOVERY_INTERVAL_MINUTES },
+      ),
       markdown: joinLines(lines),
     };
   }
@@ -1833,7 +1837,10 @@ function brokerHealthEmptyCauses(
       };
     }
     return {
-      summary: `A refused key, or no charted metrics for ${context.displayName}.`,
+      summary: translateTemplate(
+        "A refused key, or no charted metrics for {{system}}.",
+        { system: context.displayName },
+      ),
       reasons: [
         `${context.displayName} has no charted metrics. Its metrics are in the **Metrics** explorer.`,
       ],
@@ -1872,7 +1879,10 @@ function brokerHealthEmptyCauses(
     case "aws_sqs":
     case "aws.sns":
       return {
-        summary: `A refused key, or metrics that arrive ${CLOUDWATCH_LATENESS} late.`,
+        summary: translateTemplate(
+          "A refused key, or metrics that arrive {{lateness}} late.",
+          { lateness: CLOUDWATCH_LATENESS },
+        ),
         reasons: [
           `It is late. \`aws_cloudwatch\` waits \`delay\` (10 minutes) for CloudWatch to publish, so its points arrive ${CLOUDWATCH_LATENESS} late.`,
         ],
@@ -1955,7 +1965,9 @@ function guideLinks(context: GuideContext): Array<SetupGuideLink> {
   return [
     {
       title: context.descriptor
-        ? `${context.displayName} in the Queues documentation`
+        ? translateTemplate("{{system}} in the Queues documentation", {
+            system: context.displayName,
+          })
         : "Supported messaging systems",
       url: getMessageQueueDocsUrl(context.system),
     },
@@ -1973,22 +1985,31 @@ function guideLinks(context: GuideContext): Array<SetupGuideLink> {
  * which tags the applications' telemetry and reads no broker. A system with
  * no broker step sets up nothing else.
  */
+// Who sends with the key: the subject of the key step's sentence.
 function keyStepSenders(context: GuideContext): string {
-  const exporters: string = "Your applications' OpenTelemetry exporters";
   if (context.system === "bullmq") {
-    return `${exporters} and the collector that tags BullMQ's telemetry`;
+    return translateTemplate(
+      "Your applications' OpenTelemetry exporters and the collector that tags BullMQ's telemetry",
+    );
   }
   if (context.system === "jms") {
-    return `${exporters}, and the OpenTelemetry JMX Scraper if the broker is Apache ActiveMQ,`;
+    return translateTemplate(
+      "Your applications' OpenTelemetry exporters, and the OpenTelemetry JMX Scraper if the broker is Apache ActiveMQ,",
+    );
   }
   const source: MessagingBrokerMetricsSource = context.source;
   switch (source.kind) {
     case "none":
-      return exporters;
+      return translateTemplate("Your applications' OpenTelemetry exporters");
     case "external-scraper":
-      return `${exporters} and the ${source.scraper} that reads your broker`;
+      return translateTemplate(
+        "Your applications' OpenTelemetry exporters and the {{scraper}} that reads your broker",
+        { scraper: source.scraper },
+      );
     default:
-      return `${exporters} and the collector that reads your broker`;
+      return translateTemplate(
+        "Your applications' OpenTelemetry exporters and the collector that reads your broker",
+      );
   }
 }
 
@@ -2060,7 +2081,10 @@ export function getMessageQueueSetupGuide(
 
   return {
     keyStep: {
-      description: `${keyStepSenders(context)} send to OneUptime with this key — a Server key, kept in your deployment's secrets and never in browser JavaScript. Pick an existing key or create a new one — the settings below update to use it.`,
+      description: translateTemplate(
+        "{{senders}} send to OneUptime with this key — a Server key, kept in your deployment's secrets and never in browser JavaScript. Pick an existing key or create a new one — the settings below update to use it.",
+        { senders: keyStepSenders(context) },
+      ),
       endpointLabel: "OTLP Endpoint",
       endpointValue: `${options.oneuptimeUrl}/otlp`,
       endpointHint:

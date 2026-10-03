@@ -201,8 +201,12 @@ describe("episode overview layout", () => {
       expect(countOccurrences(source, '<EventStatTile variant="segment"')).toBe(
         4,
       );
-      expect(source).toContain("label={`${timing.acknowledgedStateName} in`}");
-      expect(source).toContain("label={`${timing.resolvedStateName} in`}");
+      expect(source).toContain(
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.acknowledgedStateName, })}',
+      );
+      expect(source).toContain(
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.resolvedStateName, })}',
+      );
       expect(source).toContain('label="Duration"');
       expect(source).toContain(`label="${page.countLabel}"`);
       expect(source).toContain(
