@@ -35,3 +35,12 @@ Measure and optimize the performance of your online apps and services. Track key
 ## Error Tracking
 
 Detect and diagnose errors in your online services. Get detailed error reports with stack traces, context, and user feedback. Replace tools like Sentry.
+
+## Finding your way around
+
+Everything in OneUptime is under **Products** in the top bar. The menu opens on the essentials: Monitors, Incidents, Alerts, On-Call Duty, Status Pages, Scheduled Maintenance and SLOs. Every other group (Observability, AI, Code, Resources, Infrastructure, Dashboards & Automation and Settings) is folded to one line that says how many products it holds and names them. Click a line to open it, or move to it with the arrow keys and press **Enter**.
+
+- **Search finds everything.** Type in the menu's search box to find any product by its name, by what it does, or by a familiar word such as `k8s` or `RUM`. Search looks inside the folded groups too.
+- **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
+- **Your choices stay.** The menu remembers, on your browser, which groups you opened or folded.
+- **On a phone**, the menu button lists the products the same way: the essentials first, and every other group as one line that opens on a tap.
