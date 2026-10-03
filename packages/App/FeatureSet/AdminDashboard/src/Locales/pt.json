@@ -556,9 +556,7 @@
         "cardDescription": "Os provedores de LLM globais estão disponíveis para todos os projetos para recursos de IA. Configure OpenAI, Anthropic, Ollama ou outros provedores de LLM.",
         "noItems": "Nenhum provedor de LLM configurado. Adicione um provedor de LLM para habilitar recursos de IA.",
         "stepBasicInfo": "Informações básicas",
-        "stepProviderSettings": "Configurações do provedor",
-        "stepAdvanced": "Avançado",
-        "stepCostSettings": "Configurações de custo"
+        "stepProviderSettings": "Configurações do provedor"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Criar Novo Projeto",
   "Create Project": "Criar projeto",
   "Created At": "Criado em",
-  "Credentials": "Credenciais",
   "Datastore capacity": "Capacidade do datastore",
   "Disable Sign Up": "Desativar cadastro",
   "Disk and memory utilization of the databases backing this instance.": "Utilização de disco e memória dos bancos de dados que suportam esta instância.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Gerencie todos os usuários em toda a instância.",
   "Master API Key": "Chave de API Mestra",
   "Message": "Mensagem",
-  "Meta App": "App Meta",
   "Model": "Modelo",
   "Model Name": "Nome do Modelo",
   "Monitor Log Retention (Days)": "Retenção de Registros do Monitor (Dias)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Obrigatório para autenticação por Nome de usuário e Senha. Não é usado para OAuth.",
   "Sample Description": "Descrição de amostra",
   "Sample Title": "Título de amostra",
-  "Secondary Twilio Phone Number": "Número de telefone secundário do Twilio",
   "Secondary Twilio Phone Numbers": "Números de telefone secundários do Twilio",
   "Secret token configured in Meta to validate webhook subscription requests.": "Token secreto configurado na Meta para validar solicitações de assinatura de webhook.",
   "Select a team": "Selecione uma equipe",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Excluir {{name}} permanentemente.",
   "This action cannot be undone.": "Esta ação não pode ser desfeita.",
   "and {{remaining}} more": "e mais {{remaining}}",
-  "Type {{name}} to confirm.": "Digite {{name}} para confirmar."
+  "Type {{name}} to confirm.": "Digite {{name}} para confirmar.",
+  "Configured": "Configurado"
 }

@@ -3,7 +3,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -25,6 +27,15 @@ import WhatsAppTemplateMessages, {
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
 import { useTranslation } from "react-i18next";
+
+/*
+ * Everything but the two values a WhatsApp message is sent with: the
+ * webhook's verify token and the app secret its calls are signed with (only
+ * needed for Meta's delivery status updates), and the business account and
+ * app IDs. Folded under Advanced, which says "Configured" when any is set.
+ */
+const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
+  getAdvancedFormSection<GlobalConfig>();
 
 type ToFriendlyName = (value: string) => string;
 
@@ -87,7 +98,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "From **Business Settings → Accounts → WhatsApp Accounts**, create or select the account that owns your sender phone number.",
     "In Buisness Portfolio, create a system user and assign it to the WhatsApp Business Account with the role of **Admin**.",
     "Generate a token for this system user and this will be your long-lived access token. Make sure to select the **whatsapp_business_management** and **whatsapp_business_messaging** permissions when generating the token.",
-    "Paste the access token, phone number ID, and webhook verify token into the **Meta WhatsApp Settings** card above, then save.",
+    "Paste the access token and phone number ID into the **Meta WhatsApp Settings** card above, then save. The Business Account ID, App ID and App Secret from the next steps go under **Advanced** in the same form.",
     "For the **Business Account ID**, go to **Business Settings → Business Info** (or **Business Settings → WhatsApp Accounts → Settings**) and copy the **WhatsApp Business Account ID** value.",
     "To locate the **App ID** and **App Secret**, open [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app, then navigate to **Settings → Basic**. The App ID is shown at the top; click **Show** next to **App Secret** to reveal and copy it.",
     "Create each template listed below in the Meta WhatsApp Manager. Make sure the template name, language, and variables match exactly. You can however change the content to your preference. Please make sure it's approved by Meta.",
@@ -176,12 +187,13 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
 
   const webhookSection: string = [
     "### Configure Meta Webhook Subscription",
-    "1. In the OneUptime Admin Dashboard, open **Settings → WhatsApp → Meta WhatsApp Settings** and enter a strong value in **Webhook Verify Token**. Save the form so the encrypted token is stored in Global Config.",
+    "1. In the OneUptime Admin Dashboard, open **Settings → WhatsApp → Meta WhatsApp Settings**, expand **Advanced** and enter a strong value in **Webhook Verify Token**. Save the form so the encrypted token is stored in Global Config.",
     "2. Keep that verify token handy-Meta does not generate one for you. You'll paste the exact same value when configuring the callback.",
     "3. In [Meta for Developers](https://developers.facebook.com/apps/), select your WhatsApp app and navigate to **WhatsApp → Configuration → Webhooks**.",
     `4. Click **Configure**, then supply one of the following callback URLs when Meta asks for your endpoint:\n   - \`${primaryWebhookUrl}\`\n `,
     "5. Paste the verify token from step 1 into Meta's **Verify Token** field and submit. Meta will call the callback URL and expect that value to match before it approves the subscription.",
     "6. After verification succeeds, subscribe to the **messages** field (and any other WhatsApp webhook categories you need) so delivery status updates are forwarded to OneUptime.",
+    "7. Save the **App Secret** under **Advanced** as well: Meta signs every webhook call with it, and OneUptime refuses calls whose signature it cannot check.",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -242,23 +254,17 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.whatsapp.metaEditButton")}
-        formSteps={[
-          {
-            title: "Credentials",
-            id: "meta-credentials",
-          },
-          {
-            title: "Meta App",
-            id: "meta-app",
-          },
-        ]}
+        /*
+         * One page: the access token and the phone number ID, which is all
+         * a message is sent with, and the rest folded under Advanced. It was
+         * two steps (Credentials, Meta App) of six fields.
+         */
         formFields={[
           {
             field: {
               metaWhatsAppAccessToken: true,
             },
             title: "Access Token",
-            stepId: "meta-credentials",
             fieldType: FormFieldSchemaType.EncryptedText,
             required: true,
             description:
@@ -270,7 +276,6 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               metaWhatsAppPhoneNumberId: true,
             },
             title: "Phone Number ID",
-            stepId: "meta-credentials",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             description:
@@ -279,51 +284,51 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              metaWhatsAppBusinessAccountId: true,
-            },
-            title: "Business Account ID",
-            stepId: "meta-credentials",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            description:
-              "Optional Business Account ID that owns the WhatsApp templates.",
-            placeholder: "123456789012345",
-          },
-          {
-            field: {
               metaWhatsAppWebhookVerifyToken: true,
             },
             title: "Webhook Verify Token",
-            stepId: "meta-credentials",
             fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
+            collapsibleSection: advancedSection,
             description:
               "Secret token configured in Meta to validate webhook subscription requests.",
             placeholder: "Webhook verify token",
           },
           {
             field: {
-              metaWhatsAppAppId: true,
-            },
-            title: "App ID",
-            stepId: "meta-app",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            description:
-              "Optional Facebook App ID tied to your WhatsApp integration.",
-            placeholder: "987654321098765",
-          },
-          {
-            field: {
               metaWhatsAppAppSecret: true,
             },
             title: "App Secret",
-            stepId: "meta-app",
             fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
+            collapsibleSection: advancedSection,
             description:
               "Optional Facebook App Secret used for webhook signature verification.",
             placeholder: "Facebook App Secret",
+          },
+          {
+            field: {
+              metaWhatsAppBusinessAccountId: true,
+            },
+            title: "Business Account ID",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            collapsibleSection: advancedSection,
+            description:
+              "Optional Business Account ID that owns the WhatsApp templates.",
+            placeholder: "123456789012345",
+          },
+          {
+            field: {
+              metaWhatsAppAppId: true,
+            },
+            title: "App ID",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            collapsibleSection: advancedSection,
+            description:
+              "Optional Facebook App ID tied to your WhatsApp integration.",
+            placeholder: "987654321098765",
           },
         ]}
         modelDetailProps={{

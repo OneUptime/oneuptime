@@ -556,9 +556,7 @@
         "cardDescription": "全局 LLM 提供商可用于所有项目的 AI 功能。配置 OpenAI、Anthropic、Ollama 或其他 LLM 提供商。",
         "noItems": "未配置 LLM 提供商。添加 LLM 提供商以启用 AI 功能。",
         "stepBasicInfo": "基本信息",
-        "stepProviderSettings": "提供商设置",
-        "stepAdvanced": "高级",
-        "stepCostSettings": "成本设置"
+        "stepProviderSettings": "提供商设置"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "创建新项目",
   "Create Project": "创建项目",
   "Created At": "创建于",
-  "Credentials": "凭据",
   "Datastore capacity": "数据存储容量",
   "Disable Sign Up": "禁用注册",
   "Disk and memory utilization of the databases backing this instance.": "支撑此实例的数据库的磁盘和内存利用率。",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "管理整个实例中的所有用户。",
   "Master API Key": "主 API 密钥",
   "Message": "消息",
-  "Meta App": "Meta 应用",
   "Model": "模型",
   "Model Name": "模型名称",
   "Monitor Log Retention (Days)": "监视器日志保留期（天）",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "用户名和密码身份验证需要此项。OAuth 不使用此项。",
   "Sample Description": "示例描述",
   "Sample Title": "示例标题",
-  "Secondary Twilio Phone Number": "辅助 Twilio 电话号码",
   "Secondary Twilio Phone Numbers": "辅助 Twilio 电话号码",
   "Secret token configured in Meta to validate webhook subscription requests.": "在 Meta 中配置的密钥令牌，用于验证 webhook 订阅请求。",
   "Select a team": "选择团队",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "永久删除 {{name}}。",
   "This action cannot be undone.": "此操作无法撤消。",
   "and {{remaining}} more": "以及另外 {{remaining}} 项",
-  "Type {{name}} to confirm.": "输入 {{name}} 以确认。"
+  "Type {{name}} to confirm.": "输入 {{name}} 以确认。",
+  "Configured": "已配置"
 }

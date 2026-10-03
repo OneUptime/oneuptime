@@ -556,9 +556,7 @@
         "cardDescription": "Globale LLM-providers zijn beschikbaar voor alle projecten voor AI-functies. Configureer OpenAI, Anthropic, Ollama of andere LLM-providers.",
         "noItems": "Geen LLM-providers geconfigureerd. Voeg een LLM-provider toe om AI-functies in te schakelen.",
         "stepBasicInfo": "Basisinformatie",
-        "stepProviderSettings": "Providerinstellingen",
-        "stepAdvanced": "Geavanceerd",
-        "stepCostSettings": "Kosteninstellingen"
+        "stepProviderSettings": "Providerinstellingen"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Nieuw project aanmaken",
   "Create Project": "Project maken",
   "Created At": "Aangemaakt op",
-  "Credentials": "Inloggegevens",
   "Datastore capacity": "Datastore-capaciteit",
   "Disable Sign Up": "Aanmelden uitschakelen",
   "Disk and memory utilization of the databases backing this instance.": "Schijf- en geheugengebruik van de databases die deze instantie ondersteunen.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Beheer alle gebruikers binnen de instance.",
   "Master API Key": "Master API-sleutel",
   "Message": "Bericht",
-  "Meta App": "Meta-app",
   "Model": "Model",
   "Model Name": "Modelnaam",
   "Monitor Log Retention (Days)": "Logbewaring van monitor (dagen)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Vereist voor authenticatie met gebruikersnaam en wachtwoord. Niet gebruikt voor OAuth.",
   "Sample Description": "Voorbeeldbeschrijving",
   "Sample Title": "Voorbeeldtitel",
-  "Secondary Twilio Phone Number": "Secundair Twilio-telefoonnummer",
   "Secondary Twilio Phone Numbers": "Secundaire Twilio-telefoonnummers",
   "Secret token configured in Meta to validate webhook subscription requests.": "Geheim token dat in Meta is geconfigureerd om webhook-abonnementsverzoeken te valideren.",
   "Select a team": "Selecteer een team",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "{{name}} permanent verwijderen.",
   "This action cannot be undone.": "Deze actie kan niet ongedaan worden gemaakt.",
   "and {{remaining}} more": "en {{remaining}} meer",
-  "Type {{name}} to confirm.": "Typ {{name}} om te bevestigen."
+  "Type {{name}} to confirm.": "Typ {{name}} om te bevestigen.",
+  "Configured": "Ingesteld"
 }

@@ -556,9 +556,7 @@
         "cardDescription": "Globale LLM-leverandører er tilgjengelige for alle prosjekter for AI-funksjoner. Konfigurer OpenAI, Anthropic, Ollama eller andre LLM-leverandører.",
         "noItems": "Ingen LLM-leverandører konfigurert. Legg til en LLM-leverandør for å aktivere AI-funksjoner.",
         "stepBasicInfo": "Grunnleggende informasjon",
-        "stepProviderSettings": "Leverandørinnstillinger",
-        "stepAdvanced": "Avansert",
-        "stepCostSettings": "Kostnadsinnstillinger"
+        "stepProviderSettings": "Leverandørinnstillinger"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "Opprett nytt prosjekt",
   "Create Project": "Opprett prosjekt",
   "Created At": "Opprettet den",
-  "Credentials": "Påloggingsinformasjon",
   "Datastore capacity": "Datalagerkapasitet",
   "Disable Sign Up": "Deaktiver registrering",
   "Disk and memory utilization of the databases backing this instance.": "Disk- og minnebruk for databasene som driver denne instansen.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "Administrer alle brukere på tvers av instansen.",
   "Master API Key": "Hoved-API-nøkkel",
   "Message": "Melding",
-  "Meta App": "Meta-app",
   "Model": "Modell",
   "Model Name": "Modellnavn",
   "Monitor Log Retention (Days)": "Loggoppbevaring for overvåking (dager)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "Påkrevd for autentisering med brukernavn og passord. Brukes ikke for OAuth.",
   "Sample Description": "Eksempelbeskrivelse",
   "Sample Title": "Eksempeltittel",
-  "Secondary Twilio Phone Number": "Sekundært Twilio-telefonnummer",
   "Secondary Twilio Phone Numbers": "Sekundære Twilio-telefonnumre",
   "Secret token configured in Meta to validate webhook subscription requests.": "Hemmelig token konfigurert i Meta for å validere abonnementsforespørsler for webhook.",
   "Select a team": "Velg et team",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "Slett {{name}} permanent.",
   "This action cannot be undone.": "Denne handlingen kan ikke angres.",
   "and {{remaining}} more": "og {{remaining}} til",
-  "Type {{name}} to confirm.": "Skriv {{name}} for å bekrefte."
+  "Type {{name}} to confirm.": "Skriv {{name}} for å bekrefte.",
+  "Configured": "Konfigurert"
 }

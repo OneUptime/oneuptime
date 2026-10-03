@@ -556,9 +556,7 @@
         "cardDescription": "ارائه‌دهندگان LLM سراسری برای قابلیت‌های هوش مصنوعی در دسترس همه پروژه‌ها هستند. OpenAI، Azure OpenAI، Anthropic، Groq، Mistral، Ollama یا سایر ارائه‌دهندگان LLM را پیکربندی کنید.",
         "noItems": "هیچ ارائه‌دهنده LLM پیکربندی نشده است. برای فعال کردن قابلیت‌های هوش مصنوعی یک ارائه‌دهنده LLM اضافه کنید.",
         "stepBasicInfo": "اطلاعات پایه",
-        "stepProviderSettings": "تنظیمات ارائه‌دهنده",
-        "stepAdvanced": "پیشرفته",
-        "stepCostSettings": "تنظیمات هزینه"
+        "stepProviderSettings": "تنظیمات ارائه‌دهنده"
       }
     }
   },
@@ -681,7 +679,6 @@
   "Create New Project": "ساخت پروژه جدید",
   "Create Project": "ساخت پروژه",
   "Created At": "تاریخ ساخت",
-  "Credentials": "اعتبارنامه‌ها",
   "Datastore capacity": "ظرفیت پایگاه داده",
   "Disable Sign Up": "غیرفعال کردن ثبت‌نام",
   "Disk and memory utilization of the databases backing this instance.": "مصرف دیسک و حافظه پایگاه‌های داده‌ای که پشتیبان این نمونه هستند.",
@@ -726,7 +723,6 @@
   "Manage all users across the instance.": "همه کاربران این نمونه را مدیریت کنید.",
   "Master API Key": "کلید API ارشد",
   "Message": "پیام",
-  "Meta App": "اپلیکیشن Meta",
   "Model": "مدل",
   "Model Name": "نام مدل",
   "Monitor Log Retention (Days)": "نگهداری لاگ مانیتور (روز)",
@@ -777,7 +773,6 @@
   "Required for Username and Password authentication. Not used for OAuth.": "برای احراز هویت با نام کاربری و رمز عبور الزامی است. در OAuth استفاده نمی‌شود.",
   "Sample Description": "توضیحات نمونه",
   "Sample Title": "عنوان نمونه",
-  "Secondary Twilio Phone Number": "شماره تلفن دوم Twilio",
   "Secondary Twilio Phone Numbers": "شماره‌های تلفن دوم Twilio",
   "Secret token configured in Meta to validate webhook subscription requests.": "توکن محرمانه‌ای که در Meta برای اعتبارسنجی درخواست‌های اشتراک وب‌هوک پیکربندی شده است.",
   "Select a team": "یک تیم انتخاب کنید",
@@ -859,5 +854,6 @@
   "Permanently delete {{name}}.": "{{name}} را برای همیشه حذف کنید.",
   "This action cannot be undone.": "این کار قابل بازگشت نیست.",
   "and {{remaining}} more": "و {{remaining}} مورد دیگر",
-  "Type {{name}} to confirm.": "برای تأیید، {{name}} را تایپ کنید."
+  "Type {{name}} to confirm.": "برای تأیید، {{name}} را تایپ کنید.",
+  "Configured": "پیکربندی‌شده"
 }
