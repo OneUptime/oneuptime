@@ -23,6 +23,8 @@ import RoleLabel from "Common/UI/Components/RoleLabel/RoleLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUser from "../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface RoleAssignment {
   roleId: string;
@@ -46,6 +48,7 @@ interface RoleData {
 const IncidentEpisodeRoleFormField: FunctionComponent<
   IncidentEpisodeRoleFormFieldProps
 > = (props: IncidentEpisodeRoleFormFieldProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [roles, setRoles] = useState<Array<RoleData>>([]);
@@ -206,8 +209,9 @@ const IncidentEpisodeRoleFormField: FunctionComponent<
   if (roles.length === 0) {
     return (
       <p className="text-gray-500">
-        No incident roles defined. Go to Incidents {">"} Settings {">"} Roles to
-        create roles.
+        {translator.translateText(
+          "No incident roles defined. Go to Incidents > Settings > Roles to create roles.",
+        )}
       </p>
     );
   }
@@ -235,12 +239,12 @@ const IncidentEpisodeRoleFormField: FunctionComponent<
                 />
                 {role.isPrimaryRole && (
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
-                    Primary
+                    {translator.translateText("Primary")}
                   </span>
                 )}
                 {role.canAssignMultipleUsers && (
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                    Multiple
+                    {translator.translateText("Multiple")}
                   </span>
                 )}
               </div>
@@ -259,7 +263,10 @@ const IncidentEpisodeRoleFormField: FunctionComponent<
                       key={userId}
                       className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm"
                     >
-                      <span>{userOption?.label || "Unknown User"}</span>
+                      <span>
+                        {userOption?.label ||
+                          translator.translateText("Unknown User")}
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -280,7 +287,10 @@ const IncidentEpisodeRoleFormField: FunctionComponent<
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <Dropdown
-                    placeholder={`Select user for ${role.name}`}
+                    placeholder={translator.translateTemplate(
+                      "Select user for {{role}}",
+                      { role: role.name },
+                    )}
                     options={userOptions.filter((opt: DropdownOption) => {
                       // Filter out already selected users
                       return !selectedUsers.includes(opt.value as string);
@@ -301,7 +311,9 @@ const IncidentEpisodeRoleFormField: FunctionComponent<
 
             {!canAddMore && (
               <p className="text-xs text-gray-500">
-                Only one user can be assigned to this role.
+                {translator.translateText(
+                  "Only one user can be assigned to this role.",
+                )}
               </p>
             )}
           </div>
