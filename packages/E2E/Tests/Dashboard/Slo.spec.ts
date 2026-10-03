@@ -11,7 +11,7 @@ import { JSONish, listItems } from "./Helpers/MonitorAlerting";
 
 /*
  * SLOs (Service Level Objectives) end-to-end coverage for the dashboard
- * product area: products menu -> list -> four-step create wizard -> overview
+ * product area: products menu -> list -> three-step create wizard -> overview
  * -> attach a monitor -> burn rate rules, alerts and metrics -> edit the
  * details card -> save a Settings card -> monitor rules lock hand edits ->
  * archive and unarchive -> delete.
@@ -69,13 +69,11 @@ const sloStatusRegex: RegExp =
 // The empty state SloHistoryCharts renders when no SloHistory rows exist in range.
 const noChartHistoryText: string = "No history in this range";
 
-// The create wizard's steps, in order (SLO_FORM_STEPS).
-const SLO_CREATE_STEPS: Array<string> = [
-  "Basic Info",
-  "Objective",
-  "Period",
-  "Labels",
-];
+/*
+ * The create wizard's steps, in order (SLO_FORM_STEPS). The labels have no
+ * step of their own: they fold under Advanced at the end of Basic Info.
+ */
+const SLO_CREATE_STEPS: Array<string> = ["Basic Info", "Objective", "Period"];
 
 // The SLO view side menu (Pages/Slo/View/SideMenu.tsx), in order.
 const SLO_VIEW_TABS: Array<string> = [
@@ -325,7 +323,7 @@ test.describe("SLOs", () => {
     await expect(archivedLink).toBeVisible({ timeout: 30000 });
   });
 
-  test("should create an SLO through the four-step wizard and land on its overview", async () => {
+  test("should create an SLO through the three-step wizard and land on its overview", async () => {
     test.setTimeout(180000);
     const page: Page = ctx.page;
 
@@ -363,9 +361,10 @@ test.describe("SLOs", () => {
     const currentStep: Locator = form.locator('[aria-current="step"]');
 
     /*
-     * Exactly four steps, in this order. There is no Monitors step any more:
+     * Exactly three steps, in this order. There is no Monitors step any more:
      * monitors are attached on the SLO's Monitors page or by a monitor rule,
      * and how downtime is counted lives on Settings with server defaults.
+     * Nor a Labels step: they fold under Advanced on Basic Info.
      */
     await expect
       .poll(
@@ -376,13 +375,28 @@ test.describe("SLOs", () => {
       )
       .toEqual(SLO_CREATE_STEPS);
 
-    // Step 1 - Basic Info: name and description only.
+    /*
+     * Step 1 - Basic Info: the name and the description, and the labels
+     * folded under Advanced at the end of the step.
+     */
     await expect(currentStep).toContainText("Basic Info");
     await expect(form.getByLabel("Name")).toBeVisible();
     await expect(form.getByLabel("Target (%)")).toHaveCount(0);
     await expect(
       form.getByRole("combobox", { name: /^Monitors\b/ }),
     ).toHaveCount(0);
+
+    const advancedHeader: Locator = form.getByRole("button", {
+      name: /^Advanced/,
+    });
+    const labelsInput: Locator = form.getByRole("combobox", {
+      name: "Labels (Optional)",
+      exact: true,
+    });
+    await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
+    await expect(labelsInput).toBeHidden();
+    await advancedHeader.click();
+    await expect(labelsInput).toBeVisible();
 
     await form.getByLabel("Name").fill(ctx.sloName);
     await form.getByLabel("Description").fill(ctx.sloDescription);
@@ -402,9 +416,9 @@ test.describe("SLOs", () => {
     await form.getByLabel("Target (%)").fill("99.9");
 
     /*
-     * The target was the last thing the SLO needed: Period has its defaults
-     * and Labels is optional, so the main button creates from here. Next
-     * walks on to check them.
+     * The target was the last thing the SLO needed: Period has its
+     * defaults, so the main button creates from here. Next walks on to
+     * check them.
      */
     await expect(submitButton).toContainText("Create Service Level Objective");
     await nextButton.click();
@@ -430,14 +444,9 @@ test.describe("SLOs", () => {
     const windowDaysInput: Locator = form.getByLabel("Window (Days)");
     await expect(windowDaysInput).toHaveValue("30");
     await windowDaysInput.fill("30");
-    await nextButton.click();
 
-    // Step 4 - Labels is the optional final step, so its button performs the create.
-    await expect(currentStep).toContainText("Labels");
+    // Period is the last step, so there is nothing left to walk to.
     await expect(nextButton).toHaveCount(0);
-    await expect(
-      form.getByRole("combobox", { name: "Labels (Optional)", exact: true }),
-    ).toBeVisible();
 
     /*
      * The questions the wizard deliberately stopped asking. None of them may
@@ -945,12 +954,16 @@ test.describe("SLOs", () => {
 
     /*
      * The details card is trimmed to what describes the SLO: name,
-     * description and labels. What it measures is edited on Settings, so the
-     * objective and period fields must not be offered here.
+     * description and labels (folded under Advanced, as on the create
+     * form). What it measures is edited on Settings, so the objective and
+     * period fields must not be offered here.
      */
-    await expect(
-      modal.getByRole("combobox", { name: /^Labels\b/ }),
-    ).toBeVisible();
+    const labelsInput: Locator = modal.getByRole("combobox", {
+      name: /^Labels\b/,
+    });
+    await expect(labelsInput).toBeHidden();
+    await modal.getByRole("button", { name: /^Advanced/ }).click();
+    await expect(labelsInput).toBeVisible();
     await expect(modal.getByLabel("Target (%)")).toHaveCount(0);
     await expect(modal.getByLabel("Window (Days)")).toHaveCount(0);
 

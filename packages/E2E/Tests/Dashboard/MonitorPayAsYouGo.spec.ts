@@ -3,7 +3,7 @@ import {
   gotoProjectPage,
   registerAndCreateProject,
 } from "./Helpers/ProductOnboarding";
-import { clickNext, selectMonitorTypeCard } from "./Helpers/Monitors";
+import { selectMonitorTypeCard } from "./Helpers/Monitors";
 import {
   APIResponse,
   Browser,
@@ -253,13 +253,17 @@ test.describe("Monitor pay-as-you-go pricing", () => {
       form.getByRole("checkbox", { name: "I agree to these usage charges" }),
     ).toHaveCount(0);
     /*
-     * A Manual monitor asks nothing more: Create Monitor is on offer from the
-     * first step, and Next leads to its optional labels.
+     * A Manual monitor asks nothing more: Monitor Info is its only step, so
+     * Create Monitor is on offer there with no Next, and its optional labels
+     * wait under Advanced on the same step.
      */
     await expect(ctx.page.getByTestId("Create Monitor")).toHaveText(
       "Create Monitor",
     );
-    await clickNext({ page: ctx.page });
+    await expect(
+      form.getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
+    await form.getByRole("button", { name: "Advanced", exact: true }).click();
     await expect(
       ctx.page.getByRole("combobox", { name: /^Labels\b/ }),
     ).toBeVisible();
