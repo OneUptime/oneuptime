@@ -59,6 +59,10 @@ const UNDER_ADVANCED: Record<string, string> = {
   fa: "زیر **Advanced**:",
 };
 
+// The declare wizard's old On-Call step, named in English or Persian.
+const OLD_ON_CALL_STEP: RegExp =
+  /\*\*On-Call\*\* step of the declare wizard|گام \*\*On-Call\*\* جادوگر اعلام/;
+
 // The section "Declaring one by hand" by its heading in each language.
 const BY_HAND_HEADING: Record<string, string> = {
   en: "## Declaring one by hand",
@@ -346,10 +350,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
         // The template wizard still has its own On-Call step; the declare one does not.
         expect({
           page: page,
-          stale:
-            /\*\*On-Call\*\* step of the declare wizard|گام \*\*On-Call\*\* جادوگر اعلام/.test(
-              markdown,
-            ),
+          stale: OLD_ON_CALL_STEP.test(markdown),
         }).toEqual({ page: page, stale: false });
       }
     },

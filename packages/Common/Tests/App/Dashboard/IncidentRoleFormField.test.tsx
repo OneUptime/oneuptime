@@ -80,10 +80,11 @@ jest.mock("../../../UI/Utils/Project", () => {
     default: {
       getCurrentProjectId: (): unknown => {
         // Required here: jest.mock factories run before the imports below.
-        const ObjectIDClass: { new (id: string): unknown } =
-          jest.requireActual<{ default: { new (id: string): unknown } }>(
-            "../../../Types/ObjectID",
-          ).default;
+        const ObjectIDClass: { new (id: string): unknown } = (
+          jest.requireActual("../../../Types/ObjectID") as {
+            default: { new (id: string): unknown };
+          }
+        ).default;
         return new ObjectIDClass(PROJECT_ID);
       },
     },
