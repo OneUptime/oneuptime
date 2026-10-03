@@ -555,10 +555,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           aria-expanded={isMobileMenuVisible}
           aria-label={
             isMobileMenuVisible
-              ? translateString("Close navigation menu") ||
-                "Close navigation menu"
-              : translateString("Open navigation menu") ||
-                "Open navigation menu"
+              ? translateString("Close navigation menu")
+              : translateString("Open navigation menu")
           }
           data-testid="mobile-sidemenu-toggle"
         >
@@ -616,7 +614,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 animate-in slide-in-from-top-2 fade-in duration-200
               `}
               role="navigation"
-              aria-label="Main navigation"
+              aria-label={translateString("Main navigation")}
             >
               {/* Optional Header */}
               {props.header && (
@@ -662,7 +660,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
        */
       className={`max-md:hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
       role="navigation"
-      aria-label="Main navigation"
+      aria-label={translateString("Main navigation")}
     >
       {/*
        * Stick below the app header, not at the top of the viewport. The header

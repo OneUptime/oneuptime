@@ -18,6 +18,16 @@ import {
   TELEMETRY_EXPLORER_LABELS,
   TelemetrySignal,
 } from "../../../../Utils/Telemetry/LockedFilterSearch";
+import {
+  PluralTemplate,
+  TemplateValues,
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  Translator,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 /*
  * The grey lock chip every telemetry explorer shows for a filter its host
@@ -44,16 +54,41 @@ export const COPIED_FEEDBACK_MS: number = 1500;
 export const LOCKED_FILTER_CHIP_CLASS_NAME: string =
   "inline-flex items-center gap-1 rounded-md border border-gray-300 bg-gray-100 py-0.5 pl-2 pr-2 text-xs text-gray-700";
 
-export const COPIED_SEARCH_SYNTAX_ANNOUNCEMENT: string = "Copied search syntax";
-export const COPY_FAILED_ANNOUNCEMENT: string = "Copy failed";
+export const COPIED_SEARCH_SYNTAX_ANNOUNCEMENT: string = translationKey(
+  "Copied search syntax",
+);
+export const COPY_FAILED_ANNOUNCEMENT: string = translationKey("Copy failed");
 
 /** Shown in the tooltip when a detail names neither a token nor a reason. */
-export const NO_SEARCH_SYNTAX_REASON: string =
-  "This filter has no search syntax.";
+export const NO_SEARCH_SYNTAX_REASON: string = translationKey(
+  "This filter has no search syntax.",
+);
 
 /** A scope chip's opening line when its builder gave none. */
-export const DEFAULT_SCOPE_SUMMARY: string =
-  "This page only shows telemetry that matches any of these:";
+export const DEFAULT_SCOPE_SUMMARY: string = translationKey(
+  "This page only shows telemetry that matches any of these:",
+);
+
+/*
+ * The chip's accessible name, one whole sentence per case: with or without
+ * the scope's value count, and with the Enter hint when there is syntax to
+ * copy.
+ */
+const LOCKED_FILTER_LABEL: string = translationKey(
+  "{{key}}: {{value}}, locked filter",
+);
+const LOCKED_FILTER_LABEL_WITH_COPY_HINT: string = translationKey(
+  "{{key}}: {{value}}, locked filter. Press Enter to copy its search syntax.",
+);
+const SCOPED_LOCKED_FILTER_LABEL: PluralTemplate = {
+  one: "{{key}}: {{value}}, locked filter matching any of {{count}} value",
+  other: "{{key}}: {{value}}, locked filter matching any of {{count}} values",
+};
+const SCOPED_LOCKED_FILTER_LABEL_WITH_COPY_HINT: PluralTemplate = {
+  one: "{{key}}: {{value}}, locked filter matching any of {{count}} value. Press Enter to copy its search syntax.",
+  other:
+    "{{key}}: {{value}}, locked filter matching any of {{count}} values. Press Enter to copy its search syntax.",
+};
 
 type GetScopeMatchesFunction = (
   detail: LockedFilterDetail | undefined,
@@ -143,19 +178,25 @@ export const getLockedFilterChipAriaLabel: GetLockedFilterChipAriaLabelFunction 
     hasSearchToken?: boolean | undefined,
     scopeValueCount?: number | undefined,
   ): string => {
-    let base: string = `${displayKey}: ${displayValue}, locked filter`;
+    const values: TemplateValues = {
+      key: translatableTerm(displayKey),
+      value: displayValue,
+    };
 
     if (scopeValueCount && scopeValueCount > 0) {
-      base = `${base} matching any of ${scopeValueCount} ${
-        scopeValueCount === 1 ? "value" : "values"
-      }`;
+      return translatePlural(
+        hasSearchToken
+          ? SCOPED_LOCKED_FILTER_LABEL_WITH_COPY_HINT
+          : SCOPED_LOCKED_FILTER_LABEL,
+        scopeValueCount,
+        values,
+      );
     }
 
-    if (!hasSearchToken) {
-      return base;
-    }
-
-    return `${base}. Press Enter to copy its search syntax.`;
+    return translateTemplate(
+      hasSearchToken ? LOCKED_FILTER_LABEL_WITH_COPY_HINT : LOCKED_FILTER_LABEL,
+      values,
+    );
   };
 
 export interface CopiedFeedback {
@@ -231,23 +272,25 @@ interface SearchSyntaxRowProps {
 
 type CopyButtonLabelFunction = (feedback: CopiedFeedback) => string;
 
+// English, looked up where the button shows it.
 const copyButtonText: CopyButtonLabelFunction = (
   feedback: CopiedFeedback,
 ): string => {
   if (feedback.copied) {
-    return "Copied!";
+    return translationKey("Copied!");
   }
 
   if (feedback.failed) {
-    return "Copy failed";
+    return translationKey("Copy failed");
   }
 
-  return "Copy";
+  return translationKey("Copy");
 };
 
 const SearchSyntaxRow: FunctionComponent<SearchSyntaxRowProps> = (
   props: SearchSyntaxRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const feedback: CopiedFeedback = useCopiedFeedback();
 
   const explorerLabel: string | undefined = props.signal
@@ -271,13 +314,13 @@ const SearchSyntaxRow: FunctionComponent<SearchSyntaxRowProps> = (
         </code>
         <button
           type="button"
-          aria-label={
+          aria-label={translator.translateText(
             feedback.copied
               ? "Copied"
               : feedback.failed
                 ? "Copy failed"
-                : "Copy search syntax"
-          }
+                : "Copy search syntax",
+          )}
           className={`inline-flex h-6 shrink-0 items-center gap-1 rounded border px-1.5 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${buttonClassName}`}
           onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
             /*
@@ -299,13 +342,16 @@ const SearchSyntaxRow: FunctionComponent<SearchSyntaxRowProps> = (
             }
             className="h-3 w-3"
           />
-          <span>{copyButtonText(feedback)}</span>
+          <span>{translator.translateText(copyButtonText(feedback))}</span>
         </button>
       </div>
       <p className="text-[11px] text-gray-400">
         {explorerLabel
-          ? `Paste into the ${explorerLabel} explorer search bar.`
-          : "Paste into the explorer search bar."}
+          ? translator.translateTemplate(
+              "Paste into the {{explorer}} explorer search bar.",
+              { explorer: translatableTerm(explorerLabel) },
+            )
+          : translator.translateText("Paste into the explorer search bar.")}
       </p>
     </div>
   );
@@ -325,13 +371,15 @@ interface ScopeMatchesSectionProps {
 const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
   props: ScopeMatchesSectionProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="space-y-2" data-testid="locked-filter-scope">
       <p
         className="text-[11px] text-gray-600"
         data-testid="locked-filter-scope-summary"
       >
-        {props.summary || DEFAULT_SCOPE_SUMMARY}
+        {translator.translateText(props.summary || DEFAULT_SCOPE_SUMMARY)}
       </p>
       <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
         {props.matches.map((match: LockedFilterScopeMatch) => {
@@ -343,7 +391,7 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                  {match.label}
+                  {translator.translateText(match.label)}
                 </span>
                 <span
                   className="text-[10px] tabular-nums text-gray-400"
@@ -353,7 +401,9 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
                 </span>
               </div>
               {match.description ? (
-                <p className="text-[11px] text-gray-400">{match.description}</p>
+                <p className="text-[11px] text-gray-400">
+                  {translator.translateText(match.description)}
+                </p>
               ) : (
                 <></>
               )}
@@ -391,6 +441,7 @@ const ScopeMatchesSection: FunctionComponent<ScopeMatchesSectionProps> = (
 export const LockedFilterTooltipContent: FunctionComponent<
   LockedFilterTooltipContentProps
 > = (props: LockedFilterTooltipContentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: LockedFilterDetail = props.lockedDetail;
   const scopeMatches: Array<LockedFilterScopeMatch> =
     getLockedFilterScopeMatches(detail);
@@ -408,7 +459,7 @@ export const LockedFilterTooltipContent: FunctionComponent<
         {detail.searchToken ? (
           <div className="space-y-1 border-t border-gray-100 pt-2">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              Search syntax
+              {translator.translateText("Search syntax")}
             </div>
             <SearchSyntaxRow
               searchToken={detail.searchToken}
@@ -428,7 +479,7 @@ export const LockedFilterTooltipContent: FunctionComponent<
       data-testid="locked-filter-tooltip"
     >
       <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-        Search syntax
+        {translator.translateText("Search syntax")}
       </div>
       {detail.searchToken ? (
         <SearchSyntaxRow
@@ -437,7 +488,9 @@ export const LockedFilterTooltipContent: FunctionComponent<
         />
       ) : (
         <p className="text-[11px] text-gray-400">
-          {detail.searchTokenUnavailableReason || NO_SEARCH_SYNTAX_REASON}
+          {translator.translateText(
+            detail.searchTokenUnavailableReason || NO_SEARCH_SYNTAX_REASON,
+          )}
         </p>
       )}
     </div>
@@ -474,6 +527,8 @@ interface LockedFilterChipBodyProps {
 const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
   props: LockedFilterChipBodyProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <>
       <Icon
@@ -492,7 +547,9 @@ const LockedFilterChipBody: FunctionComponent<LockedFilterChipBodyProps> = (
               : "text-gray-400"
         }`}
       />
-      <span className="font-medium text-gray-500">{props.displayKey}:</span>
+      <span className="font-medium text-gray-500">
+        {translator.translateText(props.displayKey)}:
+      </span>
       <span>{props.displayValue}</span>
       {props.hasScopeMatches ? (
         <span
@@ -528,6 +585,7 @@ interface DetailedLockedFilterChipProps {
 const DetailedLockedFilterChip: FunctionComponent<
   DetailedLockedFilterChipProps
 > = (props: DetailedLockedFilterChipProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const feedback: CopiedFeedback = useCopiedFeedback();
   const searchToken: string | undefined = props.lockedDetail.searchToken;
   const scopeValueCount: number = countLockedFilterScopeValues(
@@ -591,7 +649,7 @@ const DetailedLockedFilterChip: FunctionComponent<
       </Tooltip>
       {props.trailing}
       <span className="sr-only" aria-live="polite" role="status">
-        {announcement}
+        {translator.translateText(announcement)}
       </span>
     </span>
   );
@@ -600,6 +658,8 @@ const DetailedLockedFilterChip: FunctionComponent<
 const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
   props: LockedFilterChipProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.lockedDetail) {
     /*
      * Exactly the pill from before the tooltip: not focusable, no name of
@@ -609,7 +669,13 @@ const LockedFilterChip: FunctionComponent<LockedFilterChipProps> = (
     return (
       <span
         className={LOCKED_FILTER_CHIP_CLASS_NAME}
-        title={`${props.displayKey}: ${props.displayValue} (applied filter)`}
+        title={translator.translateTemplate(
+          "{{key}}: {{value}} (applied filter)",
+          {
+            key: translatableTerm(props.displayKey),
+            value: props.displayValue,
+          },
+        )}
         data-testid="locked-filter-chip"
       >
         <LockedFilterChipBody

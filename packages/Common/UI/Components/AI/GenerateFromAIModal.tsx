@@ -4,6 +4,8 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import AILoader from "./AILoader";
 import Alert, { AlertType } from "../Alerts/Alert";
@@ -35,6 +37,7 @@ export interface GenerateAIRequestData {
 const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
   props: GenerateFromAIModalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
@@ -129,7 +132,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
             {/* Template Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Template
+                {translator.translateText("Select Template")}
               </label>
               <Dropdown
                 options={templateOptions}
@@ -144,8 +147,9 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
                 placeholder="Select a template..."
               />
               <p className="mt-1 text-xs text-gray-500">
-                Choose a template to guide the AI generation. You can edit it
-                below before generating.
+                {translator.translateText(
+                  "Choose a template to guide the AI generation. You can edit it below before generating.",
+                )}
               </p>
             </div>
 
@@ -153,11 +157,12 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
             {selectedTemplateId && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Template Preview
+                  {translator.translateText("Template Preview")}
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Edit the template below. AI will fill in the sections with
-                  incident data.
+                  {translator.translateText(
+                    "Edit the template below. AI will fill in the sections with incident data.",
+                  )}
                 </p>
                 <div className="">
                   <MarkdownEditor

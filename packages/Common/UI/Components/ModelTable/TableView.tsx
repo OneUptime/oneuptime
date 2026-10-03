@@ -1,4 +1,6 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import TableView from "../../../Models/DatabaseModels/TableView";
 import ObjectID from "../../../Types/ObjectID";
 import MoreMenu from "../MoreMenu/MoreMenu";
@@ -57,6 +59,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   /*
    * Kept apart from `error` because the two deserve different treatment.
@@ -465,7 +468,9 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         return (
           <div
             className={`${triggerBase} border-indigo-200 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100`}
-            title={`Saved view: ${currentlySelectedView.name}`}
+            title={translator.translateTemplate("Saved view: {{name}}", {
+              name: currentlySelectedView.name || "",
+            })}
           >
             <Icon
               icon={IconProp.Bookmark}
@@ -473,7 +478,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
             />
             <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap leading-none">
               <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-400">
-                View
+                {translator.translateText("View")}
               </span>
               <span className="max-w-[14rem] truncate text-sm font-semibold">
                 {currentlySelectedView.name}
@@ -485,8 +490,8 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
             />
             <button
               type="button"
-              aria-label="Clear saved view"
-              title="Clear saved view"
+              aria-label={translator.translateText("Clear saved view")}
+              title={translator.translateText("Clear saved view")}
               className="-mr-1 inline-flex h-5 w-5 flex-none items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
@@ -508,13 +513,15 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
       return (
         <div
           className={`${triggerBase} border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50`}
-          title="Saved Views"
+          title={translator.translateText("Saved Views")}
         >
           <Icon
             icon={IconProp.Bookmark}
             className="h-4 w-4 flex-none text-gray-400"
           />
-          <span className="text-sm">Saved Views</span>
+          <span className="text-sm">
+            {translator.translateText("Saved Views")}
+          </span>
           {allTableViews.length > 0 && (
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-100 px-1.5 text-[11px] font-medium text-gray-600">
               {allTableViews.length.toLocaleString()}

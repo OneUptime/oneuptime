@@ -55,8 +55,11 @@ describe("docs for adding a step to a workflow", () => {
   });
 
   test("the words the docs quote are the ones the canvas draws", () => {
-    expect(readBuilderSource("Component.tsx")).toContain(
-      `WORKFLOW_NODE_SETUP_TEXT: string = "${SETUP_TEXT}"`,
+    // A translation key: the canvas draws it in the reader's language.
+    expect(readBuilderSource("Component.tsx")).toMatch(
+      new RegExp(
+        `WORKFLOW_NODE_SETUP_TEXT: string =\\s*translationKey\\("${SETUP_TEXT}"\\)`,
+      ),
     );
     expect(readBuilderSource("Workflow.tsx")).toContain(
       `description: "${PLACEHOLDER_TEXT}"`,

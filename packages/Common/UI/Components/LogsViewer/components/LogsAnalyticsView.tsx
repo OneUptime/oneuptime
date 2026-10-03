@@ -7,6 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   BarChart,
   Bar,
@@ -265,6 +267,8 @@ interface AnalyticsTooltipProps {
 const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
   props: AnalyticsTooltipProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
+
   if (!props.active || !props.payload || props.payload.length === 0) {
     return null;
   }
@@ -329,7 +333,9 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
       </div>
       {entries.length > 1 && (
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
-          <span className="text-[11px] font-medium text-gray-400">Total</span>
+          <span className="text-[11px] font-medium text-gray-400">
+            {translator.translateText("Total")}
+          </span>
           <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
             {total.toLocaleString()}
           </span>
@@ -342,6 +348,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   props: LogsAnalyticsViewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [chartType, setChartType] = useState<AnalyticsChartType>("timeseries");
   const [aggregation, setAggregation] = useState<AnalyticsAggregation>("count");
   const [aggregationField, setAggregationField] = useState<string>("");
@@ -798,8 +805,15 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
         className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400"
         data-testid={LOGS_ANALYTICS_ZOOM_HINT_TEST_ID}
       >
-        {selection.canClickToZoom ? "Click or drag to zoom" : "Drag to zoom"}
-        {zoomHandlers.onTimeRangeReset ? " · double-click to reset" : ""}
+        {translator.translateText(
+          selection.canClickToZoom
+            ? zoomHandlers.onTimeRangeReset
+              ? "Click or drag to zoom · double-click to reset"
+              : "Click or drag to zoom"
+            : zoomHandlers.onTimeRangeReset
+              ? "Drag to zoom · double-click to reset"
+              : "Drag to zoom",
+        )}
       </span>
     );
   };
@@ -1176,7 +1190,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   );
                 })}
                 <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Count
+                  {translator.translateText("Count")}
                 </th>
                 <th className="w-48 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400" />
               </tr>
@@ -1254,7 +1268,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           />
         </svg>
         <p className="text-sm text-gray-400">
-          No data available for the selected query
+          {translator.translateText("No data available for the selected query")}
         </p>
       </div>
     );

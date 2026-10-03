@@ -4,6 +4,8 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   children: ReactElement | string | Array<ReactElement>;
@@ -20,9 +22,10 @@ export interface ComponentProps {
 const SimpleLogViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const showLineNumbers: boolean = props.showLineNumbers !== false;
   const height: string = props.height || "400px";
-  const title: string | undefined = props.title;
+  const title: string | undefined = translator.translateText(props.title);
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (typeof props.children === "string") {

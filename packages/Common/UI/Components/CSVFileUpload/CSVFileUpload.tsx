@@ -8,6 +8,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 export interface CSVColumn {
   key: string;
@@ -90,6 +93,7 @@ const parseCSV: ParseCSVFunction = (text: string): Array<Array<string>> => {
 const CSVFileUpload: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [parsedRows, setParsedRows] = useState<Array<CSVRow>>([]);
   const [fileName, setFileName] = useState<string>("");
@@ -160,7 +164,10 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
           columnMap.set(index, col);
         } else if (col.required) {
           setError(
-            `Required column "${col.title}" not found in CSV headers. Found: ${headerRow.join(", ")}`,
+            translator.translateTemplate(
+              'Required column "{{column}}" not found in CSV headers. Found: {{found}}',
+              { column: col.title, found: headerRow.join(", ") },
+            ),
           );
           return;
         }
@@ -180,7 +187,12 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
 
           if (col.required && !value) {
             hasRequiredFields = false;
-            errors.push(`Row ${i}: missing required field "${col.title}"`);
+            errors.push(
+              translator.translateTemplate(
+                'Row {{row}}: missing required field "{{column}}"',
+                { row: i, column: col.title },
+              ),
+            );
           }
         }
 
@@ -190,10 +202,29 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
       }
 
       if (dataRows.length === 0) {
+        const firstErrors: string = errors.slice(0, 3).join(". ");
+
         setError(
-          errors.length > 0
-            ? `No valid rows found. ${errors.slice(0, 3).join(". ")}${errors.length > 3 ? ` and ${errors.length - 3} more errors.` : ""}`
-            : "No valid data rows found in the CSV file.",
+          errors.length > 3
+            ? translator.translatePlural(
+                {
+                  one: "No valid rows found. {{errors}} and {{count}} more error.",
+                  other:
+                    "No valid rows found. {{errors}} and {{count}} more errors.",
+                },
+                errors.length - 3,
+                { errors: firstErrors },
+              )
+            : errors.length > 0
+              ? translator.translateTemplate(
+                  "No valid rows found. {{errors}}",
+                  {
+                    errors: firstErrors,
+                  },
+                )
+              : translator.translateText(
+                  "No valid data rows found in the CSV file.",
+                ) || "",
         );
         return;
       }
@@ -201,7 +232,19 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
       if (errors.length > 0 && dataRows.length > 0) {
         // Some rows were skipped but we have valid data
         setError(
-          `${errors.length} row(s) skipped due to missing required fields. ${dataRows.length} valid row(s) found.`,
+          `${translator.translatePlural(
+            {
+              one: "{{count}} row skipped due to missing required fields.",
+              other: "{{count}} rows skipped due to missing required fields.",
+            },
+            errors.length,
+          )} ${translator.translatePlural(
+            {
+              one: "{{count}} valid row found.",
+              other: "{{count}} valid rows found.",
+            },
+            dataRows.length,
+          )}`,
         );
       }
 
@@ -222,7 +265,9 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-4 w-full">
       {props.description && (
-        <p className="text-sm text-gray-500">{props.description}</p>
+        <p className="text-sm text-gray-500">
+          {translator.translateText(props.description)}
+        </p>
       )}
 
       {/* Template download */}
@@ -238,7 +283,7 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
       {/* Column info */}
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
         <p className="text-xs font-medium text-gray-700 mb-2">
-          Expected columns:
+          {translator.translateText("Expected columns:")}
         </p>
         <div className="flex flex-wrap gap-2">
           {props.columns.map((col: CSVColumn) => {
@@ -250,9 +295,9 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
                     ? "bg-indigo-100 text-indigo-700"
                     : "bg-gray-200 text-gray-600"
                 }`}
-                title={col.description}
+                title={translator.translateText(col.description)}
               >
-                {col.title}
+                {translator.translateText(col.title)}
                 {col.required && <span className="ml-1 text-red-500">*</span>}
               </span>
             );
@@ -270,12 +315,20 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col items-center space-y-2 text-center">
           <Icon icon={IconProp.File} className="h-10 w-10 text-gray-400" />
           <div className="text-sm text-gray-600">
-            <span className="font-medium text-indigo-600">
-              Click to upload CSV
-            </span>{" "}
-            or drag and drop
+            <TranslatedSentence
+              template="{{upload}} or drag and drop"
+              slots={{
+                upload: (
+                  <span className="font-medium text-indigo-600">
+                    {translator.translateText("Click to upload CSV")}
+                  </span>
+                ),
+              }}
+            />
           </div>
-          <p className="text-xs text-gray-500">CSV files only</p>
+          <p className="text-xs text-gray-500">
+            {translator.translateText("CSV files only")}
+          </p>
           <input
             ref={fileInputRef}
             type="file"
@@ -295,7 +348,14 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
             color={new Color("#16a34a")}
           />
           <div className="ml-2 text-sm font-medium text-green-800">
-            {fileName} - {parsedRows.length} row(s) ready to import
+            {translator.translatePlural(
+              {
+                one: "{{fileName}} - {{count}} row ready to import",
+                other: "{{fileName}} - {{count}} rows ready to import",
+              },
+              parsedRows.length,
+              { fileName: fileName },
+            )}
           </div>
         </div>
       )}
@@ -303,7 +363,9 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
       {/* Error */}
       {error && (
         <div className="rounded-lg bg-red-50 p-3">
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700">
+            {translator.translateText(error)}
+          </p>
         </div>
       )}
 
@@ -311,8 +373,14 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
       {parsedRows.length > 0 && (
         <div className="rounded-lg border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 px-4 py-2 text-xs font-medium text-gray-700">
-            Preview (first {Math.min(parsedRows.length, 5)} of{" "}
-            {parsedRows.length} rows)
+            {translator.translatePlural(
+              {
+                one: "Preview (first {{shown}} of {{count}} row)",
+                other: "Preview (first {{shown}} of {{count}} rows)",
+              },
+              parsedRows.length,
+              { shown: Math.min(parsedRows.length, 5) },
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -324,7 +392,7 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
                         key={col.key}
                         className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"
                       >
-                        {col.title}
+                        {translator.translateText(col.title)}
                       </th>
                     );
                   })}

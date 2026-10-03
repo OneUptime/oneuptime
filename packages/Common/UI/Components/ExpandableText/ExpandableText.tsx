@@ -1,3 +1,5 @@
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -9,6 +11,7 @@ export interface ComponentProps {
 const ExpandableText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const maxLength: number = props.maxLength || 80;
 
@@ -39,7 +42,9 @@ const ExpandableText: FunctionComponent<ComponentProps> = (
         aria-expanded={isExpanded}
         className="ml-2 inline-flex items-center gap-1 align-baseline rounded text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-colors"
       >
-        <span>{isExpanded ? "Show less" : "Show more"}</span>
+        <span>
+          {translator.translateText(isExpanded ? "Show less" : "Show more")}
+        </span>
         <svg
           className={`w-3 h-3 transition-transform duration-200 ${
             isExpanded ? "rotate-180" : ""

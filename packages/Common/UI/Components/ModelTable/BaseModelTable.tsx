@@ -11,6 +11,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -4411,7 +4412,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   }
                 }}
                 placeholder={
-                  selectedLabels.length === 0 ? placeholder : "Refine search…"
+                  selectedLabels.length === 0
+                    ? placeholder
+                    : tx("Refine search…")
                 }
                 spellCheck={false}
                 autoComplete="off"
@@ -4420,7 +4423,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               />
             </div>
             {isSearching && (
-              <div className="flex-none text-gray-400" title="Searching…">
+              <div className="flex-none text-gray-400" title={tx("Searching…")}>
                 <Icon
                   icon={IconProp.Spinner}
                   className="h-4 w-4 animate-spin"
@@ -4479,7 +4482,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             ) : (
               <kbd
                 className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
-                title="Press / to focus search"
+                title={tx("Press / to focus search")}
               >
                 /
               </kbd>
@@ -4497,15 +4500,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  {isLabelsLoading ? "Loading labels…" : "Filter by label"}
+                  {tx(isLabelsLoading ? "Loading labels…" : "Filter by label")}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  <kbd className="font-mono">↑</kbd>
-                  <kbd className="ml-0.5 font-mono">↓</kbd>
-                  <span className="ml-1">to navigate</span>
+                  <TranslatedSentence
+                    template="{{arrowKeys}} to navigate"
+                    slots={{
+                      arrowKeys: (
+                        <>
+                          <kbd className="font-mono">↑</kbd>
+                          <kbd className="ml-0.5 font-mono">↓</kbd>
+                        </>
+                      ),
+                    }}
+                  />
                   <span className="mx-1.5">·</span>
-                  <kbd className="font-mono">↵</kbd>
-                  <span className="ml-1">to select</span>
+                  <TranslatedSentence
+                    template="{{enterKey}} to select"
+                    slots={{
+                      enterKey: <kbd className="font-mono">↵</kbd>,
+                    }}
+                  />
                 </span>
               </div>
               <div className="max-h-64 overflow-y-auto py-1">
@@ -4807,8 +4822,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 searchInputRef.current?.focus();
               });
             }}
-            title="Search (/)"
-            aria-label="Open search"
+            title={tx("Search (/)")}
+            aria-label={tx("Open search")}
             tabIndex={isExpanded ? -1 : 0}
             className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
               isExpanded
@@ -4821,7 +4836,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               className="h-4 w-4 flex-none text-gray-400"
             />
             <span className="flex-1 truncate text-left text-gray-400">
-              Search…
+              {tx("Search…")}
             </span>
             <kbd className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
               /

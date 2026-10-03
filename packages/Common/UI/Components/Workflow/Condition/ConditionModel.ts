@@ -47,14 +47,20 @@ import {
   isSingleReference,
   splitTemplateText,
 } from "../ValuePicker/TemplateText";
+import {
+  TemplateValues,
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "../../../Utils/TranslateTemplate";
 
 const IDS: typeof CONDITION_ARGUMENT_IDS = CONDITION_ARGUMENT_IDS;
 
 // The setting names, as the step's metadata has them.
-export const VALUE_TO_CHECK_LABEL: string = "Value to check";
-export const COMPARISON_LABEL: string = "Comparison";
-export const COMPARE_WITH_LABEL: string = "Compare with";
-export const COMPARE_AS_LABEL: string = "Compare as";
+export const VALUE_TO_CHECK_LABEL: string = translationKey("Value to check");
+export const COMPARISON_LABEL: string = translationKey("Comparison");
+export const COMPARE_WITH_LABEL: string = translationKey("Compare with");
+export const COMPARE_AS_LABEL: string = translationKey("Compare as");
 
 export interface ConditionCompareAs {
   /*
@@ -341,11 +347,11 @@ export const validateCondition: ValidateConditionFunction = (
   const errors: ConditionErrors = {};
 
   if (isBlankConditionValue(state.valueToCheck)) {
-    errors.valueToCheck = "Pick or type the value to check.";
+    errors.valueToCheck = translationKey("Pick or type the value to check.");
   }
 
   if (!state.comparison && !state.operatorIsReference) {
-    errors.comparison = "Choose a comparison.";
+    errors.comparison = translationKey("Choose a comparison.");
   }
 
   const usesCompareWith: boolean = state.comparison
@@ -353,7 +359,7 @@ export const validateCondition: ValidateConditionFunction = (
     : true;
 
   if (usesCompareWith && isBlankConditionValue(state.compareWith)) {
-    errors.compareWith = "Type or pick what to compare with.";
+    errors.compareWith = translationKey("Type or pick what to compare with.");
   }
 
   return errors;
@@ -434,16 +440,29 @@ export const getConditionNotes: GetConditionNotesFunction = (
       ? types.valueToCheck
       : types.compareWith;
 
+    // Whole sentences, one for each side and one for both.
+    const values: TemplateValues = {
+      side: translatableTerm(sides[0] || VALUE_TO_CHECK_LABEL),
+      otherSide: translatableTerm(sides[1] || COMPARE_WITH_LABEL),
+      type: translatableTerm(CONDITION_VALUE_TYPE_LABELS[nullishType], {
+        inSentence: true,
+      }),
+      compareAs: translatableTerm(COMPARE_AS_LABEL),
+    };
+
     notes.push({
       id: "legacy-type",
       tone: ConditionNoteTone.Warning,
-      text: `${sides.join(" and ")} ${
-        sides.length > 1 ? "are" : "is"
-      } compared as ${CONDITION_VALUE_TYPE_LABELS[
-        nullishType
-      ].toLowerCase()}, which ignores what ${
-        sides.length > 1 ? "they hold" : "it holds"
-      }. This step no longer offers that: choose how to compare under ${COMPARE_AS_LABEL}, or choose is empty to check for a missing value.`,
+      text:
+        sides.length > 1
+          ? translateTemplate(
+              "{{side}} and {{otherSide}} are compared as {{type}}, which ignores what they hold. This step no longer offers that: choose how to compare under {{compareAs}}, or choose is empty to check for a missing value.",
+              values,
+            )
+          : translateTemplate(
+              "{{side}} is compared as {{type}}, which ignores what it holds. This step no longer offers that: choose how to compare under {{compareAs}}, or choose is empty to check for a missing value.",
+              values,
+            ),
     });
 
     return notes;
@@ -467,7 +486,10 @@ export const getConditionNotes: GetConditionNotesFunction = (
         notes.push({
           id: `not-a-number-${side.label}`,
           tone: ConditionNoteTone.Warning,
-          text: `"${shorten(text)}" is not a number, so it is compared as 0.`,
+          text: translateTemplate(
+            '"{{value}}" is not a number, so it is compared as 0.',
+            { value: shorten(text) },
+          ),
         });
       }
     }
@@ -481,7 +503,10 @@ export const getConditionNotes: GetConditionNotesFunction = (
         notes.push({
           id: `not-true-or-false-${side.label}`,
           tone: ConditionNoteTone.Warning,
-          text: `Only true counts as true, so "${shorten(text)}" is compared as false.`,
+          text: translateTemplate(
+            'Only true counts as true, so "{{value}}" is compared as false.',
+            { value: shorten(text) },
+          ),
         });
       }
     }
@@ -494,7 +519,10 @@ export const getConditionNotes: GetConditionNotesFunction = (
     notes.push({
       id: "order-as-text",
       tone: ConditionNoteTone.Info,
-      text: `Compared as text, letter by letter: "10" comes before "9". That suits dates written 2026-10-01. For numbers, choose Number under ${COMPARE_AS_LABEL}.`,
+      text: translateTemplate(
+        'Compared as text, letter by letter: "10" comes before "9". That suits dates written 2026-10-01. For numbers, choose Number under {{compareAs}}.',
+        { compareAs: translatableTerm(COMPARE_AS_LABEL) },
+      ),
     });
   }
 

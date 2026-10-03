@@ -12,6 +12,9 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -152,6 +155,7 @@ const buildValue: BuildValueFunction = (
 const DateFilter: DateFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
 
   if (filter.type !== FieldType.Date && filter.type !== FieldType.DateTime) {
@@ -221,7 +225,11 @@ const DateFilter: DateFilterFunction = <T extends GenericObject>(
                 apply({ ...state, start: parsed });
               }}
               value={state.start || ""}
-              placeholder={isBetween ? "From" : `Filter by ${filter.title}`}
+              placeholder={
+                isBetween
+                  ? translator.translateText("From")
+                  : getFilterPlaceholder(translator, filter.title)
+              }
               type={inputType}
               outerDivClassName="relative rounded-md w-full"
             />

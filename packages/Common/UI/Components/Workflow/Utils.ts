@@ -1,4 +1,8 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "../../Utils/TranslateTemplate";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
@@ -55,7 +59,9 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
         name: model.singularName || "Model",
         description:
           model.tableDescription ||
-          `Interact with ${model.singularName} in your workflow.`,
+          translateTemplate("Interact with {{itemName}} in your workflow.", {
+            itemName: translatableTerm(model.singularName || "Model"),
+          }),
         icon: model.icon || IconProp.Database,
         tableName: model.tableName || undefined,
       });
