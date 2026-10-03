@@ -40,7 +40,8 @@ import { getPlanNeededToChange } from "./StatusPageSwitchRow";
  *
  * Like the switches beside it (StatusPageSwitchRow) it has no Edit button
  * and no dialog: the number is saved when the box is left or Enter is
- * pressed, and only when it changed. The box is locked while it saves and
+ * pressed, and only when it changed; Escape puts back the number the page
+ * has. The box is locked while it saves and
  * says "Saved" when it has; a number the server refuses goes back to the
  * one the page has, with the reason under it. A number the column cannot
  * hold (not a whole number, under 1, over the column's limit) is not sent
@@ -167,6 +168,13 @@ const StatusPageDaysSetting: FunctionComponent<ComponentProps> = (
           setText(value);
           setSaveState(SaveState.Idle);
           setError("");
+        }}
+        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>): void => {
+          if (event.key === "Escape" && !isSavingRef.current) {
+            setText(String(savedDays));
+            setSaveState(SaveState.Idle);
+            setError("");
+          }
         }}
         onEnterPress={(): void => {
           void save();

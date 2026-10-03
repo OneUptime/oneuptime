@@ -147,12 +147,14 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
     void fetchStatusPage();
   }, [props.statusPageId.toString()]);
 
-  const remember: (column: DisplaySettingColumn, value: boolean | number) => void =
-    (column: DisplaySettingColumn, value: boolean | number): void => {
-      setValues((current: StoredValues | null): StoredValues => {
-        return { ...(current || {}), [column]: value };
-      });
-    };
+  const remember: (
+    column: DisplaySettingColumn,
+    value: boolean | number,
+  ) => void = (column: DisplaySettingColumn, value: boolean | number): void => {
+    setValues((current: StoredValues | null): StoredValues => {
+      return { ...(current || {}), [column]: value };
+    });
+  };
 
   const renderSwitch: (
     stored: StoredValues,
@@ -218,7 +220,7 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
 
     // A section without a switch is always shown.
     const isShown: boolean = show
-      ? (shownSections[section.id] ?? isSwitchOn(stored, show))
+      ? shownSections[section.id] ?? isSwitchOn(stored, show)
       : true;
 
     const options: Array<DisplayOptionDefinition> = section.options.filter(

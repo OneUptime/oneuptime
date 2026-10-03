@@ -998,6 +998,46 @@ describe("how many days", () => {
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
   });
 
+  test("Escape puts back the number the page has, and nothing is saved", async () => {
+    await renderCard();
+    await loaded();
+
+    const box: HTMLInputElement = daysFor("showEpisodeHistoryInDays");
+
+    await act(async () => {
+      fireEvent.focus(box);
+      fireEvent.change(box, { target: { value: "0" } });
+    });
+
+    // A number it cannot take, said so on Enter...
+    await act(async () => {
+      fireEvent.keyDown(box, { key: "Enter", code: "Enter" });
+    });
+    expect(
+      screen.getByTestId(
+        `${getDisplayDaysTestId("showEpisodeHistoryInDays")}-error`,
+      ),
+    ).toBeInTheDocument();
+
+    // ...and taken back with Escape, the message with it.
+    await act(async () => {
+      fireEvent.keyDown(box, { key: "Escape", code: "Escape" });
+    });
+
+    expect(daysFor("showEpisodeHistoryInDays")).toHaveValue(14);
+    expect(
+      screen.queryByTestId(
+        `${getDisplayDaysTestId("showEpisodeHistoryInDays")}-error`,
+      ),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.blur(daysFor("showEpisodeHistoryInDays"));
+    });
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
   test("leaving the box with the number the page already has saves nothing", async () => {
     await renderCard();
     await loaded();
@@ -1312,9 +1352,9 @@ describe("plans", () => {
       "showEpisodeLabelsOnStatusPage",
       "showScheduledEventLabelsOnStatusPage",
     ] as Array<DisplaySwitchColumn>) {
-      expect(within(switchRowFor(column)).getByTestId("pill")).toHaveTextContent(
-        "Growth Plan",
-      );
+      expect(
+        within(switchRowFor(column)).getByTestId("pill"),
+      ).toHaveTextContent("Growth Plan");
     }
 
     expect(
@@ -1368,7 +1408,12 @@ describe("plans", () => {
     // Each request carried its own column alone.
     for (const call of updateByIdMock.mock.calls) {
       expect(
-        Object.keys((call[0] as Record<string, unknown>)["data"] as object),
+        Object.keys(
+          (call[0] as Record<string, unknown>)["data"] as Record<
+            string,
+            unknown
+          >,
+        ),
       ).toHaveLength(1);
     }
   });

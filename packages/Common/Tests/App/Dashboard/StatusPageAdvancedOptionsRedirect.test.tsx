@@ -12,11 +12,7 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import { ReactElement } from "react";
-import {
-  MemoryRouter,
-  Route as RouterRoute,
-  Routes,
-} from "react-router-dom";
+import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 
 /*
  * A status page had an Advanced Options page (…/status-pages/:id/

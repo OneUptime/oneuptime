@@ -377,18 +377,25 @@ describe("a number of days", () => {
     expect(parseDisplayDays(text)).toEqual({ isValid: true, days: days });
   });
 
-  test.each([[""], [" "], ["0"], ["-1"], ["1.5"], ["1e3"], ["abc"], ["14 days"], ["99999999999999999999"]])(
-    "%j is not a number of days",
-    (text: string) => {
-      const result: DaysParseResult = parseDisplayDays(text);
+  test.each([
+    [""],
+    [" "],
+    ["0"],
+    ["-1"],
+    ["1.5"],
+    ["1e3"],
+    ["abc"],
+    ["14 days"],
+    ["99999999999999999999"],
+  ])("%j is not a number of days", (text: string) => {
+    const result: DaysParseResult = parseDisplayDays(text);
 
-      expect(result).toEqual({
-        isValid: false,
-        error: StatusPageDisplaySettingsCopy.daysTooFew,
-        values: {},
-      });
-    },
-  );
+    expect(result).toEqual({
+      isValid: false,
+      error: StatusPageDisplaySettingsCopy.daysTooFew,
+      values: {},
+    });
+  });
 
   test("with a limit, says the range, and takes its ends", () => {
     expect(parseDisplayDays("90", 90)).toEqual({ isValid: true, days: 90 });
@@ -650,12 +657,12 @@ describe("translations", () => {
         ]);
       }
 
-      expect(translations[StatusPageDisplaySettingsCopy.uptimeDescription]).toContain(
-        "{{max}}",
-      );
-      expect(translations[StatusPageDisplaySettingsCopy.daysOutOfRange]).toContain(
-        "{{max}}",
-      );
+      expect(
+        translations[StatusPageDisplaySettingsCopy.uptimeDescription],
+      ).toContain("{{max}}");
+      expect(
+        translations[StatusPageDisplaySettingsCopy.daysOutOfRange],
+      ).toContain("{{max}}");
     },
   );
 });

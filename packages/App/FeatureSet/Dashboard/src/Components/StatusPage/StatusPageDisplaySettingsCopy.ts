@@ -262,9 +262,7 @@ export const DISPLAY_SECTIONS: ReadonlyArray<DisplaySectionDefinition> = [
 // Every switch on the card, section by section, in the order drawn.
 export const DISPLAY_SWITCHES: ReadonlyArray<DisplaySwitchDefinition> =
   DISPLAY_SECTIONS.flatMap(
-    (
-      section: DisplaySectionDefinition,
-    ): Array<DisplaySwitchDefinition> => {
+    (section: DisplaySectionDefinition): Array<DisplaySwitchDefinition> => {
       return [...(section.show ? [section.show] : []), ...section.options];
     },
   );

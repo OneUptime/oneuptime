@@ -5702,7 +5702,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]

@@ -25,8 +25,9 @@ type Recorded = { name: string; props: Record<string, unknown> };
 
 const recorded: Array<Recorded> = [];
 
-(globalThis as unknown as { __advancedSettingsRecorded: Array<Recorded> })
-  .__advancedSettingsRecorded = recorded;
+(
+  globalThis as unknown as { __advancedSettingsRecorded: Array<Recorded> }
+).__advancedSettingsRecorded = recorded;
 
 type Recorder = (
   name: string,

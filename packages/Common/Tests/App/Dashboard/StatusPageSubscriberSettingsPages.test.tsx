@@ -630,7 +630,10 @@ describe("Advanced Settings", () => {
     const requested: Array<string> = getItemMock.mock.calls.flatMap(
       (call: Array<unknown>): Array<string> => {
         return Object.keys(
-          ((call[0] as Record<string, unknown>)["select"] as object) || {},
+          ((call[0] as Record<string, unknown>)["select"] as Record<
+            string,
+            unknown
+          >) || {},
         );
       },
     );
