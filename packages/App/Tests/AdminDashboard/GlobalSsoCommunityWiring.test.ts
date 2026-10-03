@@ -327,10 +327,15 @@ describe("the pages stay reachable at their unchanged paths", () => {
   test("Settings > Authentication renders the Require SSO toggle unconditionally", () => {
     const source: string = readAdminSource(AUTHENTICATION_PAGE.path);
 
-    // The card sits directly in the page, not behind a condition.
-    expect(source).toMatch(/\/>\s*<CardModelDetail\s+name="SSO Settings"/);
-    expect(source).toContain("requireSsoForLogin: true,");
-    expect(source).toContain('id: "model-detail-sso-settings"');
+    /*
+     * The switch sits directly in the page, not behind a condition: the
+     * Sign Up switch's card closes right before it.
+     */
+    expect(source).toMatch(
+      /\/>\s*<ModelSwitchCard<GlobalConfig>\s+modelType=\{GlobalConfig\}\s+modelId=\{globalConfigId\}\s+column="requireSsoForLogin"/,
+    );
+    expect(source).toContain("getConfirmation={getRequireSsoConfirmation}");
+    expect(source).not.toContain("CardModelDetail");
     expect(source).not.toContain('from "Common/UI/Components/Card/Card"');
   });
 });

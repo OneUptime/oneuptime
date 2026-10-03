@@ -4,20 +4,21 @@ import nodePath from "path";
 
 /*
  * The Admin Dashboard's Project > Support page is the staff-side copy of the
- * "Enable Customer Support Access" card the customer has in their own Project
+ * "Customer Support Access" switch the customer has in their own Project
  * Settings. Both write one column - Project.letCustomerSupportAccessProject -
- * and everything that connects this page to that column is hand-written and
+ * and both save the moment they are flipped (the shared ModelSwitchCard).
+ * Everything that connects this page to that column is hand-written and
  * fails silently:
  *
  *  - a missing RouteMap entry makes RouteUtil.populateRouteParams stringify
  *    `undefined`, so the side-menu link and the breadcrumb both point at
  *    "/undefined";
  *  - a missing PageRoute in App.tsx renders a blank page under a working link;
- *  - the field name in the form is an untyped-at-the-wire string as far as a
- *    reader is concerned, and a page that toggled a column the model does not
- *    have would render an empty card and 400 on save;
+ *  - the switch's column is a string as far as a reader is concerned, and a
+ *    page that switched a column the model does not have would render an
+ *    empty card and 400 on save;
  *  - and a locale missing a key renders the raw key ("pages.projectSupport.
- *    fieldLabel") to staff as the toggle's label.
+ *    fieldLabel") to staff as the switch's label.
  *
  * The admin dashboard has no React render harness (App's jest environment is
  * "node" and the package carries no react/testing-library), so this asserts
@@ -65,6 +66,11 @@ function readSource(root: string, relativePath: string): string {
   );
 }
 
+// Whitespace collapsed, for assertions about code prettier may wrap.
+function squash(source: string): string {
+  return source.replace(/\s+/g, " ");
+}
+
 const supportSource: string = readSource(
   ADMIN_DASHBOARD_SRC,
   "Pages/Projects/View/Support.tsx",
@@ -77,10 +83,20 @@ const sideMenuSource: string = readSource(
   "Pages/Projects/View/SideMenu.tsx",
 );
 
-/* The customer-facing card this page mirrors. */
+/* The customer-facing switch this page mirrors, and the page it is on. */
 const projectSettingsSource: string = readSource(
   DASHBOARD_SRC,
   "Pages/Settings/ProjectSettings.tsx",
+);
+
+const customerSwitchCopySource: string = readSource(
+  DASHBOARD_SRC,
+  "Components/Project/CustomerSupportAccessSwitchCopy.ts",
+);
+
+const customerSwitchCardSource: string = readSource(
+  DASHBOARD_SRC,
+  "Components/Project/CustomerSupportAccessCard.tsx",
 );
 
 /* Not comment-stripped: the assertions below are about decorator metadata. */
@@ -261,17 +277,18 @@ describe("Project > Support page registration", () => {
 });
 
 describe("Project > Support page behaviour", () => {
-  test("the card toggles the column the Project model actually declares", () => {
+  test("the switch writes the column the Project model actually declares", () => {
     /*
      * The one assertion that ties the page to the database. A page naming a
-     * column the model does not have renders an empty card and 400s on save,
-     * and nothing about that spelling is checked by a compile: the field
-     * descriptors take a plain object literal.
+     * column the model does not have renders an empty card and 400s on save.
+     * ModelSwitchCard's column is typed to the model's boolean columns, but
+     * pin the spelling here too.
      */
     expect(projectModelSource).toContain(
       "public letCustomerSupportAccessProject?: boolean",
     );
-    expect(supportSource).toContain("letCustomerSupportAccessProject: true");
+    expect(supportSource).toContain("<ModelSwitchCard<Project>");
+    expect(supportSource).toContain('column="letCustomerSupportAccessProject"');
   });
 
   test("it is the same column the customer's own Project Settings writes", () => {
@@ -279,18 +296,22 @@ describe("Project > Support page behaviour", () => {
      * Two pages, one switch. If they ever drift apart, staff would be flipping
      * something the customer cannot see - so pin that they name one column.
      */
-    expect(projectSettingsSource).toContain(
-      "letCustomerSupportAccessProject: true",
+    expect(projectSettingsSource).toContain("<CustomerSupportAccessCard");
+    expect(customerSwitchCardSource).toContain(
+      "column={CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN}",
+    );
+    expect(squash(customerSwitchCopySource)).toContain(
+      'export const CUSTOMER_SUPPORT_ACCESS_SWITCH_COLUMN: CustomerSupportAccessSwitchColumn = "letCustomerSupportAccessProject";',
     );
   });
 
-  test("the toggle is editable, or the page is just a read-only echo of Project Settings", () => {
-    expect(supportSource).toContain("isEditable={true}");
-    expect(supportSource).toContain("FormFieldSchemaType.Toggle");
-  });
-
-  test("the detail row renders the column as a boolean rather than raw text", () => {
-    expect(supportSource).toContain("FieldType.Boolean");
+  test("the switch is the whole card: no Edit dialog, no read-only echo", () => {
+    expect(supportSource).not.toContain("CardModelDetail");
+    expect(supportSource).not.toContain("FormFieldSchemaType");
+    expect(supportSource).not.toContain("editButtonText");
+    expect(supportSource).toContain(
+      'dataTestId={PROJECT_SUPPORT_ACCESS_SWITCH_TEST_ID}',
+    );
   });
 
   test("the page reads and writes through the admin API", () => {
@@ -303,22 +324,49 @@ describe("Project > Support page behaviour", () => {
     expect(supportSource).toMatch(
       /import AdminModelAPI from "\.\.\/\.\.\/\.\.\/Utils\/ModelAPI"/,
     );
+
+    // The page's frame and the switch both: two reads, one write path.
+    expect(supportSource.split("modelAPI={AdminModelAPI}").length - 1).toBe(3);
   });
 
-  test("the project id is memoized, so the card does not refetch on every render", () => {
+  test("the project id is memoized, so the switch does not read again on every render", () => {
     /*
-     * ModelDetail's effect depends on props.modelId BY IDENTITY. A fresh
+     * ModelPage's effect depends on props.modelId BY IDENTITY. A fresh
      * ObjectID built during render would refetch forever once anything on the
-     * page sets state - which the edit modal does on every open and close.
+     * page sets state - which the switch does on every flip.
      */
     expect(supportSource).toMatch(
       /const modelId: ObjectID = useMemo\(\(\) => \{[\s\S]{0,120}\}, \[modelIdString\]\)/,
     );
   });
 
-  test("staff are told the customer owns this switch before they flip it", () => {
-    expect(supportSource).toContain("AlertType.WARNING");
-    expect(supportSource).toContain("pages.projectSupport.consentWarning");
+  /*
+   * The customer owns the switch. Staff are told so before they turn it on:
+   * the consent warning that used to be a banner above the card on every
+   * visit is the dialog that turning it on opens. Turning it off - taking
+   * support's access away - saves at once.
+   */
+  test("staff are told the customer owns this switch before they turn it on", () => {
+    expect(supportSource).not.toContain("AlertType.WARNING");
+    expect(supportSource).toContain("getConfirmation={(");
+
+    const confirmation: string = squash(
+      supportSource.split("getConfirmation={(")[1]?.split("dataTestId=")[0] ||
+        "",
+    );
+
+    // Turning it off never asks.
+    expect(confirmation).toContain("if (!isTurningOn) { return undefined; }");
+
+    expect(confirmation).toContain(
+      'title: t("pages.projectSupport.allowConfirmTitle")',
+    );
+    expect(confirmation).toContain(
+      'description: t("pages.projectSupport.consentWarning")',
+    );
+    expect(confirmation).toContain(
+      'submitButtonText: t("pages.projectSupport.allowConfirmButton")',
+    );
   });
 
   test("the breadcrumb trail leads back to the project, not just to the projects list", () => {
@@ -343,9 +391,7 @@ describe("SaaS gating", () => {
     const earlyReturnIndex: number = supportSource.indexOf(
       "if (!BILLING_ENABLED)",
     );
-    const cardIndex: number = supportSource.indexOf(
-      '"Customer Support Access"',
-    );
+    const cardIndex: number = supportSource.indexOf("<ModelSwitchCard");
 
     expect(earlyReturnIndex).toBeGreaterThan(-1);
     expect(cardIndex).toBeGreaterThan(-1);
@@ -374,9 +420,9 @@ describe("SaaS gating", () => {
     expect(beforeSupportSection.slice(-100)).toContain("BILLING_ENABLED ?");
   });
 
-  test("the customer's own Project Settings card is gated the same way", () => {
+  test("the customer's own Project Settings switch is gated the same way", () => {
     expect(projectSettingsSource).toMatch(
-      /BILLING_ENABLED &&[\s\S]{0,800}letCustomerSupportAccessProject/,
+      /BILLING_ENABLED && \(\s*<CustomerSupportAccessCard/,
     );
   });
 });
