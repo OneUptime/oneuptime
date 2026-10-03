@@ -16,9 +16,9 @@ import OneUptimeDate from "Common/Types/Date";
  * of its own.
  *
  * Every job runs every 15 minutes, like the status page ones, and every
- * job that orders certificates is capped per run (ORDER_MAX_PER_RUN in
- * DashboardDomainService, RENEW_MAX_PER_RUN in GreenlockUtil), because each
- * order spends from the Let's Encrypt account the whole installation shares.
+ * job that orders certificates - renewals included - orders at most
+ * DashboardDomainService.ORDER_MAX_PER_RUN per run, because each order
+ * spends from the Let's Encrypt account the whole installation shares.
  *
  * DASHBOARD_CNAME_RECORD is the switch for dashboard custom domains: without
  * it the Custom Domains API refuses to verify or order anything, so these
