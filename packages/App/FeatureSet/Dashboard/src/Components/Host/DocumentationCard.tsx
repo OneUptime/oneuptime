@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
@@ -23,6 +24,7 @@ const HostDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Server}
+      newKeyName={translationKey("Hosts key")}
       optionsLabel="How do you want to install the collector?"
       options={HOST_INSTALL_METHODS}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {

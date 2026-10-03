@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
@@ -29,6 +30,7 @@ const DockerSwarmDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.DockerSwarm}
+      newKeyName={translationKey("Docker Swarm key")}
       optionsLabel="How do you want to install the agent?"
       options={DOCKER_SWARM_INSTALL_METHODS}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {

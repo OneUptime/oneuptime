@@ -160,6 +160,7 @@ const renderCard: (options?: RenderOptions) => {
           initialOption={renderOptions.initialOption}
           onOptionChange={renderOptions.onOptionChange}
           getKeyTypeFilter={renderOptions.getKeyTypeFilter}
+          newKeyName="Thing key"
           getContent={renderOptions.getContent || buildContent}
         />
       </MemoryRouter>
@@ -729,12 +730,17 @@ describe("SetupGuideCard", () => {
       await waitFor(() => {
         expect(getList).toHaveBeenCalled();
       });
+      /*
+       * An option that names no type lists Server keys: an agent or a
+       * collector sends no Origin header, so a Browser key would be
+       * refused on every export.
+       */
       const firstQuery: Record<string, unknown> = (
         getList.mock.calls[0]![0] as unknown as {
           query: Record<string, unknown>;
         }
       ).query;
-      expect(firstQuery["keyType"]).toBeUndefined();
+      expect(firstQuery["keyType"]).toBe(TelemetryIngestionKeyType.Server);
 
       fireEvent.click(radio("Beta"));
 

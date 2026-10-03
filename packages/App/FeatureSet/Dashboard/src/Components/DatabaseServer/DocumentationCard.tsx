@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Route from "Common/Types/API/Route";
 import SetupGuideCard, {
   SetupGuideRenderContext,
@@ -101,6 +102,7 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Database}
+      newKeyName={translationKey("Databases key")}
       optionsLabel="Which database engine?"
       options={props.database ? undefined : DATABASE_AGENT_SYSTEM_OPTIONS}
       optionsLayout="pills"

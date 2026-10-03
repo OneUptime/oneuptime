@@ -29,6 +29,7 @@ const ProxmoxDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Proxmox}
+      newKeyName={translationKey("Proxmox key")}
       optionsLabel="How do you want to connect your cluster?"
       options={PROXMOX_CONNECT_METHODS}
       keyStepDescription={translationKey(

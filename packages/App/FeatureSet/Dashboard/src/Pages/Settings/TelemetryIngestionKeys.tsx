@@ -1,49 +1,75 @@
-import ProjectUtil from "Common/UI/Utils/Project";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import IconProp from "Common/Types/Icon/IconProp";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
+import { TelemetryPayAsYouGoCard } from "../../Components/Billing/PayAsYouGo";
 import {
-  TelemetryPayAsYouGoCard,
-  getTelemetryPayAsYouGoFormFields,
-} from "../../Components/Billing/PayAsYouGo";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+  getIngestionKeyFormFields,
+  getIngestionKeyFormSteps,
+  prepareIngestionKeyForCreate,
+} from "../../Components/Telemetry/IngestionKeyForm";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 
-/*
- * The origin allowlist and the pinned service name mean something only on a
- * Browser key - the ingest guard ignores both on a Server key - so the form
- * hides them until Browser is picked. Showing a field the server will
- * silently ignore is worse than not showing it at all: it reads as
- * protection that is not actually there.
- */
-type IsBrowserKeyFunction = (
-  item: FormValues<TelemetryIngestionKey>,
-) => boolean;
+type GetIngestionKeyRouteFunction = (item: TelemetryIngestionKey) => Route;
 
-const isBrowserKey: IsBrowserKeyFunction = (
-  item: FormValues<TelemetryIngestionKey>,
-): boolean => {
-  return item.keyType === TelemetryIngestionKeyType.Browser;
+// The key's own page: where its secret is.
+const getIngestionKeyRoute: GetIngestionKeyRouteFunction = (
+  item: TelemetryIngestionKey,
+): Route => {
+  return new Route(
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW] as Route,
+      {
+        modelId: new ObjectID(item._id as string),
+      },
+    ).toString(),
+  );
 };
 
-const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const billingFields: Array<ModelField<TelemetryIngestionKey>> =
-    getTelemetryPayAsYouGoFormFields();
+const TelemetryIngestionKeys: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  /*
+   * The create form every door onto a new key shares
+   * (Components/Telemetry/IngestionKeyForm): a name already filled in -
+   * "Server key", following the type until someone types their own - the
+   * type, Server picked, and the description under Advanced. A Browser key
+   * walks on to its allowed origins, and the Free plan to the pricing.
+   * Built once: the Free plan's Billing step is decided by the plan.
+   */
+  const formSteps: Array<FormStep<TelemetryIngestionKey>> = useMemo((): Array<
+    FormStep<TelemetryIngestionKey>
+  > => {
+    return getIngestionKeyFormSteps({});
+  }, []);
+
+  const formFields: Array<ModelField<TelemetryIngestionKey>> =
+    useMemo((): Array<ModelField<TelemetryIngestionKey>> => {
+      return getIngestionKeyFormFields({});
+    }, []);
 
   return (
     <Fragment>
       {/*
        * Telemetry is metered and nothing about it is included in the Free
        * plan, so a Free plan project is told what an ingestion key costs
-       * before it creates one, including a dedicated step in the modal.
+       * before it creates one, including a step in the create dialog.
        */}
       <TelemetryPayAsYouGoCard />
       <ModelTable<TelemetryIngestionKey>
@@ -69,165 +95,28 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
         }}
         noItemsMessage={"No telemetry ingestion keys found."}
-        formSteps={[
-          { id: "details", title: "Details" },
-          { id: "key-type", title: "Key Type" },
-          {
-            id: "browser-settings",
-            title: "Browser Settings",
-            showIf: isBrowserKey,
-          },
-          ...(billingFields.length > 0
-            ? [{ id: "billing", title: "Billing" }]
-            : []),
-        ]}
-        formSummary={{ enabled: true }}
+        formSteps={formSteps}
+        formFields={formFields}
         onBeforeCreate={async (
           item: TelemetryIngestionKey,
         ): Promise<TelemetryIngestionKey> => {
-          // The JSON editor holds text; the API expects an array of origins.
-          const origins: unknown = item.allowedOrigins;
-          if (
-            item.keyType === TelemetryIngestionKeyType.Browser &&
-            typeof origins === "string"
-          ) {
-            item.allowedOrigins = JSON.parse(origins) as Array<string>;
-          }
-          return item;
+          return prepareIngestionKeyForCreate(item, {});
         }}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "details",
-            description: "Give this key a name you will recognize later.",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Ingestion Key Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "details",
-            description: "Describe where this key will be used.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Ingestion Key Description",
-          },
-          {
-            field: {
-              keyType: true,
-            },
-            title: "Key Type",
-            stepId: "key-type",
-            fieldType: FormFieldSchemaType.CardSelect,
-            cardSelectSingleColumn: true,
-            cardSelectOptions: [
-              {
-                value: TelemetryIngestionKeyType.Server,
-                title: "Server",
-                icon: IconProp.Server,
-                description:
-                  "For servers, containers and OpenTelemetry collectors. Writes every kind of telemetry without origin restrictions. Keep it secret: never include it in browser JavaScript or a mobile app.",
-              },
-              {
-                value: TelemetryIngestionKeyType.Browser,
-                title: "Browser",
-                icon: IconProp.Globe,
-                description:
-                  "For public web telemetry and React Native session replay. Web origins may send traces, logs, metrics and replays; exact app:// identities authorize mobile replay only. Requests are rate limited. Configure the identities in the next step.",
-              },
-            ],
-            required: true,
-            defaultValue: TelemetryIngestionKeyType.Server,
-            onChange: (
-              value: string,
-              values: FormValues<TelemetryIngestionKey>,
-              setValues: (values: FormValues<TelemetryIngestionKey>) => void,
-            ): void => {
-              if (value === TelemetryIngestionKeyType.Server) {
-                /*
-                 * Browser-only drafts must not reach JSON parsing or the API
-                 * after the user chooses a Server key.
-                 */
-                setValues({
-                  ...values,
-                  allowedOrigins: undefined,
-                  pinnedServiceName: undefined,
-                });
-              }
-            },
-            description:
-              "Choose where you will send telemetry from. The key type cannot be changed after creation.",
-          },
-          {
-            field: {
-              allowedOrigins: true,
-            },
-            title: "Allowed Origins",
-            stepId: "browser-settings",
-            fieldType: FormFieldSchemaType.JSON,
-            showIf: isBrowserKey,
-            required: isBrowserKey,
-            /*
-             * Shared with the key's detail page, which edits the same list
-             * and used to check none of this. A new browser key may not be
-             * created with an empty list: it would be refused on every
-             * request from the moment it exists.
-             */
-            customValidation: (
-              values: FormValues<TelemetryIngestionKey>,
-            ): string | null => {
-              if (!values.allowedOrigins) {
-                return null; // Let the required-field validation explain this.
-              }
+        /*
+         * A key is created to be used, and what using it takes - its secret
+         * - is on its own page. Landing there beats leaving the user to find
+         * the new row in the list and click through.
+         */
+        onCreateSuccess={(
+          item: TelemetryIngestionKey,
+          modalType?: ModalType,
+        ): Promise<TelemetryIngestionKey> => {
+          if (modalType === ModalType.Create && item._id) {
+            Navigation.navigate(getIngestionKeyRoute(item));
+          }
 
-              return OriginAllowList.validateAllowedOriginsFormValue({
-                value: values.allowedOrigins,
-                allowEmptyList: false,
-              });
-            },
-            placeholder:
-              '["https://app.example.com", "app://com.example.mobile"]',
-            description:
-              'List web origins and exact native app identities as a JSON array. Web origins include the scheme and any port; one leading host wildcard is supported. React Native session replay uses "app://" plus the Android package or iOS bundle id, and app entries cannot contain wildcards. An app identity is self-asserted by the client, not platform attestation.',
-          },
-          {
-            field: {
-              pinnedServiceName: true,
-            },
-            title: "Pinned Service Name",
-            stepId: "browser-settings",
-            fieldType: FormFieldSchemaType.Text,
-            showIf: isBrowserKey,
-            required: false,
-            placeholder: "storefront-web",
-            description:
-              "Set service.name on all telemetry sent with this key. This prevents someone who copies the public key from writing telemetry under a different service name.",
-          },
-          ...billingFields.map(
-            (
-              field: ModelField<TelemetryIngestionKey>,
-            ): ModelField<TelemetryIngestionKey> => {
-              return {
-                ...field,
-                stepId: "billing",
-                getSummaryElement: (
-                  values: FormValues<TelemetryIngestionKey>,
-                ): ReactElement => {
-                  return field.getCustomElement?.(values, {}) || <></>;
-                },
-              };
-            },
-          ),
-        ]}
+          return Promise.resolve(item);
+        }}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -302,4 +191,4 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 };
 
-export default APIKeys;
+export default TelemetryIngestionKeys;
