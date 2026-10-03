@@ -178,6 +178,7 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import StatusPageResources from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Resources";
+import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
@@ -2739,6 +2740,290 @@ describe("Status Page > Resources", () => {
 
         expect(deletedIds().sort()).toEqual(["grid-a", "grid-b"]);
       });
+    });
+  });
+
+  /*
+   * "The idea is to make software as simple as possible to use and reduce
+   * decision paralysis." The forms this page opens ask for what a resource
+   * or a group cannot exist without, and fold the rest: none of them walks
+   * steps any more. Read off the props the page hands each dialog.
+   */
+  describe("the forms it opens", () => {
+    type FieldKeysFunction = (fields: Array<any>) => Array<string>;
+
+    const fieldKeys: FieldKeysFunction = (
+      fields: Array<any>,
+    ): Array<string> => {
+      return fields.map((field: any): string => {
+        return Object.keys(field.field || {})[0] || "";
+      });
+    };
+
+    const RESOURCE_FIELD_KEYS: Array<string> = [
+      "monitor",
+      "displayName",
+      "displayDescription",
+      "displayTooltip",
+      "showCurrentStatus",
+      "showUptimePercent",
+      "uptimePercentPrecision",
+      "showStatusHistoryChart",
+    ];
+
+    test("Add Monitor is one page: the monitor, its name, then Advanced", async () => {
+      setUpApi({
+        groups: buildHierarchy(),
+        resources: [makeResource({ id: "loose", monitorName: "Loose" })],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Market 1001");
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-add"));
+      await flushEffects();
+
+      const formProps: any = lastFormModal().formProps;
+
+      expect(formProps.steps).toBeUndefined();
+      expect(fieldKeys(formProps.fields)).toEqual(RESOURCE_FIELD_KEYS);
+
+      expect(formProps.fields[0].collapsibleSection).toBeUndefined();
+      expect(formProps.fields[1].collapsibleSection).toBeUndefined();
+
+      const advanced: any = formProps.fields[2].collapsibleSection;
+
+      expect(advanced.id).toBe("advanced");
+      expect(advanced.title).toBe("Advanced");
+
+      for (const field of formProps.fields.slice(2)) {
+        expect(field.collapsibleSection).toBe(advanced);
+      }
+
+      for (const field of formProps.fields) {
+        expect(field.stepId).toBeUndefined();
+      }
+    });
+
+    /*
+     * Every resource in a grid group lives in a cell. The row and column are
+     * what the group needs from it, so they are asked for under the name,
+     * never folded away under Advanced.
+     */
+    test("a grid group's Add Monitor asks for the cell above the fold", async () => {
+      setUpApi({
+        groups: buildHierarchy(),
+        resources: [makeResource({ id: "loose", monitorName: "Loose" })],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Grid Group");
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-add"));
+      await flushEffects();
+
+      const fields: Array<any> = lastFormModal().formProps.fields;
+
+      expect(fieldKeys(fields)).toEqual([
+        "monitor",
+        "displayName",
+        "rowAxisValue",
+        "columnAxisValue",
+        ...RESOURCE_FIELD_KEYS.slice(2),
+      ]);
+
+      const [row, column]: Array<any> = fields.slice(2, 4);
+
+      expect(row.title).toBe("Service (Row)");
+      expect(column.title).toBe("Region (Column)");
+
+      for (const cellField of [row, column]) {
+        expect(cellField.required).toBe(true);
+        expect(cellField.collapsibleSection).toBeUndefined();
+        expect(cellField.stepId).toBeUndefined();
+      }
+
+      expect(row.dropdownOptions).toEqual([
+        { label: "Auth", value: "Auth" },
+        { label: "API", value: "API" },
+      ]);
+    });
+
+    test("Edit resource is the same one-page form", async () => {
+      setUpApi({
+        groups: buildHierarchy(),
+        resources: [makeResource({ id: "loose", monitorName: "Loose" })],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      fireEvent.click(screen.getByRole("button", { name: "Edit Loose" }));
+      await flushEffects();
+
+      expect(screen.getByTestId("model-form-modal").textContent).toBe(
+        "Edit resource",
+      );
+
+      const formProps: any = lastFormModal().formProps;
+
+      expect(formProps.steps).toBeUndefined();
+      expect(fieldKeys(formProps.fields)).toEqual(RESOURCE_FIELD_KEYS);
+    });
+
+    test("the group form is one page: its name and parent, then Layout and Advanced folded", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      fireEvent.click(screen.getByText("New Group"));
+      await flushEffects();
+
+      const formProps: any = lastFormModal().formProps;
+
+      expect(formProps.steps).toBeUndefined();
+      expect(fieldKeys(formProps.fields)).toEqual([
+        "name",
+        "parentStatusPageGroup",
+        "viewMode",
+        "rowAxisLabel",
+        "rowAxisValues",
+        "columnAxisLabel",
+        "columnAxisValues",
+        "description",
+        "isExpandedByDefault",
+        "showCurrentStatus",
+        "showUptimePercent",
+        "uptimePercentPrecision",
+      ]);
+
+      const layout: any = formProps.fields[2].collapsibleSection;
+      const advanced: any = formProps.fields[7].collapsibleSection;
+
+      expect(formProps.fields[0].collapsibleSection).toBeUndefined();
+      expect(formProps.fields[1].collapsibleSection).toBeUndefined();
+
+      for (const field of formProps.fields.slice(2, 7)) {
+        expect(field.collapsibleSection).toBe(layout);
+      }
+
+      for (const field of formProps.fields.slice(7)) {
+        expect(field.collapsibleSection).toBe(advanced);
+      }
+
+      expect(layout.title).toBe("Layout");
+      expect(advanced.title).toBe("Advanced");
+      // Advanced stays folded on Edit; Layout opens for a grid.
+      expect(advanced.openWhenConfigured).toBe(false);
+      expect(layout.openWhenConfigured).not.toBe(false);
+
+      // Folded, Layout says what the group is laid out as.
+      expect(layout.getSummary({})).toEqual(["List"]);
+      expect(
+        layout.getSummary({ viewMode: StatusPageGroupViewMode.List }),
+      ).toEqual(["List"]);
+      expect(
+        layout.getSummary({ viewMode: StatusPageGroupViewMode.Grid }),
+      ).toEqual(["Grid"]);
+      expect(layout.isConfigured({ viewMode: StatusPageGroupViewMode.Grid })).toBe(
+        true,
+      );
+      expect(layout.isConfigured({ viewMode: StatusPageGroupViewMode.List })).toBe(
+        false,
+      );
+    });
+
+    /*
+     * The fields drawn by the real form: a list group's Layout is one folded
+     * line saying "List"; a grid group's opens by itself onto the axes it
+     * needs - which is where "Set up the grid" lands.
+     */
+    test.each([
+      [
+        "a list group's Layout is folded and says List",
+        {
+          name: "Corporate",
+          viewMode: StatusPageGroupViewMode.List,
+        },
+        false,
+      ],
+      [
+        "a grid group's Layout opens by itself onto its axes",
+        {
+          name: "Grid Group",
+          viewMode: StatusPageGroupViewMode.Grid,
+          rowAxisLabel: "Service",
+          columnAxisLabel: "Region",
+        },
+        true,
+      ],
+    ])("%s", async (_title: string, values: any, isOpen: boolean) => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      fireEvent.click(screen.getByText("New Group"));
+      await flushEffects();
+
+      const fields: Array<any> = lastFormModal().formProps.fields;
+
+      const view: ReturnType<typeof render> = render(
+        <BasicForm
+          id="status-page-group-form-under-test"
+          name="Status Page Group"
+          fields={fields}
+          initialValues={values}
+          onSubmit={() => {
+            // Not submitted.
+          }}
+          submitButtonText="Save Changes"
+        />,
+      );
+
+      const form: HTMLElement = view.container;
+
+      const layoutHeader: HTMLElement = await within(form).findByRole(
+        "button",
+        { name: "Layout" },
+      );
+      const advancedHeader: HTMLElement = within(form).getByRole("button", {
+        name: "Advanced",
+      });
+
+      // Advanced always starts folded.
+      expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
+      expect(within(form).getByText("Group Description")).not.toBeVisible();
+
+      expect(layoutHeader).toHaveAttribute(
+        "aria-expanded",
+        isOpen ? "true" : "false",
+      );
+
+      if (isOpen) {
+        expect(within(form).getByText("View Mode")).toBeVisible();
+        expect(within(form).getByText("Row Axis Label")).toBeVisible();
+        expect(within(form).getByText("Column Axis Values")).toBeVisible();
+      } else {
+        expect(within(form).getByText("View Mode")).not.toBeVisible();
+        expect(
+          within(form).getByTestId("collapsible-section-summary"),
+        ).toHaveTextContent("List");
+      }
+
+      // The name and parent are always on the page.
+      expect(within(form).getByText("Group Name")).toBeVisible();
+      expect(within(form).getByText("Parent Group")).toBeVisible();
     });
   });
 });
