@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -218,29 +218,33 @@ const renderModal: RenderModalFunction = (
   );
 };
 
-type GoToLastStepFunction = (view: ReturnType<typeof render>) => Promise<void>;
+type SubmitFunction = (view: ReturnType<typeof render>) => Promise<void>;
 
 /*
- * The form has the same "Monitor Details" then "Advanced" steps as the single
- * resource form. The monitors are all it asks for, so its main button adds
- * them from the first step; the plain Next beside it walks on to Advanced.
+ * One page: the monitors, then the display options folded under Advanced at
+ * their defaults. Add Monitors is the dialog's one button, there from the
+ * start - there is no step to walk to first.
  */
-const goToLastStep: GoToLastStepFunction = async (
+const submit: SubmitFunction = async (
   view: ReturnType<typeof render>,
 ): Promise<void> => {
   await waitFor(() => {
-    expect(view.getByTestId("modal-footer-next-button")).toBeInTheDocument();
+    expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Add Monitors",
+    );
   });
-  fireEvent.click(view.getByTestId("modal-footer-next-button"));
+  expect(view.queryByTestId("modal-footer-next-button")).toBeNull();
+  fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+};
 
-  await waitFor(() => {
-    expect(
-      view.queryByTestId("modal-footer-next-button"),
-    ).not.toBeInTheDocument();
-  });
-  expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-    "Add Monitors",
-  );
+type AdvancedHeaderFunction = (
+  view: ReturnType<typeof render>,
+) => Promise<HTMLElement>;
+
+const advancedHeader: AdvancedHeaderFunction = async (
+  view: ReturnType<typeof render>,
+): Promise<HTMLElement> => {
+  return view.findByRole("button", { name: "Advanced" });
 };
 
 const callOrder: Array<string> = [];
@@ -277,27 +281,32 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     });
   });
 
-  test("asks for monitors and the resource options, but never a display name", () => {
+  test("asks for the monitors only: no steps, no display name, the options folded", async () => {
     const view: ReturnType<typeof render> = renderModal();
 
     expect(view.getByText("Monitors")).toBeVisible();
 
-    /*
-     * The step names are read off the progress nav rather than the whole
-     * modal: the form also renders the current step's name as a heading over
-     * its fields, so an unscoped query for "Monitor Details" matches twice.
-     */
-    const steps: HTMLElement = view.getByRole("navigation", {
-      name: "Progress",
-    });
+    // One page: no step list, and nothing to walk to.
+    expect(view.queryByRole("navigation", { name: "Progress" })).toBeNull();
+    expect(view.queryByText("Monitor Details")).not.toBeInTheDocument();
 
-    expect(within(steps).getByText("Monitor Details")).toBeVisible();
-    expect(within(steps).getByText("Advanced")).toBeVisible();
+    // Copied from each monitor, so never asked for.
     expect(view.queryByText("Display Name")).not.toBeInTheDocument();
     expect(view.queryByText("Description")).not.toBeInTheDocument();
+
+    // The display options are folded under Advanced, at their defaults.
+    const header: HTMLElement = await advancedHeader(view);
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(view.getByText("Tooltip")).not.toBeVisible();
+    expect(view.getByText("Show Current Resource Status")).not.toBeVisible();
+    expect(view.getByText("Show Uptime %")).not.toBeVisible();
+    expect(view.getByText("Show Status History Chart")).not.toBeVisible();
+    // Nothing in it is set: its header says nothing.
+    expect(view.queryByText("Configured")).toBeNull();
   });
 
-  test("offers Add Monitors from the first step, with a plain Next to the Advanced options", async () => {
+  test("has one button, Add Monitors, and no Next", async () => {
     const view: ReturnType<typeof render> = renderModal();
 
     await waitFor(() => {
@@ -305,21 +314,15 @@ describe("BulkAddStatusPageMonitorsModal", () => {
         "Add Monitors",
       );
     });
-    expect(view.getByTestId("modal-footer-next-button")).toHaveTextContent(
-      "Next",
-    );
+    expect(view.queryByTestId("modal-footer-next-button")).toBeNull();
+    expect(view.queryByRole("button", { name: "Next" })).toBeNull();
   });
 
-  test("adds the selected monitors from the first step, the Advanced options at their defaults", async () => {
+  test("adds the selected monitors straight away, the Advanced options at their defaults", async () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await waitFor(() => {
-      expect(view.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-        "Add Monitors",
-      );
-    });
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -342,18 +345,43 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     });
   });
 
-  test("Next to Advanced still asks for the monitors first", async () => {
+  test("opens Advanced on a click, and what is changed there goes with every monitor", async () => {
     const view: ReturnType<typeof render> = renderModal();
 
-    await waitFor(() => {
-      expect(view.getByTestId("modal-footer-next-button")).toBeInTheDocument();
-    });
-    fireEvent.click(view.getByTestId("modal-footer-next-button"));
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+
+    const header: HTMLElement = await advancedHeader(view);
+    fireEvent.click(header);
+    expect(header).toHaveAttribute("aria-expanded", "true");
+
+    // Uptime is off by default; turning it on brings its precision in.
+    expect(view.queryByText("Select Uptime Precision")).toBeNull();
+    fireEvent.click(view.getByRole("switch", { name: /Show Uptime %/ }));
+    expect(view.getByText("Select Uptime Precision")).toBeVisible();
+
+    // And the status history chart, on by default, off.
+    fireEvent.click(
+      view.getByRole("switch", { name: /Show Status History Chart/ }),
+    );
+
+    // Folded again, the header says something in it is set.
+    fireEvent.click(header);
+    expect(view.getByText("Configured")).toBeVisible();
+
+    await submit(view);
 
     await waitFor(() => {
-      expect(view.getByText("Monitors is required.")).toBeVisible();
+      expect(mockBulkAdd).toHaveBeenCalledTimes(1);
     });
-    expect(mockBulkAdd).not.toHaveBeenCalled();
+
+    expect(mockBulkAdd.mock.calls[0]![0].resourceOptions).toEqual({
+      displayTooltip: undefined,
+      showCurrentStatus: true,
+      showUptimePercent: true,
+      // The precision's own default, though it was never touched.
+      uptimePercentPrecision: "99.9% (One Decimal)",
+      showStatusHistoryChart: false,
+    });
   });
 
   test("requires at least one monitor before the bulk add runs", async () => {
@@ -374,8 +402,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal({ onComplete });
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -431,8 +458,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     );
     fireEvent.click(view.getByRole("button", { name: "Choose Select region" }));
 
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -456,8 +482,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -474,8 +499,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -498,8 +522,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -517,8 +540,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -545,8 +567,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(
@@ -579,8 +600,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(
@@ -617,8 +637,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(
@@ -649,8 +668,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(view.getByText("Cannot read status page resources")).toBeVisible();
@@ -681,8 +699,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     const view: ReturnType<typeof render> = renderModal({ onClose });
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(view.getByText("Added 1 of 2 selected monitors.")).toBeVisible();
@@ -755,8 +772,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -773,8 +789,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Bulk-add by label" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -802,8 +817,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Bulk-add by label" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -830,8 +844,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Bulk-add by label" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -847,8 +860,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     fireEvent.click(
       view.getByRole("button", { name: "Bulk-add by a second label" }),
     );
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -868,8 +880,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     fireEvent.click(
       view.getByRole("button", { name: "Bulk-add by a second label" }),
     );
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledTimes(1);
@@ -896,8 +907,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-checked")).toBe("false");
 
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -932,8 +942,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
       view.getByRole("button", { name: "Choose Select environment" }),
     );
     fireEvent.click(view.getByRole("button", { name: "Choose Select region" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     await waitFor(() => {
       expect(mockBulkAdd).toHaveBeenCalledTimes(1);
@@ -946,8 +955,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Bulk-add by label" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     expect(
       await view.findByText(/stays in sync with the labels you used/),
@@ -965,8 +973,7 @@ describe("BulkAddStatusPageMonitorsModal - keeping a label-filled group filled",
     const view: ReturnType<typeof render> = renderModal();
 
     fireEvent.click(view.getByRole("button", { name: "Bulk-add by label" }));
-    await goToLastStep(view);
-    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+    await submit(view);
 
     expect(
       await view.findByText("Added 2 of 2 selected monitors."),
