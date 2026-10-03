@@ -384,12 +384,22 @@ test.describe("SLOs", () => {
       name: "Labels (Optional)",
       exact: true,
     });
+    /*
+     * An optional field's label ends in "(Optional)", so the description is
+     * named in full, as the labels are: "Description" alone, exact, matches
+     * nothing.
+     */
+    const descriptionInput: Locator = form.getByRole("textbox", {
+      name: "Description (Optional)",
+      exact: true,
+    });
     const atRiskInput: Locator = form.getByLabel("At-Risk Threshold (%)");
     await expect(advancedHeader).toHaveAttribute("aria-expanded", "false");
     await expect(form.getByTestId("collapsible-section-summary")).toHaveText(
       "Measured over a rolling 30-day window, and At Risk when less than 20% of the error budget is left.",
     );
     await expect(labelsInput).toBeHidden();
+    await expect(descriptionInput).toBeHidden();
     await expect(atRiskInput).toBeHidden();
 
     await form.getByLabel("Name", { exact: true }).fill(ctx.sloName);
@@ -416,9 +426,7 @@ test.describe("SLOs", () => {
      * checks what was saved.
      */
     await expect(form.getByLabel("Window (Days)")).toHaveValue("30");
-    await form
-      .getByLabel("Description", { exact: true })
-      .fill(ctx.sloDescription);
+    await descriptionInput.fill(ctx.sloDescription);
 
     /*
      * The questions the form deliberately does not ask. None of them may
