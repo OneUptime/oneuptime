@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "監視を再びオンにするまで、このモニターは何もチェックされません。監視対象がダウンしても、インシデントやアラートは作成されません。",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime はこのモニターをチェックし、条件に一致するとインシデントとアラートを作成します。",
   "Pause this monitor without deleting it. Its settings and history are kept.": "このモニターを削除せずに一時停止します。設定と履歴は保持されます。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "訪問者がステータスページで目にする名前です。独自の名前を入力するまで、上で選んだものに合わせて変わります。",
   "Turn monitoring on": "監視をオンにする",
   "Turn off monitoring": "監視をオフにする",
   "Turn off monitoring?": "監視をオフにしますか？",

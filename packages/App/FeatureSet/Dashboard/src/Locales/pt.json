@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "Nada verificará este monitor até que o monitoramento seja ligado novamente, então ele não abrirá incidentes nem alertas, mesmo que o que ele observa pare de funcionar.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "A OneUptime verifica este monitor e abre incidentes e alertas quando seus critérios são atendidos.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "Pause este monitor sem excluí-lo. Suas configurações e seu histórico são mantidos.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "O nome que os visitantes veem na página de status. Ele acompanha o que você escolher acima até você digitar um nome próprio.",
   "Turn monitoring on": "Ligar o monitoramento",
   "Turn off monitoring": "Desligar o monitoramento",
   "Turn off monitoring?": "Desligar o monitoramento?",

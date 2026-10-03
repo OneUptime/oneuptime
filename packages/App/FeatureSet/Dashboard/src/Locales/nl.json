@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "Niets controleert deze monitor totdat de bewaking weer aan staat. Er worden dus geen incidenten of waarschuwingen geopend, ook niet als wat hij bewaakt uitvalt.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime controleert deze monitor en opent incidenten en waarschuwingen wanneer aan de criteria wordt voldaan.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "Pauzeer deze monitor zonder hem te verwijderen. De instellingen en de geschiedenis blijven bewaard.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "De naam die bezoekers op de statuspagina zien. De naam volgt wat u hierboven kiest totdat u zelf een naam typt.",
   "Turn monitoring on": "Bewaking aanzetten",
   "Turn off monitoring": "Bewaking uitzetten",
   "Turn off monitoring?": "Bewaking uitzetten?",

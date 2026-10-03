@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "Ничто не будет проверять этот монитор, пока мониторинг не включат снова, поэтому он не откроет инцидентов и оповещений, даже если то, за чем он следит, перестанет работать.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime проверяет этот монитор и открывает инциденты и оповещения, когда выполняются его критерии.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "Приостановите этот монитор, не удаляя его. Его настройки и история сохраняются.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Название, которое посетители видят на странице статуса. Оно меняется вместе с выбором выше, пока вы не введёте своё.",
   "Turn monitoring on": "Включить мониторинг",
   "Turn off monitoring": "Выключить мониторинг",
   "Turn off monitoring?": "Выключить мониторинг?",

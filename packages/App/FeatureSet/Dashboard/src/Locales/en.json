@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime checks this monitor and opens incidents and alerts when its criteria match.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "Pause this monitor without deleting it. Its settings and history are kept.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "The name visitors see on the status page. It follows what you pick above until you type a name of your own.",
   "Turn monitoring on": "Turn monitoring on",
   "Turn off monitoring": "Turn off monitoring",
   "Turn off monitoring?": "Turn off monitoring?",

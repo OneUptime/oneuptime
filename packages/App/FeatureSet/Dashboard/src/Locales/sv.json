@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "Ingenting kontrollerar den här övervakaren förrän övervakningen slås på igen, så den öppnar inga incidenter eller varningar, även om det den bevakar går ner.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime kontrollerar den här övervakaren och öppnar incidenter och varningar när dess kriterier uppfylls.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "Pausa den här övervakaren utan att ta bort den. Dess inställningar och historik behålls.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "Namnet som besökare ser på statussidan. Det följer det du väljer ovan tills du skriver ett eget.",
   "Turn monitoring on": "Slå på övervakning",
   "Turn off monitoring": "Stäng av övervakning",
   "Turn off monitoring?": "Stänga av övervakning?",

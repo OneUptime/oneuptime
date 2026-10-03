@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "在重新開啟監測之前，沒有任何東西會檢查此監測器，因此即使它所監看的對象停擺，也不會建立事件或警示。",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime 會檢查此監測器，並在符合其條件時建立事件與警示。",
   "Pause this monitor without deleting it. Its settings and history are kept.": "暫停此監測器而不刪除它。其設定與歷史記錄會保留。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "造訪者在狀態頁面上看到的名稱。在您輸入自己的名稱之前，它會隨您在上方的選擇而變動。",
   "Turn monitoring on": "開啟監測",
   "Turn off monitoring": "關閉監測",
   "Turn off monitoring?": "要關閉監測嗎？",

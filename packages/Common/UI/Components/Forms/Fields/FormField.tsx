@@ -8,6 +8,10 @@ import CheckboxElement, {
 import CodeEditor, { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
 import Dropdown, { DropdownValue } from "../../Dropdown/Dropdown";
+import {
+  DropdownChange,
+  getDropdownChange,
+} from "../../Dropdown/DropdownChange";
 import EntityDropdown from "../../EntityDropdown/EntityDropdown";
 import FilePicker from "../../FilePicker/FilePicker";
 import Input, { InputType } from "../../Input/Input";
@@ -110,9 +114,15 @@ const FormField: <T extends GenericObject>(
    */
   const fieldLabelId: string = `${fieldId}-label`;
 
-  type onChangeFunction = (value: JSONValue) => void;
+  type onChangeFunction = (
+    value: JSONValue,
+    change?: DropdownChange | undefined,
+  ) => void;
 
-  const onChange: onChangeFunction = (value: JSONValue): void => {
+  const onChange: onChangeFunction = (
+    value: JSONValue,
+    change?: DropdownChange | undefined,
+  ): void => {
     if (props.field.onChange) {
       props.field.onChange(
         value,
@@ -120,6 +130,7 @@ const FormField: <T extends GenericObject>(
         (newFormValues: FormValues<T>) => {
           props.setFormValues?.(newFormValues);
         },
+        change,
       );
     }
   };
@@ -631,8 +642,9 @@ const FormField: <T extends GenericObject>(
                 disabled={props.field.disabled}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
+                  change?: DropdownChange,
                 ) => {
-                  onChange(value);
+                  onChange(value, change);
                   props.setFieldValue(props.fieldName, value as JSONValue);
                 }}
                 onBlur={() => {
@@ -666,7 +678,25 @@ const FormField: <T extends GenericObject>(
                 onChange={async (
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
-                  onChange(value);
+                  /*
+                   * A fixed list holds every option, so what the pick
+                   * changed is read from it (an EntityDropdown reports its
+                   * own, above).
+                   */
+                  onChange(
+                    value,
+                    props.field.onChange
+                      ? getDropdownChange({
+                          options: props.field.dropdownOptions,
+                          value: value,
+                          previousValue: props.currentValues
+                            ? (props.currentValues as Record<string, unknown>)[
+                                props.fieldName
+                              ]
+                            : undefined,
+                        })
+                      : undefined,
+                  );
                   props.setFieldValue(props.fieldName, value);
                 }}
                 onBlur={async () => {

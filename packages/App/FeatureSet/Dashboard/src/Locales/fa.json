@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "تا وقتی پایش دوباره روشن نشود، هیچ چیز این مانیتور را بررسی نمی‌کند؛ پس حتی اگر آنچه زیر نظر دارد از کار بیفتد، هیچ حادثه یا هشداری باز نمی‌کند.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime این مانیتور را بررسی می‌کند و وقتی معیارهایش برقرار شود، حادثه و هشدار باز می‌کند.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "این مانیتور را بدون حذف کردن متوقف کنید. تنظیمات و تاریخچه‌اش حفظ می‌شود.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "نامی که بازدیدکنندگان در صفحه وضعیت می‌بینند. تا وقتی نام دلخواه خود را وارد نکنید، همراه آنچه بالا انتخاب می‌کنید تغییر می‌کند.",
   "Turn monitoring on": "روشن کردن پایش",
   "Turn off monitoring": "خاموش کردن پایش",
   "Turn off monitoring?": "پایش خاموش شود؟",

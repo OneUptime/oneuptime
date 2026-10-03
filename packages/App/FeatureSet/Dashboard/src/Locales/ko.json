@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "모니터링을 다시 켤 때까지 이 모니터를 아무것도 확인하지 않습니다. 감시 대상이 다운되어도 인시던트나 알림이 생성되지 않습니다.",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime이 이 모니터를 확인하고 기준이 충족되면 인시던트와 알림을 생성합니다.",
   "Pause this monitor without deleting it. Its settings and history are kept.": "이 모니터를 삭제하지 않고 일시 중지합니다. 설정과 기록은 유지됩니다.",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "방문자가 상태 페이지에서 보는 이름입니다. 직접 이름을 입력할 때까지 위에서 선택한 항목에 따라 바뀝니다.",
   "Turn monitoring on": "모니터링 켜기",
   "Turn off monitoring": "모니터링 끄기",
   "Turn off monitoring?": "모니터링을 끄시겠습니까?",

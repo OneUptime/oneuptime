@@ -24211,6 +24211,7 @@
   "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "निगरानी फिर से चालू होने तक इस मॉनिटर की कोई जाँच नहीं होगी, इसलिए यह कोई घटना या अलर्ट नहीं खोलेगा, भले ही जिस पर यह नज़र रखता है वह बंद हो जाए।",
   "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime इस मॉनिटर की जाँच करता है और इसके मानदंड पूरे होने पर घटनाएं और अलर्ट खोलता है।",
   "Pause this monitor without deleting it. Its settings and history are kept.": "इस मॉनिटर को हटाए बिना रोकें। इसकी सेटिंग्स और इतिहास बने रहते हैं।",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "वह नाम जो विज़िटर्स स्थिति पृष्ठ पर देखते हैं। जब तक आप अपना नाम नहीं लिखते, यह ऊपर आपके चुनाव के साथ बदलता रहता है।",
   "Turn monitoring on": "निगरानी चालू करें",
   "Turn off monitoring": "निगरानी बंद करें",
   "Turn off monitoring?": "निगरानी बंद करें?",
