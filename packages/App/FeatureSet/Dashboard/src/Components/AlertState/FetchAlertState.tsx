@@ -13,6 +13,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import AlertStateElement from "./AlertStateElement";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertStateId: ObjectID;
@@ -26,6 +28,7 @@ export interface ComponentProps {
 const FetchAlertState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const alertStateId: string = props.alertStateId.toString();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -90,7 +93,13 @@ const FetchAlertState: FunctionComponent<ComponentProps> = (
   }
 
   if (!alertState) {
-    return <p>The selected alert state could not be found.</p>;
+    return (
+      <p>
+        {translator.translateText(
+          "The selected alert state could not be found.",
+        )}
+      </p>
+    );
   }
 
   return <AlertStateElement alertState={alertState} />;

@@ -42,6 +42,8 @@ import {
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
 import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -73,6 +75,7 @@ export interface ComponentProps {
  * swap from the page skeleton nor the swap to the real header moves the page.
  */
 export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="status"
@@ -80,7 +83,9 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
       data-testid="alert-state-placeholder"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <span className="sr-only">Loading alert status</span>
+      <span className="sr-only">
+        {translator.translateText("Loading alert status")}
+      </span>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
