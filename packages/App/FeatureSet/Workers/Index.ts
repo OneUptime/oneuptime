@@ -144,7 +144,18 @@ import "./Jobs/ServerMonitor/CheckOnlineStatus";
 
 // // Certs Routers
 import "./Jobs/StatusPageCerts/StatusPageCerts";
+/*
+ * Dashboard custom domain certificates. Load-bearing like every import here:
+ * without it dashboard domains are never verified, ordered or renewed by the
+ * workers.
+ */
+import "./Jobs/DashboardCerts/DashboardCerts";
 import "./Jobs/CoreSsl/ProvisionPrimaryDomain";
+/*
+ * Removes certificates that expired long ago and that nobody owns, which the
+ * renewal runs above leave alone.
+ */
+import "./Jobs/Certificates/RemoveExpiredUnownedCertificates";
 
 // Status Page Announcements
 import "./Jobs/StatusPageOwners/SendAnnouncementCreatedNotification";

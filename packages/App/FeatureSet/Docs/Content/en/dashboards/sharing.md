@@ -55,10 +55,16 @@ Requests from any other IP are rejected.
 
 Out of the box, a public dashboard is served on `oneuptime.com`. To host it on your own subdomain like `dashboard.acme.com`:
 
-1. Add a CNAME record on your DNS pointing the subdomain to OneUptime's target.
-2. Under **Dashboard → Settings → Custom Domains**, add the domain.
-3. Verify it. OneUptime checks the DNS record for you.
+1. Open **Custom Domains** in the dashboard's side menu and add the domain. Its parent domain must already be verified under **Project Settings → Domains**.
+2. Add a CNAME record at your DNS provider pointing the domain to OneUptime's target. The **Add CNAME** action on the domain's row shows exactly what to enter.
+3. That's all. OneUptime checks for the record every 15 minutes and verifies the domain once it is live. It then orders a free Let's Encrypt certificate, usually within 15 minutes, serves it within 15 minutes of the order, and renews it automatically well before it expires.
 4. Once verified, the dashboard is reachable on both your custom domain and the original URL.
+
+The row's **Status** column shows how far along a domain is. You never have to wait for the 15-minute checks: **Verify CNAME** in the **Add CNAME** dialog checks the record right away, and **Order Free SSL** orders the certificate right away. **Reissue SSL** asks Let's Encrypt for a brand new certificate when you want one before the automatic renewal; each domain can be reissued once every 24 hours.
+
+To use your own certificate instead, switch on **Upload Custom Certificate** when you add the domain and paste the certificate and its private key. OneUptime serves it within 15 minutes instead of ordering a Let's Encrypt certificate, and it takes the place of any Let's Encrypt certificate the domain had before. Renewing an uploaded certificate is up to you: edit the domain and paste the new one. If the domain had a free certificate before, OneUptime keeps renewing it while yours is in use, so switching back is instant.
+
+On a self-hosted installation, dashboard custom domains are switched on by the `DASHBOARD_CNAME_RECORD` environment variable (`dashboard.cnameRecord` in the Helm chart), which is the target your CNAME records point to. Without it, OneUptime does not verify domains or order certificates for dashboards.
 
 Custom domains are useful for:
 
