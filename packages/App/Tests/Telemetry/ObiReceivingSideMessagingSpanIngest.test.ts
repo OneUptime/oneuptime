@@ -68,6 +68,12 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *     is not counted twice and its broker is no producer or consumer of it;
  *   - the application's own OBI span in the same payload keeps OBI's kind
  *     and is keyed once;
+ *   - a NATS broker's deliveries are SERVER too, the one OBI splits off an
+ *     exchange and the one it types client-side, while the delivery OBI
+ *     splits off a client's ack stays the client's CONSUMER;
+ *   - every span captured from a real nats-server and mosquitto
+ *     (Fixtures/ObiMessaging) is stored with the kind OBI's own event type
+ *     calls for;
  *   - the kind is decided before the evaluation row: a drop filter sees the
  *     stored kind, and a Span Kind Remapper still has the last word.
  *
@@ -853,6 +859,435 @@ describe("OBI v0.14 receiving-side messaging spans at ingest", () => {
     expect(row["entityKeys"]).toEqual([...RESOURCE_KEYS, KAFKA_ORDERS_KEY]);
     expectEveryResourceArrayUntouched();
   });
+});
+
+/*
+ * A JetStream subject on a real nats-server 2.11, traced by OBI v0.14.0's
+ * generic tracer (as for a Go binary OBI has no offsets for): values as
+ * captured in Fixtures/ObiMessaging. Ports are OTLP int64s, sent as strings
+ * the way OTLP/JSON and the protobuf and gRPC decoders deliver them.
+ */
+function stringIntAttribute(key: string, value: number): OtlpAttribute {
+  return { key: key, value: { intValue: String(value) } };
+}
+
+function capturedNatsAttributes(data: {
+  serverAddress: string;
+  serverPort: number;
+  peerAddress: string;
+  peerPort: number;
+  operation: "publish" | "process";
+  subject: string;
+  servicePeerName?: string;
+}): Array<OtlpAttribute> {
+  return [
+    stringIntAttribute("server.port", data.serverPort),
+    stringAttribute("messaging.system", "nats"),
+    stringIntAttribute("messaging.message.envelope.size", 12),
+    stringAttribute("messaging.destination.name", data.subject),
+    stringAttribute("server.address", data.serverAddress),
+    stringAttribute("messaging.operation.name", data.operation),
+    stringAttribute(
+      "messaging.operation.type",
+      data.operation === "publish" ? "send" : "process",
+    ),
+    ...(data.servicePeerName
+      ? [stringAttribute("service.peer.name", data.servicePeerName)]
+      : []),
+    stringAttribute("network.peer.address", data.peerAddress),
+    stringIntAttribute("network.peer.port", data.peerPort),
+  ];
+}
+
+function natsNodeResourceAttributes(): Array<OtlpAttribute> {
+  return [
+    ...obiResourceAttributes(),
+    stringAttribute("k8s.node.name", "fu-nats-worker"),
+  ];
+}
+
+const NATS_JS_ORDERS_KEY: string = queueKey("nats", "js.orders.created");
+const NATS_ACK_SUBJECT: string =
+  "$JS.ACK.ORDERS.billing.1.179.179.1791058721653797801.0";
+
+const NATS_BROKER_PUB_SPAN_ID: string = "4b5c6d7e8f900112";
+const NATS_BROKER_SPLIT_SPAN_ID: string = "5c6d7e8f90011223";
+const NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID: string = "6d7e8f9001122334";
+const NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID: string = "7e8f900112233445";
+const NATS_PRODUCER_PUBLISH_SPAN_ID: string = "8f90011223344556";
+const NATS_CONSUMER_ACK_SPAN_ID: string = "9001122334455667";
+const NATS_CONSUMER_SPLIT_SPAN_ID: string = "a011223344556677";
+
+/*
+ * js-producer publishes to js.orders.created; js-pull-consumer is handed
+ * each message and acks it. nats-server reads the PUB (B1), and on the
+ * consumer's connection writes the MSG and reads the ack in one exchange:
+ * OBI splits the MSG off (B3) and types the ack client-side (B3-main), or
+ * types a MSG it wrote first client-side (B4). On the consumer, OBI splits
+ * its delivery off its ack (C2).
+ */
+function natsJetStreamResources(): Array<ResourceSpansInput> {
+  return [
+    {
+      serviceName: "nats",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          spanId: NATS_BROKER_PUB_SPAN_ID,
+          name: "publish js.orders.created",
+          kind: PRODUCER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "nats",
+            serverPort: 4222,
+            peerAddress: "10.244.1.77",
+            peerPort: 41822,
+            operation: "publish",
+            subject: "js.orders.created",
+          }),
+        },
+        {
+          spanId: NATS_BROKER_SPLIT_SPAN_ID,
+          name: "process js.orders.created",
+          kind: CONSUMER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "js-pull-consumer",
+            serverPort: 54276,
+            peerAddress: "10.244.1.72",
+            peerPort: 4222,
+            operation: "process",
+            subject: "js.orders.created",
+          }),
+        },
+        {
+          spanId: NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID,
+          name: "process js.orders.created",
+          kind: CONSUMER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "js-pull-consumer",
+            serverPort: 54276,
+            peerAddress: "10.244.1.59",
+            peerPort: 54276,
+            operation: "process",
+            subject: "js.orders.created",
+            servicePeerName: "js-pull-consumer",
+          }),
+        },
+        {
+          spanId: NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID,
+          name: `publish ${NATS_ACK_SUBJECT}`,
+          kind: PRODUCER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "js-pull-consumer",
+            serverPort: 54276,
+            peerAddress: "10.244.1.59",
+            peerPort: 54276,
+            operation: "publish",
+            subject: NATS_ACK_SUBJECT,
+            servicePeerName: "js-pull-consumer",
+          }),
+        },
+      ],
+    },
+    {
+      serviceName: "js-producer",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          spanId: NATS_PRODUCER_PUBLISH_SPAN_ID,
+          name: "publish js.orders.created",
+          kind: PRODUCER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "nats",
+            serverPort: 4222,
+            peerAddress: "10.96.212.229",
+            peerPort: 4222,
+            operation: "publish",
+            subject: "js.orders.created",
+            servicePeerName: "nats",
+          }),
+        },
+      ],
+    },
+    {
+      serviceName: "js-pull-consumer",
+      resourceAttributes: natsNodeResourceAttributes(),
+      spans: [
+        {
+          spanId: NATS_CONSUMER_ACK_SPAN_ID,
+          name: `publish ${NATS_ACK_SUBJECT}`,
+          kind: PRODUCER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "nats",
+            serverPort: 4222,
+            peerAddress: "10.96.212.229",
+            peerPort: 4222,
+            operation: "publish",
+            subject: NATS_ACK_SUBJECT,
+            servicePeerName: "nats",
+          }),
+        },
+        {
+          spanId: NATS_CONSUMER_SPLIT_SPAN_ID,
+          name: "process js.orders.created",
+          kind: CONSUMER_KIND,
+          attributes: capturedNatsAttributes({
+            serverAddress: "nats",
+            serverPort: 4222,
+            peerAddress: "10.244.1.59",
+            peerPort: 54276,
+            operation: "process",
+            subject: "js.orders.created",
+          }),
+        },
+      ],
+    },
+  ];
+}
+
+function spanIdsOf(rows: Array<JSONObject>): Array<string> {
+  return rows
+    .map((row: JSONObject): string => {
+      return row["spanId"] as string;
+    })
+    .sort();
+}
+
+describe("OBI v0.14 NATS deliveries at ingest", () => {
+  test("nats-server's split delivery (B3) and the MSG it wrote that OBI typed client-side (B4) are stored as SERVER with no queue key; the consumer's own split delivery (C2) stays CONSUMER and is keyed; the subject is discovered from the producer's and the consumer's spans only", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest(natsJetStreamResources()),
+    );
+
+    expect(captured.spans).toHaveLength(7);
+    const broker: TelemetryServiceMetadata = issuedFor("nats");
+    for (const spanId of [
+      NATS_BROKER_PUB_SPAN_ID,
+      NATS_BROKER_SPLIT_SPAN_ID,
+      NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID,
+    ]) {
+      const row: JSONObject = spanById(captured.spans, spanId);
+      expect({ spanId: spanId, kind: row["kind"] }).toEqual({
+        spanId: spanId,
+        kind: SpanKind.Server,
+      });
+      expect(row["entityKeys"]).toBe(broker.entityKeys);
+    }
+    // The ack the broker read (B3-main) keeps OBI's kind; an ack is no queue.
+    const brokerAck: JSONObject = spanById(
+      captured.spans,
+      NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID,
+    );
+    expect(brokerAck["kind"]).toBe(SpanKind.Producer);
+    expect(brokerAck["entityKeys"]).toBe(broker.entityKeys);
+
+    const producerRow: JSONObject = spanById(
+      captured.spans,
+      NATS_PRODUCER_PUBLISH_SPAN_ID,
+    );
+    expect(producerRow["kind"]).toBe(SpanKind.Producer);
+    expect(producerRow["entityKeys"]).toEqual([
+      ...RESOURCE_KEYS,
+      NATS_JS_ORDERS_KEY,
+    ]);
+    const consumerRow: JSONObject = spanById(
+      captured.spans,
+      NATS_CONSUMER_SPLIT_SPAN_ID,
+    );
+    expect(consumerRow["kind"]).toBe(SpanKind.Consumer);
+    expect(consumerRow["entityKeys"]).toEqual([
+      ...RESOURCE_KEYS,
+      NATS_JS_ORDERS_KEY,
+    ]);
+    expect(spanById(captured.spans, NATS_CONSUMER_ACK_SPAN_ID)["kind"]).toBe(
+      SpanKind.Producer,
+    );
+
+    // Keyed exactly twice: the producer's publish and the consumer's delivery.
+    expect(
+      spanIdsOf(
+        captured.spans.filter((row: JSONObject): boolean => {
+          return (row["entityKeys"] as Array<string>).includes(
+            NATS_JS_ORDERS_KEY,
+          );
+        }),
+      ),
+    ).toEqual(
+      [NATS_PRODUCER_PUBLISH_SPAN_ID, NATS_CONSUMER_SPLIT_SPAN_ID].sort(),
+    );
+
+    const discovered: Array<DiscoveredMessageQueue> =
+      resolveMessagingSpanDiscoveryRows(captured.spans.map(discoveryRowFor));
+    expect(
+      discovered.map((queue: DiscoveredMessageQueue): string => {
+        return keyForMessageQueue(PROJECT_ID.toString(), queue.identity);
+      }),
+    ).toEqual([NATS_JS_ORDERS_KEY]);
+    expect(discovered[0]!.spans?.count).toBe(2);
+    expectEveryResourceArrayUntouched();
+  });
+
+  test("the same payload with the kinds OBI v0.13 sent (SERVER for every NATSServer span) is stored the same, but the consumer's split delivery, which v0.13 sent as SERVER", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+    const v013: Array<ResourceSpansInput> = natsJetStreamResources().map(
+      (resource: ResourceSpansInput): ResourceSpansInput => {
+        return {
+          ...resource,
+          resourceAttributes: resource.resourceAttributes.map(
+            (attribute: OtlpAttribute): OtlpAttribute => {
+              return attribute.key === "telemetry.distro.version"
+                ? stringAttribute("telemetry.distro.version", "v0.13.0")
+                : attribute;
+            },
+          ),
+          spans: resource.spans.map((span: SpanInput): SpanInput => {
+            return [
+              NATS_BROKER_PUB_SPAN_ID,
+              NATS_BROKER_SPLIT_SPAN_ID,
+              NATS_CONSUMER_SPLIT_SPAN_ID,
+            ].includes(span.spanId)
+              ? { ...span, kind: SERVER_KIND }
+              : span;
+          }),
+        };
+      },
+    );
+
+    await OtelTracesIngestService.processTracesFromQueue(tracesRequest(v013));
+
+    const kinds: Record<string, unknown> = {};
+    for (const row of captured.spans) {
+      kinds[row["spanId"] as string] = row["kind"];
+    }
+    expect(kinds).toEqual({
+      [NATS_BROKER_PUB_SPAN_ID]: SpanKind.Server,
+      [NATS_BROKER_SPLIT_SPAN_ID]: SpanKind.Server,
+      // v0.13 sent it as CONSUMER too: still the broker's delivery.
+      [NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID]: SpanKind.Server,
+      [NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID]: SpanKind.Producer,
+      [NATS_PRODUCER_PUBLISH_SPAN_ID]: SpanKind.Producer,
+      [NATS_CONSUMER_ACK_SPAN_ID]: SpanKind.Producer,
+      [NATS_CONSUMER_SPLIT_SPAN_ID]: SpanKind.Server,
+    });
+  });
+
+  test("a drop filter on CONSUMER drops the consumer's delivery, never nats-server's", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+    jest
+      .spyOn(TraceDropFilterService, "loadDropFilters")
+      .mockResolvedValue([dropFilter("kind = 'SPAN_KIND_CONSUMER'")]);
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      tracesRequest(natsJetStreamResources()),
+    );
+
+    expect(spanIdsOf(captured.spans)).toEqual(
+      [
+        NATS_BROKER_PUB_SPAN_ID,
+        NATS_BROKER_SPLIT_SPAN_ID,
+        NATS_BROKER_CLIENT_TYPED_MSG_SPAN_ID,
+        NATS_BROKER_CLIENT_TYPED_ACK_SPAN_ID,
+        NATS_PRODUCER_PUBLISH_SPAN_ID,
+        NATS_CONSUMER_ACK_SPAN_ID,
+      ].sort(),
+    );
+  });
+});
+
+/*
+ * Every captured span replayed as the request body it was: OBI's OTLP/JSON
+ * export, verbatim (Fixtures/ObiMessaging), through the real attribute
+ * flattening and the string int64 ports. Each row's stored kind must be the
+ * one the fixture's truth table names, derived from OBI's own trace
+ * printer, never from the attributes the rule reads.
+ */
+type FixtureTruth = {
+  spanId: string;
+  shape: string;
+  role: "broker" | "client";
+  expectedStoredKind: string;
+};
+
+const FIXTURE_DIR: string = path.join(__dirname, "Fixtures", "ObiMessaging");
+
+// A broker's shapes that keep a messaging client kind, as v0.13 sent them.
+const BROKER_SHAPES_KEPT_AS_EXPORTED: Array<string> = [
+  "B3-main",
+  "host-network B3-main",
+  "MQTT broker publish",
+];
+
+describe("captured OBI spans replayed through the ingest service", () => {
+  test.each(["v0.13.0", "v0.14.0"])(
+    "OBI %s: every span is stored with the kind its OBI event type calls for, a SERVER row keeps its resource's shared array, and no broker span is messaging evidence but B3-main and mosquitto's PUBLISH to a subscriber",
+    async (obiVersion: string) => {
+      const captured: CapturedTraceRows = setupTraceMocks();
+      const fixture: { spans: Array<FixtureTruth>; body: JSONObject } =
+        JSON.parse(
+          fs.readFileSync(
+            path.join(FIXTURE_DIR, `obi-${obiVersion}.json`),
+            "utf8",
+          ),
+        ) as { spans: Array<FixtureTruth>; body: JSONObject };
+
+      await OtelTracesIngestService.processTracesFromQueue({
+        projectId: PROJECT_ID,
+        body: fixture.body,
+        headers: {},
+      } as unknown as TelemetryRequest);
+
+      expect(captured.spans).toHaveLength(fixture.spans.length);
+      expect(
+        fixture.spans.map((span: FixtureTruth) => {
+          return {
+            spanId: span.spanId,
+            shape: span.shape,
+            kind: spanById(captured.spans, span.spanId)["kind"],
+          };
+        }),
+      ).toEqual(
+        fixture.spans.map((span: FixtureTruth) => {
+          return {
+            spanId: span.spanId,
+            shape: span.shape,
+            kind: span.expectedStoredKind,
+          };
+        }),
+      );
+
+      for (const span of fixture.spans) {
+        const row: JSONObject = spanById(captured.spans, span.spanId);
+        if (row["kind"] !== SpanKind.Server) {
+          continue;
+        }
+        expect({
+          spanId: span.spanId,
+          sharedArray: issuedMetadata.some(
+            (metadata: TelemetryServiceMetadata): boolean => {
+              return metadata.entityKeys === row["entityKeys"];
+            },
+          ),
+        }).toEqual({ spanId: span.spanId, sharedArray: true });
+      }
+      expectEveryResourceArrayUntouched();
+
+      const brokerRows: Array<JSONObject> = fixture.spans
+        .filter((span: FixtureTruth): boolean => {
+          return (
+            span.role === "broker" &&
+            !BROKER_SHAPES_KEPT_AS_EXPORTED.includes(span.shape)
+          );
+        })
+        .map((span: FixtureTruth): JSONObject => {
+          return spanById(captured.spans, span.spanId);
+        });
+      expect(brokerRows.length).toBeGreaterThan(0);
+      expect(
+        resolveMessagingSpanDiscoveryRows(brokerRows.map(discoveryRowFor)),
+      ).toEqual([]);
+    },
+  );
 });
 
 describe("the stored kind is decided once, before the evaluation row", () => {
