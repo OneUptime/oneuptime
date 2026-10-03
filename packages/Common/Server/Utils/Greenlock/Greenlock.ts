@@ -311,20 +311,52 @@ export default class GreenlockUtil {
         },
       );
 
+      const maxPerRun: number = Math.max(
+        Math.min(
+          data.maxPerRun ?? GreenlockUtil.RENEW_MAX_PER_RUN,
+          GreenlockUtil.RENEW_MAX_PER_RUN,
+        ),
+        0,
+      );
+
       /*
        * Still sorted by expiry, so a run that cannot take the whole backlog
        * spends itself on the domains closest to expiring and leaves the rest -
        * which by construction still have weeks of lead time - to the next run.
+       *
+       * Certificates that have already expired come after every one that can
+       * still be saved, and take turns among themselves. Such a domain has
+       * been failing to renew since its lead time began - a CAA record that
+       * leaves Let's Encrypt out, a name Let's Encrypt has paused - and,
+       * sorting first by expiry, it would otherwise take a slot in every run
+       * and starve the renewals behind it. It is still tried whenever slots
+       * are left, which in a run without a backlog is every run.
        */
-      const maxPerRun: number = Math.min(
-        data.maxPerRun ?? GreenlockUtil.RENEW_MAX_PER_RUN,
-        GreenlockUtil.RENEW_MAX_PER_RUN,
+      const stillValid: AcmeCertificate[] = ownedDueCertificates.filter(
+        (certificate: AcmeCertificate) => {
+          return OneUptimeDate.isAfter(certificate.expiresAt as Date, now);
+        },
       );
 
-      const batch: AcmeCertificate[] = ownedDueCertificates.slice(
-        0,
-        Math.max(maxPerRun, 0),
+      const alreadyExpired: AcmeCertificate[] = ownedDueCertificates.filter(
+        (certificate: AcmeCertificate) => {
+          return !OneUptimeDate.isAfter(certificate.expiresAt as Date, now);
+        },
       );
+
+      const firstInLine: AcmeCertificate[] = stillValid.slice(0, maxPerRun);
+
+      const batch: AcmeCertificate[] = [
+        ...firstInLine,
+        ...GreenlockUtil.pickForThisRun({
+          items: alreadyExpired,
+          max: maxPerRun - firstInLine.length,
+          now: now,
+          getKey: (certificate: AcmeCertificate): string => {
+            return certificate.domain as string;
+          },
+        }),
+      ];
 
       logger.debug(
         `Found ${dueCertificates.length} certificates due for renewal, ${ownedDueCertificates.length} of them owned by this caller, renewing ${batch.length} in this run`,
@@ -363,10 +395,11 @@ export default class GreenlockUtil {
    * CertificateOwners). A certificate is deleted only when all of them have
    * answered and none claims it; if any lookup fails, nothing is deleted.
    *
-   * The delete names the row's id AND that it is still expired: orderCert
-   * renews a name by updating its row in place, so a row renewed between the
-   * checks above and the delete no longer matches and is kept. A newer row
-   * for the same name never matches either.
+   * The delete names the row's id AND that it is still expired, and
+   * hardDeleteBy keeps those conditions in the DELETE statement itself:
+   * orderCert renews a name by updating its row in place, so a row renewed at
+   * any point before the delete no longer matches and is kept. A newer row for
+   * the same name never matches either.
    */
   @CaptureSpan()
   public static async removeExpiredCertificatesNobodyOwns(data: {
@@ -442,7 +475,7 @@ export default class GreenlockUtil {
         { domain: certificate.domain } as LogAttributes,
       );
 
-      const deletedCount: number = await AcmeCertificateService.deleteBy({
+      const deletedCount: number = await AcmeCertificateService.hardDeleteBy({
         query: {
           _id: certificate.id!.toString(),
           domain: certificate.domain as string,

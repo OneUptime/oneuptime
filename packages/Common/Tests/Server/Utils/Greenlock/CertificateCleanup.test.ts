@@ -107,7 +107,7 @@ function setUpTable(rows: Array<Row>): Table {
     }) as never);
 
   jest
-    .spyOn(AcmeCertificateService, "deleteBy")
+    .spyOn(AcmeCertificateService, "hardDeleteBy")
     .mockImplementation((async (deleteBy: {
       query: {
         _id: string;
@@ -294,6 +294,7 @@ describe("GreenlockUtil.removeExpiredCertificatesNobodyOwns", () => {
     expect(table.rows).toEqual([leftover]);
   });
 
+  // hardDeleteBy keeps these conditions in the DELETE statement itself.
   test("the delete names the row's id, its domain and that it is still expired", async () => {
     const deletes: Array<Record<string, unknown>> = [];
     const leftover: Row = expiredDaysAgo("gone.example.com", GRACE + 10);
@@ -301,7 +302,7 @@ describe("GreenlockUtil.removeExpiredCertificatesNobodyOwns", () => {
     setUpTable([leftover]);
 
     jest
-      .spyOn(AcmeCertificateService, "deleteBy")
+      .spyOn(AcmeCertificateService, "hardDeleteBy")
       .mockImplementation((async (deleteBy: {
         query: Record<string, unknown>;
       }): Promise<number> => {

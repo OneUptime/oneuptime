@@ -8,6 +8,7 @@ import BasicCron from "Common/Server/Utils/BasicCron";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
+import OneUptimeDate from "Common/Types/Date";
 
 type DomainRow = {
   fullDomain?: string | undefined;
@@ -105,6 +106,7 @@ export default class Jobs {
               domain: true,
               certificate: true,
               certificateKey: true,
+              expiresAt: true,
             },
             skip: 0,
             props: {
@@ -122,6 +124,30 @@ export default class Jobs {
           if (domainsWithUploadedCertificates?.has(domain)) {
             logger.debug(
               `Not writing the Let's Encrypt certificate of ${domain}: it is served with the certificate its owner uploaded`,
+              {
+                service: "ingress",
+                job: "AcmeWriteCertificates",
+                domain: domain,
+              },
+            );
+            continue;
+          }
+
+          /*
+           * An expired certificate serves nobody, and whatever is on disk for
+           * the name is no worse: the certificate the domain's owner uploaded
+           * before switching back to Let's Encrypt, say, which keeps serving
+           * until the renewal has replaced this one.
+           */
+          if (
+            cert.expiresAt &&
+            !OneUptimeDate.isAfter(
+              cert.expiresAt,
+              OneUptimeDate.getCurrentDate(),
+            )
+          ) {
+            logger.debug(
+              `Not writing the Let's Encrypt certificate of ${domain}: it expired on ${OneUptimeDate.toString(cert.expiresAt)}`,
               {
                 service: "ingress",
                 job: "AcmeWriteCertificates",

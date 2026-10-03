@@ -62,7 +62,7 @@ Out of the box, a public dashboard is served on `oneuptime.com`. To host it on y
 
 The row's **Status** column shows how far along a domain is. You never have to wait for the 15-minute checks: **Verify CNAME** in the **Add CNAME** dialog checks the record right away, and **Order Free SSL** orders the certificate right away. **Reissue SSL** asks Let's Encrypt for a brand new certificate when you want one before the automatic renewal; each domain can be reissued once every 24 hours.
 
-To use your own certificate instead, switch on **Upload Custom Certificate** when you add the domain and paste the certificate and its private key. OneUptime serves it within 15 minutes instead of ordering a Let's Encrypt certificate, and it takes the place of any Let's Encrypt certificate the domain had before. Renewing an uploaded certificate is up to you: edit the domain and paste the new one.
+To use your own certificate instead, switch on **Upload Custom Certificate** when you add the domain and paste the certificate and its private key. OneUptime serves it within 15 minutes instead of ordering a Let's Encrypt certificate, and it takes the place of any Let's Encrypt certificate the domain had before. Renewing an uploaded certificate is up to you: edit the domain and paste the new one. If you switch back to the free certificate, your uploaded one keeps being served until the new free one is ready.
 
 On a self-hosted installation, dashboard custom domains are switched on by the `DASHBOARD_CNAME_RECORD` environment variable (`dashboard.cnameRecord` in the Helm chart), which is the target your CNAME records point to. Without it, OneUptime does not verify domains or order certificates for dashboards.
 

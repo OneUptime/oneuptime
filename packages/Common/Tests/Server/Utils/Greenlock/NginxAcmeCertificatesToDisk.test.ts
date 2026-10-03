@@ -27,6 +27,7 @@ import StatusPageDomainService from "../../../../Server/Services/StatusPageDomai
 import DashboardDomainService from "../../../../Server/Services/DashboardDomainService";
 import LocalFile from "../../../../Server/Utils/LocalFile";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
+import OneUptimeDate from "../../../../Types/Date";
 import AcmeWriteCertificatesJob from "../../../../../Nginx/Jobs/AcmeWriteCertificates";
 
 type CronProps = {
@@ -62,15 +63,23 @@ type Harness = {
   uploadQueries: Array<FindAllByCall>;
 };
 
-function letsEncrypt(domain: string): {
+function letsEncrypt(
+  domain: string,
+  expiresInDays: number = 60,
+): {
   domain: string;
   certificate: string;
   certificateKey: string;
+  expiresAt: Date;
 } {
   return {
     domain: domain,
     certificate: `lets-encrypt certificate for ${domain}`,
     certificateKey: `lets-encrypt key for ${domain}`,
+    expiresAt: OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      expiresInDays,
+    ),
   };
 }
 
@@ -78,6 +87,8 @@ function setUp(data: {
   acmeDomains: Array<string>;
   statusPageUploads: Array<string> | Error;
   dashboardUploads: Array<string> | Error;
+  // Domains whose Let's Encrypt certificate expired this many days ago.
+  expired?: Record<string, number>;
 }): Harness {
   const harness: Harness = {
     files: new Map<string, string>(),
@@ -88,7 +99,12 @@ function setUp(data: {
 
   jest.spyOn(AcmeCertificateService, "findAllBy").mockResolvedValue(
     data.acmeDomains.map((domain: string) => {
-      return letsEncrypt(domain);
+      const expiredDaysAgo: number | undefined = data.expired?.[domain];
+
+      return letsEncrypt(
+        domain,
+        expiredDaysAgo === undefined ? 60 : -expiredDaysAgo,
+      );
     }) as never,
   );
 
@@ -219,6 +235,24 @@ describe("nginx AcmeWriteCertificates", () => {
       expect(query.select).toEqual({ fullDomain: true });
       expect(query.props).toEqual({ isRoot: true });
     }
+  });
+
+  /*
+   * An expired certificate serves nobody, and the file already on disk is no
+   * worse: for a domain switched back from an uploaded certificate it is the
+   * uploaded one, which keeps serving until the renewal replaces this one.
+   */
+  test("never writes an expired certificate over the file on disk", async () => {
+    const harness: Harness = setUp({
+      acmeDomains: ["switched-back.acme.com", "dash.acme.com"],
+      statusPageUploads: [],
+      dashboardUploads: [],
+      expired: { "switched-back.acme.com": 20 },
+    });
+
+    await runJob();
+
+    expect(writtenDomains(harness)).toEqual(["dash.acme.com"]);
   });
 
   /*

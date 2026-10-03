@@ -943,16 +943,22 @@ export class Service extends DatabaseService<DashboardDomain> {
   }
 
   /*
-   * Which of these certificate domains are dashboard domains. The renewal
-   * run renews - and removes - only the certificates this returns, so the
-   * certificates of status page domains and of the primary host, which share
-   * the AcmeCertificate table, are never mistaken for dashboard domains
-   * whose CNAME stopped validating.
+   * Which of these certificate domains are dashboard domains that use our
+   * Let's Encrypt certificate. The renewal run renews - and removes - only
+   * the certificates this returns, so the certificates of status page domains
+   * and of the primary host, which share the AcmeCertificate table, are
+   * never mistaken for dashboard domains whose CNAME stopped validating.
    *
-   * A domain serving a certificate its owner uploaded still claims its
-   * Let's Encrypt certificate: nginx serves the uploaded one meanwhile (see
-   * AcmeWriteCertificates), and keeping the other renewed means switching
-   * back never serves an expired one.
+   * A domain serving a certificate its owner uploaded does not claim the
+   * Let's Encrypt one it may have from before the switch. nginx serves the
+   * uploaded one for that name, so renewing the other would only spend
+   * orders - or fail every run, where the domain's CAA record leaves Let's
+   * Encrypt out. Left unclaimed, it expires and is cleaned up. Switching
+   * back is still safe: nginx never writes an expired certificate over the
+   * uploaded one on disk (AcmeWriteCertificates), and the domain claims its
+   * certificate again, or is ordered a new one, straight away. The test is
+   * the one nginx uses: the switch is on and both the certificate and its key
+   * are there.
    */
   @CaptureSpan()
   public async getOwnedDomains(domains: Array<string>): Promise<Array<string>> {
@@ -966,6 +972,9 @@ export class Service extends DatabaseService<DashboardDomain> {
       },
       select: {
         fullDomain: true,
+        isCustomCertificate: true,
+        customCertificate: true,
+        customCertificateKey: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -975,11 +984,19 @@ export class Service extends DatabaseService<DashboardDomain> {
     });
 
     return dashboardDomains
-      .map((dashboardDomain: DashboardDomain) => {
-        return dashboardDomain.fullDomain || "";
+      .filter((dashboardDomain: DashboardDomain) => {
+        const servesUploadedCertificate: boolean = Boolean(
+          dashboardDomain.isCustomCertificate &&
+            dashboardDomain.customCertificate &&
+            dashboardDomain.customCertificateKey,
+        );
+
+        return (
+          Boolean(dashboardDomain.fullDomain) && !servesUploadedCertificate
+        );
       })
-      .filter((fullDomain: string) => {
-        return fullDomain.length > 0;
+      .map((dashboardDomain: DashboardDomain) => {
+        return dashboardDomain.fullDomain as string;
       });
   }
 

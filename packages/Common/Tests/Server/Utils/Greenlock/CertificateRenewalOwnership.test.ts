@@ -433,11 +433,13 @@ describe("a renewal run over the shared certificate table", () => {
   });
 
   /*
-   * nginx serves the uploaded certificate for that name (AcmeWriteCertificates
-   * skips it), but the Let's Encrypt one stays its owner's and stays
-   * renewed: switching back to it must never serve an expired certificate.
+   * nginx serves the uploaded certificate for that name, so renewing the
+   * Let's Encrypt one left from before the switch would only spend orders -
+   * or fail every run, where the domain's CAA record leaves Let's Encrypt
+   * out. It is not removed either: it is left to expire and to the cleanup of
+   * certificates nobody owns.
    */
-  test("a domain serving its own uploaded certificate still claims, and renews, its Let's Encrypt certificate", async () => {
+  test("a domain serving its own uploaded certificate does not claim its leftover Let's Encrypt certificate", async () => {
     const world: World = setUpWorld({
       certificates: mixedDueCertificates(),
       uploads: [
@@ -449,7 +451,42 @@ describe("a renewal run over the shared certificate table", () => {
             customCertificateKey: "-----BEGIN PRIVATE KEY-----",
           },
         ],
-        [DASHBOARD_DOMAINS[1]!, { isCustomCertificate: true }],
+        [
+          DASHBOARD_DOMAINS[1]!,
+          {
+            isCustomCertificate: true,
+            customCertificate: "-----BEGIN CERTIFICATE-----",
+            customCertificateKey: "-----BEGIN PRIVATE KEY-----",
+          },
+        ],
+      ],
+    });
+
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(sorted(world.ordered)).toEqual(
+      sorted([STATUS_PAGE_DOMAINS[0]!, DASHBOARD_DOMAINS[0]!]),
+    );
+    expect(world.deleted).toEqual([]);
+    expect(world.cnameChecks.statusPage).not.toContain(STATUS_PAGE_DOMAINS[1]);
+    expect(world.cnameChecks.dashboard).not.toContain(DASHBOARD_DOMAINS[1]);
+    expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
+  });
+
+  // Same test as nginx's: the switch alone, with nothing uploaded, serves nothing.
+  test("a domain with the upload switch on but no certificate uploaded still claims its Let's Encrypt certificate", async () => {
+    const world: World = setUpWorld({
+      certificates: mixedDueCertificates(),
+      uploads: [
+        [STATUS_PAGE_DOMAINS[1]!, { isCustomCertificate: true }],
+        [
+          DASHBOARD_DOMAINS[1]!,
+          {
+            isCustomCertificate: true,
+            customCertificate: "-----BEGIN CERTIFICATE-----",
+          },
+        ],
       ],
     });
 
@@ -459,8 +496,6 @@ describe("a renewal run over the shared certificate table", () => {
     expect(sorted(world.ordered)).toEqual(
       sorted([...STATUS_PAGE_DOMAINS, ...DASHBOARD_DOMAINS]),
     );
-    expect(world.deleted).toEqual([]);
-    expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
   });
 
   /*
@@ -695,6 +730,81 @@ describe("GreenlockUtil.renewAllCertsWhichAreExpiringSoon ownership mechanics", 
       }),
     ).toEqual([chunk, chunk, 7]);
     expect(new Set(run.ownershipQueries.flat()).size).toBe(chunk * 2 + 7);
+  });
+
+  /*
+   * A certificate that expired without being renewed has been failing since
+   * its lead time began; sorting first by expiry, it would take a slot in
+   * every run. The ones that can still be saved go first.
+   */
+  test("certificates that already expired go after every one that can still be saved", async () => {
+    const expired: Array<Certificate> = Array.from(
+      { length: GreenlockUtil.RENEW_MAX_PER_RUN },
+      (_value: unknown, index: number) => {
+        return expiringInDays(`expired${index}.example.com`, -1 - index);
+      },
+    );
+
+    const run: Run = setUpRun([
+      ...expired,
+      expiringInDays("soon.example.com", 2),
+      expiringInDays("later.example.com", 20),
+    ]);
+
+    await renew(
+      run,
+      async (domains: Array<string>) => {
+        return domains;
+      },
+      3,
+    );
+
+    // Both savable ones, then one expired one in the slot left over.
+    expect(run.ordered).toHaveLength(3);
+    expect(run.ordered).toContain("soon.example.com");
+    expect(run.ordered).toContain("later.example.com");
+    expect(
+      run.ordered.filter((domain: string) => {
+        return domain.startsWith("expired");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("expired certificates still renew in runs with slots to spare", async () => {
+    const run: Run = setUpRun([
+      expiringInDays("expired.example.com", -3),
+      expiringInDays("soon.example.com", 2),
+    ]);
+
+    await renew(run, async (domains: Array<string>) => {
+      return domains;
+    });
+
+    expect(sorted(run.ordered)).toEqual([
+      "expired.example.com",
+      "soon.example.com",
+    ]);
+  });
+
+  test("a run full of savable certificates leaves the expired ones for later", async () => {
+    const savable: Array<Certificate> = Array.from(
+      { length: GreenlockUtil.RENEW_MAX_PER_RUN + 2 },
+      (_value: unknown, index: number) => {
+        return expiringInDays(`savable${index}.example.com`, 1 + index);
+      },
+    );
+
+    const run: Run = setUpRun([
+      expiringInDays("expired.example.com", -30),
+      ...savable,
+    ]);
+
+    await renew(run, async (domains: Array<string>) => {
+      return domains;
+    });
+
+    expect(run.ordered).toHaveLength(GreenlockUtil.RENEW_MAX_PER_RUN);
+    expect(run.ordered).not.toContain("expired.example.com");
   });
 
   test("a name with more than one due row is renewed once", async () => {
@@ -953,18 +1063,20 @@ describe.each([
       "owned.example.com",
       "foreign.example.com",
     ]);
-    expect(findByCalls[0]!.select).toEqual({ fullDomain: true });
+    expect(findByCalls[0]!.select).toEqual({
+      fullDomain: true,
+      isCustomCertificate: true,
+      customCertificate: true,
+      customCertificateKey: true,
+    });
     expect(findByCalls[0]!.props).toEqual({ isRoot: true });
 
     /*
-     * Rows without a domain are not ownership of anything. A domain on an
-     * uploaded certificate still owns its Let's Encrypt one.
+     * Rows without a domain are not ownership of anything, and a domain
+     * serving its own uploaded certificate does not claim a Let's Encrypt
+     * one. The switch alone, with nothing uploaded, still claims it.
      */
-    expect(owned).toEqual([
-      "owned.example.com",
-      "uploaded.example.com",
-      "switch-only.example.com",
-    ]);
+    expect(owned).toEqual(["owned.example.com", "switch-only.example.com"]);
   });
 
   test("asked about nothing, it owns nothing and does not query", async () => {
@@ -995,11 +1107,7 @@ describe.each([
     expect(handedOver.getOwnedDomains).toBeDefined();
     await expect(
       handedOver.getOwnedDomains!(["owned.example.com", "foreign.example.com"]),
-    ).resolves.toEqual([
-      "owned.example.com",
-      "uploaded.example.com",
-      "switch-only.example.com",
-    ]);
+    ).resolves.toEqual(["owned.example.com", "switch-only.example.com"]);
     expect(inList(findByCalls[0]!.query.fullDomain)).toEqual([
       "owned.example.com",
       "foreign.example.com",
