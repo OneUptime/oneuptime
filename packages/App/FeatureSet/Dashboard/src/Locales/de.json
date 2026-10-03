@@ -21420,5 +21420,22 @@
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Wer welche Rolle in dieser Episode und in jedem ihrer Vorfälle übernimmt. Jede als Primär markierte Rolle, die Sie leer lassen, übernehmen Sie selbst.",
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Wer welche Rolle in diesem Vorfall übernimmt. Jede als Primär markierte Rolle, die Sie leer lassen, übernehmen Sie selbst.",
   "{{count}} products": "{{count}} Produkte",
-  "{{count}} products_one": "{{count}} Produkt"
+  "{{count}} products_one": "{{count}} Produkt",
+  "Ends At must be after Starts At.": "Das Ende muss nach dem Beginn liegen.",
+  "How often should this event recur?": "Wie oft soll dieses Ereignis wiederkehren?",
+  "Remind subscribers before the event starts, for example 1 day before.": "Erinnern Sie Abonnenten vor Beginn des Ereignisses, zum Beispiel 1 Tag vorher.",
+  "Reminders before the event": "Erinnerungen vor dem Ereignis",
+  "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "Abonnenten der Statusseiten des Ereignisses werden nicht benachrichtigt, wenn es geplant wird, beginnt oder endet.",
+  "Subscribers of the event's status pages are notified when it ends.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es endet.",
+  "Subscribers of the event's status pages are notified when it is scheduled and when it ends.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es geplant wird und wenn es endet.",
+  "Subscribers of the event's status pages are notified when it is scheduled and when it starts.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es geplant wird und wenn es beginnt.",
+  "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es geplant wird, wenn es beginnt und wenn es endet.",
+  "Subscribers of the event's status pages are notified when it is scheduled.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es geplant wird.",
+  "Subscribers of the event's status pages are notified when it starts and when it ends.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es beginnt und wenn es endet.",
+  "Subscribers of the event's status pages are notified when it starts.": "Abonnenten der Statusseiten des Ereignisses werden benachrichtigt, wenn es beginnt.",
+  "They get reminders before it starts.": "Vor dem Beginn erhalten sie Erinnerungen.",
+  "When the event ends": "Wenn das Ereignis endet",
+  "When the event is scheduled": "Wenn das Ereignis geplant wird",
+  "When the event starts": "Wenn das Ereignis beginnt",
+  "When the subscribers of the event's status pages hear about it.": "Wann die Abonnenten der Statusseiten des Ereignisses davon erfahren."
 }

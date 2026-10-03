@@ -21420,5 +21420,22 @@
   "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.": "Who takes each role on this episode, and on every incident in it. You take any role marked Primary that you leave empty.",
   "Who takes each role on this incident. You take any role marked Primary that you leave empty.": "Who takes each role on this incident. You take any role marked Primary that you leave empty.",
   "{{count}} products": "{{count}} products",
-  "{{count}} products_one": "{{count}} product"
+  "{{count}} products_one": "{{count}} product",
+  "Ends At must be after Starts At.": "Ends At must be after Starts At.",
+  "How often should this event recur?": "How often should this event recur?",
+  "Remind subscribers before the event starts, for example 1 day before.": "Remind subscribers before the event starts, for example 1 day before.",
+  "Reminders before the event": "Reminders before the event",
+  "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.": "Subscribers of the event's status pages are not notified when it is scheduled, starts or ends.",
+  "Subscribers of the event's status pages are notified when it ends.": "Subscribers of the event's status pages are notified when it ends.",
+  "Subscribers of the event's status pages are notified when it is scheduled and when it ends.": "Subscribers of the event's status pages are notified when it is scheduled and when it ends.",
+  "Subscribers of the event's status pages are notified when it is scheduled and when it starts.": "Subscribers of the event's status pages are notified when it is scheduled and when it starts.",
+  "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.": "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
+  "Subscribers of the event's status pages are notified when it is scheduled.": "Subscribers of the event's status pages are notified when it is scheduled.",
+  "Subscribers of the event's status pages are notified when it starts and when it ends.": "Subscribers of the event's status pages are notified when it starts and when it ends.",
+  "Subscribers of the event's status pages are notified when it starts.": "Subscribers of the event's status pages are notified when it starts.",
+  "They get reminders before it starts.": "They get reminders before it starts.",
+  "When the event ends": "When the event ends",
+  "When the event is scheduled": "When the event is scheduled",
+  "When the event starts": "When the event starts",
+  "When the subscribers of the event's status pages hear about it.": "When the subscribers of the event's status pages hear about it."
 }
