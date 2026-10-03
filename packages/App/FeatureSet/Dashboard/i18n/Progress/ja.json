@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 21401,
+    "keys": 22288,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -137,6 +137,10 @@
     "PostgreSQL db.prod.internal:5432",
     "RTT",
     "RX",
+    "Runbook",
+    "Runbook ID",
+    "Runner",
+    "Runner ID",
     "SCIM (System for Cross-domain Identity Management)",
     "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",
     "SHA",
@@ -253,6 +257,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vCenter",
     "vCenter ID",
     "vSphere Client",
     "var(--ou-danger-text, #b91c1c)",
