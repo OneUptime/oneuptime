@@ -2361,6 +2361,38 @@ export function findLongFormsWithoutSteps(
   });
 }
 
+/*
+ * The one field the user can see when it is the only one, else null: the
+ * fields of the form less those never shown (registrations that only make
+ * ModelForm select a column). A field shown under a condition counts, so a
+ * form whose second field can appear is not a one-field form.
+ */
+export function getOnlyVisibleField(form: FormFacts): FormFieldFacts | null {
+  if (form.isPassThrough || form.uncountableReasons.length > 0) {
+    return null;
+  }
+
+  const shown: Array<FormFieldFacts> = form.fields.filter(
+    (field: FormFieldFacts): boolean => {
+      return !field.isNeverShown;
+    },
+  );
+
+  return shown.length === 1 ? shown[0]! : null;
+}
+
+/*
+ * A form that is one switch: the only field the user can see is a Toggle or
+ * a Checkbox. On a card (CardModelDetail) that is an Edit button, a dialog
+ * and a Save for one yes or no, which a ModelSwitchCard does in one press
+ * (OneSwitchCardsGuard).
+ */
+export function isOneSwitchForm(form: FormFacts): boolean {
+  const only: FormFieldFacts | null = getOnlyVisibleField(form);
+
+  return Boolean(only && isSwitchFieldType(only.fieldType));
+}
+
 // Forms without steps whose fields could not all be followed.
 export function findUncountableForms(
   forms: Array<FormFacts>,

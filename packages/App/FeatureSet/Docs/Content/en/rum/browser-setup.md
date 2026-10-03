@@ -4,11 +4,11 @@ Instrument a web application with the OpenTelemetry browser SDK so it reports to
 
 ## Prerequisites
 
-A **Telemetry Ingestion Token**. In the dashboard, go to _Project Settings → Telemetry & APM → Ingestion Keys_ and click **Create Ingestion Key**.
+A **Telemetry Ingestion Token**. In the dashboard, go to _Project Settings → Telemetry & APM → Ingestion Keys_ and click **Create Ingestion Key**. Pick **Browser**, then list the origins your pages are served from on the **Browser Settings** step, and create the key.
 
 ![Telemetry Ingestion Keys](/docs/static/images/TelemetryIngestionKeys.png)
 
-Click **View** on the key you created to read the token.
+The new key opens on its own page, where you can copy the token.
 
 ![View Telemetry Ingestion Key](/docs/static/images/TelemetryIngestionKeyView.png)
 

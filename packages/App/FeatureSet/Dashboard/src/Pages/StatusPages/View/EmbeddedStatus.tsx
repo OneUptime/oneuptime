@@ -11,9 +11,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import ModelAPI, { type ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -27,7 +25,11 @@ import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import URL from "Common/Types/API/URL";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+
+// The data-testid of the Embedded Status Badge switch.
+export const EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID: string =
+  "status-page-embedded-status-badge-switch";
 
 const StatusPageEmbeddedStatus: FunctionComponent<
   PageComponentProps
@@ -158,51 +160,34 @@ Regenerating the token invalidates all existing embeds. Rotate the token wheneve
   return (
     <Fragment>
       <div>
-        <CardModelDetail<StatusPage>
-          name="Status Page > Embedded Status Badge"
-          cardProps={{
-            title: "Embedded Status Badge",
-            description:
-              "Enable a lightweight status badge that can be embedded on external websites. The badge displays the current overall status of your status page.",
+        {/*
+         * One switch that saves when it is flipped. The preview below
+         * follows it as it moves; the token is read along with it.
+         */}
+        <ModelSwitchCard<StatusPage>
+          modelType={StatusPage}
+          modelId={modelId}
+          column="enableEmbeddedOverallStatus"
+          cardTitle={translationKey("Embedded Status Badge")}
+          cardDescription={translationKey(
+            "Enable a lightweight status badge that can be embedded on external websites. The badge displays the current overall status of your status page.",
+          )}
+          title="Enable Embedded Status Badge"
+          getDescription={(): string => {
+            return translationKey(
+              "When enabled, you can embed a status badge on external websites using the badge URL with the security token.",
+            );
           }}
-          editButtonText="Edit Settings"
-          isEditable={true}
-          formFields={[
-            {
-              field: {
-                enableEmbeddedOverallStatus: true,
-              },
-              title: "Enable Embedded Status Badge",
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-              description:
-                "When enabled, you can embed a status badge on external websites using the badge URL with the security token.",
-            },
-          ]}
-          modelDetailProps={{
-            showDetailsInNumberOfColumns: 1,
-            modelType: StatusPage,
-            selectMoreFields: {
-              embeddedOverallStatusToken: true,
-            },
-            id: "model-detail-status-page-embedded-badge",
-            fields: [
-              {
-                field: {
-                  enableEmbeddedOverallStatus: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Enable Embedded Status Badge",
-              },
-            ],
-            modelId: modelId,
-            onItemLoaded: (item: StatusPage) => {
-              setToken(item.embeddedOverallStatusToken || undefined);
-              setIsEmbeddedStatusEnabled(
-                Boolean(item.enableEmbeddedOverallStatus),
-              );
-            },
+          select={{
+            embeddedOverallStatusToken: true,
           }}
+          onLoaded={(item: StatusPage): void => {
+            setToken(item.embeddedOverallStatusToken || undefined);
+          }}
+          onChange={(isOn: boolean): void => {
+            setIsEmbeddedStatusEnabled(isOn);
+          }}
+          dataTestId={EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID}
         />
 
         <Card

@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
@@ -28,6 +29,7 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={props.description}
       icon={IconProp.Kubernetes}
+      newKeyName={translationKey("Kubernetes key")}
       optionsLabel="Where is your cluster running?"
       options={KUBERNETES_PLATFORMS}
       keyStepDescription="The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it."

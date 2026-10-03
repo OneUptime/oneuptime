@@ -123,6 +123,12 @@ interface UnhandledRequest {
   url?: string;
 }
 
+interface RecordedUpdate {
+  modelName: string;
+  id: string;
+  data: Record<string, unknown>;
+}
+
 interface FixtureState {
   now: string;
   scenario: Record<string, unknown>;
@@ -131,6 +137,7 @@ interface FixtureState {
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedAggregate>;
   apiRequests: Array<RecordedApiRequest>;
+  updates: Array<RecordedUpdate>;
   unhandled: Array<UnhandledRequest>;
 }
 
@@ -832,11 +839,65 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-last-known")).toHaveText(
       "Last recorded status: Operational",
     );
+    // Turned back on in place, not on a trip to Settings.
+    await expect(
+      hero(page).getByRole("button", { name: "Turn monitoring on" }),
+    ).toBeEnabled();
     await expect(
       hero(page).getByRole("link", { name: "Open settings" }),
-    ).toHaveAttribute("href", `${monitorPath("api")}/settings`);
+    ).toHaveCount(0);
     // A paused monitor promises no next check.
     await expect(page.getByTestId("monitor-overview-cadence")).toHaveCount(0);
+  });
+
+  test("disabled: Turn monitoring on turns it back on, in place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled" });
+
+    await expect(headline(page)).toHaveText("Monitoring is turned off");
+
+    await hero(page)
+      .getByRole("button", { name: "Turn monitoring on" })
+      .click();
+
+    // It writes the one column the Monitoring switch on Settings writes.
+    await expect
+      .poll(async (): Promise<Array<RecordedUpdate>> => {
+        return (await fixture(page)).updates;
+      })
+      .toEqual([
+        {
+          modelName: "Monitor",
+          id: monitorId("api"),
+          data: { disableActiveMonitoring: false },
+        },
+      ]);
+
+    // The page reads the monitor again: it is checked now.
+    await expect(page.getByTestId("monitor-overview-badge")).not.toHaveText(
+      "Disabled",
+    );
+    await expect(headline(page)).not.toHaveText("Monitoring is turned off");
+    await expect(
+      hero(page).getByRole("button", { name: "Turn monitoring on" }),
+    ).toHaveCount(0);
+  });
+
+  test("disabled, for a viewer: Turn monitoring on is locked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "state=disabled&role=viewer" });
+
+    const button: Locator = hero(page).getByRole("button", {
+      name: "Turn monitoring on",
+    });
+    await expect(button).toBeDisabled();
+    expect((await fixture(page)).updates).toEqual([]);
   });
 
   test("maintenance", async ({ page }: { page: Page }) => {
