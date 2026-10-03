@@ -1044,7 +1044,7 @@ describe("the filter builder (TraceFilterConfig)", () => {
 
   test("filter values and names are unchanged; the descriptions say what each status means", () => {
     expect(TRACE_FILTER_CONFIG.source).toContain(
-      'key: "statusCode", label: "Status", description: "OpenTelemetry span status", valueType: "dropdown", valuePlaceholder: "Select status...", valueOptions: [ { value: "0", label: "Unset", description: "No error status set (OpenTelemetry default)", }, { value: "1", label: "Ok", description: "Explicitly marked successful", }, { value: "2", label: "Error", description: "Span ended in error" }, ], getValuePillClass: getStatusCodePillClass,',
+      'key: "statusCode", label: "Status", description: "OpenTelemetry span status", valueType: "dropdown", valuePlaceholder: translationKey("Select status..."), valueOptions: [ { value: "0", label: "Unset", description: "No error status set (OpenTelemetry default)", }, { value: "1", label: "Ok", description: "Explicitly marked successful", }, { value: "2", label: "Error", description: "Span ended in error" }, ], getValuePillClass: getStatusCodePillClass,',
     );
     expect(TRACE_FILTER_CONFIG.source).not.toContain('"No status set"');
     expect(TRACE_FILTER_CONFIG.source).not.toContain(
