@@ -258,6 +258,37 @@ describe("the long form detector", () => {
     expect(findLongFormsWithoutSteps([form])).toEqual([form]);
   });
 
+  test("reads every text a field's title can be, and none of a computed one", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[
+          { field: { a: true }, title: "Incident Title", fieldType: FormFieldSchemaType.Text },
+          { field: { b: true }, title: isIncident ? "Incident Labels" : ("Alert Labels"), fieldType: FormFieldSchemaType.Text },
+          { field: { c: true }, title: copy.descriptionTitle, fieldType: FormFieldSchemaType.Text },
+          { field: { d: true }, title: \`\${subject} Title\`, fieldType: FormFieldSchemaType.Text },
+          { field: { e: true }, title: isIncident ? "Incident Name" : copy.nameTitle, fieldType: FormFieldSchemaType.Text },
+          { field: { f: true }, fieldType: FormFieldSchemaType.Text },
+        ]} />;`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.title, candidate.titleTexts];
+      }),
+    ).toEqual([
+      ["a", "Incident Title", ["Incident Title"]],
+      [
+        "b",
+        'isIncident ? "Incident Labels" : ("Alert Labels")',
+        ["Incident Labels", "Alert Labels"],
+      ],
+      ["c", "copy.descriptionTitle", null],
+      ["d", "`${subject} Title`", null],
+      ["e", 'isIncident ? "Incident Name" : copy.nameTitle', null],
+      ["f", "", []],
+    ]);
+  });
+
   test(`leaves a form of ${LONG_FORM_FIELD_LIMIT} fields alone`, () => {
     const form: FormFacts = only({
       "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${fields(3)}]} />;`,
@@ -464,6 +495,7 @@ describe("the long form detector", () => {
       return {
         key: "k",
         title: "t",
+        titleTexts: ["t"],
         fieldType: "",
         stepId: undefined,
         isPlainLiteral: true,
