@@ -27,6 +27,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import StatusBadge from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
+  isMonitorOverviewActionCallToAction,
+  MonitorOverviewCallToAction,
   MonitorOverviewFact,
   MonitorOverviewPresentation,
   MonitorOverviewPulse,
@@ -42,6 +44,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TURN_MONITORING_ON_BUTTON_TEST_ID,
+  TURN_MONITORING_ON_ERROR_TEST_ID,
+} from "../MonitoringSwitchCopy";
+import useTurnMonitoringOn, { TurnMonitoringOn } from "../useTurnMonitoringOn";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -52,6 +59,11 @@ export interface ComponentProps {
   refreshError: string;
   lastLoadedAt: Date | null;
   onRefresh: () => void;
+  /*
+   * Told after the hero's "Turn monitoring on" turned the monitor back on,
+   * so the page reads it again.
+   */
+  onMonitoringTurnedOn?: (() => void) | undefined;
 }
 
 /*
@@ -123,6 +135,12 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const presentation: MonitorOverviewPresentation = props.presentation;
 
+  // Only pressed on a monitor someone turned off (its call to action).
+  const turnMonitoringOn: TurnMonitoringOn = useTurnMonitoringOn({
+    monitorId: props.monitorId,
+    onTurnedOn: props.onMonitoringTurnedOn,
+  });
+
   const typeProps: MonitorTypeProps | undefined = useMemo(() => {
     return MonitorTypeHelper.getAllMonitorTypeProps().find(
       (item: MonitorTypeProps) => {
@@ -133,6 +151,69 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 
   const typeTitle: string = typeProps?.title || props.monitorType;
   const typeIcon: IconProp = typeProps?.icon || IconProp.Activity;
+
+  type GetCallToActionFunction = (
+    callToAction: MonitorOverviewCallToAction,
+  ) => ReactElement;
+
+  /*
+   * A link to the page that fixes the state, or - for a monitor someone
+   * turned off - a button that turns monitoring back on in place. The
+   * button is left out only while there is nothing honest to say about it
+   * (the permission snapshot has not arrived); someone who may not turn
+   * monitoring on sees it locked, with why.
+   */
+  const getCallToAction: GetCallToActionFunction = (
+    callToAction: MonitorOverviewCallToAction,
+  ): ReactElement => {
+    if (!isMonitorOverviewActionCallToAction(callToAction)) {
+      return (
+        <div className="mt-4">
+          <SloOverviewActionLink
+            variant="secondary"
+            title={callToAction.text}
+            to={getMonitorOverviewRoute({
+              key: callToAction.linkKey,
+              monitorId: props.monitorId,
+            })}
+          />
+        </div>
+      );
+    }
+
+    if (
+      !turnMonitoringOn.gate.isAllowed &&
+      !turnMonitoringOn.gate.disabledReason
+    ) {
+      return <></>;
+    }
+
+    return (
+      <div className="mt-4">
+        <Button
+          title={callToAction.text}
+          icon={IconProp.Play}
+          buttonStyle={ButtonStyleType.NORMAL}
+          dataTestId={TURN_MONITORING_ON_BUTTON_TEST_ID}
+          isLoading={turnMonitoringOn.isSaving}
+          disabled={!turnMonitoringOn.gate.isAllowed}
+          tooltip={turnMonitoringOn.gate.disabledReason}
+          onClick={turnMonitoringOn.turnOn}
+        />
+        {turnMonitoringOn.error ? (
+          <p
+            role="alert"
+            data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
+            className="mt-2 text-sm text-red-700"
+          >
+            {turnMonitoringOn.error}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
 
   type GetBadgeRowFunction = () => ReactElement;
 
@@ -496,16 +577,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
               )}
               {getTarget()}
               {presentation.callToAction ? (
-                <div className="mt-4">
-                  <SloOverviewActionLink
-                    variant="secondary"
-                    title={presentation.callToAction.text}
-                    to={getMonitorOverviewRoute({
-                      key: presentation.callToAction.linkKey,
-                      monitorId: props.monitorId,
-                    })}
-                  />
-                </div>
+                getCallToAction(presentation.callToAction)
               ) : (
                 <></>
               )}

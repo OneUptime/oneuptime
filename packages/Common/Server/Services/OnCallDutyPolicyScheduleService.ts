@@ -58,6 +58,19 @@ import OnCallShiftChangeListeners, {
   OnCallShiftChangeEvent,
   OnCallShiftChangeReason,
 } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import CreateBy from "../Types/Database/CreateBy";
+import CreatePermission from "../Types/Database/Permissions/CreatePermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import TeamMemberService from "./TeamMemberService";
+import {
+  readScheduleFirstLayer,
+  ScheduleFirstLayer,
+} from "../../Types/OnCallDutyPolicy/ScheduleFirstLayer";
+import {
+  buildNewScheduleLayer,
+  getLayerName,
+} from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 
 /*
  * ---------------------------------------------------------------------------
@@ -162,6 +175,257 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
   public constructor() {
     super(OnCallDutyPolicySchedule);
+  }
+
+  /*
+   * WHO TAKES TURNS.
+   *
+   * A schedule created with people in its misc data (the create form's "Who
+   * takes turns?", or an API caller) gets its first layer straight away:
+   * "Layer 1", on call from now, handing off once per rotation (a week
+   * unless the form picked another), around the clock, with those people
+   * taking turns in the order they were picked - what pressing Add Layer and
+   * adding them one by one on the Layers page would have made. With nobody
+   * picked, nothing changes: the schedule is created without layers, as it
+   * always was.
+   *
+   * The layer and its people are created as the caller, with the same
+   * checks, roster refresh and notifications as adding them by hand, once
+   * the schedule exists.
+   *
+   * What can be checked before anything is saved is checked first: the
+   * picks' shape, whether the caller may add layers and people to them, and
+   * whether every person is a member of this project. A refused pick refuses
+   * the create, so nobody gets a schedule that covers nobody when they asked
+   * for people to take turns. What fails after the schedule is saved is
+   * logged, and the schedule is kept: its Layers page shows what is missing.
+   */
+  @CaptureSpan()
+  public override async create(
+    createBy: CreateBy<OnCallDutyPolicySchedule>,
+  ): Promise<OnCallDutyPolicySchedule> {
+    const firstLayer: ScheduleFirstLayer | null = createBy.props.ignoreHooks
+      ? null
+      : readScheduleFirstLayer(createBy.miscDataProps);
+
+    if (firstLayer) {
+      await this.checkFirstLayerCanBeAdded({
+        firstLayer: firstLayer,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        props: createBy.props,
+      });
+    }
+
+    const createdSchedule: OnCallDutyPolicySchedule = await super.create(
+      createBy,
+    );
+
+    if (firstLayer) {
+      await this.addFirstLayer({
+        schedule: createdSchedule,
+        firstLayer: firstLayer,
+        props: createBy.props,
+      });
+    }
+
+    return createdSchedule;
+  }
+
+  /*
+   * Refuses a first layer that could not be added, before the schedule is
+   * saved. Throws; returns nothing.
+   */
+  @CaptureSpan()
+  public async checkFirstLayerCanBeAdded(data: {
+    firstLayer: ScheduleFirstLayer;
+    projectId: ObjectID | undefined | null;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "A project is required to add people to a new on-call schedule.",
+      );
+    }
+
+    const projectId: ObjectID = new ObjectID(data.projectId.toString());
+
+    /*
+     * The caller adds the layer and its people themselves, so they need the
+     * permissions adding them by hand needs - checked now, on rows written
+     * as they will be, so a refusal saves nothing. Root and master admin
+     * callers pass through the check itself. Any schedule id checks the same
+     * column permissions; the real one is not known yet.
+     */
+    const placeholderId: ObjectID = ObjectID.getZeroObjectID();
+
+    const layer: OnCallDutyPolicyScheduleLayer = buildNewScheduleLayer({
+      onCallDutyPolicyScheduleId: placeholderId,
+      projectId: projectId,
+      name: getLayerName(1),
+      order: 1,
+      rotation: data.firstLayer.rotation,
+    });
+
+    CreatePermission.checkCreatePermissions(
+      OnCallDutyPolicyScheduleLayer,
+      layer,
+      data.props,
+    );
+
+    const layerUser: OnCallDutyPolicyScheduleLayerUser =
+      new OnCallDutyPolicyScheduleLayerUser();
+    layerUser.projectId = projectId;
+    layerUser.onCallDutyPolicyScheduleId = placeholderId;
+    layerUser.onCallDutyPolicyScheduleLayerId = placeholderId;
+    layerUser.userId = placeholderId;
+    layerUser.order = 1;
+
+    CreatePermission.checkCreatePermissions(
+      OnCallDutyPolicyScheduleLayerUser,
+      layerUser,
+      data.props,
+    );
+
+    await this.checkFirstLayerUsersAreMembers({
+      userIds: data.firstLayer.userIds,
+      projectId: projectId,
+    });
+  }
+
+  /*
+   * People who are members of this project (a TeamMember row of it, the
+   * list the people picker offers). Anyone else - a stranger, someone of
+   * another project - refuses the create rather than be put on call here.
+   */
+  private async checkFirstLayerUsersAreMembers(data: {
+    userIds: Array<string>;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        userId: QueryHelper.any(data.userIds),
+        projectId: data.projectId,
+      },
+      select: {
+        userId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const members: Set<string> = new Set<string>(
+      memberships
+        .map((membership: TeamMember): string => {
+          return membership.userId?.toString().toLowerCase() || "";
+        })
+        .filter(Boolean),
+    );
+
+    const strangers: Array<string> = data.userIds.filter(
+      (userId: string): boolean => {
+        return !members.has(userId);
+      },
+    );
+
+    if (strangers.length > 0) {
+      throw new BadDataException(
+        "Some of the people picked to take turns are not members of this project.",
+      );
+    }
+  }
+
+  /*
+   * Adds the first layer of a schedule just created, with the people who
+   * take turns in it, in order. Never throws: the schedule is saved already.
+   * A person who cannot be added is logged and skipped, so the others still
+   * take their turns.
+   */
+  @CaptureSpan()
+  public async addFirstLayer(data: {
+    schedule: OnCallDutyPolicySchedule;
+    firstLayer: ScheduleFirstLayer;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const scheduleId: ObjectID | null | undefined = data.schedule.id;
+    const projectId: ObjectID | undefined = data.schedule.projectId;
+
+    const logAttributes: LogAttributes = {
+      projectId: projectId?.toString(),
+      onCallDutyPolicyScheduleId: scheduleId?.toString(),
+    } as LogAttributes;
+
+    let layerId: ObjectID;
+
+    try {
+      if (!scheduleId || !projectId) {
+        throw new BadDataException(
+          "The new on-call schedule has no id or project.",
+        );
+      }
+
+      /*
+       * No order: the layer service puts it first, as the schedule has no
+       * layers yet.
+       */
+      const createdLayer: OnCallDutyPolicyScheduleLayer =
+        await OnCallDutyPolicyScheduleLayerService.create({
+          data: buildNewScheduleLayer({
+            onCallDutyPolicyScheduleId: new ObjectID(scheduleId.toString()),
+            projectId: new ObjectID(projectId.toString()),
+            name: getLayerName(1),
+            rotation: data.firstLayer.rotation,
+            timezone: data.schedule.timezone?.toString() || undefined,
+          }),
+          props: data.props,
+        });
+
+      if (!createdLayer.id) {
+        throw new BadDataException("The new layer has no id.");
+      }
+
+      layerId = new ObjectID(createdLayer.id.toString());
+    } catch (error) {
+      logger.error(
+        `Error adding the first layer of a new on-call schedule in OnCallDutyPolicyScheduleService.addFirstLayer: ${error}`,
+        logAttributes,
+      );
+      return;
+    }
+
+    /*
+     * One at a time, in the order they take turns: with no order given, the
+     * layer user service puts each one last, so the order of these creates
+     * is the order of the rotation.
+     */
+    for (const userId of data.firstLayer.userIds) {
+      try {
+        const layerUser: OnCallDutyPolicyScheduleLayerUser =
+          new OnCallDutyPolicyScheduleLayerUser();
+        layerUser.projectId = new ObjectID(projectId.toString());
+        layerUser.onCallDutyPolicyScheduleId = new ObjectID(
+          scheduleId.toString(),
+        );
+        layerUser.onCallDutyPolicyScheduleLayerId = layerId;
+        layerUser.userId = new ObjectID(userId);
+
+        await OnCallDutyPolicyScheduleLayerUserService.create({
+          data: layerUser,
+          props: data.props,
+        });
+      } catch (error) {
+        logger.error(
+          `Error adding a person to the first layer of a new on-call schedule in OnCallDutyPolicyScheduleService.addFirstLayer: ${error}`,
+          {
+            ...logAttributes,
+            onCallDutyPolicyScheduleLayerId: layerId.toString(),
+            userId: userId,
+          } as LogAttributes,
+        );
+      }
+    }
   }
 
   protected override async onCreateSuccess(
