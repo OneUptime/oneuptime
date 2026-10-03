@@ -1,25 +1,4 @@
 {
-  "Scripts": [
-    {
-      "advisory": "GHSA-vfj7-8cjw-p6xm",
-      "expires": "2026-11-03",
-      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 28 with ts-jest, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but that is a major test-runner upgrade, not a lockfile fix. None of it ships: these are repository scripts."
-    }
-  ],
-  "Scripts/TerraformProvider": [
-    {
-      "advisory": "GHSA-vfj7-8cjw-p6xm",
-      "expires": "2026-11-03",
-      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 29 with ts-jest and @types/jest, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but that is a major test-runner upgrade, not a lockfile fix. None of it ships: it only tests the provider generator."
-    }
-  ],
-  "Tests/Ops": [
-    {
-      "advisory": "GHSA-vfj7-8cjw-p6xm",
-      "expires": "2026-11-03",
-      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 28, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but that is a major test-runner upgrade, not a lockfile fix. None of it ships: these are repository checks run in CI."
-    }
-  ],
   "agents/KubernetesAIAgent": [
     {
       "advisory": "GHSA-vfj7-8cjw-p6xm",
@@ -52,7 +31,7 @@
     {
       "advisory": "GHSA-vfj7-8cjw-p6xm",
       "expires": "2026-11-03",
-      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 28 with ts-jest and @types/jest, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but that is a major test-runner upgrade, not a lockfile fix. The Enterprise image prunes ee's devDependencies (npm prune --omit=dev) after its type-check, so none of it ships."
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 28 with ts-jest and @types/jest, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but ee/jest.config.js runs ee's UI tests in Common's jest 28 environment and setup file, so ee can only move together with Common. The Enterprise image prunes ee's devDependencies (npm prune --omit=dev) after its type-check, so none of it ships."
     }
   ],
   "packages/App": [
@@ -74,13 +53,6 @@
       "advisory": "GHSA-vfj7-8cjw-p6xm",
       "expires": "2026-11-03",
       "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon's watch paths are the fixed list in this project's nodemon.json, none with a brace. nodemon runs only for `npm run dev` in the development container; the production App image only builds this frontend and starts the App with `npm start`, which never launches nodemon."
-    }
-  ],
-  "packages/App/FeatureSet/BrowserRecorder": [
-    {
-      "advisory": "GHSA-vfj7-8cjw-p6xm",
-      "expires": "2026-11-03",
-      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 29 with jest-environment-jsdom, ts-jest and @types/jest, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but that is a major test-runner upgrade, not a lockfile fix. None of it is bundled into the recorder script that pages load."
     }
   ],
   "packages/App/FeatureSet/Dashboard": [
