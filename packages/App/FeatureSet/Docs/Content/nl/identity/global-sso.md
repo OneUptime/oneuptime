@@ -39,7 +39,7 @@ Hoe een globale provider zich gedraagt, hangt af van of u er projecten aan koppe
 
 - **Geen projecten gekoppeld (default-all / invite-first):** Gebruikers kunnen inloggen met de provider en **elk project bereiken waarvan ze al lid zijn**. Nieuwe gebruikers worden **niet** automatisch aangemaakt — een gebruiker moet eerst voor een project worden uitgenodigd. Gebruik dit voor bedrijfsbrede SSO waarbij lidmaatschappen elders worden beheerd.
 
-- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Attached Projects** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
+- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Attached Projects** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
 
 Als u elke automatische accountaanmaak wilt voorkomen, zelfs wanneer er projecten zijn gekoppeld, schakel dan **Disable Sign Up with SSO** in op de provider — gebruikers moeten dan worden uitgenodigd voordat ze kunnen inloggen.
 

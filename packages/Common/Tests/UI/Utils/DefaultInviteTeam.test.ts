@@ -8,7 +8,9 @@ import {
 } from "@jest/globals";
 
 /*
- * Which team Invite User starts on (Dashboard/src/Utils/DefaultInviteTeam):
+ * Which team Invite User starts on (Common/UI/Utils/DefaultInviteTeam, which
+ * the Dashboard reads through Dashboard/src/Utils/DefaultInviteTeam and the
+ * Admin Dashboard through Utils/DefaultProjectTeam):
  *
  *   1. a team holding ProjectMember for the whole project, not blocking it -
  *      "Members" first, then the oldest;
@@ -16,8 +18,10 @@ import {
  *   3. otherwise none;
  *
  * and only a team the inviter may invite to, since the server refuses an
- * invitation that hands on permissions the inviter does not hold. The
- * lookup reads two lists, and never fails or keeps the dialog waiting.
+ * invitation that hands on permissions the inviter does not hold - by
+ * default the signed-in user's own permissions, or whatever the caller says
+ * (canGrantAll: a master admin may hand on any team). The lookup reads two
+ * lists, and never fails or keeps the dialog waiting.
  */
 
 let isMasterAdminForTest: boolean = false;
@@ -59,10 +63,12 @@ import {
   InviteTeam,
   InviteTeamPermissionRow,
   MEMBERS_TEAM_NAME,
+  canSignedInUserGrantAll,
   fetchDefaultInviteTeam,
   findDefaultInviteTeam,
   pickDefaultInviteTeam,
-} from "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam";
+} from "../../../UI/Utils/DefaultInviteTeam";
+import * as DashboardDefaultInviteTeam from "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -584,6 +590,61 @@ describe("looking the team up", () => {
     expect(calls).toEqual([]);
   });
 
+  test("a caller that says who may hand on what is asked instead of the signed-in user", async () => {
+    // Only Project Admin: the signed-in user may not invite to Members.
+    projectPermissionsForTest = {
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          permission: Permission.ProjectAdmin,
+          labelIds: [],
+          isBlockPermission: false,
+          scope: PermissionScope.All,
+          _type: "UserPermission",
+        },
+      ],
+      _type: "UserTenantAccessPermission",
+    };
+
+    const asked: Array<Array<Permission>> = [];
+
+    const found: InviteTeam | null = await findDefaultInviteTeam({
+      projectId: PROJECT_ID,
+      modelAPI: fakeModelAPI({
+        teams: [team(ADMIN_ID, "Admin"), team(MEMBERS_ID, "Members")],
+        permissions: [
+          teamPermission(ADMIN_ID, Permission.ProjectAdmin),
+          teamPermission(MEMBERS_ID, Permission.ProjectMember),
+        ],
+        calls: [],
+      }),
+      canGrantAll: (permissions: Array<Permission>): boolean => {
+        asked.push(permissions);
+        return true;
+      },
+    });
+
+    expect(found).toEqual({ id: MEMBERS_ID, name: "Members" });
+    expect(asked).toEqual([[Permission.ProjectMember]]);
+
+    // And a caller that says no is not overruled by an owner's rights.
+    projectPermissionsForTest = ownerPermissions();
+
+    await expect(
+      fetchDefaultInviteTeam({
+        projectId: PROJECT_ID,
+        modelAPI: fakeModelAPI({
+          teams: [team(MEMBERS_ID, "Members")],
+          permissions: [teamPermission(MEMBERS_ID, Permission.ProjectMember)],
+          calls: [],
+        }),
+        canGrantAll: (): boolean => {
+          return false;
+        },
+      }),
+    ).resolves.toBeNull();
+  });
+
   test("answers as soon as the lists arrive", async () => {
     const found: InviteTeam | null = await findDefaultInviteTeam({
       projectId: PROJECT_ID,
@@ -596,5 +657,66 @@ describe("looking the team up", () => {
     });
 
     expect(found).toEqual({ id: MEMBERS_ID, name: "Members" });
+  });
+});
+
+describe("who may hand a team on, by default", () => {
+  test("the signed-in user's own permissions, as GrantablePermission reads them", () => {
+    // A project owner may hand on anything.
+    expect(
+      canSignedInUserGrantAll([Permission.ProjectMember, Permission.Viewer]),
+    ).toBe(true);
+
+    // A Project Admin only what they hold themselves.
+    projectPermissionsForTest = {
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          permission: Permission.ProjectAdmin,
+          labelIds: [],
+          isBlockPermission: false,
+          scope: PermissionScope.All,
+          _type: "UserPermission",
+        },
+      ],
+      _type: "UserTenantAccessPermission",
+    };
+
+    expect(canSignedInUserGrantAll([Permission.ProjectAdmin])).toBe(true);
+    expect(canSignedInUserGrantAll([Permission.ProjectMember])).toBe(false);
+
+    // A master admin anything, as on the server.
+    isMasterAdminForTest = true;
+
+    expect(canSignedInUserGrantAll([Permission.ProjectMember])).toBe(true);
+  });
+});
+
+/*
+ * The rule moved from the Dashboard to Common so the Admin Dashboard can use
+ * it too. The Dashboard keeps reading it through its own path, and the SSO,
+ * SCIM and Invite User tests replace the lookup by mocking that path - which
+ * only works while it is the same rule, not a copy.
+ */
+describe("the Dashboard's path to it", () => {
+  test("is the shared rule itself, not a copy", () => {
+    expect(DashboardDefaultInviteTeam.pickDefaultInviteTeam).toBe(
+      pickDefaultInviteTeam,
+    );
+    expect(DashboardDefaultInviteTeam.fetchDefaultInviteTeam).toBe(
+      fetchDefaultInviteTeam,
+    );
+    expect(DashboardDefaultInviteTeam.findDefaultInviteTeam).toBe(
+      findDefaultInviteTeam,
+    );
+    expect(DashboardDefaultInviteTeam.canSignedInUserGrantAll).toBe(
+      canSignedInUserGrantAll,
+    );
+    expect(DashboardDefaultInviteTeam.MEMBERS_TEAM_NAME).toBe(
+      MEMBERS_TEAM_NAME,
+    );
+    expect(
+      DashboardDefaultInviteTeam.DEFAULT_INVITE_TEAM_LOOKUP_TIMEOUT_MS,
+    ).toBe(DEFAULT_INVITE_TEAM_LOOKUP_TIMEOUT_MS);
   });
 });

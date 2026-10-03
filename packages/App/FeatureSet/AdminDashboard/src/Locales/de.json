@@ -129,10 +129,7 @@
       "bulkAddToProject": "Zu Projekt hinzufügen",
       "bulkAddToProjectTitle": "Benutzer zu Projekt hinzufügen",
       "bulkAddToProjectDescription": "Wählen Sie ein Projekt und eines seiner Teams. Alle {{userCount}} ausgewählten Benutzer werden dem Team als ausstehende Mitglieder hinzugefügt, bis sie die Einladung annehmen – es sei denn, Sie nehmen die Einladungen für sie an.",
-      "bulkAddToProjectNext": "Weiter",
       "bulkAddToProjectSubmit": "Zu Projekt hinzufügen",
-      "bulkAddToProjectStepProject": "Projekt auswählen",
-      "bulkAddToProjectStepTeam": "Team auswählen",
       "bulkAddToProjectFieldProject": "Projekt",
       "bulkAddToProjectFieldProjectDescription": "Das Projekt, zu dem Sie die ausgewählten Benutzer hinzufügen möchten.",
       "bulkAddToProjectFieldProjectPlaceholder": "Projekt auswählen",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "Teammitgliedschaften",
       "teamsCardDescription": "Alle Teams, zu denen dieser Benutzer gehört, projektübergreifend. Das Entfernen einer Zeile entfernt ihn nur aus diesem Team.",
       "teamsNoItems": "Dieser Benutzer ist in keinem Team Mitglied.",
-      "stepProject": "Projekt auswählen",
-      "stepTeam": "Team auswählen",
       "fieldProject": "Projekt",
       "fieldProjectDescription": "Das Projekt, zu dem Sie diesen Benutzer hinzufügen möchten.",
       "fieldProjectPlaceholder": "Projekt auswählen",
@@ -385,7 +380,8 @@
       "inviteUser": "Benutzer einladen",
       "inviteUserTitle": "Neuen Benutzer einladen",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Einladen"
+      "inviteUserSubmit": "Einladen",
+      "inviteTeamDescriptionWithDefault": "Das Team bestimmt, was die Person in diesem Projekt tun kann. {{teamName}} ist vorausgewählt; wählen Sie ein anderes Team, um ihr anderen Zugriff zu geben."
     },
     "projectUserView": {
       "title": "Project User",

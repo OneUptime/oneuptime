@@ -129,10 +129,7 @@
       "bulkAddToProject": "Legg til i prosjekt",
       "bulkAddToProjectTitle": "Legg brukere til i prosjekt",
       "bulkAddToProjectDescription": "Velg et prosjekt og et av teamene. Alle de {{userCount}} valgte brukerne legges til i det teamet som ventende medlemmer til invitasjonene godtas — med mindre du godtar dem på vegne av brukerne.",
-      "bulkAddToProjectNext": "Neste",
       "bulkAddToProjectSubmit": "Legg til i prosjekt",
-      "bulkAddToProjectStepProject": "Velg prosjekt",
-      "bulkAddToProjectStepTeam": "Velg team",
       "bulkAddToProjectFieldProject": "Prosjekt",
       "bulkAddToProjectFieldProjectDescription": "Prosjektet du vil legge de valgte brukerne til i.",
       "bulkAddToProjectFieldProjectPlaceholder": "Velg prosjekt",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "Teammedlemskap",
       "teamsCardDescription": "Alle team denne brukeren tilhører, på tvers av alle prosjekter. Å fjerne en rad fjerner brukeren bare fra det teamet.",
       "teamsNoItems": "Denne brukeren er ikke medlem av noe team.",
-      "stepProject": "Velg prosjekt",
-      "stepTeam": "Velg team",
       "fieldProject": "Prosjekt",
       "fieldProjectDescription": "Prosjektet du vil legge denne brukeren til i.",
       "fieldProjectPlaceholder": "Velg prosjekt",
@@ -385,7 +380,8 @@
       "inviteUser": "Inviter bruker",
       "inviteUserTitle": "Inviter ny bruker",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Inviter"
+      "inviteUserSubmit": "Inviter",
+      "inviteTeamDescriptionWithDefault": "Teamet deres avgjør hva de kan gjøre i dette prosjektet. {{teamName}} er valgt på forhånd; velg et annet team for å gi dem annen tilgang."
     },
     "projectUserView": {
       "title": "Project User",

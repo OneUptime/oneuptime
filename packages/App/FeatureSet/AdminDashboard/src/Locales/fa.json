@@ -129,10 +129,7 @@
       "bulkAddToProject": "افزودن به پروژه",
       "bulkAddToProjectTitle": "افزودن کاربران به پروژه",
       "bulkAddToProjectDescription": "یک پروژه و یکی از تیم‌های آن را انتخاب کنید. هر {{userCount}} کاربر انتخاب‌شده تا زمان پذیرش دعوت، به‌عنوان عضو در انتظار به آن تیم افزوده می‌شوند، مگر آنکه دعوت‌ها را به‌جای آن‌ها بپذیرید.",
-      "bulkAddToProjectNext": "بعدی",
       "bulkAddToProjectSubmit": "افزودن به پروژه",
-      "bulkAddToProjectStepProject": "انتخاب پروژه",
-      "bulkAddToProjectStepTeam": "انتخاب تیم",
       "bulkAddToProjectFieldProject": "پروژه",
       "bulkAddToProjectFieldProjectDescription": "پروژه‌ای که می‌خواهید کاربران انتخاب‌شده را به آن اضافه کنید.",
       "bulkAddToProjectFieldProjectPlaceholder": "انتخاب پروژه",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "عضویت در تیم‌ها",
       "teamsCardDescription": "همه تیم‌هایی که این کاربر در همه پروژه‌ها عضو آن‌هاست. حذف یک سطر فقط او را از همان تیم خارج می‌کند.",
       "teamsNoItems": "این کاربر عضو هیچ تیمی نیست.",
-      "stepProject": "انتخاب پروژه",
-      "stepTeam": "انتخاب تیم",
       "fieldProject": "پروژه",
       "fieldProjectDescription": "پروژه‌ای که می‌خواهید این کاربر را به آن اضافه کنید.",
       "fieldProjectPlaceholder": "انتخاب پروژه",
@@ -385,7 +380,8 @@
       "inviteUser": "دعوت کاربر",
       "inviteUserTitle": "دعوت کاربر جدید",
       "inviteUserDescription": "کاربر جدیدی را به این پروژه دعوت کنید.",
-      "inviteUserSubmit": "دعوت"
+      "inviteUserSubmit": "دعوت",
+      "inviteTeamDescriptionWithDefault": "تیم هر فرد تعیین می‌کند که او در این پروژه چه کارهایی می‌تواند انجام دهد. در ابتدا {{teamName}} انتخاب شده است؛ برای دادن دسترسی متفاوت، تیم دیگری انتخاب کنید."
     },
     "projectUserView": {
       "title": "کاربر پروژه",

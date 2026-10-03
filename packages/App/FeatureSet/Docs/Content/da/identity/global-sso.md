@@ -39,7 +39,7 @@ Hvordan en global udbyder opfører sig, afhænger af, om du tilknytter projekter
 
 - **Ingen projekter tilknyttet (default-all / invite-first):** Brugere kan logge ind med udbyderen og nå **ethvert projekt, de allerede er medlem af**. Nye brugere oprettes **ikke** automatisk — en bruger skal først inviteres til et projekt. Brug dette til virksomhedsdækkende SSO, hvor medlemskaber administreres et andet sted.
 
-- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Attached Projects** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
+- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Attached Projects** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
 
 Hvis du vil forhindre enhver automatisk oprettelse af konti, selv når projekter er tilknyttet, skal du aktivere **Disable Sign Up with SSO** på udbyderen — brugere skal derefter inviteres, før de kan logge ind.
 

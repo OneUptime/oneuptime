@@ -54,6 +54,7 @@ const REPOSITORY_ROOT: string = path.resolve(
 );
 
 const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
+const ADMIN_DASHBOARD: string = "packages/App/FeatureSet/AdminDashboard/src";
 
 const VIRTUAL_ROOT: string = "/repo";
 
@@ -492,6 +493,15 @@ describe("the project's forms", () => {
       [
         `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleConditions.tsx`,
         "NotificationRuleConditions",
+      ],
+      /*
+       * The Admin Dashboard's team picker: the project's members team, once
+       * the project above it is picked. The forms that draw it are one page
+       * (ProjectTeamFormsGuard), so it is always drawn before they are sent.
+       */
+      [
+        `${ADMIN_DASHBOARD}/Components/GlobalProvider/ProjectScopedTeamsPicker.tsx`,
+        "ProjectScopedTeamsPicker",
       ],
     ];
 

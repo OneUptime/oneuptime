@@ -129,10 +129,7 @@
       "bulkAddToProject": "Føj til projekt",
       "bulkAddToProjectTitle": "Føj brugere til projekt",
       "bulkAddToProjectDescription": "Vælg et projekt og et af dets teams. Alle {{userCount}} valgte bruger(e) føjes til teamet som afventende medlemmer, indtil invitationerne accepteres — medmindre du accepterer dem på brugernes vegne.",
-      "bulkAddToProjectNext": "Næste",
       "bulkAddToProjectSubmit": "Føj til projekt",
-      "bulkAddToProjectStepProject": "Vælg projekt",
-      "bulkAddToProjectStepTeam": "Vælg team",
       "bulkAddToProjectFieldProject": "Projekt",
       "bulkAddToProjectFieldProjectDescription": "Det projekt, du vil føje de valgte brugere til.",
       "bulkAddToProjectFieldProjectPlaceholder": "Vælg projekt",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "Teammedlemskaber",
       "teamsCardDescription": "Alle teams, som denne bruger hører til, på tværs af alle projekter. Fjernes en række, fjernes brugeren kun fra det pågældende team.",
       "teamsNoItems": "Denne bruger er ikke medlem af noget team.",
-      "stepProject": "Vælg projekt",
-      "stepTeam": "Vælg team",
       "fieldProject": "Projekt",
       "fieldProjectDescription": "Det projekt, du vil føje denne bruger til.",
       "fieldProjectPlaceholder": "Vælg projekt",
@@ -385,7 +380,8 @@
       "inviteUser": "Inviter bruger",
       "inviteUserTitle": "Inviter ny bruger",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Inviter"
+      "inviteUserSubmit": "Inviter",
+      "inviteTeamDescriptionWithDefault": "Deres team afgør, hvad de kan gøre i dette projekt. {{teamName}} er valgt på forhånd; vælg et andet team for at give dem en anden adgang."
     },
     "projectUserView": {
       "title": "Project User",

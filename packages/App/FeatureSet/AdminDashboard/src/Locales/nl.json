@@ -129,10 +129,7 @@
       "bulkAddToProject": "Aan project toevoegen",
       "bulkAddToProjectTitle": "Gebruikers aan project toevoegen",
       "bulkAddToProjectDescription": "Kies een project en een van de teams. Alle {{userCount}} geselecteerde gebruiker(s) worden aan dat team toegevoegd als leden in afwachting, totdat de uitnodigingen zijn geaccepteerd — tenzij u de uitnodigingen namens hen accepteert.",
-      "bulkAddToProjectNext": "Volgende",
       "bulkAddToProjectSubmit": "Aan project toevoegen",
-      "bulkAddToProjectStepProject": "Project selecteren",
-      "bulkAddToProjectStepTeam": "Team selecteren",
       "bulkAddToProjectFieldProject": "Project",
       "bulkAddToProjectFieldProjectDescription": "Het project waaraan u de geselecteerde gebruikers wilt toevoegen.",
       "bulkAddToProjectFieldProjectPlaceholder": "Project selecteren",
@@ -268,8 +265,6 @@
       "teamsCardTitle": "Teamlidmaatschappen",
       "teamsCardDescription": "Alle teams waartoe deze gebruiker behoort, in alle projecten. Een rij verwijderen haalt hem alleen uit dat team.",
       "teamsNoItems": "Deze gebruiker is lid van geen enkel team.",
-      "stepProject": "Project selecteren",
-      "stepTeam": "Team selecteren",
       "fieldProject": "Project",
       "fieldProjectDescription": "Het project waaraan u deze gebruiker wilt toevoegen.",
       "fieldProjectPlaceholder": "Project selecteren",
@@ -385,7 +380,8 @@
       "inviteUser": "Gebruiker uitnodigen",
       "inviteUserTitle": "Nieuwe gebruiker uitnodigen",
       "inviteUserDescription": "Invite a new user to this project.",
-      "inviteUserSubmit": "Uitnodigen"
+      "inviteUserSubmit": "Uitnodigen",
+      "inviteTeamDescriptionWithDefault": "Het team bepaalt wat deze persoon in dit project kan doen. {{teamName}} is vooraf gekozen; kies een ander team om andere toegang te geven."
     },
     "projectUserView": {
       "title": "Project User",
