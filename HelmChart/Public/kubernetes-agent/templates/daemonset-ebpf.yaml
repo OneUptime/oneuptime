@@ -76,8 +76,9 @@ spec:
             - name: OTEL_EBPF_KUBE_METADATA_ENABLE
               value: "true"
             # OBI emits a warning unless this is set explicitly — without it,
-            # k8s.cluster.name is missing from network metrics (it still
-            # makes it onto traces via OTEL_RESOURCE_ATTRIBUTES below).
+            # k8s.cluster.name is missing from network metrics. It is also the
+            # k8s.cluster.name OBI puts on every pod's spans and metrics
+            # (since v0.14 it outranks OTEL_RESOURCE_ATTRIBUTES below).
             - name: OTEL_EBPF_KUBE_CLUSTER_NAME
               value: {{ .Values.clusterName | quote }}
             - name: OTEL_EBPF_LOG_LEVEL
@@ -143,10 +144,14 @@ spec:
               value: "http://{{ include "kubernetes-agent.fullname" . }}-otlp.{{ .Release.Namespace }}.svc.cluster.local:4318"
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: "http/protobuf"
-            # Cluster name is stamped on every span so traces from this
-            # cluster are filterable in the dashboard. Per-service
-            # service.name is set by OBI from pod / workload metadata, so we
-            # do NOT override it here.
+            # Cluster name as a fallback, so traces from this cluster are
+            # filterable in the dashboard. Since v0.14 OBI ranks this variable
+            # below what it resolves for a target and merges per key:
+            # OTEL_EBPF_KUBE_CLUSTER_NAME above, a pod's
+            # resource.opentelemetry.io/k8s.cluster.name annotation or a
+            # container's own OTEL_RESOURCE_ATTRIBUTES win over it.
+            # Per-service service.name is set by OBI from pod / workload
+            # metadata, so we do NOT override it here.
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "k8s.cluster.name={{ .Values.clusterName }}"
             # Namespace rules with the `ebpfDiscovery` scope are in the config

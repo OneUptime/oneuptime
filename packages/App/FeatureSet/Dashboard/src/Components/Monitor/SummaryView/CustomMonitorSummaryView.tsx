@@ -20,16 +20,11 @@ export interface ComponentProps {
   probeName?: string | undefined;
 }
 
-const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
+// Drawn by CustomMonitorSummaryView once there is a run to show.
+const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  if (!props.customCodeMonitorResponse) {
-    return (
-      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
-    );
-  }
-
   const [showMoreDetails, setShowMoreDetails] = React.useState<boolean>(false);
 
   const customCodeMonitorResponse: CustomCodeMonitorResponse =
@@ -239,6 +234,25 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
       </div>
     </div>
   );
+};
+
+/*
+ * Whether there is a run to show calls no hook, so it is decided here and the
+ * hooks live in CustomMonitorRunSummary: a response that goes missing, or
+ * comes back, unmounts or mounts the summary. While this check sat between
+ * the translation hook and the summary's own state, that change altered how
+ * many hooks one component called, and React threw instead of drawing it.
+ */
+const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  if (!props.customCodeMonitorResponse) {
+    return (
+      <ErrorMessage message="No summary available for the selected probe. Should be few minutes for summary to show up. " />
+    );
+  }
+
+  return <CustomMonitorRunSummary {...props} />;
 };
 
 export default CustomMonitorSummaryView;

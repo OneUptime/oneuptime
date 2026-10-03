@@ -149,7 +149,7 @@ Ressalvas:
 | Opção                  | Omissão                                                     | Descrição                                                                                                                |
 | ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.enabled`         | `true`                                                      | Interruptor principal. Defina para `false` para ignorar completamente o DaemonSet eBPF.                                  |
-| `ebpf.image.tag`       | `v0.13.0`                                                   | Tag da imagem OBI. O OBI é pré-1.0; fixe numa versão validada e volte a testar em atualizações.                          |
+| `ebpf.image.tag`       | `v0.14.0`                                                   | Tag da imagem OBI. O OBI é pré-1.0; fixe numa versão validada e volte a testar em atualizações.                          |
 | `ebpf.autoTargetExe`   | `*`                                                         | Glob de executáveis a instrumentar. Restrinja-o (p.ex., `*/python,*/java`) se pretender delimitar a auto-instrumentação. |
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, o próprio OBI) | Globs separados por vírgulas a ignorar.                                                                                  |
 | `ebpf.logLevel`        | `info`                                                      | `debug`, `info`, `warn` ou `error`. Defina para `debug` durante a resolução de problemas.                                |
