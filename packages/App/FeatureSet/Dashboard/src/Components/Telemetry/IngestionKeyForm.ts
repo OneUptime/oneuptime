@@ -7,6 +7,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
 import {
   translateText,
   translationKey,
@@ -118,7 +119,8 @@ type GetNameAfterTypeChangeFunction = (data: {
  * The name once another key type is picked: the new type's name, while the
  * name is still the form's own - empty, or the name of the type picked
  * before. Null when it stays as it is: somebody typed a name of their own,
- * or the type did not change.
+ * or the type did not change. The same rule as a status page resource's
+ * display name following its monitor (Forms/Utils/FollowPickName).
  */
 export const getIngestionKeyNameAfterTypeChange: GetNameAfterTypeChangeFunction =
   (data: {
@@ -130,22 +132,17 @@ export const getIngestionKeyNameAfterTypeChange: GetNameAfterTypeChangeFunction 
       return null;
     }
 
-    const name: string = typeof data.name === "string" ? data.name : "";
-
-    const isTheFormsOwn: boolean =
-      name.trim().length === 0 ||
-      name ===
+    return getNameAfterPick({
+      name: data.name,
+      pickedName: getDefaultIngestionKeyName(
+        data.keyType as TelemetryIngestionKeyType | undefined,
+      ),
+      filledInNames: [
         getDefaultIngestionKeyName(
           data.previousKeyType as TelemetryIngestionKeyType | undefined,
-        );
-
-    if (!isTheFormsOwn) {
-      return null;
-    }
-
-    return getDefaultIngestionKeyName(
-      data.keyType as TelemetryIngestionKeyType | undefined,
-    );
+        ),
+      ],
+    });
   };
 
 type GetUniqueNameFunction = (data: {
