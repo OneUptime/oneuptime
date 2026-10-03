@@ -393,28 +393,43 @@ describe("the Branding page", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  /*
+   * Where on Advanced Settings is that page's business: as cards of their
+   * own, or as rows of its "What your status page shows" card.
+   */
   test("holds nothing about what the page shows: the uptime % and the downtime statuses are on Advanced Settings", () => {
+    const advancedSettings: string = [
+      readView("StatusPageSettings.tsx"),
+      readSource(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "StatusPage",
+          "StatusPageDisplaySettingsCopy.ts",
+        ),
+      ),
+    ].join(" ");
+
     for (const column of [
       "showOverallUptimePercentOnStatusPage",
       "overallUptimePercentPrecision",
       "downtimeMonitorStatuses",
     ]) {
       expect([column, branding.includes(column)]).toEqual([column, false]);
+      expect([column, advancedSettings.includes(column)]).toEqual([
+        column,
+        true,
+      ]);
     }
-
-    const settings: string = readView("StatusPageSettings.tsx");
-
-    expect(settings).toContain("showOverallUptimePercentOnStatusPage: true");
-    expect(settings).toContain("downtimeMonitorStatuses: true");
   });
 });
 
 describe("one place for each branding setting", () => {
   /*
-   * Within the status page's own pages and components, each column is
-   * named only where it is set: the branding columns on the Branding page
-   * (search engine indexing in its switch card, and the folded section's
-   * "Configured" rule in the copy), the uptime ones on Advanced Settings.
+   * Within the status page's own pages and components, each branding column
+   * is named only where it is set: on the Branding page (search engine
+   * indexing in its switch card, and the folded section's "Configured" rule
+   * in the copy).
    */
   const OWNERS: Record<string, Array<string>> = {
     logoFile: ["Pages/StatusPages/View/Branding.tsx"],
@@ -442,12 +457,6 @@ describe("one place for each branding setting", () => {
       "Components/StatusPage/SearchEngineIndexingCard.tsx",
       "Components/StatusPage/StatusPageBrandingCopy.ts",
       "Pages/StatusPages/View/Branding.tsx",
-    ],
-    showOverallUptimePercentOnStatusPage: [
-      "Pages/StatusPages/View/StatusPageSettings.tsx",
-    ],
-    overallUptimePercentPrecision: [
-      "Pages/StatusPages/View/StatusPageSettings.tsx",
     ],
   };
 

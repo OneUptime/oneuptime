@@ -44,7 +44,8 @@ import React, {
  * Page, Languages), and what people looked for was rarely where the names
  * said: the logo and cover image were on Header, the favicon on Essential
  * Branding, the history chart's colors on Overview Page. The cards are the
- * same cards, with the analytics names they had. First what nearly everyone
+ * same cards, with the analytics names they had (the two language cards are
+ * one card now, "Status Page > Languages"). First what nearly everyone
  * sets, in the order a visitor meets it: the logo and cover image, the
  * page's title and description, its favicon, the header's links, the text
  * at the top of the overview, and the footer. Then, folded under Advanced,

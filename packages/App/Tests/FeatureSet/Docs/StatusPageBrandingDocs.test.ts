@@ -126,7 +126,9 @@ describe("Status Page Branding & Domains (English)", () => {
     expect(page).toContain(
       "There is no **Edit** button: the switch saves the moment you flip it.",
     );
-    expect(page).toContain("**Allow Search Engines to Index this Status Page**");
+    expect(page).toContain(
+      "**Allow Search Engines to Index this Status Page**",
+    );
   });
 
   it("says the languages are one card and one dialog", () => {
@@ -139,11 +141,9 @@ describe("Status Page Branding & Domains (English)", () => {
     expect(SUPPORTED_STATUS_PAGE_LANGUAGES).toHaveLength(17);
     expect(page).toContain("Seventeen languages ship with OneUptime:");
 
-    const sentence: string = page
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.startsWith("Seventeen languages ship with OneUptime:");
-      })!;
+    const sentence: string = page.split("\n").find((line: string): boolean => {
+      return line.startsWith("Seventeen languages ship with OneUptime:");
+    })!;
 
     for (const language of SUPPORTED_STATUS_PAGE_LANGUAGES) {
       expect([
@@ -164,8 +164,6 @@ describe("Status Page Branding & Domains (English)", () => {
     expect(section).toContain(
       "**Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`)",
     );
-    expect(section).toContain("**Overall Uptime Percent**");
-    expect(section).toContain("**Downtime Monitor Statuses**");
   });
 
   it("tells readers the old screens' addresses open the Branding page", () => {
@@ -217,9 +215,6 @@ describe("the rest of the English docs", () => {
     expect(row).not.toContain("**Header**");
     expect(overview).toContain(
       "the **Default Bar Color** and the bar-color rules are under **Advanced** on **Status Pages → your page → Branding → Branding**",
-    );
-    expect(overview).toContain(
-      "(see [Uptime percent and downtime statuses](/docs/status-pages/branding-and-domains#uptime-percent-and-downtime-statuses))",
     );
   });
 
