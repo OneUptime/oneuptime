@@ -13,6 +13,10 @@ import DocsNav, {
 import IncidentStatusPageScopeCopy, {
   formatScopeText,
 } from "../../../FeatureSet/Dashboard/src/Components/Incident/IncidentStatusPageScopeCopy";
+import StatusPageDisplaySettingsCopy, {
+  DISPLAY_SECTIONS,
+  DisplaySectionDefinition,
+} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
@@ -805,22 +809,44 @@ describe("One Status Page per Audience docs", () => {
       }
     });
 
-    it("finds the scoped-only switch on the Incident Settings card of Advanced Settings", () => {
-      const source: string = readDashboardSource(
-        "Pages/StatusPages/View/StatusPageSettings.tsx",
-      );
+    /*
+     * Advanced Settings is one "What your status page shows" card now, with
+     * no Edit button: the scoped-only switch is in its incidents row, under
+     * Show Incidents, and saves as it is flipped.
+     */
+    it("finds the scoped-only switch in the What your status page shows card of Advanced Settings, under Show Incidents", () => {
+      expect(
+        readDashboardSource("Pages/StatusPages/View/StatusPageSettings.tsx"),
+      ).toContain("<StatusPageDisplaySettingsCard statusPageId={modelId} />");
 
-      expect(source).toMatch(/title:\s*"Incident Settings"/);
-      expect(source).toMatch(/editButtonText="Edit Settings"/);
-      expect(source).toContain(
-        "IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle",
-      );
+      const incidents: DisplaySectionDefinition = DISPLAY_SECTIONS.find(
+        (section: DisplaySectionDefinition) => {
+          return section.id === "incidents";
+        },
+      )!;
+
+      expect(incidents.show?.title).toBe("Show Incidents");
+      expect(
+        incidents.options.map((option: { title: string }) => {
+          return option.title;
+        }),
+      ).toContain(IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle);
 
       for (const language of ALL_LANGUAGES) {
-        const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
+        const guide: string = readPage(GUIDE_PAGE, language);
+        const names: Set<string> = boldText(guide);
 
-        expect(names.has("Incident Settings")).toBe(true);
-        expect(names.has("Edit Settings")).toBe(true);
+        expect(names.has(StatusPageDisplaySettingsCopy.cardTitle)).toBe(true);
+        expect(names.has("Show Incidents")).toBe(true);
+
+        // The step no longer sends anyone through an Edit dialog.
+        const step: string =
+          guide.split("\n").find((line: string): boolean => {
+            return line.startsWith("3. ");
+          }) || "";
+
+        expect(step).toContain(StatusPageDisplaySettingsCopy.cardTitle);
+        expect(step).not.toContain("Edit Settings");
       }
     });
 

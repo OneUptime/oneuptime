@@ -130,14 +130,14 @@ SMS, Slack, Microsoft Teams, 웹훅 구독자는 이 과정을 건너뜁니다 �
 **Show At**(`showAnnouncementAt`)과 **End At**(`endAnnouncementAt`)이 모든 것을 좌우하지만, 개요 페이지와 공지 목록은 서로 다른 질문을 던지고 그 차이가 사람들을 헷갈리게 합니다.
 
 - **개요 페이지**는 `showAnnouncementAt`이 과거이고 `endAnnouncementAt`이 미래이거나 비어 있을 때 공지를 표시합니다.
-- **`/announcements` 목록**은 `showAnnouncementAt`이 **공지사항 기록 표시(일 단위)**(`showAnnouncementHistoryInDays`, 기본값 14) 안에 드는 공지를 가져온 다음, 클라이언트 쪽에서 활성과 지난 것으로 나눕니다.
+- **`/announcements` 목록**은 `showAnnouncementAt`이 공지의 기록 기간(`showAnnouncementHistoryInDays`, 기본값 14) 안에 드는 공지를 가져온 다음, 클라이언트 쪽에서 활성과 지난 것으로 나눕니다.
 
 미리 대비해 둘 만한 두 가지 결과가 있습니다.
 
 - **종료 날짜가 없는 공지는 만료되지 않습니다.** **공지사항 표시 종료 시점**을 비워 두면 개요 페이지에 무기한 고정된 채로 남습니다. 기간이 정해진 것에는 종료 날짜를 지정하세요.
 - **오래되었지만 여전히 활성인 공지가 목록에서 사라질 수 있습니다.** `showAnnouncementHistoryInDays`보다 더 전에 시작했다면 개요에는 남으면서 `/announcements`에서는 빠집니다. 장기간 유지하는 안내가 있다면 기록 기간을 늘리세요.
 
-공지가 아예 표시될지 여부는 **고급 설정**의 **공지사항 설정** 카드가 제어합니다. **공지사항 표시**(`showAnnouncementsOnStatusPage`, 기본값 true)와 **공지사항 기록 표시(일 단위)**(기본값 14)죠. **공지사항 표시**가 꺼져 있으면 공지 엔드포인트는 요청을 아예 거부합니다.
+공지가 아예 표시될지 여부는 **고급 설정**의 **상태 페이지에 표시되는 내용** 카드에서 정합니다. **공지사항 표시**(`showAnnouncementsOnStatusPage`, 기본값 true)와 그 아래의 **최근 …일 표시**(`showAnnouncementHistoryInDays`, 기본값 14)입니다. **공지사항 표시**가 꺼져 있으면 공지 엔드포인트는 요청을 아예 거부합니다.
 
 ## 공지 템플릿
 

@@ -34,7 +34,7 @@ Gebruik het wanneer: de pagina alleen intern is of nog in aanbouw. Zet **Allow S
 
 **Statuspagina's → jouw pagina → Huisstijl → Koptekst** (`{id}/header-style`). Ondanks de naam in het zijmenu staan hier je twee grootste merkelementen.
 
-De eerste kaart heet **Logo, omslag en favicon**, met een knop **Edit Images**:
+De eerste kaart heet **Logo en omslagafbeelding**, met een knop **Edit Images**:
 
 - **Logo** — afbeeldingsupload, placeholder `Upload logo`.
 - **Logo Alt Text** — placeholder `Logo of My Company`. Laat je dit leeg, dan wordt de titel van de statuspagina gebruikt.
@@ -64,7 +64,7 @@ Links naar juridische informatie, privacy en voorwaarden horen hier. Koptekstkop
 - **Default Bar Color of the History Chart** — **Edit Default Bar Color** opent de kiezer **Standaard balkkleur**, de kleur die wordt gebruikt wanneer geen enkele regel matcht.
 - **Overall Uptime Percent** — **Edit Settings** opent de schakelaar **Totaal uptimepercentage weergeven** en een lijst **Selecteer uptime-precisie**, die standaard op twee decimalen staat (`99.99% (Two Decimal)`).
 
-**Hoeveel dagen de grafiek beslaat, stel je hier niet in.** Dat is **Uptimegeschiedenis weergeven (in dagen)** op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), geldig van 1 tot 90.
+**Hoeveel dagen de grafiek beslaat, stel je hier niet in.** Dat is **Uptimegeschiedenis** in de kaart **Wat uw statuspagina toont** op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), van 1 tot 90 dagen.
 
 ## Aangepaste HTML, CSS en JavaScript
 
@@ -152,7 +152,7 @@ Blijft een rij lang nadat je het DNS-item aanmaakte op "Action Required: Please 
 
 ## Powered by OneUptime
 
-De regel "Powered by OneUptime" is geen instelling uit de huisstijlsectie. Die staat op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), in de kaart **Aangedreven door OneUptime-branding**, als één schakelaar: **Verberg 'Powered By OneUptime'-branding**. **Edit Settings** opent hem, net als bij elke andere kaart op die pagina.
+De regel "Powered by OneUptime" is geen instelling uit de huisstijlsectie. Het is de laatste schakelaar van de kaart **Wat uw statuspagina toont** op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`): **'Powered By OneUptime'-branding weergeven**, standaard aan. Zet hem uit om de regel te verbergen; dat wordt meteen opgeslagen. Op OneUptime Cloud vraagt verbergen het abonnement **Scale**.
 
 ## Waar je hierna kunt lezen
 

@@ -11,7 +11,7 @@ Les pages de statut vivent sous **Pages de statut** dans la navigation de gauche
 - **Créée avec deux champs.** Une nouvelle page de statut ne demande que **Nom** et **Description**. Ressources, image de marque et domaines se configurent ensuite.
 - **Les ressources sont ce que voient les visiteurs.** Chaque ligne de la page est une **Page de statut Ressource** — un moniteur (ou un groupe de moniteurs) avec son propre nom d'affichage, son infobulle et ses options de disponibilité. Les groupes découpent une page trop longue en sections et peuvent être imbriqués.
 - **Une URL de prévisualisation dès le premier jour.** Chaque page de statut reçoit un lien d'aperçu pour que vous puissiez la regarder avant même qu'un domaine personnalisé existe.
-- **Les routes visibles par les visiteurs dépendent des paramètres.** Incidents, annonces, événements planifiés et page d'abonnement n'apparaissent chacun que lorsque leur bascule est activée dans les **Paramètres avancés**.
+- **Les routes visibles par les visiteurs dépendent des paramètres.** Incidents, épisodes, annonces et événements planifiés n'apparaissent chacun que tant que leur bascule est activée dans **Ce que montre votre page de statut** (dans les **Paramètres avancés**), et la page d'abonnement que tant que **Afficher la page des abonnés** est activé.
 - **Trois façons de la rendre privée.** Des utilisateurs privés, un mot de passe maître, ou SAML SSO / OIDC — plus une liste blanche d'IP.
 - **Les abonnés sont prévenus automatiquement.** Des abonnés e-mail, SMS, Slack, Microsoft Teams et webhook peuvent tous suivre une page, chaque canal derrière sa propre bascule.
 
@@ -98,36 +98,23 @@ Pour comprendre ce qui fait apparaître un incident sur cette page, et ce qui l'
 
 ## Choisir ce qui s'affiche sur la page
 
-L'essentiel des interrupteurs d'affichage tient en un seul endroit : **Pages de statut → votre page → Avancé → Paramètres avancés**. Chaque carte a son propre bouton **Edit Settings**.
+Ce que voient les visiteurs se règle dans une seule carte : **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés**. Elle compte une ligne par liste que la page peut afficher, puis **Historique de disponibilité** et la mention « Propulsé par OneUptime ». Il n'y a pas de bouton de modification : une bascule s'enregistre dès que vous la changez, et un nombre de jours dès que vous quittez son champ ou appuyez sur Entrée.
 
-**Paramètres des incidents** :
+- **Afficher les incidents** (`showIncidentsOnStatusPage`) — activé par défaut. En dessous, **Afficher … jours d'historique** (`showIncidentHistoryInDays`, 14 par défaut) fixe jusqu'où remonte la liste des incidents, et **Afficher les étiquettes d'incident** (`showIncidentLabelsOnStatusPage`) est désactivé par défaut.
+- **Afficher uniquement les incidents limités à cette page** (`onlyShowScopedIncidents`) — aussi dans la ligne des incidents, désactivé par défaut. Activé, la page n'affiche que les incidents limités à elle avec **Limiter à ces pages de statut**, et ne prévient ses abonnés que de ceux-là. Il décide aussi quels incidents amènent leurs épisodes sur la page ; il reste donc affiché quand **Afficher les incidents** est désactivé.
+- **Afficher les épisodes** (`showEpisodesOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showEpisodeHistoryInDays`, 14 par défaut) et **Afficher les étiquettes d'épisode** (`showEpisodeLabelsOnStatusPage`, désactivé par défaut). Les épisodes sont un modèle à part entière, avec leurs propres points de terminaison ; ce n'est pas une vue sur les incidents.
+- **Afficher les annonces** (`showAnnouncementsOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showAnnouncementHistoryInDays`, 14 par défaut).
+- **Afficher les événements de maintenance planifiée** (`showScheduledMaintenanceEventsOnStatusPage`) — activé par défaut, avec **Afficher … jours d'historique** (`showScheduledEventHistoryInDays`, 14 par défaut) et **Afficher les étiquettes d'événement** (`showScheduledEventLabelsOnStatusPage`, désactivé par défaut).
+- **Historique de disponibilité** — **Afficher … jours d'historique** (`showUptimeHistoryInDays`) est la longueur de la barre de disponibilité affichée à côté de chaque ressource. 90 par défaut, et doit rester entre 1 et 90. Chaque option **Afficher le % de disponibilité** et **Afficher le graphique de l'historique des états** d'une ressource ou d'un groupe lit ce nombre.
+- **Afficher la mention « Propulsé par OneUptime »** — activé par défaut, si bien que le pied de page visiteur affiche « Propulsé par OneUptime ». Désactivez-le pour masquer la mention. La colonne l'enregistre à l'inverse, sous `hidePoweredByOneUptimeBranding`.
 
-- **Afficher les incidents** (`showIncidentsOnStatusPage`) — activé par défaut. Le désactiver retire aussi l'entrée de navigation **Incidents**.
-- **Afficher l'historique des incidents (en jours)** (`showIncidentHistoryInDays`) — jusqu'où remonte la liste des incidents. 14 par défaut.
-- **Afficher les étiquettes d'incident** (`showIncidentLabelsOnStatusPage`) — désactivé par défaut.
+**Une liste désactivée** disparaît de la page, avec son entrée dans la barre de navigation si elle en a une ; son point de terminaison public refuse, et les abonnés de la page ne sont pas prévenus de ce type d'événement. Sa ligne ne montre plus alors que sa bascule : jusqu'où remonte une liste masquée, et si elle affiche des étiquettes, ne change rien.
 
-**Paramètres de l'épisode** — les trois mêmes interrupteurs pour les épisodes d'incident : **Afficher les épisodes** (`showEpisodesOnStatusPage`, activé par défaut), **Afficher l'historique des épisodes (en jours)** (14 par défaut) et **Afficher les étiquettes d'épisode** (désactivé par défaut). Les épisodes sont un modèle à part entière, avec leurs propres points de terminaison ; ce n'est pas une vue sur les incidents.
-
-**Paramètres de l'annonce** :
-
-- **Afficher les annonces** (`showAnnouncementsOnStatusPage`) — activé par défaut.
-- **Afficher l'historique des annonces (en jours)** (`showAnnouncementHistoryInDays`) — 14 par défaut.
-
-**Paramètres des événements planifiés** :
-
-- **Afficher les événements de maintenance planifiée** (`showScheduledMaintenanceEventsOnStatusPage`) — activé par défaut.
-- **Afficher l'historique des événements planifiés (en jours)** (`showScheduledEventHistoryInDays`) — 14 par défaut.
-- **Afficher les étiquettes d'événement** (`showScheduledEventLabelsOnStatusPage`) — désactivé par défaut.
-
-**Paramètres de l'historique de disponibilité** :
-
-- **Afficher l'historique de disponibilité (en jours)** (`showUptimeHistoryInDays`) — la longueur de la barre de disponibilité affichée à côté de chaque ressource. 90 par défaut, et doit rester entre 1 et 90. Chaque option **Afficher le % de disponibilité** et **Afficher le graphique de l'historique des états** d'une ressource ou d'un groupe lit ce nombre.
+**Forfaits.** Sur OneUptime Cloud, un réglage que votre forfait ne permet pas de changer affiche à côté le forfait nécessaire. Les quatre bascules de liste, les trois bascules d'étiquettes et l'historique des épisodes demandent **Growth** ; masquer la mention « Propulsé par OneUptime » demande **Scale**. Les autres fenêtres d'historique, **Historique de disponibilité** et **Afficher uniquement les incidents limités à cette page** se changent avec tous les forfaits, et chaque réglage s'enregistre seul.
 
 L'affichage d'une entrée **S'abonner** sur la page (**Afficher la page des abonnés**, `showSubscriberPageOnStatusPage`, activé par défaut) et les canaux par lesquels les visiteurs peuvent s'abonner ne se règlent pas sur cet écran : les deux se trouvent dans la carte **Canaux** sous **Abonnés → Paramètres des abonnés** (voir [Abonnés et annonces](/docs/status-pages/subscribers)).
 
-**Image de marque « Propulsé par OneUptime »** :
-
-- **Masquer la mention « Propulsé par OneUptime »** — désactivé par défaut, si bien que le pied de page visiteur affiche « Propulsé par OneUptime » tant que vous ne l'activez pas.
+Sous la carte se trouvent une carte qui exporte les réglages de la page de statut dans un fichier JSON que vous pouvez réimporter, et la carte d'archivage de la page de statut.
 
 **Où sont les couleurs.** Les couleurs de la barre de disponibilité ne sont pas ici — la **Couleur de barre par défaut**, les règles de couleur de barre, les **Statuts de moniteur d'indisponibilité** et **Afficher le pourcentage de disponibilité global** vivent tous dans **Pages de statut → votre page → Image de marque → Page de vue d'ensemble**. Il n'existe nulle part de réglage de thème ou de couleur de marque ; tout ce qui dépasse ces contrôles passe par du **CSS personnalisé**.
 
