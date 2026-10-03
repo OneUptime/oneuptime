@@ -24467,7 +24467,6 @@
   "Nobody can sign in: SSO is required, and no SSO or OIDC provider is on. {{link}}": "Nobody can sign in: SSO is required, and no SSO or OIDC provider is on. {{link}}",
   "OIDC off": "OIDC off",
   "OIDC on": "OIDC on",
-  "One IP address or CIDR range per line, IPv4 or IPv6, for example 203.0.113.7 or 10.0.0.0/8.": "One IP address or CIDR range per line, IPv4 or IPv6, for example 203.0.113.7 or 10.0.0.0/8.",
   "Only people who sign in": "Only people who sign in",
   "Only private users, and people your SSO or OIDC provider lets in, will see this status page. Everyone else is asked to sign in.": "Only private users, and people your SSO or OIDC provider lets in, will see this status page. Everyone else is asked to sign in.",
   "Only the IP addresses on the allowlist can open this status page.": "Only the IP addresses on the allowlist can open this status page.",
@@ -24493,5 +24492,9 @@
   "Visitors will enter the password to see this status page. Share it only with the people who should see the page.": "Visitors will enter the password to see this status page. Share it only with the people who should see the page.",
   "Who can see this status page": "Who can see this status page",
   "{{count}} private users": "{{count}} private users",
-  "{{count}} private users_one": "{{count}} private user"
+  "{{count}} private users_one": "{{count}} private user",
+  "Enter at least one IP address or range, or clear the list to allow every address.": "Enter at least one IP address or range, or clear the list to allow every address.",
+  "One per line: an IPv4 or IPv6 address, or an IPv4 range, for example 203.0.113.7 or 10.0.0.0/8.": "One per line: an IPv4 or IPv6 address, or an IPv4 range, for example 203.0.113.7 or 10.0.0.0/8.",
+  "The list holds no address, so no IP address can open this status page.": "The list holds no address, so no IP address can open this status page.",
+  "{{entry}} is not an IP address or an IPv4 range such as 10.0.0.0/8.": "{{entry}} is not an IP address or an IPv4 range such as 10.0.0.0/8."
 }
