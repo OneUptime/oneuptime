@@ -23,6 +23,12 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * "Open database" on a Kubernetes StatefulSet / Deployment / pod page and a
@@ -49,6 +55,7 @@ export interface ComponentProps {
 const DatabaseServerWorkloadBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [databases, setDatabases] = useState<Array<DatabaseServer>>([]);
   const targetKey: string = getDatabaseWorkloadTargetKey(props.target);
 
@@ -134,20 +141,34 @@ const DatabaseServerWorkloadBadge: FunctionComponent<ComponentProps> = (
               className="h-4 w-4 flex-shrink-0 text-indigo-600"
             />
             <span className="text-gray-700">
-              This {props.resourceLabel}{" "}
-              {isClusterMatch
-                ? `is part of the ${engine} database cluster`
-                : `runs the ${engine} database`}{" "}
-              <span className="font-medium text-gray-900">
-                {(database.name as string) || engine}
-              </span>
-              .
+              <TranslatedSentence
+                template={
+                  isClusterMatch
+                    ? "This {{resource}} is part of the {{engine}} database cluster {{database}}."
+                    : "This {{resource}} runs the {{engine}} database {{database}}."
+                }
+                values={{
+                  /*
+                   * Written as given: a Kubernetes kind keeps its own casing
+                   * ("Deployment", "StatefulSet"), and "pod" is already lower.
+                   */
+                  resource: translatableTerm(props.resourceLabel),
+                  engine: engine,
+                }}
+                slots={{
+                  database: (
+                    <span className="font-medium text-gray-900">
+                      {(database.name as string) || engine}
+                    </span>
+                  ),
+                }}
+              />
             </span>
             <AppLink
               to={route}
               className="font-medium text-indigo-700 hover:underline"
             >
-              Open database →
+              {translator.translateText("Open database →") as string}
             </AppLink>
           </div>
         );

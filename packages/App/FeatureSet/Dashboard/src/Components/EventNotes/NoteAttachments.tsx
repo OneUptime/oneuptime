@@ -6,6 +6,8 @@ import { APP_API_URL } from "Common/UI/Config";
 import { handleAuthenticatedLinkClick } from "Common/UI/Utils/OpenAuthenticatedUrl";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   noteId: string | null;
@@ -40,6 +42,7 @@ export function getAttachmentDownloadUrl(data: {
 const NoteAttachments: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const projectId: string | null =
     ProjectUtil.getCurrentProjectId()?.toString() || null;
 
@@ -63,7 +66,8 @@ const NoteAttachments: FunctionComponent<ComponentProps> = (
       continue;
     }
 
-    const name: string = file.name || "Attachment";
+    const name: string =
+      file.name || (translator.translateText("Attachment") as string);
 
     links.push(
       <li key={fileId} className="min-w-0 max-w-full">
@@ -71,7 +75,7 @@ const NoteAttachments: FunctionComponent<ComponentProps> = (
           href={downloadUrl}
           target="_blank"
           rel="noopener noreferrer"
-          title={`Download ${name}`}
+          title={translator.translateTemplate("Download {{name}}", { name })}
           data-testid="note-attachment"
           onClick={(event: React.MouseEvent<HTMLAnchorElement>): void => {
             /*
@@ -103,7 +107,10 @@ const NoteAttachments: FunctionComponent<ComponentProps> = (
   return (
     <ul
       className="flex flex-wrap gap-2"
-      aria-label={`${links.length} attachment${links.length === 1 ? "" : "s"}`}
+      aria-label={translator.translatePlural(
+        { one: "{{count}} attachment", other: "{{count}} attachments" },
+        links.length,
+      )}
     >
       {links}
     </ul>

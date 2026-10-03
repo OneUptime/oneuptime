@@ -40,6 +40,13 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -81,28 +88,32 @@ export interface ComponentProps {
   windowEnd: Date | null;
 }
 
-export const ENGINE_METRICS_NOT_CONNECTED_TITLE: string =
-  "Engine metrics not connected";
+export const ENGINE_METRICS_NOT_CONNECTED_TITLE: string = translationKey(
+  "Engine metrics not connected",
+);
 
 // An agent reported once and has gone quiet.
-export const ENGINE_METRICS_DISCONNECTED_TITLE: string =
-  "Engine metrics disconnected";
+export const ENGINE_METRICS_DISCONNECTED_TITLE: string = translationKey(
+  "Engine metrics disconnected",
+);
 
 /*
  * Connected, yet nothing to chart: no curated metric arrived in the range,
  * or the engine has no curated set at all. The agent is fine, so the card
  * points at the full Metrics tab rather than at the install guide.
  */
-export const ENGINE_METRICS_NO_DATA_TITLE: string =
-  "No engine metrics in this range";
+export const ENGINE_METRICS_NO_DATA_TITLE: string = translationKey(
+  "No engine metrics in this range",
+);
 
 /*
  * Connected, and the engine has no curated overview at all (Memcached,
  * Elasticsearch / OpenSearch while their catalogs are missing): its metrics
  * DO arrive — "no engine metrics in this range" said the opposite.
  */
-export const ENGINE_METRICS_NO_CURATED_OVERVIEW_TITLE: string =
-  "Engine metrics connected";
+export const ENGINE_METRICS_NO_CURATED_OVERVIEW_TITLE: string = translationKey(
+  "Engine metrics connected",
+);
 
 const STATUS_PILL_CLASSES: Record<DatabaseEngineMetricsStatus, string> = {
   [DatabaseEngineMetricsStatus.Connected]: "bg-emerald-50 text-emerald-700",
@@ -114,6 +125,8 @@ const STATUS_PILL_CLASSES: Record<DatabaseEngineMetricsStatus, string> = {
 export const EngineMetricsStatusPill: FunctionComponent<{
   status: DatabaseEngineMetricsStatus;
 }> = (props: { status: DatabaseEngineMetricsStatus }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <span
       data-testid="database-engine-metrics-status"
@@ -123,20 +136,25 @@ export const EngineMetricsStatusPill: FunctionComponent<{
       }`}
     >
       <Icon icon={IconProp.Database} className="h-3 w-3" />
-      {getDatabaseEngineMetricsStatusLabel(props.status)}
+      {translator.translateText(
+        getDatabaseEngineMetricsStatusLabel(props.status),
+      )}
     </span>
   );
 };
 
 // The Documentation-tab link for an engine connected by a collector config.
-export const ENGINE_METRICS_CONNECT_LINK_LABEL: string =
-  "Connect engine metrics →";
+export const ENGINE_METRICS_CONNECT_LINK_LABEL: string = translationKey(
+  "Connect engine metrics →",
+);
 
-export const ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL: string =
-  "Install the Database Agent →";
+export const ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL: string = translationKey(
+  "Install the Database Agent →",
+);
 
-export const ENGINE_METRICS_CHECK_AGENT_LINK_LABEL: string =
-  "Check the agent setup →";
+export const ENGINE_METRICS_CHECK_AGENT_LINK_LABEL: string = translationKey(
+  "Check the agent setup →",
+);
 
 /**
  * An engine chart's title. The axis ticks of a metric counted in a unit
@@ -150,9 +168,12 @@ const PER_SECOND_UNIT_PATTERN: RegExp = /\/s$/i;
 
 export function getDatabaseEngineMetricChartTitle(
   definition: Pick<DatabaseServerMetricDefinition, "title" | "unit" | "kind">,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   if (definition.kind === "counter") {
-    return `${definition.title} (per second)`;
+    return translator.translateTemplate("{{title}} (per second)", {
+      title: translatableTerm(definition.title),
+    });
   }
   const unitLabel: string = getDatabaseMetricAxisUnitLabel(definition.unit);
   const title: string = definition.title.toLowerCase();
@@ -189,50 +210,44 @@ export function getDatabaseEngineMetricChartYAxis(
 export interface EngineMetricsGuidance {
   // Why the metrics are missing, and what to do about it.
   description: string;
-  // The Documentation-tab link, or null when there is nothing to set up.
+  /*
+   * The Documentation-tab link, or null when there is nothing to set up. An
+   * English key, translated where it is drawn.
+   */
   linkLabel: string | null;
-}
-
-/*
- * What the engine's own metrics are. For an engine the Database Agent ships
- * a config for, the per-engine list its Documentation tab opens with:
- * Memcached has no locks or replication, Elasticsearch no replication lag.
- * Any other engine gets the generic words.
- */
-function whatEngineMetricsAre(
-  engine: string,
-  dbSystem: string | null | undefined,
-): string {
-  const agentEngine: DatabaseAgentEngine | null =
-    getDatabaseAgentEngine(dbSystem);
-  if (agentEngine) {
-    return `Engine metrics — ${getDatabaseAgentCollectedMetricsText(
-      agentEngine,
-    )} — come from the ${engine} engine itself`;
-  }
-  return `Connections, throughput, cache hit ratio, locks and replication come from the ${engine} engine itself`;
 }
 
 /**
  * What the "no engine metrics" card says for a database whose metrics are
  * not arriving — why, and what to do about it — and which link it offers.
  */
-export function getEngineMetricsGuidance(data: {
-  status: DatabaseEngineMetricsStatus;
-  engineLabel: string;
-  dbSystem?: string | null | undefined;
-  lastReceivedAt?: Date | null | undefined;
-}): EngineMetricsGuidance {
+export function getEngineMetricsGuidance(
+  data: {
+    status: DatabaseEngineMetricsStatus;
+    engineLabel: string;
+    dbSystem?: string | null | undefined;
+    lastReceivedAt?: Date | null | undefined;
+  },
+  translator: Translator = getGlobalTranslator(),
+): EngineMetricsGuidance {
   const engine: string = data.engineLabel;
 
   if (data.status === DatabaseEngineMetricsStatus.Disconnected) {
-    const since: string = data.lastReceivedAt
-      ? ` The last engine metrics arrived ${OneUptimeDate.getDateAsLocalFormattedString(
-          data.lastReceivedAt,
-        )}.`
-      : "";
     return {
-      description: `The Database Agent (or OpenTelemetry Collector) that sent engine metrics for this ${engine} database has stopped reporting.${since} Check that the agent is running, then its connection to the database.`,
+      description: data.lastReceivedAt
+        ? translator.translateTemplate(
+            "The Database Agent (or OpenTelemetry Collector) that sent engine metrics for this {{engine}} database has stopped reporting. The last engine metrics arrived {{time}}. Check that the agent is running, then its connection to the database.",
+            {
+              engine: engine,
+              time: OneUptimeDate.getDateAsLocalFormattedString(
+                data.lastReceivedAt,
+              ),
+            },
+          )
+        : translator.translateTemplate(
+            "The Database Agent (or OpenTelemetry Collector) that sent engine metrics for this {{engine}} database has stopped reporting. Check that the agent is running, then its connection to the database.",
+            { engine: engine },
+          ),
       linkLabel: ENGINE_METRICS_CHECK_AGENT_LINK_LABEL,
     };
   }
@@ -244,33 +259,63 @@ export function getEngineMetricsGuidance(data: {
   switch (source.kind) {
     case "embedded":
       return {
-        description: `${engine} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.`,
+        description: translator.translateTemplate(
+          "{{engine}} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.",
+          { engine: engine },
+        ),
         linkLabel: null,
       };
-    case "receiver":
-      if (getDatabaseAgentEngine(data.dbSystem)) {
+    case "receiver": {
+      /*
+       * For an engine the Database Agent ships a config for, its metrics are
+       * the per-engine list its Documentation tab opens with: Memcached has
+       * no locks or replication, Elasticsearch no replication lag.
+       */
+      const agentEngine: DatabaseAgentEngine | null = getDatabaseAgentEngine(
+        data.dbSystem,
+      );
+      if (agentEngine) {
         return {
-          description: `${whatEngineMetricsAre(engine, data.dbSystem)}, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`,
+          description: translator.translateTemplate(
+            "Engine metrics — {{metrics}} — come from the {{engine}} engine itself, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.",
+            {
+              engine: engine,
+              metrics: getDatabaseAgentCollectedMetricsText(agentEngine),
+            },
+          ),
           linkLabel: ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL,
         };
       }
       return {
-        description: `${whatEngineMetricsAre(engine, data.dbSystem)}, and no OpenTelemetry Collector has sent them for this database yet. The collector has a receiver for ${engine}: the Documentation tab has a ready-made collector config that sends its metrics here.`,
+        description: translator.translateTemplate(
+          "Connections, throughput, cache hit ratio, locks and replication come from the {{engine}} engine itself, and no OpenTelemetry Collector has sent them for this database yet. The collector has a receiver for {{engine}}: the Documentation tab has a ready-made collector config that sends its metrics here.",
+          { engine: engine },
+        ),
         linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
       };
+    }
     case "prometheus":
       return {
-        description: `The OpenTelemetry Collector has no dedicated receiver for ${engine}, but ${engine} serves Prometheus metrics itself, so its engine metrics can still be collected: the Documentation tab has a ready-made collector config that scrapes them and sends them here.`,
+        description: translator.translateTemplate(
+          "The OpenTelemetry Collector has no dedicated receiver for {{engine}}, but {{engine}} serves Prometheus metrics itself, so its engine metrics can still be collected: the Documentation tab has a ready-made collector config that scrapes them and sends them here.",
+          { engine: engine },
+        ),
         linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
       };
     case "cloud-monitoring":
       return {
-        description: `${engine} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.`,
+        description: translator.translateTemplate(
+          "{{engine}} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.",
+          { engine: engine },
+        ),
         linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
       };
     default:
       return {
-        description: `The OpenTelemetry Collector has no ready-made receiver for ${engine}, but its metrics can still be collected: the Documentation tab explains the options and has the collector config that attaches them to this database.`,
+        description: translator.translateTemplate(
+          "The OpenTelemetry Collector has no ready-made receiver for {{engine}}, but its metrics can still be collected: the Documentation tab explains the options and has the collector config that attaches them to this database.",
+          { engine: engine },
+        ),
         linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
       };
   }
@@ -280,18 +325,22 @@ export function getEngineMetricsGuidance(data: {
  * The description half of getEngineMetricsGuidance, for callers that only
  * need the words.
  */
-export function getEngineMetricsMissingDescription(data: {
-  status: DatabaseEngineMetricsStatus;
-  engineLabel: string;
-  dbSystem?: string | null | undefined;
-  lastReceivedAt?: Date | null | undefined;
-}): string {
-  return getEngineMetricsGuidance(data).description;
+export function getEngineMetricsMissingDescription(
+  data: {
+    status: DatabaseEngineMetricsStatus;
+    engineLabel: string;
+    dbSystem?: string | null | undefined;
+    lastReceivedAt?: Date | null | undefined;
+  },
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return getEngineMetricsGuidance(data, translator).description;
 }
 
 const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const documentationRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION] as Route,
     { modelId: props.modelId },
@@ -320,8 +369,14 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
 
   if (!hasData && props.status === DatabaseEngineMetricsStatus.Connected) {
     const description: string = props.hasCatalog
-      ? `The Database Agent for this ${props.engineLabel} database is connected, but none of its overview metrics arrived in the selected range. Widen the range, or open Metrics to see everything it reports.`
-      : `Engine metrics for this ${props.engineLabel} database are connected, but there is no curated overview for ${props.engineLabel} yet. Open Metrics to see everything it reports.`;
+      ? translator.translateTemplate(
+          "The Database Agent for this {{engine}} database is connected, but none of its overview metrics arrived in the selected range. Widen the range, or open Metrics to see everything it reports.",
+          { engine: props.engineLabel },
+        )
+      : translator.translateTemplate(
+          "Engine metrics for this {{engine}} database are connected, but there is no curated overview for {{engine}} yet. Open Metrics to see everything it reports.",
+          { engine: props.engineLabel },
+        );
 
     return (
       <Card
@@ -341,7 +396,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
             to={metricsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            All metrics →
+            {translator.translateText("All metrics →") as string}
           </AppLink>
         </div>
       </Card>
@@ -351,12 +406,15 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   if (!hasData) {
     const isDisconnected: boolean =
       props.status === DatabaseEngineMetricsStatus.Disconnected;
-    const guidance: EngineMetricsGuidance = getEngineMetricsGuidance({
-      status: props.status,
-      engineLabel: props.engineLabel,
-      dbSystem: props.dbSystem,
-      lastReceivedAt: props.lastReceivedAt,
-    });
+    const guidance: EngineMetricsGuidance = getEngineMetricsGuidance(
+      {
+        status: props.status,
+        engineLabel: props.engineLabel,
+        dbSystem: props.dbSystem,
+        lastReceivedAt: props.lastReceivedAt,
+      },
+      translator,
+    );
 
     return (
       <Card
@@ -381,7 +439,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
               to={documentationRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              {guidance.linkLabel}
+              {translator.translateText(guidance.linkLabel) as string}
             </AppLink>
           ) : (
             <></>
@@ -402,7 +460,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-base font-semibold text-gray-900">
-            Engine metrics
+            {translator.translateText("Engine metrics")}
           </h2>
           {/*
            * Charts from an agent that has since stopped are history: say so.
@@ -419,7 +477,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
           to={metricsRoute}
           className="text-sm font-medium text-indigo-600 hover:underline"
         >
-          All metrics →
+          {translator.translateText("All metrics →") as string}
         </AppLink>
       </div>
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -433,7 +491,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
               >
                 <div className="flex min-w-0 items-center gap-1">
                   <span className="truncate text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {result.definition.title}
+                    {translator.translateText(result.definition.title)}
                   </span>
                   <InfoTooltip
                     label={result.definition.title}
@@ -462,7 +520,10 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
           return (
             <ChartCard
               key={`chart-${getDatabaseServerMetricId(result.definition)}`}
-              title={getDatabaseEngineMetricChartTitle(result.definition)}
+              title={getDatabaseEngineMetricChartTitle(
+                result.definition,
+                translator,
+              )}
               description={result.definition.description}
               icon={IconProp.ChartBar}
               iconColor="violet"

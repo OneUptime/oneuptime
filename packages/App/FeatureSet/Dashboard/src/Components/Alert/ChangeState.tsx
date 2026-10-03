@@ -43,7 +43,12 @@ import {
 } from "../AI/AIInvestigationStatus";
 import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -117,6 +122,7 @@ export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
 const ChangeAlertState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const [error, setError] = useState<string | undefined>(undefined);
@@ -390,7 +396,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   const durationStartsAt: Date | undefined =
     props.eventStartsAt || alertStateTimelines[0]?.startsAt;
 
-  let durationPrefix: string = "Ongoing for";
+  let durationPrefix: string = translationKey("Ongoing for");
   let durationEndsAt: Date | undefined = undefined;
 
   if (isResolved && resolvedState) {
@@ -410,7 +416,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
        * while the stat bar's "Resolved in" counts to the FIRST one, so a
        * reopened alert would show one label with two different numbers.
        */
-      durationPrefix = "Lasted";
+      durationPrefix = translationKey("Lasted");
       durationEndsAt = lastResolvedTimeline.startsAt;
     }
   }
@@ -444,25 +450,42 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     selectedAlertState?.isAcknowledgedState || false;
   const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
 
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedAlertState?.name || "",
+  );
+
   const modalTitle: string = isAcknowledgeTarget
-    ? "Acknowledge Alert"
+    ? translationKey("Acknowledge Alert")
     : isResolveTarget
-      ? "Resolve Alert"
-      : "Mark Alert as " + (selectedAlertState?.name || "");
+      ? translationKey("Resolve Alert")
+      : translator.translateTemplate("Mark Alert as {{state}}", {
+          state: selectedStateName,
+        });
 
   const modalSubmitButtonText: string = isAcknowledgeTarget
-    ? "Acknowledge"
+    ? translationKey("Acknowledge")
     : isResolveTarget
-      ? "Resolve"
-      : "Mark as " + (selectedAlertState?.name || "");
+      ? translationKey("Resolve")
+      : translator.translateTemplate("Mark as {{state}}", {
+          state: selectedStateName,
+        });
 
   const modalDescription: string = isAcknowledgeTarget
-    ? "This records an acknowledgement on the alert timeline. You can add an optional private note for your team."
+    ? translationKey(
+        "This records an acknowledgement on the alert timeline. You can add an optional private note for your team.",
+      )
     : isResolveTarget
-      ? "This marks the alert as resolved on the alert timeline. You can add an optional private note for your team."
-      : "You are about to mark this alert as " +
-        (selectedAlertState?.name || "") +
-        ".";
+      ? translationKey(
+          "This marks the alert as resolved on the alert timeline. You can add an optional private note for your team.",
+        )
+      : translator.translateTemplate(
+          "You are about to mark this alert as {{state}}.",
+          { state: selectedStateName },
+        );
 
   return (
     <Fragment>

@@ -417,7 +417,7 @@ describe("the Overview", () => {
     // A counter's chart says "(per second)" (getDatabaseEngineMetricChartTitle).
     expect(section).toContain('definition.kind === "counter"');
     expect(section).toContain(
-      "title={getDatabaseEngineMetricChartTitle(result.definition)}",
+      "title={getDatabaseEngineMetricChartTitle( result.definition, translator, )}",
     );
   });
 
@@ -426,7 +426,7 @@ describe("the Overview", () => {
       "Components/DatabaseServer/DatabaseEngineMetricsSection.tsx",
     );
     expect(section).toContain("getDatabaseEngineMetricsSource(");
-    expect(section).toContain("getDatabaseAgentEngine(data.dbSystem)");
+    expect(section).toContain("getDatabaseAgentEngine( data.dbSystem, )");
     expect(section).not.toContain("hasCollectorReceiver");
     expect(code).toContain("dbSystem={r.dbSystem}");
     expect(code).not.toContain("hasCollectorReceiver");

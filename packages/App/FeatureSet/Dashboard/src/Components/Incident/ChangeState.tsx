@@ -45,6 +45,13 @@ import {
   scrollToAIInvestigationPanel,
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -81,6 +88,7 @@ export interface ComponentProps {
  * swap from the page skeleton nor the swap to the real header moves the page.
  */
 export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       role="status"
@@ -88,7 +96,9 @@ export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
       data-testid="incident-state-placeholder"
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <span className="sr-only">Loading incident status</span>
+      <span className="sr-only">
+        {translator.translateText("Loading incident status")}
+      </span>
       <div aria-hidden="true" className="motion-safe:animate-pulse">
         <div className="px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -118,6 +128,7 @@ export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const notifySubscribersByDefault: boolean =
@@ -385,7 +396,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     props.eventStartsAt || incidentStateTimelines[0]?.startsAt;
 
   let durationEndsAt: Date | undefined = undefined;
-  let durationPrefix: string = "Ongoing for";
+  let durationPrefix: string = translationKey("Ongoing for");
 
   if (currentIncidentState?.isResolvedState && resolvedState) {
     const resolvedTimeline: IncidentStateTimeline | undefined = [
@@ -405,7 +416,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
        * while the stat bar's "Resolved in" counts to the FIRST one, so a
        * reopened incident would show one label with two different numbers.
        */
-      durationPrefix = "Lasted";
+      durationPrefix = translationKey("Lasted");
     }
   }
 
@@ -440,25 +451,39 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       }
     };
 
-  let modalTitle: string =
-    "Mark Incident as " + (selectedIncidentState?.name || "");
-  let modalSubmitButtonText: string =
-    "Mark as " + (selectedIncidentState?.name || "");
-  let modalDescription: string =
-    "You are about to mark this incident as " +
-    (selectedIncidentState?.name || "") +
-    ".";
+  /*
+   * The modal looks its title, description and button text up; the ones
+   * that name the chosen state are filled in here, in the reader's language.
+   */
+  const selectedStateName: TranslatableTerm = translatableTerm(
+    selectedIncidentState?.name || "",
+  );
+
+  let modalTitle: string = translator.translateTemplate(
+    "Mark Incident as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalSubmitButtonText: string = translator.translateTemplate(
+    "Mark as {{state}}",
+    { state: selectedStateName },
+  );
+  let modalDescription: string = translator.translateTemplate(
+    "You are about to mark this incident as {{state}}.",
+    { state: selectedStateName },
+  );
 
   if (selectedIncidentState?.isAcknowledgedState) {
-    modalTitle = "Acknowledge Incident";
-    modalSubmitButtonText = "Acknowledge";
-    modalDescription =
-      "This records an acknowledgement on the incident timeline. You can add an optional public note for status page subscribers.";
+    modalTitle = translationKey("Acknowledge Incident");
+    modalSubmitButtonText = translationKey("Acknowledge");
+    modalDescription = translationKey(
+      "This records an acknowledgement on the incident timeline. You can add an optional public note for status page subscribers.",
+    );
   } else if (selectedIncidentState?.isResolvedState) {
-    modalTitle = "Resolve Incident";
-    modalSubmitButtonText = "Resolve";
-    modalDescription =
-      "This marks the incident as resolved on the incident timeline. You can add an optional public note for status page subscribers.";
+    modalTitle = translationKey("Resolve Incident");
+    modalSubmitButtonText = translationKey("Resolve");
+    modalDescription = translationKey(
+      "This marks the incident as resolved on the incident timeline. You can add an optional public note for status page subscribers.",
+    );
   }
 
   return (

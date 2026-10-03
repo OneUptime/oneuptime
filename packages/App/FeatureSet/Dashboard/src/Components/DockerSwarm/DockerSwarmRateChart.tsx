@@ -33,6 +33,8 @@ import {
   CounterRatePoint,
 } from "../../Utils/CounterRateUtils";
 import { useEmbeddedMetricCardRefreshNonce } from "../Metrics/EmbeddedMetricCardRefresh";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Cumulative-counter → per-second-rate chart for Docker Swarm pages.
@@ -74,6 +76,7 @@ export interface ComponentProps {
 const DockerSwarmRateChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [series, setSeries] = useState<Array<SeriesPoint>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -193,7 +196,9 @@ const DockerSwarmRateChart: FunctionComponent<ComponentProps> = (
   if (series.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-        {props.emptyMessage || "No data reported for the selected time range."}
+        {translator.translateText(
+          props.emptyMessage || "No data reported for the selected time range.",
+        )}
       </div>
     );
   }
