@@ -189,8 +189,13 @@ const IDENTICAL_TO_ENGLISH: Record<string, Array<string>> = {
     "zh-CN",
     "zh-TW",
   ],
-  // The word these languages' workflow docs and tools already use for it.
-  Trigger: ["da", "de", "it", "nl", "no", "pt"],
+  /*
+   * The word these languages' workflow docs and tools already use for it.
+   * Not German: its Dashboard calls a trigger "Auslöser" on the builder's
+   * empty trigger block, in the trigger search and in the turn-on dialog, so
+   * the picker's Trigger reads "Auslöser" too.
+   */
+  Trigger: ["da", "it", "nl", "no", "pt"],
   // French spells it the same.
   Maintenance: ["fr"],
 };
