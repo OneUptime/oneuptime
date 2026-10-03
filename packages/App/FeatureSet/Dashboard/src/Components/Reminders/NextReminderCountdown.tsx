@@ -18,12 +18,9 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ReminderRuleScope from "./ReminderRuleScope";
 
-export enum ReminderRuleScope {
-  Incident = "Incident",
-  Alert = "Alert",
-  ScheduledMaintenance = "ScheduledMaintenance",
-}
+export { ReminderRuleScope };
 
 export interface ComponentProps {
   nextReminderAt?: Date | string | undefined | null;

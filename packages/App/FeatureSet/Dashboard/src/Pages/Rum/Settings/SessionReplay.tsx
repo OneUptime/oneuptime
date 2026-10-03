@@ -1,15 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import Project from "Common/Models/DatabaseModels/Project";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -19,6 +16,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import SessionReplayAllowedCard from "../../../Components/SessionReplay/SessionReplayAllowedCard";
 
 /*
  * Project-level session replay controls, under Real User Monitoring >
@@ -27,7 +25,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  *   - the master switch, which is the control a data-protection owner
  *     reaches for and must be findable without knowing which application
  *     is at fault. It is never plan-gated: being able to stop recording
- *     your end users must not depend on a subscription.
+ *     your end users must not depend on a subscription. It saves the
+ *     moment it is flipped, and asks first only when it turns recording
+ *     on (SessionReplayAllowedCard).
  *   - a read-only roster so somebody auditing the project can see every
  *     application's policy and whether it is actually recording, and
  *     click through to change one.
@@ -73,42 +73,8 @@ const RumSessionReplaySettings: FunctionComponent<
   const translator: Translator = useTranslator();
   return (
     <Fragment>
-      <CardModelDetail<Project>
-        name="Session Replay Availability"
-        cardProps={{
-          title: "Session Replay for this Project",
-          description:
-            "Master switch for recording your end users' screens. While this is off, no application in this project can record and any chunk that arrives is refused at ingest. This control is never plan-gated.",
-        }}
-        isEditable={true}
-        editButtonText="Update"
-        formFields={[
-          {
-            field: {
-              isSessionReplayAllowed: true,
-            },
-            title: "Allow session replay in this project",
-            description:
-              "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "model-detail-project-session-replay",
-          fields: [
-            {
-              field: {
-                isSessionReplayAllowed: true,
-              },
-              title: "Allow session replay in this project",
-              placeholder: "Not allowed",
-              fieldType: FieldType.Boolean,
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
+      <SessionReplayAllowedCard
+        projectId={ProjectUtil.getCurrentProjectId()!}
       />
 
       <Alert
