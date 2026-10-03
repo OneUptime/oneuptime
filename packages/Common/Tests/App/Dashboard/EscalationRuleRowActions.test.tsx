@@ -545,6 +545,12 @@ describe("Escalation level actions: each acts on its own level", () => {
     });
   });
 
+  /*
+   * The edit dialog opens on the level as this page loaded it - its columns
+   * and its responders, which are not columns of the rule and could not come
+   * back with a read of it - so it reads nothing again. Alex is on the first
+   * level only, which is what tells one level's dialog from the other's.
+   */
   test("Edit rule opens the edit modal for that level and no other", async () => {
     const cards: Array<HTMLElement> = await renderPage([
       FIRST_RESPONDERS,
@@ -556,28 +562,50 @@ describe("Escalation level actions: each acts on its own level", () => {
     );
 
     await waitFor(() => {
-      expect(getItemMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          modelType: OnCallDutyEscalationRule,
-          id: RULE_TWO_ID,
-        }),
-      );
+      expect(
+        screen.getAllByText("Edit Escalation Rule").length,
+      ).toBeGreaterThan(0);
     });
 
+    await waitFor(() => {
+      expect(screen.getByTestId("people-picker")).toBeInTheDocument();
+    });
+
+    // Backup notifies nobody; First Responders' Alex is not in its dialog.
+    expect(screen.queryAllByTestId("people-chip")).toHaveLength(0);
+
+    // No second read of the rule: the page already holds it.
     expect(getItemMock).not.toHaveBeenCalledWith(
       expect.objectContaining({
         modelType: OnCallDutyEscalationRule,
-        id: RULE_ONE_ID,
       }),
-    );
-    expect(screen.getAllByText("Edit Escalation Rule").length).toBeGreaterThan(
-      0,
     );
 
     // The row button is not left spinning behind the modal it opened.
     expect(
       within(cards[1]!).getByRole("button", { name: "Edit rule" }),
     ).toBeEnabled();
+  });
+
+  test("Edit rule on the first level opens with that level's responders", async () => {
+    const cards: Array<HTMLElement> = await renderPage([
+      FIRST_RESPONDERS,
+      BACKUP,
+    ]);
+
+    fireEvent.click(
+      within(cards[0]!).getByRole("button", { name: "Edit rule" }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getAllByTestId("people-chip")
+          .map((chip: HTMLElement): string | null => {
+            return chip.getAttribute("data-id");
+          }),
+      ).toEqual([USER_ALEX]);
+    });
   });
 
   test("Delete rule asks first, and names the level it came from", async () => {
