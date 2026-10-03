@@ -109,7 +109,7 @@ OBI udtrækker flere signalfamilier fra den indfangede trafik. Alle er aktiveret
 | Signal                                  | Standard | Hvad det tilføjer                                                                                                                                                         |
 | --------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.features.httpMetrics`             | on       | HTTP/gRPC RED-metrikker — anmodningsrate, latens-histogrammer, fejltællinger — pr. service.                                                                               |
-| `ebpf.features.spanMetrics`             | on       | Span-attribut-baserede metrikker: anmodningsstørrelse, svarstørrelse, varighed opdelt pr. rute/operation.                                                                 |
+| `ebpf.features.spanMetrics`             | on       | Span-metrikker: antal kald og varighed pr. service, rute/operation, span-type og status — `traces.span.metrics.calls`, `traces.span.metrics.duration` (sekunder).         |
 | `ebpf.features.serviceGraph`            | on       | Service-til-service kantmetrikker (kalder → kaldte anmodningsrate + latens). Driver servicekortet.                                                                        |
 | `ebpf.features.networkMetrics`          | on       | Pod-til-pod TCP/UDP-flow byte- og pakketællere med k8s-metadata. Synliggør hvert par af pods, der taler sammen, inklusive dem, der kører protokoller, OBI ikke kan parse. |
 | `ebpf.features.networkInterZoneMetrics` | off      | Inter-zone-variant af netværksmetrikker. Fordobler kardinalitet; kun værd at aktivere, hvis du faktisk bruger zone-baseret planlægning.                                   |
@@ -238,6 +238,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` bevarer din eksisterende konfiguration; angiv eventuelle nye `--set`-tilsidesættelser oven på den.
+
+> **eBPF-span-metrikker har fået nye navne.** `ebpf.features.spanMetrics` sender nu `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme serier under de navne, OBI beholder (de gamle har OBI udfaset). Et dashboard, et diagram eller en metrikkermonitor på et gammelt navn modtager ingen nye data efter opgraderingen og viser ingen fejl — flyt det til det nye navn, og ret også `filters.metrics`-poster, der nævner et gammelt navn.
 
 > **Vigtigt: `--reuse-values` fletter ikke nye standardværdier fra charten.** Helm genbruger dine tidligere renderede værdier ordret — så ethvert nyt øverste felt tilføjet i en nyere chart-version (f.eks. `profiling.*`, `ebpf.features.*`) forbliver uindstillet på din eksisterende release, og skabelonen renderer, som om du havde deaktiveret det.
 >

@@ -358,6 +358,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` आपकी मौजूदा कॉन्फ़िगरेशन (preset, क्लस्टर नाम, फ़िल्टर) को बनाए रखता है; इसके ऊपर कोई भी नया `--set` ओवरराइड पास करें।
 
+> **eBPF span मेट्रिक्स के नाम बदल गए हैं।** `ebpf.features.spanMetrics` अब `traces_spanmetrics_calls_total` और `traces_spanmetrics_latency` की जगह `traces.span.metrics.calls` और `traces.span.metrics.duration` (सेकंड) भेजता है: वही सीरीज़, उन नामों से जिन्हें OBI रखता है (पुराने नाम OBI ने deprecated कर दिए हैं)। किसी पुराने नाम पर बना डैशबोर्ड, चार्ट या मेट्रिक्स मॉनिटर अपग्रेड के बाद बिना किसी त्रुटि के नया डेटा पाना बंद कर देता है — उसे नए नाम पर ले जाएँ, और पुराने नाम वाली `filters.metrics` एंट्रीज़ भी बदलें।
+
 ## एजेंट को अनइंस्टॉल करना
 
 ```bash
@@ -413,7 +415,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.*`         | डिफ़ॉल्ट | यह क्या जोड़ता है                                                    |
 | ------------------------- | -------- | -------------------------------------------------------------------- |
 | `httpMetrics`             | चालू     | प्रति service HTTP/gRPC RED मेट्रिक्स (request दर, latency, errors)  |
-| `spanMetrics`             | चालू     | प्रति-span request/response आकार और अवधि                             |
+| `spanMetrics`             | चालू     | span कॉल संख्या और अवधि (`traces.span.metrics.*`)                     |
 | `serviceGraph`            | चालू     | Caller → callee edge मेट्रिक्स; service map को संचालित करता है       |
 | `networkMetrics`          | चालू     | Pod-to-pod TCP/UDP फ्लो काउंटर                                       |
 | `networkInterZoneMetrics` | बंद      | नेटवर्क मेट्रिक्स का Inter-zone संस्करण (cardinality दोगुनी करता है) |

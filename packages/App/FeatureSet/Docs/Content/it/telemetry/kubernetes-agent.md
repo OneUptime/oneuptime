@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` mantiene la tua configurazione esistente (preset, nome del cluster, filtri); applica eventuali nuove sovrascritture `--set` sopra di essa.
 
+> **Le metriche di span eBPF hanno nuovi nomi.** `ebpf.features.spanMetrics` ora invia `traces.span.metrics.calls` e `traces.span.metrics.duration` (secondi) al posto di `traces_spanmetrics_calls_total` e `traces_spanmetrics_latency`: le stesse serie, con i nomi che OBI mantiene (OBI ha deprecato i vecchi). Una dashboard, un grafico o un monitor metriche basato su un vecchio nome non riceve più dati dopo l'aggiornamento, senza alcun errore: spostalo sul nuovo nome e aggiorna anche le voci di `filters.metrics` che citano un vecchio nome.
+
 ## Disinstallazione dell'agent
 
 ```bash
@@ -412,7 +414,7 @@ Tutte attive per impostazione predefinita. Disattivane una qualsiasi con `--set 
 | `ebpf.features.*`         | Predefinito | Cosa aggiunge                                                                    |
 | ------------------------- | ----------- | -------------------------------------------------------------------------------- |
 | `httpMetrics`             | attivo      | Metriche HTTP/gRPC RED (frequenza delle richieste, latenza, errori) per servizio |
-| `spanMetrics`             | attivo      | Dimensione e durata di richiesta/risposta per span                               |
+| `spanMetrics`             | attivo      | Numero di chiamate e durata degli span (`traces.span.metrics.*`)                 |
 | `serviceGraph`            | attivo      | Metriche degli archi chiamante → chiamato; alimenta la mappa dei servizi         |
 | `networkMetrics`          | attivo      | Contatori di flusso TCP/UDP pod-a-pod                                            |
 | `networkInterZoneMetrics` | disattivo   | Variante inter-zona delle metriche di rete (raddoppia la cardinalità)            |

@@ -18,6 +18,9 @@
 #     a YAML parse error.
 #   - A non-empty attributes.select.traces.include REPLACES OBI's default span
 #     attributes rather than adding to them.
+#   - A feature OBI deprecated still loads, with a warning on every start, until
+#     the release that removes it refuses to start (`application_span`, which
+#     the chart passed until it moved to `application_span_otel`).
 #
 # Only the OBI build the agent runs can tell those apart from a config that
 # works. It loads and validates its configuration and, with
@@ -40,7 +43,8 @@
 # attribute selection the chart renders for v0.14+, the trace-context setting
 # v0.14 added) follow the rendered tag and the version OBI reports, so the
 # same script covers the pinned release and a newer build tried with
-# OBI_IMAGE.
+# OBI_IMAGE. The one variant that renders an older tag on purpose (v0.13.0,
+# the release a --reuse-values upgrade keeps) always loads in that tag.
 #
 # Needs docker, helm and node. Usage: bash Tests/Ops/agent-obi-config-load.sh
 
@@ -175,6 +179,11 @@ fs.writeFileSync(`${dir}/image`, container.image);
 # OBI_IMAGE overrides it. Pulled when it is not local yet.
 obi_image() {
   local image="${OBI_IMAGE:-$(cat "$1/image")}"
+  # A variant that renders an older ebpf.image.tag on purpose loads it in that
+  # image, whatever OBI_IMAGE says.
+  if [ -n "${PIN_IMAGE:-}" ]; then
+    image="$(cat "$1/image")"
+  fi
   if ! docker image inspect "${image}" >/dev/null 2>&1; then
     if ! docker pull -q "${image}" >/dev/null 2>"${WORK_DIR}/pull.err"; then
       echo "    FAILED: cannot pull ${image}" >&2
@@ -237,6 +246,10 @@ load_problems() {
   local dir="$1"
   cat "${dir}/stdout.log" "${dir}/stderr.log" |
     grep -E 'wrong configuration|parsing YAML configuration' || true
+  # A deprecated metrics feature counts too: OBI (v0.12.2+) loads it with a
+  # warning on every start, and the release that drops it refuses to start.
+  cat "${dir}/stdout.log" "${dir}/stderr.log" |
+    grep -E 'metrics feature is deprecated' || true
   awk -v marker="${MARKER}" 'index($0, marker) { exit } /level=ERROR/' "${dir}/stdout.log"
   if ! grep -qF "${MARKER}" "${dir}/stdout.log"; then
     echo "OBI never printed its configuration (container: $(cat "${dir}/state"))"
@@ -313,7 +326,7 @@ const expected = Object.assign(
   {
     features: [
       "application",
-      "application_span",
+      "application_span_otel",
       "application_service_graph",
       "network",
       "stats_tcp_rtt",
@@ -388,6 +401,15 @@ check(
   features,
 );
 
+// Span metrics by their current name: OBI warns about the deprecated
+// application_span (v0.12.2+) and refuses it next to application_span_otel.
+check(
+  "metrics.features asks for span metrics as application_span_otel, never application_span",
+  !(features || []).includes("application_span") &&
+    (features || []).includes("application_span_otel") === expected.features.includes("application_span_otel"),
+  features,
+);
+
 const instrument = get(effective, "discovery.instrument");
 check("discovery.instrument is the rendered selectors", same(instrument, get(rendered, "discovery.instrument")), instrument);
 check(`discovery.instrument = ${JSON.stringify(expected.instrument)}`, same(instrument, expected.instrument), instrument);
@@ -448,6 +470,11 @@ if (obiHasPopulate) {
 // not a version: the same rule as kubernetes-agent.obiSelectsSpanAttributes.
 const renderedImage = fs.readFileSync(`${dir}/image`, "utf8").trim();
 const renderedTag = renderedImage.slice(renderedImage.lastIndexOf(":") + 1);
+// A variant pinned to an older OBI (PIN_IMAGE) has to have run in it, or
+// every check here tested another release.
+if (process.env.PIN_IMAGE) {
+  check(`OBI reports ${renderedTag}, the release the render pins`, versionLine.includes(`Version=${renderedTag} `), versionLine);
+}
 const tagVersion = /^v?(\d+)\.(\d+)\.(\d+)/.exec(renderedTag);
 const chartSelectsAttributes = !tagVersion ||
   Number(tagVersion[1]) > 0 || Number(tagVersion[2]) >= 14;
@@ -567,7 +594,7 @@ variant namespace-include \
   '{"instrument":[{"exe_path":"*","k8s_namespace":"oneuptime"},{"exe_path":"*","k8s_namespace":"app-*"}]}' \
   -f "${WORK_DIR}/namespace-include.yaml"
 variant all-on \
-  '{"features":["application","application_span","application_service_graph","network","network_inter_zone","stats_tcp_rtt","stats_tcp_failed_connections","stats_tcp_retransmits"],"contextPropagation":"headers","trackRequestHeaders":true,"tracePrinter":"text"}' \
+  '{"features":["application","application_span_otel","application_service_graph","network","network_inter_zone","stats_tcp_rtt","stats_tcp_failed_connections","stats_tcp_retransmits"],"contextPropagation":"headers","trackRequestHeaders":true,"tracePrinter":"text"}' \
   -f "${WORK_DIR}/all-on.yaml"
 # With every feature off the chart renders OTEL_EBPF_METRICS_FEATURES="", and
 # OBI reads an empty variable as an unset one: it keeps its own default,
@@ -579,6 +606,13 @@ variant all-off \
 # The profiler correlates samples with spans through OBI's traces_ctx_v1 pin,
 # which v0.14 only fills when asked to (or for its own log enricher).
 variant profiling '{"populateTraceContext":true}' --set profiling.enabled=true
+variant span-metrics-off \
+  '{"features":["application","application_service_graph","network","stats_tcp_rtt","stats_tcp_failed_connections","stats_tcp_retransmits"]}' \
+  --set ebpf.features.spanMetrics=false
+# The release a --reuse-values upgrade keeps (README, "Upgrading"): v0.13.0
+# also deprecates application_span, and has to take the same render, minus the
+# v0.14-only span-attribute selection. Loaded in v0.13.0 even with OBI_IMAGE.
+PIN_IMAGE=1 variant pinned-v0.13.0 '{}' --set ebpf.image.tag=v0.13.0
 
 # Negative control: the default render with a metrics feature no OBI knows —
 # the failure class that application_host would have caused on v0.14. If this
@@ -604,6 +638,33 @@ else
   echo "${problems}" | sed 's/^/      /'
   show_logs "${control}"
   FAILURES=$((FAILURES + 1))
+fi
+
+# Negative control for the deprecation check: the default render with the
+# chart's old span-metrics token. OBI has to warn about it (v0.12.2 to at
+# least v0.14) or, once it drops the name, refuse it; either way
+# load_problems has to report it, or its deprecation check proves nothing.
+echo "==> negative control: OTEL_EBPF_METRICS_FEATURES with the deprecated application_span"
+legacy="${WORK_DIR}/negative-control-legacy-span"
+mkdir -p "${legacy}"
+cp -R "${WORK_DIR}/defaults/config" "${legacy}/config"
+cp "${WORK_DIR}/defaults/mount-path" "${legacy}/"
+sed 's/^OTEL_EBPF_METRICS_FEATURES=\(.*\)application_span_otel/OTEL_EBPF_METRICS_FEATURES=\1application_span/' \
+  "${WORK_DIR}/defaults/env.list" >"${legacy}/env.list"
+if ! grep -qE '^OTEL_EBPF_METRICS_FEATURES=(.*,)?application_span(,|$)' "${legacy}/env.list"; then
+  echo "    FAILED: could not swap application_span into the default env (the default no longer has application_span_otel?)"
+  FAILURES=$((FAILURES + 1))
+else
+  run_obi "${legacy}" "${legacy}/env.list" "$(cat "${WORK_DIR}/defaults/obi-image")"
+  problems="$(load_problems "${legacy}")"
+  if echo "${problems}" | grep -qE 'metrics feature is deprecated.*feature=application_span use=application_span_otel|unknown metrics feature [^ ]*application_span'; then
+    echo "    ok     OBI flagged application_span and the harness caught it"
+  else
+    echo "    FAILED: expected OBI to warn that application_span is deprecated, or to refuse it (container: $(cat "${legacy}/state"))"
+    echo "${problems}" | sed 's/^/      /'
+    show_logs "${legacy}"
+    FAILURES=$((FAILURES + 1))
+  fi
 fi
 
 if [ "${FAILURES}" -gt 0 ]; then

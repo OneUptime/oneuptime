@@ -126,7 +126,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   - it: drops the TCP stats families together
     set:
@@ -136,7 +136,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network
+            value: application,application_span_otel,application_service_graph,network
 
   # OBI v0.14 removed `application_host`, and since v0.11 an unknown feature
   # stops OBI starting: every eBPF pod would crash-loop. Values files written
@@ -149,7 +149,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span_otel,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   # Every token the chart can render, all at once. Each must exist in the
   # pinned OBI: since v0.11 it exits on an unknown one ("unknown metrics feature"),
@@ -169,7 +169,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_METRICS_FEATURES
-            value: application,application_span,application_service_graph,network,network_inter_zone,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
+            value: application,application_span_otel,application_service_graph,network,network_inter_zone,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   # The profiler (profiling.obiProcessContext) links CPU samples to spans by
   # reading OBI's pinned traces_ctx_v1 map. Since v0.14 OBI fills that map

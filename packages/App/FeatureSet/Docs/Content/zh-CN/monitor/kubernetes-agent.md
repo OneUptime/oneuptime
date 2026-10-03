@@ -109,7 +109,7 @@ OBI 从捕获的流量中提取多种信号家族。所有信号默认都已启�
 | 信号                                    | 默认 | 增加的内容                                                                                                       |
 | --------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------- |
 | `ebpf.features.httpMetrics`             | on   | 每个服务的 HTTP/gRPC RED 指标 —— 请求速率、延迟直方图、错误数量。                                                |
-| `ebpf.features.spanMetrics`             | on   | 以 span 属性为键的指标：请求大小、响应大小、按路由/操作细分的耗时。                                              |
+| `ebpf.features.spanMetrics`             | on   | Span 指标：按服务、路由/操作、span 类型和状态统计的调用次数与耗时 —— `traces.span.metrics.calls`、`traces.span.metrics.duration`（秒）。 |
 | `ebpf.features.serviceGraph`            | on   | 服务间边的指标（调用方 → 被调方的请求速率 + 延迟）。为服务图谱提供数据。                                         |
 | `ebpf.features.networkMetrics`          | on   | 带 k8s 元数据的 Pod 间 TCP/UDP 流字节和数据包计数器。展现每对相互通信的 Pod，包括运行 OBI 无法解析的协议的 Pod。 |
 | `ebpf.features.networkInterZoneMetrics` | off  | 网络指标的跨可用区版本。基数会加倍；只有在确实使用基于可用区调度时才值得启用。                                   |
@@ -238,6 +238,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` 会保留您现有的配置；任何新增的 `--set` 覆盖项可以在其之上传入。
+
+> **eBPF span 指标已更名。** `ebpf.features.spanMetrics` 现在发送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），不再发送 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：数据序列相同，只是改用 OBI 保留的名称（旧名称已被 OBI 弃用）。基于旧名称的仪表板、图表或指标监控器在升级后将收不到新数据，且不会报错——请将其改为新名称，并同时更新 `filters.metrics` 中引用旧名称的条目。
 
 > **请注意：`--reuse-values` 不会合并 chart 的新默认值。** Helm 会原样复用您先前渲染的值 —— 因此较新 chart 版本中新增的任何顶层字段（例如 `profiling.*`、`ebpf.features.*`）在您现有的 release 中仍然未设置，模板渲染时就好像您禁用了它一样。
 >

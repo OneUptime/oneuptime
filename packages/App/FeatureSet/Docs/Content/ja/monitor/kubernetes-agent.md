@@ -109,7 +109,7 @@ OBI は、キャプチャされたトラフィックから複数のシグナル�
 | シグナル                                | デフォルト | 追加される情報                                                                                                                                                            |
 | --------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.features.httpMetrics`             | on         | サービスごとの HTTP/gRPC RED メトリクス — リクエストレート、レイテンシヒストグラム、エラー数。                                                                            |
-| `ebpf.features.spanMetrics`             | on         | スパン属性をキーとするメトリクス: ルート/オペレーションごとに分類されたリクエストサイズ、レスポンスサイズ、所要時間。                                                     |
+| `ebpf.features.spanMetrics`             | on         | スパンメトリクス: サービス、ルート/オペレーション、スパン種別、ステータスごとの呼び出し数と所要時間 — `traces.span.metrics.calls`、`traces.span.metrics.duration`(秒)。   |
 | `ebpf.features.serviceGraph`            | on         | サービス間のエッジメトリクス(呼び出し元 → 呼び出し先のリクエストレートとレイテンシ)。サービスマップを支える機能です。                                                     |
 | `ebpf.features.networkMetrics`          | on         | k8s メタデータ付きの pod 間 TCP/UDP フローのバイト数とパケット数のカウンター。OBI が解析できないプロトコルで動作するものを含め、通信するすべての pod ペアを可視化します。 |
 | `ebpf.features.networkInterZoneMetrics` | off        | ネットワークメトリクスのゾーン間バリアント。カーディナリティが倍になるため、ゾーンベースのスケジューリングを実際に利用している場合のみ有効化する価値があります。          |
@@ -238,6 +238,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` は既存の構成を保持します。新しい `--set` の上書きはその上に追加で渡すことができます。
+
+> **eBPF のスパンメトリクスの名前が変わりました。** `ebpf.features.spanMetrics` は `traces_spanmetrics_calls_total` と `traces_spanmetrics_latency` の代わりに `traces.span.metrics.calls` と `traces.span.metrics.duration`(秒)を送信するようになりました。系列は同じで、名前だけが OBI の維持する名前に変わります(旧名は OBI で非推奨)。旧名を使うダッシュボード、チャート、メトリクスモニターは、アップグレード後はエラーも出ないまま新しいデータを受け取らなくなります。新しい名前に切り替え、旧名を含む `filters.metrics` のエントリも更新してください。
 
 > ⚠️ **注意: `--reuse-values` は chart からの新しいデフォルト値をマージしません。** Helm は以前にレンダリングされた値をそのまま再利用するため、新しいバージョンの chart で追加されたトップレベルフィールド(例: `profiling.*`、`ebpf.features.*`)は既存のリリースでは未設定のままになり、テンプレートはそれを無効化したかのようにレンダリングします。
 >

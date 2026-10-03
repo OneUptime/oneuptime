@@ -807,7 +807,7 @@
             },
             "spanMetrics": {
               "type": "boolean",
-              "description": "Per-span metrics keyed on span attributes (OBI `application_span`)."
+              "description": "Span call counter and duration histogram per service, span name, kind and status: `traces.span.metrics.calls`, `traces.span.metrics.duration` (OBI `application_span_otel`; earlier charts used the deprecated `application_span`, which names them `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`)."
             },
             "serviceGraph": {
               "type": "boolean",

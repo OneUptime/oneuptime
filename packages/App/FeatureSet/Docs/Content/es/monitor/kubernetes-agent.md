@@ -109,7 +109,7 @@ OBI extrae varias familias de señales del tráfico capturado. Todas están acti
 | Señal                                   | Por defecto | Qué añade                                                                                                                                                                                    |
 | --------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.features.httpMetrics`             | on          | Métricas RED de HTTP/gRPC — tasa de peticiones, histogramas de latencia, recuentos de errores — por servicio.                                                                                |
-| `ebpf.features.spanMetrics`             | on          | Métricas indexadas por atributos de span: tamaño de petición, tamaño de respuesta, duración desglosada por ruta/operación.                                                                   |
+| `ebpf.features.spanMetrics`             | on          | Métricas de span: número de llamadas y duración por servicio, ruta/operación, tipo de span y estado — `traces.span.metrics.calls`, `traces.span.metrics.duration` (segundos).                |
 | `ebpf.features.serviceGraph`            | on          | Métricas de aristas servicio-a-servicio (llamador → llamado, tasa de peticiones + latencia). Alimenta el mapa de servicios.                                                                  |
 | `ebpf.features.networkMetrics`          | on          | Contadores de bytes y paquetes de flujos TCP/UDP pod-a-pod con metadatos de k8s. Revela cada par de pods que se comunican, incluyendo los que ejecutan protocolos que OBI no puede analizar. |
 | `ebpf.features.networkInterZoneMetrics` | off         | Variante inter-zona de las métricas de red. Duplica la cardinalidad; sólo merece la pena activarla si realmente usa la programación basada en zonas.                                         |
@@ -238,6 +238,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` mantiene su configuración existente; pase cualquier nueva anulación `--set` encima.
+
+> **Las métricas de span de eBPF tienen nombres nuevos.** `ebpf.features.spanMetrics` ahora envía `traces.span.metrics.calls` y `traces.span.metrics.duration` (segundos) en lugar de `traces_spanmetrics_calls_total` y `traces_spanmetrics_latency`: las mismas series, con los nombres que OBI mantiene (OBI marcó los antiguos como obsoletos). Un panel, gráfico o monitor de métricas sobre un nombre antiguo deja de recibir datos nuevos tras la actualización, sin ningún error: cámbielo al nombre nuevo y actualice también las entradas de `filters.metrics` que mencionen un nombre antiguo.
 
 > **Aviso: `--reuse-values` no fusiona los nuevos valores por defecto del chart.** Helm reutiliza sus valores previamente renderizados de forma literal — por lo que cualquier nuevo campo de nivel superior añadido en una versión más reciente del chart (p. ej. `profiling.*`, `ebpf.features.*`) permanece sin establecer en su release existente y la plantilla se renderiza como si lo hubiera desactivado.
 >

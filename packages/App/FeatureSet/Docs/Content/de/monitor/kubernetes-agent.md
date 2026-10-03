@@ -109,7 +109,7 @@ OBI extrahiert mehrere Signalfamilien aus dem erfassten Datenverkehr. Alle sind 
 | Signal                                  | Standardwert | Was es ergänzt                                                                                                                                                                                  |
 | --------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ebpf.features.httpMetrics`             | on           | HTTP/gRPC-RED-Metriken — Request-Rate, Latenz-Histogramme, Fehlerzahlen — pro Service.                                                                                                          |
-| `ebpf.features.spanMetrics`             | on           | Nach Span-Attributen indizierte Metriken: Request-Größe, Response-Größe, Dauer aufgeschlüsselt nach Route/Operation.                                                                            |
+| `ebpf.features.spanMetrics`             | on           | Span-Metriken: Anzahl der Aufrufe und Dauer pro Service, Route/Operation, Span-Art und Status — `traces.span.metrics.calls`, `traces.span.metrics.duration` (Sekunden).                         |
 | `ebpf.features.serviceGraph`            | on           | Service-zu-Service-Edge-Metriken (Aufrufer → Aufgerufener Request-Rate + Latenz). Speist die Service-Map.                                                                                       |
 | `ebpf.features.networkMetrics`          | on           | Pod-zu-Pod TCP-/UDP-Flow-Byte- und Paketzähler mit k8s-Metadaten. Macht jedes Pod-Paar sichtbar, das kommuniziert, einschließlich solcher, die Protokolle ausführen, die OBI nicht parsen kann. |
 | `ebpf.features.networkInterZoneMetrics` | off          | Inter-Zonen-Variante der Netzwerk-Metriken. Verdoppelt die Kardinalität; nur sinnvoll zu aktivieren, wenn Sie tatsächlich zonenbasiertes Scheduling nutzen.                                     |
@@ -238,6 +238,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` behält Ihre bestehende Konfiguration; übergeben Sie alle neuen `--set`-Overrides zusätzlich.
+
+> **eBPF-Span-Metriken haben neue Namen.** `ebpf.features.spanMetrics` sendet jetzt `traces.span.metrics.calls` und `traces.span.metrics.duration` (Sekunden) statt `traces_spanmetrics_calls_total` und `traces_spanmetrics_latency`: dieselben Reihen unter den Namen, die OBI beibehält (die alten hat OBI als veraltet markiert). Ein Dashboard, ein Diagramm oder ein Metriken-Monitor auf einem alten Namen erhält nach dem Upgrade keine neuen Daten mehr, ohne Fehlermeldung — stellen Sie ihn auf den neuen Namen um und passen Sie auch `filters.metrics`-Einträge an, die einen alten Namen nennen.
 
 > **Achtung: `--reuse-values` merged keine neuen Standardwerte aus dem Chart.** Helm verwendet Ihre zuvor gerenderten Werte wortgetreu wieder — daher bleibt jedes neue Top-Level-Feld, das in einer neueren Chart-Version hinzugefügt wird (z. B. `profiling.*`, `ebpf.features.*`), in Ihrem bestehenden Release ungesetzt, und das Template wird gerendert, als hätten Sie es deaktiviert.
 >

@@ -936,9 +936,14 @@ ebpf:
     # OBI emits `http.server.request.duration` and gRPC equivalents as
     # OpenTelemetry histograms. Maps to feature: `application`.
     httpMetrics: true
-    # Per-span metrics (request size, response size, span duration) keyed
-    # on span attributes. Useful for slicing traffic by URL path or DB
-    # operation. Maps to feature: `application_span`.
+    # Span metrics: a call counter and a duration histogram per service,
+    # span name (route or DB operation), span kind and status code —
+    # `traces.span.metrics.calls` and `traces.span.metrics.duration`
+    # (seconds). Maps to feature: `application_span_otel`. Earlier charts
+    # asked for OBI's deprecated `application_span`, which names the same
+    # series `traces_spanmetrics_calls_total` and
+    # `traces_spanmetrics_latency`; a dashboard or monitor on those names
+    # has to move to the new ones (README, "Upgrading").
     spanMetrics: true
     # Service graph metrics — for every observed caller→callee edge OBI
     # emits request rate and latency histograms, which power the service

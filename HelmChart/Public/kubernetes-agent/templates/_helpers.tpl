@@ -113,7 +113,13 @@ not know, so every token here must exist in the pinned version.
 {{- define "kubernetes-agent.ebpfMetricsFeatures" -}}
 {{- $features := list -}}
 {{- if .Values.ebpf.features.httpMetrics -}}{{- $features = append $features "application" -}}{{- end -}}
-{{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span" -}}{{- end -}}
+{{- /* `application_span_otel`, not OBI's deprecated `application_span`: the
+     same spans, attributes and buckets, named traces.span.metrics.calls and
+     traces.span.metrics.duration (seconds) instead of
+     traces_spanmetrics_calls_total and traces_spanmetrics_latency. Every OBI
+     release has it, so it needs no version gate; OBI warns about the old name
+     since v0.12.2, and refuses the two together. */ -}}
+{{- if .Values.ebpf.features.spanMetrics -}}{{- $features = append $features "application_span_otel" -}}{{- end -}}
 {{- if .Values.ebpf.features.serviceGraph -}}{{- $features = append $features "application_service_graph" -}}{{- end -}}
 {{- /* ebpf.features.hostMetrics is ignored on purpose: its `application_host`
      feature is gone in OBI v0.14, and an unknown token stops OBI starting. */ -}}

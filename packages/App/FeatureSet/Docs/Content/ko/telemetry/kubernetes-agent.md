@@ -357,6 +357,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `--reuse-values`는 기존 구성(프리셋, 클러스터 이름, 필터)을 유지합니다. 그 위에 새로운 `--set` 재정의를 전달하세요.
 
+> **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 시계열은 같고, 이름만 OBI가 유지하는 이름으로 바뀝니다(이전 이름은 OBI에서 지원 중단됨). 이전 이름을 쓰는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못하므로 새 이름으로 옮기고, 이전 이름이 들어 있는 `filters.metrics` 항목도 수정하세요.
+
 ## 에이전트 제거
 
 ```bash
@@ -412,7 +414,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.*`         | 기본값 | 추가하는 항목                                              |
 | ------------------------- | ------ | ---------------------------------------------------------- |
 | `httpMetrics`             | on     | 서비스별 HTTP/gRPC RED 메트릭 (요청 속도, 지연 시간, 오류) |
-| `spanMetrics`             | on     | 스팬별 요청/응답 크기 및 지속 시간                         |
+| `spanMetrics`             | on     | 스팬 호출 수 및 지속 시간 (`traces.span.metrics.*`)        |
 | `serviceGraph`            | on     | 호출자 → 피호출자 엣지 메트릭, 서비스 맵을 구동            |
 | `networkMetrics`          | on     | 파드 간 TCP/UDP 흐름 카운터                                |
 | `networkInterZoneMetrics` | off    | 네트워크 메트릭의 영역 간 변형 (카디널리티가 두 배가 됨)   |

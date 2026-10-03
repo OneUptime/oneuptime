@@ -548,7 +548,7 @@ Useful knobs:
 | Key | Default | What it adds |
 | --- | --- | --- |
 | `ebpf.features.httpMetrics` | `true` | HTTP/gRPC RED metrics (request rate, latency, errors) per service. |
-| `ebpf.features.spanMetrics` | `true` | Per-span request/response size and duration histograms. |
+| `ebpf.features.spanMetrics` | `true` | Span call counter and duration histogram per service, span name, kind and status: `traces.span.metrics.calls`, `traces.span.metrics.duration` (seconds). Earlier charts named them `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency` — see [Upgrading](#upgrading). |
 | `ebpf.features.serviceGraph` | `true` | Caller → callee request edges; drives the service map view. |
 | `ebpf.features.networkMetrics` | `true` | Pod-to-pod TCP/UDP byte and packet counters. |
 | `ebpf.features.networkInterZoneMetrics` | `false` | Inter-zone variant of `networkMetrics` (doubles cardinality). |
@@ -623,6 +623,17 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 > ⚠️ **Self-hosted OneUptime: upgrade the server first, or install the chart version that matches it.** The eBPF tracer this chart runs (OBI v0.14) names a called service in `service.peer.name` and reports a message broker's own Kafka/MQTT/NATS spans as producer/consumer spans; OneUptime servers older than this chart read neither, so the service map loses named peers and Queues count each broker as a producer and consumer of its topics.
+
+> ⚠️ **eBPF span metrics are renamed.** `ebpf.features.spanMetrics` now asks OBI for `application_span_otel` instead of `application_span`, which OBI deprecated (it logs `metrics feature is deprecated ... feature=application_span use=application_span_otel` on every start) and will remove. The series are the same — same spans, same attributes (`service.name`, `span.name`, `span.kind`, `status.code`, …), same buckets — under new names. A OneUptime dashboard, chart or metric monitor built on an old name gets no new data after the upgrade, without an error, so move it to the new name, and update any `filters.metrics.include` or `exclude` entry that names one:
+>
+> | Before | After |
+> | --- | --- |
+> | `traces_spanmetrics_calls_total` (counter) | `traces.span.metrics.calls` (counter) |
+> | `traces_spanmetrics_latency` (histogram, seconds, no unit set) | `traces.span.metrics.duration` (histogram, unit `s`) |
+>
+> Data sent before the upgrade keeps its old name. This applies with `--reuse-values` too, whatever `ebpf.image.tag` the release keeps: every OBI release accepts `application_span_otel` (OBI before v0.11 names the series `traces_span_metrics_duration` and `traces_span_metrics_calls_total`). OneUptime's own pages and the service map do not read these metrics.
+>
+> Earlier versions of this README said the feature also sent request and response sizes. It never did: those come from a separate OBI feature, `application_span_sizes`, which is deprecated too and which this chart has never turned on.
 
 > ⚠️ **`--reuse-values` skips defaults for newly added settings.** When the chart adds a new top-level field (e.g. `profiling.*` in v0.4.x, `ebpf.features.*` in v0.4.x), Helm's `--reuse-values` keeps your old value file as-is and does **not** merge the new defaults — so the new feature stays unset and renders as disabled in the templates. A default that changed keeps its old value the same way: a release upgraded with `--reuse-values` keeps running OBI `v0.13.0` instead of this chart's `v0.14.0`.
 >

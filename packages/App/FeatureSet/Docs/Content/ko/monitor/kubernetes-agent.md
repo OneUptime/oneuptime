@@ -109,7 +109,7 @@ OBI는 캡처된 트래픽에서 여러 시그널 패밀리를 추출합니다. 
 | 시그널                                  | 기본값 | 추가되는 내용                                                                                                                                                      |
 | --------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | on     | HTTP/gRPC RED 메트릭 — 서비스별 요청률, 지연 히스토그램, 오류 카운트.                                                                                              |
-| `ebpf.features.spanMetrics`             | on     | 스팬 속성 기반 메트릭: 라우트/오퍼레이션별로 분류된 요청 크기, 응답 크기, 지속 시간.                                                                               |
+| `ebpf.features.spanMetrics`             | on     | 스팬 메트릭: 서비스, 라우트/오퍼레이션, 스팬 종류, 상태별 호출 수와 지속 시간 — `traces.span.metrics.calls`, `traces.span.metrics.duration`(초).                   |
 | `ebpf.features.serviceGraph`            | on     | 서비스 간 엣지 메트릭(호출자 → 피호출자 요청률 및 지연). 서비스 맵을 구동합니다.                                                                                   |
 | `ebpf.features.networkMetrics`          | on     | k8s 메타데이터가 포함된 파드 간 TCP/UDP 플로우 바이트 및 패킷 카운터. OBI가 파싱할 수 없는 프로토콜을 사용하는 파드를 포함하여 통신하는 모든 파드 쌍을 표시합니다. |
 | `ebpf.features.networkInterZoneMetrics` | off    | 네트워크 메트릭의 존 간 변형. 카디널리티가 두 배가 됩니다; 실제로 존 기반 스케줄링을 사용하는 경우에만 활성화할 가치가 있습니다.                                   |
@@ -238,6 +238,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values`는 기존 구성을 유지합니다; 그 위에 새로운 `--set` 재정의를 전달하십시오.
+
+> **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 시계열은 같고, 이름만 OBI가 유지하는 이름으로 바뀝니다(이전 이름은 OBI에서 지원 중단됨). 이전 이름을 쓰는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못하므로 새 이름으로 옮기고, 이전 이름이 들어 있는 `filters.metrics` 항목도 수정하십시오.
 
 > **주의: `--reuse-values`는 차트의 새 기본값을 병합하지 않습니다.** Helm은 이전에 렌더링된 값을 그대로 재사용합니다 — 따라서 새 차트 버전에 추가된 새로운 최상위 필드(예: `profiling.*`, `ebpf.features.*`)는 기존 릴리스에서 설정되지 않은 채로 남아 있고, 템플릿은 마치 비활성화한 것처럼 렌더링됩니다.
 >

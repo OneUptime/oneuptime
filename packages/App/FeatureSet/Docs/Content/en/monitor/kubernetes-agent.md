@@ -166,7 +166,7 @@ OBI extracts several signal families from the captured traffic. All are on by de
 | Signal                                  | Default | What it adds                                                                                                                                                 |
 | --------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ebpf.features.httpMetrics`             | on      | HTTP/gRPC RED metrics — request rate, latency histograms, error counts — per service.                                                                        |
-| `ebpf.features.spanMetrics`             | on      | Span-attribute-keyed metrics: request size, response size, duration broken down per route/operation.                                                         |
+| `ebpf.features.spanMetrics`             | on      | Span metrics: call count and duration per service, route/operation, span kind and status — `traces.span.metrics.calls`, `traces.span.metrics.duration` (seconds). |
 | `ebpf.features.serviceGraph`            | on      | Service-to-service edge metrics (caller → callee request rate + latency). Powers the service map.                                                            |
 | `ebpf.features.networkMetrics`          | on      | Pod-to-pod TCP/UDP flow byte and packet counters with k8s metadata. Surfaces every pair of pods that talk, including ones running protocols OBI can't parse. |
 | `ebpf.features.networkInterZoneMetrics` | off     | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling.                                   |
@@ -346,6 +346,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` keeps your existing configuration; pass any new `--set` overrides on top of it.
+
+> **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 
 > **Heads up: `--reuse-values` does not merge new defaults from the chart.** Helm reuses your previously rendered values verbatim — so any new top-level field added in a newer chart version (e.g. `profiling.*`, `ebpf.features.*`) stays unset on your existing release and the template renders as if you'd disabled it.
 >
