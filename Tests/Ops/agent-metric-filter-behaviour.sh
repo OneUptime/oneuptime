@@ -166,6 +166,7 @@ const payload = {
         // Traffic of the app itself, on 9229 and elsewhere.
         datapoint("KEEP GET /* 200 on 9229 (not an upgrade)", { status: 200, route: "/*" }),
         datapoint("KEEP GET /* with no status on 9229", { route: "/*" }),
+        datapoint("KEEP GET /socket 101 on 9229 (a WebSocket route of the app)", { status: 101, route: "/socket" }),
         datapoint("KEEP POST /json/list 200 on 9229", { method: "POST", status: 200, route: "/json/list" }),
         datapoint("KEEP GET /api/items/:id 200 on 9229 (an app route on 9229)", { status: 200, route: "/api/items/:id" }),
         datapoint("KEEP GET /json 200 on 9229 (another inspector route)", { status: 200, route: "/json" }),
