@@ -24,10 +24,6 @@ const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
     count: 2,
     why: '"{n} ms" durations (unit)',
   },
-  "Pages/Dashboards/View/CustomDomains.tsx": {
-    count: 1,
-    why: '"CNAME" (DNS record type)',
-  },
   "Pages/Database/Utils/DocumentationMarkdown.ts": {
     count: 8,
     why: "setup-guide markdown bodies built around SQL/JS/HTTP code blocks",
