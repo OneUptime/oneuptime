@@ -98,6 +98,11 @@ import PermissionGate, {
 
 export interface ComponentProps {
   dashboardId: ObjectID;
+  /*
+   * Opens the dashboard's Sharing page from the toolbar's ⋯ menu (Share).
+   * The page that shows the dashboard knows where that is.
+   */
+  onShareClick?: (() => void) | undefined;
 }
 
 type SaveDashboardViewConfigFunction = (
@@ -571,6 +576,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         canEditDashboard={canEditDashboard}
         editDashboardDisabledReason={editGate.disabledReason}
+        onShareClick={props.onShareClick}
         onEditClick={() => {
           // Readers get no editor. See `editGate` above.
           if (!canEditDashboard) {

@@ -18,7 +18,7 @@ import DashboardViewDelete from "../Pages/Dashboards/View/Delete";
 
 import DashboardViewSettings from "../Pages/Dashboards/View/Settings";
 
-import DashboardViewAuthenticationSettings from "../Pages/Dashboards/View/AuthenticationSettings";
+import DashboardViewSharing from "../Pages/Dashboards/View/Sharing";
 
 import DashboardViewBranding from "../Pages/Dashboards/View/Branding";
 
@@ -217,12 +217,16 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {/*
+         * Sharing: who can view the dashboard. The address is the old
+         * Authentication page's, so links and bookmarks still land on it.
+         */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DASHBOARD_VIEW_AUTHENTICATION_SETTINGS,
           )}
           element={
-            <DashboardViewAuthenticationSettings
+            <DashboardViewSharing
               {...props}
               pageRoute={
                 RouteMap[
