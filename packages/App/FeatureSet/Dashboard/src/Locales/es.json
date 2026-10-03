@@ -24201,5 +24201,19 @@
   "Edit Languages": "Editar idiomas",
   "History chart colors, languages, and whether search engines may list this page.": "Colores del gráfico de historial, idiomas y si los motores de búsqueda pueden incluir esta página.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "Se muestra en la parte superior de la vista general de tu página de estado, antes que todo lo demás. Se admite Markdown.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "El idioma que ven los visitantes por primera vez y los idiomas a los que pueden cambiar desde el pie de página."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "El idioma que ven los visitantes por primera vez y los idiomas a los que pueden cambiar desde el pie de página.",
+  "Add global probes to new monitors": "Añadir sondas globales a los monitores nuevos",
+  "Check this monitor": "Comprobar este monitor",
+  "Monitoring is turned off": "El monitoreo está desactivado",
+  "Monitors that already exist keep their probes.": "Los monitores que ya existen conservan sus sondas.",
+  "New monitors start with OneUptime's global probes, along with the custom probes you add to new monitors.": "Los monitores nuevos empiezan con las sondas globales de OneUptime, junto con las sondas personalizadas que añades a los monitores nuevos.",
+  "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.": "Nada comprueba este monitor mientras el monitoreo está desactivado: su estado se queda en el último registrado y no abre incidentes ni alertas.",
+  "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "Nada comprobará este monitor hasta que se vuelva a activar el monitoreo, así que no abrirá incidentes ni alertas, aunque lo que vigila deje de funcionar.",
+  "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime comprueba este monitor y abre incidentes y alertas cuando se cumplen sus criterios.",
+  "Pause this monitor without deleting it. Its settings and history are kept.": "Pausa este monitor sin eliminarlo. Se conservan su configuración y su historial.",
+  "Turn monitoring on": "Activar el monitoreo",
+  "Turn off monitoring": "Desactivar el monitoreo",
+  "Turn off monitoring?": "¿Desactivar el monitoreo?",
+  "Which probes a monitor starts with when you create it. You can change any monitor's probes on its Probes page.": "Con qué sondas empieza un monitor cuando lo creas. Puedes cambiar las sondas de cualquier monitor en su página Sondas.",
+  "New monitors start with only the custom probes you add to new monitors.": "Los monitores nuevos empiezan solo con las sondas personalizadas que añades a los monitores nuevos."
 }

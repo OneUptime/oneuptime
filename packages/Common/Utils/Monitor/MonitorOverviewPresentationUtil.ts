@@ -64,6 +64,38 @@ export type MonitorOverviewLinkKey =
   | "owners"
   | "networkDevice";
 
+/*
+ * Something the hero does in place, rather than a page it links to: a
+ * monitor someone turned off is turned back on from the hero itself (it
+ * writes what the Monitoring switch on its Settings page writes).
+ */
+export type MonitorOverviewActionKey = "turnMonitoringOn";
+
+// The hero's call to action: a link to another page of the monitor.
+export interface MonitorOverviewLinkCallToAction {
+  text: string;
+  linkKey: MonitorOverviewLinkKey;
+}
+
+// The hero's call to action: something it does in place.
+export interface MonitorOverviewActionCallToAction {
+  text: string;
+  actionKey: MonitorOverviewActionKey;
+}
+
+export type MonitorOverviewCallToAction =
+  | MonitorOverviewLinkCallToAction
+  | MonitorOverviewActionCallToAction;
+
+// Whether the hero's call to action is done in place (a button).
+export const isMonitorOverviewActionCallToAction: (
+  callToAction: MonitorOverviewCallToAction,
+) => callToAction is MonitorOverviewActionCallToAction = (
+  callToAction: MonitorOverviewCallToAction,
+): callToAction is MonitorOverviewActionCallToAction => {
+  return "actionKey" in callToAction;
+};
+
 export type MonitorOverviewFactKey =
   | "latest-result"
   | "certificate-expiry"
@@ -231,7 +263,7 @@ export interface MonitorOverviewPresentation {
   headline: { text: string; since?: Date | undefined };
   explanation?: string | undefined;
   lastKnownStatus?: string | undefined;
-  callToAction?: { text: string; linkKey: MonitorOverviewLinkKey } | undefined;
+  callToAction?: MonitorOverviewCallToAction | undefined;
   pulse: MonitorOverviewPulse;
   freshness: MonitorCheckFreshness;
   /*
@@ -1124,6 +1156,10 @@ export default class MonitorOverviewPresentationUtil {
           };
         }
 
+        /*
+         * Someone turned monitoring off: the hero turns it back on in place,
+         * where it used to send the reader to Settings to find the switch.
+         */
         if (input.pause.isDisabled) {
           return {
             tone: "neutral",
@@ -1132,7 +1168,10 @@ export default class MonitorOverviewPresentationUtil {
             headline: { text: "Monitoring is turned off" },
             explanation: PAUSED_EXPLANATION.disabled,
             lastKnownStatus: lastKnownStatus,
-            callToAction: { text: "Open settings", linkKey: "settings" },
+            callToAction: {
+              text: "Turn monitoring on",
+              actionKey: "turnMonitoringOn",
+            },
           };
         }
 

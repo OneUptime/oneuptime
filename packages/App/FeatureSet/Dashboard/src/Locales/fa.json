@@ -24201,5 +24201,19 @@
   "Edit Languages": "ویرایش زبان‌ها",
   "History chart colors, languages, and whether search engines may list this page.": "رنگ‌های نمودار تاریخچه، زبان‌ها، و اینکه آیا موتورهای جستجو می‌توانند این صفحه را فهرست کنند.",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "در بالای نمای کلی صفحه وضعیت شما، پیش از هر چیز دیگری نمایش داده می‌شود. از Markdown پشتیبانی می‌شود.",
-  "The language first-time visitors see, and the languages they can switch to in the footer.": "زبانی که بازدیدکنندگان بار اول می‌بینند، و زبان‌هایی که می‌توانند در پاورقی به آن‌ها تغییر دهند."
+  "The language first-time visitors see, and the languages they can switch to in the footer.": "زبانی که بازدیدکنندگان بار اول می‌بینند، و زبان‌هایی که می‌توانند در پاورقی به آن‌ها تغییر دهند.",
+  "Add global probes to new monitors": "افزودن پراب‌های سراسری به مانیتورهای جدید",
+  "Check this monitor": "بررسی این مانیتور",
+  "Monitoring is turned off": "پایش خاموش است",
+  "Monitors that already exist keep their probes.": "مانیتورهایی که از قبل وجود دارند پراب‌های خود را نگه می‌دارند.",
+  "New monitors start with OneUptime's global probes, along with the custom probes you add to new monitors.": "مانیتورهای جدید با پراب‌های سراسری OneUptime شروع می‌شوند، همراه با پراب‌های سفارشی‌ای که به مانیتورهای جدید اضافه می‌کنید.",
+  "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.": "تا وقتی پایش خاموش است، هیچ چیز این مانیتور را بررسی نمی‌کند: وضعیت آن روی آخرین وضعیت ثبت‌شده می‌ماند و هیچ حادثه یا هشداری باز نمی‌کند.",
+  "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "تا وقتی پایش دوباره روشن نشود، هیچ چیز این مانیتور را بررسی نمی‌کند؛ پس حتی اگر آنچه زیر نظر دارد از کار بیفتد، هیچ حادثه یا هشداری باز نمی‌کند.",
+  "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime این مانیتور را بررسی می‌کند و وقتی معیارهایش برقرار شود، حادثه و هشدار باز می‌کند.",
+  "Pause this monitor without deleting it. Its settings and history are kept.": "این مانیتور را بدون حذف کردن متوقف کنید. تنظیمات و تاریخچه‌اش حفظ می‌شود.",
+  "Turn monitoring on": "روشن کردن پایش",
+  "Turn off monitoring": "خاموش کردن پایش",
+  "Turn off monitoring?": "پایش خاموش شود؟",
+  "Which probes a monitor starts with when you create it. You can change any monitor's probes on its Probes page.": "پراب‌هایی که یک مانیتور هنگام ساخته شدن با آن‌ها شروع می‌شود. پراب‌های هر مانیتور را می‌توانید در صفحهٔ پراب‌های آن تغییر دهید.",
+  "New monitors start with only the custom probes you add to new monitors.": "مانیتورهای جدید فقط با پراب‌های سفارشی‌ای شروع می‌شوند که به مانیتورهای جدید اضافه می‌کنید."
 }
