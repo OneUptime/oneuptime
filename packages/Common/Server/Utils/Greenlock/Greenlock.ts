@@ -654,6 +654,13 @@ export default class GreenlockUtil {
   public static async orderCert(data: {
     domain: string;
     validateCname: (domain: string) => Promise<boolean>;
+    /*
+     * Whether a failed CNAME check removes the name's certificate before
+     * the order is refused. True unless a caller says otherwise: renewal
+     * relies on it. A caller ordering for a name that may be serving a
+     * certificate it means to keep (a reissue) passes false.
+     */
+    removeCertificateIfCnameIsInvalid?: boolean | undefined;
   }): Promise<void> {
     const orderLogAttributes: LogAttributes = {
       domain: data.domain,
@@ -699,9 +706,12 @@ export default class GreenlockUtil {
           `CNAME is not valid for domain: ${domain}`,
           orderLogAttributes,
         );
-        logger.debug(`Removing domain: ${domain}`, orderLogAttributes);
 
-        await GreenlockUtil.removeDomain(domain);
+        if (data.removeCertificateIfCnameIsInvalid !== false) {
+          logger.debug(`Removing domain: ${domain}`, orderLogAttributes);
+          await GreenlockUtil.removeDomain(domain);
+        }
+
         logger.error(
           `Cname is not valid for domain: ${domain}`,
           orderLogAttributes,

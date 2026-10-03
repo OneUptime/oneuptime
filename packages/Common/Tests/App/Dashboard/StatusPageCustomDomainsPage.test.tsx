@@ -289,14 +289,20 @@ describe("Status page Custom Domains page", () => {
   });
 
   describe("the row actions", () => {
-    test("DNS Setup shows until the record is verified", () => {
+    /*
+     * And on a verified domain whose certificate is not ordered yet: an
+     * order that keeps failing is seen, and retried, from Check now.
+     */
+    test("DNS Setup shows until the record is verified and the certificate ordered", () => {
       renderPage();
 
-      expect(
-        within(rowOf(UNVERIFIED)).getByRole("button", { name: "DNS Setup" }),
-      ).toBeInTheDocument();
+      for (const fullDomain of [UNVERIFIED, VERIFIED]) {
+        expect(
+          within(rowOf(fullDomain)).getByRole("button", { name: "DNS Setup" }),
+        ).toBeInTheDocument();
+      }
 
-      for (const fullDomain of [VERIFIED, ORDERED, PROVISIONED, UPLOADED]) {
+      for (const fullDomain of [ORDERED, PROVISIONED, UPLOADED]) {
         expect(
           within(rowOf(fullDomain)).queryByRole("button", {
             name: "DNS Setup",

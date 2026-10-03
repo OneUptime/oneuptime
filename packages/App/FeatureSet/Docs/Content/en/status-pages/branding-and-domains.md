@@ -143,7 +143,7 @@ OneUptime checks every unverified domain every 15 minutes and verifies yours as 
 - **The record is not found yet.** The dialog stays open and says which record it looked for. A new DNS record can take a while to show up. Click **Check now** again later, or leave it to the 15-minute check.
 - **The record is found.** The dialog says "Your CNAME record is verified." and what happens to the certificate next. The free certificate is ordered at that moment.
 
-Until a domain is verified, its row has a **DNS Setup** action that opens the same dialog.
+Until a domain is verified and its certificate ordered, its row has a **DNS Setup** action that opens the same dialog. On a verified domain whose certificate order keeps failing, **Check now** there shows why, and orders again at most once every 15 minutes; between those, OneUptime keeps retrying on its own.
 
 ## SSL certificates
 
@@ -155,7 +155,7 @@ Every custom domain gets a free certificate from Let's Encrypt, issued and renew
 
 A new certificate is served within 15 minutes of being issued, because that is how often certificates are written out to the servers that answer for your domain. The Status column says _usually_ within 15 minutes: when many domains are waiting at once, they are worked through a few at a time, because every OneUptime certificate is ordered from one shared Let's Encrypt account.
 
-If the order that **Check now** places fails, the dialog shows the reason, and OneUptime tries again every 15 minutes. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details.
+If the order that **Check now** places fails, the dialog shows the reason, and OneUptime tries again every 15 minutes. **Check now** places at most one order per domain every 15 minutes, because every order counts against Let's Encrypt's limits for the shared account; a click in between shows how the last order went. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details.
 
 If you uploaded your own certificate under **Advanced**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
 

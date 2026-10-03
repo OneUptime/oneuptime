@@ -34,6 +34,7 @@ import Semaphore, {
 } from "../../../Server/Infrastructure/Semaphore";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Domain from "../../../Server/Types/Domain";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import ObjectID from "../../../Types/ObjectID";
 import {
   CustomDomainCertificateStatus,
@@ -132,6 +133,8 @@ type World = {
   served: Set<string>;
   deletedCertificates: Array<string>;
   heldLocks: Set<string>;
+  // Redis keys with their values: the on-demand order window of Check now.
+  cache: Map<string, string>;
 };
 
 let world: World;
@@ -203,6 +206,7 @@ function setUpWorld(): void {
     served: new Set(),
     deletedCertificates: [],
     heldLocks: new Set(),
+    cache: new Map(),
   };
   mockCaOrders.length = 0;
   holdOrderSweepRead = null;
@@ -394,6 +398,42 @@ function setUpWorld(): void {
   ) => {
     world.heldLocks.delete((mutex as unknown as { key: string }).key);
   }) as never);
+
+  // The cache: SET NX, GET and SET, without expiry (a test is one window).
+  jest.spyOn(GlobalCache, "setStringIfNotExists").mockImplementation((async (
+    namespace: string,
+    key: string,
+    value: string,
+  ): Promise<boolean> => {
+    const fullKey: string = `${namespace}-${key}`;
+
+    if (world.cache.has(fullKey)) {
+      return false;
+    }
+
+    world.cache.set(fullKey, value);
+    return true;
+  }) as never);
+
+  jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+    namespace: string,
+    key: string,
+  ) => {
+    return world.cache.get(`${namespace}-${key}`) ?? null;
+  }) as never);
+
+  jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+    namespace: string,
+    key: string,
+    value: string,
+  ): Promise<void> => {
+    world.cache.set(`${namespace}-${key}`, value);
+  }) as never);
+}
+
+// A new on-demand order window: what 15 minutes later looks like.
+function nextOnDemandWindow(): void {
+  world.cache.clear();
 }
 
 /*
@@ -751,6 +791,74 @@ describe("a status page custom domain's certificate, Check now and the sweeps to
     expect(mockCaOrders).toEqual(["status.acme.com", "status.acme.com"]);
     expect(domain.isSslOrdered).toBe(true);
     expect(world.certificates.has("status.acme.com")).toBe(true);
+  });
+
+  /*
+   * Regression (review): an order that fails leaves the domain unordered,
+   * so every click on Check now - or a script calling verify-cname - used
+   * to place another order against the shared Let's Encrypt account.
+   */
+  test("after a failed order, more clicks in the same window order nothing and keep showing why", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    mockAuto = async (): Promise<string> => {
+      throw new Error("urn:ietf:params:acme:error:caa");
+    };
+
+    const first: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(first?.certificateStatus).toBe(CustomDomainCertificateStatus.Failed);
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+
+    for (let click: number = 0; click < 5; click++) {
+      const again: CustomDomainVerificationResult | null =
+        await clickCheckNow(domain);
+
+      expect(again?.certificateStatus).toBe(
+        CustomDomainCertificateStatus.Failed,
+      );
+      expect(again?.certificateError).toBe(first?.certificateError);
+    }
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
+
+    // The next window: Check now may order again, and this time it works.
+    mockAuto = DEFAULT_AUTO;
+    nextOnDemandWindow();
+
+    const later: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(later?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual(["status.acme.com", "status.acme.com"]);
+    expect(domain.isSslOrdered).toBe(true);
+  });
+
+  test("without the cache, Check now orders nothing and leaves the domain to the sweeps", async () => {
+    const domain: DomainRow = makeDomain("status.acme.com");
+    world.domains.push(domain);
+    world.dnsLive.add("status.acme.com");
+
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    const result: CustomDomainVerificationResult | null =
+      await clickCheckNow(domain);
+
+    expect(result?.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+    expect(mockCaOrders).toEqual([]);
+
+    await runSweeps();
+
+    expect(mockCaOrders).toEqual(["status.acme.com"]);
   });
 
   test("an order that outlives Check now's wait is answered as issuing, and finishes on its own", async () => {

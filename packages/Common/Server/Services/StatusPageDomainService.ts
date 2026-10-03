@@ -5,6 +5,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import GreenlockUtil from "../Utils/Greenlock/Greenlock";
 import CertificateOrder, {
   CertificateOrderOutcome,
+  OnDemandOrderClaim,
 } from "../Utils/Greenlock/CertificateOrder";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -46,13 +47,17 @@ export class Service extends DatabaseService<StatusPageDomain> {
   public static readonly SSL_PROVISIONING_CHECK_CONCURRENCY: number = 10;
 
   /*
-   * How many certificates one run of each sweep that orders them may order:
-   * the order for the domains the CNAME sweep has just verified, the order
-   * sweep for every verified domain still without a certificate, and the
-   * re-order of a certificate that has gone missing. Each picks afresh every
-   * run (GreenlockUtil.pickForThisRun), so a domain whose order keeps failing
-   * - a CAA record that leaves Let's Encrypt out, a name it has paused -
-   * cannot hold a slot the others are waiting for.
+   * How many certificates the sweeps that order them may order in one
+   * 15-minute window, between them: the order for the domains the CNAME
+   * sweep has just verified, the order sweep for every verified domain still
+   * without a certificate, and the re-order of a certificate that has gone
+   * missing. They draw from one budget (CertificateOrder.takeOrderSlot,
+   * SWEEP_ORDER_BUDGET), and each picks its batch afresh every run
+   * (GreenlockUtil.pickForThisRun), so a domain whose order keeps failing -
+   * a CAA record that leaves Let's Encrypt out, a name it has paused -
+   * cannot hold a slot the others are waiting for. Check now is not counted
+   * here: it has a window of its own per domain
+   * (CertificateOrder.claimOnDemandOrder).
    *
    * Every order spends from the one Let's Encrypt account the whole
    * installation shares, 300 new orders per three hours, renewals included.
@@ -64,6 +69,9 @@ export class Service extends DatabaseService<StatusPageDomain> {
    * and renewals (GreenlockUtil.RENEW_MAX_PER_RUN) are.
    */
   public static readonly ORDER_MAX_PER_RUN: number = 5;
+
+  // The budget the ordering sweeps share (CertificateOrder.takeOrderSlot).
+  public static readonly SWEEP_ORDER_BUDGET: string = "StatusPageDomainSweeps";
 
   public constructor() {
     super(StatusPageDomain);
@@ -258,6 +266,15 @@ export class Service extends DatabaseService<StatusPageDomain> {
             validateCname: async (fullDomain: string) => {
               return await this.isCnameValid(fullDomain);
             },
+            /*
+             * This orders a first certificate - where there is none to
+             * remove - or reissues one that is serving. A CNAME check that
+             * fails for a moment during a reissue must not take the working
+             * certificate down; a record that is really gone is dealt with
+             * by the renewal run, which removes the certificate when it
+             * comes due.
+             */
+            removeCertificateIfCnameIsInvalid: false,
           });
 
           logger.debug(
@@ -429,6 +446,10 @@ export class Service extends DatabaseService<StatusPageDomain> {
   @CaptureSpan()
   public async orderCertIfMissing(
     statusPageDomain: StatusPageDomain,
+    options?: {
+      // An order of the sweeps: it draws from their shared window budget.
+      fromSweep?: boolean | undefined;
+    },
   ): Promise<CertificateOrderOutcome> {
     if (!statusPageDomain.id) {
       throw new BadDataException(
@@ -479,6 +500,15 @@ export class Service extends DatabaseService<StatusPageDomain> {
       order: async (): Promise<void> => {
         await this.orderCert(orderedDomain);
       },
+      mayOrder: options?.fromSweep
+        ? async (): Promise<boolean> => {
+            return await CertificateOrder.takeOrderSlot({
+              budget: Service.SWEEP_ORDER_BUDGET,
+              maxPerWindow: Service.ORDER_MAX_PER_RUN,
+              now: OneUptimeDate.getCurrentDate(),
+            });
+          }
+        : undefined,
     });
   }
 
@@ -512,6 +542,26 @@ export class Service extends DatabaseService<StatusPageDomain> {
       };
     }
 
+    /*
+     * One on-demand order per domain per window
+     * (CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES): a click within
+     * it reports how the last order went, and the sweeps keep retrying.
+     */
+    const claim: OnDemandOrderClaim = await CertificateOrder.claimOnDemandOrder(
+      statusPageDomain.fullDomain || "",
+    );
+
+    if (!claim.mayOrder) {
+      return claim.lastError
+        ? {
+            certificateStatus: CustomDomainCertificateStatus.Failed,
+            certificateError: claim.lastError,
+          }
+        : {
+            certificateStatus: CustomDomainCertificateStatus.Issuing,
+          };
+    }
+
     const order: Promise<CustomDomainVerificationResult> =
       this.orderCertIfMissing(statusPageDomain).then(
         (outcome: CertificateOrderOutcome): CustomDomainVerificationResult => {
@@ -531,12 +581,20 @@ export class Service extends DatabaseService<StatusPageDomain> {
             fullDomain: statusPageDomain.fullDomain,
           } as LogAttributes);
 
+          const certificateError: string =
+            err instanceof Exception && err.message
+              ? err.message
+              : "We could not order an SSL certificate for this domain.";
+
+          // Not awaited by the answer; it never throws.
+          void CertificateOrder.recordOnDemandOrderFailure(
+            statusPageDomain.fullDomain || "",
+            certificateError,
+          );
+
           return {
             certificateStatus: CustomDomainCertificateStatus.Failed,
-            certificateError:
-              err instanceof Exception && err.message
-                ? err.message
-                : "We could not order an SSL certificate for this domain.",
+            certificateError: certificateError,
           };
         },
       );
@@ -644,7 +702,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           fullDomain: domain.fullDomain,
         } as LogAttributes);
 
-        await this.orderCertIfMissing(domain);
+        await this.orderCertIfMissing(domain, { fromSweep: true });
       } catch (err) {
         // one domain whose order fails must not stop the rest.
         logger.error("Cannot order cert for domain: " + domain.fullDomain, {
@@ -1250,7 +1308,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
     for (const domain of batch) {
       try {
-        await this.orderCertIfMissing(domain);
+        await this.orderCertIfMissing(domain, { fromSweep: true });
       } catch (err) {
         logger.error("Cannot order cert for domain: " + domain.fullDomain, {
           fullDomain: domain.fullDomain,

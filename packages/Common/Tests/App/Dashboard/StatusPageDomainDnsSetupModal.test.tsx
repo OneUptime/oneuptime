@@ -95,7 +95,11 @@ import Clipboard from "../../../UI/Utils/Clipboard";
 const DOMAIN_ID: string = "0193c0de-0000-4aaa-8bbb-00000000d0d0";
 
 function domain(
-  extra: { subdomain?: string; isCustomCertificate?: boolean } = {},
+  extra: {
+    subdomain?: string;
+    isCustomCertificate?: boolean;
+    isCnameVerified?: boolean;
+  } = {},
 ): StatusPageDomain {
   const row: StatusPageDomain = new StatusPageDomain();
   row._id = DOMAIN_ID;
@@ -105,6 +109,7 @@ function domain(
       : `${extra.subdomain ?? "status"}.acme.com`;
   row.subdomain = extra.subdomain ?? "status";
   row.isCustomCertificate = extra.isCustomCertificate ?? false;
+  row.isCnameVerified = extra.isCnameVerified ?? false;
   return row;
 }
 
@@ -257,6 +262,29 @@ describe("the DNS Setup dialog", () => {
     expect(dialog()).toHaveTextContent(
       StatusPageCustomDomainCopy.dnsSetupWhatHappensNextUploaded,
     );
+  });
+
+  /*
+   * DNS Setup also shows on a verified domain whose free certificate is
+   * not issued yet: an order that keeps failing. It says so, rather than
+   * asking for a record that is already in place.
+   */
+  test("a verified domain without its certificate is told so, and that Check now tries again", () => {
+    renderDialog(domain({ isCnameVerified: true }));
+
+    expect(
+      screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext),
+    ).toHaveTextContent(StatusPageCustomDomainCopy.dnsSetupVerifiedNotIssued);
+    expect(dialog()).not.toHaveTextContent(
+      StatusPageCustomDomainCopy.dnsSetupWhatHappensNext,
+    );
+    // The record is still there to check against.
+    expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordName)).toHaveTextContent(
+      /^status\.acme\.com$/,
+    );
+    expect(
+      within(dialog()).getByRole("button", { name: "Check now" }),
+    ).toBeInTheDocument();
   });
 
   test("Check now asks verify-cname about this domain", async () => {

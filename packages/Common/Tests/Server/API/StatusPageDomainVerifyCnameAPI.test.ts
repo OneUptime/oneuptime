@@ -93,7 +93,9 @@ import StatusPageDomainService from "../../../Server/Services/StatusPageDomainSe
 import CommonAPI from "../../../Server/API/CommonAPI";
 import Response from "../../../Server/Utils/Response";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
-import { CertificateOrderOutcome } from "../../../Server/Utils/Greenlock/CertificateOrder";
+import CertificateOrder, {
+  CertificateOrderOutcome,
+} from "../../../Server/Utils/Greenlock/CertificateOrder";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -230,6 +232,14 @@ beforeEach(() => {
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(callerProps);
+
+  // This window's on-demand order is free; the window is tested below.
+  jest
+    .spyOn(CertificateOrder, "claimOnDemandOrder")
+    .mockResolvedValue({ mayOrder: true });
+  jest
+    .spyOn(CertificateOrder, "recordOnDemandOrderFailure")
+    .mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -533,6 +543,80 @@ describe("StatusPageDomainService.orderCertOnceCnameIsVerified", () => {
     } finally {
       process.off("unhandledRejection", onUnhandled);
     }
+  });
+
+  /*
+   * Regression (review): a failed order leaves the domain unordered, so
+   * every click used to order again. One on-demand order per domain per
+   * window; within it, a click reports the last order's error.
+   */
+  test("a click within the window orders nothing and reports the last order's error", async () => {
+    const claim: MockedFn = jest
+      .spyOn(CertificateOrder, "claimOnDemandOrder")
+      .mockResolvedValue({
+        mayOrder: false,
+        lastError: "CAA record forbids letsencrypt.org",
+      }) as unknown as MockedFn;
+    const orderSpy: MockedFn = jest
+      .spyOn(StatusPageDomainService, "orderCertIfMissing")
+      .mockResolvedValue(
+        CertificateOrderOutcome.Ordered as never,
+      ) as unknown as MockedFn;
+
+    const result: {
+      certificateStatus: CustomDomainCertificateStatus;
+      certificateError?: string | undefined;
+    } = await StatusPageDomainService.orderCertOnceCnameIsVerified(
+      makeDomain() as never,
+    );
+
+    expect(claim).toHaveBeenCalledWith("status.acme.com");
+    expect(orderSpy).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      certificateStatus: CustomDomainCertificateStatus.Failed,
+      certificateError: "CAA record forbids letsencrypt.org",
+    });
+  });
+
+  test("a click within the window of an order that did not fail answers Issuing, without ordering", async () => {
+    jest
+      .spyOn(CertificateOrder, "claimOnDemandOrder")
+      .mockResolvedValue({ mayOrder: false });
+    const orderSpy: MockedFn = jest
+      .spyOn(StatusPageDomainService, "orderCertIfMissing")
+      .mockResolvedValue(
+        CertificateOrderOutcome.Ordered as never,
+      ) as unknown as MockedFn;
+
+    const result: { certificateStatus: CustomDomainCertificateStatus } =
+      await StatusPageDomainService.orderCertOnceCnameIsVerified(
+        makeDomain() as never,
+      );
+
+    expect(orderSpy).not.toHaveBeenCalled();
+    expect(result.certificateStatus).toBe(
+      CustomDomainCertificateStatus.Issuing,
+    );
+  });
+
+  test("a failed order is remembered for the rest of the window", async () => {
+    const record: MockedFn = jest
+      .spyOn(CertificateOrder, "recordOnDemandOrderFailure")
+      .mockResolvedValue(undefined) as unknown as MockedFn;
+    jest
+      .spyOn(StatusPageDomainService, "orderCertIfMissing")
+      .mockRejectedValue(
+        new BadDataException("Cname is not valid for domain") as never,
+      );
+
+    await StatusPageDomainService.orderCertOnceCnameIsVerified(
+      makeDomain() as never,
+    );
+
+    expect(record).toHaveBeenCalledWith(
+      "status.acme.com",
+      "Cname is not valid for domain",
+    );
   });
 
   test("an order that finishes within the wait answers at once, without waiting it out", async () => {

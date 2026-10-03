@@ -24,6 +24,7 @@ import CertificateOrder, {
   CertificateOrderOutcome,
 } from "../../../../Server/Utils/Greenlock/CertificateOrder";
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
@@ -411,5 +412,149 @@ describe("CertificateOrder.orderIfMissing", () => {
     expect(await first).toBe(CertificateOrderOutcome.Ordered);
     expect(second).toBe(CertificateOrderOutcome.Ordered);
     expect(ordered).toEqual(["a.acme.com", "b.acme.com"]);
+  });
+});
+
+/*
+ * The on-demand order window behind Check now: one order per domain per
+ * ON_DEMAND_ORDER_WINDOW_IN_MINUTES, claimed with SET NX, and the last
+ * failure kept for the clicks after it.
+ */
+describe("CertificateOrder on-demand order window", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  type CacheCall = {
+    namespace: string;
+    key: string;
+    expiresInSeconds?: number | undefined;
+  };
+
+  type Cache = {
+    claims: Array<CacheCall>;
+    writes: Array<CacheCall>;
+  };
+
+  function useInMemoryCache(): Cache {
+    const store: Map<string, string> = new Map();
+    const cache: Cache = { claims: [], writes: [] };
+
+    jest.spyOn(GlobalCache, "setStringIfNotExists").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+      options?: { expiresInSeconds?: number },
+    ): Promise<boolean> => {
+      cache.claims.push({
+        namespace,
+        key,
+        expiresInSeconds: options?.expiresInSeconds,
+      });
+
+      const fullKey: string = namespace + "-" + key;
+
+      if (store.has(fullKey)) {
+        return false;
+      }
+
+      store.set(fullKey, value);
+      return true;
+    }) as never);
+
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      return store.get(namespace + "-" + key) ?? null;
+    }) as never);
+
+    jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+      options?: { expiresInSeconds?: number },
+    ): Promise<void> => {
+      cache.writes.push({
+        namespace,
+        key,
+        expiresInSeconds: options?.expiresInSeconds,
+      });
+      store.set(namespace + "-" + key, value);
+    }) as never);
+
+    return cache;
+  }
+
+  test("the first claim of a window may order; the next ones may not", async () => {
+    const cache: Cache = useInMemoryCache();
+
+    expect(
+      await CertificateOrder.claimOnDemandOrder("Status.Acme.com"),
+    ).toEqual({ mayOrder: true });
+    expect(
+      await CertificateOrder.claimOnDemandOrder("status.acme.com"),
+    ).toEqual({ mayOrder: false });
+
+    // One key per normalized name, expiring with the window.
+    expect(cache.claims[0]!.key).toBe("status.acme.com");
+    expect(cache.claims[0]!.namespace).toBe(
+      CertificateOrder.ON_DEMAND_ORDER_NAMESPACE,
+    );
+    expect(cache.claims[0]!.expiresInSeconds).toBe(
+      CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES * 60,
+    );
+    expect(CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES).toBe(15);
+  });
+
+  test("a failure recorded in the window is what the next claims report", async () => {
+    const cache: Cache = useInMemoryCache();
+
+    await CertificateOrder.claimOnDemandOrder("status.acme.com");
+    await CertificateOrder.recordOnDemandOrderFailure(
+      "status.acme.com",
+      "CAA record forbids letsencrypt.org",
+    );
+
+    expect(
+      await CertificateOrder.claimOnDemandOrder("status.acme.com"),
+    ).toEqual({
+      mayOrder: false,
+      lastError: "CAA record forbids letsencrypt.org",
+    });
+    expect(cache.writes[0]!.expiresInSeconds).toBe(
+      CertificateOrder.ON_DEMAND_ORDER_WINDOW_IN_MINUTES * 60,
+    );
+  });
+
+  test("windows are per domain", async () => {
+    useInMemoryCache();
+
+    expect(await CertificateOrder.claimOnDemandOrder("a.acme.com")).toEqual({
+      mayOrder: true,
+    });
+    expect(await CertificateOrder.claimOnDemandOrder("b.acme.com")).toEqual({
+      mayOrder: true,
+    });
+  });
+
+  test("without the cache nothing is ordered on demand", async () => {
+    jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    expect(
+      await CertificateOrder.claimOnDemandOrder("status.acme.com"),
+    ).toEqual({ mayOrder: false });
+  });
+
+  test("recording a failure never throws, even without the cache", async () => {
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+
+    await expect(
+      CertificateOrder.recordOnDemandOrderFailure("status.acme.com", "x"),
+    ).resolves.toBeUndefined();
   });
 });

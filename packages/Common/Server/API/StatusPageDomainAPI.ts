@@ -201,6 +201,7 @@ export default class StatusPageDomainAPI extends BaseAPI<
                 cnameVerificationToken: true,
                 isCnameVerified: true,
                 isSslProvisioned: true,
+                isCustomCertificate: true,
               },
               props: {
                 isRoot: true,
@@ -238,6 +239,17 @@ export default class StatusPageDomainAPI extends BaseAPI<
               req,
               res,
               new BadDataException("SSL is already provisioned."),
+            );
+          }
+
+          // The sweeps never order for one either: it serves the upload.
+          if (domain.isCustomCertificate) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This domain uses a certificate you uploaded, so there is no free SSL certificate to order for it.",
+              ),
             );
           }
 

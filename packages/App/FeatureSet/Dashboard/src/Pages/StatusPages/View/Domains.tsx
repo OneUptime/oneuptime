@@ -193,8 +193,17 @@ const StatusPageDomains: FunctionComponent<PageComponentProps> = (
               title: StatusPageCustomDomainCopy.dnsSetupTitle,
               buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
               icon: IconProp.Globe,
+              /*
+               * Until the record is verified, and on a verified domain
+               * whose free certificate is not ordered yet: an order that
+               * keeps failing (a CAA record, a server Let's Encrypt cannot
+               * reach) is shown, and retried, by Check now.
+               */
               isVisible: (item: StatusPageDomain): boolean => {
-                return !item.isCnameVerified;
+                return (
+                  !item.isCnameVerified ||
+                  (!item.isCustomCertificate && !item.isSslOrdered)
+                );
               },
               onClick: async (
                 item: StatusPageDomain,
