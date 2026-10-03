@@ -179,6 +179,37 @@ describe("SLO settings cards", () => {
   });
 
   /*
+   * The create form folds the threshold and the window under Advanced; the
+   * Objective and Compliance Period cards are where they are edited, so
+   * nothing on a card is folded away.
+   */
+  test("carry no folded section — what a card edits is open on it", () => {
+    for (const card of SETTINGS_CARDS) {
+      for (const field of card.fields) {
+        expect({
+          card: card.name,
+          column: columnOf(field),
+          folded: Boolean(field.collapsibleSection),
+        }).toEqual({
+          card: card.name,
+          column: columnOf(field),
+          folded: false,
+        });
+      }
+    }
+
+    // The create form does fold them: the picking is what unfolds them.
+    for (const column of [
+      "atRiskThresholdPercentage",
+      "windowType",
+      "windowDays",
+      "timezone",
+    ]) {
+      expect(fieldIn(CREATE_FIELDS, column).collapsibleSection).toBeDefined();
+    }
+  });
+
+  /*
    * ModelForm drops any field the viewer cannot update, and a card whose
    * every field is dropped shows a permission error. A column an SLO editor
    * cannot write would make that card useless for exactly the people it is

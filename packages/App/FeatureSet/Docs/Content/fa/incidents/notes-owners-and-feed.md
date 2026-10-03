@@ -83,7 +83,7 @@
 
 جای‌نگهدارهای یک قالب — `{{incident.title}}`، `{{incident.state}}`، `{{incident.customFields.impact}}` و دیگرانی که زیر [قالب‌های یادداشت](/docs/incidents/settings#قالبهای-یادداشت) فهرست شده‌اند — هنگام برگزیدن قالب با مقادیر فعلی حادثه پر می‌شوند، هم در صفحه‌های یادداشت و هم در پنجره‌های **Acknowledge** و **Resolve**. آنچه پیش‌تر تایپ کرده بودید هرگز تغییر نمی‌کند، و جای‌نگهدار بی‌مقدار همان‌طور که نوشته شده باقی می‌ماند. پیش از انتشار یادداشت عمومی، یادداشت پرشده را بخوانید: `{{incident.affectedStatusPages}}` نام همه صفحه‌های وضعیتی را که حادثه به آن‌ها می‌رسد می‌آورد، و مشترکان همه آن‌ها آن را می‌خوانند.
 
-آن‌ها را در **Incidents → Settings → Note Templates** مدیریت می‌کنید — کارت با عنوان **Public or Private Note Templates for Incidents** است و فرمش گام **Template Info** (‏**Template Name** و **Template Description**، هر دو الزامی) و گام **Note Details** برای بدنه دارد. تا وقتی هیچ‌کدام ندارید، منوی **Templates** همین را می‌گوید و به آنجا پیوند می‌دهد.
+آن‌ها را در **Incidents → Settings → Note Templates** مدیریت می‌کنید — کارت با عنوان **Public or Private Note Templates for Incidents** است و فرمش یک صفحه است: ‏**Template Name** و **Template Description**، هر دو الزامی، و سپس بدنه. تا وقتی هیچ‌کدام ندارید، منوی **Templates** همین را می‌گوید و به آنجا پیوند می‌دهد.
 
 ## انتشار یادداشت از Slack یا Microsoft Teams
 

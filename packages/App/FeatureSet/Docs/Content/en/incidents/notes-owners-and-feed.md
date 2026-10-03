@@ -85,7 +85,7 @@ Templates are shared between public and private notes: a single template list se
 
 Placeholders in a template — `{{incident.title}}`, `{{incident.state}}`, `{{incident.customFields.impact}}` and the others listed under [Note templates](/docs/incidents/settings#note-templates) — are filled in with the incident's current values when you pick it, both on the note pages and in the **Acknowledge** and **Resolve** dialogs. What you had already typed is never changed, and a placeholder without a value stays as written. Read the filled-in note before posting a public one: `{{incident.affectedStatusPages}}` names every status page the incident reaches, and the subscribers of all of them read it.
 
-You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form has a **Template Info** step (**Template Name** and **Template Description**, both required) and a **Note Details** step for the body. Before you have any, the **Templates** menu says so and links there.
+You manage them at **Incidents → Settings → Note Templates** — the card is titled **Public or Private Note Templates for Incidents** and its form is one page: **Template Name** and **Template Description**, both required, then the body. Before you have any, the **Templates** menu says so and links there.
 
 ## Posting notes from Slack or Microsoft Teams
 

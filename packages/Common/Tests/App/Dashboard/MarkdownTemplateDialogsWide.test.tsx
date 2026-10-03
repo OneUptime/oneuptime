@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -25,7 +26,9 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
  * editor and asked for no width of their own: they opened Medium, because
  * they have steps, and the editor's toolbar took two lines beside the step
  * list. They open in the wide dialog now, the step list and the whole
- * toolbar side by side.
+ * toolbar side by side. The note templates have no step list any more -
+ * three rows are one page (LongFormStepsGuard) - and stay wide for their
+ * editor.
  *
  * The production pages build the forms; only the table around each is
  * replaced, by the create dialog the real table opens (ModelTable's own
@@ -163,8 +166,8 @@ interface TemplatePage {
   name: string;
   Page: FunctionComponent<PageComponentProps>;
   title: string;
-  // The step the Markdown editor is on.
-  editorStep: string;
+  // The step the Markdown editor is on; null for a form of one page.
+  editorStep: string | null;
 }
 
 const PAGES: Array<TemplatePage> = [
@@ -172,19 +175,19 @@ const PAGES: Array<TemplatePage> = [
     name: "Incidents > Settings > Note Templates",
     Page: IncidentNoteTemplates,
     title: "Create New Incident Note Template",
-    editorStep: "Note Details",
+    editorStep: null,
   },
   {
     name: "Alerts > Settings > Note Templates",
     Page: AlertNoteTemplates,
     title: "Create New Alert Note Template",
-    editorStep: "Note Details",
+    editorStep: null,
   },
   {
     name: "Scheduled Maintenance > Settings > Note Templates",
     Page: ScheduledMaintenanceNoteTemplates,
     title: "Create New Scheduled Maintenance Note Template",
-    editorStep: "Note Details",
+    editorStep: null,
   },
   {
     name: "Status Pages > Settings > Announcement Templates",
@@ -214,7 +217,15 @@ function dialog(): HTMLElement {
  * Fills what the current step asks for and moves on, until the Markdown
  * editor is on screen.
  */
-async function walkToTheEditor(user: UserEvent): Promise<HTMLElement> {
+async function walkToTheEditor(
+  user: UserEvent,
+  page: TemplatePage,
+): Promise<HTMLElement> {
+  // A form of one page shows its editor at once.
+  if (page.editorStep === null) {
+    return await within(dialog()).findByTestId("markdown-editor-toolbar");
+  }
+
   /*
    * BasicForm opens its first step in a mount effect - its first render
    * shows every field - so the walk starts once the step list is there.
@@ -267,19 +278,31 @@ describe("template tables that create with a Markdown editor", () => {
       expect(dialog()).not.toHaveClass("sm:max-w-lg");
     });
 
-    test(`${page.name}: the editor's whole toolbar is in it, beside the step list`, async () => {
+    test(`${page.name}: the editor's whole toolbar is in it, beside the step list when there is one`, async () => {
       const user: UserEvent = userEvent.setup();
       renderPage(page);
 
-      const toolbar: HTMLElement = await walkToTheEditor(user);
+      const toolbar: HTMLElement = await walkToTheEditor(user, page);
 
-      // The editor is on its own step, the one the step list marks current.
-      const progress: HTMLElement = within(dialog()).getByRole("navigation", {
-        name: "Progress",
-      });
-      expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent(
-        page.editorStep,
-      );
+      if (page.editorStep === null) {
+        // One page: no step list beside the editor.
+        await act(async (): Promise<void> => {
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 0);
+          });
+        });
+        expect(
+          within(dialog()).queryByRole("navigation", { name: "Progress" }),
+        ).toBeNull();
+      } else {
+        // The editor is on its own step, the one the step list marks current.
+        const progress: HTMLElement = within(dialog()).getByRole("navigation", {
+          name: "Progress",
+        });
+        expect(
+          progress.querySelector('[aria-current="step"]'),
+        ).toHaveTextContent(page.editorStep);
+      }
 
       // Nothing measured in jsdom, so nothing is put under More formatting.
       expect(within(toolbar).getByTitle("Bold (Ctrl+B)")).toBeInTheDocument();

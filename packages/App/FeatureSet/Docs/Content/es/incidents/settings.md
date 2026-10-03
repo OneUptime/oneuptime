@@ -60,10 +60,10 @@ Lo importante es la regla de fusión: **una plantilla solo rellena un campo que 
 
 Las plantillas de notas dan a quienes responden un texto ya preparado para las actualizaciones del incidente, de modo que una actualización de la página de estado a las tres de la madrugada no la escriba desde cero alguien medio dormido.
 
-Ve a **Incidentes → Ajustes → Plantillas de Notas** (`/dashboard/{projectId}/incidents/settings/note-templates`). La tarjeta se titula **Public or Private Note Templates for Incidents** — una sola biblioteca sirve para ambos tipos de nota. El formulario de creación tiene dos pasos:
+Ve a **Incidentes → Ajustes → Plantillas de Notas** (`/dashboard/{projectId}/incidents/settings/note-templates`). La tarjeta se titula **Public or Private Note Templates for Incidents** — una sola biblioteca sirve para ambos tipos de nota. El formulario de creación es una sola página:
 
-- **Información de la plantilla** — **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios.
-- **Detalles de la nota** — el cuerpo de la nota, en Markdown, obligatorio.
+- **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios.
+- El cuerpo de la nota, en Markdown, obligatorio.
 
 Igual que con las plantillas de incidente, las filas se crean y se consultan en lugar de editarse en línea; abre una plantilla para cambiarla.
 
@@ -73,10 +73,10 @@ Las plantillas de notas aparecen justo donde las necesitas: los diálogos de con
 
 Una plantilla post-mortem es el esqueleto del análisis que redactas después de un incidente —tus encabezados, tus indicaciones, tus preguntas de siempre— para que todas las revisiones del proyecto sigan la misma forma.
 
-Ve a **Incidentes → Ajustes → Plantillas Post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La tarjeta se titula **Plantillas Post-mortem**. El formulario de creación tiene dos pasos:
+Ve a **Incidentes → Ajustes → Plantillas Post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La tarjeta se titula **Plantillas Post-mortem**. El formulario de creación es una sola página:
 
-- **Información de la plantilla** — **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios.
-- **Detalles del análisis post mortem** — **Plantilla de análisis post mortem**, el cuerpo en sí, en Markdown, obligatorio.
+- **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios.
+- **Plantilla de análisis post mortem**, el cuerpo en sí, en Markdown, obligatorio.
 
 La plantilla se aplica desde el incidente, no desde los ajustes. Abre un incidente, elige **Post-mortem** en su menú lateral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) y usa **Aplicar plantilla**. Eso abre un diálogo **Aplicar plantilla de análisis post mortem** con un desplegable **Seleccionar plantilla**; al elegir una, su cuerpo se carga en el editor **Nota del análisis post mortem**, donde lo editas antes de guardar. Los episodios de incidente tienen la misma página **Post-mortem** y beben de la misma biblioteca de plantillas.
 
