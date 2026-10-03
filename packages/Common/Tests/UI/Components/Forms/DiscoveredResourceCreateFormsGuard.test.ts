@@ -146,7 +146,9 @@ const listPageForms: Array<FormFacts> = scanFormFiles({
 
 type FindFormFunction = (resource: DiscoveredResource) => FormFacts;
 
-const findForm: FindFormFunction = (resource: DiscoveredResource): FormFacts => {
+const findForm: FindFormFunction = (
+  resource: DiscoveredResource,
+): FormFacts => {
   const found: Array<FormFacts> = listPageForms.filter(
     (form: FormFacts): boolean => {
       return form.file === resource.listPage && form.label === resource.label;
@@ -330,7 +332,9 @@ describe("the create forms of resources that telemetry discovers", () => {
   );
 
   test("a cloud environment's display name follows all three values the key is made from", () => {
-    const code: string = readCode(`${DASHBOARD}/Pages/Cloud/CloudResources.tsx`);
+    const code: string = readCode(
+      `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
+    );
 
     expect(code).toContain(
       "getDisplayNameFormField<CloudResource>({ getDefaultName: getCloudEnvironmentNameFromFields,",
@@ -347,8 +351,12 @@ describe("the create forms of resources that telemetry discovers", () => {
     const docker: string = readCode(`${DASHBOARD}/Pages/Docker/Hosts.tsx`);
     const podman: string = readCode(`${DASHBOARD}/Pages/Podman/Hosts.tsx`);
 
-    expect(docker).toContain("Exactly as the OneUptime Docker Agent reports it.");
-    expect(podman).toContain("Exactly as the OneUptime Podman Agent reports it.");
+    expect(docker).toContain(
+      "Exactly as the OneUptime Docker Agent reports it.",
+    );
+    expect(podman).toContain(
+      "Exactly as the OneUptime Podman Agent reports it.",
+    );
   });
 });
 
@@ -428,7 +436,8 @@ describe("the services of discovered resources", () => {
    * Ceph, Proxmox, VMware, Docker Swarm and IoT are) is created with
    * findOrCreateBy...Identifier.
    */
-  const FINDS_BY_IDENTIFIER: RegExp = /public async findOrCreateBy\w*Identifier\(/;
+  const FINDS_BY_IDENTIFIER: RegExp =
+    /public async findOrCreateBy\w*Identifier\(/;
 
   const discoveringServices: Array<string> = serviceFiles
     .filter((file: string): boolean => {

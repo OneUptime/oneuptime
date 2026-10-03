@@ -192,7 +192,8 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               "Exactly as the OneUptime Podman Agent reports it. Telemetry is matched to this host by its host name.",
           }),
           getDisplayNameFormField<PodmanHost>({
-            getDefaultName: getNameFromIdentityField<PodmanHost>("hostIdentifier"),
+            getDefaultName:
+              getNameFromIdentityField<PodmanHost>("hostIdentifier"),
             placeholder: "Production Podman host",
             description:
               "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.",

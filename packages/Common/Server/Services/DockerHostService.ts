@@ -44,11 +44,12 @@ const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
  * unless somebody gives it a display name of their own
  * (DiscoveredResourceCreate).
  */
-const DOCKER_HOST_NAMING: DiscoveredResourceNaming<Model> = namedAfterIdentity<Model>({
-  identityColumn: "hostIdentifier",
-  resourceName: "Docker host",
-  identityName: "host name",
-});
+const DOCKER_HOST_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>({
+    identityColumn: "hostIdentifier",
+    resourceName: "Docker host",
+    identityName: "host name",
+  });
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

@@ -333,7 +333,9 @@ describe("DiscoveredResourceCreate.fillName", () => {
   });
 
   test("keeps the identifier's case: the telemetry decides what it is", () => {
-    const createBy: CreateBy<Host> = hostCreate({ hostIdentifier: "PRIMARY01" });
+    const createBy: CreateBy<Host> = hostCreate({
+      hostIdentifier: "PRIMARY01",
+    });
 
     DiscoveredResourceCreate.fillName({ createBy, naming: HOST_NAMING });
 
@@ -514,7 +516,9 @@ describe("DiscoveredResourceCreate.refuseClash", () => {
     await expect(
       refuse(hostCreate({ hostIdentifier: "web-01", name: "web-01" })),
     ).rejects.toThrow(
-      new BadDataException('A host with the host name "web-01" already exists.'),
+      new BadDataException(
+        'A host with the host name "web-01" already exists.',
+      ),
     );
 
     // The name was never looked up.
@@ -526,7 +530,9 @@ describe("DiscoveredResourceCreate.refuseClash", () => {
     archived.isArchived = true;
     existing.identity = archived;
 
-    await expect(refuse(hostCreate({ hostIdentifier: "web-01" }))).rejects.toThrow(
+    await expect(
+      refuse(hostCreate({ hostIdentifier: "web-01" })),
+    ).rejects.toThrow(
       `A host with the host name "web-01" already exists. ${ARCHIVED_RESOURCE_HINT}`,
     );
   });

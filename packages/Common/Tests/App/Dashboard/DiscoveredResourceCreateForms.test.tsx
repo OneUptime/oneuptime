@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   act,
   cleanup,
@@ -307,9 +314,8 @@ describe("followWithDisplayName", () => {
   });
 
   test("fills the display name in from the value just typed", () => {
-    const setNewFormValues: Mock<(values: Values) => void> = jest.fn<
-      (values: Values) => void
-    >();
+    const setNewFormValues: Mock<(values: Values) => void> =
+      jest.fn<(values: Values) => void>();
 
     follow("  web-01 ", { description: "kept" } as Values, setNewFormValues);
 
@@ -320,9 +326,8 @@ describe("followWithDisplayName", () => {
   });
 
   test("keeps every other value the form holds", () => {
-    const setNewFormValues: Mock<(values: Values) => void> = jest.fn<
-      (values: Values) => void
-    >();
+    const setNewFormValues: Mock<(values: Values) => void> =
+      jest.fn<(values: Values) => void>();
 
     follow(
       "web-012",
@@ -338,9 +343,8 @@ describe("followWithDisplayName", () => {
   });
 
   test("leaves a display name of somebody's own alone", () => {
-    const setNewFormValues: Mock<(values: Values) => void> = jest.fn<
-      (values: Values) => void
-    >();
+    const setNewFormValues: Mock<(values: Values) => void> =
+      jest.fn<(values: Values) => void>();
 
     follow(
       "web-012",
@@ -352,9 +356,8 @@ describe("followWithDisplayName", () => {
   });
 
   test("works on a form that has no values yet", () => {
-    const setNewFormValues: Mock<(values: Values) => void> = jest.fn<
-      (values: Values) => void
-    >();
+    const setNewFormValues: Mock<(values: Values) => void> =
+      jest.fn<(values: Values) => void>();
 
     follow("w", undefined as unknown as Values, setNewFormValues);
 
@@ -686,13 +689,11 @@ describe.each(IDENTITY_PAGES)(
     });
 
     test("fills the display name in as the identifier is typed, and keeps following it", async () => {
-      const user: ReturnType<typeof userEvent.setup> = await renderCreateForm(
-        {
-          modelType: identityPage.modelType,
-          table,
-          submitButtonText: identityPage.submitButtonText,
-        },
-      );
+      const user: ReturnType<typeof userEvent.setup> = await renderCreateForm({
+        modelType: identityPage.modelType,
+        table,
+        submitButtonText: identityPage.submitButtonText,
+      });
 
       await user.type(identityInput(), "edge-7");
 
@@ -715,13 +716,11 @@ describe.each(IDENTITY_PAGES)(
     });
 
     test("stops following once a display name of one's own is typed", async () => {
-      const user: ReturnType<typeof userEvent.setup> = await renderCreateForm(
-        {
-          modelType: identityPage.modelType,
-          table,
-          submitButtonText: identityPage.submitButtonText,
-        },
-      );
+      const user: ReturnType<typeof userEvent.setup> = await renderCreateForm({
+        modelType: identityPage.modelType,
+        table,
+        submitButtonText: identityPage.submitButtonText,
+      });
 
       await user.type(identityInput(), "edge-7");
       await user.click(advancedButton());
@@ -751,13 +750,11 @@ describe.each(IDENTITY_PAGES)(
     });
 
     test("creates the resource with the identifier and the name made from it", async () => {
-      const user: ReturnType<typeof userEvent.setup> = await renderCreateForm(
-        {
-          modelType: identityPage.modelType,
-          table,
-          submitButtonText: identityPage.submitButtonText,
-        },
-      );
+      const user: ReturnType<typeof userEvent.setup> = await renderCreateForm({
+        modelType: identityPage.modelType,
+        table,
+        submitButtonText: identityPage.submitButtonText,
+      });
 
       await user.type(identityInput(), "edge-7");
 

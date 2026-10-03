@@ -192,7 +192,8 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               "Exactly as the OneUptime Docker Agent reports it. Telemetry is matched to this host by its host name.",
           }),
           getDisplayNameFormField<DockerHost>({
-            getDefaultName: getNameFromIdentityField<DockerHost>("hostIdentifier"),
+            getDefaultName:
+              getNameFromIdentityField<DockerHost>("hostIdentifier"),
             placeholder: "Production Docker host",
             description:
               "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.",
