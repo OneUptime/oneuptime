@@ -12,7 +12,7 @@ Consequences worth knowing before you pick names:
 
 - **Renaming `service.name` in your app creates a new application.** The old one keeps its history and goes *Disconnected*; the new one starts empty. There is no merge.
 - Use one `service.name` per deployable app, not per environment. Distinguish environments with a label (`oneuptime.label.env=production`) so both stay under one application with one history.
-- The **Name** shown in the dashboard is editable and starts out equal to the identifier. Editing the name never changes the identifier, so renaming for readability is safe.
+- The **Display Name** shown in the dashboard starts out equal to the identifier. Change it on the application's **Settings** page, in **Application Details** (**Edit Details**), where its description and labels are edited too. Editing it never changes the identifier, so renaming for readability is safe; the **App Name (service.name)** is shown there and cannot be changed.
 
 You can also create an application by hand from **Resources → Real User Monitoring → Create**, which is useful when you want owners, labels and session-replay settings configured *before* the first real user hits it. The form asks for one thing, **App Name (service.name)**: the `service.name` your app will report, exactly. The application is named after it, the way a discovered one is; to show another name, open **Advanced** and type a **Display Name** (the description and labels are there too). If the project already has an application with that `service.name` — discovered, added before, or archived — the form says so instead of creating a second one.
 
@@ -26,7 +26,7 @@ A *Disconnected* application is not an error state on its own. A low-traffic int
 
 Labels group applications and drive label-based access control. There are three ways one gets attached.
 
-**Manually** — on the create/edit form.
+**Manually** — on the create form, or later in **Application Details** on the application's **Settings** page (under **Advanced**).
 
 **From telemetry.** Any resource attribute prefixed `oneuptime.label.` is promoted to a project label:
 

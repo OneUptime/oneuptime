@@ -716,7 +716,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### 메트릭이 나타나지 않음
 
 1. 먼저 거부된 수집 키를 배제하세요 — 가장 흔한 원인이며 에이전트 측에서는 놓치기 쉽습니다. 위의 [에이전트가 "Disconnected"로 표시됨](#에이전트가-disconnected로-표시됨)을 참조하세요(또는 진단 스크립트를 실행하세요).
-2. 클러스터 식별자가 `clusterName`으로 전달한 값과 일치하는지 확인하세요
+2. 클러스터의 **클러스터 이름(clusterName)**이 `clusterName`으로 전달한 값과 일치하는지 확인하세요. 클러스터의 **Settings** 페이지 **Cluster Details**에 있으며, 고치려면 **Edit Details**를 선택하고 **Advanced**를 여세요
 3. RBAC 권한을 검증하세요: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. OTel 컬렉터 로그에서 내보내기 오류를 확인하세요
 

@@ -717,7 +717,7 @@ Den vanligaste anledningen — särskilt efter en ominstallation — är en **fe
 ### Inga mått visas
 
 1. Uteslut först en avvisad ingestnyckel — det är den vanligaste orsaken och är lätt att missa från agentsidan. Se [Agenten visar "Disconnected"](#agenten-visar-disconnected) ovan (eller kör bara diagnostikskriptet).
-2. Kontrollera att klusteridentifieraren matchar värdet du skickade som `clusterName`
+2. Kontrollera att klustrets **klusternamn (clusterName)** matchar värdet du skickade som `clusterName`. Det står på klustrets **Settings**-sida under **Cluster Details**; välj **Edit Details** och öppna **Advanced** för att rätta det
 3. Verifiera RBAC-behörigheterna: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Kontrollera OTel-insamlarens loggar för exportfel
 

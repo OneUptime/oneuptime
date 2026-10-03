@@ -716,7 +716,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ### メトリクスが表示されない
 
 1. まず取り込みキーの拒否を除外します — これは最も一般的な原因であり、エージェント側からは見落とされがちです。上記の [エージェントが "Disconnected" と表示される](#エージェントが-disconnected-と表示される) を参照してください (または単に診断スクリプトを実行してください)。
-2. クラスター識別子が `clusterName` として渡した値と一致することを確認します
+2. クラスターの **クラスター名 (clusterName)** が `clusterName` として渡した値と一致することを確認します。クラスターの **Settings** ページの **Cluster Details** に表示されています。修正するには **Edit Details** を選び、**Advanced** を開きます
 3. RBAC 権限を検証します: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. OTel コレクターのログにエクスポートエラーがないか確認します
 
