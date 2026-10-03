@@ -25,8 +25,9 @@ import path from "path";
  * Two things about the CALL matter as well as its presence. All four
  * surfaces are stepped forms, and BasicForm places a field on a step purely
  * from its `stepId` - an unstamped field in a stepped form renders on no
- * step at all. The Overview card's edit form walks Device Details, Address
- * and Site & Labels, with the MAC on the Address step. And the field sits
+ * step at all. The Overview card's edit form walks Device Details (with the
+ * site, and the labels folded under Advanced) and Address, with the MAC on
+ * the Address step. And the field sits
  * beside the hostname on every surface, because it is the device's other
  * address: an operator who learns where it lives on one form finds it in
  * the same place on the next.

@@ -1,11 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -333,6 +335,15 @@ function formatRelativeTime(timestamp: string): string {
     return timestamp;
   }
 }
+
+/*
+ * The Cluster Details card's Edit asks for the name and the description,
+ * and folds the cluster identifier and the labels under Advanced: the
+ * identifier is set up once, to match the agent's clusterName, and changing
+ * it unlinks the cluster from its agent. Three rows, so no steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
+  getAdvancedFormSection<KubernetesCluster>();
 
 const KubernetesClusterOverview: FunctionComponent<
   PageComponentProps
@@ -2938,16 +2949,6 @@ const KubernetesClusterOverview: FunctionComponent<
       <CardModelDetail<KubernetesCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "Cluster Info",
-            id: "cluster-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "Cluster Details",
           description: "Basic information about this Kubernetes cluster.",
@@ -2959,7 +2960,6 @@ const KubernetesClusterOverview: FunctionComponent<
             field: {
               name: true,
             },
-            stepId: "cluster-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -2969,7 +2969,6 @@ const KubernetesClusterOverview: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "cluster-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
@@ -2979,31 +2978,17 @@ const KubernetesClusterOverview: FunctionComponent<
             field: {
               clusterIdentifier: true,
             },
-            stepId: "cluster-info",
             title: "Cluster Identifier",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-us-east-1",
             description:
               "This should match the clusterName value in your kubernetes-agent Helm chart.",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<KubernetesCluster>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

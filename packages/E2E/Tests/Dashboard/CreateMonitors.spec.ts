@@ -29,7 +29,10 @@ import { createItem, getItem, JSONish, toId } from "./Helpers/MonitorAlerting";
 test.describe.configure({ mode: "serial" });
 
 const recipes: Array<MonitorTypeRecipe> = [
-  // Manual skips criteria and interval, then lands on the final Labels step.
+  /*
+   * Manual skips criteria and interval: Monitor Info, with the labels under
+   * Advanced, is its only step.
+   */
   {
     label: "Manual",
     cardValue: "Manual",

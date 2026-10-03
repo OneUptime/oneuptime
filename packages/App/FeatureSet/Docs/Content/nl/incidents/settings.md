@@ -30,14 +30,12 @@ Vouw **Regels** uit en je krijgt negen pagina's erbij: **Groeperingsregels**, **
 
 Een incidentsjabloon is een opgeslagen skelet van een incident. In plaats van elke keer dat het betaalcluster wiebelt dezelfde titel, dezelfde monitorlijst en hetzelfde bereikbaarheidsbeleid opnieuw in te tikken, sla je het één keer op en meld je het incident vanuit dat sjabloon.
 
-Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**. Er een aanmaken loopt via een wizard van zes stappen:
+Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**. Er een aanmaken loopt via een wizard van vier stappen:
 
 - **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**. Die benoemen het sjabloon zelf; ze komen nooit op het incident terecht.
-- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht.
+- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht. Onder **Advanced**, dat **Configured** toont zolang een van beide is ingesteld: **Eigenaren** (mensen en teams, gekozen uit één lijst) en **Labels**.
 - **Getroffen middelen** — de monitoren, hosts, clusters en services waaraan het incident gekoppeld moet worden, plus **Change Monitor Status to**.
 - **Bereikbaarheid** — **Bereikbaarheidsbeleid**, het beleid dat wordt uitgevoerd zodra een incident uit dit sjabloon wordt gemeld.
-- **Eigenaren** — **Eigenaar - Teams** en **Eigenaar - Gebruikers**.
-- **Labels** — **Labels**.
 
 Een paar snelle regels:
 

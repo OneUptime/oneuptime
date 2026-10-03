@@ -20,7 +20,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -80,10 +80,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             title: "On-Call",
             id: "on-call",
-          },
-          {
-            title: "Labels",
-            id: "labels",
           },
         ]}
         formFields={[
@@ -175,6 +171,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             required: false,
             placeholder: "Initial State",
           },
+          /*
+           * Folded under Advanced at the end of Incident Details, as on the
+           * template's create form and on Declare Incident.
+           */
+          getLabelsFormField<IncidentTemplate>({
+            stepId: "incident-details",
+            description:
+              "Incidents declared from this template start with these labels.",
+          }),
           {
             field: {
               onCallDutyPolicies: true,
@@ -191,24 +196,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             required: false,
             placeholder: "Select on-call policies",
-          },
-          {
-            field: {
-              labels: true,
-            },
-
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         modelDetailProps={{

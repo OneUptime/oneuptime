@@ -105,16 +105,28 @@ interface FormField {
 }
 
 /*
+ * The Labels field is the shared one (getLabelsFormField), titled "Labels"
+ * by the helper: the form writes only its step, section and summary.
+ */
+const LABELS_FIELD_CALL: string = "getLabelsFormField<Incident>(";
+
+interface FieldObject {
+  text: string;
+  // The object is the options of the shared Labels field.
+  isLabelsField: boolean;
+}
+
+/*
  * The objects of the form's fields array, each from its "{" to its "}",
  * read by matching braces (the array also spreads in the custom fields,
  * which are built at run time and have no object here).
  */
-function fieldObjects(): Array<string> {
+function fieldObjects(): Array<FieldObject> {
   const start: number = CREATE_SOURCE.indexOf("fields={[");
 
   expect(start).toBeGreaterThan(-1);
 
-  const objects: Array<string> = [];
+  const objects: Array<FieldObject> = [];
   let depth: number = 0;
   let objectStart: number = -1;
 
@@ -133,7 +145,12 @@ function fieldObjects(): Array<string> {
     } else if (character === "}") {
       depth--;
       if (depth === 0) {
-        objects.push(CREATE_SOURCE.slice(objectStart, index + 1));
+        objects.push({
+          text: CREATE_SOURCE.slice(objectStart, index + 1),
+          isLabelsField: CREATE_SOURCE.slice(0, objectStart).endsWith(
+            LABELS_FIELD_CALL,
+          ),
+        });
       }
     } else if (character === "]" && depth === 0) {
       break;
@@ -151,16 +168,18 @@ function fieldObjects(): Array<string> {
 function formFields(): Array<FormField> {
   const fields: Array<FormField> = [];
 
-  for (const object of fieldObjects()) {
+  for (const { text: object, isLabelsField } of fieldObjects()) {
     // A title written as a literal, or taken from the shared scope copy.
     const copyKey: string | undefined = object.match(
       / title: IncidentStatusPageScopeCopy\.(\w+),/,
     )?.[1];
-    const title: string | undefined = copyKey
-      ? (IncidentStatusPageScopeCopy as unknown as Record<string, string>)[
-          copyKey
-        ]
-      : object.match(/ title: "([^"]+)",/)?.[1];
+    const title: string | undefined = isLabelsField
+      ? "Labels"
+      : copyKey
+        ? (IncidentStatusPageScopeCopy as unknown as Record<string, string>)[
+            copyKey
+          ]
+        : object.match(/ title: "([^"]+)",/)?.[1];
     const stepId: string | undefined = object.match(/ stepId: "([^"]+)",/)?.[1];
 
     if (!title || !stepId) {

@@ -125,7 +125,10 @@ test.describe("Runners live under Runbooks", () => {
         SERVER,
       );
 
-      // Create a Runner through the form: Runner, Capabilities, Labels.
+      /*
+       * Create a Runner through the form: Runner (the labels folded under
+       * Advanced at its end), then Capabilities.
+       */
       await page
         .getByTestId("card-button")
         .and(page.getByRole("button", { name: "Create Runner", exact: true }))
@@ -141,14 +144,14 @@ test.describe("Runners live under Runbooks", () => {
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
       const next: Locator = modal.getByTestId("modal-footer-next-button");
       await expect(submit).toHaveText("Create Runner");
+      await expect(
+        modal.getByRole("button", { name: "Advanced", exact: true }),
+      ).toHaveAttribute("aria-expanded", "false");
       await next.click();
-      // Capabilities: a new Runner runs runbooks unless told otherwise.
+      // Capabilities, the last step: nothing to walk on to.
       await expect(
         modal.getByRole("switch", { name: /^Runs Runbooks/ }),
       ).toBeChecked();
-      await expect(submit).toHaveText("Create Runner");
-      await next.click();
-      // Labels, the last step: nothing to walk on to.
       await expect(next).toHaveCount(0);
       await expect(submit).toHaveText("Create Runner");
       await submit.click();

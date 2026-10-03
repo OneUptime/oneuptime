@@ -204,6 +204,12 @@ export interface FormFieldFacts {
    * text are one folded section.
    */
   collapsibleSection: string | undefined;
+  /*
+   * The helper the field is the returned object of, as the form calls it
+   * (getLabelsFormField, getOwnersFormField): the outermost call when one
+   * helper returns another's field. Undefined for a field written out.
+   */
+  helper?: string | undefined;
   // customElementCanBeSkipped written true (Forms/Utils/FinishFromAnyStep).
   customElementCanBeSkipped: boolean;
   // What its getCustomElement draws; empty when it has none.
@@ -316,6 +322,8 @@ interface ResolvedItem {
    * whose properties (stepId, title, showIf...) the field carries.
    */
   call?: ts.ObjectLiteralExpression | undefined;
+  // For a field a helper returns: the helper's name, as the call writes it.
+  helper?: string | undefined;
 }
 
 interface Resolution {
@@ -1262,6 +1270,11 @@ export class FormStepsScanner {
               }
             }
 
+            // The outermost call names it: what the form itself calls.
+            for (const item of resolved.items) {
+              item.helper = callee.text;
+            }
+
             return resolved;
           }
         }
@@ -1318,6 +1331,10 @@ export class FormStepsScanner {
           fieldResolution.plain.has(item.node),
           item.call,
         );
+
+        if (item.helper) {
+          facts.helper = item.helper;
+        }
 
         /*
          * RuleTable (and LabelRuleTable, built on it) leaves a rule's

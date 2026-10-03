@@ -8,6 +8,7 @@ import {
 import {
   FormFacts,
   FormFieldFacts,
+  FormStepFacts,
   SourceFileSystem,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
@@ -327,7 +328,12 @@ describe("the project's forms", () => {
     }
   });
 
-  test("the incident template's Owners step is one picker", () => {
+  /*
+   * The template's owners used to walk an Owners step of their own; with
+   * labels-not-a-step they fold under Advanced at the end of Incident
+   * Details, beside the labels, as a maintenance template's do on Event.
+   */
+  test("the incident template asks for owners with one picker, folded on Incident Details", () => {
     const template: FormFacts | undefined = forms.find(
       (form: FormFacts): boolean => {
         return (
@@ -340,17 +346,18 @@ describe("the project's forms", () => {
 
     expect(template).toBeDefined();
 
-    const onOwnersStep: Array<FormFieldFacts> = template!.fields.filter(
-      (field: FormFieldFacts): boolean => {
-        return field.stepId === "owners";
-      },
-    );
-
     expect(
-      onOwnersStep.map((field: FormFieldFacts): string => {
-        return `${field.title}: ${field.fieldType}`;
+      peoplePickers([template!]).map((field: FormFieldFacts): string => {
+        return `${field.title}: ${field.fieldType} on ${field.stepId}, folded: ${field.collapsibleSection !== undefined}`;
       }),
-    ).toEqual([`Owners: ${PEOPLE_PICKER_FIELD_TYPE}`]);
+    ).toEqual([
+      `Owners: ${PEOPLE_PICKER_FIELD_TYPE} on incident-details, folded: true`,
+    ]);
+    expect(
+      (template!.steps || []).map((step: FormStepFacts): string | null => {
+        return step.id;
+      }),
+    ).not.toContain("owners");
   });
 });
 

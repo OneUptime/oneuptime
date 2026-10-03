@@ -5,7 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
@@ -170,16 +170,6 @@ const OnCallDutyScheduleView: FunctionComponent<
           title: "On-Call Schedule Details",
           description: "Here are more details for this on-call Schedule.",
         }}
-        formSteps={[
-          {
-            title: "On-Call Schedule Info",
-            id: "on-call-Schedule-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         isEditable={true}
         formFields={[
           {
@@ -187,7 +177,6 @@ const OnCallDutyScheduleView: FunctionComponent<
               name: true,
             },
             title: "Name",
-            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "On-Call Schedule Name",
@@ -199,29 +188,12 @@ const OnCallDutyScheduleView: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "on-call-Schedule-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<OnCallDutySchedule>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

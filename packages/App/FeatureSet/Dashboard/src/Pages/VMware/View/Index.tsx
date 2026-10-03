@@ -6,7 +6,7 @@ import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -2562,16 +2562,6 @@ const VMwareVCenterOverview: FunctionComponent<
       <CardModelDetail<VMwareVCenter>
         name="vCenter Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "vCenter Info",
-            id: "vcenter-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "vCenter Details",
           description: "Basic information about this vCenter.",
@@ -2583,7 +2573,6 @@ const VMwareVCenterOverview: FunctionComponent<
             field: {
               name: true,
             },
-            stepId: "vcenter-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -2595,29 +2584,12 @@ const VMwareVCenterOverview: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "vcenter-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production vCenter Server in the US East datacenter",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<VMwareVCenter>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

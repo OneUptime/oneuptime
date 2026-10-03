@@ -21,7 +21,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -440,23 +440,12 @@ const AlertEpisodeView: FunctionComponent<
               });
               refreshInPlace();
             }}
-            formSteps={[
-              {
-                title: "Episode Details",
-                id: "episode-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Episode Title",
-                stepId: "episode-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Episode Title",
@@ -471,7 +460,6 @@ const AlertEpisodeView: FunctionComponent<
                 title: "Episode Severity",
                 description: "What is the severity of this episode?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "episode-details",
                 dropdownModal: {
                   type: AlertSeverity,
                   labelField: "name",
@@ -483,23 +471,7 @@ const AlertEpisodeView: FunctionComponent<
                 required: true,
                 placeholder: "Episode Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<AlertEpisode>(),
             ]}
             modelDetailProps={{
               selectMoreFields: {

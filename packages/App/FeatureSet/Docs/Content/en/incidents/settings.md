@@ -32,16 +32,16 @@ Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rule
 
 An incident template is a saved skeleton of an incident. Instead of retyping the same title, the same monitor list and the same on-call policy every time the payments cluster wobbles, you save it once and declare from it.
 
-Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a six-step wizard, with two more steps when your project has incident custom fields. Only the first two ask for anything you have to answer: from **Incident Details** on, **Create Incident Template** is the main button, and **Next** walks the optional steps.
+Go to **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). The card is titled **Incident Templates**. Creating one walks you through a four-step wizard, with two more steps when your project has incident custom fields. Only the first two ask for anything you have to answer: from **Incident Details** on, **Create Incident Template** is the main button, and **Next** walks the optional steps.
 
 - **Template Info** — **Template Name** and **Template Description**. These name the template itself; they never appear on the incident.
-- **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** and **Initial Incident State**. **Initial Incident State** is optional and starts empty; its options are listed in state order. Leave it blank and incidents from this template land in the project's created state.
+- **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** and **Initial Incident State**. **Initial Incident State** is optional and starts empty; its options are listed in state order. Leave it blank and incidents from this template land in the project's created state. Under **Advanced**, which says **Configured** while either is set:
+  - **Owners** — the people and teams who own incidents declared from the template. **Add owner** opens one list of both, the same list as an incident's **Owners** page; each pick shows as a chip you can remove. An existing template shows them on an **Owners** card.
+  - **Labels** — the labels incidents declared from the template start with.
 - **Resources Affected** — the monitors, hosts, clusters and services the incident should be attached to, plus **Limit to these status pages** and **Change Monitor Status to**. **Limit to these status pages** limits incidents declared from the template to some of the status pages that list their monitors — a `Region East outage` template can carry the East site pages. An existing template shows it on a **Status Page Scope** card, with **Edit Status Page Scope**. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Custom Fields** — only when your project has incident custom fields: the values incidents declared from this template start with. Every field is offered here, not only the ones the **Details** step asks for, and none is required. An existing template has a **Custom Fields** card to change them.
 - **Custom Fields on Create** — also only when your project has incident custom fields: which of them the **Details** step asks for when an incident is declared from this template, and which must be filled in. An existing template has a **Custom Fields on Create** card to change them. See [Custom fields on create](#custom-fields-on-create).
 - **On-Call** — **On-Call Policy**, the policies to execute when an incident created from this template is declared.
-- **Owners** — **Owners**: the people and teams who own incidents declared from the template. **Add owner** opens one list of both, the same list as an incident's **Owners** page; each pick shows as a chip you can remove. An existing template shows them on an **Owners** card.
-- **Labels** — **Labels**.
 
 A few quick rules:
 

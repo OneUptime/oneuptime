@@ -247,6 +247,8 @@ test.describe("First run: a brand-new project", () => {
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill(websiteMonitorName);
     await selectMonitorTypeCard({ page, cardValue: "Website" });
+    // The labels wait under Advanced on this first step.
+    await selectMonitorLabels({ page });
     await clickNext({ page });
 
     await waitForCriteriaStepReady({ page });
@@ -271,8 +273,7 @@ test.describe("First run: a brand-new project", () => {
       }),
     ).toBeVisible();
 
-    await clickNext({ page });
-    await selectMonitorLabels({ page });
+    // Probes & Interval is the last step: create from it.
     await clickCreateUntilMonitorView({ page, projectId });
 
     const monitorId: string =

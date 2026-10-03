@@ -1,4 +1,6 @@
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -16,6 +18,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, {
   Fragment,
@@ -37,6 +40,15 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Probe>({ modelType: Probe });
+
+  /*
+   * Create Probe asks for a name and a description, and folds the rest
+   * under Advanced: the logo, whether new monitors use the probe by
+   * default, and the labels. Three rows, so no steps - the "More" step
+   * held only the switch and the labels.
+   */
+  const advancedSection: FormFieldCollapsibleSection<Probe> =
+    getAdvancedFormSection<Probe>();
 
   return (
     <Fragment>
@@ -148,22 +160,11 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           noItemsMessage={"No probes found."}
           viewPageRoute={Navigation.getCurrentRoute()}
-          formSteps={[
-            {
-              title: "Basic Info",
-              id: "basic-info",
-            },
-            {
-              title: "More",
-              id: "more",
-            },
-          ]}
           formFields={[
             {
               field: {
                 name: true,
               },
-              stepId: "basic-info",
               title: "Name",
               fieldType: FormFieldSchemaType.Text,
               required: true,
@@ -178,7 +179,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 description: true,
               },
               title: "Description",
-              stepId: "basic-info",
               fieldType: FormFieldSchemaType.LongText,
               required: true,
               placeholder:
@@ -190,38 +190,25 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 iconFile: true,
               },
               title: "Probe Logo",
-              stepId: "basic-info",
               fieldType: FormFieldSchemaType.ImageFile,
               required: false,
               placeholder: "Upload logo",
+              collapsibleSection: advancedSection,
             },
             {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
-              stepId: "more",
               title: "Enable monitoring automatically on new monitors",
+              description:
+                "When on, this probe is pre-selected for every new monitor you create.",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
+              collapsibleSection: advancedSection,
             },
-            {
-              field: {
-                labels: true,
-              },
-
-              title: "Labels ",
-              stepId: "more",
-              description:
-                "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-              fieldType: FormFieldSchemaType.MultiSelectDropdown,
-              dropdownModal: {
-                type: Label,
-                labelField: "name",
-                valueField: "_id",
-              },
-              required: false,
-              placeholder: "Labels",
-            },
+            getLabelsFormField<Probe>({
+              collapsibleSection: advancedSection,
+            }),
           ]}
           showRefreshButton={true}
           searchableFields={["name", "description"]}

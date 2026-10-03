@@ -26,7 +26,7 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
@@ -314,7 +314,6 @@ const MessageQueues: FunctionComponent<
         formSteps={[
           { title: "Messaging System", id: "messaging-system" },
           { title: "Queue Info", id: "queue-info" },
-          { title: "Labels", id: "labels" },
         ]}
         formFields={[
           {
@@ -472,23 +471,9 @@ const MessageQueues: FunctionComponent<
             required: false,
             placeholder: "Order events from checkout to fulfilment",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<MessageQueue>({
+            stepId: "queue-info",
+          }),
         ]}
         filters={[]}
         columns={[

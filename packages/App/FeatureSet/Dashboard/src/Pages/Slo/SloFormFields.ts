@@ -1,5 +1,5 @@
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
@@ -69,10 +69,6 @@ export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
   {
     id: "period",
     title: "Period",
-  },
-  {
-    id: "labels",
-    title: "Labels",
   },
 ];
 
@@ -222,6 +218,13 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       required: false,
       placeholder: "99.9% availability for the public API",
     },
+    /*
+     * Folded under Advanced on Basic Info, with the name and description it
+     * is filed with, rather than walked as a last step of its own.
+     */
+    getLabelsFormField<ServiceLevelObjective>({
+      stepId: "basic-info",
+    }),
     {
       field: {
         targetPercentage: true,
@@ -337,22 +340,6 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType === SloWindowType.CalendarMonth;
       },
-    },
-    {
-      field: {
-        labels: true,
-      },
-      title: "Labels",
-      stepId: "labels",
-      description: "Organize and filter SLOs with labels.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
     },
   ];
 };

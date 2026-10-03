@@ -23,7 +23,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { RUNBOOK_URL } from "Common/UI/Config";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
@@ -345,20 +345,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
             placeholder:
               "What this runbook is for and when it should be triggered.",
           },
-          {
-            field: { labels: true },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Runbook>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

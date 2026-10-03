@@ -7,7 +7,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -2859,16 +2859,6 @@ const ProxmoxClusterOverview: FunctionComponent<
       <CardModelDetail<ProxmoxCluster>
         name="Cluster Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "Cluster Info",
-            id: "cluster-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "Cluster Details",
           description: "Basic information about this Proxmox cluster.",
@@ -2880,7 +2870,6 @@ const ProxmoxClusterOverview: FunctionComponent<
             field: {
               name: true,
             },
-            stepId: "cluster-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -2892,29 +2881,12 @@ const ProxmoxClusterOverview: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "cluster-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production Proxmox cluster running in US East",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<ProxmoxCluster>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

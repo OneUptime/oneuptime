@@ -25,10 +25,11 @@ import Faker from "Common/Utils/Faker";
  *
  * (B) Editing a probe looked like it did nothing: the Probe Details form was a
  *     two-step wizard whose primary button read "Next", so a user who changed
- *     a field on step one never saw a Save button. It is a two-step form
- *     again, and an edit form now keeps Save Changes on every step. Test:
- *     toggle "enable monitoring automatically on new monitors" from the card,
- *     save, reload, and assert the card shows the new value.
+ *     a field on step one never saw a Save button. It is one page now - the
+ *     name and description, with the logo, the auto-enable switch and the
+ *     labels folded under Advanced - so Save Changes is the only way out.
+ *     Test: toggle "enable monitoring automatically on new monitors" from the
+ *     card, save, reload, and assert the card shows the new value.
  *
  * To run locally against a full stack:
  *
@@ -245,12 +246,15 @@ test.describe("Monitor probe selection", () => {
       .getByRole("option", { name: "Every 5 Minutes", exact: true })
       .click();
 
-    // Step 4: Labels is always the final step; leave it empty here.
-    await clickNext({ page });
+    /*
+     * Probes & Interval is the last step: the labels fold under Advanced on
+     * Monitor Info, so there is no Labels step to walk on to.
+     */
     await expect(
-      // "Labels (Optional)" is the rendered accessible name — match the prefix.
-      page.getByRole("combobox", { name: /^Labels\b/ }),
-    ).toBeVisible({ timeout: 30000 });
+      page
+        .locator(monitorCreateFormSelector)
+        .getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
     await page.getByTestId(submitButtonTestId).click();
 
     await page.waitForURL(
@@ -313,19 +317,20 @@ test.describe("Monitor probe selection", () => {
     await page.getByRole("button", { name: /Edit Probe/i }).click();
 
     /*
-     * Two steps - Basic Info, then More - and the primary button is a real
-     * Save on both, not a "Next" that hides the save behind another step:
-     * an edit form saves from any step. Next is a plain button beside it.
+     * One page, so the primary button is a real Save and there is no Next:
+     * the switch waits under Advanced with the logo and the labels.
      */
     const saveButton: Locator = page.getByRole("button", {
       name: /Save Changes/i,
     });
     await expect(saveButton).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
 
-    const nextButton: Locator = page.getByTestId("modal-footer-next-button");
-    await expect(nextButton).toHaveText("Next");
-    await nextButton.click();
-    await expect(nextButton).toHaveCount(0);
+    const advanced: Locator = page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Advanced", exact: true });
+    await expect(advanced).toHaveAttribute("aria-expanded", "false");
+    await advanced.click();
     await expect(saveButton).toBeVisible();
 
     const toggle: Locator = page.getByRole("switch", {
@@ -355,7 +360,12 @@ test.describe("Monitor probe selection", () => {
      * separate DOM subtrees.
      */
     await page.getByRole("button", { name: /Edit Probe/i }).click();
-    await page.getByTestId("modal-footer-next-button").click();
+    // Folded, the section says something in it is set.
+    await expect(advanced).toHaveAttribute("aria-expanded", "false", {
+      timeout: 30000,
+    });
+    await expect(advanced).toContainText("Configured");
+    await advanced.click();
     const reloadedToggle: Locator = page.getByRole("switch", {
       name: autoEnableToggleName,
     });

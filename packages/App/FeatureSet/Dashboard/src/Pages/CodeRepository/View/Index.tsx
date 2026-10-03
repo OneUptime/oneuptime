@@ -7,7 +7,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import RepositoryConnectionStatus from "../../../Components/CodeRepository/RepositoryConnectionStatus";
@@ -26,8 +26,8 @@ const CodeRepositoryView: FunctionComponent<
           description: "Here are more details for this repository.",
         }}
         /*
-         * What the repository is called, then where its code lives: one
-         * step of six fields before.
+         * What the repository is called (its labels folded under Advanced
+         * there), then where its code lives: one step of six fields before.
          */
         formSteps={[
           {
@@ -37,10 +37,6 @@ const CodeRepositoryView: FunctionComponent<
           {
             title: "Source",
             id: "source",
-          },
-          {
-            title: "Labels",
-            id: "labels",
           },
         ]}
         isEditable={true}
@@ -68,6 +64,9 @@ const CodeRepositoryView: FunctionComponent<
             required: false,
             placeholder: "Description",
           },
+          getLabelsFormField<CodeRepository>({
+            stepId: "repository-info",
+          }),
           {
             field: {
               repositoryHostedAt: true,
@@ -115,23 +114,6 @@ const CodeRepositoryView: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "main",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         modelDetailProps={{

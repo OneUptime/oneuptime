@@ -322,10 +322,13 @@ test.describe("Monitor template field sync settings", () => {
     await capture(page, test.info(), "new-monitor-template-defaults");
     await expect(nextOrCreate).toHaveText("Create Monitor");
     await next.click();
+    /*
+     * Probes & Interval is the last step: the template's labels fold under
+     * Advanced on Monitor Info rather than walk a step of their own.
+     */
     await expect(
       createForm.getByText("Monitoring Interval", { exact: true }),
     ).toBeVisible();
-    await next.click();
     await expect(next).toHaveCount(0);
     await expect(nextOrCreate).toHaveText("Create Monitor");
     await nextOrCreate.click();
