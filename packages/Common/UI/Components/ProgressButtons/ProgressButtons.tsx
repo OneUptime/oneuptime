@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ProgressButtonItem, { ProgressItemProps } from "./ProgressButtonItem";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   id: string;
@@ -11,6 +13,7 @@ export interface ComponentProps {
 const ProgressButtons: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   type IsStepCompletedFunction = (stepId: string) => boolean;
 
   const isStepCompleted: IsStepCompletedFunction = (
@@ -51,7 +54,11 @@ const ProgressButtons: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <nav aria-label="Progress" id={props.id} className="ml-3">
+    <nav
+      aria-label={translator.translateText("Progress")}
+      id={props.id}
+      className="ml-3"
+    >
       <ol
         role="list"
         className="bg-white shadow divide-y divide-gray-300 rounded-md md:flex md:divide-y-0"

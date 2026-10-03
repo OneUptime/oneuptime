@@ -6,6 +6,8 @@ import React, {
   ReactNode,
   useId,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * One section of a workflow step's settings dialog: a small uppercase label
@@ -65,6 +67,7 @@ const TONE_CLASSES: Record<ComponentSettingsSectionTone, ToneClasses> = {
 const ComponentSettingsSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const headingId: string = useId();
   const tone: ToneClasses = TONE_CLASSES[props.tone || "default"];
 
@@ -86,11 +89,13 @@ const ComponentSettingsSection: FunctionComponent<ComponentProps> = (
             id={headingId}
             className={`text-[11px] font-semibold uppercase tracking-wider ${tone.title}`}
           >
-            {props.title}
+            {translator.translateText(props.title)}
           </h4>
         </div>
         {props.description ? (
-          <p className="mt-1 text-xs text-gray-500">{props.description}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            {translator.translateText(props.description)}
+          </p>
         ) : (
           <></>
         )}

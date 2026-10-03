@@ -1,5 +1,7 @@
 import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -13,9 +15,12 @@ export interface ComponentProps {
 const ColorInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const hasOnClick: boolean = Boolean(props.onClick);
   const colorLabel: string =
-    props.value?.toString() || props.placeholder || "No Color Selected";
+    props.value?.toString() ||
+    translator.translateText(props.placeholder || "No Color Selected") ||
+    "";
 
   const handleKeyDown: (event: React.KeyboardEvent) => void = (
     event: React.KeyboardEvent,
@@ -35,7 +40,13 @@ const ColorInput: FunctionComponent<ComponentProps> = (
       onKeyDown={handleKeyDown}
       role={hasOnClick ? "button" : undefined}
       tabIndex={hasOnClick ? 0 : undefined}
-      aria-label={hasOnClick ? `Color picker: ${colorLabel}` : undefined}
+      aria-label={
+        hasOnClick
+          ? translator.translateTemplate("Color picker: {{color}}", {
+              color: colorLabel,
+            })
+          : undefined
+      }
       data-testid={props.dataTestId}
     >
       {props.value && (

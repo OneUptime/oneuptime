@@ -1,3 +1,5 @@
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -15,6 +17,8 @@ export interface ComponentProps {
 const BooleanValue: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (props.value) {
     return (
       <span
@@ -22,7 +26,7 @@ const BooleanValue: FunctionComponent<ComponentProps> = (
         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-        Yes
+        {translator.translateText("Yes")}
       </span>
     );
   }
@@ -33,7 +37,7 @@ const BooleanValue: FunctionComponent<ComponentProps> = (
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-sm font-medium"
     >
       <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-      No
+      {translator.translateText("No")}
     </span>
   );
 };

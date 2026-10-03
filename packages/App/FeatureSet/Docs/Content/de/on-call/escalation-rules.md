@@ -2,6 +2,12 @@
 
 Eine Bereitschaftsrichtlinie alarmiert Personen in Stufen. Jede Eskalationsregel ist eine Stufe: wer alarmiert wird und wie lange auf eine Bestätigung gewartet wird, bevor die nächste Stufe alarmiert wird. Die Regeln einer Richtlinie stehen der Reihe nach auf ihrer Seite **Eskalationsregeln**.
 
+## Wer zuerst alarmiert wird
+
+Wenn Sie auf der Seite **Bereitschaftsrichtlinien** eine Bereitschaftsrichtlinie anlegen, fragt das Formular nach ihrem **Name** und **Wer wird zuerst alarmiert?**. Die Frage nutzt dieselbe Auswahl wie **Benachrichtigen**: Bereitschaftspläne, Teams und Personen, so viele Sie brauchen. Die Ausgewählten bilden die erste Eskalationsregel der Richtlinie, **Level 1**, die **30 Minuten** auf eine Bestätigung wartet, bevor die nächste Stufe alarmiert wird. Die neue Richtlinie öffnet sich danach auf ihrer Seite **Eskalationsregeln**, wo Sie weitere Stufen hinzufügen können.
+
+**Wer wird zuerst alarmiert?** ist optional. Bleibt die Frage leer, beginnt die Richtlinie ohne Eskalationsregeln: Sie alarmiert niemanden, bis Sie eine hinzufügen, und ihre Übersicht weist darauf hin. Beschreibung und Beschriftungen liegen unter **Erweitert**. Gefragt wird nur, wer Eskalationsregeln hinzufügen darf.
+
 ## Eine Eskalationsregel hinzufügen
 
 Öffnen Sie die Bereitschaftsrichtlinie, wählen Sie im Seitenmenü **Eskalationsregeln** und klicken Sie auf **Eskalationsregel hinzufügen**. Der Dialog ist eine kurze Seite mit zwei Fragen:
@@ -38,3 +44,4 @@ Eskalationsregeln sind die Ressource `/api/on-call-duty-policy-escalation-rule`;
 - Eine ohne `name` angelegte Regel heißt wie im Dashboard nach ihrer Stufe: **Level 3** für eine Regel, die die dritte Stufe ihrer Richtlinie wird. Die Terraform-Ressource für Eskalationsregeln verlangt weiterhin einen Namen.
 - `escalateAfterInMinutes` hat außerhalb des Dashboards keinen Standardwert. Eine ohne diesen Wert angelegte Regel wartet nicht: Die nächste Stufe wird alarmiert, sobald diese gelaufen ist. Setzen Sie ihn ausdrücklich — 30 ist der Vorschlag des Dashboards.
 - Regeln, die nach ihrer Stufe heißen, werden umbenannt, wenn Sie Regeln im Dashboard verschieben oder löschen. Eine Änderung von `order` über die API oder Terraform ändert nur die Reihenfolge.
+- Wird eine Bereitschaftsrichtlinie über `/api/on-call-duty-policy` mit `onCallSchedules`, `teams` oder `users` (Listen von IDs) in ihren `miscDataProps` angelegt, bekommt sie wie im Dashboard ihre erste Eskalationsregel: **Level 1**, die diese alarmiert, mit einem `escalateAfterInMinutes` von 30. Jede ID muss zum Projekt gehören, und der Aufrufer muss Eskalationsregeln anlegen dürfen, sonst wird die Richtlinie nicht angelegt. Ohne diese Angaben hat die Richtlinie wie bisher keine Regeln; die Terraform-Ressource für Richtlinien sendet sie nicht.

@@ -22,6 +22,7 @@ import {
 import RuleCriteriaSummary from "../RuleCriteria/RuleCriteriaSummary";
 import FieldType from "../Types/FieldType";
 import React, { ReactElement } from "react";
+import { translateText } from "../../Utils/TranslateTemplate";
 
 /*
  * The fields a rule's view page shows, derived from the form that edits it.
@@ -43,7 +44,7 @@ export interface RuleDetailFields<TBaseModel extends BaseModel> {
 }
 
 function noneElement(): ReactElement {
-  return <span className="text-sm text-gray-500">None</span>;
+  return <span className="text-sm text-gray-500">{translateText("None")}</span>;
 }
 
 function flattenOptions(

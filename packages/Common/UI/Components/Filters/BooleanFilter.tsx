@@ -3,6 +3,9 @@ import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -18,6 +21,7 @@ type BooleanFilterFunction = <T extends GenericObject>(
 const BooleanFilter: BooleanFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
   const filterData: FilterData<T> = { ...props.filterData };
 
@@ -49,7 +53,7 @@ const BooleanFilter: BooleanFilterFunction = <T extends GenericObject>(
             props.onFilterChanged(filterData);
           }
         }}
-        placeholder={`Filter by ${filter.title}`}
+        placeholder={getFilterPlaceholder(translator, filter.title)}
         className="relative rounded-md w-full overflow-visible"
       />
     );

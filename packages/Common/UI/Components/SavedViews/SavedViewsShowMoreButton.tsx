@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface SavedViewsShowMoreButtonProps {
   /*
@@ -23,6 +25,7 @@ export interface SavedViewsShowMoreButtonProps {
 const SavedViewsShowMoreButton: FunctionComponent<
   SavedViewsShowMoreButtonProps
 > = (props: SavedViewsShowMoreButtonProps): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (!props.hasMore) {
     return null;
   }
@@ -36,7 +39,12 @@ const SavedViewsShowMoreButton: FunctionComponent<
       }
       onClick={props.onToggle}
     >
-      {props.isShowingAll ? "Show less" : `+${props.hiddenCount} more`}
+      {props.isShowingAll
+        ? translator.translateText("Show less")
+        : translator.translatePlural(
+            { one: "+{{count}} more", other: "+{{count}} more" },
+            props.hiddenCount,
+          )}
     </button>
   );
 };

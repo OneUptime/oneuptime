@@ -1,5 +1,7 @@
 import { Port } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   ports: Array<Port>;
@@ -16,6 +18,7 @@ export interface ComponentProps {
 const ComponentPortViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div>
       {props.name && (
@@ -25,7 +28,9 @@ const ComponentPortViewer: FunctionComponent<ComponentProps> = (
         <p className="mb-2 text-xs text-gray-500">{props.description}</p>
       )}
       {props.ports && props.ports.length === 0 && (
-        <p className="text-xs italic text-gray-500">No connections.</p>
+        <p className="text-xs italic text-gray-500">
+          {translator.translateText("No connections.")}
+        </p>
       )}
       {props.ports && props.ports.length > 0 && (
         <ul className="space-y-2">

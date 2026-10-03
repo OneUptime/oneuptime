@@ -1,4 +1,6 @@
 import { handleAuthenticatedLinkClick } from "../../Utils/OpenAuthenticatedUrl";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface EventAttachment {
@@ -47,6 +49,7 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
   props: AttachmentCardProps,
 ): ReactElement => {
   const { attachment, refreshSession } = props;
+  const translator: Translator = useTranslator();
   const extensionLabel: string | null = getAttachmentExtensionLabel(
     attachment.name,
   );
@@ -74,7 +77,7 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
         <span className="flex items-center gap-3 min-w-0">
           <span className="flex flex-col min-w-0">
             <span className="text-sm font-medium text-gray-900 truncate">
-              {attachment.name || "Attachment"}
+              {attachment.name || translator.translateText("Attachment")}
             </span>
             {extensionLabel && (
               <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
@@ -85,7 +88,7 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
         </span>
 
         <span className="flex flex-shrink-0 items-center text-gray-500 text-xs font-semibold uppercase tracking-wide">
-          Download
+          {translator.translateText("Download")}
         </span>
       </a>
     </li>
@@ -95,9 +98,10 @@ const AttachmentCard: FunctionComponent<AttachmentCardProps> = (
 const EventAttachmentList: FunctionComponent<EventAttachmentListProps> = (
   props: EventAttachmentListProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const {
     attachments,
-    title = "Attachments",
+    title = translationKey("Attachments"),
     variant = "section",
     showHeader = true,
     showCount = true,
@@ -133,7 +137,7 @@ const EventAttachmentList: FunctionComponent<EventAttachmentListProps> = (
     >
       {showHeader && (
         <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-500">
-          <span>{title}</span>
+          <span>{translator.translateText(title)}</span>
           {showCount && (
             <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-600">
               {attachments.length}

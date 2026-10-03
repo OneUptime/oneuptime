@@ -1479,6 +1479,20 @@ describe("EditionLabel - the lapse copy and its checks", () => {
     );
     expect(GRACE_ENFORCEMENT_SUMMARY).not.toContain("14-day");
   });
+
+  /*
+   * Each summary is one whole sentence a locale can word its own way, so the
+   * English is no longer built from LICENSE_LAPSE_CONSEQUENCES. It must still
+   * read exactly as it did when it was.
+   */
+  it("reads as the lapse consequences after its own period, word for word", () => {
+    expect(TRIAL_ENFORCEMENT_SUMMARY).toBe(
+      `Without a valid license (after the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial), ${LICENSE_LAPSE_CONSEQUENCES}`,
+    );
+    expect(GRACE_ENFORCEMENT_SUMMARY).toBe(
+      `Without a valid license (after the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period), ${LICENSE_LAPSE_CONSEQUENCES}`,
+    );
+  });
 });
 
 /*

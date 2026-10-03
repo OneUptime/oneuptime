@@ -1,5 +1,7 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -141,6 +143,7 @@ const classifyIp: (ip: string) => Category = (ip: string): Category => {
 const IpAddressList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const ipString: string = props.text || "";
   if (!ipString) {
     return <span className="text-sm text-gray-400">—</span>;
@@ -200,15 +203,20 @@ const IpAddressList: FunctionComponent<ComponentProps> = (
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2">
                     <span className="text-sm font-semibold text-gray-900">
-                      {meta.title}
+                      {translator.translateText(meta.title)}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {section.ips.length}
-                      {section.ips.length === 1 ? " address" : " addresses"}
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} address",
+                          other: "{{count}} addresses",
+                        },
+                        section.ips.length,
+                      )}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {meta.description}
+                    {translator.translateText(meta.description)}
                   </div>
                 </div>
               </div>

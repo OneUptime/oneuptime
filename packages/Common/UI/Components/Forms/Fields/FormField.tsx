@@ -58,6 +58,8 @@ import {
   hasTemplateVariables,
 } from "../../../../Types/Template/TemplateVariable";
 import useTranslateValue from "../../../Utils/Translation";
+import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 /*
  * Shown under every DateTime and Time field. It is one sentence with
@@ -88,6 +90,7 @@ const FormField: <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const translatedPlaceholder: string | undefined = translateString(
     props.field.placeholder,
   );
@@ -443,9 +446,12 @@ const FormField: <T extends GenericObject>(
               className="ml-1 underline text-blue-500 cursor-pointer"
             >
               <span>
-                Select items by{" "}
-                {props.field.selectByAccessControlProps
-                  .accessControlColumnTitle || ""}
+                {translator.translateTemplate("Select items by {{column}}", {
+                  column: translatableTerm(
+                    props.field.selectByAccessControlProps
+                      .accessControlColumnTitle || "",
+                  ),
+                })}
               </span>
             </Link>
           </span>

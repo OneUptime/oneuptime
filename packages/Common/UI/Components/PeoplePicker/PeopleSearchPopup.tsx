@@ -387,7 +387,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
         {isLoading && visibleRows.length === 0 && (
           <div className="flex items-center justify-center gap-2 px-3 py-6 text-sm text-gray-500">
             <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
-            <span>{translateString("Searching...") || "Searching..."}</span>
+            <span>{translateString("Searching...")}</span>
           </div>
         )}
 
@@ -407,7 +407,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
         {!isLoading && !loadError && visibleRows.length === 0 && (
           <div className="px-3 py-6 text-center text-sm text-gray-500">
             {trimmedSearch
-              ? translateString("No matches found.") || "No matches found."
+              ? translateString("No matches found.")
               : translateString(emptyText) || emptyText}
           </div>
         )}

@@ -31,9 +31,12 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
-export const INSERT_VALUE_LABEL: string =
-  "Insert a value from an earlier step or a variable";
+export const INSERT_VALUE_LABEL: string = translationKey(
+  "Insert a value from an earlier step or a variable",
+);
 
 /*
  * The { } button, the same in every field that has one. Bordered, so it reads
@@ -72,6 +75,7 @@ export interface ValueTextFieldProps {
 const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
   props: ValueTextFieldProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const picker: ValuePickerContextValue = useValuePicker();
   const id: string = useId();
   const errorId: string = `${id}-error`;
@@ -146,9 +150,9 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
           onChange={props.onChange}
           multiline={props.multiline}
           describeReference={picker.describeReference}
-          placeholder={props.placeholder}
+          placeholder={translator.translateText(props.placeholder)}
           ariaLabelledby={props.ariaLabelledby}
-          ariaLabel={props.ariaLabel}
+          ariaLabel={translator.translateText(props.ariaLabel)}
           ariaDescribedby={props.error ? errorId : undefined}
           ariaInvalid={Boolean(props.error)}
           ariaControls={isInlineOpen ? inlineListboxId : undefined}
@@ -245,8 +249,8 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
                 ? INSERT_VALUE_BUTTON_OPEN_CLASS
                 : INSERT_VALUE_BUTTON_IDLE_CLASS
             }`}
-            aria-label={INSERT_VALUE_LABEL}
-            title={INSERT_VALUE_LABEL}
+            aria-label={translator.translateText(INSERT_VALUE_LABEL)}
+            title={translator.translateText(INSERT_VALUE_LABEL)}
             aria-haspopup="dialog"
             aria-expanded={isPopoverOpen}
             data-testid={`${dataTestId}-insert-value`}
@@ -282,7 +286,7 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
           className="mt-1 text-sm text-red-400"
           role="alert"
         >
-          {props.error}
+          {translator.translateText(props.error)}
         </p>
       )}
 

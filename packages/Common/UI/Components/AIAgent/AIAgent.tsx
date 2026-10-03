@@ -6,6 +6,8 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import AIAgent from "../../../Models/DatabaseModels/AIAgent";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -16,6 +18,7 @@ export interface ComponentProps {
 const AIAgentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let aiAgent: JSONObject | null | undefined = null;
 
   if (props.aiAgent instanceof AIAgent) {
@@ -28,7 +31,7 @@ const AIAgentElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex">
         <div className="bold" data-testid="ai-agent-not-found">
-          No AI agent found.
+          {translator.translateText("No AI agent found.")}
         </div>
       </div>
     );
@@ -44,7 +47,10 @@ const AIAgentElement: FunctionComponent<ComponentProps> = (
             imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
               "/image/" + props.aiAgent?.iconFileId.toString(),
             )}
-            alt={aiAgent["name"]?.toString() || "AI Agent"}
+            alt={
+              aiAgent["name"]?.toString() ||
+              translator.translateText("AI Agent")
+            }
           />
         )}
         {!props.aiAgent?.iconFileId && (
