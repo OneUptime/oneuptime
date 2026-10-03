@@ -149,6 +149,9 @@ function globalSamlBullet(language: string): string {
   return lines[0]!;
 }
 
+// A step heading such as "2. **Configure SCIM Settings**", on a line of its own.
+const SECOND_STEP_HEADING: RegExp = /^2\. \*\*[^*]+\*\*\s*$/;
+
 // SCIM's two set-up steps: the project's, then the status page's.
 function scimSettingsSteps(language: string): Array<Array<string>> {
   const page: string = readPage(language, "identity/scim");
@@ -156,7 +159,7 @@ function scimSettingsSteps(language: string): Array<Array<string>> {
   const lines: Array<string> = page.split("\n");
 
   for (let i: number = 0; i < lines.length && steps.length < 2; i++) {
-    if (/^2\. \*\*[^*]+\*\*\s*$/.test(lines[i]!) && lines[i + 1] === "") {
+    if (SECOND_STEP_HEADING.test(lines[i]!) && lines[i + 1] === "") {
       const bullets: Array<string> = [];
       let j: number = i + 2;
 
