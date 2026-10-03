@@ -147,6 +147,13 @@ export default interface Field<TEntity> {
      * order (newest first).
      */
     sort?: { [columnName: string]: SortOrder } | undefined;
+    /*
+     * Only the rows of the dropdown's model that match this, by its columns
+     * - `{ isVerified: true }` lists only the domains a project has verified.
+     * Both the list the form fetches and the dropdown's own search are
+     * narrowed by it. Unset, every row the reader may see is listed.
+     */
+    query?: Record<string, unknown> | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a

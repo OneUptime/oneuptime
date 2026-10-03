@@ -391,6 +391,11 @@ describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {
       expect(calls.updates).toEqual([]);
     });
 
+    /*
+     * A status page domain's first certificate is ordered on its own once
+     * its CNAME is verified, so there is no button to send anyone to; a
+     * dashboard domain still has Order Free SSL.
+     */
     test("a domain that never ordered a certificate in the first place", async () => {
       const calls: HarnessCalls = setUpHarness({
         service,
@@ -399,7 +404,11 @@ describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {
 
       await expect(
         (service as ReissueService).reissueCert(DOMAIN_ID),
-      ).rejects.toThrow(/order one first/i);
+      ).rejects.toThrow(
+        service === StatusPageDomainService
+          ? /ordered automatically once its CNAME record is verified/i
+          : /order one first/i,
+      );
 
       expect(calls.ordered).toEqual([]);
       expect(calls.updates).toEqual([]);
