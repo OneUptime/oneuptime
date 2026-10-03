@@ -136,7 +136,7 @@ Les points de terminaison apparentés sont `/api/incident-state`, `/api/incident
 
 Chaque incident reçoit un numéro séquentiel issu d'un compteur propre au projet, attribué par le serveur à la création. Deux colonnes le portent : `incidentNumber` (l'entier brut) et `incidentNumberWithPrefix` (ce que vous voyez réellement). Sans préfixe configuré, la valeur affichée est `#42`.
 
-Pour changer cela, allez dans **Incidents → Paramètres → Plus de paramètres**. La carte **Préfixe du nombre** contient un champ **Préfixe de numéro d'incident** (jusqu'à 20 caractères, texte indicatif `INC-`) — renseignez-le et le même incident s'affiche `INC-42`. Laissez-le vide pour garder le `#` par défaut. La carte porte aussi **Préfixe de numéro d'épisode d'incident**, pour la numérotation des épisodes.
+Pour changer cela, allez dans **Incidents → Paramètres → Préfixe de numéro** et cliquez sur **Mettre à jour**. Le champ **Préfixe de numéro d'incident** montre le numéro pendant la saisie : avec `INC-`, il devient `INC-42`. Laissez-le vide pour garder le `#` par défaut. Un nouveau préfixe s'applique aux incidents déclarés après l'enregistrement ; les incidents existants gardent leur numéro. La même boîte de dialogue contient **Préfixe de numéro d'épisode d'incident** pour la numérotation des épisodes.
 
 Le numéro apparaît en première colonne de la liste des incidents, renvoie vers l'incident, et s'affiche comme **Numéro d'incident** sur la **Vue d'ensemble** de l'incident.
 

@@ -36,17 +36,34 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import useAsyncEffect from "use-async-effect";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
+import SubscriberChannelsCard from "../../../Components/StatusPage/SubscriberChannelsCard";
+import {
+  getTemplateConfigurationWarning,
+  TemplateConfigurationWarning,
+} from "../../../Components/StatusPage/SubscriberTemplateConfiguration";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const StatusPageSubscriberSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * The notification method of every template linked to this page, or null
+   * until they are known. Read again each time the table below loads, so
+   * linking or unlinking one updates the warning above it.
+   */
+  const [linkedMethods, setLinkedMethods] = useState<Array<
+    StatusPageSubscriberNotificationMethod | undefined
+  > | null>(null);
 
   // Fetch status page to check SMTP and Twilio config
   useAsyncEffect(async () => {
@@ -73,10 +90,56 @@ const StatusPageSubscriberSettings: FunctionComponent<
     }
   }, [modelId.toString()]);
 
-  const hasNoCustomSMTP: boolean = !statusPage?.smtpConfig;
-  const hasNoCustomTwilio: boolean = !statusPage?.callSmsConfig;
-  const showWarning: boolean =
-    !isLoading && (hasNoCustomSMTP || hasNoCustomTwilio);
+  const fetchLinkedMethods: () => Promise<void> = async (): Promise<void> => {
+    try {
+      const linked: ListResult<StatusPageSubscriberNotificationTemplateStatusPage> =
+        await ModelAPI.getList<StatusPageSubscriberNotificationTemplateStatusPage>(
+          {
+            modelType: StatusPageSubscriberNotificationTemplateStatusPage,
+            query: {
+              statusPageId: modelId,
+            },
+            select: {
+              _id: true,
+              statusPageSubscriberNotificationTemplate: {
+                notificationMethod: true,
+              },
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {},
+          },
+        );
+
+      setLinkedMethods(
+        linked.data.map(
+          (
+            link: StatusPageSubscriberNotificationTemplateStatusPage,
+          ): StatusPageSubscriberNotificationMethod | undefined => {
+            return link.statusPageSubscriberNotificationTemplate
+              ?.notificationMethod;
+          },
+        ),
+      );
+    } catch {
+      // As above: no warning, and the table below says what went wrong.
+    }
+  };
+
+  /*
+   * Only a linked Email template without a Custom SMTP, or a linked SMS
+   * template without a Twilio Config, goes unused (see
+   * SubscriberTemplateConfiguration.ts). The tab used to warn whenever the
+   * page had no Custom SMTP or no Twilio Config, linked templates or not.
+   */
+  const templateWarning: TemplateConfigurationWarning | null =
+    !isLoading && statusPage && linkedMethods
+      ? getTemplateConfigurationWarning({
+          linkedMethods: linkedMethods,
+          hasCustomSmtp: Boolean(statusPage.smtpConfig),
+          hasCustomTwilio: Boolean(statusPage.callSmsConfig),
+        })
+      : null;
 
   const getMethodColor: (
     method: StatusPageSubscriberNotificationMethod | undefined,
@@ -102,184 +165,13 @@ const StatusPageSubscriberSettings: FunctionComponent<
   const settingsContent: ReactElement = (
     <Fragment>
       <SubscriberNotificationWarnings statusPageId={modelId} />
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Subscriber > Email"
-        cardProps={{
-          title: "Email Subscribers",
-          description: "Email subscriber settings for this status page.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableEmailSubscribers: true,
-            },
-            title: "Enable Email Subscribers",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            placeholder: "Can email subscribers subscribe to this status page?",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-email-subscribers",
-          fields: [
-            {
-              field: {
-                enableEmailSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Email Subscribers",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
 
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Subscriber > SMS"
-        cardProps={{
-          title: "SMS Subscribers",
-          description: "SMS subscriber settings for this status page.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableSmsSubscribers: true,
-            },
-            title: "Enable SMS Subscribers",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            placeholder: "Can SMS subscribers subscribe to this status page?",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-sms-subscribers",
-          fields: [
-            {
-              field: {
-                enableSmsSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable SMS Subscribers",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Subscriber > Slack"
-        cardProps={{
-          title: "Slack Subscribers",
-          description: "Slack subscriber settings for this status page.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableSlackSubscribers: true,
-            },
-            title: "Enable Slack Subscribers",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            placeholder: "Can Slack subscribers subscribe to this status page?",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-slack-subscribers",
-          fields: [
-            {
-              field: {
-                enableSlackSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Slack Subscribers",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Subscriber > Microsoft Teams"
-        cardProps={{
-          title: "Microsoft Teams Subscribers",
-          description:
-            "Microsoft Teams subscriber settings for this status page.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableMicrosoftTeamsSubscribers: true,
-            },
-            title: "Enable Microsoft Teams Subscribers",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            placeholder:
-              "Can Microsoft Teams subscribers subscribe to this status page?",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-microsoft-teams-subscribers",
-          fields: [
-            {
-              field: {
-                enableMicrosoftTeamsSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Microsoft Teams Subscribers",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Subscriber > Webhook"
-        cardProps={{
-          title: "Webhook Subscribers",
-          description:
-            "Webhook subscriber settings for this status page. Webhook subscribers receive a JSON POST request on each status page event.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableWebhookSubscribers: true,
-            },
-            title: "Enable Webhook Subscribers",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            placeholder:
-              "Can webhook subscribers subscribe to this status page?",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-webhook-subscribers",
-          fields: [
-            {
-              field: {
-                enableWebhookSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Webhook Subscribers",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      {/*
+       * The Subscribe page and the five channels, one switch each, saved as
+       * they are flipped. They used to be five one-switch cards here, and
+       * all six again in a three-step card on Advanced Settings.
+       */}
+      <SubscriberChannelsCard statusPageId={modelId} />
 
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Subscriber > Advanced"
@@ -362,6 +254,10 @@ const StatusPageSubscriberSettings: FunctionComponent<
                     <TimezonesElement timezones={item["subscriberTimezones"]} />
                   );
                 }
+                /*
+                 * Two sentences, in the placeholder chip every unset value
+                 * on a detail card has: the chip wraps inside the card.
+                 */
                 return (
                   <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
                 );
@@ -556,14 +452,16 @@ const StatusPageSubscriberSettings: FunctionComponent<
 
   const notificationTemplatesContent: ReactElement = (
     <Fragment>
-      {showWarning && (
+      {templateWarning && (
         <Alert
           type={AlertType.WARNING}
           strongTitle="Custom Templates Require Configuration"
+          dataTestId="custom-templates-require-configuration"
+          className="mb-5"
           title={
-            hasNoCustomSMTP && hasNoCustomTwilio
+            templateWarning === TemplateConfigurationWarning.SmtpAndTwilio
               ? "Custom SMTP and Twilio Config are not configured for this status page. Custom notification templates for Email and SMS will not be used. Please configure them in the Settings tab above to use custom templates."
-              : hasNoCustomSMTP
+              : templateWarning === TemplateConfigurationWarning.Smtp
                 ? "Custom SMTP is not configured for this status page. Custom Email notification templates will not be used. Please configure Custom SMTP in the Settings tab above to use custom email templates."
                 : "Twilio Config is not configured for this status page. Custom SMS notification templates will not be used. Please configure Twilio Config in the Settings tab above to use custom SMS templates."
           }
@@ -600,6 +498,9 @@ const StatusPageSubscriberSettings: FunctionComponent<
           "No notification templates linked to this status page. Default templates will be used."
         }
         showRefreshButton={true}
+        onFetchSuccess={() => {
+          void fetchLinkedMethods();
+        }}
         formFields={[
           {
             field: {
@@ -668,7 +569,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
               return (
                 <span>
                   {item.statusPageSubscriberNotificationTemplate
-                    ?.templateName || "Unknown"}
+                    ?.templateName || translator.translateText("Unknown")}
                 </span>
               );
             },
@@ -687,7 +588,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
               return (
                 <span>
                   {item.statusPageSubscriberNotificationTemplate?.eventType ||
-                    "Unknown"}
+                    translator.translateText("Unknown")}
                 </span>
               );
             },

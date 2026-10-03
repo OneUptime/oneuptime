@@ -13,9 +13,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField, {
+  OWNER_RULE_OWNERS_DESCRIPTION,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const scheduledMaintenanceOwnerDocumentation: string = `
 ### How Scheduled Maintenance Owner Rules Work
@@ -204,7 +204,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { titlePattern: true },
-            title: "Title Pattern",
+            title: "Event Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -215,7 +215,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { descriptionPattern: true },
-            title: "Description Pattern",
+            title: "Event Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -223,7 +223,7 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
+            title: "Monitor Name",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -231,41 +231,16 @@ const ScheduledMaintenanceOwnerRulesPage: FunctionComponent<
           },
           {
             field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
+            title: "Monitor Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "production|critical",
           },
-          {
-            field: { ownerTeams: true },
-            title: "Owner Teams",
+          getOwnersFormField({
             stepId: "owners",
-            sectionTitle: "Owners to Assign",
-            sectionDescription:
-              "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-          },
-          {
-            field: { ownerUsers: true },
-            title: "Owner Users",
-            stepId: "owners",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-          },
+            description: OWNER_RULE_OWNERS_DESCRIPTION,
+          }),
           {
             field: { inheritOwnersFromMonitors: true },
             title: "Inherit Owners From Monitors",

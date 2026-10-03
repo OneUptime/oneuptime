@@ -2,13 +2,15 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnUpdate, OnDelete } from "../Types/Database/Hooks";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/IncidentMeasurement";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateService from "./IncidentStateService";
 import IncidentMeasurementAnchorType from "../../Types/Incident/IncidentMeasurementAnchorType";
 import MeasurementDefinitionValidator from "../Utils/Measurement/MeasurementDefinitionValidator";
+import MeasurementKeyAssigner from "../Utils/Measurement/MeasurementKeyAssigner";
+import MeasurementStateReference from "../Utils/Measurement/MeasurementStateReference";
+import MeasurementDefinitionChange from "../Utils/Measurement/MeasurementDefinitionChange";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -53,7 +55,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    MeasurementDefinitionValidator.validateKey(createBy.data.key);
+    /*
+     * Made from the name when the create leaves the key out; a key that was
+     * sent must be valid and not another measurement's.
+     */
+    createBy.data.key = await MeasurementKeyAssigner.getKeyForCreate({
+      key: createBy.data.key,
+      name: createBy.data.name,
+      getKeysInProject: async (): Promise<Array<string>> => {
+        return await this.getKeysInProject(
+          createBy.data.projectId || createBy.props.tenantId,
+        );
+      },
+    });
 
     /*
      * Derived here rather than from the slug: DatabaseService generates the
@@ -67,24 +81,23 @@ export class Service extends DatabaseService<Model> {
       projectId: createBy.data.projectId!,
       startAnchorType: createBy.data.startAnchorType,
       endAnchorType: createBy.data.endAnchorType,
-      startStateId: createBy.data.startIncidentStateId,
-      endStateId: createBy.data.endIncidentStateId,
+      /*
+       * The dashboard's state picker sends the state as the relation,
+       * the API usually as the id: whichever the request has.
+       */
+      startStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.startIncidentStateId,
+        state: createBy.data.startIncidentState,
+      }),
+      endStateId: MeasurementStateReference.getStateIdForCreate({
+        stateId: createBy.data.endIncidentStateId,
+        state: createBy.data.endIncidentState,
+      }),
       startStateRole: createBy.data.startIncidentStateRole,
       endStateRole: createBy.data.endIncidentStateRole,
       startOccurrence: createBy.data.startStateOccurrence,
       endOccurrence: createBy.data.endStateOccurrence,
     });
-
-    if (!createBy.data.order) {
-      const highest: Model | null = await this.findOneBy({
-        query: { projectId: createBy.data.projectId! },
-        select: { order: true },
-        sort: { order: SortOrder.Descending },
-        props: { isRoot: true },
-      });
-
-      createBy.data.order = (highest?.order || 0) + 1;
-    }
 
     /*
      * A definition created today must apply to incidents that already
@@ -115,11 +128,19 @@ export class Service extends DatabaseService<Model> {
       "endAnchorType",
       "startIncidentStateId",
       "endIncidentStateId",
+      // The picked states, as the dashboard sends them.
+      "startIncidentState",
+      "endIncidentState",
       "startIncidentStateRole",
       "endIncidentStateRole",
       "startStateOccurrence",
       "endStateOccurrence",
       "isEnabled",
+      /*
+       * The unit is the number every chart point is written in
+       * (MeasurementMetricWriter), so changing it rewrites them all.
+       */
+      "unit",
     ];
 
     const touchesDefinition: boolean = definitionKeys.some((key: string) => {
@@ -142,11 +163,15 @@ export class Service extends DatabaseService<Model> {
         endIncidentStateRole: true,
         startStateOccurrence: true,
         endStateOccurrence: true,
+        isEnabled: true,
+        unit: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
     });
+
+    let changesDefinition: boolean = false;
 
     for (const existing of existingItems) {
       const merged: Record<string, unknown> = {
@@ -160,13 +185,58 @@ export class Service extends DatabaseService<Model> {
           "startAnchorType"
         ] as IncidentMeasurementAnchorType,
         endAnchorType: merged["endAnchorType"] as IncidentMeasurementAnchorType,
-        startStateId: merged["startIncidentStateId"] as ObjectID,
-        endStateId: merged["endIncidentStateId"] as ObjectID,
+        startStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "startIncidentStateId",
+          stateKey: "startIncidentState",
+          storedStateId: existing.startIncidentStateId,
+        }),
+        endStateId: MeasurementStateReference.getStateIdForUpdate({
+          update: data,
+          stateIdKey: "endIncidentStateId",
+          stateKey: "endIncidentState",
+          storedStateId: existing.endIncidentStateId,
+        }),
         startStateRole: merged["startIncidentStateRole"] as string,
         endStateRole: merged["endIncidentStateRole"] as string,
         startOccurrence: merged["startStateOccurrence"] as string,
         endOccurrence: merged["endStateOccurrence"] as string,
       });
+
+      if (
+        MeasurementDefinitionChange.isChanged({
+          update: data,
+          stored: existing as unknown as Record<string, unknown>,
+          columns: [
+            "startAnchorType",
+            "endAnchorType",
+            "startIncidentStateRole",
+            "endIncidentStateRole",
+            "startStateOccurrence",
+            "endStateOccurrence",
+            "isEnabled",
+            "unit",
+          ],
+          pickedStates: [
+            {
+              stateIdKey: "startIncidentStateId",
+              stateKey: "startIncidentState",
+            },
+            { stateIdKey: "endIncidentStateId", stateKey: "endIncidentState" },
+          ],
+        })
+      ) {
+        changesDefinition = true;
+      }
+    }
+
+    /*
+     * The dashboard's edit form sends every column on every save, a
+     * rename included. Only a value that differs from the stored one
+     * changes what the measurement means.
+     */
+    if (!changesDefinition) {
+      return { updateBy, carryForward: null };
     }
 
     /*
@@ -210,6 +280,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Every key the project's incident measurements hold, enabled or not, so a
+   * new one gets a key none of them has. Read as root: a key must not clash
+   * with one the creator is not allowed to see.
+   */
+  @CaptureSpan()
+  public async getKeysInProject(
+    projectId: ObjectID | undefined,
+  ): Promise<Array<string>> {
+    if (!projectId) {
+      return [];
+    }
+
+    const measurements: Array<Model> = await this.findBy({
+      query: { projectId: projectId },
+      select: { key: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return measurements
+      .map((measurement: Model) => {
+        return measurement.key;
+      })
+      .filter((key: string | undefined) => {
+        return Boolean(key);
+      }) as Array<string>;
+  }
+
+  /*
    * Every measurement metric name in the project, enabled or not.
    *
    * Disabled definitions must stay in this list: the tombstone pass diffs
@@ -242,8 +342,8 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     startAnchorType?: IncidentMeasurementAnchorType | undefined;
     endAnchorType?: IncidentMeasurementAnchorType | undefined;
-    startStateId?: ObjectID | undefined;
-    endStateId?: ObjectID | undefined;
+    startStateId?: string | undefined;
+    endStateId?: string | undefined;
     startStateRole?: string | undefined;
     endStateRole?: string | undefined;
     startOccurrence?: string | undefined;
@@ -255,8 +355,8 @@ export class Service extends DatabaseService<Model> {
       endAnchorType: data.endAnchorType,
       stateEnteredAnchor: IncidentMeasurementAnchorType.StateEntered,
       stateRoleEnteredAnchor: IncidentMeasurementAnchorType.StateRoleEntered,
-      startStateId: data.startStateId?.toString(),
-      endStateId: data.endStateId?.toString(),
+      startStateId: data.startStateId,
+      endStateId: data.endStateId,
       startStateRole: data.startStateRole,
       endStateRole: data.endStateRole,
       startOccurrence: data.startOccurrence,
@@ -282,13 +382,13 @@ export class Service extends DatabaseService<Model> {
 
     const startState: IncidentState | undefined = states.find(
       (state: IncidentState) => {
-        return state._id?.toString() === data.startStateId!.toString();
+        return state._id?.toString() === data.startStateId;
       },
     );
 
     const endState: IncidentState | undefined = states.find(
       (state: IncidentState) => {
-        return state._id?.toString() === data.endStateId!.toString();
+        return state._id?.toString() === data.endStateId;
       },
     );
 

@@ -84,13 +84,33 @@ test.describe("Runners live under Runbooks", () => {
         return body.data;
       };
 
-      // The Runbooks menu lists both Runner pages.
+      /*
+       * The Runbooks menu lists both Runner pages, in a Runners section that
+       * starts folded down to its title, like every rarely used section: its
+       * rows are hidden until it is opened.
+       */
+      const runnersSectionToggle: Locator = page
+        .locator("aside[role='navigation'][aria-label='Main navigation']")
+        .locator(
+          "xpath=.//h6[normalize-space(.)='Runners']/ancestor::button[1]",
+        );
       await gotoProjectPage({
         page,
         projectId,
         url: urlFor(runbooksPath),
-        ready: runnersLink.first(),
+        ready: runnersSectionToggle,
       });
+      await expect(runnersSectionToggle).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      await expect(runnersLink.first()).toBeHidden();
+      await runnersSectionToggle.click();
+      await expect(runnersSectionToggle).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      await expect(runnersLink.first()).toBeVisible();
       await expect(credentialsLink.first()).toBeVisible();
 
       // Its Runners entry opens the list, under Runbooks.
@@ -105,7 +125,10 @@ test.describe("Runners live under Runbooks", () => {
         SERVER,
       );
 
-      // Create a Runner through the form: Runner, Capabilities, Labels.
+      /*
+       * Create a Runner through the form: Runner (the labels folded under
+       * Advanced at its end), then Capabilities.
+       */
       await page
         .getByTestId("card-button")
         .and(page.getByRole("button", { name: "Create Runner", exact: true }))
@@ -114,16 +137,23 @@ test.describe("Runners live under Runbooks", () => {
       await modal
         .getByPlaceholder("prod-eu-runner", { exact: true })
         .fill(runnerName);
+      /*
+       * A name is all a Runner needs: Create Runner is on offer from the
+       * first step, and a plain Next walks the optional ones.
+       */
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-      await expect(submit).toHaveText("Next");
-      await submit.click();
-      // Capabilities: a new Runner runs runbooks unless told otherwise.
+      const next: Locator = modal.getByTestId("modal-footer-next-button");
+      await expect(submit).toHaveText("Create Runner");
+      await expect(
+        modal.getByRole("button", { name: "Advanced", exact: true }),
+      ).toHaveAttribute("aria-expanded", "false");
+      await next.click();
+      // Capabilities, the last step: nothing to walk on to.
       await expect(
         modal.getByRole("switch", { name: /^Runs Runbooks/ }),
       ).toBeChecked();
-      await expect(submit).toHaveText("Next");
-      await submit.click();
-      await expect(submit).not.toHaveText("Next");
+      await expect(next).toHaveCount(0);
+      await expect(submit).toHaveText("Create Runner");
       await submit.click();
       await expect(modal).toBeHidden(SERVER);
 

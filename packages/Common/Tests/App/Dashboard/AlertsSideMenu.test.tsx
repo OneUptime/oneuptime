@@ -45,11 +45,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import AlertsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
   goTo,
   hrefsInMenu,
   iconCountIn,
@@ -73,10 +76,24 @@ describe("Alerts side menu", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
     goTo(`/dashboard/${PROJECT_ID}/alerts`);
+
+    /*
+     * A project with Slack and Microsoft Teams both connected, so the
+     * Workspace section lists both. The other combinations, and what is
+     * listed while nothing is connected, are pinned in
+     * WorkspaceMenusConnected.test.tsx.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
   });
 
   afterEach(() => {
     cleanup();
+    ConnectedWorkspaces.reset();
   });
 
   describe("sections", () => {
@@ -93,14 +110,59 @@ describe("Alerts side menu", () => {
       ]);
     });
 
+    // As the maintainer drew the Incidents menu, which this one mirrors.
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderAlertsMenu();
 
       expect(isExpanded("Alerts")).toBe(true);
       expect(isExpanded("Episodes")).toBe(true);
-      expect(isExpanded("Workspace")).toBe(true);
+      expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+    });
+
+    test.each([
+      ["Slack", PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK],
+      ["Microsoft Teams", PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS],
+    ])(
+      "Workspace opens by itself on the %s page, and marks it",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderAlertsMenu();
+
+        expect(isExpanded("Workspace")).toBe(true);
+        expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
+
+    test("Workspace opens with a click", async () => {
+      await renderAlertsMenu();
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).toHaveClass("opacity-100");
+    });
+
+    test("with nothing connected, Workspace holds one entry, to the Workspace page", async () => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+      await renderAlertsMenu();
+
+      expect(linksIn("Workspace")).toEqual([
+        {
+          title: "Connect Slack or Teams",
+          href: routeFor(PageMap.ALERTS_WORKSPACE_CONNECTIONS),
+        },
+      ]);
     });
 
     test("the alert, episode and workspace sections are unchanged by the move", async () => {
@@ -300,11 +362,45 @@ describe("Alerts side menu", () => {
           title: "Measurements",
           href: routeFor(PageMap.ALERTS_SETTINGS_MEASUREMENTS),
         },
+        /*
+         * The number prefixes, on a page named for them. It replaced More
+         * Settings, which held nothing else.
+         */
         {
-          title: "More Settings",
-          href: routeFor(PageMap.ALERTS_SETTINGS_MORE),
+          title: "Number Prefix",
+          href: routeFor(PageMap.ALERTS_SETTINGS_NUMBER_PREFIX),
         },
       ]);
+    });
+
+    test("lists Number Prefix last, at settings/number-prefix", async () => {
+      await renderAlertsMenu();
+
+      const settings: Array<MenuLink> = linksIn("Settings");
+
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Number Prefix",
+        href: `/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`,
+      });
+    });
+
+    test("has no More Settings entry, and nothing points at the old address", async () => {
+      await renderAlertsMenu();
+
+      expect(titlesInMenu()).not.toContain("More Settings");
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/alerts/settings/more`,
+      );
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Number Prefix page, and marks it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`);
+      await renderAlertsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
+      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
     });
 
     test("does not hold the auto-remediation rules, which are a rule page", async () => {
@@ -351,7 +447,8 @@ describe("Alerts side menu", () => {
       PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
       PageMap.ALERTS_SETTINGS_LABEL_RULES,
       PageMap.ALERTS_SETTINGS_REMINDER_RULES,
-      PageMap.ALERTS_SETTINGS_MORE,
+      // More Settings, renamed for the one thing it held.
+      PageMap.ALERTS_SETTINGS_NUMBER_PREFIX,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
@@ -429,6 +526,13 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Alert State");
+    });
+
+    test("names the Settings section on the Number Prefix page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`);
+      await renderAlertsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Number Prefix");
     });
   });
 });

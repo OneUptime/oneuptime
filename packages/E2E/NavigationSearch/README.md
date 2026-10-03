@@ -15,6 +15,16 @@ matches, clearing, empty states, keyboard/click navigation, and recent products
 on desktop and mobile Chromium. Artifacts are saved under
 `output/playwright/navigation-search`.
 
+The fixture opens the menu the way the Dashboard does: on Essentials, with
+every other section folded to one line. `ProductsMenuFolding.spec.ts` covers
+that in a real browser: each folded section is a single line that names its
+products, a click anywhere on the line (not just on its name) opens it while
+focus stays in the search box, the arrow keys move from the last row of
+Essentials to the first folded line and Enter opens it, search finds products
+in folded sections, opened and folded sections survive a reload, the section of
+the current page opens by itself, and on a phone (`?navbar=true` at the Pixel 5
+size) the menu toggle lists the products the same way.
+
 `ForeignHiddenRule.spec.ts` renders the real Dashboard navbar (`?navbar=true`)
 in a page that also carries a foreign `.hidden { display: none }` rule, the
 one Bootstrap 3 and HTML5 Boilerplate ship and that browser extensions and

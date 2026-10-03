@@ -1,3 +1,5 @@
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface FilterButtonOption {
@@ -16,11 +18,13 @@ export interface ComponentProps {
 const FilterButtons: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       className={`inline-flex gap-1 ${props.className || ""}`}
       role="radiogroup"
-      aria-label="Filter options"
+      aria-label={translator.translateText("Filter options")}
     >
       {props.options.map((option: FilterButtonOption) => {
         const isActive: boolean = props.selectedValue === option.value;
@@ -38,7 +42,7 @@ const FilterButtons: FunctionComponent<ComponentProps> = (
             role="radio"
             aria-checked={isActive}
           >
-            {option.label}
+            {translator.translateText(option.label)}
             {option.badge !== undefined && option.badge > 0 && (
               <span
                 className={`ml-1.5 inline-flex min-w-[1.25rem] justify-center px-1 py-0 text-[10px] rounded-full ${

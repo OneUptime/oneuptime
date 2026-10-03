@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import { RULE_ENABLED_COLUMN } from "../../UI/Components/RuleRun/RuleEnabledField";
 
 /*
  * The detector behind the "long forms walk steps" guard
@@ -27,12 +28,25 @@ import ts from "typescript";
  * a loop, data from the server) makes the form "uncountable", and the guard
  * asks for those to be listed with a reason too.
  *
+ * A field a helper builds (getOwnersFormField({ stepId: "owners", ... })) is
+ * the object the helper returns, read with what the call hands it: a step,
+ * title or showIf written in the call's object argument is the field's, so
+ * the field is placed on its step like one written out in full.
+ *
  * What counts as a field the user can see. Every element of the list, less
  * the ones whose showIf is a constant `() => false` (registrations that only
  * make ModelForm select a column). A field shown under a condition counts:
  * the form can be that long. On a ModelTable the Create and the Edit forms
  * are told apart by doNotShowWhenCreating / doNotShowWhenEditing, and the
  * longer of the two is what is judged.
+ *
+ * A folded section counts once. Fields next to each other that share a
+ * collapsibleSection (an "Advanced" section, getAdvancedFormSection) are
+ * drawn as one header until the user opens it, so the form - or the step -
+ * is judged by the rows it shows, the section's header being one of them
+ * (countFieldRows). Fields are told to share a section by how their
+ * collapsibleSection is written, so write the same expression on each: one
+ * constant, built once.
  *
  * What counts as steps. A non-empty steps list (formSteps, steps,
  * formProps.steps), or a summary turned on (BasicForm then walks a default
@@ -45,6 +59,12 @@ import ts from "typescript";
  *   - a declared step no field is on is an empty page in the wizard - and,
  *     on a ModelTable, so is a step whose every field the Edit form leaves
  *     out.
+ *
+ * And, for the "finish from any step" guard (FinishFromAnyStepGuard.test.ts),
+ * what a custom element draws: the components its getCustomElement renders
+ * (following a render helper in the same file), where each is declared, and
+ * whether it fills in a value of its own when it is drawn - an effect in it
+ * that calls onChange (see CustomElementComponentFacts).
  */
 
 export const LONG_FORM_FIELD_LIMIT: number = 3;
@@ -60,42 +80,109 @@ export type FormHostName =
   | "BasicForm"
   | "DuplicateModel";
 
+interface CreateFormSpec {
+  // Where the Create form takes the values it starts with.
+  initialValues: string;
+  // An attribute written true offers a Create form (a table's isCreateable).
+  offeredBy?: string | undefined;
+  // An attribute holding FormType.Create makes the form one (formType).
+  formTypeAt?: string | undefined;
+}
+
 interface HostSpec {
   // Where the host takes its fields: a JSX attribute, or a key of formProps.
   fields: string;
   steps?: string | undefined;
   summary?: string | undefined;
+  /*
+   * A host that creates a model through ModelForm: how its Create form is
+   * read (see FormFacts.hasCreateForm and createInitialValueKeys).
+   */
+  createForm?: CreateFormSpec | undefined;
 }
+
+const CREATE_FORM_TYPE: RegExp = /^FormType\.Create$/;
+const UPDATE_FORM_TYPE: RegExp = /^FormType\.Update$/;
+
+const TABLE_CREATE_FORM: CreateFormSpec = {
+  initialValues: "createInitialValues",
+  offeredBy: "isCreateable",
+};
 
 export const FORM_HOSTS: Record<FormHostName, HostSpec> = {
   ModelTable: {
     fields: "formFields",
     steps: "formSteps",
     summary: "formSummary",
+    createForm: TABLE_CREATE_FORM,
   },
-  RuleTable: { fields: "formFields", steps: "formSteps" },
-  LabelRuleTable: { fields: "formFields", steps: "formSteps" },
+  RuleTable: {
+    fields: "formFields",
+    steps: "formSteps",
+    createForm: TABLE_CREATE_FORM,
+  },
+  LabelRuleTable: {
+    fields: "formFields",
+    steps: "formSteps",
+    createForm: TABLE_CREATE_FORM,
+  },
   CardModelDetail: { fields: "formFields", steps: "formSteps" },
   ModelFormModal: {
     fields: "formProps.fields",
     steps: "formProps.steps",
     summary: "formProps.summary",
+    createForm: {
+      initialValues: "initialValues",
+      formTypeAt: "formProps.formType",
+    },
   },
   BasicFormModal: {
     fields: "formProps.fields",
     steps: "formProps.steps",
     summary: "formProps.summary",
   },
-  ModelForm: { fields: "fields", steps: "steps", summary: "summary" },
+  ModelForm: {
+    fields: "fields",
+    steps: "steps",
+    summary: "summary",
+    createForm: { initialValues: "initialValues", formTypeAt: "formType" },
+  },
   BasicForm: { fields: "fields", steps: "steps", summary: "summary" },
   // Its own BasicFormModal receives these as props; the callers are counted.
   DuplicateModel: { fields: "fieldsToChange" },
 };
 
+/*
+ * A component a custom element draws (Field.getCustomElement).
+ */
+export interface CustomElementComponentFacts {
+  // The name the field draws it by: the JSX tag.
+  name: string;
+  // Where it is declared, repository-relative; null when it is not followed.
+  file: string | null;
+  /*
+   * It writes a value of its own when it is drawn: an effect in it
+   * (useEffect, useLayoutEffect, useAsyncEffect) calls onChange, directly or
+   * through a function of its own. Null when it is not followed.
+   */
+  fillsInOnShow: boolean | null;
+}
+
 export interface FormFieldFacts {
   // The column or override key the field writes, when it is written down.
   key: string;
+  // The title written as a string, else its source text ("copy.title").
   title: string;
+  /*
+   * Every text the title can be, when it is written down as strings: the
+   * string itself, or each branch of a condition (`isIncident ? "Incident
+   * Title" : "Alert Title"`). Null when the title is computed - a variable, a
+   * property of a copy object, a call, a template with values - so a check of
+   * the English never takes source code for a title. Empty without a title.
+   */
+  titleTexts: Array<string> | null;
+  // The fieldType as written ("FormFieldSchemaType.PeoplePicker"), or "".
+  fieldType: string;
   /*
    * The step the field is on: a string when written as one, null when it is
    * computed (a variable, a spread), undefined when the field has none.
@@ -109,6 +196,33 @@ export interface FormFieldFacts {
   isCreateOnly: boolean;
   // doNotShowWhenCreating - the Edit form only.
   isEditOnly: boolean;
+  /*
+   * The defaultValue as written ("true", "60", "Mode.Suggest"), or undefined
+   * when the field writes none. hasDefault also counts a getDefaultValue.
+   */
+  defaultValue: string | undefined;
+  hasDefault: boolean;
+  /*
+   * The field object spreads another one in (`...someField`), which can
+   * carry properties - a default among them - this scan does not see.
+   */
+  hasSpread: boolean;
+  /*
+   * The field's collapsibleSection as written (whitespace dropped), or
+   * undefined when it is not in one. Fields next to each other with the same
+   * text are one folded section.
+   */
+  collapsibleSection: string | undefined;
+  /*
+   * The helper the field is the returned object of, as the form calls it
+   * (getLabelsFormField, getOwnersFormField): the outermost call when one
+   * helper returns another's field. Undefined for a field written out.
+   */
+  helper?: string | undefined;
+  // customElementCanBeSkipped written true (Forms/Utils/FinishFromAnyStep).
+  customElementCanBeSkipped: boolean;
+  // What its getCustomElement draws; empty when it has none.
+  customElementComponents: Array<CustomElementComponentFacts>;
   file: string;
   line: number;
 }
@@ -138,7 +252,10 @@ export interface FormFacts {
   hasSummaryOnly: boolean;
   // Whether a ModelTable offers its Edit form (isEditable written as true).
   hasEditForm: boolean;
-  // The fields the user can see, on the longer of the forms the host draws.
+  /*
+   * The fields the user can see, on the longer of the forms the host draws -
+   * a folded section counting once (countFieldRows).
+   */
   visibleFieldCount: number;
   /*
    * The form edits a rule model (one extending RuleBaseModel), whose
@@ -146,13 +263,33 @@ export interface FormFacts {
    * the fields listed on it (RuleCriteriaModelForm).
    */
   isRuleModel: boolean;
+  /*
+   * The model the form saves, as its modelType names it: the identifier,
+   * and the repository path of the file it is imported from - null when it
+   * is not imported (a generic prop, a class declared in the file). Null
+   * when the host takes no modelType written as a plain identifier.
+   */
+  modelType: { name: string; file: string | null } | null;
+  /*
+   * Whether the host draws a Create form through ModelForm: a table that is
+   * isCreateable, a ModelForm or ModelFormModal whose formType is
+   * FormType.Create. Null when that is decided at runtime.
+   */
+  hasCreateForm: boolean | null;
+  /*
+   * The keys of the values the Create form starts with (a table's
+   * createInitialValues, a form's initialValues) when they are written as an
+   * object literal, [] when there are none, null when they cannot be read.
+   */
+  createInitialValueKeys: Array<string> | null;
 }
 
 export type FormStepProblemKind =
   | "field-without-step"
   | "field-on-undeclared-step"
   | "empty-step"
-  | "empty-step-on-edit";
+  | "empty-step-on-edit"
+  | "empty-step-on-create";
 
 export interface FormStepProblem {
   kind: FormStepProblemKind;
@@ -186,8 +323,20 @@ interface ParsedFile {
   assignments: Map<string, Array<{ value: ts.Expression; inLoop: boolean }>>;
 }
 
+interface ResolvedItem {
+  parsed: ParsedFile;
+  node: ts.ObjectLiteralExpression;
+  /*
+   * For a field a helper returns: the object the call handed the helper,
+   * whose properties (stepId, title, showIf...) the field carries.
+   */
+  call?: ts.ObjectLiteralExpression | undefined;
+  // For a field a helper returns: the helper's name, as the call writes it.
+  helper?: string | undefined;
+}
+
 interface Resolution {
-  items: Array<{ parsed: ParsedFile; node: ts.ObjectLiteralExpression }>;
+  items: Array<ResolvedItem>;
   // Plain literals written in the file the form itself is in.
   plain: Set<ts.ObjectLiteralExpression>;
   reasons: Array<string>;
@@ -229,6 +378,28 @@ function unwrap(expression: ts.Node): ts.Node {
   }
 
   return node;
+}
+
+/*
+ * The strings an expression can be, when each way it can go is written as
+ * one: a string literal, or a condition whose branches are (nested ones
+ * too). Null for anything computed.
+ */
+function writtenStringsOf(expression: ts.Node): Array<string> | null {
+  const node: ts.Node = unwrap(expression);
+
+  if (ts.isStringLiteralLike(node)) {
+    return [node.text];
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    const whenTrue: Array<string> | null = writtenStringsOf(node.whenTrue);
+    const whenFalse: Array<string> | null = writtenStringsOf(node.whenFalse);
+
+    return whenTrue && whenFalse ? [...whenTrue, ...whenFalse] : null;
+  }
+
+  return null;
 }
 
 function isInsideLoop(node: ts.Node): boolean {
@@ -1113,7 +1284,29 @@ export class FormStepsScanner {
 
           if (last) {
             // A helper's field: counted, but never a plain literal here.
-            return this.resolveItem(found.parsed, last, depth + 1, false);
+            const resolved: Resolution = this.resolveItem(
+              found.parsed,
+              last,
+              depth + 1,
+              false,
+            );
+
+            const argument: ts.Node | undefined = element.arguments[0]
+              ? unwrap(element.arguments[0])
+              : undefined;
+
+            if (argument && ts.isObjectLiteralExpression(argument)) {
+              for (const item of resolved.items) {
+                item.call = item.call || argument;
+              }
+            }
+
+            // The outermost call names it: what the form itself calls.
+            for (const item of resolved.items) {
+              item.helper = callee.text;
+            }
+
+            return resolved;
           }
         }
       }
@@ -1162,12 +1355,31 @@ export class FormStepsScanner {
     );
 
     const fields: Array<FormFieldFacts> = fieldResolution.items.map(
-      (item: { parsed: ParsedFile; node: ts.ObjectLiteralExpression }) => {
-        return this.describeField(
+      (item: ResolvedItem) => {
+        const facts: FormFieldFacts = this.describeField(
           item.parsed,
           item.node,
           fieldResolution.plain.has(item.node),
+          item.call,
         );
+
+        if (item.helper) {
+          facts.helper = item.helper;
+        }
+
+        /*
+         * RuleTable (and LabelRuleTable, built on it) leaves a rule's
+         * Enabled switch off the create form: RuleEnabledField.
+         */
+        if (
+          (hostName === "RuleTable" || hostName === "LabelRuleTable") &&
+          facts.key === RULE_ENABLED_COLUMN &&
+          isSwitchFieldType(facts.fieldType)
+        ) {
+          facts.isEditOnly = true;
+        }
+
+        return facts;
       },
     );
 
@@ -1191,11 +1403,9 @@ export class FormStepsScanner {
         steps = null;
         hasSteps = true;
       } else {
-        steps = stepResolution.items.map(
-          (item: { parsed: ParsedFile; node: ts.ObjectLiteralExpression }) => {
-            return this.describeStep(item.parsed, item.node);
-          },
-        );
+        steps = stepResolution.items.map((item: ResolvedItem) => {
+          return this.describeStep(item.parsed, item.node);
+        });
         hasSteps = steps.length > 0;
       }
     }
@@ -1217,18 +1427,20 @@ export class FormStepsScanner {
       },
     );
 
-    let visibleFieldCount: number = shown.length;
+    let visibleFieldCount: number = countFieldRows(shown);
 
     if (hostName === "ModelTable" || hostName === "RuleTable") {
-      const onCreate: number = shown.filter(
-        (field: FormFieldFacts): boolean => {
+      const onCreate: number = countFieldRows(
+        shown.filter((field: FormFieldFacts): boolean => {
           return !field.isEditOnly;
-        },
-      ).length;
+        }),
+      );
       const onEdit: number = hasEditForm
-        ? shown.filter((field: FormFieldFacts): boolean => {
-            return !field.isCreateOnly;
-          }).length
+        ? countFieldRows(
+            shown.filter((field: FormFieldFacts): boolean => {
+              return !field.isCreateOnly;
+            }),
+          )
         : 0;
       visibleFieldCount = Math.max(onCreate, onEdit);
     }
@@ -1237,6 +1449,12 @@ export class FormStepsScanner {
       this.readHostValue(parsed, attributes, "modelType") ||
       this.readHostValue(parsed, attributes, "modelDetailProps.modelType") ||
       this.readHostValue(parsed, attributes, "formProps.modelType");
+
+    const hasCreateForm: boolean | null = this.readHasCreateForm(
+      parsed,
+      attributes,
+      spec.createForm,
+    );
 
     return {
       file: toRepositoryPath(this.repositoryRoot, parsed.file),
@@ -1259,7 +1477,145 @@ export class FormStepsScanner {
       isRuleModel: modelTypeExpression
         ? this.isRuleModelType(parsed, modelTypeExpression)
         : false,
+      modelType: modelTypeExpression
+        ? this.describeModelType(parsed, modelTypeExpression)
+        : null,
+      hasCreateForm,
+      createInitialValueKeys:
+        spec.createForm && hasCreateForm !== false
+          ? this.readObjectKeys(
+              parsed,
+              this.readHostValue(
+                parsed,
+                attributes,
+                spec.createForm.initialValues,
+              ),
+            )
+          : [],
     };
+  }
+
+  private describeModelType(
+    parsed: ParsedFile,
+    expression: ts.Expression,
+  ): { name: string; file: string | null } | null {
+    const value: ts.Node = unwrap(expression);
+
+    if (!ts.isIdentifier(value)) {
+      return null;
+    }
+
+    const imported: { file: string; exported: string } | undefined =
+      parsed.imports.get(value.text);
+
+    return {
+      name: value.text,
+      file: imported
+        ? toRepositoryPath(this.repositoryRoot, imported.file)
+        : null,
+    };
+  }
+
+  private readHasCreateForm(
+    parsed: ParsedFile,
+    attributes: Map<string, ts.JsxAttribute>,
+    createForm: CreateFormSpec | undefined,
+  ): boolean | null {
+    if (!createForm) {
+      return false;
+    }
+
+    if (createForm.offeredBy) {
+      return this.readBooleanAttribute(
+        parsed,
+        attributes,
+        createForm.offeredBy,
+      );
+    }
+
+    if (createForm.formTypeAt) {
+      const formType: ts.Expression | null = this.readHostValue(
+        parsed,
+        attributes,
+        createForm.formTypeAt,
+      );
+
+      if (!formType) {
+        return false;
+      }
+
+      const text: string = unwrap(formType).getText(parsed.sourceFile);
+
+      if (CREATE_FORM_TYPE.test(text)) {
+        return true;
+      }
+
+      if (UPDATE_FORM_TYPE.test(text)) {
+        return false;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * The keys an object literal writes - directly, or through a constant it
+   * is declared as. [] when there is no object; null when it is something
+   * else, or spreads in keys that are not written down.
+   */
+  private readObjectKeys(
+    parsed: ParsedFile,
+    expression: ts.Expression | null,
+  ): Array<string> | null {
+    if (!expression) {
+      return [];
+    }
+
+    let value: ts.Node = unwrap(expression);
+
+    if (ts.isIdentifier(value)) {
+      if (value.text === "undefined") {
+        return [];
+      }
+
+      const found: { parsed: ParsedFile; node: ts.Node } | null = this.lookup(
+        parsed,
+        value.text,
+        0,
+      );
+
+      if (!found) {
+        return null;
+      }
+
+      value = unwrap(found.node);
+    }
+
+    if (!ts.isObjectLiteralExpression(value)) {
+      return null;
+    }
+
+    const keys: Array<string> = [];
+
+    for (const property of value.properties) {
+      if (
+        (ts.isPropertyAssignment(property) ||
+          ts.isShorthandPropertyAssignment(property)) &&
+        property.name
+      ) {
+        keys.push(
+          property.name
+            .getText(value.getSourceFile())
+            .replace(/^\[|\]$/g, "")
+            .replace(/^["']|["']$/g, ""),
+        );
+        continue;
+      }
+
+      return null;
+    }
+
+    return keys;
   }
 
   /*
@@ -1397,20 +1753,34 @@ export class FormStepsScanner {
     parsed: ParsedFile,
     node: ts.ObjectLiteralExpression,
     isPlainLiteral: boolean,
+    call?: ts.ObjectLiteralExpression | undefined,
   ): FormFieldFacts {
+    const propertyOf: (
+      container: ts.ObjectLiteralExpression,
+      name: string,
+    ) => ts.ObjectLiteralElementLike | undefined = (
+      container: ts.ObjectLiteralExpression,
+      name: string,
+    ): ts.ObjectLiteralElementLike | undefined => {
+      return container.properties.find(
+        (candidate: ts.ObjectLiteralElementLike): boolean => {
+          return (
+            (ts.isPropertyAssignment(candidate) ||
+              ts.isShorthandPropertyAssignment(candidate)) &&
+            candidate.name.getText(container.getSourceFile()) === name
+          );
+        },
+      );
+    };
+
+    // What the helper's caller wrote wins over the helper's own default.
     const property: (
       name: string,
     ) => ts.ObjectLiteralElementLike | undefined = (
       name: string,
     ): ts.ObjectLiteralElementLike | undefined => {
-      return node.properties.find(
-        (candidate: ts.ObjectLiteralElementLike): boolean => {
-          return (
-            (ts.isPropertyAssignment(candidate) ||
-              ts.isShorthandPropertyAssignment(candidate)) &&
-            candidate.name.getText(parsed.sourceFile) === name
-          );
-        },
+      return (
+        (call ? propertyOf(call, name) : undefined) || propertyOf(node, name)
       );
     };
 
@@ -1446,21 +1816,30 @@ export class FormStepsScanner {
     if (overrideKey && ts.isStringLiteralLike(overrideKey)) {
       key = overrideKey.text;
     } else if (overrideKey) {
-      key = overrideKey.getText(parsed.sourceFile);
+      key = overrideKey.getText(overrideKey.getSourceFile());
     } else if (
       field &&
       ts.isObjectLiteralExpression(field) &&
       field.properties[0]?.name
     ) {
       key = field.properties[0].name
-        .getText(parsed.sourceFile)
+        .getText(field.getSourceFile())
         .replace(/^\[|\]$/g, "")
         .replace(/^["']|["']$/g, "");
     }
 
     const title: ts.Node | null = initializerOf("title");
+    const getCustomElement: ts.Node | null = initializerOf("getCustomElement");
+    const defaultValue: ts.Node | null = initializerOf("defaultValue");
+    const hasDefaultValue: boolean = Boolean(
+      defaultValue &&
+        defaultValue.kind !== ts.SyntaxKind.UndefinedKeyword &&
+        !(ts.isIdentifier(defaultValue) && defaultValue.text === "undefined"),
+    );
     const stepId: ts.Node | null = initializerOf("stepId");
     const showIf: ts.Node | null = initializerOf("showIf");
+    const collapsibleSection: ts.Node | null =
+      initializerOf("collapsibleSection");
 
     let stepIdValue: string | null | undefined = undefined;
 
@@ -1475,24 +1854,174 @@ export class FormStepsScanner {
       stepIdValue = null;
     }
 
+    // A helper's field is reported where it is called.
+    const position: ts.Node = call || node;
+    const fieldType: ts.Node | null = initializerOf("fieldType");
+
     return {
       key,
+      fieldType: fieldType ? fieldType.getText(fieldType.getSourceFile()) : "",
       title: title
         ? ts.isStringLiteralLike(title)
           ? title.text
-          : title.getText(parsed.sourceFile)
+          : title.getText(title.getSourceFile())
         : "",
+      titleTexts: title ? writtenStringsOf(title) : [],
       stepId: stepIdValue,
       isPlainLiteral,
       isNeverShown: Boolean(showIf && isConstantFalseFunction(showIf)),
       isConditional: Boolean(showIf && !isConstantFalseFunction(showIf)),
       isCreateOnly: isTrue("doNotShowWhenEditing"),
       isEditOnly: isTrue("doNotShowWhenCreating"),
-      file: toRepositoryPath(this.repositoryRoot, parsed.file),
+      defaultValue:
+        defaultValue && hasDefaultValue
+          ? defaultValue.getText(defaultValue.getSourceFile())
+          : undefined,
+      hasDefault: hasDefaultValue || Boolean(initializerOf("getDefaultValue")),
+      hasSpread: [node, call].some(
+        (container: ts.ObjectLiteralExpression | undefined): boolean => {
+          return Boolean(
+            container?.properties.some(
+              (candidate: ts.ObjectLiteralElementLike): boolean => {
+                return ts.isSpreadAssignment(candidate);
+              },
+            ),
+          );
+        },
+      ),
+      collapsibleSection:
+        collapsibleSection &&
+        collapsibleSection.kind !== ts.SyntaxKind.UndefinedKeyword &&
+        !(
+          ts.isIdentifier(collapsibleSection) &&
+          collapsibleSection.text === "undefined"
+        )
+          ? collapsibleSection
+              .getText(collapsibleSection.getSourceFile())
+              .replace(/\s+/g, "")
+          : undefined,
+      customElementCanBeSkipped: isTrue("customElementCanBeSkipped"),
+      customElementComponents: getCustomElement
+        ? this.readDrawnComponents(getCustomElement)
+        : [],
+      file: toRepositoryPath(
+        this.repositoryRoot,
+        call ? call.getSourceFile().fileName : parsed.file,
+      ),
       line:
-        parsed.sourceFile.getLineAndCharacterOfPosition(
-          node.getStart(parsed.sourceFile),
-        ).line + 1,
+        position
+          .getSourceFile()
+          .getLineAndCharacterOfPosition(
+            position.getStart(position.getSourceFile()),
+          ).line + 1,
+    };
+  }
+
+  /*
+   * The components a getCustomElement draws: every JSX tag in it that names
+   * a component, and in a function of the same file it calls to draw them
+   * (renderMinutesSetting(...)), a few calls deep.
+   */
+  private readDrawnComponents(
+    getCustomElement: ts.Node,
+  ): Array<CustomElementComponentFacts> {
+    const owner: ParsedFile | null = this.parse(
+      getCustomElement.getSourceFile().fileName,
+    );
+
+    if (!owner) {
+      return [];
+    }
+
+    const found: Map<string, CustomElementComponentFacts> = new Map<
+      string,
+      CustomElementComponentFacts
+    >();
+    const followed: Set<ts.Node> = new Set<ts.Node>();
+
+    const visit: (node: ts.Node, depth: number) => void = (
+      node: ts.Node,
+      depth: number,
+    ): void => {
+      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+        const tag: string = node.tagName.getText(owner.sourceFile);
+
+        if (
+          COMPONENT_TAG.test(tag) &&
+          !tag.includes(".") &&
+          tag !== "Fragment" &&
+          !found.has(tag)
+        ) {
+          found.set(tag, this.describeComponentIn(owner, tag));
+        }
+      }
+
+      if (
+        depth < 3 &&
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression)
+      ) {
+        const declared: ts.Node | undefined = owner.declarations.get(
+          node.expression.text,
+        );
+
+        if (
+          declared &&
+          ts.isFunctionLike(declared) &&
+          !followed.has(declared)
+        ) {
+          followed.add(declared);
+          visit(declared, depth + 1);
+        }
+      }
+
+      ts.forEachChild(node, (child: ts.Node): void => {
+        visit(child, depth);
+      });
+    };
+
+    visit(getCustomElement, 0);
+
+    return Array.from(found.values());
+  }
+
+  /*
+   * Where a component a file uses is declared, and whether it fills in a
+   * value of its own when it is drawn. Public so a guard can ask about a
+   * component no form field in the scanned tree draws directly (a rule's
+   * conditions builder, which ModelForm puts in itself).
+   */
+  public describeComponent(
+    filePath: string,
+    name: string,
+  ): CustomElementComponentFacts {
+    const parsed: ParsedFile | null = this.parse(filePath);
+
+    if (!parsed) {
+      return { name, file: null, fillsInOnShow: null };
+    }
+
+    return this.describeComponentIn(parsed, name);
+  }
+
+  private describeComponentIn(
+    parsed: ParsedFile,
+    name: string,
+  ): CustomElementComponentFacts {
+    const declared: { parsed: ParsedFile; node: ts.Node } | null = this.lookup(
+      parsed,
+      name,
+      0,
+    );
+
+    if (!declared) {
+      return { name, file: null, fillsInOnShow: null };
+    }
+
+    return {
+      name,
+      file: toRepositoryPath(this.repositoryRoot, declared.parsed.file),
+      fillsInOnShow: fillsInOnShow(declared.node),
     };
   }
 
@@ -1529,6 +2058,148 @@ export class FormStepsScanner {
 
     return { id, title, isConditional };
   }
+}
+
+// The hosts that draw a Create and an Edit form from one field list.
+const TABLE_HOSTS: ReadonlySet<FormHostName> = new Set<FormHostName>([
+  "ModelTable",
+  "RuleTable",
+  "LabelRuleTable",
+]);
+
+// A switch, as a field's fieldType is written: Toggle or Checkbox.
+export function isSwitchFieldType(fieldType: string): boolean {
+  return (
+    fieldType === "FormFieldSchemaType.Toggle" ||
+    fieldType === "FormFieldSchemaType.Checkbox"
+  );
+}
+
+// A JSX tag that names a component rather than an HTML element.
+const COMPONENT_TAG: RegExp = /^[A-Z]/;
+
+const EFFECT_HOOKS: ReadonlySet<string> = new Set<string>([
+  "useEffect",
+  "useLayoutEffect",
+  "useAsyncEffect",
+]);
+
+// `onChange(...)`, `props.onChange(...)`, `props.onChange?.(...)`.
+function isOnChangeCall(node: ts.Node): boolean {
+  if (!ts.isCallExpression(node)) {
+    return false;
+  }
+
+  const callee: ts.Node = unwrap(node.expression);
+
+  return (
+    (ts.isIdentifier(callee) && callee.text === "onChange") ||
+    (ts.isPropertyAccessExpression(callee) && callee.name.text === "onChange")
+  );
+}
+
+function containsNode(
+  root: ts.Node,
+  test: (node: ts.Node) => boolean,
+): boolean {
+  let isFound: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (isFound) {
+      return;
+    }
+
+    if (test(node)) {
+      isFound = true;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(root);
+
+  return isFound;
+}
+
+/*
+ * Whether a component writes a value of its own when it is drawn: an effect
+ * hook in it whose callback calls onChange - directly, or through a
+ * function declared in the component that does. A value it only writes
+ * when the user does something (an event handler) does not count.
+ */
+export function fillsInOnShow(component: ts.Node): boolean {
+  // The component's own functions that call onChange.
+  const callers: Set<string> = new Set<string>();
+
+  const collect: (node: ts.Node) => void = (node: ts.Node): void => {
+    // A function, or one wrapped in useCallback.
+    const initializer: ts.Node | undefined =
+      ts.isVariableDeclaration(node) && node.initializer
+        ? unwrap(node.initializer)
+        : undefined;
+
+    const isFunction: boolean = Boolean(
+      initializer &&
+        (ts.isFunctionLike(initializer) ||
+          (ts.isCallExpression(initializer) &&
+            ts.isIdentifier(initializer.expression) &&
+            initializer.expression.text === "useCallback" &&
+            initializer.arguments[0] &&
+            ts.isFunctionLike(unwrap(initializer.arguments[0])))),
+    );
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      initializer &&
+      isFunction &&
+      containsNode(initializer, isOnChangeCall)
+    ) {
+      callers.add(node.name.text);
+    }
+
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      containsNode(node, isOnChangeCall)
+    ) {
+      callers.add(node.name.text);
+    }
+
+    ts.forEachChild(node, collect);
+  };
+
+  collect(component);
+
+  return containsNode(component, (node: ts.Node): boolean => {
+    if (!ts.isCallExpression(node)) {
+      return false;
+    }
+
+    const callee: ts.Node = unwrap(node.expression);
+    const hookName: string = ts.isIdentifier(callee)
+      ? callee.text
+      : ts.isPropertyAccessExpression(callee)
+        ? callee.name.text
+        : "";
+
+    if (!EFFECT_HOOKS.has(hookName) || !node.arguments[0]) {
+      return false;
+    }
+
+    return containsNode(node.arguments[0], (inner: ts.Node): boolean => {
+      if (isOnChangeCall(inner)) {
+        return true;
+      }
+
+      return (
+        ts.isCallExpression(inner) &&
+        ts.isIdentifier(unwrap(inner.expression)) &&
+        callers.has((unwrap(inner.expression) as ts.Identifier).text)
+      );
+    });
+  });
 }
 
 function isConstantFalseFunction(node: ts.Node): boolean {
@@ -1791,6 +2462,26 @@ export function findStepProblems(
           message: `every field on step "${stepId}" is doNotShowWhenEditing, so the Edit form walks through an empty page.`,
         });
       }
+
+      /*
+       * And the other way round: a step whose every field is left off the
+       * Create form (doNotShowWhenCreating - a rule's Enabled switch, which
+       * RuleTable leaves off on its own) is an empty page in the create
+       * wizard.
+       */
+      if (
+        TABLE_HOSTS.has(form.host) &&
+        form.hasCreateForm !== false &&
+        onStep.every((field: FormFieldFacts): boolean => {
+          return field.isEditOnly;
+        })
+      ) {
+        problems.push({
+          kind: "empty-step-on-create",
+          form,
+          message: `every field on step "${stepId}" is left off the Create form (doNotShowWhenCreating), so the create wizard walks through an empty page.`,
+        });
+      }
     }
   }
 
@@ -1821,7 +2512,8 @@ export interface StepFieldCount {
 /*
  * Every step of a stepped form, with the fields it can show. Counted like a
  * form's length: a field shown under a condition counts (the step can be
- * that long), a constant `showIf: () => false` registration does not, and a
+ * that long), a constant `showIf: () => false` registration does not, a
+ * folded section counts once (countFieldRows), and a
  * ModelTable is judged by the longer of its Create and Edit forms. A rule
  * model's Match Criteria step counts as one field, because ModelForm draws
  * the criteria builder there instead of the fields listed on it.
@@ -1848,18 +2540,20 @@ export function countStepFields(form: FormFacts): Array<StepFieldCount> {
       },
     );
 
-    let count: number = onStep.length;
+    let count: number = countFieldRows(onStep);
 
     if (form.host === "ModelTable" || form.host === "RuleTable") {
-      const onCreate: number = onStep.filter(
-        (field: FormFieldFacts): boolean => {
+      const onCreate: number = countFieldRows(
+        onStep.filter((field: FormFieldFacts): boolean => {
           return !field.isEditOnly;
-        },
-      ).length;
+        }),
+      );
       const onEdit: number = form.hasEditForm
-        ? onStep.filter((field: FormFieldFacts): boolean => {
-            return !field.isCreateOnly;
-          }).length
+        ? countFieldRows(
+            onStep.filter((field: FormFieldFacts): boolean => {
+              return !field.isCreateOnly;
+            }),
+          )
         : 0;
       count = Math.max(onCreate, onEdit);
     }
@@ -1888,15 +2582,41 @@ export function findOverloadedSteps(
   });
 }
 
-export function describeStepFieldCount(count: StepFieldCount): string {
-  const titles: Array<string> = count.fields.map(
-    (field: FormFieldFacts): string => {
-      return (
-        (field.title || field.key || "?") +
-        (field.isConditional ? " (when shown)" : "")
-      );
-    },
+/*
+ * The rows a list of fields takes on screen. Every field is a row, except
+ * that fields next to each other in one folded section (collapsibleSection,
+ * e.g. getAdvancedFormSection) are one row between them: the section's
+ * header, which is all the form shows of them until the user opens it.
+ */
+export function countFieldRows(fields: Array<FormFieldFacts>): number {
+  let rows: number = 0;
+  let previousSection: string | undefined = undefined;
+
+  for (const field of fields) {
+    if (
+      field.collapsibleSection !== undefined &&
+      field.collapsibleSection === previousSection
+    ) {
+      continue;
+    }
+
+    rows++;
+    previousSection = field.collapsibleSection;
+  }
+
+  return rows;
+}
+
+function describeFieldTitle(field: FormFieldFacts): string {
+  return (
+    (field.title || field.key || "?") +
+    (field.isConditional ? " (when shown)" : "") +
+    (field.collapsibleSection !== undefined ? " (folded)" : "")
   );
+}
+
+export function describeStepFieldCount(count: StepFieldCount): string {
+  const titles: Array<string> = count.fields.map(describeFieldTitle);
 
   return `${count.form.file}:${count.form.line} ${count.form.label} - step "${count.step.id}" (${count.step.title}) shows ${count.count} fields: ${titles.join(", ")}`;
 }
@@ -1906,12 +2626,7 @@ export function describeForm(form: FormFacts): string {
     .filter((field: FormFieldFacts): boolean => {
       return !field.isNeverShown;
     })
-    .map((field: FormFieldFacts): string => {
-      return (
-        (field.title || field.key || "?") +
-        (field.isConditional ? " (when shown)" : "")
-      );
-    });
+    .map(describeFieldTitle);
 
   return `${form.file}:${form.line} ${form.label} - ${form.visibleFieldCount} fields: ${titles.join(", ")}`;
 }

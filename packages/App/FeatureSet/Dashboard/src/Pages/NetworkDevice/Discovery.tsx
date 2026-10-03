@@ -122,6 +122,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 type DiscoveredDeviceEntry = DiscoveredNetworkDevice;
 
@@ -221,9 +228,10 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * shape "the same handful of addresses in every one of these
        * /24s" without creating hundreds of separate scans.
        */
-      description:
-        "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. " +
-        `A single scan may cover at most ${ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US")} addresses.`,
+      description: translateTemplate(
+        "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. A single scan may cover at most {{max}} addresses.",
+        { max: ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US") },
+      ),
       /*
        * Parses the target with exactly the function the server validates
        * it with, on the step it was typed on. Without this the field's
@@ -263,9 +271,14 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
 
         return (
           <p className="mt-1 text-xs text-gray-500">
-            {`This target sweeps ${hostCount.toLocaleString("en-US")} ${
-              hostCount === 1 ? "address" : "addresses"
-            }.`}
+            {translatePlural(
+              {
+                one: "This target sweeps {{count}} address.",
+                other: "This target sweeps {{count}} addresses.",
+              },
+              hostCount,
+              { count: hostCount.toLocaleString("en-US") },
+            )}
           </p>
         );
       },
@@ -310,7 +323,9 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
         })
         .map((probe: Probe) => {
           return {
-            label: probe.name || `Probe ${probe._id}`,
+            label:
+              probe.name ||
+              translateTemplate("Probe {{id}}", { id: String(probe._id) }),
             value: probe._id!,
           };
         }),
@@ -592,7 +607,10 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       fieldType: FormFieldSchemaType.Number,
       required: true,
       placeholder: "60",
-      description: `How often to re-run this scan, in minutes. Minimum ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes.`,
+      description: translateTemplate(
+        "How often to re-run this scan, in minutes. Minimum {{minutes}} minutes.",
+        { minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES },
+      ),
       /*
        * One validator rather than a `validation: { minValue }` beside it:
        * the built-in minimum runs the value through parseInt, so "20.5"
@@ -685,6 +703,7 @@ async function deleteMonitorQuietly(monitorId: ObjectID): Promise<void> {
 const NetworkDeviceDiscovery: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -1273,9 +1292,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
     ? getReviewHosts(scanToReview)
     : [];
 
-  // Group sizes come off the whole scan, so every button keeps its own count.
+  /*
+   * Group sizes come off the whole scan, so every button keeps its own count.
+   * Named with this page's translator, the one the row's No SNMP pill is
+   * looked up with, so a button and the pill it filters to read alike.
+   */
   const hostFilterOptions: Array<FilterButtonOption> =
-    getDiscoveredHostFilterOptions(reviewEntries).map(
+    getDiscoveredHostFilterOptions(reviewEntries, translator).map(
       (option: DiscoveredHostFilterOption) => {
         return {
           label: option.label,
@@ -1395,17 +1418,29 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     className={`h-2 w-2 shrink-0 rounded-full ${liveUpdates.error ? "bg-amber-500" : liveUpdates.activeCount > 0 ? "bg-blue-500" : "bg-green-500"}`}
                   />
                   {liveUpdates.error
-                    ? "Live updates interrupted"
+                    ? translator.translateText("Live updates interrupted")
                     : liveUpdates.activeCount > 0
-                      ? `${liveUpdates.activeCount} ${liveUpdates.activeCount === 1 ? "scan" : "scans"} in progress or queued`
-                      : "Scan results up to date"}
+                      ? translator.translatePlural(
+                          {
+                            one: "{{count}} scan in progress or queued",
+                            other: "{{count}} scans in progress or queued",
+                          },
+                          liveUpdates.activeCount,
+                        )
+                      : translator.translateText("Scan results up to date")}
                 </p>
                 <p className="mt-1 text-xs text-gray-600">
                   {liveUpdates.error
-                    ? "Showing the last known progress. Updates will retry automatically."
+                    ? translator.translateText(
+                        "Showing the last known progress. Updates will retry automatically.",
+                      )
                     : liveUpdates.activeCount > 0
-                      ? "Progress refreshes every 10 seconds. You can review results while a scan runs."
-                      : "No scans on this page are currently running. Review their results below."}
+                      ? translator.translateText(
+                          "Progress refreshes every 10 seconds. You can review results while a scan runs.",
+                        )
+                      : translator.translateText(
+                          "No scans on this page are currently running. Review their results below.",
+                        )}
                 </p>
                 {liveUpdates.error && (
                   <p className="mt-1 text-xs text-amber-800">
@@ -1416,10 +1451,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>
                   {liveUpdates.isPaused && liveUpdates.activeCount > 0
-                    ? "Updates paused while this tab is hidden"
+                    ? translator.translateText(
+                        "Updates paused while this tab is hidden",
+                      )
                     : liveUpdates.isRefreshing
-                      ? "Refreshing progress…"
-                      : `Last refreshed ${liveUpdates.lastRefreshedAt.toLocaleTimeString()}`}
+                      ? translator.translateText("Refreshing progress…")
+                      : translator.translateTemplate(
+                          "Last refreshed {{time}}",
+                          {
+                            time: liveUpdates.lastRefreshedAt.toLocaleTimeString(),
+                          },
+                        )}
                 </span>
                 {liveUpdates.error && (
                   <Button
@@ -1529,9 +1571,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     {ScanModeUtil.isIcmpOnly(item) && (
                       <span
                         className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                        title="This scan pings each address and asks nothing else of what answers. Its hosts import as devices pinged by the scan's probe; add SNMP credentials later for inventory."
+                        title={translator.translateText(
+                          "This scan pings each address and asks nothing else of what answers. Its hosts import as devices pinged by the scan's probe; add SNMP credentials later for inventory.",
+                        )}
                       >
-                        {ScanMethodLabel.PingOnly}
+                        {translator.translateText(ScanMethodLabel.PingOnly)}
                       </span>
                     )}
                   </div>
@@ -1541,10 +1585,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     <></>
                   )}
                   <p className="text-xs text-gray-500">
-                    {item.probe?.name || "Probe not available"}
+                    {item.probe?.name ||
+                      translator.translateText("Probe not available")}
+                    {" · "}
                     {item.isRecurring
-                      ? ` · Repeats${item.rescanIntervalInMinutes ? ` every ${item.rescanIntervalInMinutes} min` : " automatically"}`
-                      : " · One-time"}
+                      ? item.rescanIntervalInMinutes
+                        ? translator.translateTemplate(
+                            "Repeats every {{minutes}} min",
+                            { minutes: item.rescanIntervalInMinutes },
+                          )
+                        : translator.translateText("Repeats automatically")
+                      : translator.translateText("One-time")}
                   </p>
                   {/*
                    * The message renders once, as a two-line preview, and
@@ -1682,10 +1733,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   item.status === DiscoveryScanStatus.Pending ? (
                     <span className="text-xs text-gray-500">
                       {item.status === DiscoveryScanStatus.Pending
-                        ? "Results will appear when the probe starts."
+                        ? translator.translateText(
+                            "Results will appear when the probe starts.",
+                          )
                         : outcome.isInProgress
-                          ? "Hosts appear here as they are discovered."
-                          : "No discovery results were reported."}
+                          ? translator.translateText(
+                              "Hosts appear here as they are discovered.",
+                            )
+                          : translator.translateText(
+                              "No discovery results were reported.",
+                            )}
                     </span>
                   ) : (
                     <>
@@ -1693,7 +1750,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
                         {outcome.respondedHostSummary}
                       </p>
                       {outcome.pingOnlyHostCount > 0 && (
-                        <p className="text-xs text-gray-500">{`+ ${outcome.pingOnlyHostCount} alive without SNMP`}</p>
+                        <p className="text-xs text-gray-500">
+                          {translator.translatePlural(
+                            {
+                              one: "+ {{count}} alive without SNMP",
+                              other: "+ {{count}} alive without SNMP",
+                            },
+                            outcome.pingOnlyHostCount,
+                          )}
+                        </p>
                       )}
                     </>
                   )}
@@ -1702,7 +1767,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     !isWaitingForDiscoveryProgress(item) &&
                     getDiscoveredHosts(item).length > 0 && (
                       <p className="text-xs font-medium text-blue-700">
-                        Partial results are ready to review.
+                        {translator.translateText(
+                          "Partial results are ready to review.",
+                        )}
                       </p>
                     )}
                 </div>
@@ -1735,7 +1802,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
               item = liveUpdates.getScan(item);
               if (!item.isRecurring) {
-                return <span className="text-sm text-gray-400">One-time</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("One-time")}
+                  </span>
+                );
               }
 
               const nextScanAt: Date | null = item.nextScanAt
@@ -1760,8 +1831,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 <div>
                   <div className="text-sm text-gray-900">
                     {item.rescanIntervalInMinutes
-                      ? `Every ${item.rescanIntervalInMinutes} min`
-                      : "Recurring"}
+                      ? translator.translateTemplate("Every {{minutes}} min", {
+                          minutes: item.rescanIntervalInMinutes,
+                        })
+                      : translator.translateText("Recurring")}
                   </div>
                   {nextScanAt ? (
                     <div
@@ -1771,16 +1844,21 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       )}
                     >
                       {/* fromNow renders e.g. "in 12 minutes". */}
-                      {`Next scan ${OneUptimeDate.fromNow(nextScanAt)}`}
+                      {translator.translateTemplate("Next scan {{time}}", {
+                        time: OneUptimeDate.fromNow(nextScanAt),
+                      })}
                     </div>
                   ) : isRunUnderway ? (
                     <div className="text-xs text-gray-500">
-                      Next scan is scheduled when this run finishes
+                      {translator.translateText(
+                        "Next scan is scheduled when this run finishes",
+                      )}
                     </div>
                   ) : (
                     <div className="text-xs text-yellow-600">
-                      No next scan is scheduled. Open Edit and save to schedule
-                      one.
+                      {translator.translateText(
+                        "No next scan is scheduled. Open Edit and save to schedule one.",
+                      )}
                     </div>
                   )}
                 </div>
@@ -1804,7 +1882,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     ? OneUptimeDate.getDateAsLocalFormattedString(
                         OneUptimeDate.fromString(startedAt),
                       )
-                    : "Not started"}
+                    : translator.translateText("Not started")}
                 </span>
               );
             },
@@ -1952,9 +2030,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
           modelIdToEdit={scanToEdit.id!}
           name="Edit Discovery Scan"
           title="Edit Discovery Scan"
-          description={`Change what this scan sweeps, which probe runs it, the credentials it tries, or how often it repeats. It currently sweeps ${
-            scanToEdit.cidr || "the address range it was created with"
-          }.`}
+          description={translator.translateTemplate(
+            "Change what this scan sweeps, which probe runs it, the credentials it tries, or how often it repeats. It currently sweeps {{range}}.",
+            {
+              range:
+                scanToEdit.cidr ||
+                translatableTerm("the address range it was created with"),
+            },
+          )}
           /*
            * The one consequence that is not obvious from the form: a changed
            * sweep makes the last run's hosts describe a scan that no longer
@@ -2012,10 +2095,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * — and reads as a flat contradiction next to a No SNMP filter that
            * exists precisely to import them as a batch.
            */
-          description={`Hosts that responded in ${
-            ScanNameUtil.getScanLabel(scanToReview) ||
-            "the scanned address range"
-          }. ${
+          description={[
             /*
              * An ICMP-only sweep has exactly one group, so the sentence about
              * choosing between two would be describing a filter row that is
@@ -2023,22 +2103,42 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * a shortfall rather than the thing the operator asked for.
              */
             isIcmpOnlyReview
-              ? "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents."
-              : "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some."
-          }${
+              ? translator.translateTemplate(
+                  "Hosts that responded in {{range}}. This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents.",
+                  {
+                    range:
+                      ScanNameUtil.getScanLabel(scanToReview) ||
+                      translatableTerm("the scanned address range"),
+                  },
+                )
+              : translator.translateTemplate(
+                  "Hosts that responded in {{range}}. Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some.",
+                  {
+                    range:
+                      ScanNameUtil.getScanLabel(scanToReview) ||
+                      translatableTerm("the scanned address range"),
+                  },
+                ),
             /*
              * The probe's summary of the sweep. Most valuable precisely when
              * this list is empty, which is the one case where the operator
              * otherwise has nothing at all to go on.
              */
-            scanToReview.statusMessage ? ` ${scanToReview.statusMessage}` : ""
-          }`}
+            scanToReview.statusMessage || "",
+          ]
+            .filter((sentence: string): boolean => {
+              return sentence.length > 0;
+            })
+            .join(" ")}
           modalWidth={ModalWidth.Medium}
           isLoading={isImporting}
           isBodyLoading={isLoadingReview}
           error={importError || undefined}
           onClose={closeReviewModal}
-          submitButtonText={`Import Selected (${selectedCount})`}
+          submitButtonText={translator.translateTemplate(
+            "Import Selected ({{count}})",
+            { count: selectedCount },
+          )}
           disableSubmitButton={!isReviewReady || selectedCount === 0}
           onSubmit={() => {
             importSelectedDevices().catch((err: Error) => {
@@ -2098,8 +2198,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   <Button
                     title={
                       areAllShownSelected
-                        ? `Clear all (${selectableShownCount.toLocaleString("en-US")})`
-                        : `Select all (${selectableShownCount.toLocaleString("en-US")})`
+                        ? translator.translateTemplate(
+                            "Clear all ({{count}})",
+                            {
+                              count:
+                                selectableShownCount.toLocaleString("en-US"),
+                            },
+                          )
+                        : translator.translateTemplate(
+                            "Select all ({{count}})",
+                            {
+                              count:
+                                selectableShownCount.toLocaleString("en-US"),
+                            },
+                          )
                     }
                     dataTestId="discovered-device-select-all"
                     buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -2125,8 +2237,33 @@ const NetworkDeviceDiscovery: FunctionComponent<
                  */}
                 <p className="mt-2 text-xs text-gray-500">
                   {hostFilter === DiscoveredHostFilter.All
-                    ? `${selectedCount.toLocaleString("en-US")} of ${selectableShownCount.toLocaleString("en-US")} importable hosts selected.`
-                    : `${selectedCount.toLocaleString("en-US")} of ${selectableShownCount.toLocaleString("en-US")} importable ${getDiscoveredHostFilterLabel(hostFilter)} hosts selected. Import brings in this group only — selections in the other group are kept, so you can switch and import it too.`}
+                    ? translator.translatePlural(
+                        {
+                          one: "{{selected}} of {{count}} importable host selected.",
+                          other:
+                            "{{selected}} of {{count}} importable hosts selected.",
+                        },
+                        selectableShownCount,
+                        {
+                          selected: selectedCount.toLocaleString("en-US"),
+                          count: selectableShownCount.toLocaleString("en-US"),
+                        },
+                      )
+                    : translator.translatePlural(
+                        {
+                          one: "{{selected}} of {{count}} importable {{group}} host selected. Import brings in this group only — selections in the other group are kept, so you can switch and import it too.",
+                          other:
+                            "{{selected}} of {{count}} importable {{group}} hosts selected. Import brings in this group only — selections in the other group are kept, so you can switch and import it too.",
+                        },
+                        selectableShownCount,
+                        {
+                          selected: selectedCount.toLocaleString("en-US"),
+                          count: selectableShownCount.toLocaleString("en-US"),
+                          group: translatableTerm(
+                            getDiscoveredHostFilterLabel(hostFilter),
+                          ),
+                        },
+                      )}
                 </p>
               </div>
             )}
@@ -2151,7 +2288,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
             {noSnmpHostCount > 0 && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <Toggle
-                  title={`Also create a Ping monitor for each host without SNMP to get incidents (optional) — ${noSnmpHostCount.toLocaleString("en-US")} ${noSnmpHostCount === 1 ? "host" : "hosts"}`}
+                  title={translator.translatePlural(
+                    {
+                      one: "Also create a Ping monitor for each host without SNMP to get incidents (optional) — {{count}} host",
+                      other:
+                        "Also create a Ping monitor for each host without SNMP to get incidents (optional) — {{count}} hosts",
+                    },
+                    noSnmpHostCount,
+                    { count: noSnmpHostCount.toLocaleString("en-US") },
+                  )}
                   description="These hosts are already pinged by the probe that ran this scan and read Up or Down on their own. A Ping monitor is what raises incidents and alerts and puts them on a status page: this creates one per host — on the same probe, so it can reach them — and binds it. Monitors count towards your plan. Incidents stay off until you turn them on per monitor."
                   initialValue={createPingMonitors}
                   value={createPingMonitors}
@@ -2372,7 +2517,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
                          * does not say why reads as broken rather than as
                          * deliberate.
                          */
-                        ariaLabel={`Import ${displayName} (${entry.ipAddress || "no address"})`}
+                        ariaLabel={translator.translateTemplate(
+                          "Import {{name}} ({{address}})",
+                          {
+                            name: displayName,
+                            address:
+                              entry.ipAddress || translatableTerm("no address"),
+                          },
+                        )}
                         hoverText={
                           entry.isAlreadyRegistered
                             ? "Already added as a Network Device."
@@ -2424,10 +2576,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
                           {unnamedHostExplanation && (
                             <Fragment>
                               <span className="flex-shrink-0 text-xs text-gray-400">
-                                {unnamedHostExplanation.label}
+                                {translator.translateText(
+                                  unnamedHostExplanation.label,
+                                )}
                               </span>
                               <InfoTooltip
-                                label={`why ${entry.ipAddress} has no name`}
+                                label={translator.translateTemplate(
+                                  "why {{address}} has no name",
+                                  { address: entry.ipAddress },
+                                )}
                                 text={unnamedHostExplanation.text}
                                 dataTestId={`discovered-device-unnamed-${entry.ipAddress}`}
                               />
@@ -2439,10 +2596,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
                           {isNamedByNetbios && (
                             <span
                               className="text-gray-400"
-                              title="The host reported this name itself over NetBIOS. It has no SNMP name and no reverse-DNS name to confirm it."
+                              title={translator.translateText(
+                                "The host reported this name itself over NetBIOS. It has no SNMP name and no reverse-DNS name to confirm it.",
+                              )}
                             >
                               {" · "}
-                              NetBIOS name
+                              {translator.translateText("NetBIOS name")}
                             </span>
                           )}
                           {secondaryFullName && (
@@ -2469,14 +2628,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       {isPingOnly && (
                         <span
                           className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
-                          title="Responds to ping only. Imports as a device pinged by the scan's probe, with no SNMP credentials — add them later for interfaces and inventory. Turn on 'Create a Ping monitor' above if you also want incidents."
+                          title={translator.translateText(
+                            "Responds to ping only. Imports as a device pinged by the scan's probe, with no SNMP credentials — add them later for interfaces and inventory. Turn on 'Create a Ping monitor' above if you also want incidents.",
+                          )}
                         >
-                          No SNMP
+                          {translator.translateText("No SNMP")}
                         </span>
                       )}
                       {entry.isAlreadyRegistered && (
                         <span className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                          Already added
+                          {translator.translateText("Already added")}
                         </span>
                       )}
                     </div>

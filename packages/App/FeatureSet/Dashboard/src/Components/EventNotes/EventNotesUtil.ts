@@ -17,6 +17,13 @@ import {
   fillNoteTemplate,
   NoteTemplateVariables,
 } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
+import {
+  getGlobalTranslator,
+  translatableTerm,
+  TranslatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Everything the notes feed decides without React: which date a note is
@@ -207,7 +214,7 @@ export function getAuthorName(user: User | JSONObject | null | undefined): {
     return { name: email, isAutomation: false };
   }
 
-  return { name: "Unknown user", isAutomation: false };
+  return { name: translationKey("Unknown user"), isAutomation: false };
 }
 
 export function getInitials(name: string): string {
@@ -284,7 +291,7 @@ export function isNoteBlank(text: string | undefined | null): boolean {
  * draft takes the template, anything else gets it appended after a blank line.
  *
  * With `variables`, the template's {{placeholders}} are filled in first
- * ({{incident.title}}, {{customFields.impact}}...; see
+ * ({{incident.title}}, {{incident.customFields.impact}}...; see
  * IncidentNoteTemplateVariables). Only the template's: what was already typed
  * is left exactly as it is. A placeholder with no value stays as written.
  */
@@ -516,51 +523,92 @@ export interface NotesCopy {
   submitLabel: string;
   deleteTitle: string;
   deleteDescription: string;
-  noteNoun: string;
+  // The composer's name for screen readers, writing and editing a note.
+  newNoteLabel: string;
+  editNoteLabel: string;
 }
+
+/*
+ * The events a notes feed belongs to, as its sentences name them ("Internal
+ * notes for your team about this incident."). Listed so the extraction finds
+ * each one; getNotesCopy translates the noun it is given as a term.
+ */
+export const EVENT_NOTE_NOUNS: ReadonlyArray<string> = [
+  translationKey("incident"),
+  translationKey("alert"),
+  translationKey("episode"),
+  translationKey("scheduled maintenance event"),
+];
 
 /*
  * The words a feed uses. The two kinds of note look alike on screen, so the
  * copy carries most of the difference: who will read this, and where.
+ *
+ * The fixed strings are English keys the feed looks up where it shows them.
+ * The two sentences that name the event are filled in here, in the reader's
+ * language: pass the component's translator.
  */
 export function getNotesCopy(
   visibility: NoteVisibility,
   eventNoun: string,
+  translator: Translator = getGlobalTranslator(),
 ): NotesCopy {
+  const event: TranslatableTerm = translatableTerm(eventNoun, {
+    inSentence: true,
+  });
+
   if (visibility === "public") {
     return {
-      title: "Public notes",
-      description: `Customer-facing updates about this ${eventNoun}. They appear on your status page, and subscribers can be notified when you post one.`,
-      composerPlaceholder:
+      title: translationKey("Public notes"),
+      description: translator.translateTemplate(
+        "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.",
+        { event },
+      ),
+      composerPlaceholder: translationKey(
         "Tell your customers what is happening, what you are doing about it, and when they will hear from you next.",
-      composerPrompt: "Post an update to your status page…",
-      emptyTitle: "No public updates yet",
-      emptyDescription: `Keep your customers in the loop. Public notes are shown on the status page for this ${eventNoun}.`,
-      audienceLabel: "Public",
-      audienceHint: "Visible on your status page",
-      submitLabel: "Post update",
-      deleteTitle: "Delete this public note?",
-      deleteDescription:
+      ),
+      composerPrompt: translationKey("Post an update to your status page…"),
+      emptyTitle: translationKey("No public updates yet"),
+      emptyDescription: translator.translateTemplate(
+        "Keep your customers in the loop. Public notes are shown on the status page for this {{event}}.",
+        { event },
+      ),
+      audienceLabel: translationKey("Public"),
+      audienceHint: translationKey("Visible on your status page"),
+      submitLabel: translationKey("Post update"),
+      deleteTitle: translationKey("Delete this public note?"),
+      deleteDescription: translationKey(
         "It will be removed from your status page. Subscribers who were already notified keep the message they received. This cannot be undone.",
-      noteNoun: "public note",
+      ),
+      newNoteLabel: translationKey("New public note"),
+      editNoteLabel: translationKey("Edit public note"),
     };
   }
 
   return {
-    title: "Private notes",
-    description: `Internal notes for your team about this ${eventNoun}. They are never shown on a status page or sent to subscribers.`,
-    composerPlaceholder:
+    title: translationKey("Private notes"),
+    description: translator.translateTemplate(
+      "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.",
+      { event },
+    ),
+    composerPlaceholder: translationKey(
       "Share findings, decisions and next steps with your team.",
-    composerPrompt: "Write a note for your team…",
-    emptyTitle: "No private notes yet",
-    emptyDescription: `Capture what your team learns while working on this ${eventNoun}. Only people in your project can see private notes.`,
-    audienceLabel: "Private",
-    audienceHint: "Only your team can see this",
-    submitLabel: "Add note",
-    deleteTitle: "Delete this private note?",
-    deleteDescription:
+    ),
+    composerPrompt: translationKey("Write a note for your team…"),
+    emptyTitle: translationKey("No private notes yet"),
+    emptyDescription: translator.translateTemplate(
+      "Capture what your team learns while working on this {{event}}. Only people in your project can see private notes.",
+      { event },
+    ),
+    audienceLabel: translationKey("Private"),
+    audienceHint: translationKey("Only your team can see this"),
+    submitLabel: translationKey("Add note"),
+    deleteTitle: translationKey("Delete this private note?"),
+    deleteDescription: translationKey(
       "The note will be permanently deleted. This cannot be undone.",
-    noteNoun: "private note",
+    ),
+    newNoteLabel: translationKey("New private note"),
+    editNoteLabel: translationKey("Edit private note"),
   };
 }
 

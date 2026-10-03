@@ -19,6 +19,8 @@ import {
   isSessionReplayCustomDroppedPayload,
   isSessionReplayCustomPayload,
   isSessionReplayIdentifyPayload,
+  isSessionReplayIdlePausedPayload,
+  isSessionReplayIdleResumedPayload,
   isSessionReplayPerformanceBudgetPayload,
   isSessionReplayTagsPayload,
   isSessionReplayVisibilityPayload,
@@ -134,7 +136,13 @@ const FALLBACK_CLICK_INTERACTIONS: ReadonlySet<number> = new Set<number>([
   RRWEB_MOUSE_INTERACTION_TOUCH_START,
 ]);
 
-/* Custom tags that count as user activity for the idle map. */
+/*
+ * Custom tags that count as user activity for the idle map. The idle-pause
+ * markers are deliberately not among them, the resumed one included: it
+ * says capture started again, not what the user did - their own input
+ * after it is recorded and counts on its own - and counting it would end
+ * every idle stretch at a marker rather than at the person.
+ */
 const ACTIVITY_KINDS: ReadonlySet<ReplayTimelineEventKind> =
   new Set<ReplayTimelineEventKind>(["route", "click", "frustration"]);
 
@@ -152,6 +160,8 @@ const TAG_TO_KIND: Record<string, ReplayTimelineEventKind> = {
   [SessionReplayCustomEventTag.CustomDropped]: "custom-dropped",
   [SessionReplayCustomEventTag.Identify]: "identify",
   [SessionReplayCustomEventTag.Tags]: "tags",
+  [SessionReplayCustomEventTag.IdlePaused]: "idle-pause",
+  [SessionReplayCustomEventTag.IdleResumed]: "idle-pause",
 };
 
 /* One chunk held in the decoded LRU. */
@@ -1571,6 +1581,18 @@ export default class ChunkLoader {
       );
     };
 
+    /*
+     * The same mapping without the window clamp, for the one stamp that
+     * is allowed to lie outside its chunk: an idle-resumed marker's
+     * pausedAtUnixMs, which is by definition before the chunk that resumed
+     * (see the idle-pause placement below).
+     */
+    const toUnclampedOffsetMs: (timestamp: number) => number = (
+      timestamp: number,
+    ): number => {
+      return entry.chunkStartOffsetMs + (timestamp - firstTimestamp);
+    };
+
     for (const event of events) {
       if (!event || typeof event !== "object") {
         continue;
@@ -1638,8 +1660,8 @@ export default class ChunkLoader {
         continue;
       }
 
-      const kind: ReplayTimelineEventKind | undefined =
-        TAG_TO_KIND[String(data["tag"])];
+      const tag: string = String(data["tag"]);
+      const kind: ReplayTimelineEventKind | undefined = TAG_TO_KIND[tag];
 
       if (!kind) {
         continue;
@@ -1656,6 +1678,17 @@ export default class ChunkLoader {
         chunkIndex: entry.chunkIndex,
         offsetMs: offsetMs,
       };
+
+      /*
+       * Both idle-pause markers are one kind; which edge a row is comes
+       * from its tag, and fillRow reads the payload by it.
+       */
+      if (kind === "idle-pause") {
+        row.idlePauseEdge =
+          tag === SessionReplayCustomEventTag.IdleResumed
+            ? "resumed"
+            : "paused";
+      }
 
       ChunkLoader.fillRow(row, kind, payload);
 
@@ -1677,6 +1710,37 @@ export default class ChunkLoader {
           Number.isFinite(occurredAtUnixMs)
         ) {
           row.offsetMs = toOffsetMs(occurredAtUnixMs);
+        }
+      }
+
+      /*
+       * An idle-pause row sits at the moment it describes: the paused one
+       * where capture stopped, the resumed one where it started again.
+       * The resumed row also carries where the pause BEGAN, which is what
+       * lets the inactivity map draw the stretch that was never recorded
+       * from this one row - even when the chunk holding the paused marker
+       * has not been decoded. That one offset escapes the window clamp on
+       * purpose, since it lies before this chunk by the whole length of
+       * the pause; it is still held at or after the session's start and at
+       * or before the resume itself, so a skewed stamp can neither draw a
+       * band before zero nor hand the skipper one that ends before it
+       * starts. fillRow only sets the stamps when the payload was valid,
+       * so a malformed marker keeps its row and draws no band.
+       */
+      if (kind === "idle-pause") {
+        if (row.idlePauseEdge === "resumed") {
+          if (
+            row.pausedAtUnixMs !== undefined &&
+            row.resumedAtUnixMs !== undefined
+          ) {
+            row.offsetMs = toOffsetMs(row.resumedAtUnixMs);
+            row.pausedAtOffsetMs = Math.min(
+              row.offsetMs,
+              Math.max(0, toUnclampedOffsetMs(row.pausedAtUnixMs)),
+            );
+          }
+        } else if (row.pausedAtUnixMs !== undefined) {
+          row.offsetMs = toOffsetMs(row.pausedAtUnixMs);
         }
       }
 
@@ -2096,6 +2160,27 @@ export default class ChunkLoader {
         row.droppedCount = isSessionReplayCustomDroppedPayload(payload)
           ? payload.count
           : readNumber("count") ?? 0;
+        break;
+      }
+      case "idle-pause": {
+        /*
+         * All or nothing per edge, through the shared guards. A resume
+         * whose stamps are missing, are not numbers, or come before their
+         * own pause describes no stretch at all: the row stays, so the
+         * rail still shows where capture came back, but it carries no
+         * stamps - and without pausedAtUnixMs no band is drawn from it.
+         */
+        if (row.idlePauseEdge === "resumed") {
+          if (isSessionReplayIdleResumedPayload(payload)) {
+            row.pausedAtUnixMs = payload.pausedAtUnixMs;
+            row.resumedAtUnixMs = payload.resumedAtUnixMs;
+            row.atUnixMs = payload.resumedAtUnixMs;
+          }
+        } else if (isSessionReplayIdlePausedPayload(payload)) {
+          row.idleSinceUnixMs = payload.idleSinceUnixMs;
+          row.pausedAtUnixMs = payload.pausedAtUnixMs;
+          row.atUnixMs = payload.pausedAtUnixMs;
+        }
         break;
       }
       case "navigation": {

@@ -1,6 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ExceptionRowProps {
   exception: TelemetryException;
@@ -8,31 +11,35 @@ export interface ExceptionRowProps {
   onClick?: () => void;
 }
 
-function formatRelativeTime(time: Date): string {
+// "5m ago", in the reader's language.
+function formatRelativeTime(time: Date, translator: Translator): string {
   const now: Date = new Date();
   const diffMs: number = Math.max(0, now.getTime() - time.getTime());
   const sec: number = Math.floor(diffMs / 1000);
   if (sec < 60) {
-    return `${sec}s ago`;
+    return translator.translateTemplate("{{count}}s ago", { count: sec });
   }
   const min: number = Math.floor(sec / 60);
   if (min < 60) {
-    return `${min}m ago`;
+    return translator.translateTemplate("{{count}}m ago", { count: min });
   }
   const hr: number = Math.floor(min / 60);
   if (hr < 24) {
-    return `${hr}h ago`;
+    return translator.translateTemplate("{{count}}h ago", { count: hr });
   }
   const day: number = Math.floor(hr / 24);
-  return `${day}d ago`;
+  return translator.translateTemplate("{{count}}d ago", { count: day });
 }
 
 const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
   props: ExceptionRowProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { exception, service } = props;
 
-  const exceptionType: string = exception.exceptionType || "Exception";
+  const exceptionType: string =
+    exception.exceptionType ||
+    (translator.translateText("Exception") as string);
   const message: string = exception.message || "";
   const firstLine: string = message.split("\n")[0] || "";
 
@@ -45,7 +52,8 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
     ? new Date(exception.lastSeenAt as unknown as string)
     : null;
 
-  const serviceName: string = service?.name || "unknown service";
+  const serviceName: string =
+    service?.name || (translator.translateText("unknown service") as string);
   const serviceColor: string | undefined = service?.serviceColor?.toString();
 
   const isResolved: boolean = Boolean(exception.isResolved);
@@ -115,29 +123,51 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-gray-500">
             {firstSeen && (
               <span>
-                first{" "}
-                <span className="font-medium text-gray-700">
-                  {formatRelativeTime(firstSeen)}
-                </span>
+                <TranslatedSentence
+                  template="first {{time}}"
+                  slots={{
+                    time: (
+                      <span className="font-medium text-gray-700">
+                        {formatRelativeTime(firstSeen, translator)}
+                      </span>
+                    ),
+                  }}
+                />
               </span>
             )}
             {lastSeen && (
               <>
                 <span className="text-gray-300">·</span>
                 <span>
-                  last{" "}
-                  <span className="font-medium text-gray-700">
-                    {formatRelativeTime(lastSeen)}
-                  </span>
+                  <TranslatedSentence
+                    template="last {{time}}"
+                    slots={{
+                      time: (
+                        <span className="font-medium text-gray-700">
+                          {formatRelativeTime(lastSeen, translator)}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
               </>
             )}
             <span className="text-gray-300">·</span>
             <span>
-              <span className="font-semibold tabular-nums text-gray-800">
-                {occuranceCount.toLocaleString()}
-              </span>{" "}
-              events
+              <TranslatedSentence
+                template={{
+                  one: "{{number}} event",
+                  other: "{{number}} events",
+                }}
+                count={occuranceCount}
+                slots={{
+                  number: (
+                    <span className="font-semibold tabular-nums text-gray-800">
+                      {translator.formatNumber(occuranceCount)}
+                    </span>
+                  ),
+                }}
+              />
             </span>
           </div>
         </div>
@@ -146,17 +176,17 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
         <div className="flex flex-shrink-0 items-center">
           {isResolved && (
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-              Resolved
+              {translator.translateText("Resolved")}
             </span>
           )}
           {!isResolved && isArchived && (
             <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-              Archived
+              {translator.translateText("Archived")}
             </span>
           )}
           {!isResolved && !isArchived && (
             <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
-              Unresolved
+              {translator.translateText("Unresolved")}
             </span>
           )}
         </div>

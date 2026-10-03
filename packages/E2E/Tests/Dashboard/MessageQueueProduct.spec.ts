@@ -784,21 +784,26 @@ test.describe.skip("Queues Product", () => {
       .fill(DESTINATION);
 
     /*
-     * Three steps - Messaging System, Queue Info, Labels - with the footer's
-     * one submit button reading "Next" until the last.
+     * Two steps - Messaging System, then Queue Info (with the labels folded
+     * under Advanced at its end) - and only the first asks for anything:
+     * Create Queue is on offer from it, with a plain Next to the optional one.
      */
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-    await expect(submit).toHaveText("Next");
-    await submit.click();
+    const next: Locator = modal.getByTestId("modal-footer-next-button");
+    await expect(submit).toHaveText("Create Queue");
+    await next.click();
 
-    // Queue Info. No name: the server names the queue after its destination.
+    /*
+     * Queue Info, the last step: nothing to walk on to. No name: the server
+     * names the queue after its destination.
+     */
     await expect(
       modal.getByPlaceholder("Order events", { exact: true }),
     ).toBeVisible({ timeout: 30000 });
-    await expect(submit).toHaveText("Next");
-    await submit.click();
-
-    // Labels, optional, and the last step.
+    await expect(
+      modal.getByRole("button", { name: "Advanced", exact: true }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(next).toHaveCount(0);
     await expect(submit).toHaveText("Create Queue");
     await submit.click();
     await expect(modal).toBeHidden({ timeout: 30000 });
@@ -1207,9 +1212,15 @@ test.describe.skip("Queues Product", () => {
     await modal
       .getByPlaceholder("orders.created", { exact: true })
       .fill(DESTINATION);
+
+    // The queue's name is on the optional Queue Info step: Next opens it.
+    await modal.getByTestId("modal-footer-next-button").click();
     await modal
       .getByPlaceholder("Order events", { exact: true })
       .fill(SERVICE_BUS_QUEUE_NAME);
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Create Queue",
+    );
     await modal.getByTestId("modal-footer-submit-button").click();
     await expect(modal).toBeHidden({ timeout: 30000 });
 
@@ -1318,11 +1329,22 @@ test.describe.skip("Queues Product", () => {
       return stored ? stored["isArchived"] : null;
     };
 
+    /*
+     * The queue's Settings page sits in a Settings section that starts
+     * folded down to its title, like every rarely used section: its rows are
+     * hidden until the section is opened.
+     */
+    const settingsSectionToggle: Locator = page
+      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator(
+        "xpath=.//h6[normalize-space(.)='Settings']/ancestor::button[1]",
+      );
+
     await gotoProjectPage({
       page,
       projectId: ctx.projectId,
       url: urlFor(kafkaPath),
-      ready: settingsLink.first(),
+      ready: settingsSectionToggle,
     });
     await expect(
       page.getByRole("heading", { name: DESTINATION, exact: true }),
@@ -1335,6 +1357,12 @@ test.describe.skip("Queues Product", () => {
       page.getByRole("button", { name: "Archive", exact: true }),
     ).toHaveCount(0);
 
+    await expect(settingsSectionToggle).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(settingsLink.first()).toBeHidden();
+    await settingsSectionToggle.click();
     await settingsLink.first().click();
     await expect(page).toHaveURL(settingsUrl);
     await expect(page.getByText("Queue Settings").first()).toBeVisible({
@@ -1368,8 +1396,32 @@ test.describe.skip("Queues Product", () => {
     await expect(serviceBusQueueLink).toBeVisible({ timeout: 30000 });
     await expect(kafkaQueueLink).toHaveCount(0);
 
-    // Archived lists it.
-    await page.getByRole("link", { name: "Archived", exact: true }).click();
+    /*
+     * Archived lists it. Its entry waits in the menu's Advanced section,
+     * which starts folded away on the list: its rows are hidden until it is
+     * opened.
+     */
+    const productAdvancedToggle: Locator = page
+      .locator("aside[role='navigation'][aria-label='Main navigation']")
+      .locator(
+        "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
+      );
+    const archivedLink: Locator = page.getByRole("link", {
+      name: "Archived",
+      exact: true,
+    });
+
+    if (
+      (await productAdvancedToggle.getAttribute("aria-expanded")) !== "true"
+    ) {
+      await expect(archivedLink).toBeHidden();
+      await productAdvancedToggle.click();
+    }
+    await expect(productAdvancedToggle).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await archivedLink.click();
     await expect(page).toHaveURL(
       new RegExp(`/dashboard/${ctx.projectId}/queues/archived/?(?:\\?.*)?$`),
       { timeout: 30000 },

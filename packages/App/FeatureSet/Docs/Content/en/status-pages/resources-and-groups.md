@@ -66,7 +66,7 @@ The **Advanced** step is the same on the single-add form and the bulk modal. Eve
 
 ## Uptime percentages and history charts
 
-Both **Show Uptime %** and **Show Status History Chart** depend on a setting that lives somewhere else. The window they cover is **Show Uptime History (in days)** under **Status Pages → your page → Advanced → Advanced Settings**, in the **Uptime History Settings** card. It accepts 1 to 90 days and defaults to 90.
+Both **Show Uptime %** and **Show Status History Chart** depend on a setting that lives somewhere else. The window they cover is **Uptime History** in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings**. It accepts 1 to 90 days and defaults to 90.
 
 So the sequence is: turn the toggles on per resource, then set the window once for the whole page.
 
@@ -74,7 +74,7 @@ So the sequence is: turn the toggles on per resource, then set the window once f
 
 Groups have their own copies of these toggles — see below — so a group can show a rolled-up percentage while the individual monitors inside it stay quiet, or the other way round.
 
-The colors of the history chart bars, and which monitor statuses count as "down", are set on the **Overview Page** branding screen, covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
+The colors of the history chart bars are set under **Advanced** on the **Branding** page, and which monitor statuses count as "down" in the **Downtime Monitor Statuses** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
 ## Groups
 
@@ -85,7 +85,7 @@ Click **New Group** to open **Create New Status Page Group**. The form has three
 - **Group Name** (`name`) — required. This is the section heading visitors see.
 - **Group Description** (`description`) — optional markdown, shown under the heading.
 - **Parent Group** (`parentStatusPageGroupId`) — optional. Leave it at **No parent group (top level)** to keep the group at the top level.
-- **Expand on Status Page by Default** (`isExpandedByDefault`) — whether the section starts open or collapsed for visitors.
+- **Expand on Status Page by Default** (`isExpandedByDefault`) — on by default: whether the section starts open or collapsed for visitors.
 
 **Advanced** mirrors the resource toggles at group level:
 

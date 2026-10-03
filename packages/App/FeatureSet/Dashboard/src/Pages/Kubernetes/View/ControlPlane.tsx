@@ -28,6 +28,9 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -664,6 +667,7 @@ function getKubeProxyQueries(cluster: string): Array<MetricQueryConfigData> {
 const KubernetesClusterControlPlane: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -825,16 +829,19 @@ const KubernetesClusterControlPlane: FunctionComponent<
         </div>
         <div>
           <p className="text-sm font-medium text-blue-800">
-            Control Plane Metrics Configuration
+            {translator.translateText("Control Plane Metrics Configuration")}
           </p>
           <p className="mt-1 text-sm text-blue-600">
-            Control plane metrics require{" "}
-            <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-              controlPlane.enabled: true
-            </code>{" "}
-            in the kubernetes-agent Helm chart values. This is typically only
-            available for self-managed clusters, not managed services like EKS,
-            GKE, or AKS. CoreDNS metrics are available on all clusters.
+            <TranslatedSentence
+              template="Control plane metrics require {{setting}} in the kubernetes-agent Helm chart values. This is typically only available for self-managed clusters, not managed services like EKS, GKE, or AKS. CoreDNS metrics are available on all clusters."
+              slots={{
+                setting: (
+                  <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                    controlPlane.enabled: true
+                  </code>
+                ),
+              }}
+            />
           </p>
         </div>
       </div>

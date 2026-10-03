@@ -37,8 +37,18 @@ import {
   Purple500,
   Sky500,
 } from "Common/Types/BrandColors";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import {
+  getOfferedWorkspaces,
+  useWorkspaceConnections,
+} from "../../Utils/Workspace/ConnectedWorkspaces";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
-type ChannelKey =
+export type ChannelKey =
   | "alertByEmail"
   | "alertBySMS"
   | "alertByCall"
@@ -54,6 +64,12 @@ interface ChannelDef {
   label: string;
   icon: IconProp;
   color: Color;
+  /*
+   * Set on the two chat workspaces: their column is shown only when the
+   * project has connected that workspace, since nothing can reach anybody
+   * through a workspace the project never connected.
+   */
+  workspaceType?: WorkspaceType | undefined;
 }
 
 const CHANNELS: ReadonlyArray<ChannelDef> = [
@@ -83,12 +99,14 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     label: "Slack",
     icon: IconProp.Slack,
     color: Purple500,
+    workspaceType: WorkspaceType.Slack,
   },
   {
     key: "alertByMicrosoftTeams",
     label: "Teams",
     icon: IconProp.MicrosoftTeams,
     color: Blue500,
+    workspaceType: WorkspaceType.MicrosoftTeams,
   },
   {
     key: "alertByWebhook",
@@ -97,6 +115,24 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     color: Sky500,
   },
 ];
+
+/*
+ * The columns a matrix shows: every channel, except a chat workspace the
+ * project has not connected. A hidden column's switches keep their saved
+ * value; they are only not offered.
+ */
+export function getShownChannelKeys(
+  offeredWorkspaces: ReadonlyArray<WorkspaceType>,
+): Array<ChannelKey> {
+  return CHANNELS.filter((channel: ChannelDef): boolean => {
+    return (
+      !channel.workspaceType ||
+      offeredWorkspaces.includes(channel.workspaceType)
+    );
+  }).map((channel: ChannelDef): ChannelKey => {
+    return channel.key;
+  });
+}
 
 interface EventDef {
   type: NotificationSettingEventType;
@@ -386,6 +422,7 @@ interface ChannelCellProps {
 const ChannelCell: FunctionComponent<ChannelCellProps> = (
   props: ChannelCellProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isBusy, setIsBusy] = useState<boolean>(false);
 
   const handleClick: () => Promise<void> = async (): Promise<void> => {
@@ -409,7 +446,15 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       type="button"
       role="switch"
       aria-checked={props.enabled}
-      aria-label={`${props.channel.label}: ${props.enabled ? "On" : "Off"}. Click to ${props.enabled ? "disable" : "enable"}.`}
+      aria-label={
+        props.enabled
+          ? translator.translateTemplate("{{channel}}: On. Click to disable.", {
+              channel: translatableTerm(props.channel.label),
+            })
+          : translator.translateTemplate("{{channel}}: Off. Click to enable.", {
+              channel: translatableTerm(props.channel.label),
+            })
+      }
       onClick={handleClick}
       disabled={isBusy}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${stateClasses}`}
@@ -431,11 +476,28 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
   props: NotificationMatrixProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const eventTypes: Array<NotificationSettingEventType> = useMemo(() => {
     return props.section.events.map((event: EventDef) => {
       return event.type;
     });
   }, [props.section]);
+
+  /*
+   * Null on a first visit until the project's workspaces are known: the
+   * matrix keeps its loader until then rather than drawing nine columns and
+   * dropping two.
+   */
+  const offeredWorkspaces: ReadonlyArray<WorkspaceType> | null =
+    getOfferedWorkspaces(useWorkspaceConnections());
+  const shownChannelKeys: Array<ChannelKey> = offeredWorkspaces
+    ? getShownChannelKeys(offeredWorkspaces)
+    : [];
+  const shownChannels: Array<ChannelDef> = CHANNELS.filter(
+    (channel: ChannelDef): boolean => {
+      return shownChannelKeys.includes(channel.key);
+    },
+  );
 
   const [rowsByEvent, setRowsByEvent] = useState<
     Map<NotificationSettingEventType, UserNotificationSetting>
@@ -579,7 +641,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
       description={props.section.description}
       bodyClassName="mt-5"
     >
-      {isLoading ? (
+      {isLoading || !offeredWorkspaces ? (
         <ComponentLoader />
       ) : (
         <Fragment>
@@ -605,7 +667,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                   >
                     {translateString("Event")}
                   </th>
-                  {CHANNELS.map((channel: ChannelDef) => {
+                  {shownChannels.map((channel: ChannelDef) => {
                     return (
                       <th
                         key={channel.key}
@@ -644,7 +706,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                           {translateString(event.description)}
                         </div>
                       </td>
-                      {CHANNELS.map((channel: ChannelDef) => {
+                      {shownChannels.map((channel: ChannelDef) => {
                         const enabled: boolean = Boolean(
                           row &&
                             (row as unknown as Record<string, boolean>)[
@@ -679,8 +741,9 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
             </table>
           </div>
           <p className="mt-4 text-xs text-gray-500">
-            Click any channel to switch it on or off. Changes save
-            automatically.
+            {translator.translateText(
+              "Click any channel to switch it on or off. Changes save automatically.",
+            )}
           </p>
         </Fragment>
       )}

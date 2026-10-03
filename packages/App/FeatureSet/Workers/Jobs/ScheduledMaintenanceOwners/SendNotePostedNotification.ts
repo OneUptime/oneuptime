@@ -16,6 +16,7 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -118,6 +119,7 @@ RunCron(
             },
             currentScheduledMaintenanceState: {
               name: true,
+              color: true,
             },
             scheduledMaintenanceNumber: true,
             scheduledMaintenanceNumberWithPrefix: true,
@@ -161,6 +163,10 @@ RunCron(
         projectName: scheduledMaintenance.project!.name!,
         currentState:
           scheduledMaintenance.currentScheduledMaintenanceState!.name!,
+        ...EmailColorUtil.getTemplateVariables(
+          "currentState",
+          scheduledMaintenance.currentScheduledMaintenanceState?.color,
+        ),
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
           MarkdownContentType.Email,

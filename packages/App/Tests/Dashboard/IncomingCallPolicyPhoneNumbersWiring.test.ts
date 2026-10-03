@@ -55,7 +55,10 @@ describe("the incoming-call phone-number manager", () => {
 
   test("renders zero, one, and many attached-number states from the array", () => {
     expect(MANAGER_CODE).toContain("props.phoneNumbers.length === 0");
-    expect(MANAGER_CODE).toContain("props.phoneNumbers.length === 1");
+    // One and many are the two forms of one translated plural sentence.
+    expect(MANAGER_CODE).toMatch(
+      /translatePlural\(\s*\{\s*one: "\{\{count\}\} phone number routes calls to this policy\.",\s*other: "\{\{count\}\} phone numbers route calls to this policy\.",\s*\},\s*props\.phoneNumbers\.length,\s*\)/,
+    );
     expect(MANAGER_CODE).toContain("props.phoneNumbers.map(");
     expect(MANAGER_CODE).toContain("No Phone Numbers Configured");
     expect(MANAGER_CODE).toContain("phone numbers route calls to this policy");
@@ -258,8 +261,9 @@ describe("the incoming-call policies table", () => {
     expect(POLICIES_TABLE_CODE).toContain(
       "getCompactPhoneNumberSummary(phoneNumbers)",
     );
-    expect(POLICIES_TABLE_CODE).toContain(
-      "+{summary.additionalPhoneNumbersCount} more",
+    // "+2 more" is one translated sentence, filled with the overflow count.
+    expect(POLICIES_TABLE_CODE).toMatch(
+      /translatePlural\(\s*\{\s*one: "\+\{\{count\}\} more",\s*other: "\+\{\{count\}\} more",?\s*\},\s*summary\.additionalPhoneNumbersCount,?\s*\)/,
     );
     expect(POLICIES_TABLE_CODE).toContain('title: "Phone Numbers"');
   });

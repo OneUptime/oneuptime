@@ -364,7 +364,6 @@ function editor(data: {
         alertSeverityDropdownOptions={[]}
         onCallPolicyDropdownOptions={[]}
         labelDropdownOptions={[]}
-        teamDropdownOptions={[]}
         userDropdownOptions={[]}
         allMonitorSteps={new MonitorSteps()}
         probes={[]}

@@ -30,9 +30,10 @@ set:
   clusterName: prod-us
   oneuptime.url: https://oneuptime.example.com
   oneuptime.apiKey: key-123
-  # The full config, as an OBI that takes all of it (v0.14+) gets it. The
-  # chart's default pin is older and gets it without the span-attribute
-  # selection; see ebpf-default-pin_test.yaml and the version cases below.
+  # The full config, as an OBI that takes all of it (v0.14+) gets it. That is
+  # the chart's default pin; it is set here so these cases keep covering the
+  # full config if the default moves. An older pin gets it without the
+  # span-attribute selection; see the version cases below.
   ebpf.image.tag: v0.14.0
 tests:
   # ---------------------------------------------------------------- DaemonSet

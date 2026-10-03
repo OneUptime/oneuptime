@@ -10,6 +10,7 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import useTranslateValue from "../../Utils/Translation";
 
 export enum SideOverSize {
   Small = "Small",
@@ -83,6 +84,7 @@ const getPortalTarget: PortalTargetFunction = (): HTMLElement | null => {
 const SideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   let widthClass: string = "max-w-2xl";
 
   if (props.size === SideOverSize.Small) {
@@ -192,14 +194,14 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     id={titleId}
                     data-testid="side-over-title"
                   >
-                    {props.title}
+                    {translateString(props.title) ?? props.title}
                   </h2>
                   <p
                     className="text-sm text-gray-500"
                     id={descriptionId}
                     data-testid="side-over-description"
                   >
-                    {props.description}
+                    {translateString(props.description) ?? props.description}
                   </p>
                 </div>
                 <div className="flex h-7 items-center">
@@ -208,11 +210,13 @@ const SideOver: FunctionComponent<ComponentProps> = (
                       props.onClose();
                     }}
                     type="button"
-                    title="Close panel"
+                    title={translateString("Close panel")}
                     data-testid="close-button"
                     className="rounded-md text-gray-400 transition-colors duration-150 ease-out hover:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                   >
-                    <span className="sr-only">Close panel</span>
+                    <span className="sr-only">
+                      {translateString("Close panel")}
+                    </span>
 
                     <Icon className="h-6 w-6" icon={IconProp.Close} />
                   </button>
@@ -226,12 +230,26 @@ const SideOver: FunctionComponent<ComponentProps> = (
              * page scrollbar bleeding through the panel. overscroll-contain
              * stops a wheel past the end of the panel from scrolling the page
              * out from under it.
+             *
+             * scroll-pb-6 matches the bottom padding below, for what the
+             * keyboard scrolls into view: the workflow picker's arrow keys, or
+             * Tab through a form, stop the same 24px short of the footer
+             * rather than leaving the item on its divider.
              */}
             <div
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pb-6"
               data-testid="side-over-content"
             >
-              <div className="space-y-6 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:py-0 p-5">
+              {/*
+               * The bottom padding is kept at every width. It used to go with
+               * the top padding from sm up (sm:py-0), so on any screen 640px or
+               * wider the last row of a scrolled panel - the workflow picker's
+               * "Browse all resources" - sat flush on the footer's divider.
+               * Only the top is still dropped from sm up: callers rely on it,
+               * such as the workflow picker, whose sticky search box sits at
+               * the very top and brings its own spacing.
+               */}
+              <div className="space-y-6 px-5 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:pt-0">
                 {props.children}
               </div>
             </div>

@@ -1265,6 +1265,7 @@ function getSessionReplayRowActions(
   return [
     {
       title: "Watch from first error",
+      icon: IconProp.Play,
       buttonStyleType: ButtonStyleType.OUTLINE,
       placement: ActionButtonPlacement.MoreMenu,
       tooltip: "Open the player one second before the first error",

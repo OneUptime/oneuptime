@@ -56,11 +56,13 @@ Every host is checked against the project's inventory by IP address before anyth
 
 ### Match Criteria
 
-A rule imports a discovered host only when **all** specified criteria pass — conditions on one rule are ANDed. At least one condition is required — a rule with no conditions matches nothing, and is rejected when you save it. To OR conditions, create multiple rules.
+A rule imports a discovered host when it matches the rule's conditions. At least one condition is required — a rule with no conditions matches nothing, and is rejected when you save it.
 
-- **Host IP Is In** — a CIDR (\`192.168.1.0/24\`) or octet range (\`10.16-22.0-255.51-66\`), the same notations a scan target takes.
-- **System Name / Description Pattern** — case-insensitive regex, or a \`*\` wildcard pattern, matched against the host's SNMP sysName / sysDescr.
-- **System Object ID Pattern** — matched against the host's sysObjectID, the vendor's registered enterprise OID. NOT the free-text syntax above: an OID is a dotted numeric arc, so this takes an OID prefix (\`1.3.6.1.4.1.9\`) or a \`*\` wildcard pattern with literal dots (\`1.3.6.1.4.1.9.*\` is "any Cisco device" and can never match enterprise 94). Only hosts found by probes that report sysObjectID can match this condition.
+### What the Conditions Compare
+
+- **IP Address** — the discovered host's address. **Is in** takes a CIDR (\`192.168.1.0/24\`) or an octet range (\`10.16-22.0-255.51-66\`), the same notations a scan target takes.
+- **System Name**, **System Description** — the host's SNMP sysName and sysDescr. A pattern is a case-insensitive regular expression or a \`*\` wildcard.
+- **System Object ID** — the host's sysObjectID, the vendor's registered enterprise OID. Not the free-text syntax above: an OID is a dotted numeric arc, so its pattern is an OID prefix (\`1.3.6.1.4.1.9\`) or a \`*\` wildcard with literal dots (\`1.3.6.1.4.1.9.*\` is "any Cisco device" and can never match enterprise 94). Only hosts found by probes that report sysObjectID can match this condition.
 
 By default only hosts that answered SNMP are imported. Enable **Include Ping-Only Hosts** to also import hosts that only answered ping — but beware: a wrong SNMP credential makes every host on a subnet report as ping-only.
 
@@ -355,11 +357,19 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            /*
+             * Off on purpose, though the column defaults to on: saving an
+             * enabled import rule imports the hosts discovered in the last
+             * day within a minute, and each one becomes a monitored device.
+             * A new rule is tried with Dry Run first and switched on after
+             * (CreateFormDefaultsGuard lists why).
+             */
+            defaultValue: false,
             description: "Enable or disable this rule.",
           },
           {
             field: { ipMatchTarget: true },
-            title: "Host IP Is In",
+            title: "IP Address",
             stepId: "match-criteria",
             sectionTitle: "Match by Address",
             sectionDescription:
@@ -372,7 +382,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
           },
           {
             field: { sysNamePattern: true },
-            title: "System Name Pattern",
+            title: "System Name",
             stepId: "match-criteria",
             sectionTitle: "Match by SNMP Identity",
             sectionDescription:
@@ -385,7 +395,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
           },
           {
             field: { sysDescrPattern: true },
-            title: "System Description Pattern",
+            title: "System Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -395,7 +405,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
           },
           {
             field: { sysObjectIdPattern: true },
-            title: "System Object ID Pattern",
+            title: "System Object ID",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,

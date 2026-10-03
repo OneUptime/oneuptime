@@ -28,6 +28,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import MetricView from "../Metrics/MetricView";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -42,6 +44,7 @@ export interface ComponentProps {
 const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [metricViewData, setMetricViewData] = useState<MetricViewData | null>(
@@ -225,7 +228,10 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
        */
       description={
         seriesSummary
-          ? `Metric data from around when this incident was declared, scoped to the affected series (${seriesSummary}).`
+          ? translator.translateTemplate(
+              "Metric data from around when this incident was declared, scoped to the affected series ({{series}}).",
+              { series: seriesSummary },
+            )
           : "Metric data from around when this incident was declared."
       }
     >

@@ -2,7 +2,7 @@
 
 An outage rarely raises one alert. When the primary database falls over, the replication lag monitor fires, the API error rate monitor fires, and the checkout latency SLO starts burning — three alerts, one problem. Linking those alerts to the incident says so: the incident is where the response happens, and every alert shows which incident explains it.
 
-A link is only a link. The alert keeps its own state, owners, on-call policies, notes and feed; the incident keeps its own. Linking merges and copies nothing, and on its own it never acknowledges, resolves or silences an alert. (Declaring a new incident from alerts is different: the new incident is prefilled from them, as [described below](#declaring-an-incident-from-alerts), and unless you untick the box on the form, the alerts are acknowledged as you declare it, which stops their escalation — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).) If you want the incident to move its alerts along with it, turn on the two project switches described [further down](#keeping-alert-states-in-step-with-the-incident).
+A link is only a link. The alert keeps its own state, owners, on-call policies, notes and feed; the incident keeps its own. Linking merges and copies nothing, and on its own it never acknowledges, resolves or silences an alert. (Declaring a new incident from alerts is different: the new incident is prefilled from them, as [described below](#declaring-an-incident-from-alerts), and unless you untick the box on the form, the alerts are acknowledged as you declare it, which stops their escalation — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).) Two project switches, on for new projects, move the linked alerts along with the incident as it is acknowledged and resolved — see [further down](#keeping-alert-states-in-step-with-the-incident).
 
 If you are coming from Opsgenie, this is OneUptime's version of associating alerts with an incident.
 
@@ -12,7 +12,7 @@ If you are coming from Opsgenie, this is OneUptime's version of associating aler
 - **Three places to link** — the incident's **Linked Alerts** page, the alert's **Linked Incidents** page, and the **Link to Incident** bulk action on the main alerts lists, for up to **50** alerts at a time.
 - **Declare an incident from alerts** — **Declare Incident** on an alerts list, in an alert's header or on its **Linked Incidents** page prefills a new incident from the alerts and links them as it is created. A box on the form, ticked by default, acknowledges them too, which stops their own on-call escalation.
 - **Recorded on both sides** — every link and unlink writes a feed entry on the incident and on the alert, except that an incident declared from alerts gets one entry listing them all. Only the incident's entries are posted to Slack and Microsoft Teams, and a private alert's or incident's title is never written on the other side.
-- **Alert states are yours to sync** — two project switches, both off by default, acknowledge and resolve linked alerts when the incident is acknowledged and resolved.
+- **Alert states follow the incident** — two project switches, both on for new projects, acknowledge and resolve linked alerts when the incident is acknowledged and resolved. Turn either off at **Incidents → Settings → Linked Alerts**.
 - **Automatable** — links are an ordinary API resource, `/api/incident-alert`.
 
 ## Why link alerts to an incident
@@ -92,7 +92,7 @@ Whichever you use, you land on the usual **Declare New Incident** form, with the
 
 "Most severe" follows your alert severity order: the first alert severity in the list is the most severe. With the severities every project starts with, a **High** alert becomes a **Critical Incident** and a **Low** alert a **Major Incident**.
 
-Everything is editable before you submit.
+Everything is editable before you submit. **Labels** and **Private Incident** are under **Advanced** on the form's first step, which says **Configured** while either is set.
 
 **An alert that already has an incident is flagged.** With **Declare Incident** on every alert's page, two responders paged by the same outage can each declare it. So the banner listing the alerts marks each alert that is already linked to an incident — "(already linked to Incident INC-42)", linking to that incident — and adds a note, worded by how many of the alerts are linked:
 
@@ -102,7 +102,7 @@ Everything is editable before you submit.
 
 The incident links open in a new tab, so you can check the existing incident without losing what you have filled in on the form. The note is a reminder, not a block, and only incidents you are allowed to see are named.
 
-**On-call policies are not copied.** The alerts ran their own on-call policies when they were created, so copying them onto the incident would page the same people a second time. The incident's on-call policies are whatever you pick on the **On-Call** step plus whatever your incident on-call rules add — exactly as for any other incident.
+**On-call policies are not copied.** The alerts ran their own on-call policies when they were created, so copying them onto the incident would page the same people a second time. The incident's on-call policies are whatever you pick on the **On-Call & Roles** step plus whatever your incident on-call rules add — exactly as for any other incident.
 
 **The alerts' monitors are prefilled as affected monitors.** As with any incident declared by hand, active monitoring on the incident's monitors pauses until the incident is resolved. Remove a monitor from **Resources Affected** before you submit if it should keep being checked.
 
@@ -124,7 +124,7 @@ Leave it ticked and, once the incident is declared and the alerts are linked:
 - **An alert episode keeps escalating.** If an alert belongs to an episode that pages through its own on-call policy, the episode keeps escalating until the episode itself is acknowledged.
 - **Alerts already acknowledged or resolved are left alone.** As everywhere else, states are compared by their order, so an alert in a custom state after **Acknowledged** counts as acknowledged, and nothing is ever moved backwards.
 
-Untick the box to declare without acknowledging. Whenever alerts will be left unacknowledged — the box is unticked or locked — the form says so: "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged." And if you acknowledge the alerts without choosing an on-call policy for the incident, the **On-Call** step's summary points out: "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page."
+Untick the box to declare without acknowledging. Whenever alerts will be left unacknowledged — the box is unticked or locked — the form says so: "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged." And if you acknowledge the alerts without choosing an on-call policy for the incident, the **On-Call & Roles** step's summary points out: "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page."
 
 **You need permission to acknowledge the alerts.** Acknowledging writes the alert's state timeline and changes the alert, so it takes **Create Alert State Timeline** and **Edit Alert**: Project Owner, Project Admin, Project Member, Alert Admin and Alert Member have both, while Incident Admin and Incident Member, who can declare incidents from alerts, have neither. Your label and owner scope on alerts must include each alert that will be acknowledged, too — only the ones not acknowledged yet are checked. Alerts that are already acknowledged or resolved need no permission and never block the declaration. Without the permissions the box is locked, with a tooltip naming the missing one, and you can still declare the incident. The server checks again before it creates anything, for each alert it will acknowledge: if you may not acknowledge one of them, no incident is created and the form says why — untick the box and submit again.
 
@@ -132,7 +132,7 @@ Untick the box to declare without acknowledging. Whenever alerts will be left un
 
 The alerts are acknowledged in the background, just after they are linked, a few at a time — up to 5 at once — so the incident's page can open a moment before they are, and declaring from many alerts does not leave the last of them waiting behind all the others. An alert that cannot be acknowledged — because it was deleted in the meantime, say — is logged and never stops the others or the incident, and an alert that somebody else acknowledges or resolves in the meantime is left as they left it.
 
-**With the project's linked alert switches on, the switches may move the alerts instead.** If the incident is declared straight into an acknowledged or resolved state and one of the [linked alert switches](#keeping-alert-states-in-step-with-the-incident) acts on that state, the switch moves the linked alerts as they are linked, and the box leaves those alerts to it, so that each alert has one writer. They are acknowledged or resolved the way the switch does it — with the switch's cause, such as "Acknowledged because linked Incident INC-42 was acknowledged.", which names the incident by its number even when it is private — they are not credited to you, and their owners are not notified. Declaring into your first incident state, as usual, or with the switches off (the default), leaves every alert to the box.
+**With the project's linked alert switches on, the switches may move the alerts instead.** If the incident is declared straight into an acknowledged or resolved state and one of the [linked alert switches](#keeping-alert-states-in-step-with-the-incident) acts on that state, the switch moves the linked alerts as they are linked, and the box leaves those alerts to it, so that each alert has one writer. They are acknowledged or resolved the way the switch does it — with the switch's cause, such as "Acknowledged because linked Incident INC-42 was acknowledged.", which names the incident by its number even when it is private — they are not credited to you, and their owners are not notified. Declaring into your first incident state, as usual, or with the switches off, leaves every alert to the box.
 
 ### Declaring through the API
 
@@ -232,7 +232,7 @@ Three more rules apply on top:
 
 - **You must be able to see both sides.** A link is only created when you can read both the alert and the incident. Private alerts and incidents, and label restrictions, apply as usual.
 - **A link belongs to its incident.** Whether you can see a link follows your access to its incident: label restrictions and owner scope on incidents apply to the link too.
-- **Linking needs read access to an alert, not edit access.** With the project's linked alert switches on, that is enough for a link to acknowledge or resolve the alert — see [Who moves a linked alert](#who-moves-a-linked-alert).
+- **Linking needs read access to an alert, not edit access.** With the project's linked alert switches on, as they are in new projects, that is enough for a link to acknowledge or resolve the alert — see [Who moves a linked alert](#who-moves-a-linked-alert).
 
 Declaring an incident from alerts also needs permission to create incidents, and acknowledging its alerts as you declare needs **Create Alert State Timeline** and **Edit Alert** on each of them that is not acknowledged yet — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare). In the dashboard, an action you lack a permission for is locked, and its tooltip names the missing permission. That includes read access to the other side: **Link Alert** is locked if you cannot read alerts, and **Link Incident** and **Link to Incident** if you cannot read incidents. For how roles, granular permissions, labels and owner scope combine, see [Users, Teams & Permissions](/docs/permissions/index).
 
@@ -256,16 +256,16 @@ This holds even when both are private, because a private alert and a private inc
 
 **Declaring an incident from alerts writes one entry, not one per alert.** The links made as the incident is declared write no **Alert Linked** entries of their own. Instead, once the incident's **Incident Created** entry is out — and the incident's own Slack and Microsoft Teams channels, if you use them, have been created — the incident gets a single **Alert Linked** entry: "Declared from 3 alerts:", followed by one line per alert with its number and title (a private alert without its title). That is the one message posted to Slack and Microsoft Teams. Each alert still gets its own **Linked to Incident** entry.
 
-Both feeds' **Filter & Sort** menus list these event types, so you can show or hide link activity like any other kind of entry. More on the incident feed in [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed).
+Both feeds' **Filter by event type** dialogs, in the **⋯** menu of each feed, list these event types, so you can show or hide link activity like any other kind of entry. More on the incident feed in [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed).
 
 ## Keeping alert states in step with the incident
 
-By default, linking changes nothing about an alert's state. A linked alert stays where it is until somebody moves it, its on-call policy keeps escalating, and its reminders keep coming. The one exception is declaring an incident from alerts with the form's box left ticked, which acknowledges them as you declare — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).
-
-Two project switches let the incident carry its linked alerts along. Both are off by default. They live on the **Linked Alerts** card at **Incidents → Settings → More Settings** — click **Update** on the card to change them — and only Project Owners and Project Admins can:
+Two project switches let the incident carry its linked alerts along. Both are on for new projects. A project created before they were on by default keeps the setting it had, which is off unless somebody turned them on. They have a settings page of their own, **Incidents → Settings → Linked Alerts** — click **Update** on its **Linked Alerts** card to change them — and only Project Owners and Project Admins can:
 
 - **Acknowledge Linked Alerts When Incident Is Acknowledged** — when the incident reaches your acknowledged state, every linked alert that is not yet acknowledged moves to your alert **Acknowledged** state. This is what stops those alerts' on-call escalations: the next escalation step sees an acknowledged alert and stops, within about a minute. Pages that already went out are not recalled. Alert reminders stop too when the alert's reminder rule has **Stop Reminders When** set to **Acknowledged**; otherwise they carry on until the alert is resolved.
 - **Resolve Linked Alerts When Incident Is Resolved** — when the incident reaches your resolved state, every linked alert that is not yet resolved moves to your alert **Resolved** state, except an alert that is still linked to another incident that is not resolved. That alert is left open for the other incident — acknowledged, if the acknowledge switch is on too — and is resolved when the last of its incidents is.
+
+With both switches off, linking changes nothing about an alert's state. A linked alert stays where it is until somebody moves it, its on-call policy keeps escalating, and its reminders keep coming. The one exception is declaring an incident from alerts with the form's box left ticked, which acknowledges them as you declare — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).
 
 ### How the switches behave
 
@@ -286,13 +286,13 @@ Turning a switch on hands the linked alerts' states to the incident, by design: 
 - **Whoever can change an incident's state moves its linked alerts.** Acknowledging or resolving the incident acknowledges or resolves them.
 - **Whoever can link an alert can move it.** Linking an alert to an incident that is already acknowledged or resolved moves the alert as it is linked.
 
-Neither needs permission to edit the alerts. OneUptime moves them itself, and linking needs only read access to an alert. So with the acknowledge switch on, anybody who can link alerts or change incident states can acknowledge — and stop the on-call escalation of — any alert they can see; with the resolve switch on, they can resolve it. That is why only Project Owners and Project Admins can turn the switches on. Leave them off if alert states should only ever be changed by people who can edit alerts.
+Neither needs permission to edit the alerts. OneUptime moves them itself, and linking needs only read access to an alert. So with the acknowledge switch on, anybody who can link alerts or change incident states can acknowledge — and stop the on-call escalation of — any alert they can see; with the resolve switch on, they can resolve it. That is why only Project Owners and Project Admins can change the switches. They are on in a new project, so turn them off if alert states should only ever be changed by people who can edit alerts.
 
 ### Resolving alerts that come from monitors
 
 Acknowledging is always safe for a monitor's alert: an acknowledged alert still counts as open, so the monitor keeps using it rather than opening another.
 
-Resolving is different. If the monitor is still failing when its alert is resolved, the monitor's next check opens a fresh alert — and the fresh alert is not linked to the incident. If your incidents are often resolved before their monitors recover, keep just the acknowledge switch on, or resolve incidents only once their monitors are healthy.
+Resolving is different. If the monitor is still failing when its alert is resolved, the monitor's next check opens a fresh alert — and the fresh alert is not linked to the incident. If your incidents are often resolved before their monitors recover, turn the resolve switch off and keep just the acknowledge switch on, or resolve incidents only once their monitors are healthy.
 
 ## Deleting alerts and incidents
 
@@ -308,5 +308,5 @@ None of these write **Alert Unlinked** or **Unlinked from Incident** feed entrie
 - [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare form, templates, monitor criteria and the API.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — the state order the switches compare against.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — the incident feed where links are recorded.
-- [Incident Settings & Automation](/docs/incidents/settings) — where the two switches live.
+- [Incident Settings & Automation](/docs/incidents/settings) — the incident settings pages, Linked Alerts among them.
 - [Users, Teams & Permissions](/docs/permissions/index) — roles, granular permissions and scope.

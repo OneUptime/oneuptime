@@ -1,15 +1,15 @@
 # Een workflow maken
 
-Om een workflow te maken open je **Workflows** en klik je op **Workflow maken**. Een wizard met de titel **Create a workflow** loodst je erdoorheen: eerst **Start from**, dan **Naam**, en tot slot een stap **Configureren**, die alleen verschijnt wanneer het gekozen sjabloon om eigen instellingen vraagt.
+Om een workflow te maken open je **Workflows** en klik je op **Workflow maken**. Het venster **Een workflow maken** vraagt eerst hoe je wilt beginnen en daarna om een naam. Een sjabloon dat eigen instellingen nodig heeft, zoals een Slack-webhook-URL, vraagt daar in nog een stap om.
 
-Bij **Start from** kies je hoe je begint:
+Kies hoe je begint:
 
-- **Vanaf nul beginnen**, naast het zoekvak, geeft je een leeg canvas.
-- Een sjabloon geeft je een werkende workflow om aan te passen. De stap opent met een paar sjablonen onder **Aanbevolen**. De rest staat in hun categorieën, zoals **Incidenten**, **Monitoren** en **Jira**, elk met het aantal sjablonen dat erin zit, en **Alle sjablonen** toont ze allemaal. Een zoekopdracht doorzoekt ze allemaal: elk woord dat je typt moet overeenkomen, en elke categorie laat zien hoeveel van haar sjablonen overeenkwamen.
+- **Vanaf nul beginnen**, bovenaan het venster, geeft je een leeg canvas. Hier beginnen de meeste workflows.
+- **Of begin met een sjabloon** toont een paar sjablonen onder **Aanbevolen**. Voor de rest kies je naast het zoekvak een categorie, zoals **Incidenten**, **Monitoren** of **Jira**, of **Alle sjablonen**, of je typt in **Sjablonen zoeken…**. Elk woord dat je typt moet overeenkomen.
 
-Klik op een sjabloon om te zien wat het doet voordat je het kiest: de trigger, de stappen waaruit het bestaat en de instellingen waar het om vraagt. **Dit sjabloon gebruiken** neemt het mee naar **Naam**, en dat doen **Enter** en dubbelklikken ook. Met de pijltjestoetsen ga je door de lijst, en `/` brengt je terug naar het zoekvak.
+Klik op een sjabloon om te zien wat het doet: de trigger, de blokken waaruit het bestaat en de instellingen waar het om vraagt. Klik daarna op **Dit sjabloon gebruiken**, of dubbelklik op het sjabloon. In het zoekvak kiezen de pijltjestoetsen een sjabloon en gebruikt **Enter** het. `/` brengt je terug naar het zoekvak.
 
-Zodra hij bestaat, open je **Bouwer** in het linkermenu. Dat is het canvas waarop je de workflow ontwerpt.
+Workflows worden uitgeschakeld aangemaakt, dus er wordt niets uitgevoerd tot je ze inschakelt. Een nieuwe workflow opent in de **Bouwer**, het canvas waarop je hem ontwerpt.
 
 ## Het canvas
 

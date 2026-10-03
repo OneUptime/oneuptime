@@ -51,7 +51,12 @@ const ActiveIncidents: FunctionComponent<
         isDeleteable={false}
         query={{
           currentIncidentState: {
-            order: 1,
+            /*
+             * In the state new ones start in - not "the state numbered
+             * 1": states are dragged into any order, and the first one
+             * need not be where new ones start.
+             */
+            isCreatedState: true,
           },
         }}
         fetchRequestOptions={
@@ -73,7 +78,11 @@ const ActiveIncidents: FunctionComponent<
           description:
             "Here is a list of active incidents for all of the projects you are a part of.",
         }}
-        noItemsMessage={"No incident found."}
+        emptyState={{
+          isAllClear: true,
+          title: "No active incidents",
+          description: "Nice work! Every incident is resolved.",
+        }}
         singularName="Active Incident"
         pluralName="Active Incidents"
         onViewPage={(item: Incident): Promise<Route> => {

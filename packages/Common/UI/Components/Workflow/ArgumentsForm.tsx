@@ -59,6 +59,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translatableTerm,
+  translateText,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   component: NodeDataProp;
@@ -94,14 +101,31 @@ const SINGLE_FIELD_KINDS: Partial<
   [ArgumentControl.DateTime]: ValueSingleFieldKind.DateTime,
 };
 
-type DescribeArgumentFunction = (arg: Argument) => string;
+type DescribeArgumentFunction = (
+  translator: Translator,
+  arg: Argument,
+) => string;
+
+// "Required. Where the email is sent." - the step's own words after the first.
+export const REQUIRED_ARGUMENT_HELP: string = translationKey(
+  "Required. {{description}}",
+);
+export const OPTIONAL_ARGUMENT_HELP: string = translationKey(
+  "Optional. {{description}}",
+);
 
 /*
  * A setting's help: whether it is required, then what it is for. Under the
  * label for most settings, and under a switch's name beside it.
  */
-const describeArgument: DescribeArgumentFunction = (arg: Argument): string => {
-  return `${arg.required ? "Required" : "Optional"}. ${arg.description}`;
+const describeArgument: DescribeArgumentFunction = (
+  translator: Translator,
+  arg: Argument,
+): string => {
+  return translator.translateTemplate(
+    arg.required ? REQUIRED_ARGUMENT_HELP : OPTIONAL_ARGUMENT_HELP,
+    { description: translatableTerm(arg.description) },
+  );
 };
 
 type ValidateTypedValueFunction = (
@@ -130,12 +154,14 @@ export const validateTypedValue: ValidateTypedValueFunction = (
     try {
       URL.fromString(value.trim());
     } catch (err: unknown) {
-      return err instanceof Exception ? err.getMessage() : "URL is not valid.";
+      return err instanceof Exception
+        ? err.getMessage()
+        : (translateText("URL is not valid.") as string);
     }
   }
 
   if (type === ComponentInputType.Email && !Email.isValid(value.trim())) {
-    return "Email is not valid.";
+    return translateText("Email is not valid.") as string;
   }
 
   return null;
@@ -144,6 +170,7 @@ export const validateTypedValue: ValidateTypedValueFunction = (
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const formRef: React.MutableRefObject<FormProps<
     FormValues<JSONObject>
   > | null> = useRef<FormProps<FormValues<JSONObject>> | null>(null);
@@ -546,7 +573,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             <ValueSingleField
               kind={singleKind}
               title={isSwitch ? arg.name : undefined}
-              description={isSwitch ? describeArgument(arg) : undefined}
+              description={
+                isSwitch ? describeArgument(translator, arg) : undefined
+              }
               value={
                 singleKind === ValueSingleFieldKind.Boolean
                   ? component.arguments?.[arg.id]
@@ -607,7 +636,13 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     onChange={row.onChange}
                     multiline={false}
                     placeholder={row.placeholder}
-                    ariaLabel={`${arg.name} value ${row.rowIndex + 1}`}
+                    ariaLabel={translator.translateTemplate(
+                      "{{name}} value {{number}}",
+                      {
+                        name: translatableTerm(arg.name),
+                        number: row.rowIndex + 1,
+                      },
+                    )}
                     dataTestId={`workflow-argument-${arg.id}-value-${row.rowIndex}`}
                   />
                 );
@@ -800,7 +835,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           return showAdvanced;
                         }
                       : undefined,
-                    description: describeArgument(arg),
+                    description: describeArgument(translator, arg),
                     field: {
                       [arg.id]: true,
                     },
@@ -844,10 +879,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               }}
             >
               {showAdvanced
-                ? "Hide advanced settings"
-                : `Show ${collapsibleAdvancedArguments.length} advanced setting${
-                    collapsibleAdvancedArguments.length === 1 ? "" : "s"
-                  }`}
+                ? translator.translateText("Hide advanced settings")
+                : translator.translatePlural(
+                    {
+                      one: "Show {{count}} advanced setting",
+                      other: "Show {{count}} advanced settings",
+                    },
+                    collapsibleAdvancedArguments.length,
+                  )}
             </button>
           </div>
         )}

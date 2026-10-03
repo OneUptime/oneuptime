@@ -20,7 +20,7 @@ Diese Seite ist die Referenz für diese Konfiguration – was auf welcher Seite 
 | **Postmortem-Vorlagen**    | Wiederverwendbare Postmortem-Strukturen.                                                                  |
 | **Benutzerdefinierte Felder** | Zusätzliche Felder definieren, die an jedem Vorfall erscheinen.                                         |
 | **Vorfallsrollen**         | Die Rollen definieren, denen Sie Responder zuweisen, etwa Incident Commander.                              |
-| **Weitere Einstellungen**  | Die Nummernpräfixe für Vorfälle und Vorfall-Episoden.                                                      |
+| **Nummernpräfix**  | Die Nummernpräfixe für Vorfälle und Vorfall-Episoden.                                                      |
 
 **Vorfallsstatus** und **Vorfallsschweregrad** werden ausführlich unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt – der Rest dieser Seite setzt bei **Vorfall-Vorlagen** an.
 
@@ -105,12 +105,14 @@ Rollen sind nur Definitionen. Zugewiesen werden Personen pro Vorfall – der Mel
 
 Jeder Vorfall bekommt eine Nummer. Standardmäßig erscheint sie als `#42`. Wenn Ihr Team laut „INC-42“ sagt, soll das Produkt es auch sagen.
 
-Gehen Sie zu **Vorfälle → Einstellungen → Weitere Einstellungen** (`/dashboard/{projectId}/incidents/settings/more`). Die Karte heißt **Nummernpräfix** und enthält zwei Felder am Projekt:
+Gehen Sie zu **Vorfälle → Einstellungen → Nummernpräfix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Die Karte **Nummernpräfix** zeigt für Vorfälle und für Vorfall-Episoden jeweils das Präfix und eine Beispielnummer, etwa `INC-` mit **Beispiel:** `INC-42`; ohne Präfix steht dort **Kein Präfix** und `#42`. **Aktualisieren** öffnet **Nummernpräfix bearbeiten** mit zwei Feldern:
 
-- **Vorfallnummern-Präfix** – bis zu 20 Zeichen, Platzhalter `INC-`. Setzen Sie es, und Vorfall `#42` erscheint als `INC-42`.
-- **Nummernpräfix der Vorfall-Episode** – dieselbe Idee für die Nummern von Vorfall-Episoden, Platzhalter `IE-`.
+- **Vorfallnummern-Präfix** – Platzhalter `INC-`.
+- **Nummernpräfix der Vorfall-Episode** – Platzhalter `IE-`.
 
-Lassen Sie eines davon leer, bleibt das Standardpräfix `#`; das nicht gesetzte Feld zeigt `# (default)`. Speichern Sie mit **Aktualisieren**. Der präfixierte Wert wird am Vorfall als `incidentNumberWithPrefix` gespeichert – und genau den rendern die Vorfallliste und der Vorfall-Header.
+Unter jedem Feld zeigt **Vorschau:** beim Tippen die Nummer, die daraus wird. Lassen Sie ein Feld leer, gilt wieder `#`. Ein Präfix hat höchstens 20 Zeichen, besteht aus Buchstaben, Ziffern und `-` `_` `.` `/` `:` `#` (keine Leerzeichen) und endet nicht auf eine Ziffer, die sonst mit der Nummer verschmilzt: Aus `SEV1` würde `SEV142`. Der Dialog sagt vor dem Speichern, was nicht stimmt, und die API lehnt dieselben Präfixe ab.
+
+Ein neues Präfix gilt nur für Vorfälle und Episoden, die danach entstehen. Bestehende behalten ihre Nummer, und der Zähler läuft weiter. Der präfixierte Wert wird am Vorfall als `incidentNumberWithPrefix` gespeichert – und genau den rendern die Vorfallliste und der Vorfall-Header. Warnungen und geplante Wartungen haben dieselbe Seite: **Warnungen → Einstellungen → Nummernpräfix** und **Geplante Wartung → Einstellungen → Nummernpräfix**. Die alte Adresse von **Weitere Einstellungen** (`…/settings/more`) führt weiterhin dorthin.
 
 ## Regeln, die beim Anlegen eines Vorfalls laufen
 

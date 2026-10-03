@@ -16,10 +16,14 @@ import NumberedSteps, {
 import ConceptCards, {
   ConceptCard,
 } from "Common/UI/Components/Diagram/ConceptCards";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const IncidentEpisodeDocs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // How Incident Grouping Works Flow Steps
   const flowSteps: Array<FlowStep> = [
     {
@@ -32,7 +36,7 @@ const IncidentEpisodeDocs: FunctionComponent<
     {
       title: "Grouping Rules Evaluated",
       description:
-        "Incident is matched against enabled grouping rules in priority order",
+        "Incident is matched against enabled grouping rules, from the top of the list down",
       icon: IconProp.Filter,
       iconColor: new Color("#3b82f6"), // blue-500
     },
@@ -143,9 +147,9 @@ const IncidentEpisodeDocs: FunctionComponent<
       iconColor: new Color("#f59e0b"), // amber-500
     },
     {
-      title: "Priority Order",
+      title: "Rule Order",
       description:
-        "Rules are evaluated in priority order (lower number = higher priority). The first matching rule wins and groups the incident.",
+        "Rules are evaluated from the top of the list down. The first matching rule wins and groups the incident - drag a rule to change its place.",
       icon: IconProp.BarsArrowDown,
       iconColor: new Color("#8b5cf6"), // violet-500
     },
@@ -281,16 +285,21 @@ const IncidentEpisodeDocs: FunctionComponent<
       >
         <div className="p-6">
           <p className="text-gray-600 mb-4">
-            Incident Grouping helps reduce incident fatigue by automatically
-            combining related incidents into <strong>Episodes</strong>. Instead
-            of seeing 50 individual &quot;database connection timeout&quot;
-            incidents, operators see one episode: &quot;Database Connectivity
-            Issues (50 incidents)&quot;.
+            <TranslatedSentence
+              template={
+                'Incident Grouping helps reduce incident fatigue by automatically combining related incidents into {{episodes}}. Instead of seeing 50 individual "database connection timeout" incidents, operators see one episode: "Database Connectivity Issues (50 incidents)".'
+              }
+              slots={{
+                episodes: (
+                  <strong>{translator.translateText("Episodes")}</strong>
+                ),
+              }}
+            />
           </p>
           <p className="text-gray-600">
-            Episodes follow the same state lifecycle as incidents (Active,
-            Acknowledged, Resolved) and can have their own on-call policies,
-            owners, root cause documentation, and postmortems.
+            {translator.translateText(
+              "Episodes follow the same state lifecycle as incidents (Active, Acknowledged, Resolved) and can have their own on-call policies, owners, root cause documentation, and postmortems.",
+            )}
           </p>
         </div>
       </Card>
@@ -321,8 +330,10 @@ const IncidentEpisodeDocs: FunctionComponent<
             />
             <div className="mt-4 text-sm text-gray-500">
               <p>
-                <strong>State Cascade:</strong> Acknowledging or resolving an
-                episode will acknowledge or resolve all member incidents.
+                <strong>{translator.translateText("State Cascade:")}</strong>{" "}
+                {translator.translateText(
+                  "Acknowledging or resolving an episode will acknowledge or resolve all member incidents.",
+                )}
               </p>
             </div>
           </div>
@@ -373,9 +384,9 @@ const IncidentEpisodeDocs: FunctionComponent<
         >
           <div className="p-6">
             <p className="text-gray-600 mb-4">
-              Incident Episodes support comprehensive postmortem documentation,
-              allowing teams to capture lessons learned and prevent future
-              incidents.
+              {translator.translateText(
+                "Incident Episodes support comprehensive postmortem documentation, allowing teams to capture lessons learned and prevent future incidents.",
+              )}
             </p>
             <ConceptCards cards={postmortemCards} columns={3} />
           </div>
@@ -390,11 +401,19 @@ const IncidentEpisodeDocs: FunctionComponent<
         >
           <div className="p-6">
             <p className="text-gray-600 mb-4">
-              On-call policies can be configured at two levels: on individual{" "}
-              <strong>incidents</strong> (via monitors or manual configuration)
-              and on <strong>grouping rules</strong> (for episodes).
-              Understanding how these interact is important for managing
-              notification volume.
+              <TranslatedSentence
+                template="On-call policies can be configured at two levels: on individual {{incidents}} (via monitors or manual configuration) and on {{groupingRules}} (for episodes). Understanding how these interact is important for managing notification volume."
+                slots={{
+                  incidents: (
+                    <strong>{translator.translateText("incidents")}</strong>
+                  ),
+                  groupingRules: (
+                    <strong>
+                      {translator.translateText("grouping rules")}
+                    </strong>
+                  ),
+                }}
+              />
             </p>
             <VerticalFlowSteps steps={onCallFlowSteps} />
           </div>
@@ -411,15 +430,21 @@ const IncidentEpisodeDocs: FunctionComponent<
             <ConceptCards cards={onCallScenarioCards} columns={2} />
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h4 className="font-semibold text-blue-800 mb-2">
-                Recommendation
+                {translator.translateText("Recommendation")}
               </h4>
               <p className="text-blue-700 text-sm">
-                To avoid duplicate notifications, consider using{" "}
-                <strong>only episode-level on-call policies</strong> for grouped
-                incidents. Configure on-call policies on your grouping rules and
-                leave individual incident on-call policies empty. This way,
-                responders are notified once per episode rather than for every
-                individual incident.
+                <TranslatedSentence
+                  template="To avoid duplicate notifications, consider using {{policies}} for grouped incidents. Configure on-call policies on your grouping rules and leave individual incident on-call policies empty. This way, responders are notified once per episode rather than for every individual incident."
+                  slots={{
+                    policies: (
+                      <strong>
+                        {translator.translateText(
+                          "only episode-level on-call policies",
+                        )}
+                      </strong>
+                    ),
+                  }}
+                />
               </p>
             </div>
           </div>
@@ -435,28 +460,36 @@ const IncidentEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <ul className="list-disc list-inside space-y-3 text-gray-600">
               <li>
-                <strong>Grouping Rule On-Call Policy:</strong> When creating or
-                editing a grouping rule, you can assign one or more on-call duty
-                policies. These policies execute when a NEW episode is created
-                by the rule.
+                <strong>
+                  {translator.translateText("Grouping Rule On-Call Policy:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "When creating or editing a grouping rule, you can assign one or more on-call duty policies. These policies execute when a NEW episode is created by the rule.",
+                )}
               </li>
               <li>
-                <strong>Default Team/User Assignment:</strong> Grouping rules
-                can also specify default team or user ownership for episodes.
-                This determines who is responsible for the episode even if
-                on-call policies aren&apos;t configured.
+                <strong>
+                  {translator.translateText("Default Team/User Assignment:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "Grouping rules can also specify default team or user ownership for episodes. This determines who is responsible for the episode even if on-call policies aren't configured.",
+                )}
               </li>
               <li>
-                <strong>Incident-Level Policies:</strong> Individual incidents
-                can still have their own on-call policies (configured on
-                monitors). These execute regardless of whether the incident is
-                grouped into an episode.
+                <strong>
+                  {translator.translateText("Incident-Level Policies:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "Individual incidents can still have their own on-call policies (configured on monitors). These execute regardless of whether the incident is grouped into an episode.",
+                )}
               </li>
               <li>
-                <strong>State Change Notifications:</strong> When an episode
-                state changes (e.g., acknowledged or resolved), owners are
-                notified based on the episode&apos;s configured notification
-                settings.
+                <strong>
+                  {translator.translateText("State Change Notifications:")}
+                </strong>{" "}
+                {translator.translateText(
+                  "When an episode state changes (e.g., acknowledged or resolved), owners are notified based on the episode's configured notification settings.",
+                )}
               </li>
             </ul>
           </div>
@@ -472,38 +505,65 @@ const IncidentEpisodeDocs: FunctionComponent<
           <div className="p-6">
             <ul className="list-disc list-inside space-y-2 text-gray-600">
               <li>
-                <strong>Start with high-priority rules</strong> - Create
-                specific rules for critical services first, then add broader
-                catch-all rules with lower priority.
+                <strong>
+                  {translator.translateText("Put specific rules first")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Drag rules for critical services to the top of the list, and keep broader catch-all rules below them.",
+                )}
               </li>
               <li>
-                <strong>Use appropriate time windows</strong> - High-frequency
-                incidents may need shorter windows (5-15 min), while standard
-                monitoring can use longer windows (30-60 min).
+                <strong>
+                  {translator.translateText("Use appropriate time windows")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "High-frequency incidents may need shorter windows (5-15 min), while standard monitoring can use longer windows (30-60 min).",
+                )}
               </li>
               <li>
-                <strong>Group by service or component</strong> - Configure rules
-                to group incidents from the same monitor or service together for
-                easier triage.
+                <strong>
+                  {translator.translateText("Group by service or component")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Configure rules to group incidents from the same monitor or service together for easier triage.",
+                )}
               </li>
               <li>
-                <strong>Set meaningful episode titles</strong> - Use title
-                templates to create descriptive episode names that help
-                operators understand the issue at a glance.
+                <strong>
+                  {translator.translateText("Set meaningful episode titles")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Use title templates to create descriptive episode names that help operators understand the issue at a glance.",
+                )}
               </li>
               <li>
-                <strong>Configure on-call policies</strong> - Assign on-call
-                policies to grouping rules so the right team is notified when
-                episodes are created.
+                <strong>
+                  {translator.translateText("Configure on-call policies")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Assign on-call policies to grouping rules so the right team is notified when episodes are created.",
+                )}
               </li>
               <li>
-                <strong>Document root causes</strong> - Use the root cause field
-                on episodes to document findings for future reference.
+                <strong>
+                  {translator.translateText("Document root causes")}
+                </strong>
+                {" - "}
+                {translator.translateText(
+                  "Use the root cause field on episodes to document findings for future reference.",
+                )}
               </li>
               <li>
-                <strong>Write postmortems</strong> - After resolving major
-                episodes, document the timeline, root cause, and action items in
-                the postmortem to improve future incident response.
+                <strong>{translator.translateText("Write postmortems")}</strong>
+                {" - "}
+                {translator.translateText(
+                  "After resolving major episodes, document the timeline, root cause, and action items in the postmortem to improve future incident response.",
+                )}
               </li>
             </ul>
           </div>

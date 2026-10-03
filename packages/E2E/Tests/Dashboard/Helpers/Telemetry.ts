@@ -1,6 +1,7 @@
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Page, expect, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { getCardButton } from "../../Helpers/CardButton";
 import { gotoProjectPage } from "./ProductOnboarding";
 
 /*
@@ -46,15 +47,21 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       )
       .toString();
 
+    /*
+     * The card's own Create button: a project's first key is created from an
+     * empty list, which offers the same button again under its message.
+     */
+    const createButton: Locator = getCardButton(page, "Create Ingestion Key");
+
     await gotoProjectPage({
       page,
       projectId: data.projectId,
       url: ingestionKeysUrl,
-      ready: page.getByRole("button", { name: "Create Ingestion Key" }),
+      ready: createButton,
     });
 
     // Open the create modal and fill in the key name.
-    await page.getByRole("button", { name: "Create Ingestion Key" }).click();
+    await createButton.click();
     await page.getByTestId("modal").waitFor({ state: "visible" });
     await page
       .locator("input[placeholder='Ingestion Key Name']")
@@ -64,24 +71,31 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
     const submitButton: Locator = modal.getByTestId(
       "modal-footer-submit-button",
     );
-    await expect(submitButton).toHaveText("Next");
-    await submitButton.click();
+    /*
+     * The one button that reads Next: the main button while a step to come
+     * still has to be shown (the Free plan's Billing step), the plain one
+     * beside Create Ingestion Key once every step left is optional.
+     */
+    const nextButton: Locator = modal.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
+    await nextButton.click();
     await expect(
       modal.getByTestId("card-select-option-Server"),
     ).toHaveAttribute("aria-checked", "true");
-    await submitButton.click();
 
     const billingStep: Locator = modal
       .getByRole("navigation", { name: "Progress" })
       .getByText("Billing", { exact: true });
     if ((await billingStep.count()) > 0) {
+      await nextButton.click();
       await expect(
         modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
       ).toBeVisible();
-      await expect(submitButton).toHaveText("Next");
-      await submitButton.click();
     }
 
+    // Only the summary is left: the main button creates the key.
     await expect(submitButton).toHaveText("Create Ingestion Key");
     await submitButton.click();
     await page.getByTestId("modal").waitFor({ state: "hidden" });

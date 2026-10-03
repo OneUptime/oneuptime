@@ -1,4 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -25,6 +30,7 @@ export interface WebhookLogsTableProps {
 const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
   props: WebhookLogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
@@ -146,12 +152,26 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
         cardProps={{
           title: "Webhook Logs",
           description: props.singularName
-            ? `Outbound webhook requests sent for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "Outbound webhook requests sent for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "Outbound webhook requests sent for this project.",
         }}
         noItemsMessage={
           props.singularName
-            ? `No webhook logs for this ${props.singularName}.`
+            ? translator.translateTemplate(
+                "No webhook logs for this {{itemName}}.",
+                {
+                  itemName: translatableTerm(props.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
             : "No webhook logs."
         }
         showRefreshButton={true}

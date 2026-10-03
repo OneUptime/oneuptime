@@ -6,7 +6,7 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
@@ -43,10 +43,13 @@ import {
   type CompactPhoneNumberSummary,
   type IncomingCallPolicyPhoneNumbersByPolicyId,
 } from "../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [phoneNumbersByPolicyId, setPhoneNumbersByPolicyId] =
     useState<IncomingCallPolicyPhoneNumbersByPolicyId>({});
   const [isLoadingPhoneNumbers, setIsLoadingPhoneNumbers] =
@@ -90,6 +93,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -190,6 +194,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
@@ -215,23 +220,12 @@ const IncomingCallPoliciesPage: FunctionComponent<
             "Configure incoming call routing policies for your on-call teams. Purchase phone numbers and set up escalation rules.",
         }}
         noItemsMessage={"No incoming call policy found."}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g., Production Support Hotline",
@@ -244,28 +238,11 @@ const IncomingCallPoliciesPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description of this incoming call policy",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<IncomingCallPolicy>(),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
@@ -354,12 +331,16 @@ const IncomingCallPoliciesPage: FunctionComponent<
                 }
 
                 if (isLoadingPhoneNumbers) {
-                  return <span className="text-gray-500">Loading…</span>;
+                  return (
+                    <span className="text-gray-500">
+                      {translator.translateText("Loading…")}
+                    </span>
+                  );
                 }
 
                 return (
                   <span className="text-red-600" title={phoneNumbersError}>
-                    Unavailable
+                    {translator.translateText("Unavailable")}
                   </span>
                 );
               }
@@ -379,7 +360,10 @@ const IncomingCallPoliciesPage: FunctionComponent<
                     </span>
                     {summary.additionalPhoneNumbersCount > 0 ? (
                       <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        +{summary.additionalPhoneNumbersCount} more
+                        {translator.translatePlural(
+                          { one: "+{{count}} more", other: "+{{count}} more" },
+                          summary.additionalPhoneNumbersCount,
+                        )}
                       </span>
                     ) : (
                       <></>
@@ -394,7 +378,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
                     className="h-4 w-4 text-yellow-500"
                   />
                   <span className="text-yellow-600 font-medium">
-                    Setup Needed
+                    {translator.translateText("Setup Needed")}
                   </span>
                 </div>
               );

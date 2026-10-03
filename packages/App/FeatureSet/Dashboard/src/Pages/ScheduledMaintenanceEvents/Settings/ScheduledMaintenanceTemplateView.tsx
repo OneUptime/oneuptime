@@ -1,24 +1,22 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
-import TeamElement from "../../../Components/Team/Team";
-import UserElement from "../../../Components/User/User";
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
-import ProjectUser from "../../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
@@ -31,19 +29,26 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
-import Team from "Common/Models/DatabaseModels/Team";
-import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OwnersCard from "../../../Components/Owners/OwnersCard";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import {
   getFormSteps,
   getTemplateFormFields,
 } from "./ScheduledMaintenanceTemplates";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getSubscriberNotificationSummary } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+
+// The Affected Resources card's Edit: as on the create forms' step.
+const affectedResourcesAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenanceTemplate> =
+  getAdvancedFormSection<ScheduledMaintenanceTemplate>();
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -178,83 +183,47 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return Boolean(item.isRecurringEvent);
               },
             },
+            /*
+             * The line the form's folded Subscriber Notifications section
+             * shows, so the page and the form say it the same way.
+             */
+            {
+              field: {
+                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+              },
+              title: "Subscriber Notifications",
+              fieldType: FieldType.Element,
+              getElement: (
+                item: ScheduledMaintenanceTemplate,
+              ): ReactElement => {
+                return (
+                  <p data-testid="template-subscriber-notifications-summary">
+                    {getSubscriberNotificationSummary(item)
+                      .map((sentence: string): string => {
+                        return translator.translateText(sentence) || sentence;
+                      })
+                      .join(" ")}
+                  </p>
+                );
+              },
+            },
             {
               field: {
                 sendSubscriberNotificationsOnBeforeTheEvent: true,
               },
-              title: "Send reminders to subscribers before the event",
-              fieldType: FieldType.Boolean,
+              title: "Reminders before the event",
+              fieldType: FieldType.Element,
               getElement: (
                 item: ScheduledMaintenanceTemplate,
               ): ReactElement => {
                 return (
                   <RecurringArrayViewElement
                     value={item.sendSubscriberNotificationsOnBeforeTheEvent}
-                    postfix=" before the event is begins"
+                    postfix=" before the event begins"
+                    noItemsMessage={translator.translateText(
+                      "No reminders configured",
+                    )}
                   />
-                );
-              },
-            },
-            {
-              field: {
-                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-              },
-              title: "Notify Status Page Subscribers",
-              fieldType: FieldType.Boolean,
-              getElement: (
-                item: ScheduledMaintenanceTemplate,
-              ): ReactElement => {
-                return (
-                  <div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
-                          ]
-                            ? "Event Created: Notify Subscribers"
-                            : "Event Created: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
-                          ]
-                            ? "Event Ongoing: Notify Subscribers"
-                            : "Event Ongoing: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
-                          ]
-                            ? "Event Ended: Notify Subscribers"
-                            : "Event Ended: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                  </div>
                 );
               },
             },
@@ -396,11 +365,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Change Monitor Status to ",
             description:
               "This will change the status of all the monitors attached when the event starts.",
+            collapsibleSection: affectedResourcesAdvancedSection,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",
@@ -461,190 +434,21 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      <ModelTable<ScheduledMaintenanceTemplateOwnerTeam>
-        modelType={ScheduledMaintenanceTemplateOwnerTeam}
-        id="table-ScheduledMaintenance-owner-team"
-        userPreferencesKey="scheduled-maintenance-owner-team-table"
-        name="ScheduledMaintenance Template > Owner Team"
-        saveFilterProps={{
-          tableId: "scheduled-maintenance-template-owner-team-table",
-        }}
-        singularName="Team"
-        isDeleteable={true}
-        createVerb={"Add"}
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        query={{
-          scheduledMaintenanceTemplateId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(
-          item: ScheduledMaintenanceTemplateOwnerTeam,
-        ): Promise<ScheduledMaintenanceTemplateOwnerTeam> => {
-          item.scheduledMaintenanceTemplateId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Teams)",
-          description:
-            "These are the list of teams that will be added to the Scheduled Maintenance by default when its created.",
-        }}
-        noItemsMessage={
-          "No teams associated with this Scheduled Maintenance template so far."
-        }
-        formFields={[
-          {
-            field: {
-              team: true,
-            },
-            title: "Team",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select Team",
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Entity,
-
-            getElement: (
-              item: ScheduledMaintenanceTemplateOwnerTeam,
-            ): ReactElement => {
-              if (!item["team"]) {
-                throw new BadDataException("Team not found");
-              }
-
-              return <TeamElement team={item["team"] as Team} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
-
-      <ModelTable<ScheduledMaintenanceTemplateOwnerUser>
-        modelType={ScheduledMaintenanceTemplateOwnerUser}
-        id="table-ScheduledMaintenance-owner-team"
-        userPreferencesKey="scheduled-maintenance-owner-user-table"
-        name="ScheduledMaintenance > Owner Team"
-        saveFilterProps={{
-          tableId: "scheduled-maintenance-template-owner-user-table",
-        }}
-        isDeleteable={true}
-        singularName="User"
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        createVerb={"Add"}
-        query={{
-          scheduledMaintenanceTemplateId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(
-          item: ScheduledMaintenanceTemplateOwnerUser,
-        ): Promise<ScheduledMaintenanceTemplateOwnerUser> => {
-          item.scheduledMaintenanceTemplateId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Users)",
-          description:
-            "These are the list of users that will be added to the Scheduled Maintenance by default when its created.",
-        }}
-        noItemsMessage={
-          "No users associated with this Scheduled Maintenance template so far."
-        }
-        formFields={[
-          {
-            field: {
-              user: true,
-            },
-            title: "User",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select User",
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-            getElement: (
-              item: ScheduledMaintenanceTemplateOwnerUser,
-            ): ReactElement => {
-              if (!item["user"]) {
-                throw new BadDataException("User not found");
-              }
-
-              return <UserElement user={item["user"] as User} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
+      {/*
+       * Its owners, people and teams together, added and removed the way
+       * the Owners pages and every owners field do.
+       */}
+      <OwnersCard<
+        ScheduledMaintenanceTemplateOwnerUser,
+        ScheduledMaintenanceTemplateOwnerTeam
+      >
+        resourceId={modelId}
+        resourceIdField="scheduledMaintenanceTemplateId"
+        resourceDisplayName="scheduled maintenance template"
+        ownerUserModelType={ScheduledMaintenanceTemplateOwnerUser}
+        ownerTeamModelType={ScheduledMaintenanceTemplateOwnerTeam}
+        description="People and teams who own every event scheduled from this template. They are added as the event's owners and notified."
+        emptyDescription="Add a teammate or a team to own every event scheduled from this template."
       />
 
       <ModelDelete

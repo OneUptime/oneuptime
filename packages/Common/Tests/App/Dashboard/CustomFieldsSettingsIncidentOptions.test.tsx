@@ -7,19 +7,23 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
- * The custom field settings pages. Incident fields have four more settings
- * than the other eight resources - the order they are listed in, whether
- * they are asked for (and required) when an incident is declared, and
- * whether they go out in subscriber emails - plus the key templates reach
- * them by. What must hold:
+ * The custom field settings pages. Incident fields have three more settings
+ * than the other eight resources - whether they are asked for (and
+ * required) when an incident is declared, and whether they go out in
+ * subscriber emails - plus the key templates reach them by, and an order:
+ * the order they are listed in, which is set by dragging the rows, never
+ * typed in. What must hold:
  *
- *   - the incident settings page offers the four inputs, and the columns;
- *   - no other resource's page does, because its definition table has none
- *     of those columns and the table's select would fail;
+ *   - the incident settings page offers the three inputs on its form, and
+ *     is dragged into order with no Order input or column at all;
+ *   - none of them is a column: every settings table lists a field's name
+ *     and type only (CustomFieldTablesTwoColumns.test.tsx covers all nine);
+ *   - no other resource's page offers them, because its definition table
+ *     has none of those columns and the form would fail;
  *   - every settings page, the team member one included, offers the Long
  *     text and Rich text types with readable labels.
  *
@@ -54,6 +58,7 @@ import CustomFieldsPageBase from "../../../../App/FeatureSet/Dashboard/src/Pages
 import TeamMemberCustomFields from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/CustomFields";
 import IncidentCustomFieldSettingsCopy, {
   CUSTOM_FIELD_TYPE_LABELS,
+  CustomFieldsPageCopy,
   getCustomFieldTypeOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomFields/CustomFieldSettingsCopy";
 import AlertCustomField from "../../../Models/DatabaseModels/AlertCustomField";
@@ -70,7 +75,6 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "../../../UI/Components/Types/FieldType";
 
 interface RecordedField {
   field?: Record<string, unknown>;
@@ -80,18 +84,15 @@ interface RecordedField {
   required?: unknown;
   showIf?: (values: JSONObject) => boolean;
   dropdownOptions?: Array<{ label: string; value: string }>;
+  collapsibleSection?: { title: string };
 }
 
 interface RecordedColumn {
   field?: Record<string, unknown>;
   title?: string;
-  type?: FieldType;
-  isHiddenByDefault?: boolean;
-  getElement?: (item: BaseModel) => ReactElement;
 }
 
 const INCIDENT_SETTINGS: Array<string> = [
-  "sortOrder",
   "showOnCreate",
   "isRequiredOnCreate",
   "includeInSubscriberNotifications",
@@ -149,15 +150,9 @@ afterEach(() => {
 });
 
 describe("incident custom field settings", () => {
-  test("offers order, show on create, required on create and subscriber notifications", () => {
+  test("offers show on create, required on create and subscriber notifications", () => {
     renderSettingsPage(IncidentCustomField);
 
-    expect(formField("sortOrder")).toMatchObject({
-      title: IncidentCustomFieldSettingsCopy.sortOrderTitle,
-      description: IncidentCustomFieldSettingsCopy.sortOrderDescription,
-      fieldType: FormFieldSchemaType.Number,
-      required: false,
-    });
     expect(formField("showOnCreate")).toMatchObject({
       title: IncidentCustomFieldSettingsCopy.showOnCreateTitle,
       fieldType: FormFieldSchemaType.Toggle,
@@ -176,17 +171,68 @@ describe("incident custom field settings", () => {
     });
   });
 
-  test("puts the four settings after the field's type, options and mapping", () => {
+  /*
+   * "Options like 'Show on create' and stuff ... should be hidden in the
+   * advanced section of the page." After the field's type and options, and
+   * after where its value comes from (Edit only), followed only by the
+   * read-only template variable line - all in one Advanced section.
+   */
+  test("folds the three settings under Advanced, after the field's type, options and mapping", () => {
     renderSettingsPage(IncidentCustomField);
 
     const keys: Array<string> = formFields().map((field: RecordedField) => {
       return Object.keys(field.field || {})[0] || "";
     });
 
-    expect(keys.slice(-4)).toEqual(INCIDENT_SETTINGS);
-    expect(keys.indexOf("customFieldType")).toBeLessThan(
-      keys.indexOf("sortOrder"),
+    expect(keys).toEqual([
+      "name",
+      "description",
+      "customFieldType",
+      "dropdownOptions",
+      "mapFromResourceType",
+      "mapFromCustomFieldName",
+      ...INCIDENT_SETTINGS,
+      // The template variable line, keyed by the column it is checked against.
+      "",
+    ]);
+
+    for (const key of INCIDENT_SETTINGS) {
+      expect(formField(key)?.collapsibleSection?.title).toBe("Advanced");
+    }
+  });
+
+  /*
+   * The maintainer's ask: no Order number in the form or the table - the
+   * rows are dragged into order and a new field goes to the end.
+   */
+  test("asks for no order: the form has no Order input and the table no Order column", () => {
+    renderSettingsPage(IncidentCustomField);
+
+    expect(formField("sortOrder")).toBeUndefined();
+    expect(column("sortOrder")).toBeUndefined();
+
+    for (const field of formFields()) {
+      expect(field.fieldType === FormFieldSchemaType.Number).toBe(false);
+      expect((field.title || "").toLowerCase()).not.toContain("order");
+    }
+  });
+
+  test("is dragged into order, by the column the list keeps", () => {
+    renderSettingsPage(IncidentCustomField);
+
+    expect(lastTable()["enableDragAndDrop"]).toBe(true);
+    expect(lastTable()["dragDropIndexField"]).toBe("sortOrder");
+    expect(new IncidentCustomField().getListOrder()?.column).toBe(
+      lastTable()["dragDropIndexField"],
     );
+  });
+
+  test("says on the card that a field is dragged to change where it appears", () => {
+    renderSettingsPage(IncidentCustomField);
+
+    expect(
+      (lastTable()["cardProps"] as { description: string }).description,
+    ).toBe(CustomFieldsPageCopy.reorderDescription);
   });
 
   test("asks whether a field is required only when it is shown on create", () => {
@@ -210,43 +256,24 @@ describe("incident custom field settings", () => {
     );
   });
 
-  test("lists the settings and the template variable as columns", () => {
+  /*
+   * "Too many columns on the table. I think we just need to show field name
+   * and field type here, and that's basically it." The settings are on the
+   * form above; an incident field's template variable is listed by the
+   * note and subscriber template editors, where it is used.
+   */
+  test("lists none of the settings, nor the template variable, as a column", () => {
     renderSettingsPage(IncidentCustomField);
 
-    expect(column("sortOrder")).toMatchObject({ type: FieldType.Number });
-    expect(column("showOnCreate")).toMatchObject({ type: FieldType.Boolean });
-    expect(column("isRequiredOnCreate")).toMatchObject({
-      type: FieldType.Boolean,
-      isHiddenByDefault: true,
-    });
-    expect(column("includeInSubscriberNotifications")).toMatchObject({
-      type: FieldType.Boolean,
-      title:
-        IncidentCustomFieldSettingsCopy.includeInSubscriberNotificationsColumnTitle,
-    });
-    expect(column("variableKey")).toMatchObject({
-      title: IncidentCustomFieldSettingsCopy.variableKeyColumnTitle,
-      type: FieldType.Element,
-    });
-  });
-
-  test("shows the template variable as the placeholder to paste", () => {
-    renderSettingsPage(IncidentCustomField);
-
-    const field: IncidentCustomField = new IncidentCustomField();
-    field.variableKey = "expected_resolution";
-
-    render(column("variableKey")!.getElement!(field));
+    for (const key of [...INCIDENT_SETTINGS, "variableKey"]) {
+      expect(column(key)).toBeUndefined();
+    }
 
     expect(
-      screen.getByText("{{customFields.expected_resolution}}"),
-    ).toBeInTheDocument();
-
-    cleanup();
-
-    render(column("variableKey")!.getElement!(new IncidentCustomField()));
-
-    expect(screen.getByText("-")).toBeInTheDocument();
+      columns().map((candidate: RecordedColumn) => {
+        return candidate.title;
+      }),
+    ).toEqual(["Field Name", "Field Type"]);
   });
 
   test("lists the fields in their order", () => {
@@ -288,12 +315,18 @@ describe("the other resources' custom field settings", () => {
     (_name: string, modelType: { new (): BaseModel }) => {
       renderSettingsPage(modelType);
 
-      for (const key of [...INCIDENT_SETTINGS, "variableKey"]) {
+      for (const key of [...INCIDENT_SETTINGS, "sortOrder", "variableKey"]) {
         expect(formField(key)).toBeUndefined();
         expect(column(key)).toBeUndefined();
       }
 
+      // Their fields have no order to keep, so there is nothing to drag.
       expect(lastTable()["sortBy"]).toBeUndefined();
+      expect(lastTable()["enableDragAndDrop"]).toBeUndefined();
+      expect(new modelType().getListOrder()).toBeNull();
+      expect(
+        (lastTable()["cardProps"] as { description: string }).description,
+      ).toBe(CustomFieldsPageCopy.description);
 
       // They still get the two new types.
       const values: Array<string> = formField(

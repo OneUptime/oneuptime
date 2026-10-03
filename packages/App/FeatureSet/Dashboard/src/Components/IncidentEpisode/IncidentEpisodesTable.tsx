@@ -8,6 +8,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -37,6 +38,7 @@ import Route from "Common/Types/API/Route";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import ObjectID from "Common/Types/ObjectID";
@@ -58,6 +60,8 @@ import {
 export interface ComponentProps {
   query?: Query<IncidentEpisode> | undefined;
   noItemsMessage?: string | undefined;
+  // The page's own words for the empty state. See EmptyStateOptions.
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -304,6 +308,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             "Here is a list of incident episodes for this project.",
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
+        emptyState={props.emptyState}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
         showViewIdButton={true}
@@ -530,11 +535,10 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           title="Change Episode State"
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member incidents will also be updated."
           stateFieldKey="incidentStateId"
-          stateOptions={incidentStates.map((state: IncidentState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: incidentStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Private}
           noteTitle="Private Note"

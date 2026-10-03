@@ -72,9 +72,12 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   generated, not stored: each minute of each service holds a number of rows that
   follows a wave, and every row (its offset in the minute, operation or message,
   status or severity, trace and span ids, attributes) comes from a hash of the
-  minute, the service and the row's index. The span list, the log list, both
-  histograms and the facet counts are read off those same rows, so they agree for
-  any window. The histograms are bucketed the way `TraceAggregationService` /
+  minute, the service and the row's index. The span list, the log list, the lists'
+  totals, both histograms and the facet counts are read off those same rows, so they
+  agree for any window. A total ("2,120 spans", "1,101 logs") is the explorer's
+  `exact` count (`CountBy.exact`), which the server answers with the rows a list
+  with the same query pages through, and so does the fixture. The histograms are
+  bucketed the way `TraceAggregationService` /
   `LogAggregationService` bucket them: the rows whose minute starts inside the
   window (the start rounded down to its minute, the end excluded), grouped on
   `toStartOfInterval(minute, bucket)`, one `{ time: "YYYY-MM-DD HH:MM:SS", series |
@@ -100,7 +103,7 @@ Every data request is appended to `requests` in order, as
 | `kind` | Recorded |
 |---|---|
 | `aggregate` | `metricName`, `attributes`, `aggregationType`, `groupBy`, `groupByAttributeKeys`, `aggregationInterval`, `window` (`startTimestamp` / `endTimestamp`, ISO), `queryTime` (the query's own `InBetween`), `interval` and `rows` (what came back) |
-| `getList`, `count`, `analytics.getList`, `analytics.count` | `query`, `select`, `sort`, `limit`, `skip`, and `window` (`{ column, start, end }`) when the query filters a column by an `InBetween` |
+| `getList`, `count`, `analytics.getList`, `analytics.count` | `query`, `select`, `sort`, `limit`, `skip`, and `window` (`{ column, start, end }`) when the query filters a column by an `InBetween`; an `analytics.count` also records `exact` (whether it asked for the exact total) and `count` (what came back) |
 | `getItem`, `updateById` | `id`, `select` or `body` |
 | `api` | `method`, `url`, `body`, and `window` (`{ start, end }`, ISO) when the body names a `startTime` / `endTime`; a histogram also records `bucketSizeInMinutes` and `buckets` (how many came back) |
 | `realtime` | `modelName`, `eventType`: the logs explorer's subscription to new rows. Nothing is ever sent on it |
@@ -289,7 +292,9 @@ times in all, and only then fails, naming each run's timing.
 After every double-click the explorer must be back on "Past 1 Hour": the toolbar
 picker reads the preset, "Reset zoom" and "Double-click to reset" are gone, the
 histogram draws the hour's bars again, and since the drag the histogram asked for
-exactly the zoom and then the hour, with no third window then or later.
+exactly the zoom and then the hour, with no third window then or later. The list's
+total follows it: since the drag it was counted exactly for the zoom, then for the
+hour, and not again, and the explorer shows the hour's total once more.
 
 The last test does the same on a line chart: the Kubernetes cluster overview's
 Availability chart (ChartLibrary's `LineChart`), zoomed by a drag from 11:34 to 11:40

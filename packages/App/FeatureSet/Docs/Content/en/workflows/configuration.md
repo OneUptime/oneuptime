@@ -21,12 +21,12 @@ Archive a workflow you no longer need but want to keep. An archived workflow:
 
 - **Never runs**, from any trigger. Manual runs and **Run this step**, webhook calls, schedules, OneUptime events, incoming email, and other workflows' **Run Workflow** steps are all refused. A webhook call to an archived workflow gets an error that says the workflow is archived.
 - **Stops runs that are waiting.** A run sleeping in a **Sleep** step is cancelled when it wakes up, and a run that was queued but hadn't started yet ends with "Workflow was archived before this run started, so it did not run."
-- **Leaves the Workflows list.** Find it under **Workflows → Archived**.
+- **Leaves the Workflows list.** Find it under **Workflows → Advanced → Archived**.
 - **Keeps everything.** Its steps, variables, owners, labels, and run history stay as they were.
 
 To archive one workflow, open it and go to **Settings → Archive workflow**. To archive several, select them in the **Workflows** list and choose **Archive**.
 
-To bring a workflow back, open **Workflows → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
+To bring a workflow back, open **Workflows → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
 Archiving and the **Enabled** switch are separate. Archiving doesn't touch the switch, so a workflow that was on runs again as soon as it is unarchived, and one that was off stays off. The **Archived** page shows which is which in its **When Unarchived** column.
 

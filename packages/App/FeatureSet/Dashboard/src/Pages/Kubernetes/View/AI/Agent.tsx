@@ -182,6 +182,11 @@ import React, {
   useState,
 } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The cluster's AI agent page (AI → Agent): whether OneUptime AI can reach
@@ -321,6 +326,7 @@ interface SettingsModalProps {
 const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   props: SettingsModalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [saved, setSaved] = useState<KubernetesAiAccessSavedSettings | null>(
     null,
   );
@@ -656,11 +662,23 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         field: { clearAiAccessRunner: true },
         title: "Unbind the Runner",
         stepId: "runner-and-credential",
-        description: `Bound now: ${saved.aiAccessRunnerName || "a Runner"}. ${
-          props.hasAiAgent
-            ? "Unbinding moves this cluster to its Kubernetes AI agent."
-            : "Unbinding stops OneUptime AI from running kubectl on this cluster until it has an AI agent."
-        } Choosing a Runner needs permission to read Runners (one of: ${getKubernetesRunnerPermissionTitles().join(", ")}).`,
+        description: props.hasAiAgent
+          ? translator.translateTemplate(
+              "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
+              {
+                runner:
+                  saved.aiAccessRunnerName || translatableTerm("a Runner"),
+                permissions: getKubernetesRunnerPermissionTitles().join(", "),
+              },
+            )
+          : translator.translateTemplate(
+              "Bound now: {{runner}}. Unbinding stops OneUptime AI from running kubectl on this cluster until it has an AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
+              {
+                runner:
+                  saved.aiAccessRunnerName || translatableTerm("a Runner"),
+                permissions: getKubernetesRunnerPermissionTitles().join(", "),
+              },
+            ),
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         dataTestId: "ai-access-clear-runner-field",
@@ -689,9 +707,15 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         field: { clearAiAccessCredential: true },
         title: "Unbind the Kubernetes credential",
         stepId: "runner-and-credential",
-        description: `Bound now: ${
-          saved.aiAccessCredentialName || "a Kubernetes credential"
-        }. A Runner outside the cluster cannot reach it without one. Choosing a credential needs permission to read Runner credentials (one of: ${getKubernetesCredentialPermissionTitles().join(", ")}).`,
+        description: translator.translateTemplate(
+          "Bound now: {{credential}}. A Runner outside the cluster cannot reach it without one. Choosing a credential needs permission to read Runner credentials (one of: {{permissions}}).",
+          {
+            credential:
+              saved.aiAccessCredentialName ||
+              translatableTerm("a Kubernetes credential"),
+            permissions: getKubernetesCredentialPermissionTitles().join(", "),
+          },
+        ),
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         dataTestId: "ai-access-clear-credential-field",
@@ -830,9 +854,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           className="text-xs leading-5 text-gray-500"
           data-testid="kubernetes-runner-picker-permission-note"
         >
-          The Runner picker is not shown: choosing a Runner needs permission to
-          read Runners (one of:{" "}
-          {getKubernetesRunnerPermissionTitles().join(", ")}).
+          {translator.translateTemplate(
+            "The Runner picker is not shown: choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
+            { permissions: getKubernetesRunnerPermissionTitles().join(", ") },
+          )}
         </p>,
       );
     }
@@ -843,9 +868,12 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           className="text-xs leading-5 text-gray-500"
           data-testid="kubernetes-credential-picker-permission-note"
         >
-          The credential picker is not shown: choosing a credential needs
-          permission to read Runner credentials (one of:{" "}
-          {getKubernetesCredentialPermissionTitles().join(", ")}).
+          {translator.translateTemplate(
+            "The credential picker is not shown: choosing a credential needs permission to read Runner credentials (one of: {{permissions}}).",
+            {
+              permissions: getKubernetesCredentialPermissionTitles().join(", "),
+            },
+          )}
         </p>,
       );
     }
@@ -981,6 +1009,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = useClusterId();
 
   const [status, setStatus] = useState<KubernetesClusterAiAccessStatus | null>(
@@ -1335,7 +1364,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             )}
             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
           >
-            <span>View Runner</span>
+            <span>{translator.translateText("View Runner")}</span>
             <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
           </Link>
         ) : (
@@ -1495,13 +1524,37 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
       return (
         <ConfirmModal
           title="Switch to the AI agent?"
-          description={`AI stops using Runner "${status.runner?.name || ""}"${
+          description={
             status.credentialName
-              ? ` and credential "${status.credentialName}"`
-              : ""
-          } and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent's access${
-            writeAccess ? ` (${writeAccess})` : ""
-          }.`}
+              ? writeAccess
+                ? translator.translateTemplate(
+                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access ({{writeAccess}}).',
+                    {
+                      runner: status.runner?.name || "",
+                      credential: status.credentialName,
+                      writeAccess: writeAccess,
+                    },
+                  )
+                : translator.translateTemplate(
+                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access.',
+                    {
+                      runner: status.runner?.name || "",
+                      credential: status.credentialName,
+                    },
+                  )
+              : writeAccess
+                ? translator.translateTemplate(
+                    'AI stops using Runner "{{runner}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access ({{writeAccess}}).',
+                    {
+                      runner: status.runner?.name || "",
+                      writeAccess: writeAccess,
+                    },
+                  )
+                : translator.translateTemplate(
+                    'AI stops using Runner "{{runner}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access.',
+                    { runner: status.runner?.name || "" },
+                  )
+          }
           submitButtonText="Switch"
           isLoading={isActing}
           error={confirmationError || undefined}
@@ -1570,7 +1623,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             )}
             className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
           >
-            <span>Open settings</span>
+            <span>{translator.translateText("Open settings")}</span>
             <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
           </Link>
         </ConfirmModal>
@@ -1743,11 +1796,12 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                           text={
                             row.succeeded
                               ? "succeeded"
-                              : `failed${
-                                  row.exitCode !== null
-                                    ? ` (exit ${row.exitCode})`
-                                    : ""
-                                }`
+                              : row.exitCode !== null
+                                ? translator.translateTemplate(
+                                    "failed (exit {{exitCode}})",
+                                    { exitCode: row.exitCode },
+                                  )
+                                : "failed"
                           }
                           color={row.succeeded ? Green500 : Red500}
                         />
@@ -1913,8 +1967,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 className="text-xs leading-5 text-gray-500"
                 data-testid="ai-access-credential-rbac-note"
               >
-                What a fix may change is limited by the Runner&apos;s
-                credential.
+                {translator.translateText(
+                  "What a fix may change is limited by the Runner's credential.",
+                )}
               </p>
             ) : null}
             {shouldShowWriteAccessCommands(status) ? (
@@ -1923,8 +1978,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 dataTestId="ai-access-write-commands"
               >
                 <p className="text-xs leading-5 text-gray-600">
-                  The agent is read-only, so fixes cannot run yet. Recommended:
-                  allow only the namespaces AI may fix.
+                  {translator.translateText(
+                    "The agent is read-only, so fixes cannot run yet. Recommended: allow only the namespaces AI may fix.",
+                  )}
                 </p>
                 <div data-testid="ai-access-helm-remediation-scoped-command">
                   <CodeBlock
@@ -1939,7 +1995,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   {getAiAgentScopedCommandNote()}
                 </p>
                 <p className="text-xs leading-5 text-gray-600">
-                  Or allow the whole cluster:
+                  {translator.translateText("Or allow the whole cluster:")}
                 </p>
                 <div data-testid="ai-access-helm-remediation-command">
                   <CodeBlock

@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   isEditMode: boolean;
@@ -10,6 +12,7 @@ export interface ComponentProps {
 const BlankCanvasElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div
       className={`mx-3 mt-4 mb-4 rounded-2xl border border-dashed text-center py-20 px-10 ${
@@ -42,12 +45,14 @@ const BlankCanvasElement: FunctionComponent<ComponentProps> = (
         </svg>
       </div>
       <h3 className="text-sm font-semibold text-gray-700 mb-1">
-        No widgets yet
+        {translator.translateText("No widgets yet")}
       </h3>
       <p className="text-sm text-gray-400 max-w-sm mx-auto">
-        {props.isEditMode
-          ? "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid."
-          : "This dashboard does not have any widgets."}
+        {translator.translateText(
+          props.isEditMode
+            ? "Add your first widget from the toolbar above. You can drag and resize widgets anywhere on the grid."
+            : "This dashboard does not have any widgets.",
+        )}
       </p>
     </div>
   );

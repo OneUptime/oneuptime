@@ -12,9 +12,9 @@ import DatabaseServerOwnerRule from "Common/Models/DatabaseModels/DatabaseServer
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField, {
+  OWNER_RULE_OWNERS_DESCRIPTION,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const databaseServerOwnerDocumentation: string = `
 ### How Database Owner Rules Work
@@ -26,7 +26,11 @@ Database Owner Rules add owner users and teams to a database automatically when 
 A rule matches a database only when **all** specified criteria pass. Empty criteria are skipped.
 
 - **Database Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex. Discovered databases are named after their engine and endpoint (\`PostgreSQL db.prod:5432\`), so \`^PostgreSQL\` matches every PostgreSQL database.
+- **Database Name**, **Database Description** — text, or a regular expression or \`*\` wildcard pattern
+
+### Matching Discovered Databases
+
+Discovered databases are named after their engine and endpoint (\`PostgreSQL db.prod:5432\`), so the condition **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.
 
 ### Action
 
@@ -160,7 +164,7 @@ const DatabaseServerOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { databaseServerNamePattern: true },
-          title: "Database Name Pattern",
+          title: "Database Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -171,41 +175,16 @@ const DatabaseServerOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { databaseServerDescriptionPattern: true },
-          title: "Database Description Pattern",
+          title: "Database Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />

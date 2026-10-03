@@ -6,6 +6,8 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -16,6 +18,7 @@ export interface ComponentProps {
 const ProbeElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let probe: JSONObject | null | undefined = null;
 
   if (props.probe instanceof Probe) {
@@ -28,7 +31,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="flex">
         <div className="bold" data-testid="probe-not-found">
-          No probe found.
+          {translator.translateText("No probe found.")}
         </div>
       </div>
     );
@@ -44,7 +47,7 @@ const ProbeElement: FunctionComponent<ComponentProps> = (
             imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
               "/image/" + props.probe?.iconFileId.toString(),
             )}
-            alt={probe["name"]?.toString() || "Probe"}
+            alt={probe["name"]?.toString() || translator.translateText("Probe")}
           />
         )}
         {!props.probe?.iconFileId && (

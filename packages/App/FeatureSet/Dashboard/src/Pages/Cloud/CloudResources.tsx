@@ -15,7 +15,7 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -39,6 +39,8 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import CloudDocumentationCard from "../../Components/Cloud/CloudDocumentationCard";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Picker options for the create form and the Platform filter. The label
@@ -65,6 +67,7 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
 const CloudResources: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -183,7 +186,6 @@ const CloudResources: FunctionComponent<
         formSteps={[
           { title: "Environment", id: "environment" },
           { title: "Details", id: "details" },
-          { title: "Labels", id: "labels" },
         ]}
         formFields={[
           {
@@ -245,23 +247,9 @@ const CloudResources: FunctionComponent<
             required: false,
             placeholder: "Production ECS cluster for the checkout stack",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<CloudResource>({
+            stepId: "details",
+          }),
         ]}
         filters={[
           {
@@ -335,7 +323,9 @@ const CloudResources: FunctionComponent<
                   </AppLink>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
-                      account {account}
+                      {translator.translateTemplate("account {{account}}", {
+                        account: account,
+                      })}
                     </div>
                   )}
                 </div>
@@ -360,7 +350,7 @@ const CloudResources: FunctionComponent<
                   <span>
                     {platform
                       ? getManagedCloudPlatformLabel(platform)
-                      : "unknown"}
+                      : translator.translateText("unknown")}
                   </span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">

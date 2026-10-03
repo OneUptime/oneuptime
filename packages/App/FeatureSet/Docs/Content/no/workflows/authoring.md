@@ -1,15 +1,15 @@
 # Opprette en arbeidsflyt
 
-For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. En veiviser som heter **Create a workflow** tar deg gjennom det: først **Start from**, så **Navn**, og til slutt et **Konfigurer**-trinn, som bare dukker opp når malen du valgte ber om egne innstillinger.
+For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. Dialogen **Opprett en arbeidsflyt** spør først hvordan du vil begynne, og så etter et navn. En mal som trenger egne innstillinger, som en Slack-webhook-URL, spør etter dem i ett trinn til.
 
-På **Start from** velger du hvordan du vil begynne:
+Velg hvordan du vil begynne:
 
-- **Start fra bunnen**, ved siden av søkefeltet, gir deg et tomt lerret.
-- En mal gir deg en arbeidsflyt som allerede virker, klar til å endres. Trinnet åpner med noen få maler under **Anbefalt**. Resten ligger under kategoriene sine, som **Hendelser**, **Monitorer** og **Jira**, hver med antallet maler den har, og **Alle maler** viser hver eneste en. Et søk ser gjennom alle: hvert ord du skriver må passe, og hver kategori viser hvor mange av malene sine som passet.
+- **Start fra bunnen**, øverst i dialogen, gir deg et tomt lerret. Det er her de fleste arbeidsflyter begynner.
+- **Eller start fra en mal** viser noen få maler under **Anbefalt**. For resten velger du en kategori ved siden av søkefeltet, som **Hendelser**, **Monitorer** eller **Jira**, eller **Alle maler**, eller du skriver i **Søk i maler…**. Hvert ord du skriver må passe.
 
-Klikk på en mal for å se hva den gjør før du velger den: triggeren, trinnene den består av, og innstillingene den vil spørre om. **Bruk denne malen** tar den videre til **Navn**, og det gjør **Enter** og et dobbeltklikk også. Piltastene flytter deg gjennom listen, og `/` tar deg tilbake til søkefeltet.
+Klikk på en mal for å se hva den gjør: triggeren, blokkene den består av, og innstillingene den vil spørre om. Klikk så på **Bruk denne malen**, eller dobbeltklikk på malen. I søkefeltet velger piltastene en mal, og **Enter** bruker den. `/` tar deg tilbake til søkefeltet.
 
-Så snart den er opprettet, åpner du **Bygger** i venstremenyen. Der ligger lerretet du utformer arbeidsflyten på.
+Arbeidsflyter opprettes avslått, så ingenting kjører før du slår dem på. En ny arbeidsflyt åpnes i **Bygger**, lerretet du utformer den på.
 
 ## Lerretet
 

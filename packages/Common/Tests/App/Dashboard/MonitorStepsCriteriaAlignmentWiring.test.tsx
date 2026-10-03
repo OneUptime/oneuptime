@@ -88,6 +88,7 @@ const ONLINE_STATUS_ID: string = "22222222-2222-4222-8222-222222222222";
 const OFFLINE_STATUS_ID: string = "33333333-3333-4333-8333-333333333333";
 const INCIDENT_SEVERITY_ID: string = "44444444-4444-4444-8444-444444444444";
 const ALERT_SEVERITY_ID: string = "55555555-5555-4555-8555-555555555555";
+const LOW_ALERT_SEVERITY_ID: string = "66666666-6666-4666-8666-666666666666";
 
 const MONITOR_NAME: string = "Acme";
 
@@ -121,12 +122,24 @@ function incidentSeverity(): IncidentSeverity {
   return severity;
 }
 
-function alertSeverity(): AlertSeverity {
+function alertSeverity(
+  data: { id: string; name: string } = {
+    id: ALERT_SEVERITY_ID,
+    name: "Critical",
+  },
+): AlertSeverity {
   const severity: AlertSeverity = new AlertSeverity();
-  severity._id = ALERT_SEVERITY_ID;
-  severity.name = "Critical";
+  severity._id = data.id;
+  severity.name = data.name;
   return severity;
 }
+
+/*
+ * The alert severities the API answers with, already sorted by order as the
+ * form asks for them. One by default; the expiry-warning tests use the two a
+ * new project starts with.
+ */
+let alertSeverities: Array<AlertSeverity> = [];
 
 /*
  * The criteria form fetches statuses, severities, on-call policies, labels,
@@ -161,7 +174,7 @@ function mockModelApi(): void {
       }
 
       if (modelType === AlertSeverity) {
-        return listOf([alertSeverity()]) as never;
+        return listOf(alertSeverities) as never;
       }
 
       return listOf([]) as never;
@@ -269,6 +282,7 @@ async function mountWith(data: {
 
 describe("the criteria form keeps its criteria in step with the monitor type", () => {
   beforeEach(() => {
+    alertSeverities = [alertSeverity()];
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     mockModelApi();
   });
@@ -348,5 +362,155 @@ describe("the criteria form keeps its criteria in step with the monitor type", (
     expect(
       unrenderableChecksIn(form.latest(), MonitorType.ExternalStatusPage),
     ).toEqual([]);
+  });
+});
+
+function criteriaIn(
+  monitorSteps: MonitorSteps,
+): Array<MonitorCriteriaInstance> {
+  return (monitorSteps.data?.monitorStepsInstanceArray || []).flatMap(
+    (monitorStep: MonitorStep) => {
+      return (
+        monitorStep.data?.monitorCriteria.data?.monitorCriteriaInstanceArray ||
+        []
+      );
+    },
+  );
+}
+
+function criteriaNamesIn(monitorSteps: MonitorSteps): Array<string> {
+  return criteriaIn(monitorSteps).map((instance: MonitorCriteriaInstance) => {
+    return instance.data!.name;
+  });
+}
+
+/*
+ * New SSL Certificate and Domain monitors start with an "expires soon"
+ * warning: an alert, at the project's Warning alert severity - the second
+ * one, "Low" on a new project - rather than at the most severe one every
+ * other default alert takes. The form works that out from the severities it
+ * fetches, and has to hand the same answer to the alignment, or its own
+ * untouched defaults stop reading as untouched.
+ */
+describe("the expiry warning a new SSL Certificate or Domain monitor starts with", () => {
+  beforeEach(() => {
+    alertSeverities = [
+      alertSeverity({ id: ALERT_SEVERITY_ID, name: "High" }),
+      alertSeverity({ id: LOW_ALERT_SEVERITY_ID, name: "Low" }),
+    ];
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    mockModelApi();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test.each([MonitorType.SSLCertificate, MonitorType.Domain])(
+    "a new %s monitor warns at the second alert severity, and still opens incidents at the first",
+    async (monitorType: MonitorType) => {
+      const form: MountedForm = await mountWith({
+        initialValue: undefined,
+        monitorType: monitorType,
+      });
+
+      const criteria: Array<MonitorCriteriaInstance> = criteriaIn(
+        form.latest(),
+      );
+
+      expect(criteria).toHaveLength(3);
+
+      const [offline, warning, online] = criteria;
+
+      expect(warning!.data!.name).toContain("expires soon");
+      expect(warning!.data!.createAlerts).toBe(true);
+      expect(warning!.data!.changeMonitorStatus).toBe(false);
+      expect(warning!.data!.alerts[0]!.alertSeverityId?.toString()).toBe(
+        LOW_ALERT_SEVERITY_ID,
+      );
+
+      // Everything else keeps the most severe ones, as before.
+      expect(offline!.data!.alerts[0]!.alertSeverityId?.toString()).toBe(
+        ALERT_SEVERITY_ID,
+      );
+      expect(offline!.data!.incidents[0]!.incidentSeverityId?.toString()).toBe(
+        INCIDENT_SEVERITY_ID,
+      );
+      expect(offline!.data!.monitorStatusId?.toString()).toBe(
+        OFFLINE_STATUS_ID,
+      );
+      expect(online!.data!.monitorStatusId?.toString()).toBe(ONLINE_STATUS_ID);
+    },
+  );
+
+  test("with a single alert severity the warning uses that one", async () => {
+    alertSeverities = [alertSeverity({ id: ALERT_SEVERITY_ID, name: "Only" })];
+
+    const form: MountedForm = await mountWith({
+      initialValue: undefined,
+      monitorType: MonitorType.SSLCertificate,
+    });
+
+    expect(
+      criteriaIn(
+        form.latest(),
+      )[1]!.data!.alerts[0]!.alertSeverityId?.toString(),
+    ).toBe(ALERT_SEVERITY_ID);
+  });
+
+  test("the form's own SSL Certificate defaults are re-seeded, not repaired, when the type becomes Domain", async () => {
+    /*
+     * Seed the way the form does, warning severity included, then come back
+     * as a Domain monitor. If the alignment did not get the warning
+     * severity too, these defaults would read as edited and be repaired:
+     * Domain filters under "certificate" names.
+     */
+    const seeded: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
+      monitorType: MonitorType.SSLCertificate,
+      monitorName: MONITOR_NAME,
+      defaultMonitorStatusId: new ObjectID(ONLINE_STATUS_ID),
+      onlineMonitorStatusId: new ObjectID(ONLINE_STATUS_ID),
+      offlineMonitorStatusId: new ObjectID(OFFLINE_STATUS_ID),
+      defaultIncidentSeverityId: new ObjectID(INCIDENT_SEVERITY_ID),
+      defaultAlertSeverityId: new ObjectID(ALERT_SEVERITY_ID),
+      warningAlertSeverityId: new ObjectID(LOW_ALERT_SEVERITY_ID),
+    });
+
+    const form: MountedForm = await mountWith({
+      initialValue: seeded,
+      monitorType: MonitorType.Domain,
+    });
+
+    await waitFor(() => {
+      expect(criteriaNamesIn(form.latest())).toEqual([
+        `Check if ${MONITOR_NAME} domain check failed`,
+        `Check if ${MONITOR_NAME} domain expires soon`,
+        `Check if ${MONITOR_NAME} is not expired`,
+      ]);
+    });
+
+    expect(unrenderableChecksIn(form.latest(), MonitorType.Domain)).toEqual([]);
+  });
+
+  test("the form's own SSL Certificate defaults are handed back unchanged", async () => {
+    const seeded: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
+      monitorType: MonitorType.SSLCertificate,
+      monitorName: MONITOR_NAME,
+      defaultMonitorStatusId: new ObjectID(ONLINE_STATUS_ID),
+      onlineMonitorStatusId: new ObjectID(ONLINE_STATUS_ID),
+      offlineMonitorStatusId: new ObjectID(OFFLINE_STATUS_ID),
+      defaultIncidentSeverityId: new ObjectID(INCIDENT_SEVERITY_ID),
+      defaultAlertSeverityId: new ObjectID(ALERT_SEVERITY_ID),
+      warningAlertSeverityId: new ObjectID(LOW_ALERT_SEVERITY_ID),
+    });
+
+    const form: MountedForm = await mountWith({
+      initialValue: seeded,
+      monitorType: MonitorType.SSLCertificate,
+    });
+
+    expect(form.latest().toJSON()).toEqual(seeded.toJSON());
+    expect(form.changes).toHaveLength(1);
   });
 });

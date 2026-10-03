@@ -38,8 +38,8 @@ Open **Workflows** in the left navigation. That section holds:
 
 - **Workflows** — your list of workflows. Create a new one or open an existing one.
 - **Global Variables** — values shared across all your workflows.
-- **Archived** — workflows you archived. They never run and are left out of the list; unarchive them from here. See [Archiving a workflow](/docs/workflows/configuration#archiving-a-workflow).
 - **Logs → Runs** — execution history across every workflow in your project.
+- **Advanced → Archived** — workflows you archived. They never run and are left out of the list; unarchive them from here. See [Archiving a workflow](/docs/workflows/configuration#archiving-a-workflow).
 
 Open a single workflow and its own left menu holds:
 

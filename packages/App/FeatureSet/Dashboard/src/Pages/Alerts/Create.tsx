@@ -4,13 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -23,74 +17,53 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
+  AffectedResourceType,
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Color from "Common/Types/Color";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchAlertState from "../../Components/AlertState/FetchAlertState";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * Creating an alert asks for what it cannot exist without - a title and a
+ * severity - and its description. The state it starts in, its labels and
+ * whether it is private are folded under one "Advanced" header at the end of
+ * Alert Details: it says "Configured" when one of them holds something, and
+ * opens by itself when one fails validation. Root cause and remediation
+ * notes are not asked here: they are written on the alert's own Root Cause
+ * and Remediation pages once there is something to say.
+ */
+const advancedSection: FormFieldCollapsibleSection<Alert> =
+  getAdvancedFormSection<Alert>();
+
+// Every resource type besides the monitor that an alert can affect.
+const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
+  "Host",
+  "KubernetesCluster",
+  "DockerHost",
+  "PodmanHost",
+  "DatabaseServer",
+  "Service",
+];
 
 const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const [initialValuesForAlert, setInitialValuesForAlert] =
-    useState<JSONObject>({});
-
-  useEffect(() => {
-    fetchFirstAlertState();
-  }, []);
-
-  const fetchFirstAlertState: () => Promise<void> = async (): Promise<void> => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return;
-    }
-
-    try {
-      const alertStates: ListResult<AlertState> =
-        await ModelAPI.getList<AlertState>({
-          modelType: AlertState,
-          query: {
-            projectId: projectId,
-          },
-          limit: 1,
-          skip: 0,
-          select: {
-            _id: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-        });
-
-      if (alertStates.data.length > 0) {
-        const firstStateId: string | undefined =
-          alertStates.data[0]!._id?.toString();
-        if (firstStateId) {
-          setInitialValuesForAlert((prev: JSONObject) => {
-            return {
-              ...prev,
-              currentAlertState: firstStateId,
-            };
-          });
-        }
-      }
-    } catch {
-      // Silently fail to avoid breaking the form
-    }
-  };
+  const translator: Translator = useTranslator();
 
   return (
     <Fragment>
@@ -104,7 +77,6 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <div>
           <ModelForm<Alert>
             modelType={Alert}
-            initialValues={initialValuesForAlert}
             name="Create New Alert"
             id="create-alert-form"
             fields={[
@@ -123,18 +95,6 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: {
-                  description: true,
-                },
-                title: "Description",
-                stepId: "alert-details",
-                fieldType: FormFieldSchemaType.Markdown,
-                required: false,
-                description: MarkdownUtil.getMarkdownCheatsheet(
-                  "Describe the alert details here",
-                ),
-              },
-              {
-                field: {
                   alertSeverity: true,
                 },
                 title: "Alert Severity",
@@ -145,70 +105,57 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Alert Severity",
               },
               {
                 field: {
+                  description: true,
+                },
+                title: "Description",
+                stepId: "alert-details",
+                fieldType: FormFieldSchemaType.Markdown,
+                required: false,
+                description: MarkdownUtil.getMarkdownCheatsheet(
+                  "Describe the alert details here",
+                ),
+              },
+              /*
+               * Left empty, the alert starts where every new alert does, the
+               * project's starting state, which is what the server picks
+               * when it is not sent.
+               */
+              {
+                field: {
                   currentAlertState: true,
                 },
-                title: "Alert State",
+                title: "Initial State",
                 stepId: "alert-details",
                 description:
-                  "Select the initial state for this alert to be in.",
+                  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: AlertState,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: false,
                 placeholder: "Select Initial State",
-                fetchDropdownOptions: async () => {
-                  const projectId: ObjectID | null =
-                    ProjectUtil.getCurrentProjectId();
-                  if (!projectId) {
-                    return [];
-                  }
-
-                  try {
-                    const alertStates: ListResult<AlertState> =
-                      await ModelAPI.getList<AlertState>({
-                        modelType: AlertState,
-                        query: {
-                          projectId: projectId,
-                        },
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                          _id: true,
-                          name: true,
-                          color: true,
-                        },
-                        sort: {
-                          order: SortOrder.Ascending,
-                        },
-                      });
-
-                    return alertStates.data.map(
-                      (state: AlertState): DropdownOption => {
-                        const option: DropdownOption = {
-                          label: state.name || "",
-                          value: state._id?.toString() || "",
-                          color: state.color as Color,
-                        };
-
-                        return option;
-                      },
-                    );
-                  } catch {
-                    return [];
-                  }
-                },
+                collapsibleSection: advancedSection,
                 getSummaryElement: (item: FormValues<Alert>) => {
                   if (!item.currentAlertState) {
-                    return <p>Will use first available state by priority</p>;
+                    return (
+                      <p>
+                        {translator.translateText("The usual starting state.")}
+                      </p>
+                    );
                   }
 
                   return (
@@ -219,6 +166,55 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     />
                   );
                 },
+              },
+              getLabelsFormField<Alert>({
+                stepId: "alert-details",
+                collapsibleSection: advancedSection,
+                getSummaryElement: (item: FormValues<Alert>) => {
+                  if (!item.labels || !Array.isArray(item.labels)) {
+                    return (
+                      <p>{translator.translateText("No labels assigned.")}</p>
+                    );
+                  }
+
+                  const labelIds: Array<ObjectID> = [];
+
+                  for (const label of item.labels) {
+                    if (typeof label === "string") {
+                      labelIds.push(new ObjectID(label));
+                      continue;
+                    }
+
+                    if (label instanceof ObjectID) {
+                      labelIds.push(label);
+                      continue;
+                    }
+
+                    if (label instanceof Label) {
+                      labelIds.push(new ObjectID(label._id?.toString() || ""));
+                      continue;
+                    }
+                  }
+
+                  return (
+                    <div>
+                      <FetchLabels labelIds={labelIds} />
+                    </div>
+                  );
+                },
+              }),
+              {
+                field: {
+                  isPrivate: true,
+                },
+                title: "Private Alert",
+                stepId: "alert-details",
+                description:
+                  "If checked, only the alert's owner users and the members of its owner teams (plus project admins and owners) can view this alert.",
+                fieldType: FormFieldSchemaType.Checkbox,
+                defaultValue: false,
+                required: false,
+                collapsibleSection: advancedSection,
               },
               {
                 field: {
@@ -237,7 +233,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "Select Monitor",
                 getSummaryElement: (item: FormValues<Alert>) => {
                   if (!item.monitor) {
-                    return <p>No monitor selected.</p>;
+                    return (
+                      <p>{translator.translateText("No monitor selected.")}</p>
+                    );
                   }
 
                   return (
@@ -265,6 +263,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
+                // The picker writes only what is picked: the form can be finished without it.
+                customElementCanBeSkipped: true,
                 getCustomElement: (
                   values: FormValues<Alert>,
                   elementProps: CustomElementProps,
@@ -281,14 +281,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         values.databaseServers as Array<DatabaseServer>
                       }
                       services={values.services as Array<Service>}
-                      resourceTypes={[
-                        "Host",
-                        "KubernetesCluster",
-                        "DockerHost",
-                        "PodmanHost",
-                        "DatabaseServer",
-                        "Service",
-                      ]}
+                      resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
                       onChange={(payload: unknown) => {
                         elementProps.onChange?.(payload);
                       }}
@@ -333,7 +326,13 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return Array.isArray(resources) && resources.length > 0;
                   });
                   if (!hasResources) {
-                    return <p>No other resources affected by this alert.</p>;
+                    return (
+                      <p>
+                        {translator.translateText(
+                          "No other resources affected by this alert.",
+                        )}
+                      </p>
+                    );
                   }
                   return (
                     <AffectedResourcesPicker
@@ -348,14 +347,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         item.databaseServers as Array<DatabaseServer>
                       }
                       services={item.services as Array<Service>}
-                      resourceTypes={[
-                        "Host",
-                        "KubernetesCluster",
-                        "DockerHost",
-                        "PodmanHost",
-                        "DatabaseServer",
-                        "Service",
-                      ]}
+                      resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
                       onChange={() => {
                         // Read-only: nothing to change.
                       }}
@@ -443,8 +435,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ) {
                     return (
                       <p>
-                        No on-call policies will be executed when this alert is
-                        created.
+                        {translator.translateText(
+                          "No on-call policies will be executed when this alert is created.",
+                        )}
                       </p>
                     );
                   }
@@ -479,89 +472,6 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   );
                 },
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "more",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-                getSummaryElement: (item: FormValues<Alert>) => {
-                  if (!item.labels || !Array.isArray(item.labels)) {
-                    return <p>No labels assigned.</p>;
-                  }
-
-                  const labelIds: Array<ObjectID> = [];
-
-                  for (const label of item.labels) {
-                    if (typeof label === "string") {
-                      labelIds.push(new ObjectID(label));
-                      continue;
-                    }
-
-                    if (label instanceof ObjectID) {
-                      labelIds.push(label);
-                      continue;
-                    }
-
-                    if (label instanceof Label) {
-                      labelIds.push(new ObjectID(label._id?.toString() || ""));
-                      continue;
-                    }
-                  }
-
-                  return (
-                    <div>
-                      <FetchLabels labelIds={labelIds} />
-                    </div>
-                  );
-                },
-              },
-              {
-                field: {
-                  rootCause: true,
-                },
-                title: "Root Cause",
-                stepId: "more",
-                fieldType: FormFieldSchemaType.Markdown,
-                required: false,
-                description: MarkdownUtil.getMarkdownCheatsheet(
-                  "Describe the root cause here",
-                ),
-              },
-              {
-                field: {
-                  remediationNotes: true,
-                },
-                title: "Remediation Notes",
-                stepId: "more",
-                fieldType: FormFieldSchemaType.Markdown,
-                required: false,
-                description: MarkdownUtil.getMarkdownCheatsheet(
-                  "Describe the remediation steps here",
-                ),
-              },
-              {
-                field: {
-                  isPrivate: true,
-                },
-                title: "Private Alert",
-                stepId: "more",
-                description:
-                  "If checked, only the alert's owner users and the members of its owner teams (plus project admins and owners) can view this alert.",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: false,
-                required: false,
-              },
             ]}
             steps={[
               {
@@ -569,12 +479,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 id: "alert-details",
               },
               {
-                title: "On-Call",
+                title: "Resources & On-Call",
                 id: "on-call",
-              },
-              {
-                title: "More",
-                id: "more",
               },
             ]}
             onSuccess={async (createdItem: Alert) => {

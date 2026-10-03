@@ -297,7 +297,15 @@ test.describe("Monitor template field sync settings", () => {
       .getByPlaceholder("Monitor Name")
       .fill("New API from defaults");
     const nextOrCreate: Locator = page.getByTestId("Create Monitor");
-    await nextOrCreate.click();
+    /*
+     * The one button that reads Next: the main button until the criteria
+     * have been shown, the plain one beside Create Monitor after.
+     */
+    const next: Locator = createForm.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
+    await next.click();
     await page
       .getByText("Monitor Criteria", { exact: true })
       .first()
@@ -312,11 +320,16 @@ test.describe("Monitor template field sync settings", () => {
       createForm.getByPlaceholder("Header Value").first(),
     ).toHaveValue("template-default");
     await capture(page, test.info(), "new-monitor-template-defaults");
-    await nextOrCreate.click();
+    await expect(nextOrCreate).toHaveText("Create Monitor");
+    await next.click();
+    /*
+     * Probes & Interval is the last step: the template's labels fold under
+     * Advanced on Monitor Info rather than walk a step of their own.
+     */
     await expect(
       createForm.getByText("Monitoring Interval", { exact: true }),
     ).toBeVisible();
-    await nextOrCreate.click();
+    await expect(next).toHaveCount(0);
     await expect(nextOrCreate).toHaveText("Create Monitor");
     await nextOrCreate.click();
     const monitorViewPattern: RegExp = new RegExp(

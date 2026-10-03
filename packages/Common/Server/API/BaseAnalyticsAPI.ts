@@ -333,6 +333,22 @@ export default class BaseAnalyticsAPI<
   }
 
   /*
+   * Whether a count request asked for the exact total (see CountBy.exact):
+   * the telemetry explorers' "712,345 spans", which must match the list and
+   * so must not come from a shortcut or a count cut short. Only the JSON
+   * boolean `true` asks — a stringly-typed "true" is not a request this API
+   * documents, and the default stays the cheap count every other caller
+   * already gets.
+   */
+  public static isExactCountRequested(body: unknown): boolean {
+    if (!body || typeof body !== "object") {
+      return false;
+    }
+
+    return (body as JSONObject)["exact"] === true;
+  }
+
+  /*
    * Server-side clamp on the client-sent aggregate limit — nothing else
    * bounds it, so an arbitrary client could request limit=999999999
    * rows. Clamped to LIMIT_PER_PROJECT (never lower): grouped chart
@@ -559,6 +575,7 @@ export default class BaseAnalyticsAPI<
     const count: PositiveNumber = await this.service.countBy({
       query,
       props: databaseProps,
+      exact: BaseAnalyticsAPI.isExactCountRequested(req.body),
     });
 
     return Response.sendJsonObjectResponse(req, res, {

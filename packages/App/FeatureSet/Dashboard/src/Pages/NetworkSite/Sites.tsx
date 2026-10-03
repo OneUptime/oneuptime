@@ -63,6 +63,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -77,6 +79,7 @@ const FACET_PICKER_PAGE_SIZE: number = 50;
 const NetworkSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Bumped when sites change — a create from the table, or a CSV import — so
    * the table, the summary cards and the hierarchy tree all refetch without a
@@ -327,8 +330,8 @@ const NetworkSites: FunctionComponent<
 
   const {
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
-    hasActiveFilters,
     facetSelections,
     facetOperators,
     setFacetSelection,
@@ -396,19 +399,11 @@ const NetworkSites: FunctionComponent<
         onFacetStateRestored={restoreFacetState}
         topContent={filterBar}
         /*
-         * "No network site" under a chip that matched nothing reads as an empty
-         * project. This says the hierarchy is there and the bar is what is hiding
-         * it.
-         *
-         * Only the chips — `hasActiveFilters` is the bar's own state, so a search
-         * term or a popup filter that matches nothing still falls through to the
-         * table's default copy.
+         * "No network sites yet" under a chip that matched nothing reads as an
+         * empty project. The chips are the bar's own state, so the table is
+         * told about them: it says nothing matches and offers to clear them.
          */
-        noItemsMessage={
-          hasActiveFilters
-            ? "No network site matches the filters above."
-            : undefined
-        }
+        emptyState={facetEmptyState}
         onCreateSuccess={(item: NetworkSite): Promise<NetworkSite> => {
           setRefreshToggle(Date.now().toString());
           return Promise.resolve(item);
@@ -652,7 +647,11 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.networkSiteType?.name) {
-                return <span className="text-sm text-gray-400">Not set</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not set")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -672,7 +671,11 @@ const NetworkSites: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.parentSite?.name) {
-                return <span className="text-sm text-gray-400">Root</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Root")}
+                  </span>
+                );
               }
               return (
                 <span className="text-sm text-gray-900">
@@ -693,7 +696,11 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {
-                return <span className="text-sm text-gray-400">No Data</span>;
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No Data")}
+                  </span>
+                );
               }
               return (
                 <MonitorStatusElement
@@ -718,7 +725,9 @@ const NetworkSites: FunctionComponent<
                 item.longitude === null
               ) {
                 return (
-                  <span className="text-sm text-gray-400">Not pinned</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Not pinned")}
+                  </span>
                 );
               }
               return (

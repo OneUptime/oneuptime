@@ -24,53 +24,51 @@ import {
   describeYamlSyntaxError,
 } from "../../../Types/Code/YamlSyntax";
 import { Logger } from "../../Utils/Logger";
+import {
+  getPeoplePickerValueKeys,
+  toPeoplePickerIds,
+} from "../PeoplePicker/PeoplePickerTypes";
 import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
-import i18next from "i18next";
+import {
+  getGlobalTranslator,
+  TemplateValues,
+  translatableTerm,
+  TranslatableTerm,
+} from "../../Utils/TranslateTemplate";
 
-type InterpolationValues = Record<string, string | number>;
+type InterpolationValues = TemplateValues;
 
-const interpolateTemplate: (
-  template: string,
-  values: InterpolationValues,
-) => string = (template: string, values: InterpolationValues): string => {
-  return template.replace(
-    /\{\{(\w+)\}\}/g,
-    (match: string, key: string): string => {
-      return key in values ? String(values[key]) : match;
-    },
-  );
+/*
+ * The field a message names, as a word to translate with the message: the
+ * German "{{field}} ist erforderlich." gets the German field title, and an
+ * English sentence keeps the English one.
+ */
+const fieldTerm: (
+  title: string | undefined,
+  name?: string,
+) => TranslatableTerm = (
+  title: string | undefined,
+  name?: string,
+): TranslatableTerm => {
+  return translatableTerm(title || name || "");
 };
 
 /*
  * Localize a validation message (WCAG 3.1.2 Language of Parts). The English
  * template — including any {{placeholders}} — doubles as the i18next flat key,
  * so a locale file maps it to a translated template that keeps correct word
- * order. When an i18next instance is initialized (e.g. the status page) the
- * lookup + interpolation run through it; otherwise (apps that don't set up i18n)
- * we fall back to JS-interpolating the English template, so placeholders are
- * never shown literally and behavior is unchanged where i18n isn't set up.
+ * order, and the field it names (a translatableTerm) is translated with it.
+ * When an i18next instance is initialized (e.g. the status page) the lookup
+ * runs through it; otherwise (apps that don't set up i18n) the English
+ * template is filled, so placeholders are never shown literally and behavior
+ * is unchanged where i18n isn't set up. See Utils/TranslateTemplate.
  */
 export const translateValidationMessage: (
   template: string,
   values?: InterpolationValues,
 ) => string = (template: string, values: InterpolationValues = {}): string => {
-  const englishFallback: string = interpolateTemplate(template, values);
-  try {
-    if (!i18next.isInitialized) {
-      return englishFallback;
-    }
-    const translated: unknown = i18next.t(template, {
-      defaultValue: template,
-      keySeparator: false,
-      nsSeparator: false,
-      interpolation: { escapeValue: false },
-      ...values,
-    });
-    return typeof translated === "string" ? translated : englishFallback;
-  } catch {
-    return englishFallback;
-  }
+  return getGlobalTranslator().translateTemplate(template, values);
 };
 
 export default class Validation {
@@ -84,7 +82,7 @@ export default class Validation {
           return translateValidationMessage(
             "{{field}} cannot be less than {{minLength}} characters.",
             {
-              field: field.title || field.name || "",
+              field: fieldTerm(field.title, field.name as string),
               minLength: field.validation.minLength,
             },
           );
@@ -96,7 +94,7 @@ export default class Validation {
           return translateValidationMessage(
             "{{field}} cannot be more than {{maxLength}} characters.",
             {
-              field: field.title || field.name || "",
+              field: fieldTerm(field.title, field.name as string),
               maxLength: field.validation.maxLength,
             },
           );
@@ -107,7 +105,7 @@ export default class Validation {
         if (content.trim().includes(" ")) {
           return translateValidationMessage(
             "{{field}} should not have spaces.",
-            { field: field.title || field.name || "" },
+            { field: fieldTerm(field.title, field.name as string) },
           );
         }
       }
@@ -116,7 +114,7 @@ export default class Validation {
         if (!content.match(/^[A-Za-z0-9_-]*$/)) {
           return translateValidationMessage(
             "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).",
-            { field: field.title || field.name || "" },
+            { field: fieldTerm(field.title, field.name as string) },
           );
         }
       }
@@ -125,7 +123,7 @@ export default class Validation {
         if (!content.match(/^[A-Za-z]*$/)) {
           return translateValidationMessage(
             "{{field}} should not have numbers.",
-            { field: field.title || field.name || "" },
+            { field: fieldTerm(field.title, field.name as string) },
           );
         }
       }
@@ -142,7 +140,7 @@ export default class Validation {
         if (OneUptimeDate.isInThePast(content.trim())) {
           return translateValidationMessage(
             "{{field}} should be a future date.",
-            { field: field.title || field.name || "" },
+            { field: fieldTerm(field.title, field.name as string) },
           );
         }
       }
@@ -161,7 +159,7 @@ export default class Validation {
         } catch (e) {
           Logger.error(e as string);
           return translateValidationMessage("{{field}} should be a number.", {
-            field: field.title || field.name || "",
+            field: fieldTerm(field.title, field.name as string),
           });
         }
       }
@@ -176,7 +174,7 @@ export default class Validation {
           return translateValidationMessage(
             "{{field}} should not be more than {{maxValue}}.",
             {
-              field: field.title || field.name || "",
+              field: fieldTerm(field.title, field.name as string),
               maxValue: field.validation.maxValue,
             },
           );
@@ -188,7 +186,7 @@ export default class Validation {
           return translateValidationMessage(
             "{{field}} should not be less than {{minValue}}.",
             {
-              field: field.title || field.name || "",
+              field: fieldTerm(field.title, field.name as string),
               minValue: field.validation.minValue,
             },
           );
@@ -217,7 +215,7 @@ export default class Validation {
 
     if (required && (!content || content.length === 0)) {
       return translateValidationMessage("{{field}} is required.", {
-        field: field.title || field.name || "",
+        field: fieldTerm(field.title, field.name as string),
       });
     }
     return null;
@@ -238,8 +236,10 @@ export default class Validation {
       return translateValidationMessage(
         "{{field}} should match {{matchField}}",
         {
-          field: field.title || field.name || "",
-          matchField: field.validation?.toMatchField as string,
+          field: fieldTerm(field.title, field.name as string),
+          matchField: translatableTerm(
+            (field.validation?.toMatchField as string) || "",
+          ),
         },
       );
     }
@@ -367,7 +367,7 @@ export default class Validation {
     return translateValidationMessage(
       "{{field}} is not valid JSON. {{parserMessage}}",
       {
-        field: field.title || field.name || "",
+        field: fieldTerm(field.title, field.name as string),
         parserMessage: result.errorMessage || "",
       },
     );
@@ -398,7 +398,7 @@ export default class Validation {
     return translateValidationMessage(
       "{{field}} is not valid YAML. {{parserMessage}}",
       {
-        field: field.title || field.name || "",
+        field: fieldTerm(field.title, field.name as string),
         parserMessage: describeYamlSyntaxError(result),
       },
     );
@@ -432,6 +432,44 @@ export default class Validation {
         if (!isVisible) {
           continue;
         }
+      }
+
+      /*
+       * A people picker holds nothing under its own name: its picks are in
+       * a form value per kind (ownerUsers, ownerTeams). It has an answer when
+       * any kind has a pick.
+       */
+      if (
+        field.fieldType === FormFieldSchemaType.PeoplePicker &&
+        field.peoplePicker
+      ) {
+        const picks: Array<string> = getPeoplePickerValueKeys(
+          field.peoplePicker,
+        ).flatMap((valueKey: string): Array<string> => {
+          return toPeoplePickerIds((entries as JSONObject)[valueKey]);
+        });
+
+        const resultRequired: string | null = this.validateRequired(
+          args.values,
+          picks.length > 0 ? picks.join(",") : undefined,
+          field,
+        );
+
+        if (resultRequired) {
+          errors[name] = resultRequired;
+        }
+
+        if (field.customValidation) {
+          const resultCustomValidation: string | null = field.customValidation({
+            ...args.values,
+          });
+
+          if (resultCustomValidation) {
+            errors[name] = resultCustomValidation;
+          }
+        }
+
+        continue;
       }
 
       if (name in entries) {

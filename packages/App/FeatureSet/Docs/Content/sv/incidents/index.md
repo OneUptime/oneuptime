@@ -116,7 +116,7 @@ Därefter kan du skriva en efteranalys och, om du vill, publicera den på status
 | **Episoder**       | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                        |
 | **Arbetsyta**      | Kopplingarna till **Slack** och **Microsoft Teams** för incidenter.                                                                                                     |
 | **Regler**         | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Inställningar**  | **AI**, **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Fler inställningar**. |
+| **Inställningar**  | **AI**, **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Nummerprefix**. |
 
 **Regler** och **Inställningar** är ihopfällda som standard — fäll ut dem för att hitta sidorna som resten av den här dokumentationen hänvisar till. Incidentkonfigurationen ligger inte under Projektinställningar; allt bor här.
 

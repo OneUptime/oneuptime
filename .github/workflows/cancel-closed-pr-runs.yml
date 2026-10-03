@@ -51,6 +51,7 @@ jobs:
           - Browser Recorder Test
           - Build
           - CLI Test
+          - CodeQL Advanced
           - Common Jobs
           - Common Test
           - Compile

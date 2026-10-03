@@ -7,8 +7,11 @@ import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <CardModelDetail
       cardProps={{
@@ -85,7 +88,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FieldType.Element,
             getElement: (user: User) => {
               if (!user.timezone) {
-                return <p>No timezone selected</p>;
+                return (
+                  <p>{translator.translateText("No timezone selected")}</p>
+                );
               }
 
               return <TimezoneElement timezone={user.timezone} />;

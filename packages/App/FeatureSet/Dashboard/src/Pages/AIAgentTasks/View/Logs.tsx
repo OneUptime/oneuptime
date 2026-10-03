@@ -37,6 +37,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const POLL_INTERVAL_MS: number = 5000;
 
@@ -206,6 +208,7 @@ const toLlmCallLogs: ToLlmCallLogsFunction = (
 const LogEntryRow: FunctionComponent<{
   entry: LogEntry;
 }> = (props: { entry: LogEntry }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { entry } = props;
 
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
@@ -245,7 +248,7 @@ const LogEntryRow: FunctionComponent<{
           isFailureEntry(entry) ? "text-red-600" : "text-gray-700"
         }`}
       >
-        {entry.message || "(no message)"}
+        {entry.message || translator.translateText("(no message)")}
       </span>
       {entry.durationInMs !== undefined ? (
         <span className="ml-auto shrink-0 text-xs text-gray-400">
@@ -295,13 +298,45 @@ const LogEntryRow: FunctionComponent<{
 const ContentPayloadView: FunctionComponent<{
   payload: AIRunEventContentPayload;
 }> = (props: { payload: AIRunEventContentPayload }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { payload } = props;
+
+  // The usage line under a model call: one sentence per fact that is known.
+  const usageSentences: Array<string> = [
+    payload.stopReason
+      ? translator.translateTemplate("Stop reason: {{stopReason}}.", {
+          stopReason: payload.stopReason,
+        })
+      : "",
+    payload.completionTokens !== undefined
+      ? translator.translatePlural(
+          {
+            one: "{{count}} completion token.",
+            other: "{{count}} completion tokens.",
+          },
+          payload.completionTokens,
+        )
+      : "",
+    payload.totalTokens !== undefined
+      ? translator.translatePlural(
+          {
+            one: "{{count}} total token.",
+            other: "{{count}} total tokens.",
+          },
+          payload.totalTokens,
+        )
+      : "",
+  ].filter((sentence: string): boolean => {
+    return sentence.length > 0;
+  });
 
   return (
     <Fragment>
       {payload.isTruncated ? (
         <p className="text-xs text-yellow-700">
-          Some content below was clipped at its storage cap.
+          {translator.translateText(
+            "Some content below was clipped at its storage cap.",
+          )}
         </p>
       ) : (
         <></>
@@ -310,7 +345,7 @@ const ContentPayloadView: FunctionComponent<{
       {payload.requestMessages?.length ? (
         <div>
           <p className="mb-1 text-xs font-medium text-gray-500">
-            Sent to the model
+            {translator.translateText("Sent to the model")}
           </p>
           <CodeBlock
             language="text"
@@ -329,8 +364,11 @@ const ContentPayloadView: FunctionComponent<{
       {payload.responseContent ? (
         <div>
           <p className="mb-1 text-xs font-medium text-gray-500">
-            Model replied
-            {payload.modelName ? ` (${payload.modelName})` : ""}
+            {payload.modelName
+              ? translator.translateTemplate("Model replied ({{modelName}})", {
+                  modelName: payload.modelName,
+                })
+              : translator.translateText("Model replied")}
           </p>
           <CodeBlock
             language="text"
@@ -345,7 +383,7 @@ const ContentPayloadView: FunctionComponent<{
       {payload.responseToolCalls?.length ? (
         <div>
           <p className="mb-1 text-xs font-medium text-gray-500">
-            Tool arguments
+            {translator.translateText("Tool arguments")}
           </p>
           <CodeBlock
             language="json"
@@ -360,7 +398,7 @@ const ContentPayloadView: FunctionComponent<{
       {payload.toolResult ? (
         <div>
           <p className="mb-1 text-xs font-medium text-gray-500">
-            Tool returned
+            {translator.translateText("Tool returned")}
           </p>
           <CodeBlock
             language="text"
@@ -373,15 +411,7 @@ const ContentPayloadView: FunctionComponent<{
       )}
 
       {payload.totalTokens !== undefined || payload.stopReason ? (
-        <p className="text-xs text-gray-400">
-          {payload.stopReason ? `Stop reason: ${payload.stopReason}. ` : ""}
-          {payload.completionTokens !== undefined
-            ? `${payload.completionTokens} completion tokens. `
-            : ""}
-          {payload.totalTokens !== undefined
-            ? `${payload.totalTokens} total tokens.`
-            : ""}
-        </p>
+        <p className="text-xs text-gray-400">{usageSentences.join(" ")}</p>
       ) : (
         <></>
       )}
@@ -392,6 +422,7 @@ const ContentPayloadView: FunctionComponent<{
 const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
   call: LlmCallLog;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { call } = props;
 
   const isError: boolean = call.status.toLowerCase() === "error";
@@ -416,7 +447,12 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
         <></>
       )}
       <span className="ml-auto shrink-0 text-xs text-gray-400">
-        {call.totalTokens !== undefined ? `${call.totalTokens} tokens` : ""}
+        {call.totalTokens !== undefined
+          ? translator.translatePlural(
+              { one: "{{count}} token", other: "{{count}} tokens" },
+              call.totalTokens,
+            )
+          : ""}
         {call.durationMs !== undefined ? ` · ${call.durationMs} ms` : ""}
       </span>
     </div>

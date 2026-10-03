@@ -20,7 +20,7 @@ Abre **Incidentes** en la navegación izquierda y despliega **Ajustes** al final
 | **Plantillas Post-mortem**   | Estructuras post-mortem reutilizables.                                                                              |
 | **Campos Personalizados**    | Definir campos adicionales que aparecen en todos los incidentes.                                                    |
 | **Roles de Incidente**       | Definir los roles a los que asignas a quienes responden, como Incident Commander.                                   |
-| **Más Ajustes**              | Los prefijos de número de incidente y de episodio de incidente.                                                     |
+| **Prefijo de número**              | Los prefijos de número de incidente y de episodio de incidente.                                                     |
 
 **Estado del Incidente** y **Gravedad del Incidente** se tratan a fondo en [Estados y severidades de incidentes](/docs/incidents/states-and-severities); el resto de esta página arranca a partir de **Plantillas de Incidentes**.
 
@@ -105,12 +105,14 @@ Los roles son solo definiciones. A las personas las asignas incidente por incide
 
 Todo incidente recibe un número. De forma predeterminada se muestra como `#42`. Si tu equipo dice "INC-42" en voz alta, haz que el producto lo diga también.
 
-Ve a **Incidentes → Ajustes → Más Ajustes** (`/dashboard/{projectId}/incidents/settings/more`). La tarjeta es **Prefijo de número** y contiene dos campos del proyecto:
+Ve a **Incidentes → Ajustes → Prefijo de número** (`/dashboard/{projectId}/incidents/settings/number-prefix`). La tarjeta **Prefijo de número** muestra, para los incidentes y para los episodios de incidente, el prefijo y un ejemplo del número que produce: `INC-` con **Ejemplo:** `INC-42`; sin prefijo muestra **Sin prefijo** y `#42`. **Actualizar** abre **Editar prefijo de número** con dos campos:
 
-- **Prefijo de número de incidente** — hasta 20 caracteres, marcador de posición `INC-`. Fíjalo y el incidente `#42` se muestra como `INC-42`.
-- **Prefijo de número de episodio de incidente** — la misma idea para los números de episodio de incidente, marcador de posición `IE-`.
+- **Prefijo de número de incidente** — marcador de posición `INC-`.
+- **Prefijo de número de episodio de incidente** — marcador de posición `IE-`.
 
-Deja cualquiera de los dos vacío para conservar el prefijo `#` predeterminado; el campo sin definir muestra `# (default)`. Guarda con **Actualizar**. El valor con prefijo se almacena en el incidente como `incidentNumberWithPrefix`, que es lo que muestran la lista de incidentes y la cabecera del incidente.
+Debajo de cada campo, **Vista previa:** muestra el número mientras escribes. Deja un campo vacío para volver a `#`. Un prefijo tiene como máximo 20 caracteres, usa letras, números y `-` `_` `.` `/` `:` `#` (sin espacios) y no termina en un dígito, que se uniría al número: `SEV1` daría `SEV142`. El diálogo te dice qué está mal antes de guardar, y la API rechaza los mismos prefijos.
+
+Un prefijo nuevo solo se aplica a los incidentes y episodios creados después. Los existentes conservan su número y el contador sigue donde estaba. El valor con prefijo se almacena en el incidente como `incidentNumberWithPrefix`, que es lo que muestran la lista de incidentes y la cabecera del incidente. Las alertas y el mantenimiento programado tienen la misma página: **Alertas → Ajustes → Prefijo de número** y **Mantenimiento programado → Ajustes → Prefijo de número**. La antigua dirección de **Más Ajustes** (`…/settings/more`) sigue llevando allí.
 
 ## Reglas que se ejecutan al crear un incidente
 
@@ -138,7 +140,7 @@ El formulario de creación tiene tres pasos:
 
 - **Información básica** — **Nombre** (el marcador de posición sugiere algo como avisar al equipo de bases de datos ante cualquier incidente de BD), **Descripción** y un interruptor **Habilitado**. La lista muestra por regla una píldora verde **Habilitado** o roja **Deshabilitado**.
 - **Criterios de coincidencia** — **Monitores**, **Incidente Severidades**, **Etiquetas de incidentes**, **Etiquetas del monitor**, más campos de expresión regular sin distinción de mayúsculas para el título del incidente, la descripción del incidente, el nombre del monitor y la descripción del monitor.
-- **Políticas de Guardia** — las políticas que ejecuta esta regla.
+- **Políticas de guardia** — las políticas que ejecuta esta regla.
 
 ### Cómo se resuelven las coincidencias
 

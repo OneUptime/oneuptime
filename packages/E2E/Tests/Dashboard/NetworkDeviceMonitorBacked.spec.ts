@@ -1,4 +1,5 @@
 import { BASE_URL } from "../../Config";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -71,6 +72,10 @@ test.skip(({ browserName }: { browserName: string }): boolean => {
  */
 const UNROUTABLE_HOSTNAME: string = "192.0.2.10";
 
+/*
+ * The devices card's own Create button: the first device is created from an
+ * empty list, which offers the same button again under its message.
+ */
 const CREATE_DEVICE_BUTTON_NAME: string = "Create Network Device";
 
 /*
@@ -128,7 +133,7 @@ const openDevicesList: OpenDevicesListFunction = async (data: {
     page: data.page,
     projectId: data.projectId,
     url: devicesUrl(data.projectId),
-    ready: data.page.getByRole("button", { name: CREATE_DEVICE_BUTTON_NAME }),
+    ready: getCardButton(data.page, CREATE_DEVICE_BUTTON_NAME),
   });
 };
 
@@ -261,8 +266,10 @@ const selectFirstOption: SelectFirstOptionFunction = async (data: {
  * The form is a stepped ModelFormModal with THREE steps and no monitoring
  * question among them: Device Details -> Probe & Site -> SNMP (Optional).
  * The SNMP step is shown for every device and required by none, so the
- * footer button - which keeps the "modal-footer-submit-button" test id on
- * every step - reads "Next" twice and then "Save".
+ * footer's main button - which keeps the "modal-footer-submit-button" test
+ * id on every step - reads "Next" on Device Details (the probe is still to
+ * be picked) and "Save" from Probe & Site on, with a plain Next beside it
+ * (modal-footer-next-button) that walks on to the SNMP step.
  */
 type CreateDeviceFunction = (data: {
   page: Page;
@@ -281,7 +288,7 @@ const createDevice: CreateDeviceFunction = async (data: {
 
   await openDevicesList({ page, projectId: data.projectId });
 
-  await page.getByRole("button", { name: CREATE_DEVICE_BUTTON_NAME }).click();
+  await getCardButton(page, CREATE_DEVICE_BUTTON_NAME).click();
 
   const modal: Locator = page.getByTestId("modal");
   await modal.waitFor({ state: "visible", timeout: 30000 });
@@ -357,15 +364,17 @@ const createDevice: CreateDeviceFunction = async (data: {
     await expect(createPingMonitorCheckbox).toBeChecked();
   }
 
-  await expect(footerButton).toHaveText("Next", { timeout: 30000 });
-  await footerButton.click();
+  // Only the optional SNMP step is left: the device could be saved here.
+  await expect(footerButton).toHaveText("Save", { timeout: 30000 });
+  await page.getByTestId("modal-footer-next-button").click();
 
   /*
    * Step 3 - SNMP (Optional), left entirely empty. That is the whole point
    * of ping-first polling: no community string, no v3 user, and the device
-   * is still polled. It is the last step, so the button reads "Save".
+   * is still polled. It is the last step: "Save", and nothing to walk on to.
    */
   await expect(footerButton).toHaveText("Save", { timeout: 30000 });
+  await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
   await footerButton.click();
 
   /*

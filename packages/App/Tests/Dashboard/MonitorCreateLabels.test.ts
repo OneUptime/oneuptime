@@ -8,21 +8,38 @@ import path from "path";
  * source invariants cover the load-bearing form wiring in the same style as
  * MonitorProbeSelectionPages.test.ts.
  *
- * Labels must be a real Monitor relation rather than misc form data, and the
- * dedicated step must remain last for every monitor type. The latter matters
- * especially for Manual monitors, which skip both conditional middle steps.
+ * Labels must be a real Monitor relation rather than misc form data, and
+ * every monitor type must be able to set them. They used to be a dedicated
+ * last step for that second reason: Manual monitors skip both conditional
+ * middle steps, so only an unconditional step reached them all. That step
+ * held one optional field, so labels-not-a-step moved the field to the end
+ * of Monitor Info - the first step, which every monitor type walks, Manual
+ * included - folded under Advanced with the shared Labels field
+ * (Dashboard Utils/Form/LabelsFormField.ts). The wizard is one step shorter,
+ * and the labels still reach every type.
  */
 
-const MONITOR_CREATE_SOURCE_PATH: string = path.join(
+const DASHBOARD_SOURCE_PATH: string = path.join(
   __dirname,
   "..",
   "..",
   "FeatureSet",
   "Dashboard",
   "src",
+);
+
+const MONITOR_CREATE_SOURCE_PATH: string = path.join(
+  DASHBOARD_SOURCE_PATH,
   "Pages",
   "Monitor",
   "Create.tsx",
+);
+
+const LABELS_FORM_FIELD_SOURCE_PATH: string = path.join(
+  DASHBOARD_SOURCE_PATH,
+  "Utils",
+  "Form",
+  "LabelsFormField.ts",
 );
 
 function squash(text: string): string {
@@ -43,16 +60,25 @@ function squash(text: string): string {
  * comment. Whitespace is squashed afterwards so prettier re-wrapping the page
  * cannot turn a real regression check into a formatting failure.
  */
-function readMonitorCreateSource(): string {
+function readCode(sourcePath: string): string {
   return squash(
     fs
-      .readFileSync(MONITOR_CREATE_SOURCE_PATH, "utf8")
+      .readFileSync(sourcePath, "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, " ")
       .replace(/(^|[^:])\/\/[^\n]*/g, "$1"),
   );
 }
 
-const source: string = readMonitorCreateSource();
+const source: string = readCode(MONITOR_CREATE_SOURCE_PATH);
+
+// The shared Labels field the form asks with.
+const labelsFieldSource: string = readCode(LABELS_FORM_FIELD_SOURCE_PATH);
+
+const LABELS_FIELD_CALL: string = squash(`
+  getLabelsFormField<Monitor>({
+    stepId: "monitor-info",
+  }),
+`);
 
 function sourceBetween(startMarker: string, endMarker: string): string {
   const start: number = source.indexOf(startMarker);
@@ -167,28 +193,34 @@ function selectsColumn(select: string, column: string): boolean {
 }
 
 describe("Monitor create labels", () => {
+  test("asks for them with the shared Labels field, exactly once", () => {
+    expect(source).toContain(LABELS_FIELD_CALL);
+    expect(source.split("getLabelsFormField<").length - 1).toBe(1);
+    // No Labels field written out beside it.
+    expect(source).not.toContain(squash("field: { labels: true, },"));
+  });
+
   test("submits labels as the real Monitor.labels relation", () => {
-    expect(source).toContain(squash("field: { labels: true, },"));
+    expect(labelsFieldSource).toContain(
+      squash(
+        "field: { labels: true } as unknown as SelectFormFields<TEntity>,",
+      ),
+    );
 
     /*
      * An override field is removed from the Monitor payload and sent through
      * miscDataProps instead. That is correct for probes, but would silently
      * prevent ModelForm from persisting the MonitorLabel join rows.
      */
-    expect(source).not.toContain(squash("overrideField: { labels: true, },"));
-    expect(source).not.toContain('overrideFieldKey: "labels"');
+    for (const code of [source, labelsFieldSource]) {
+      expect(code).not.toContain(squash("overrideField: { labels: true, },"));
+      expect(code).not.toContain('overrideFieldKey: "labels"');
+    }
   });
 
-  test("renders an optional Label-backed multi-select", () => {
-    expect(source).toContain(
+  test("renders an optional Label-backed multi-select, folded under Advanced", () => {
+    expect(labelsFieldSource).toContain(
       squash(`
-        field: {
-          labels: true,
-        },
-        title: "Labels",
-        stepId: "labels",
-        description:
-          "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {
           type: Label,
@@ -196,28 +228,32 @@ describe("Monitor create labels", () => {
           valueField: "_id",
         },
         required: false,
-        placeholder: "Labels",
       `),
     );
+    expect(labelsFieldSource).toContain(
+      squash(
+        "collapsibleSection: collapsibleSection || getAdvancedFormSection<TEntity>(),",
+      ),
+    );
+    // The page hands it no section of its own: the field's own Advanced.
+    expect(LABELS_FIELD_CALL).not.toContain("collapsibleSection");
   });
 
-  test("keeps Labels as a dedicated unconditional final step", () => {
+  test("keeps Labels on the step every monitor type walks, with no step of their own", () => {
     const steps: string = sourceBetween("steps={[", "]} onBeforeCreate=");
-    const intervalStepStart: number = steps.indexOf(
-      squash(`
-        title: "Probes & Interval",
-        id: "monitoring-interval",
-      `),
-    );
-    const labelsStep: string = squash(`
+    const monitorInfoStep: string = squash(`
       {
-        title: "Labels",
-        id: "labels",
+        title: "Monitor Info",
+        id: "monitor-info",
       },
     `);
-    const labelsStepStart: number = steps.indexOf(labelsStep);
 
-    expect(intervalStepStart).toBeGreaterThanOrEqual(0);
+    /*
+     * Monitor Info comes first and has no showIf, so Manual, criteria-only
+     * and probeable monitor types all walk it; the steps after it are the
+     * conditional ones.
+     */
+    expect(steps.trim().startsWith(monitorInfoStep)).toBe(true);
     expect(steps).toContain(
       squash(`
         showIf: (values: FormValues<Monitor>) => {
@@ -227,13 +263,27 @@ describe("Monitor create labels", () => {
         },
       `),
     );
-    expect(labelsStepStart).toBeGreaterThan(intervalStepStart);
+    expect(steps).not.toContain('title: "Labels"');
+    expect(steps).not.toContain('id: "labels"');
+
+    // The field itself is never conditional.
+    expect(LABELS_FIELD_CALL).not.toContain("showIf");
 
     /*
-     * An exact, showIf-free block at the end keeps Labels visible to Manual,
-     * criteria-only, and probeable monitor types alike.
+     * Last on Monitor Info, after the monitor type: the folded section ends
+     * the step, below everything the step asks in the open.
      */
-    expect(steps.trim().endsWith(labelsStep)).toBe(true);
+    const monitorTypeField: number = source.indexOf(
+      squash("field: { monitorType: true, },"),
+    );
+    const labelsField: number = source.indexOf(LABELS_FIELD_CALL);
+    const monitorStepsField: number = source.indexOf(
+      squash("field: { monitorSteps: true, },"),
+    );
+
+    expect(monitorTypeField).toBeGreaterThanOrEqual(0);
+    expect(labelsField).toBeGreaterThan(monitorTypeField);
+    expect(monitorStepsField).toBeGreaterThan(labelsField);
   });
 
   test("loads template labels and maps them into initial form values", () => {
@@ -279,10 +329,13 @@ describe("Monitor create labels", () => {
     expect(templateLoader).toContain("setInitialValues(values);");
   });
 
-  test("explains the labels' access-control effect and optional nature", () => {
-    expect(source).toContain(
-      "Team members with access to these labels will only be able to access this resource.",
+  test("explains what labels do, in the words every form uses", () => {
+    // The page keeps the shared description: no copy of its own.
+    expect(LABELS_FIELD_CALL).not.toContain("description");
+    expect(labelsFieldSource).toContain(
+      "A team whose permissions are restricted to labels only sees resources that carry one of its labels.",
     );
-    expect(source).toContain("This is optional and an advanced feature.");
+    // The old help said what the folded section now says by itself.
+    expect(source).not.toContain("This is optional and an advanced feature.");
   });
 });

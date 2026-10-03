@@ -48,7 +48,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
           aria-haspopup="true"
           onClick={toggleDropdown}
         >
-          <span className="sr-only">Open options</span>
+          <span className="sr-only">{translateString("Open options")}</span>
           <svg
             className="size-5"
             viewBox="0 0 20 20"

@@ -1,9 +1,112 @@
 {
+  "agents/KubernetesAIAgent": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon watches only this agent's own directory, for `npm run dev`. The production image installs with npm ci --omit=dev and runs node build/dist/Index.js, so nodemon and braces are not even in it."
+    }
+  ],
+  "agents/KubernetesCostAgent": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon watches only this agent's own directory, for `npm run dev`. The production image installs with npm ci --omit=dev and runs node build/dist/Index.js, so nodemon and braces are not even in it."
+    }
+  ],
+  "agents/KubernetesLogTailer": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon watches only this agent's own directory, for `npm run dev`. The production image installs with npm ci --omit=dev and runs node build/dist/Index.js, so nodemon and braces are not even in it."
+    }
+  ],
+  "agents/ResourceAIAgent": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon watches only this agent's own directory, for `npm run dev`. The production image installs with npm ci --omit=dev and runs node build/dist/Index.js, so nodemon and braces are not even in it."
+    }
+  ],
+  "ee": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through this project's test tooling, jest 28 with ts-jest and @types/jest, via micromatch. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls, and the patterns it matches are this project's own test config. jest 30.3+ dropped micromatch, but ee/jest.config.js runs ee's UI tests in Common's jest 28 environment and setup file, so ee can only move together with Common. The Enterprise image prunes ee's devDependencies (npm prune --omit=dev) after its type-check, so none of it ships."
+    }
+  ],
+  "packages/App": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through development tooling, jest 28 (jest, ts-jest, @types/jest) and nodemon. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls. nodemon (3.1.14, the latest, still requires chokidar ^3) reaches braces only through chokidar's braces.expand, for a watched path that contains '{', and its watch paths are the fixed list in this project's nodemon.json, none with a brace. Both run only in development and CI; the production image starts with `npm start` (node) and never launches either."
+    }
+  ],
+  "packages/App/FeatureSet/Accounts": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon's watch paths are the fixed list in this project's nodemon.json, none with a brace. nodemon runs only for `npm run dev` in the development container; the production App image only builds this frontend and starts the App with `npm start`, which never launches nodemon."
+    }
+  ],
+  "packages/App/FeatureSet/AdminDashboard": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon's watch paths are the fixed list in this project's nodemon.json, none with a brace. nodemon runs only for `npm run dev` in the development container; the production App image only builds this frontend and starts the App with `npm start`, which never launches nodemon."
+    }
+  ],
+  "packages/App/FeatureSet/Dashboard": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon's watch paths are the fixed list in this project's nodemon.json, none with a brace. nodemon runs only for `npm run dev` in the development container; the production App image only builds this frontend and starts the App with `npm start`, which never launches nodemon."
+    }
+  ],
+  "packages/App/FeatureSet/MobileRecorder": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through devDependencies that build and test this library: jest 29 (with ts-jest and @types/jest) and react-native, which brings babel-jest 29 and Metro's metro-file-map. jest calls only micromatch(), .some and .any, and metro-file-map's watchers only micromatch.some() against globs Metro builds from its own config; these compile with picomatch, and braces runs only under micromatch.braces, braceExpand and parse, which none of them calls. Apps that install @oneuptime/react-native-replay get none of it: react-native is a peer dependency there."
+    }
+  ],
+  "packages/App/FeatureSet/PublicDashboard": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon's watch paths are the fixed list in this project's nodemon.json, none with a brace. nodemon runs only for `npm run dev` in the development container; the production App image only builds this frontend and starts the App with `npm start`, which never launches nodemon."
+    }
+  ],
+  "packages/App/FeatureSet/StatusPage": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through the devDependency nodemon (3.1.14, the latest, still requires chokidar ^3): chokidar 3 calls braces.expand only for a watched path that contains '{', and nodemon's watch paths are the fixed list in this project's nodemon.json, none with a brace. nodemon runs only for `npm run dev` in the development container; the production App image only builds this frontend and starts the App with `npm start`, which never launches nodemon."
+    }
+  ],
+  "packages/CLI": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through development tooling, jest 29 (jest, ts-jest, @types/jest) and nodemon. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls. nodemon (3.1.14, the latest, still requires chokidar ^3) reaches braces only through chokidar's braces.expand, for a watched path that contains '{', and it watches only the package directory, for `npm run dev`. Both are devDependencies, which npm never installs for users of the published @oneuptime/cli (it ships only build/dist)."
+    }
+  ],
   "packages/Common": [
     {
       "advisory": "GHSA-86w9-cpqp-85rv",
       "expires": "2026-11-01",
       "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest (the advisory was widened to it on 2026-10-01). It comes in only through acme-client 5.4.0, the latest acme-client, which loads it for its legacy forge API. OneUptime calls acme.crypto (createCsr, readCertificateInfo in Common/Server/Utils/Greenlock/Greenlock.ts), which is built on Node's crypto and @peculiar/x509, and acme-client's forge module only generates keys and signs CSRs: nothing here verifies an RSA PKCS#1 v1.5 signature with node-forge, which is where the advisory's forged signatures are accepted."
+    },
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). typeorm-extension 4.2.0, the latest, still reaches it through locter and fast-glob, the only production chain. OneUptime calls just typeorm-extension's createDatabase and dropDatabase (Common/Server/Infrastructure/PostgresDatabase.ts), always with our own DataSourceOptions, and with options given typeorm-extension never calls locter's locate or locateMany, the only code that runs fast-glob (it uses them to find a data-source file when no options are passed, and to load seeders), so no glob pattern reaches braces at runtime. The rest is jest 28/29 test tooling, which calls only micromatch(), .some and .any (picomatch); braces runs only under micromatch.braces, braceExpand and parse."
+    }
+  ],
+  "packages/Home": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through development tooling, jest 28 (jest, ts-jest, @types/jest) and nodemon. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls. nodemon (3.1.14, the latest, still requires chokidar ^3) reaches braces only through chokidar's braces.expand, for a watched path that contains '{', and its watch paths are the fixed list in this project's nodemon.json, none with a brace. Both run only in development and CI; the production image starts with `npm start` (node) and never launches either."
     }
   ],
   "packages/MobileApp": [
@@ -11,6 +114,32 @@
       "advisory": "GHSA-86w9-cpqp-85rv",
       "expires": "2026-11-01",
       "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest. It comes in only through Expo's developer tooling, @expo/cli and @expo/code-signing-certificates, which run in Node on the developer's machine and are not bundled into the app. Their node-forge verify calls check a signature they have just made, or the developer's own certificate or CSR, never one an attacker supplies, so the forged signatures the advisory is about never reach them."
+    },
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through build and test tooling that runs in Node on the developer's machine or the build server: Expo's CLI and Metro (@expo/metro-file-map, metro-file-map) and jest 29 (jest-expo, babel-jest). Metro's file watchers call only micromatch.some() against globs Metro builds from its own config (package.json, its health-check file, the source extensions), and jest only micromatch(), .some and .any; these compile with picomatch, and braces runs only under micromatch.braces, braceExpand and parse, which none of them calls. None of this tooling is bundled into the app."
+    }
+  ],
+  "packages/Probe": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through development tooling, jest 28 (jest, ts-jest) and nodemon. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls. nodemon (3.1.14, the latest, still requires chokidar ^3) reaches braces only through chokidar's braces.expand, for a watched path that contains '{', and its watch paths are the fixed list in this project's nodemon.json, none with a brace. Both run only in development and CI; the production image starts with `npm start` (node) and never launches either."
+    }
+  ],
+  "packages/Runner": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through development tooling, jest 28 (jest, ts-jest) and nodemon. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls. nodemon (3.1.14, the latest, still requires chokidar ^3) reaches braces only through chokidar's braces.expand, for a watched path that contains '{', and its watch paths are the fixed list in this project's nodemon.json, none with a brace. Both run only in development and CI; the production image starts with `npm start` (node) and never launches either."
+    }
+  ],
+  "packages/TestServer": [
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "expires": "2026-11-03",
+      "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). It comes in only through development tooling, jest 28 (jest, ts-jest) and nodemon. jest calls only micromatch's matchers (micromatch(), .some, .any), which compile patterns with picomatch; braces runs only under micromatch.braces, braceExpand and parse, which jest never calls. nodemon (3.1.14, the latest, still requires chokidar ^3) reaches braces only through chokidar's braces.expand, for a watched path that contains '{', and its watch paths are the fixed list in this project's nodemon.json, none with a brace. Both run only in development and CI; the production image starts with `npm start` (node) and never launches either."
     }
   ]
 }

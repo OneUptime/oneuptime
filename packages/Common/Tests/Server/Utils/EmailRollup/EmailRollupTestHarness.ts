@@ -15,6 +15,7 @@ import UserNotificationEmailRollupBatch, {
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import URL from "../../../../Types/API/URL";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import Color from "../../../../Types/Color";
 import Dictionary from "../../../../Types/Dictionary";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
@@ -71,6 +72,8 @@ export interface FakeItemRow {
   subject: string;
   severity: string | null;
   currentState: string | null;
+  severityColor: Color | null;
+  currentStateColor: Color | null;
   viewLink: string | null;
   sentAt: Date | null;
   rollupBatchId: ObjectID | null;
@@ -349,6 +352,8 @@ export function seedItem(
     subject?: string | undefined;
     severity?: string | null | undefined;
     currentState?: string | null | undefined;
+    severityColor?: Color | null | undefined;
+    currentStateColor?: Color | null | undefined;
     eventType?: NotificationSettingEventType | undefined;
     rollupCategory?: RollupCategory | undefined;
     viewLink?: string | null | undefined;
@@ -370,6 +375,8 @@ export function seedItem(
     subject: data.subject ?? `Incident created ${id.toString()}`,
     severity: data.severity ?? null,
     currentState: data.currentState ?? null,
+    severityColor: data.severityColor ?? null,
+    currentStateColor: data.currentStateColor ?? null,
     viewLink: data.viewLink ?? null,
     sentAt: data.sentAt ?? null,
     rollupBatchId: data.rollupBatchId ?? null,

@@ -18,9 +18,11 @@ import path from "path";
  *    edited a field on step one never saw a Save button - closing the modal
  *    threw the edit away. And the card never displayed the auto-enable toggle
  *    it edits, so even a successful save left the page looking unchanged.
- *    Long forms are stepped again since, edit forms included, and the edit
- *    dialog now keeps Save Changes on every step instead
+ *    Long forms are stepped again since, edit forms included, and a stepped
+ *    edit dialog now keeps Save Changes on every step instead
  *    (SteppedEditFormSave.test.tsx drives that through the real components).
+ *    The Probe Details form itself is one page since #4303, its optional
+ *    fields folded under Advanced.
  *
  * Sources are whitespace-squashed first so prettier re-wrapping a line cannot
  * turn a real regression check into a red herring.
@@ -182,17 +184,74 @@ describe("Probe view page makes an edit saveable and visible", () => {
    * ModelFormModal used to label its primary button "Next" on every step but
    * the last, so with steps someone editing the name or the auto-enable
    * toggle saw only "Cancel" and "Next" and lost the edit by closing the
-   * modal. The form has five fields, so it walks steps again - the Create
-   * Probe form's own two - and the edit dialog keeps Save on every step.
+   * modal. Since #4303 the form is one page, laid out like the Create Probe
+   * form: the name and the description up front, and Advanced folding the
+   * logo, the auto-enable switch and the labels. With no steps there is no
+   * "Next" at all.
    */
-  test("the Probe Details form walks the Create Probe form's steps", () => {
-    expect(source).toContain(
-      squash(
-        'formSteps={[ { title: "Basic Info", id: "basic-info" }, { title: "More", id: "more" }, ]}',
-      ),
+  test("the Probe Details form is one page, folded like the Create Probe form", () => {
+    type BetweenFunction = (code: string, from: string, to: string) => string;
+    const between: BetweenFunction = (
+      code: string,
+      from: string,
+      to: string,
+    ): string => {
+      const start: number = code.indexOf(from);
+      expect(start).toBeGreaterThan(-1);
+      const end: number = code.indexOf(to, start + from.length);
+      expect(end).toBeGreaterThan(start);
+      return code.slice(start, end);
+    };
+
+    const createPage: string = readSource(
+      "Pages",
+      "Monitor",
+      "Settings",
+      "MonitorProbes.tsx",
     );
-    expect(source).toContain(squash('stepId: "basic-info",'));
-    expect(source).toContain(squash('stepId: "more",'));
+    const detailsForm: string = between(
+      source,
+      "formFields={[",
+      "modelDetailProps={{",
+    );
+    const createForm: string = between(
+      createPage.slice(createPage.indexOf('title: "Custom Probes"')),
+      "formFields={[",
+      "showRefreshButton={true}",
+    );
+
+    for (const page of [source, createPage]) {
+      expect(page).not.toContain("formSteps");
+      expect(page).toContain(
+        squash(
+          "const advancedSection: FormFieldCollapsibleSection<Probe> = getAdvancedFormSection<Probe>();",
+        ),
+      );
+    }
+
+    for (const form of [detailsForm, createForm]) {
+      expect(form).not.toContain("stepId");
+      for (const field of ["name", "description"]) {
+        expect(
+          between(form, squash(`field: { ${field}: true, },`), "field: {"),
+        ).not.toContain("collapsibleSection");
+      }
+      expect(
+        between(form, squash("field: { iconFile: true, },"), "field: {"),
+      ).toContain(squash("collapsibleSection: advancedSection,"));
+      expect(
+        between(
+          form,
+          squash("field: { shouldAutoEnableProbeOnNewMonitors: true, },"),
+          "getLabelsFormField",
+        ),
+      ).toContain(squash("collapsibleSection: advancedSection,"));
+      expect(form).toContain(
+        squash(
+          "getLabelsFormField<Probe>({ collapsibleSection: advancedSection, }),",
+        ),
+      );
+    }
   });
 
   test("its edit dialog keeps Save on every step, so an edit is never stranded", () => {
@@ -219,12 +278,42 @@ describe("Probe view page makes an edit saveable and visible", () => {
         "const isEditFormWithSteps: boolean = hasSteps && props.formProps.formType === FormType.Update;",
       ),
     );
+    /*
+     * The buttons come from getSteppedFormFooter: an edit form saves from
+     * any step, its action ("Save") on the main button of every one.
+     */
+    expect(modal).toContain(squash("savesFromAnyStep: isEditFormWithSteps,"));
     expect(modal).toContain(
-      squash(
-        'isEditFormWithSteps || isOnLastFormStep ? props.submitButtonText || "Save" : "Next";',
-      ),
+      squash('actionText: props.submitButtonText || "Save",'),
+    );
+    expect(modal).toContain(
+      squash("submitButtonText={footer.primaryButtonText}"),
     );
     expect(modal).toContain("submitAllSteps()");
+
+    const footer: string = squash(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Components",
+          "Forms",
+          "Utils",
+          "FinishFromAnyStep.ts",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(footer).toContain(
+      squash(
+        "if (data.savesFromAnyStep) { return { primaryButtonText: data.actionText, primaryButtonSubmitsAllSteps: true, showNextButton: !data.isOnLastStep, }; }",
+      ),
+    );
   });
 
   test("the card displays the auto-enable toggle the form edits", () => {

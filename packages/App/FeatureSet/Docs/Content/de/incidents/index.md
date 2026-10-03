@@ -116,7 +116,7 @@ Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite 
 | **Episoden**       | Vorfall-Episoden, eine eigenständige Gruppierungsfunktion mit eigenen Seiten.                                                                                           |
 | **Arbeitsbereich** | **Slack**- und **Microsoft Teams**-Verbindungen für Vorfälle.                                                                                                           |
 | **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
-| **Einstellungen**  | **KI**, **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Weitere Einstellungen**. |
+| **Einstellungen**  | **KI**, **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Nummernpräfix**. |
 
 **Regeln** und **Einstellungen** sind standardmäßig eingeklappt – klappen Sie sie auf, um die Seiten zu finden, auf die sich der Rest dieser Dokumentation bezieht. Die Vorfallkonfiguration liegt nicht in den Projekteinstellungen; sie ist vollständig hier zu Hause.
 

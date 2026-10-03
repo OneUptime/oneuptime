@@ -18,6 +18,8 @@ import {
   getDropdownAlignmentClassName,
   useDropdownHorizontalAlignment,
 } from "../../Utils/DropdownAlignment";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
 import CustomTimeRangeModal from "./CustomTimeRangeModal";
 
@@ -37,7 +39,8 @@ export interface ComponentProps {
   dropdownWidthInPx: number;
 }
 
-export const CUSTOM_RANGE_OPTION_LABEL: string = "Custom Range...";
+export const CUSTOM_RANGE_OPTION_LABEL: string =
+  translationKey("Custom Range...");
 
 // Preset options to show in the dropdown, ordered shortest window first.
 export const TIME_RANGE_PRESET_OPTIONS: Array<TimeRangePickerPresetOption> = [
@@ -66,6 +69,18 @@ function formatDateShort(date: Date): string {
   return OneUptimeDate.getDateAsLocalShortDateTimeString(date);
 }
 
+/*
+ * A range's English label: its preset's ("Past 5 Minutes"), or the range
+ * itself ("Custom"). Look it up in the reader's language where it is shown.
+ */
+export function getTimeRangeLabel(range: TimeRange): string {
+  const preset: TimeRangePickerPresetOption | undefined =
+    TIME_RANGE_PRESET_OPTIONS.find((opt: TimeRangePickerPresetOption) => {
+      return opt.range === range;
+    });
+  return preset ? preset.label : range;
+}
+
 export function getTimeRangeButtonLabel(
   value: RangeStartAndEndDateTime,
 ): string {
@@ -75,16 +90,13 @@ export function getTimeRangeButtonLabel(
     return `${start} – ${end}`;
   }
 
-  const preset: TimeRangePickerPresetOption | undefined =
-    TIME_RANGE_PRESET_OPTIONS.find((opt: TimeRangePickerPresetOption) => {
-      return opt.range === value.range;
-    });
-  return preset ? preset.label : value.range;
+  return getTimeRangeLabel(value.range);
 }
 
 const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   /*
    * The custom window is edited in a modal rather than inline in this panel.
@@ -174,7 +186,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
         }}
       >
         <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-        <span>{buttonLabel}</span>
+        <span>{translator.translateText(buttonLabel)}</span>
         <Icon
           icon={IconProp.ChevronDown}
           className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -209,7 +221,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
                       handlePresetSelect(option.range);
                     }}
                   >
-                    {option.label}
+                    {translator.translateText(option.label)}
                   </button>
                 );
               },
@@ -226,7 +238,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
               }`}
               onClick={openCustomModal}
             >
-              {CUSTOM_RANGE_OPTION_LABEL}
+              {translator.translateText(CUSTOM_RANGE_OPTION_LABEL)}
             </button>
           </div>
         </div>

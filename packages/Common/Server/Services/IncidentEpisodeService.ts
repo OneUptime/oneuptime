@@ -15,6 +15,7 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -211,9 +212,10 @@ export class Service extends DatabaseService<Model> {
     } = await ProjectService.incrementAndGetIncidentEpisodeCounter(projectId);
 
     createBy.data.episodeNumber = episodeCounterResult.counter;
-    createBy.data.episodeNumberWithPrefix = episodeCounterResult.prefix
-      ? `${episodeCounterResult.prefix}${episodeCounterResult.counter}`
-      : `#${episodeCounterResult.counter}`;
+    createBy.data.episodeNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      episodeCounterResult.prefix,
+      episodeCounterResult.counter,
+    );
 
     // Set initial lastIncidentAddedAt
     if (!createBy.data.lastIncidentAddedAt) {

@@ -63,6 +63,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface SloMonitorState {
   membership: SloMonitorMembership;
@@ -97,6 +100,7 @@ type SaveMonitorChangeFunction = (data: {
  * page from offering what the API would refuse.
  */
 const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // The route is <sloId>/monitors, so the id is one segment back.
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
@@ -419,19 +423,19 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
               className="text-sm font-medium underline"
               to={monitorRulesRoute}
             >
-              Manage Monitor Rules
+              {translator.translateTemplate("Manage Monitor Rules")}
             </AppLink>
           }
         >
           <span>
-            {enabledMonitorRuleCount === 1
-              ? "An enabled monitor rule decides"
-              : `${enabledMonitorRuleCount} enabled monitor rules decide`}{" "}
-            which monitors this SLO measures. Matching monitors are attached
-            automatically, so monitors cannot be added by hand, and monitors a
-            rule attached cannot be removed here. Monitors attached by hand
-            before the rules were enabled can still be removed. Disable every
-            rule to pick monitors yourself.
+            {translator.translatePlural(
+              {
+                one: "An enabled monitor rule decides which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
+                other:
+                  "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
+              },
+              enabledMonitorRuleCount,
+            )}
           </span>
         </AlertBanner>
       ) : (
@@ -463,7 +467,10 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         cardProps={{
           title: "Monitors",
-          description: `The monitors whose uptime this SLO measures. ${describeSloMonitorCounts(membership)}.`,
+          description: translator.translateTemplate(
+            "The monitors whose uptime this SLO measures. {{monitorCounts}}.",
+            { monitorCounts: describeSloMonitorCounts(membership) },
+          ),
           buttons: addMonitorsButton ? [addMonitorsButton] : [],
         }}
         noItemsMessage={
@@ -699,9 +706,16 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title="Remove Monitor from SLO"
           description={
             <div>
-              Remove <strong>{monitorToRemove.name || "this monitor"}</strong>{" "}
-              from this SLO? It will no longer count towards the SLO&apos;s SLI
-              and error budget. The monitor itself is not changed.
+              {monitorToRemove.name ? (
+                <TranslatedSentence
+                  template="Remove {{monitor}} from this SLO? It will no longer count towards the SLO's SLI and error budget. The monitor itself is not changed."
+                  slots={{ monitor: <strong>{monitorToRemove.name}</strong> }}
+                />
+              ) : (
+                translator.translateText(
+                  "Remove this monitor from this SLO? It will no longer count towards the SLO's SLI and error budget. The monitor itself is not changed.",
+                )
+              )}
             </div>
           }
           submitButtonText="Remove"

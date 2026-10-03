@@ -95,7 +95,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Subscribers">
+      {/*
+       * What the page shows (Basic, Resources) is what this menu is opened
+       * for. The sections after it look after its audience and setup:
+       * subscribers sign themselves up and are managed now and then, and
+       * notification logs, branding, security and AI are set up once or
+       * checked when something needs checking. So they fold down to their
+       * titles until opened, and each opens by itself on its own pages.
+       * Subscribers says so here; the others fold by their titles (see
+       * SideMenuSectionState.ts).
+       */}
+      <SideMenuSection title="Subscribers" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Email Subscribers",
@@ -175,27 +185,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * Three entries, as on a dashboard's menu: the one Branding page (the
+       * logo, title, favicon, links, footer, colors and languages, which
+       * were five screens), the page's own domain, and the custom code that
+       * goes past what the Branding page offers.
+       */}
       <SideMenuSection title="Branding">
         <SideMenuItem
           link={{
-            title: "Essential Branding",
+            title: "Branding",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route,
               { modelId: props.modelId },
             ),
           }}
           icon={IconProp.Image}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "HTML, CSS & JavaScript",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Code}
         />
 
         <SideMenuItem
@@ -211,48 +216,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Header",
+            title: "HTML, CSS & JavaScript",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route,
+              RouteMap[PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.ArrowCircleUp}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Footer",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.ArrowCircleDown}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Overview Page",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.CheckCircle}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Languages",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Language}
+          icon={IconProp.Code}
         />
       </SideMenuSection>
 

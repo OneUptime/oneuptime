@@ -23,7 +23,11 @@ Database Label Rules attach labels to a database automatically when it matches y
 A rule matches a database only when **all** specified criteria pass. Empty criteria are skipped.
 
 - **Database Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex. Discovered databases are named after their engine and endpoint (\`PostgreSQL db.prod:5432\`), so \`^PostgreSQL\` matches every PostgreSQL database.
+- **Database Name**, **Database Description** — text, or a regular expression or \`*\` wildcard pattern
+
+### Matching Discovered Databases
+
+Discovered databases are named after their engine and endpoint (\`PostgreSQL db.prod:5432\`), so the condition **Database Name** starts with \`PostgreSQL\` matches every PostgreSQL database.
 
 ### Action
 
@@ -147,7 +151,7 @@ const DatabaseServerLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { databaseServerNamePattern: true },
-          title: "Database Name Pattern",
+          title: "Database Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -158,7 +162,7 @@ const DatabaseServerLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { databaseServerDescriptionPattern: true },
-          title: "Database Description Pattern",
+          title: "Database Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,

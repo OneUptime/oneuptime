@@ -29,6 +29,9 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -791,6 +794,7 @@ function getCiliumHubbleQueries(cluster: string): Array<MetricQueryConfigData> {
 const KubernetesClusterServiceMesh: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -971,19 +975,24 @@ const KubernetesClusterServiceMesh: FunctionComponent<
         </div>
         <div>
           <p className="text-sm font-medium text-blue-800">
-            Service Mesh Metrics Configuration
+            {translator.translateText("Service Mesh Metrics Configuration")}
           </p>
           <p className="mt-1 text-sm text-blue-600">
-            Service mesh metrics require{" "}
-            <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-              serviceMesh.enabled: true
-            </code>{" "}
-            and{" "}
-            <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
-              serviceMesh.provider
-            </code>{" "}
-            to be configured in the kubernetes-agent Helm chart values. Select
-            the tab matching your provider below.
+            <TranslatedSentence
+              template="Service mesh metrics require {{enabledSetting}} and {{providerSetting}} to be configured in the kubernetes-agent Helm chart values. Select the tab matching your provider below."
+              slots={{
+                enabledSetting: (
+                  <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                    serviceMesh.enabled: true
+                  </code>
+                ),
+                providerSetting: (
+                  <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">
+                    serviceMesh.provider
+                  </code>
+                ),
+              }}
+            />
           </p>
         </div>
       </div>

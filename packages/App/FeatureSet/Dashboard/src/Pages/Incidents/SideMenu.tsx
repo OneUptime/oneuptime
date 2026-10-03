@@ -12,6 +12,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -20,6 +21,17 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Only the chat workspaces this project has connected, or one entry to
+   * connect one when it has none (WorkspaceSideMenuSection.ts).
+   */
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.INCIDENTS_WORKSPACE_CONNECTIONS,
+    });
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Overview",
@@ -90,31 +102,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
-    {
-      title: "Workspace",
-      items: [
-        {
-          link: {
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route,
-            ),
-          },
-          icon: IconProp.Slack,
-        },
-        {
-          link: {
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-              ] as Route,
-            ),
-          },
-          icon: IconProp.MicrosoftTeams,
-        },
-      ],
-    },
+    ...(workspaceSection ? [workspaceSection] : []),
     /*
      * Every "when an incident looks like X, do Y" page lives here. Collapsed by
      * default because these are set up once and rarely revisited, and left
@@ -253,19 +241,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Template,
         },
-        /*
-         * Right after templates: a form declares its incidents much as a
-         * template does, but for people outside the team, through a link.
-         */
-        {
-          link: {
-            title: "Forms",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS] as Route,
-            ),
-          },
-          icon: IconProp.ClipboardDocumentList,
-        },
         {
           link: {
             title: "Note Templates",
@@ -313,14 +288,32 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        /*
+         * Whether an incident's linked alerts follow it when it is
+         * acknowledged or resolved. Its own page so it is findable by name.
+         */
         {
           link: {
-            title: "More Settings",
+            title: "Linked Alerts",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route,
+              RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route,
             ),
           },
-          icon: IconProp.Settings,
+          icon: IconProp.Link,
+        },
+        /*
+         * The text in front of incident and episode numbers (INC-42). A
+         * page of its own, named for what it holds: it was the only thing
+         * left on the More Settings page it replaced.
+         */
+        {
+          link: {
+            title: "Number Prefix",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route,
+            ),
+          },
+          icon: IconProp.Hashtag,
         },
       ],
     },

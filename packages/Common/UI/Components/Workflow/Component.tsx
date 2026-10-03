@@ -16,6 +16,8 @@ import {
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import React, { FunctionComponent, useState } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { Connection, Handle, Position } from "reactflow";
 
 export interface ComponentProps {
@@ -24,7 +26,8 @@ export interface ComponentProps {
 }
 
 /** Said on a step whose required settings are still empty. */
-export const WORKFLOW_NODE_SETUP_TEXT: string = "Click to set up";
+export const WORKFLOW_NODE_SETUP_TEXT: string =
+  translationKey("Click to set up");
 
 type StepSummaryFunction = (data: WorkflowNodeRenderData) => string | null;
 
@@ -266,6 +269,7 @@ const getPortPosition: GetPortPositionFunction = (
 };
 
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+  const translator: Translator = useTranslator();
   const [isHovering, setIsHovering] = useState<boolean>(false);
 
   const colors: CategoryColorScheme = getCategoryColors(
@@ -348,7 +352,8 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             transition: "all 0.2s ease",
           }}
         >
-          {props.data.metadata.description || "Click to add trigger"}
+          {translator.translateText(props.data.metadata.description) ||
+            translator.translateText("Click to add trigger")}
         </p>
       </div>
     );
@@ -622,7 +627,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                   flexShrink: 0,
                 }}
               />
-              <span>{WORKFLOW_NODE_SETUP_TEXT}</span>
+              <span>{translator.translateText(WORKFLOW_NODE_SETUP_TEXT)}</span>
             </div>
           </Tooltip>
         )}

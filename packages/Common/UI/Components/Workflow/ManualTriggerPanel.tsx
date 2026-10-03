@@ -1,6 +1,9 @@
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import IconProp from "../../../Types/Icon/IconProp";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 /*
  * The Manual trigger has no settings, so its dialog used to open on a card
@@ -9,10 +12,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  * component's title; ManualTriggerPanel.test.tsx fails if either is renamed
  * without this.
  */
-export const RUN_WORKFLOW_BUTTON_TITLE: string = "Run Workflow";
+export const RUN_WORKFLOW_BUTTON_TITLE: string = translationKey("Run Workflow");
 export const EXECUTE_WORKFLOW_COMPONENT_TITLE: string = "Execute Workflow";
 
 const ManualTriggerPanel: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <ComponentSettingsSection
       id="how-to-run"
@@ -25,13 +30,28 @@ const ManualTriggerPanel: FunctionComponent = (): ReactElement => {
         data-testid="manual-trigger-how-to-run"
       >
         <li>
-          Click <strong>{RUN_WORKFLOW_BUTTON_TITLE}</strong> in the
-          builder&apos;s toolbar and enter the JSON this run starts with.
+          {/*
+            The toolbar's button reads in the reader's language; the step's name
+            is the catalog's, as the canvas shows it.
+          */}
+          <TranslatedSentence
+            template="Click {{button}} in the builder's toolbar and enter the JSON this run starts with."
+            slots={{
+              button: (
+                <strong>
+                  {translator.translateText(RUN_WORKFLOW_BUTTON_TITLE)}
+                </strong>
+              ),
+            }}
+          />
         </li>
         <li>
-          Or start it from another workflow with an{" "}
-          <strong>{EXECUTE_WORKFLOW_COMPONENT_TITLE}</strong> step, which passes
-          the JSON for you.
+          <TranslatedSentence
+            template="Or start it from another workflow with an {{step}} step, which passes the JSON for you."
+            slots={{
+              step: <strong>{EXECUTE_WORKFLOW_COMPONENT_TITLE}</strong>,
+            }}
+          />
         </li>
       </ul>
     </ComponentSettingsSection>

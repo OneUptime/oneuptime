@@ -22,6 +22,8 @@ import FlamegraphView, {
   ServerFlamegraphNode,
   normaliseServerFlamegraphNode,
 } from "./FlamegraphView";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface FunctionFocusPanelProps {
   functionName: string;
@@ -64,6 +66,7 @@ interface FunctionFocusData {
 const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
   props: FunctionFocusPanelProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<FunctionFocusData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -199,7 +202,7 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
       className="fixed inset-0 z-50"
       role="dialog"
       aria-modal="true"
-      aria-label="Callers and callees"
+      aria-label={translator.translateText("Callers and callees")}
     >
       {/* Backdrop — clicking it dismisses the panel. */}
       <div
@@ -217,10 +220,11 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="mb-1 text-[10px] uppercase tracking-wider text-gray-400">
-                    Callers &amp; callees
+                    {translator.translateText("Callers & callees")}
                   </div>
                   <h2 className="break-all font-mono text-base font-semibold text-gray-900">
-                    {props.functionName || "(anonymous)"}
+                    {props.functionName ||
+                      translator.translateText("(anonymous)")}
                   </h2>
                   {props.fileName && (
                     <p className="mt-0.5 break-all font-mono text-[11px] text-gray-500">
@@ -235,7 +239,9 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                     props.onClose();
                   }}
                 >
-                  <span className="sr-only">Close panel</span>
+                  <span className="sr-only">
+                    {translator.translateText("Close panel")}
+                  </span>
                   <Icon className="h-5 w-5" icon={IconProp.Close} />
                 </button>
               </div>
@@ -306,11 +312,12 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                   {/* Callers */}
                   <div className="mt-6">
                     <h3 className="text-sm font-semibold text-gray-900">
-                      Called by
+                      {translator.translateText("Called by")}
                     </h3>
                     <p className="mb-2 mt-0.5 text-xs text-gray-500">
-                      Direct callers first — read downward as &quot;who calls
-                      this&quot;
+                      {translator.translateText(
+                        'Direct callers first — read downward as "who calls this"',
+                      )}
                     </p>
                     <FlamegraphView
                       root={callersRoot}
@@ -323,10 +330,12 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                   {/* Callees */}
                   <div className="mt-6">
                     <h3 className="text-sm font-semibold text-gray-900">
-                      Calls into
+                      {translator.translateText("Calls into")}
                     </h3>
                     <p className="mb-2 mt-0.5 text-xs text-gray-500">
-                      What this function spends its time calling
+                      {translator.translateText(
+                        "What this function spends its time calling",
+                      )}
                     </p>
                     <FlamegraphView
                       root={calleesRoot}
@@ -357,10 +366,12 @@ interface FocusStatProps {
 const FocusStat: FunctionComponent<FocusStatProps> = (
   props: FocusStatProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
       <div className="text-[10px] uppercase tracking-wider text-gray-400">
-        {props.label}
+        {translator.translateText(props.label)}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-gray-900">
         {props.value}

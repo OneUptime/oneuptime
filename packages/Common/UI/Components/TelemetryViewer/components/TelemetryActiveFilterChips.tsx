@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -20,6 +22,7 @@ export interface TelemetryActiveFilterChipsProps {
 const TelemetryActiveFilterChips: FunctionComponent<
   TelemetryActiveFilterChipsProps
 > = (props: TelemetryActiveFilterChipsProps): ReactElement | null => {
+  const translator: Translator = useTranslator();
   if (props.filters.length === 0) {
     return null;
   }
@@ -57,7 +60,7 @@ const TelemetryActiveFilterChips: FunctionComponent<
             className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
           >
             <span className="font-medium text-indigo-500">
-              {filter.displayKey}:
+              {translator.translateText(filter.displayKey)}:
             </span>
             <span>{filter.displayValue}</span>
             <button
@@ -66,7 +69,10 @@ const TelemetryActiveFilterChips: FunctionComponent<
               onClick={() => {
                 props.onRemove(filter.facetKey, filter.value);
               }}
-              title={`Remove ${filter.displayKey}: ${filter.displayValue}`}
+              title={translator.translateTemplate("Remove {{key}}: {{value}}", {
+                key: translatableTerm(filter.displayKey),
+                value: filter.displayValue,
+              })}
             >
               <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
             </button>
@@ -79,7 +85,7 @@ const TelemetryActiveFilterChips: FunctionComponent<
           className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           onClick={props.onClearAll}
         >
-          Clear all
+          {translator.translateText("Clear all")}
         </button>
       )}
     </div>

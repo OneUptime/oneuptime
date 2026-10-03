@@ -8,19 +8,22 @@
 
 ## 订阅渠道
 
-一个状态页支持五种渠道，每一种在状态页上都有自己的开关。去 **状态页面 → 你的页面 → 订阅者 → 订阅者设置**：
+一个状态页支持五种渠道。这些渠道和访客订阅所在的页面都在一个地方开关：**状态页面 → 你的页面 → 订阅者 → 订阅者设置** 里的 **渠道** 卡片。每个开关一拨动就会保存：
 
-- **启用电子邮件订阅者**（`enableEmailSubscribers`）——默认开启。在你打开它之前，其余的全是关着的。
-- **启用短信订阅者**（`enableSmsSubscribers`）——默认关闭。
-- **启用 Slack 订阅者**（`enableSlackSubscribers`）——默认关闭。
-- **启用 Microsoft Teams 订阅者**（`enableMicrosoftTeamsSubscribers`）——默认关闭。
-- **启用 Webhook 订阅者**（`enableWebhookSubscribers`）——默认关闭。
+- **显示订阅者页面**（`showSubscriberPageOnStatusPage`）——默认开启。在状态页导航栏里放上 **订阅** 项，访客在那里通过下面的渠道订阅。
+- **电子邮件**（`enableEmailSubscribers`）——默认开启。在你打开它们之前，其余的全是关着的。
+- **SMS**（`enableSmsSubscribers`）——默认关闭。在 OneUptime Cloud 上，除非该页面有自己的 **Twilio 配置**，否则每条短信都从项目的短信和电话余额中支付。要打开它，项目还需要在 **项目设置 > 通知 > 通知设置** 中打开 **启用短信通知**。
+- **Slack**（`enableSlackSubscribers`）——默认关闭。
+- **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）——默认关闭。
+- **Webhook**（`enableWebhookSubscribers`）——默认关闭。
 
-每种渠道在状态页侧边菜单的 **订阅者** 下面还各有一份自己的名单：**电子邮件订阅者**、**SMS 订阅者**、**Slack 订阅者**、**MS Teams 订阅者** 和 **Webhook 订阅者**。你在那里查看谁订阅了、手工添加某个人，或者给某个订阅者留一条 **备注**（`internalNote`）。
+这些开关决定访客能怎样自己订阅：通过已关闭的渠道订阅会被状态页拒绝。它们不会停止通知：你的团队在仪表板上、通过 API 或工作流添加的订阅者，无论哪些渠道开着，都会收到更新。
 
-**光有一个开关还不够。** 状态页导航栏里的 **订阅** 项，只有在 **显示订阅者页面**（`showSubscriberPageOnStatusPage`）打开 *并且* 至少启用了一种渠道时才会出现。如果你打开了 **启用电子邮件订阅者** 却让 **显示订阅者页面** 关着，访客根本没有路径能找到那张表单。
+在 OneUptime Cloud 上，你的套餐不包含的开关旁边会显示所需套餐的名称：**SMS** 和 **显示订阅者页面** 需要 **Growth**，**Slack**、**Microsoft Teams** 和 **Webhook** 需要 **Scale**。
 
-同样这五个开关在 **高级设置** 上的 **订阅者设置** 卡片里还会出现第二次，旁边就是 **显示订阅者页面**。它们底下是同一批字段——挑一个界面待着别乱跑，而且优先用专门的 **订阅者设置** 页面，因为订阅相关的其余配置都在那儿。
+每种渠道在状态页侧边菜单的 **订阅者** 下面还各有一份自己的名单：**电子邮件订阅者**、**SMS 订阅者**、**Slack 订阅者**、**MS Teams 订阅者** 和 **Webhook 订阅者**。你在那里查看谁订阅了、手工添加某个人，或者给某个订阅者留一条 **备注**（`internalNote`）。 某个渠道关闭期间，它的名单顶部会说明这一点，渠道的开关就在旁边，你不用离开名单就能打开它。
+
+**光有一个开关还不够。** 状态页导航栏里的 **订阅** 项，只有在 **显示订阅者页面** 打开 *并且* 至少打开了一种渠道时才会出现。如果你打开了 **电子邮件** 却让 **显示订阅者页面** 关着，访客根本没有路径能找到那张表单。
 
 ## 访客在订阅页面上看到什么
 
@@ -127,14 +130,14 @@
 **Show At**（`showAnnouncementAt`）和 **End At**（`endAnnouncementAt`）驱动着一切，但概览页和公告列表问的是不同的问题，而这个差别常常把人绊倒。
 
 - **概览页** 在 `showAnnouncementAt` 已经过去、并且 `endAnnouncementAt` 要么在未来、要么为空时展示一条公告。
-- **`/announcements` 列表** 展示的是 `showAnnouncementAt` 落在 **显示公告历史记录（天数）**（`showAnnouncementHistoryInDays`，默认 14）范围内的公告，然后在客户端把它们分成活动和过往两组。
+- **`/announcements` 列表** 展示的是 `showAnnouncementAt` 落在公告历史记录天数（`showAnnouncementHistoryInDays`，默认 14）范围内的公告，然后在客户端把它们分成活动和过往两组。
 
 有两个后果值得提前想好：
 
 - **没有结束日期的公告永远不会过期。** 把 **停止显示公告于** 留空，它就会无限期地钉在概览页上。凡是有时效的，都给它设一个结束日期。
 - **一条很旧但仍然生效的公告可能从列表里消失。** 如果它的开始时间早于 `showAnnouncementHistoryInDays`，它就会从 `/announcements` 上掉下去，同时还留在概览页上。如果你有长期挂着的通知，就把历史窗口调大。
 
-公告到底显不显示，由 **高级设置** 上的 **公告设置** 卡片控制：**显示公告**（`showAnnouncementsOnStatusPage`，默认 true）和 **显示公告历史记录（天数）**（默认 14）。**显示公告** 关闭时，公告接口会直接拒绝请求。
+公告到底显不显示，在 **高级设置** 上的 **状态页显示的内容** 卡片里设置：**显示公告**（`showAnnouncementsOnStatusPage`，默认 true）以及它下面的 **显示最近 … 天**（`showAnnouncementHistoryInDays`，默认 14）。**显示公告** 关闭时，公告接口会直接拒绝请求。
 
 ## 公告模板
 

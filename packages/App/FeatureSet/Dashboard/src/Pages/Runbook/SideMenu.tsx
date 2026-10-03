@@ -36,13 +36,21 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     /*
-     * Runners sit in the open, not folded into Settings: a Bash, SSH or
-     * Kubernetes step cannot run without one, and this is where people come
-     * to see whether theirs is still connected. The AI pages that need a
-     * Runner (code fixes, remediation commands) link straight to these too.
+     * Runners have a section of their own, not a row inside Settings: a Bash,
+     * SSH or Kubernetes step cannot run without one, and the section's title
+     * is where people look to see whether theirs is still connected. The AI
+     * pages that need a Runner (code fixes, remediation commands) link
+     * straight to these too.
+     *
+     * Folded down to that title until opened, like every rarely used section:
+     * a Runner is installed once and checked now and then, while the
+     * runbooks and their executions above are what this menu is opened for.
+     * It opens by itself on the Runners and Credentials pages, and on a
+     * Runner's own page.
      */
     {
       title: "Runners",
+      defaultCollapsed: true,
       items: [
         {
           link: {

@@ -18,6 +18,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -81,10 +82,17 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
   noItemsMessage?: string | undefined;
+  /*
+   * The page's own words for the table's empty state - an all-clear list
+   * ("No active incidents") says so here. See EmptyStateOptions.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
   disableCreate?: boolean | undefined;
@@ -94,6 +102,7 @@ export interface ComponentProps {
 const IncidentsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [incidentTemplates, setIncidentTemplates] = useState<
     Array<IncidentTemplate>
   >([]);
@@ -312,6 +321,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -584,6 +594,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         isDeleteable={false}
         showCreateForm={false}
         topContent={filterBar}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
@@ -751,11 +762,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   {numberContent}
                   {item.isPrivate === true && (
                     <span
-                      title="Private incident — visible only to its owners, project admins, and project owners"
+                      title={translator.translateText(
+                        "Private incident — visible only to its owners, project admins, and project owners",
+                      )}
                       className="inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 align-middle"
                     >
                       <Icon icon={IconProp.Lock} className="w-3 h-3" />
-                      Private
+                      {translator.translateText("Private")}
                     </span>
                   )}
                 </span>
@@ -1088,11 +1101,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           title="Change Incident State"
           description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
           stateFieldKey="incidentStateId"
-          stateOptions={incidentStates.map((state: IncidentState) => {
-            return {
-              label: state.name || "",
-              value: state.id?.toString() || "",
-            };
+          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
+            array: incidentStates,
+            labelField: "name",
+            valueField: "_id",
           })}
           noteType={BulkStateChangeNoteType.Public}
           noteTitle="Public Note"

@@ -1,5 +1,9 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import Color from "Common/Types/Color";
+import EmailColorUtil, {
+  EmailColorPair,
+} from "Common/Utils/Email/EmailColorUtil";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
@@ -286,7 +290,8 @@ import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
   CUSTOM_FIELD_DEFINITIONS,
-  CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE,
+  CUSTOM_FIELD_PLACEHOLDERS_CASES,
+  CustomFieldPlaceholdersCase,
   CUSTOM_FIELD_VALUES,
   EXPECTED_CUSTOM_FIELD_ROWS,
   EXPECTED_INCLUDED_FIELDS_FEED,
@@ -2141,7 +2146,8 @@ describe("Incident unsubscribe links", () => {
  * Subscriber Notifications" (see IncidentCustomFieldFixtures). Those reach
  * the default email, Slack, Teams and webhook messages, in their order; the
  * default SMS stays as it was. Every field is offered to custom templates as
- * {{customFields.<key>}}, escaped in an email body and as written elsewhere.
+ * {{incident.customFields.<key>}} (and the older {{customFields.<key>}}),
+ * escaped in an email body and as written elsewhere.
  * The feed item records the values that went out.
  */
 describe("Incident:SendNotificationToSubscribers with incident custom fields", () => {
@@ -2383,7 +2389,7 @@ ${IMPACT_DETAILS}
 
   describe("a Rich text field only a custom email template places", () => {
     const PLACING_TEMPLATE: string =
-      "<div>{{customFields.impact_details}}</div>";
+      "<div>{{incident.customFields.impact_details}}</div>";
 
     beforeEach(() => {
       mock(IncidentCustomFieldService.findBy).mockResolvedValue(
@@ -2477,125 +2483,135 @@ ${IMPACT_DETAILS}
     expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
   });
 
-  describe("in custom templates", () => {
-    const SUBJECT: string = "Subject {{customFields.affected_location}}";
+  describe.each(CUSTOM_FIELD_PLACEHOLDERS_CASES)(
+    "in custom templates written with $written",
+    (placeholders: CustomFieldPlaceholdersCase) => {
+      const SUBJECT: string = placeholders.subject;
 
-    beforeEach(() => {
-      const page: StatusPage = statusPage();
-      (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
-      (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
-      mock(
-        StatusPageSubscriberService.getStatusPagesToSendNotification,
-      ).mockResolvedValue([page] as never);
+      beforeEach(() => {
+        const page: StatusPage = statusPage();
+        (page as unknown as JSONObject)["smtpConfig"] = { _id: "smtp" };
+        (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+        mock(
+          StatusPageSubscriberService.getStatusPagesToSendNotification,
+        ).mockResolvedValue([page] as never);
 
-      mock(
-        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
-      ).mockImplementation(async (args: unknown) => {
-        const method: string = (args as JSONObject)[
-          "notificationMethod"
-        ] as string;
-        return {
-          templateBody: `${method}\n${CUSTOM_FIELD_PLACEHOLDERS_TEMPLATE}`,
-          emailSubject:
-            method === StatusPageSubscriberNotificationMethod.Email
-              ? SUBJECT
-              : undefined,
-        };
+        mock(
+          StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+        ).mockImplementation(async (args: unknown) => {
+          const method: string = (args as JSONObject)[
+            "notificationMethod"
+          ] as string;
+          return {
+            templateBody: `${method}\n${placeholders.template}`,
+            emailSubject:
+              method === StatusPageSubscriberNotificationMethod.Email
+                ? SUBJECT
+                : undefined,
+          };
+        });
       });
-    });
 
-    test("every field is placed by its key: escaped in the email body, as written elsewhere", async () => {
-      await runJob();
+      test("every field is placed by its key: escaped in the email body, as written elsewhere", async () => {
+        await runJob();
 
-      expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
-        [
-          StatusPageSubscriberNotificationMethod.Email,
-          `location=[${AFFECTED_LOCATION_HTML}]`,
-          "ack=[No]",
-          `impact=[${IMPACT_DETAILS_HTML}]`,
-          `ticket=[${INTERNAL_TICKET}]`,
-        ].join("\n"),
-      );
-      expect(sentMail()[0]!["subject"]).toBe(`Subject ${AFFECTED_LOCATION}`);
-      expect(sentSms()).toEqual([
-        [
-          StatusPageSubscriberNotificationMethod.SMS,
-          `location=[${AFFECTED_LOCATION}]`,
-          "ack=[No]",
-          `impact=[${IMPACT_DETAILS_TEXT}]`,
-          `ticket=[${INTERNAL_TICKET}]`,
-        ].join("\n"),
-      ]);
-
-      for (const [method, message] of [
-        [StatusPageSubscriberNotificationMethod.Slack, sentSlack()[0]],
-        [StatusPageSubscriberNotificationMethod.MicrosoftTeams, sentTeams()[0]],
-      ] as Array<[string, string]>) {
-        expect(message).toBe(
+        expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
           [
-            method,
-            `location=[${AFFECTED_LOCATION}]`,
+            StatusPageSubscriberNotificationMethod.Email,
+            `location=[${AFFECTED_LOCATION_HTML}]`,
             "ack=[No]",
-            `impact=[${IMPACT_DETAILS}]`,
+            `impact=[${IMPACT_DETAILS_HTML}]`,
             `ticket=[${INTERNAL_TICKET}]`,
           ].join("\n"),
         );
-      }
+        expect(sentMail()[0]!["subject"]).toBe(`Subject ${AFFECTED_LOCATION}`);
+        expect(sentSms()).toEqual([
+          [
+            StatusPageSubscriberNotificationMethod.SMS,
+            `location=[${AFFECTED_LOCATION}]`,
+            "ack=[No]",
+            `impact=[${IMPACT_DETAILS_TEXT}]`,
+            `ticket=[${INTERNAL_TICKET}]`,
+          ].join("\n"),
+        ]);
 
-      for (const message of [
-        sentMail()[0]!["subject"] as string,
-        ...sentSms(),
-        ...sentSlack(),
-        ...sentTeams(),
-      ]) {
-        expectNoHtmlEntities(message);
-      }
-    });
+        for (const [method, message] of [
+          [StatusPageSubscriberNotificationMethod.Slack, sentSlack()[0]],
+          [
+            StatusPageSubscriberNotificationMethod.MicrosoftTeams,
+            sentTeams()[0],
+          ],
+        ] as Array<[string, string]>) {
+          expect(message).toBe(
+            [
+              method,
+              `location=[${AFFECTED_LOCATION}]`,
+              "ack=[No]",
+              `impact=[${IMPACT_DETAILS}]`,
+              `ticket=[${INTERNAL_TICKET}]`,
+            ].join("\n"),
+          );
+        }
 
-    test("every compile carries only offered variables, and only listed or custom field HTML reaches the email body", async () => {
-      await runJob();
+        for (const message of [
+          sentMail()[0]!["subject"] as string,
+          ...sentSms(),
+          ...sentSlack(),
+          ...sentTeams(),
+        ]) {
+          expectNoHtmlEntities(message);
+        }
+      });
 
-      for (const call of compileCalls()) {
-        expectOnlyOfferedVariables(
+      test("every compile carries only offered variables, and only listed or custom field HTML reaches the email body", async () => {
+        await runJob();
+
+        for (const call of compileCalls()) {
+          expectOnlyOfferedVariables(
+            StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
+            call.rawVariables,
+          );
+        }
+
+        const emailBody: RecordedCompile = compileCalls().find(
+          (call: RecordedCompile): boolean => {
+            return call.emailBody;
+          },
+        )!;
+
+        expectOnlyTheListedHtmlVariables(
+          emailBody.rawVariables,
           StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-          call.rawVariables,
         );
-      }
+        // A plain field is plain text there, for the compile to escape.
+        expect(
+          emailBody.rawVariables["incident.customFields.affected_location"],
+        ).toBe(AFFECTED_LOCATION);
+        // The older name carries the same value, for templates saved with it.
+        expect(emailBody.rawVariables["customFields.affected_location"]).toBe(
+          AFFECTED_LOCATION,
+        );
+      });
 
-      const emailBody: RecordedCompile = compileCalls().find(
-        (call: RecordedCompile): boolean => {
-          return call.emailBody;
-        },
-      )!;
+      test("the feed item records every field a template placed, included or not", async () => {
+        await runJob();
 
-      expectOnlyTheListedHtmlVariables(
-        emailBody.rawVariables,
-        StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
-      );
-      // A plain field is plain text there, for the compile to escape.
-      expect(emailBody.rawVariables["customFields.affected_location"]).toBe(
-        AFFECTED_LOCATION,
-      );
-    });
-
-    test("the feed item records every field a template placed, included or not", async () => {
-      await runJob();
-
-      expect(feedItem()["moreInformationInMarkdown"]).toContain(
-        [
-          "**Custom fields sent:**",
-          "",
-          "- **Affected Location:** \\<b\\>Site 03\\</b\\> & Site 07",
-          "- **Acknowledgement:** No",
-          "- **Internal Ticket:** OPS\\-4411",
-          "",
-          "**Impact Details:**",
-          "",
-          IMPACT_DETAILS,
-        ].join("\n"),
-      );
-    });
-  });
+        expect(feedItem()["moreInformationInMarkdown"]).toContain(
+          [
+            "**Custom fields sent:**",
+            "",
+            "- **Affected Location:** \\<b\\>Site 03\\</b\\> & Site 07",
+            "- **Acknowledgement:** No",
+            "- **Internal Ticket:** OPS\\-4411",
+            "",
+            "**Impact Details:**",
+            "",
+            IMPACT_DETAILS,
+          ].join("\n"),
+        );
+      });
+    },
+  );
 });
 
 /*
@@ -3016,5 +3032,78 @@ describe("Incident:SendNotificationToSubscribers sends the builder's email", () 
         ...expected.envelope,
       },
     ]);
+  });
+});
+
+/*
+ * The subscriber's email paints the severity the way the owner emails do: a
+ * dot in its colour and the name in a readable shade of it. The job reads
+ * the colour with the name and the shared builder spreads it in; an unsafe
+ * or missing colour leaves the plain severity row.
+ */
+describe("Incident:SendNotificationToSubscribers paints the severity in its own colour", () => {
+  function notifyQuerySelect(): JSONObject {
+    const call: Array<unknown> | undefined = mock(
+      IncidentService.findAllBy,
+    ).mock.calls.find((candidate: Array<unknown>): boolean => {
+      const query: JSONObject = (candidate[0] as { query: JSONObject }).query;
+
+      return (
+        query["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"] === true
+      );
+    });
+
+    return (call![0] as { select: JSONObject }).select;
+  }
+
+  test("reads the severity's colour with its name", async () => {
+    await runJob();
+
+    expect(notifyQuerySelect()["incidentSeverity"]).toEqual({
+      name: true,
+      color: true,
+    });
+  });
+
+  test("the default email carries the dot colour and the readable name colour", async () => {
+    pendingIncidents[0]!.incidentSeverity!.color = Yellow500;
+
+    await runJob();
+
+    const pair: EmailColorPair = EmailColorUtil.getColorPair(Yellow500)!;
+
+    expect(sentMail()[0]!["vars"]).toEqual(
+      expect.objectContaining({
+        incidentSeverity: "Critical",
+        incidentSeverityColor: Yellow500.toString(),
+        incidentSeverityTextColor: pair.textColor,
+      }),
+    );
+    expect(pair.textColor).not.toBe(Yellow500.toString());
+  });
+
+  test("a colour that is not a hex or rgb() colour sends no colour at all", async () => {
+    pendingIncidents[0]!.incidentSeverity!.color = new Color(
+      "red; background: url(https://evil.example/t.gif)",
+    );
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["incidentSeverity"]).toBe("Critical");
+    expect(vars).not.toHaveProperty("incidentSeverityColor");
+    expect(vars).not.toHaveProperty("incidentSeverityTextColor");
+  });
+
+  test("an incident with no severity sends the placeholder and no colour", async () => {
+    delete (pendingIncidents[0] as unknown as JSONObject)["incidentSeverity"];
+
+    await runJob();
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(vars["incidentSeverity"]).toBe(" - ");
+    expect(vars).not.toHaveProperty("incidentSeverityColor");
   });
 });

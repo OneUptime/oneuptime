@@ -44,6 +44,8 @@ import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -273,8 +275,9 @@ const getSuppliedMethodSelect: GetSuppliedMethodSelect =
  * here" against "paged on a device this screen cannot name". An admin who reads
  * the second as the first deletes a working rule.
  */
-const UNRESOLVED_METHOD_LABEL: string =
-  "A notification method is set - its identifier is not shown here";
+const UNRESOLVED_METHOD_LABEL: string = translationKey(
+  "A notification method is set - its identifier is not shown here",
+);
 
 /*
  * The method cell for a table that is about somebody else, resolved from ids.
@@ -462,7 +465,9 @@ const DEFAULT_NO_ITEMS_MESSAGE: string =
  * full of "Email: j@example.com" concludes the row is corrupt and deletes it -
  * which silently re-enables paging the owner had asked to stop.
  */
-const OPT_OUT_LABEL: string = "Muted - notifications turned off for this rule";
+const OPT_OUT_LABEL: string = translationKey(
+  "Muted - notifications turned off for this rule",
+);
 
 /*
  * The on-call notification rules table, one per severity band.
@@ -478,6 +483,7 @@ const OPT_OUT_LABEL: string = "Muted - notifications turned off for this rule";
 const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [severities, setSeverities] = useState<Array<OnCallRuleSeverity>>([]);
@@ -616,16 +622,22 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
    * is used, which keeps those four pages byte-identical to what shipped.
    */
   const ruleSingularName: string | undefined = props.onBehalfOfName
-    ? `Notification Rule for ${props.onBehalfOfName}`
+    ? translator.translateTemplate("Notification Rule for {{name}}", {
+        name: props.onBehalfOfName,
+      })
     : undefined;
 
   const notifyAfterFieldTitle: string = props.onBehalfOfName
-    ? `Notify ${props.onBehalfOfName} after`
-    : "Notify me after";
+    ? translator.translateTemplate("Notify {{name}} after", {
+        name: props.onBehalfOfName,
+      })
+    : translator.translateTemplate("Notify me after");
 
   const notificationMethodFieldDescription: string = props.onBehalfOfName
-    ? `How should ${props.onBehalfOfName} be notified?`
-    : "How do you want to be notified?";
+    ? translator.translateTemplate("How should {{name}} be notified?", {
+        name: props.onBehalfOfName,
+      })
+    : translator.translateTemplate("How do you want to be notified?");
 
   /*
    * ==========================================================================
@@ -994,7 +1006,11 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
                * turning somebody's paging back on.
                */
               if (item["isOptOut"]) {
-                return <p className="text-gray-500 italic">{OPT_OUT_LABEL}</p>;
+                return (
+                  <p className="text-gray-500 italic">
+                    {translator.translateText(OPT_OUT_LABEL)}
+                  </p>
+                );
               }
 
               /*
@@ -1027,7 +1043,11 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               }
 
               if (suppliedLabel === UNRESOLVED_METHOD_LABEL) {
-                return <p className="text-gray-500 italic">{suppliedLabel}</p>;
+                return (
+                  <p className="text-gray-500 italic">
+                    {translator.translateText(suppliedLabel)}
+                  </p>
+                );
               }
 
               return <p>{suppliedLabel}</p>;
@@ -1051,9 +1071,19 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
               return (
                 <div>
-                  {item["notifyAfterMinutes"] === 0 && <p>Immediately</p>}
+                  {item["notifyAfterMinutes"] === 0 && (
+                    <p>{translator.translateText("Immediately")}</p>
+                  )}
                   {(item["notifyAfterMinutes"] as number) > 0 && (
-                    <p>{item["notifyAfterMinutes"] as number} minutes</p>
+                    <p>
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} minute",
+                          other: "{{count}} minutes",
+                        },
+                        item["notifyAfterMinutes"] as number,
+                      )}
+                    </p>
                   )}
                 </div>
               );

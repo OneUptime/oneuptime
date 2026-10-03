@@ -9,16 +9,21 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  *
  * The dashboard "Create Monitor" form (#create-monitor-form) is a multi-step
  * ModelForm:
- *   1. monitor-info  — name + monitorType CardSelect
+ *   1. monitor-info  — name + monitorType CardSelect, and the optional labels
+ *                      folded under Advanced at the end of the step (the
+ *                      one step every monitor type walks)
  *   2. criteria      — per-monitor-type destination/config form (skipped for
  *                      Manual). A default offline/online criteria pair is
  *                      pre-populated, so only the type-specific destination /
  *                      config fields need filling.
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
- *   4. labels        — optional monitor labels (always the final step)
  *
- * The submit button keeps the test id "Create Monitor" on every step; on a
- * non-final step its visible text is "Next".
+ * The submit button keeps the test id "Create Monitor" on every step. It
+ * reads "Next" while a step still to come has to be shown first (the
+ * criteria, which fill in their own defaults), and "Create Monitor" once
+ * every step left is optional - from the criteria step on - with a plain
+ * Next beside it. The recipes walk with Next (clickNext) so they reach the
+ * interval step, and create on the last step their type shows.
  */
 
 export interface MonitorTypeRecipe {
@@ -39,8 +44,8 @@ export interface MonitorTypeRecipe {
    */
   intervalLabel?: string | undefined;
   /*
-   * true for monitor types that skip criteria and interval. The always-visible
-   * Labels step still follows Monitor Info.
+   * true for monitor types that skip criteria and interval: Monitor Info is
+   * then their only step, and the create happens there.
    */
   skipsCriteria?: boolean;
   /*
@@ -56,6 +61,20 @@ const monitorNameInputSelector: string =
 const submitButtonTestId: string = "Create Monitor";
 
 const cardSelectSearchTestId: string = "card-select-search";
+
+/*
+ * Walks the create form one step on: the one button that reads Next - the
+ * main button while a step to come still has to be shown, the plain one
+ * beside Create Monitor once every step left is optional. Never creates.
+ */
+export const clickNext: (data: { page: Page }) => Promise<void> = async (data: {
+  page: Page;
+}): Promise<void> => {
+  await data.page
+    .locator(monitorCreateFormSelector)
+    .getByRole("button", { name: "Next", exact: true })
+    .click();
+};
 
 /*
  * The picker is on screen once either its search box or its first card is:
@@ -229,9 +248,10 @@ const selectMonitoringInterval: (data: {
 };
 
 /*
- * Selects zero or more monitor labels on the wizard's final step. Waiting for
- * the combobox even when no labels are requested makes every create recipe
- * prove that the unconditional final step is reachable.
+ * Selects zero or more monitor labels on Monitor Info, where they fold under
+ * Advanced at the end of the step. Opening the section and waiting for the
+ * combobox even when no labels are requested makes every create recipe prove
+ * the field is reachable on the step every monitor type walks.
  */
 export const selectMonitorLabels: (data: {
   page: Page;
@@ -240,6 +260,23 @@ export const selectMonitorLabels: (data: {
   page: Page;
   labelNames?: Array<string> | undefined;
 }): Promise<void> => {
+  const form: Locator = data.page.locator(monitorCreateFormSelector);
+  /*
+   * The section's header is a button named by its title alone: the
+   * "Configured" badge a template's labels bring sits outside the name.
+   */
+  const advanced: Locator = form.getByRole("button", {
+    name: "Advanced",
+    exact: true,
+  });
+  await advanced.waitFor({ state: "visible", timeout: 30000 });
+
+  if ((await advanced.getAttribute("aria-expanded")) !== "true") {
+    await advanced.click();
+  }
+
+  await expect(advanced).toHaveAttribute("aria-expanded", "true");
+
   /*
    * Anchored prefix, not an exact match: Labels is an optional field, and
    * FieldLabel renders "(Optional)" inside the very <label> the combobox is
@@ -247,9 +284,7 @@ export const selectMonitorLabels: (data: {
    * still keeps this from matching some other combobox that merely ends in
    * "Labels", and it keeps working if the field ever becomes required.
    */
-  const combo: Locator = data.page
-    .locator(monitorCreateFormSelector)
-    .getByRole("combobox", { name: /^Labels\b/ });
+  const combo: Locator = form.getByRole("combobox", { name: /^Labels\b/ });
   await combo.waitFor({ state: "visible", timeout: 30000 });
 
   for (const labelName of data.labelNames || []) {
@@ -328,32 +363,31 @@ export const createMonitor: CreateMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type.
+  // Step 1: name + type, and the labels under Advanced at the end of it.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
-  await page.getByTestId(submitButtonTestId).click();
+  await selectMonitorLabels({ page, labelNames: data.labelNames });
 
   if (!data.recipe.skipsCriteria) {
+    await clickNext({ page });
+
     // Wait for the criteria step's async defaults, then fill any required data.
     await waitForCriteriaStepReady({ page });
     if (data.recipe.fillCriteria) {
       await data.recipe.fillCriteria({ page });
     }
 
-    // Advance from Criteria to either Probes & Interval or Labels.
-    await page.getByTestId(submitButtonTestId).click();
-
     if (data.recipe.hasInterval) {
-      // Choose an interval, then advance to the always-final Labels step.
+      // Advance to Probes & Interval, the last step, and choose an interval.
+      await clickNext({ page });
       await selectMonitoringInterval({
         page,
         intervalLabel: data.recipe.intervalLabel,
       });
-      await page.getByTestId(submitButtonTestId).click();
     }
   }
 
-  await selectMonitorLabels({ page, labelNames: data.labelNames });
+  // Create on the last step this monitor type shows.
   await clickCreateUntilMonitorView({ page, projectId: data.projectId });
 
   const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
@@ -534,10 +568,11 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type.
+  // Step 1: name + type, and the labels under Advanced at the end of it.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
-  await page.getByTestId(submitButtonTestId).click();
+  await selectMonitorLabels({ page });
+  await clickNext({ page });
 
   // Criteria step: pick the seeded entity from the first dropdown.
   await page.waitForTimeout(1500);
@@ -560,9 +595,7 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     .click();
   await page.waitForTimeout(1500);
 
-  // Advance from Criteria to Labels, then submit the final step.
-  await page.getByTestId(submitButtonTestId).click();
-  await selectMonitorLabels({ page });
+  // Criteria is the last step these types show: create from it.
   await clickCreateUntilMonitorView({ page, projectId: data.projectId });
 
   const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);

@@ -1739,7 +1739,7 @@ describe("event notes: templates", () => {
 
 describe("event notes: template placeholders", () => {
   const PLACEHOLDER_TEMPLATE: string =
-    "**Incident**: {{incident.title}}\n**Impact**: {{customFields.impact}}\n**Owner**: {{incident.owner}}";
+    "**Incident**: {{incident.title}}\n**Impact**: {{incident.customFields.impact}}\n**Owner**: {{incident.owner}}";
 
   function seedPlaceholderTemplate(): void {
     tableOf(IncidentNoteTemplate).push({
@@ -1760,7 +1760,7 @@ describe("event notes: template placeholders", () => {
     const loader: MockFunction = getJestMockFunction();
     loader.mockResolvedValue({
       "incident.title": "Payments are failing",
-      "customFields.impact": "High",
+      "incident.customFields.impact": "High",
     } as never);
     return loader;
   }

@@ -9,7 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import MonitorStatusChangesCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorStatusChangesCard";
@@ -32,9 +32,9 @@ import ObjectID from "../../../Types/ObjectID";
 
 /*
  * The last few status changes, in the side column. The newest open row is
- * "ongoing" with a live duration; closed rows say how long they lasted; and
- * an older row that was never closed is capped at the start of the row after
- * it, never shown as still running.
+ * marked Currently Active, with a live duration; closed rows say how long
+ * they lasted; and an older row that was never closed is capped at the start
+ * of the row after it, never shown as still running.
  */
 
 const MONITOR_ID: ObjectID = new ObjectID(
@@ -146,7 +146,8 @@ describe("MonitorStatusChangesCard", () => {
     expect(rows).toHaveLength(3);
 
     expect(rows[0]).toHaveTextContent("Operational");
-    expect(rows[0]).toHaveTextContent("ongoing, 2 hours · started 2 hours ago");
+    expect(rows[0]).toHaveTextContent("Currently Active");
+    expect(rows[0]).toHaveTextContent("for 2 hours · started 2 hours ago");
 
     expect(rows[1]).toHaveTextContent("Offline");
     expect(rows[1]).toHaveTextContent("for 3 hours · started 5 hours ago");
@@ -154,7 +155,7 @@ describe("MonitorStatusChangesCard", () => {
     // The orphan is capped at its successor's start.
     expect(rows[2]).toHaveTextContent("Degraded");
     expect(rows[2]).toHaveTextContent("for 1 hour · started 6 hours ago");
-    expect(rows[2]).not.toHaveTextContent("ongoing");
+    expect(rows[2]).not.toHaveTextContent("Currently Active");
 
     const dot: HTMLElement = rows[1]!.querySelector(
       "[aria-hidden='true']",
@@ -171,6 +172,69 @@ describe("MonitorStatusChangesCard", () => {
       "dateTime",
       hoursAgo(2).toISOString(),
     );
+  });
+
+  /*
+   * The ongoing row used to say "ongoing, 2 hours" in the same small grey as
+   * every other row. It now carries the Currently Active marker the full
+   * status timeline uses, beside the status it belongs to.
+   */
+  test("marks the ongoing row, and only it, Currently Active", () => {
+    renderCard(loaded(ROWS));
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "monitor-status-change-row",
+    );
+
+    expect(screen.getAllByTestId("currently-active-indicator")).toHaveLength(1);
+    expect(
+      within(rows[0]!).getByTestId("currently-active-indicator"),
+    ).toHaveTextContent(/^Currently Active$/);
+    expect(
+      within(rows[1]!).queryByTestId("currently-active-indicator"),
+    ).toBeNull();
+    // Never closed, but superseded: not the current status.
+    expect(
+      within(rows[2]!).queryByTestId("currently-active-indicator"),
+    ).toBeNull();
+
+    expect(rows[0]).not.toHaveTextContent("ongoing");
+  });
+
+  test("the marker sits beside the status it belongs to, and pulses only where motion is welcome", () => {
+    renderCard(loaded(ROWS));
+
+    const row: HTMLElement = screen.getAllByTestId(
+      "monitor-status-change-row",
+    )[0]!;
+    const indicator: HTMLElement = within(row).getByTestId(
+      "currently-active-indicator",
+    );
+
+    expect(indicator.parentElement).toBe(
+      within(row).getByText("Operational").parentElement,
+    );
+    // The header line wraps on a narrow column rather than overflowing it.
+    expect(indicator.parentElement).toHaveClass("flex-wrap");
+    expect(within(indicator).getByTestId("pill-dot-pulse")).toHaveClass(
+      "motion-safe:animate-ping",
+    );
+  });
+
+  test("the ongoing row's duration keeps counting while the page is open", () => {
+    renderCard(loaded(ROWS));
+
+    const row: () => HTMLElement = (): HTMLElement => {
+      return screen.getAllByTestId("monitor-status-change-row")[0]!;
+    };
+
+    expect(row()).toHaveTextContent("for 2 hours · started 2 hours ago");
+
+    act(() => {
+      jest.advanceTimersByTime(61 * 1000);
+    });
+
+    expect(row()).toHaveTextContent("for 2 hours, 1 minute");
   });
 
   test("the footer links to the full status timeline", () => {

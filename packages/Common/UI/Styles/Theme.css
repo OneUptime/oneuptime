@@ -1088,9 +1088,9 @@ html.dark optgroup {
 /*
  * Switch thumbs are an affordance, not a surface, and must stay distinct -
  * including a knob drawn inside a larger control (the session replay's
- * transport switch), which the first selector cannot reach. That switch's
- * TRACK is a white span straight under its button too, and an off track is
- * a surface: it keeps the card's dark colour.
+ * transport switch), which the first selector cannot reach. A track drawn as
+ * a span straight under its button (that same switch) is a surface, never a
+ * thumb: it keeps the colour its own rules below give it.
  */
 html.dark button[role="switch"] > span.bg-white:not([data-ou-toggle-track]),
 html.dark [data-ou-toggle-knob].bg-white {
@@ -1101,21 +1101,18 @@ html.dark [data-ou-toggle-knob].bg-white {
  * The switch (Common/UI/Components/Toggle), scoped to its data attributes:
  * these classes mean other things on other elements.
  *
- * Off is an outline and a knob, gray-500 in the light theme. On a dark card
- * gray-500 is 3.4:1, and 3.0:1 on a dark panel - the very edge of WCAG
- * 1.4.11's 3:1 - so both lift to slate-400 (6.3:1). The white track is
- * already the card's own surface, through .bg-white above.
+ * Off is a gray-300 track under the near-white knob. The theme's general
+ * .bg-gray-300 rule would make it slate-500, as light as the indigo-500 "on"
+ * track below: off and on would then differ by hue alone. It takes slate-600
+ * instead, a step darker, which still holds the knob at 7.2:1 and stands off
+ * the card, and slate-500 under the pointer.
  */
-html.dark [data-ou-toggle-track].border-gray-500 {
-  border-color: #94a3b8;
+html.dark [data-ou-toggle-track].bg-gray-300 {
+  background-color: var(--ou-border-default);
 }
 
-html.dark [data-ou-toggle-knob].bg-gray-500 {
-  background-color: #94a3b8;
-}
-
-html.dark [data-ou-toggle-track][class~="hover:border-gray-700"]:hover {
-  border-color: #cbd5e1;
+html.dark [data-ou-toggle-track][class~="hover:bg-gray-400"]:hover {
+  background-color: var(--ou-border-strong);
 }
 
 /*
@@ -1125,20 +1122,10 @@ html.dark [data-ou-toggle-track][class~="hover:border-gray-700"]:hover {
  */
 html.dark [data-ou-toggle-track].bg-indigo-600 {
   background-color: #6366f1;
-  border-color: #6366f1;
 }
 
 html.dark [data-ou-toggle-track][class~="hover:bg-indigo-700"]:hover {
   background-color: #818cf8;
-  border-color: #818cf8;
-}
-
-/*
- * The tick sits on the knob, which stays near-white in both themes, so it
- * keeps the deep indigo instead of the light one dark text-indigo-600 gets.
- */
-html.dark [data-ou-toggle-knob] .text-indigo-600 {
-  color: #4f46e5;
 }
 
 html.dark option,
@@ -1446,8 +1433,16 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
   fill: var(--ou-chart-tick) !important;
 }
 
+/*
+ * A fullscreen view and its backdrop take the page colour instead of the
+ * browser's black. Only the fullscreen backdrop: modal dialogs and popovers in
+ * the top layer have one too, and extensions show their in-page UI as
+ * popovers (1Password's "Sign in" prompt is one). A bare ::backdrop painted
+ * theirs opaque, and the whole app disappeared behind the prompt. See the
+ * matching rule in Dashboard/views/index.ejs.
+ */
 html.dark :fullscreen,
-html.dark ::backdrop {
+html.dark :fullscreen::backdrop {
   background-color: var(--ou-background-primary);
 }
 

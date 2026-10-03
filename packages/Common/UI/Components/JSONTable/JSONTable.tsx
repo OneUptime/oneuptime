@@ -3,6 +3,8 @@ import CopyableButton from "../CopyableButton/CopyableButton";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import JSONFunctions from "../../../Types/JSONFunctions";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface JSONTableProps {
   json: { [key: string]: any } | null | undefined;
@@ -43,6 +45,7 @@ function normalizeValue(value: unknown): string {
 const JSONTable: FunctionComponent<JSONTableProps> = (
   props: JSONTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { json } = props;
 
   const flatItems: Array<FlatItem> = useMemo(() => {
@@ -130,7 +133,7 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
   if (!flatItems.length) {
     return (
       <div className="border border-dashed border-gray-300 rounded-md p-4 text-sm text-gray-500 bg-gray-50">
-        No attributes.
+        {translator.translateText("No attributes.")}
       </div>
     );
   }
@@ -146,8 +149,10 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
         <table className="min-w-full table-fixed">
           <thead>
             <tr className="bg-gray-50 text-xs uppercase tracking-wider text-left text-gray-500">
-              <th className="px-3 py-2 w-1/3">Key</th>
-              <th className="px-3 py-2">Value</th>
+              <th className="px-3 py-2 w-1/3">
+                {translator.translateText("Key")}
+              </th>
+              <th className="px-3 py-2">{translator.translateText("Value")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -166,7 +171,13 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
                         {item.value.length > 500 ? (
                           <details>
                             <summary className="cursor-pointer select-none text-gray-600">
-                              Show value ({item.value.length} chars)
+                              {translator.translatePlural(
+                                {
+                                  one: "Show value ({{count}} character)",
+                                  other: "Show value ({{count}} characters)",
+                                },
+                                item.value.length,
+                              )}
                             </summary>
                             <pre className="mt-1 text-xs overflow-auto max-h-64">
                               {item.value}
@@ -181,7 +192,10 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
                           <button
                             type="button"
                             className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
-                            title={`Filter by ${item.key}: ${item.value}`}
+                            title={translator.translateTemplate(
+                              "Filter by {{key}}: {{value}}",
+                              { key: item.key, value: item.value },
+                            )}
                             onClick={() => {
                               props.onFilterByAttribute!(item.key, item.value);
                             }}

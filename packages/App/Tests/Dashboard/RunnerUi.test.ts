@@ -158,10 +158,12 @@ const readLocale: ReadLocaleFunction = (
 const NEW_STRINGS: Array<string> = [
   "Here are more details for this Runner.",
   "Here is more details on the connection status for this Runner.",
-  "Here is the list of teams that own this Runner. They will be alerted when this Runner's status changes.",
-  "Here is the list of users that own this Runner. They will be alerted when this Runner's status changes.",
-  "No teams associated with this Runner so far.",
-  "No users associated with this Runner so far.",
+  /*
+   * The Runner's owners are one Owners card now, people and teams together,
+   * in place of an owner-teams and an owner-users table.
+   */
+  "People and teams who own this runner. They are alerted when its status changes.",
+  "Add a teammate or a team so they are alerted when this runner's status changes.",
   "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
   "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure.",
   "No Runners.",
@@ -535,7 +537,8 @@ describe("capabilities render as pills", () => {
 
   test("it still handles a Runner with no capabilities", () => {
     expect(source).toContain("if (capabilities.length === 0)");
-    expect(source).toContain('translateString("None")');
+    // translateText answers with "None" itself when a locale has no wording.
+    expect(source).toContain('translator.translateText("None")');
   });
 
   test("the capability labels are translated", () => {

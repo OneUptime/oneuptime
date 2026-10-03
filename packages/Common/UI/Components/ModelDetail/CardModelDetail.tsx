@@ -19,6 +19,11 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import IconProp from "../../../Types/Icon/IconProp";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
+import {
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -27,6 +32,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   isEditable?: undefined | boolean;
   onSaveSuccess?: undefined | ((item: TBaseModel) => void);
   editButtonText?: undefined | string;
+  /*
+   * The edit dialog's title and the line under it. The title defaults to
+   * "Edit <model>", which says "Edit Project" on a card that edits a few of
+   * the project's settings: such a card names what it edits instead.
+   */
+  editModalTitle?: undefined | string;
+  editModalDescription?: undefined | string;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
   formFields?: undefined | Fields<TBaseModel>;
   className?: string | undefined;
@@ -45,6 +57,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [cardButtons, setCardButtons] = useState<
     Array<CardButtonSchema | ReactElement>
   >([]);
@@ -52,6 +65,10 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
   const model: TBaseModel = new props.modelDetailProps.modelType();
+  const editTitle: string = translateNamedAction(translator, {
+    template: "Edit {{itemName}}",
+    itemName: model.singularName || "",
+  });
 
   const onBeforeEditRef: React.MutableRefObject<(() => boolean) | undefined> =
     useRef<(() => boolean) | undefined>(props.onBeforeEdit);
@@ -133,7 +150,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       (updateGate.isAllowed || updateGate.disabledReason)
     ) {
       cardButtons.push({
-        title: props.editButtonText || `Edit ${model.singularName}`,
+        title: props.editButtonText || editTitle,
         buttonStyle: ButtonStyleType.NORMAL,
         disabled: !updateGate.isAllowed,
         tooltip: updateGate.disabledReason,
@@ -161,7 +178,12 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      * signal. The permission snapshot arrives on an API response header, so a
      * one-shot read at mount could permanently show the wrong state.
      */
-  }, [props.refresher, props.isEditable, props.editButtonText]);
+  }, [
+    props.refresher,
+    props.isEditable,
+    props.editButtonText,
+    translator.language,
+  ]);
 
   return (
     <>
@@ -183,7 +205,8 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
       {showModel ? (
         <ModelFormModal<TBaseModel>
-          title={`Edit ${model.singularName}`}
+          title={props.editModalTitle || editTitle}
+          description={props.editModalDescription}
           modalWidth={props.createEditModalWidth}
           modelAPI={props.modelAPI}
           onClose={() => {

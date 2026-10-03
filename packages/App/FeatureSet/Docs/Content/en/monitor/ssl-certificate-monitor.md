@@ -55,6 +55,24 @@ For **Expires In Hours** and **Expires In Days**:
 - **Greater Than or Equal To** — Expiry is at or more than the specified value away
 - **Less Than or Equal To** — Expiry is at or less than the specified value away
 
+**Expires In Days** counts whole days: a certificate that expires in 14 days and 20 hours has 14 days left.
+
+### Default Criteria
+
+A new SSL certificate monitor starts with three criteria, so it warns you before a certificate expires without any setup:
+
+1. **Certificate is not valid** — the certificate has expired, is self-signed, was issued for another host name or by an untrusted authority, or could not be checked because the endpoint did not answer. The monitor is marked **Offline** and an incident called "_monitor name_ certificate is not valid" is created. Its root cause says which of these it was. The incident resolves itself once the certificate is valid again.
+2. **Certificate expires soon** — the certificate is valid but expires in 14 days or less. An **alert** called "_monitor name_ certificate expires soon" is created.
+3. **Certificate is valid** — the monitor is marked **Operational**.
+
+The "expires soon" warning is an alert, not an incident: it does not show on your status pages, it pages nobody unless you add an on-call policy to it, and it does not change the monitor's status. It uses your project's second alert severity, **Low** on a new project. When the renewed certificate is picked up, the monitor is back on "Certificate is valid" and the alert resolves itself.
+
+Criteria are checked from top to bottom, and the first one that matches decides what happens. That is why "expires soon" sits above "is valid": an expiring certificate is still valid, so it would match both.
+
+To be warned earlier, change the value of the **Expires In Days** filter in the "expires soon" criteria, for example to `30`. To open an incident instead, turn on **Create incident** in that criteria.
+
+Monitors created before OneUptime added this warning have no "expires soon" criteria. To add it, create a criteria with **Is Valid Certificate** / **True** and **Expires In Days** / **Less Than or Equal To** / `14`, filter condition **All**, that creates an alert and does not change the monitor status, and move it above the criteria that marks the monitor as online.
+
 ### Example Criteria
 
 #### Mark as degraded if certificate expires within 30 days
@@ -80,7 +98,7 @@ For **Expires In Hours** and **Expires In Days**:
 
 ## Best Practices
 
-1. **Set multiple thresholds** — Use degraded status at 30 days and offline at 7 days before expiry to give yourself time to renew
+1. **Give yourself time to renew** — The default warning comes 14 days before expiry, which suits certificates that renew themselves. If renewing takes you longer (a certificate you buy, or a change process), raise it to 30 days
 2. **Monitor all endpoints** — If you have multiple domains or subdomains, create a monitor for each
 3. **Include non-standard ports** — Don't forget services running HTTPS on non-standard ports
 4. **Monitor after renewal** — After renewing a certificate, verify the monitor confirms it is valid

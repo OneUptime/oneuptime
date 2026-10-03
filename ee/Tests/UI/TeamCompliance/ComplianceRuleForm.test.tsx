@@ -53,8 +53,12 @@ import ComplianceRuleFormModal, {
   getRulePreviewText,
   getRuleTypeCardOptions,
   getValuesForRuleType,
+  isChannelOffered,
   isSeverityFieldShown,
 } from "../../../Dashboard/TeamCompliance/ComplianceRuleForm";
+import ConnectedWorkspaces from "@oneuptime/dashboard/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import ProjectUtil from "Common/UI/Utils/Project";
 import {
   COMPLIANCE_RULE_PRESETS,
   ComplianceRulePreset,
@@ -71,6 +75,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -392,7 +397,11 @@ describe("the rule form's fields", () => {
     expect(description).toContain("Leave empty to accept any channel.");
   });
 
-  test("severities are picked from the project's own severity lists", () => {
+  /*
+   * In the order the severities are ranked on their settings pages, most
+   * severe first - not in the order they happened to be created.
+   */
+  test("severities are picked from the project's own severity lists, most severe first", () => {
     const incident: ModelField<TeamComplianceSetting> =
       fieldFor("incidentSeverities");
     const alert: ModelField<TeamComplianceSetting> =
@@ -403,6 +412,7 @@ describe("the rule form's fields", () => {
       type: IncidentSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: { order: SortOrder.Ascending },
     });
     expect(incident.placeholder).toBe("All incident severities");
 
@@ -411,6 +421,7 @@ describe("the rule form's fields", () => {
       type: AlertSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: { order: SortOrder.Ascending },
     });
     expect(alert.placeholder).toBe("All alert severities");
   });
@@ -1228,6 +1239,217 @@ describe("the live preview", () => {
     const { container } = render(<ComplianceRulePreview values={{}} />);
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/*
+ * A new rule offers Slack and Microsoft Teams only for the workspaces the
+ * project has connected; an edit, or a project whose workspaces are not
+ * known, offers everything.
+ */
+describe("Slack and Microsoft Teams follow the project's workspaces", () => {
+  const ruleTypesIn: (groups: Array<CardSelectOptionGroup>) => Array<string> = (
+    groups: Array<CardSelectOptionGroup>,
+  ): Array<string> => {
+    return groups.flatMap((group: CardSelectOptionGroup): Array<string> => {
+      return group.options.map((option: CardSelectOption): string => {
+        return option.value;
+      });
+    });
+  };
+
+  const channelsIn: (options: Array<{ value: unknown }>) => Array<unknown> = (
+    options: Array<{ value: unknown }>,
+  ): Array<unknown> => {
+    return options.map((option: { value: unknown }): unknown => {
+      return option.value;
+    });
+  };
+
+  test.each([
+    [ComplianceNotificationChannel.Slack, undefined, true],
+    [ComplianceNotificationChannel.Slack, [], false],
+    [ComplianceNotificationChannel.Slack, [WorkspaceType.Slack], true],
+    [
+      ComplianceNotificationChannel.Slack,
+      [WorkspaceType.MicrosoftTeams],
+      false,
+    ],
+    [
+      ComplianceNotificationChannel.MicrosoftTeams,
+      [WorkspaceType.MicrosoftTeams],
+      true,
+    ],
+    [ComplianceNotificationChannel.MicrosoftTeams, [], false],
+    [ComplianceNotificationChannel.Call, [], true],
+    [ComplianceNotificationChannel.Webhook, [], true],
+  ])(
+    "isChannelOffered(%s, %j) is %s",
+    (
+      channel: ComplianceNotificationChannel,
+      offered: Array<WorkspaceType> | undefined,
+      expected: boolean,
+    ) => {
+      expect(isChannelOffered(channel, offered)).toBe(expected);
+    },
+  );
+
+  test("with nothing connected, neither Verified Slack nor Verified Microsoft Teams is a rule kind", () => {
+    const groups: Array<CardSelectOptionGroup> = getRuleTypeCardOptions([]);
+
+    expect(
+      groups.map((group: CardSelectOptionGroup) => {
+        return [group.label, group.options.length];
+      }),
+    ).toEqual([
+      ["On-call rules", 4],
+      ["Notification methods", 7],
+    ]);
+    expect(ruleTypesIn(groups)).not.toContain(
+      ComplianceRuleType.HasNotificationSlackMethod,
+    );
+    expect(ruleTypesIn(groups)).not.toContain(
+      ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+    );
+  });
+
+  test("with Slack connected, Verified Slack is offered and Verified Microsoft Teams is not", () => {
+    const ruleTypes: Array<string> = ruleTypesIn(
+      getRuleTypeCardOptions([WorkspaceType.Slack]),
+    );
+
+    expect(ruleTypes).toContain(ComplianceRuleType.HasNotificationSlackMethod);
+    expect(ruleTypes).not.toContain(
+      ComplianceRuleType.HasNotificationMicrosoftTeamsMethod,
+    );
+  });
+
+  test("the channels follow the same rule, in catalog order", () => {
+    expect(
+      channelsIn(getChannelDropdownOptions([WorkspaceType.MicrosoftTeams])),
+    ).toEqual([
+      ComplianceNotificationChannel.Call,
+      ComplianceNotificationChannel.SMS,
+      ComplianceNotificationChannel.Push,
+      ComplianceNotificationChannel.Email,
+      ComplianceNotificationChannel.WhatsApp,
+      ComplianceNotificationChannel.Telegram,
+      ComplianceNotificationChannel.MicrosoftTeams,
+      ComplianceNotificationChannel.Webhook,
+    ]);
+    expect(getChannelDropdownOptions([])).toHaveLength(7);
+    expect(
+      getChannelDropdownOptions([
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]),
+    ).toEqual(getChannelDropdownOptions());
+  });
+
+  test("the form's fields carry the narrowed choices", () => {
+    const fields: Array<ModelField<TeamComplianceSetting>> =
+      getComplianceRuleFormFields([WorkspaceType.Slack]);
+    const ruleTypeField: ModelField<TeamComplianceSetting> | undefined =
+      fields.find((field: ModelField<TeamComplianceSetting>): boolean => {
+        return Boolean(field.field?.ruleType);
+      });
+    const channelsField: ModelField<TeamComplianceSetting> | undefined =
+      fields.find((field: ModelField<TeamComplianceSetting>): boolean => {
+        return Boolean(field.field?.notificationChannels);
+      });
+
+    expect(ruleTypeField?.cardSelectOptions).toEqual(
+      getRuleTypeCardOptions([WorkspaceType.Slack]),
+    );
+    expect(channelsField?.dropdownOptions).toEqual(
+      getChannelDropdownOptions([WorkspaceType.Slack]),
+    );
+  });
+
+  describe("the modal", () => {
+    beforeEach(() => {
+      window.localStorage.clear();
+      ConnectedWorkspaces.reset();
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(PROJECT_ID);
+    });
+
+    afterEach(() => {
+      ConnectedWorkspaces.setFetcher(null);
+      ConnectedWorkspaces.reset();
+    });
+
+    const modalChannels: () => Array<unknown> = (): Array<unknown> => {
+      const field: ModelField<TeamComplianceSetting> | undefined = (
+        (capturedModalProps?.formProps?.fields || []) as Array<
+          ModelField<TeamComplianceSetting>
+        >
+      ).find((candidate: ModelField<TeamComplianceSetting>): boolean => {
+        return Boolean(candidate.field?.notificationChannels);
+      });
+
+      return channelsIn(
+        (field?.dropdownOptions || []) as Array<{ value: unknown }>,
+      );
+    };
+
+    test("create, in a Teams-only project: Microsoft Teams and not Slack", () => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, [
+        WorkspaceType.MicrosoftTeams,
+      ]);
+
+      render(
+        <ComplianceRuleFormModal
+          teamId={TEAM_ID}
+          projectId={PROJECT_ID}
+          onClose={jest.fn()}
+          onSuccess={jest.fn()}
+        />,
+      );
+
+      expect(modalChannels()).toContain(
+        ComplianceNotificationChannel.MicrosoftTeams,
+      );
+      expect(modalChannels()).not.toContain(
+        ComplianceNotificationChannel.Slack,
+      );
+    });
+
+    test("edit, in the same project: every channel", () => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, [
+        WorkspaceType.MicrosoftTeams,
+      ]);
+
+      render(
+        <ComplianceRuleFormModal
+          teamId={TEAM_ID}
+          projectId={PROJECT_ID}
+          modelIdToEdit={new ObjectID("00000000-0000-4000-8000-000000000123")}
+          onClose={jest.fn()}
+          onSuccess={jest.fn()}
+        />,
+      );
+
+      expect(modalChannels()).toHaveLength(9);
+    });
+
+    test("create, before the project's workspaces are known: every channel, nothing hidden on a guess", () => {
+      ConnectedWorkspaces.setFetcher((): Promise<Array<WorkspaceType>> => {
+        return new Promise<Array<WorkspaceType>>((): void => {});
+      });
+
+      render(
+        <ComplianceRuleFormModal
+          teamId={TEAM_ID}
+          projectId={PROJECT_ID}
+          onClose={jest.fn()}
+          onSuccess={jest.fn()}
+        />,
+      );
+
+      expect(modalChannels()).toHaveLength(9);
+    });
   });
 });
 

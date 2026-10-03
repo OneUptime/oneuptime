@@ -333,10 +333,22 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                 >
                   {Object.values(AutoRefreshInterval).map(
                     (interval: AutoRefreshInterval) => {
+                      /*
+                       * A list of choices, so its mark is the tick on the
+                       * one in use - as the dashboard's own auto-refresh
+                       * picker shows it - and the others keep the tick's
+                       * space, so every label lines up.
+                       */
                       return (
                         <MoreMenuItem
                           key={interval}
                           text={getAutoRefreshIntervalLabel(interval)}
+                          icon={
+                            interval === autoRefreshInterval
+                              ? IconProp.Check
+                              : undefined
+                          }
+                          isIconSpaceReserved={true}
                           onClick={() => {
                             setAutoRefreshInterval(interval);
                           }}

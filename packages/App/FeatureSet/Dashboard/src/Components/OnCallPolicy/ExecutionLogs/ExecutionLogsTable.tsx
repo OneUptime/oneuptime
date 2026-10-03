@@ -6,6 +6,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -27,6 +28,8 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeView from "../../../Components/IncidentEpisode/IncidentEpisode";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -39,6 +42,7 @@ export interface ComponentProps {
 const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -89,7 +93,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
               />
             );
           }
-          return <p>No on-call policy.</p>;
+          return <p>{translator.translateText("No on-call policy.")}</p>;
         },
       },
     ]);
@@ -152,7 +156,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         if (item.triggeredByIncident) {
           return (
             <div>
-              <p>Incident:</p>
+              <p>{translator.translateText("Incident:")}</p>
               <IncidentView
                 incident={item["triggeredByIncident"] as Incident}
               />
@@ -163,7 +167,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         if (item.triggeredByAlert) {
           return (
             <div>
-              <p>Alert:</p>
+              <p>{translator.translateText("Alert:")}</p>
               <AlertView alert={item["triggeredByAlert"] as Alert} />
             </div>
           );
@@ -172,7 +176,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         if (item.triggeredByAlertEpisode) {
           return (
             <div>
-              <p>Alert Episode:</p>
+              <p>{translator.translateText("Alert Episode:")}</p>
               <AlertEpisodeView
                 alertEpisode={item["triggeredByAlertEpisode"] as AlertEpisode}
               />
@@ -183,7 +187,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         if (item.triggeredByIncidentEpisode) {
           return (
             <div>
-              <p>Incident Episode:</p>
+              <p>{translator.translateText("Incident Episode:")}</p>
               <IncidentEpisodeView
                 incidentEpisode={
                   item["triggeredByIncidentEpisode"] as IncidentEpisode
@@ -307,6 +311,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         actionButtons={[
           {
             title: "View Status Message",
+            icon: IconProp.Error,
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
               item: OnCallDutyPolicyExecutionLog,
@@ -325,7 +330,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
-        viewButtonText={"View Timeline"}
+        viewButtonText={translationKey("View Timeline")}
         columns={columns}
       />
 

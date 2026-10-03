@@ -189,6 +189,19 @@ export default class ReplaySessionStore {
     return { ...this.identity };
   }
 
+  /*
+   * Forget the stored session without starting the next one. A session
+   * that ends while the recorder is paused for idle has no successor until
+   * the person comes back, and its record - last written by its own final
+   * chunk, so it looks recent - would otherwise let a relaunch in the
+   * meantime carry on a session that is already over. The visitor id stays,
+   * and so does the in-memory identity: nothing more is sent under it, and
+   * the next rotate() writes the new session.
+   */
+  public async end(): Promise<void> {
+    await this.safeRemove(this.sessionKey);
+  }
+
   public async clear(): Promise<void> {
     this.identity = null;
     await Promise.all([

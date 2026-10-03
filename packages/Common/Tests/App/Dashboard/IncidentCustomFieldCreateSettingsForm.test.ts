@@ -4,7 +4,6 @@ import {
   buildCustomFieldSettingsModelFormFields,
   getChangedCustomFieldSettingsFormValues,
   getCustomFieldProjectDefaultLabel,
-  getCustomFieldQuestionNote,
   getCustomFieldSettingFormKey,
   getCustomFieldSettingLabel,
   getCustomFieldSettingOptions,
@@ -14,9 +13,7 @@ import {
   getKeyedCustomFieldDefinitions,
   getTemplateDefaultLabel,
   getTemplateProjectDefaultLabel,
-  getUnsetCustomFieldSetting,
   INCIDENT_CUSTOM_FIELD_SETTING_FORM_KEY_PREFIX,
-  isCustomFieldCopiedFromMonitor,
   isCustomFieldSettingChosen,
   KeyedIncidentCustomFieldDefinition,
   packCustomFieldSettingsFormValues,
@@ -29,7 +26,6 @@ import {
   CustomFieldCreateSetting,
   CustomFieldCreateSettings,
 } from "../../../Types/CustomField/CustomFieldCreateSettings";
-import CustomFieldMappingSourceResource from "../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../Types/JSON";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
@@ -185,10 +181,7 @@ describe("a template's choices", () => {
   });
 
   test("Default, Required, Optional and Hidden, in that order", () => {
-    const options: Array<DropdownOption> = getCustomFieldSettingOptions(
-      IMPACT,
-      "template",
-    );
+    const options: Array<DropdownOption> = getCustomFieldSettingOptions(IMPACT);
 
     expect(values(options)).toEqual([
       CustomFieldCreateSetting.Default,
@@ -205,7 +198,7 @@ describe("a template's choices", () => {
   });
 
   test("only Default's label changes from field to field", () => {
-    expect(labels(getCustomFieldSettingOptions(CATEGORY, "template"))).toEqual([
+    expect(labels(getCustomFieldSettingOptions(CATEGORY))).toEqual([
       "Default (Not Shown)",
       "Required",
       "Optional",
@@ -214,7 +207,7 @@ describe("a template's choices", () => {
   });
 
   test("the labels are the shared copy", () => {
-    expect(labels(getCustomFieldSettingOptions(DURATION, "template"))).toEqual([
+    expect(labels(getCustomFieldSettingOptions(DURATION))).toEqual([
       IncidentCustomFieldCreateSettingsCopy.templateDefaultOptional,
       IncidentCustomFieldCreateSettingsCopy.required,
       IncidentCustomFieldCreateSettingsCopy.optional,
@@ -246,52 +239,26 @@ describe("the project default beside a template's own setting", () => {
 
   test("is shown for every setting a template chooses for itself", () => {
     expect(
-      getCustomFieldProjectDefaultLabel(
-        IMPACT,
-        { impact: "Optional" },
-        "template",
-      ),
+      getCustomFieldProjectDefaultLabel(IMPACT, { impact: "Optional" }),
     ).toBe("Project default: Required");
     expect(
-      getCustomFieldProjectDefaultLabel(
-        IMPACT,
-        { impact: "Hidden" },
-        "template",
-      ),
+      getCustomFieldProjectDefaultLabel(IMPACT, { impact: "Hidden" }),
     ).toBe("Project default: Required");
     expect(
-      getCustomFieldProjectDefaultLabel(
-        CATEGORY,
-        { category: "Required" },
-        "template",
-      ),
+      getCustomFieldProjectDefaultLabel(CATEGORY, { category: "Required" }),
     ).toBe("Project default: Not Shown");
     // Even one that matches the project's: it is still the template's choice.
     expect(
-      getCustomFieldProjectDefaultLabel(
-        DURATION,
-        { estimated_duration: "Optional" },
-        "template",
-      ),
+      getCustomFieldProjectDefaultLabel(DURATION, {
+        estimated_duration: "Optional",
+      }),
     ).toBe("Project default: Optional");
   });
 
   test("not for a field left on Default, whose label already says it", () => {
+    expect(getCustomFieldProjectDefaultLabel(IMPACT, {})).toBeUndefined();
     expect(
-      getCustomFieldProjectDefaultLabel(IMPACT, {}, "template"),
-    ).toBeUndefined();
-    expect(
-      getCustomFieldProjectDefaultLabel(
-        IMPACT,
-        { impact: "Default" },
-        "template",
-      ),
-    ).toBeUndefined();
-  });
-
-  test("never on a form, which does not follow the project's switches", () => {
-    expect(
-      getCustomFieldProjectDefaultLabel(IMPACT, { impact: "Optional" }, "form"),
+      getCustomFieldProjectDefaultLabel(IMPACT, { impact: "Default" }),
     ).toBeUndefined();
   });
 
@@ -308,101 +275,11 @@ describe("the project default beside a template's own setting", () => {
   });
 });
 
-describe("a form's choices", () => {
-  test("Not Asked, Optional and Required, in that order, for every field", () => {
-    for (const definition of [IMPACT, DURATION, CATEGORY]) {
-      const options: Array<DropdownOption> = getCustomFieldSettingOptions(
-        definition,
-        "form",
-      );
-
-      expect(values(options)).toEqual([
-        CustomFieldCreateSetting.Hidden,
-        CustomFieldCreateSetting.Optional,
-        CustomFieldCreateSetting.Required,
-      ]);
-      expect(labels(options)).toEqual(["Not Asked", "Optional", "Required"]);
-    }
-  });
-
-  test("a form offers no Default: its fields are not asked until it names them", () => {
-    expect(values(getCustomFieldSettingOptions(IMPACT, "form"))).not.toContain(
-      CustomFieldCreateSetting.Default,
-    );
-  });
-});
-
 /*
  * A field copied from a monitor custom field takes the monitor's value once
  * the incident has a monitor, so a public form does not ask it while its
  * incident template attaches monitors. The Questions card says so beside it.
  */
-describe("a field copied from a monitor", () => {
-  const VENDOR: IncidentCustomFieldDefinition = {
-    name: "Vendor",
-    customFieldType: CustomFieldType.Text,
-    variableKey: "vendor",
-    mapFromResourceType: CustomFieldMappingSourceResource.Monitor,
-    mapFromCustomFieldName: "Vendor",
-  };
-
-  test("is a field mapped from a monitor custom field", () => {
-    expect(isCustomFieldCopiedFromMonitor(VENDOR)).toBe(true);
-    expect(isCustomFieldCopiedFromMonitor(IMPACT)).toBe(false);
-  });
-
-  test("a mapping missing its field, its source, or with a source incidents cannot copy from, is none", () => {
-    expect(
-      isCustomFieldCopiedFromMonitor({
-        ...VENDOR,
-        mapFromCustomFieldName: undefined,
-      }),
-    ).toBe(false);
-    expect(
-      isCustomFieldCopiedFromMonitor({ ...VENDOR, mapFromResourceType: "" }),
-    ).toBe(false);
-    expect(
-      isCustomFieldCopiedFromMonitor({
-        ...VENDOR,
-        mapFromResourceType: "Service",
-      }),
-    ).toBe(false);
-  });
-
-  test("a form's question for it says it is not asked while the template attaches monitors", () => {
-    expect(getCustomFieldQuestionNote(VENDOR, "form")).toBe(
-      IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor,
-    );
-    expect(IncidentCustomFieldCreateSettingsCopy.formCopiedFromMonitor).toBe(
-      "Copied from a monitor custom field: not asked when the form's incident template attaches monitors, because the incident takes the monitor's value.",
-    );
-    expect(getCustomFieldQuestionNote(IMPACT, "form")).toBeUndefined();
-  });
-
-  test("a template says nothing: its Details step already leaves such a field out once there is a monitor", () => {
-    expect(getCustomFieldQuestionNote(VENDOR, "template")).toBeUndefined();
-  });
-
-  test("it can still be asked: the server decides per report, from the template's monitors", () => {
-    expect(values(getCustomFieldSettingOptions(VENDOR, "form"))).toEqual([
-      CustomFieldCreateSetting.Hidden,
-      CustomFieldCreateSetting.Optional,
-      CustomFieldCreateSetting.Required,
-    ]);
-  });
-});
-
-describe("a field with nothing stored", () => {
-  test("is Default on a template and Not Asked on a form", () => {
-    expect(getUnsetCustomFieldSetting("template")).toBe(
-      CustomFieldCreateSetting.Default,
-    );
-    expect(getUnsetCustomFieldSetting("form")).toBe(
-      CustomFieldCreateSetting.Hidden,
-    );
-  });
-});
-
 describe("reading a stored setting", () => {
   const STORED: JSONObject = {
     impact: "Hidden",
@@ -413,99 +290,48 @@ describe("reading a stored setting", () => {
   };
 
   test("a template reads each setting as stored, anything else as Default", () => {
-    expect(getCustomFieldSettingValue(IMPACT, STORED, "template")).toBe(
+    expect(getCustomFieldSettingValue(IMPACT, STORED)).toBe(
       CustomFieldCreateSetting.Hidden,
     );
-    expect(getCustomFieldSettingValue(DURATION, STORED, "template")).toBe(
+    expect(getCustomFieldSettingValue(DURATION, STORED)).toBe(
       CustomFieldCreateSetting.Required,
     );
-    expect(getCustomFieldSettingValue(CATEGORY, STORED, "template")).toBe(
+    expect(getCustomFieldSettingValue(CATEGORY, STORED)).toBe(
       CustomFieldCreateSetting.Default,
     );
-    expect(
-      getCustomFieldSettingValue(REQUIRED_NOT_SHOWN, STORED, "template"),
-    ).toBe(CustomFieldCreateSetting.Default);
-    expect(getCustomFieldSettingValue(IMPACT, null, "template")).toBe(
+    expect(getCustomFieldSettingValue(REQUIRED_NOT_SHOWN, STORED)).toBe(
       CustomFieldCreateSetting.Default,
     );
-    expect(getCustomFieldSettingValue(NO_KEY, STORED, "template")).toBe(
+    expect(getCustomFieldSettingValue(IMPACT, null)).toBe(
       CustomFieldCreateSetting.Default,
     );
-  });
-
-  test("a form reads Default, Hidden and anything it does not know as Not Asked", () => {
-    expect(getCustomFieldSettingValue(IMPACT, STORED, "form")).toBe(
-      CustomFieldCreateSetting.Hidden,
+    expect(getCustomFieldSettingValue(NO_KEY, STORED)).toBe(
+      CustomFieldCreateSetting.Default,
     );
-    expect(getCustomFieldSettingValue(DURATION, STORED, "form")).toBe(
-      CustomFieldCreateSetting.Required,
-    );
-    expect(getCustomFieldSettingValue(CATEGORY, STORED, "form")).toBe(
-      CustomFieldCreateSetting.Hidden,
-    );
-    expect(getCustomFieldSettingValue(REQUIRED_NOT_SHOWN, STORED, "form")).toBe(
-      CustomFieldCreateSetting.Hidden,
-    );
-    expect(
-      getCustomFieldSettingValue(IMPACT, { impact: "Optional" }, "form"),
-    ).toBe(CustomFieldCreateSetting.Optional);
   });
 
   test("the label is the option's: Default naming the field's own behaviour", () => {
-    expect(getCustomFieldSettingLabel(IMPACT, {}, "template")).toBe(
-      "Default (Required)",
+    expect(getCustomFieldSettingLabel(IMPACT, {})).toBe("Default (Required)");
+    expect(getCustomFieldSettingLabel(IMPACT, { impact: "Optional" })).toBe(
+      "Optional",
+    );
+    expect(getCustomFieldSettingLabel(CATEGORY, { category: "Required" })).toBe(
+      "Required",
     );
     expect(
-      getCustomFieldSettingLabel(IMPACT, { impact: "Optional" }, "template"),
-    ).toBe("Optional");
-    expect(
-      getCustomFieldSettingLabel(
-        CATEGORY,
-        { category: "Required" },
-        "template",
-      ),
-    ).toBe("Required");
-    expect(
-      getCustomFieldSettingLabel(
-        DURATION,
-        { estimated_duration: "Hidden" },
-        "template",
-      ),
+      getCustomFieldSettingLabel(DURATION, { estimated_duration: "Hidden" }),
     ).toBe("Hidden");
   });
 
-  test("on a form, the label of a field not asked is Not Asked", () => {
-    expect(getCustomFieldSettingLabel(IMPACT, {}, "form")).toBe("Not Asked");
-    expect(
-      getCustomFieldSettingLabel(IMPACT, { impact: "Default" }, "form"),
-    ).toBe("Not Asked");
-    expect(
-      getCustomFieldSettingLabel(IMPACT, { impact: "Required" }, "form"),
-    ).toBe("Required");
-    expect(
-      getCustomFieldSettingLabel(IMPACT, { impact: "Optional" }, "form"),
-    ).toBe("Optional");
-  });
-
   test("a setting is 'chosen' when the record decides the field for itself", () => {
-    expect(isCustomFieldSettingChosen(IMPACT, {}, "template")).toBe(false);
-    expect(
-      isCustomFieldSettingChosen(IMPACT, { impact: "Default" }, "template"),
-    ).toBe(false);
-    expect(
-      isCustomFieldSettingChosen(IMPACT, { impact: "Hidden" }, "template"),
-    ).toBe(true);
-    expect(
-      isCustomFieldSettingChosen(IMPACT, { impact: "Required" }, "template"),
-    ).toBe(true);
-
-    expect(isCustomFieldSettingChosen(IMPACT, {}, "form")).toBe(false);
-    expect(
-      isCustomFieldSettingChosen(IMPACT, { impact: "Hidden" }, "form"),
-    ).toBe(false);
-    expect(
-      isCustomFieldSettingChosen(IMPACT, { impact: "Optional" }, "form"),
-    ).toBe(true);
+    expect(isCustomFieldSettingChosen(IMPACT, {})).toBe(false);
+    expect(isCustomFieldSettingChosen(IMPACT, { impact: "Default" })).toBe(
+      false,
+    );
+    expect(isCustomFieldSettingChosen(IMPACT, { impact: "Hidden" })).toBe(true);
+    expect(isCustomFieldSettingChosen(IMPACT, { impact: "Required" })).toBe(
+      true,
+    );
   });
 });
 
@@ -529,27 +355,12 @@ describe("the form's starting values", () => {
       getCustomFieldSettingsFormInitialValues({
         definitions: ALL,
         settings: { impact: "Hidden", root_cause: "Optional" },
-        mode: "template",
       }),
     ).toEqual({
       [key("impact")]: "Hidden",
       [key("estimated_duration")]: "Default",
       [key("category")]: "Default",
       [key("root_cause")]: "Optional",
-    });
-  });
-
-  test("on a form, every field not asked starts on Not Asked", () => {
-    expect(
-      getCustomFieldSettingsFormInitialValues({
-        definitions: [IMPACT, DURATION, CATEGORY],
-        settings: { impact: "Required", category: "Default" },
-        mode: "form",
-      }),
-    ).toEqual({
-      [key("impact")]: "Required",
-      [key("estimated_duration")]: "Hidden",
-      [key("category")]: "Hidden",
     });
   });
 });
@@ -565,7 +376,6 @@ describe("what is saved", () => {
           [key("category")]: "Optional",
           [key("root_cause")]: "Default",
         },
-        mode: "template",
       }),
     ).toEqual({
       impact: "Hidden",
@@ -582,38 +392,8 @@ describe("what is saved", () => {
           [key("impact")]: "Default",
           [key("category")]: "Default",
         },
-        mode: "template",
       }),
     ).toEqual({});
-  });
-
-  test("a form keeps only the questions it asks: Not Asked is left out", () => {
-    expect(
-      packCustomFieldSettingsFormValues({
-        definitions: [IMPACT, DURATION, CATEGORY],
-        formValues: {
-          [key("impact")]: "Required",
-          [key("estimated_duration")]: "Hidden",
-          [key("category")]: "Optional",
-        },
-        mode: "form",
-      }),
-    ).toEqual({ impact: "Required", category: "Optional" });
-  });
-
-  test("a form drops a stored Default and Hidden too", () => {
-    expect(
-      packCustomFieldSettingsFormValues({
-        definitions: [IMPACT],
-        formValues: {},
-        startingSettings: {
-          impact: "Required",
-          estimated_duration: "Default",
-          category: "Hidden",
-        },
-        mode: "form",
-      }),
-    ).toEqual({ impact: "Required" });
   });
 
   test("a cleared dropdown means Default: the stored setting goes", () => {
@@ -626,7 +406,6 @@ describe("what is saved", () => {
             [key("estimated_duration")]: "Optional",
           },
           startingSettings: { impact: "Hidden", estimated_duration: "Hidden" },
-          mode: "template",
         }),
       ).toEqual({ estimated_duration: "Optional" });
     }
@@ -641,7 +420,6 @@ describe("what is saved", () => {
           [key("estimated_duration")]: "Sometimes",
         },
         startingSettings: { impact: "Hidden" },
-        mode: "template",
       }),
     ).toEqual({});
   });
@@ -653,7 +431,6 @@ describe("what is saved", () => {
         formValues: {
           [key("impact")]: { label: "Hidden", value: "Hidden" },
         },
-        mode: "template",
       }),
     ).toEqual({ impact: "Hidden" });
   });
@@ -664,7 +441,6 @@ describe("what is saved", () => {
         definitions: [IMPACT, DURATION],
         formValues: { [key("impact")]: "Optional" },
         startingSettings: { estimated_duration: "Hidden" },
-        mode: "template",
       }),
     ).toEqual({ impact: "Optional", estimated_duration: "Hidden" });
   });
@@ -675,7 +451,6 @@ describe("what is saved", () => {
         definitions: [IMPACT],
         formValues: { [key("impact")]: "Required" },
         startingSettings: { deleted_field: "Required" },
-        mode: "template",
       }),
     ).toEqual({ impact: "Required", deleted_field: "Required" });
   });
@@ -687,35 +462,6 @@ describe("what is saved", () => {
    * letters, which all start from the key "field" - so a form keeps the
    * questions of the fields it lists, and no others.
    */
-  test("a form drops the question of a field no longer listed, whatever it was", () => {
-    expect(
-      packCustomFieldSettingsFormValues({
-        definitions: [IMPACT, CATEGORY],
-        formValues: { [key("impact")]: "Required" },
-        startingSettings: {
-          deleted_field: "Required",
-          field: "Optional",
-          category: "Optional",
-        },
-        mode: "form",
-      }),
-    ).toEqual({ impact: "Required", category: "Optional" });
-  });
-
-  test("a form keeps the stored question of a listed field it holds no value for", () => {
-    expect(
-      packCustomFieldSettingsFormValues({
-        definitions: [IMPACT, DURATION],
-        formValues: null,
-        startingSettings: {
-          estimated_duration: "Required",
-          deleted_field: "Optional",
-        },
-        mode: "form",
-      }),
-    ).toEqual({ estimated_duration: "Required" });
-  });
-
   test("stored entries the server would refuse are dropped", () => {
     expect(
       packCustomFieldSettingsFormValues({
@@ -726,7 +472,6 @@ describe("what is saved", () => {
           category: "required",
           estimated_duration: 5,
         },
-        mode: "template",
       }),
     ).toEqual({ impact: "Optional" });
   });
@@ -739,7 +484,6 @@ describe("what is saved", () => {
         "customFieldSettings:undefined": "Required",
         Legacy: "Required",
       },
-      mode: "template",
     });
 
     expect(saved).toEqual({});
@@ -752,7 +496,6 @@ describe("what is saved", () => {
       definitions: [IMPACT],
       formValues: { [key("impact")]: "Required" },
       startingSettings: stored,
-      mode: "template",
     });
 
     expect(stored).toEqual({ impact: "Hidden" });
@@ -764,7 +507,6 @@ describe("what is saved", () => {
         definitions: [IMPACT],
         formValues: null,
         startingSettings: { impact: "Required", category: "Default" },
-        mode: "template",
       }),
     ).toEqual({ impact: "Required" });
   });
@@ -792,7 +534,6 @@ describe("what an edit changed", () => {
           [key("category")]: "Optional",
           [key("root_cause")]: "Default",
         },
-        mode: "template",
       }),
     ).toEqual({
       [key("impact")]: "Hidden",
@@ -812,7 +553,6 @@ describe("what an edit changed", () => {
           [key("impact")]: "Default",
           [key("estimated_duration")]: "Hidden",
         },
-        mode: "template",
       }),
     ).toEqual({});
   });
@@ -822,7 +562,6 @@ describe("what an edit changed", () => {
       definitions: [IMPACT],
       formValues: { [key("impact")]: null },
       initialValues: { [key("impact")]: "Hidden" },
-      mode: "template",
     });
 
     expect(changed).toEqual({ [key("impact")]: null });
@@ -831,43 +570,16 @@ describe("what an edit changed", () => {
         definitions: [IMPACT],
         formValues: changed,
         startingSettings: { impact: "Hidden", category: "Required" },
-        mode: "template",
       }),
     ).toEqual({ category: "Required" });
-  });
-
-  test("on a form, Default and Not Asked are the same choice", () => {
-    expect(
-      getChangedCustomFieldSettingsFormValues({
-        definitions: [IMPACT, DURATION],
-        formValues: {
-          [key("impact")]: "Default",
-          [key("estimated_duration")]: "Required",
-        },
-        initialValues: {
-          [key("impact")]: "Hidden",
-          [key("estimated_duration")]: "Hidden",
-        },
-        mode: "form",
-      }),
-    ).toEqual({ [key("estimated_duration")]: "Required" });
   });
 
   test("a field the form never held a value for has nothing to say", () => {
     expect(
       getChangedCustomFieldSettingsFormValues({
-        definitions: [IMPACT, DURATION],
-        formValues: { [key("impact")]: "Required" },
-        initialValues: {},
-        mode: "form",
-      }),
-    ).toEqual({ [key("impact")]: "Required" });
-    expect(
-      getChangedCustomFieldSettingsFormValues({
         definitions: [IMPACT],
         formValues: null,
         initialValues: null,
-        mode: "template",
       }),
     ).toEqual({});
   });
@@ -876,7 +588,6 @@ describe("what an edit changed", () => {
     const opened: JSONObject = getCustomFieldSettingsFormInitialValues({
       definitions: [IMPACT, DURATION, CATEGORY],
       settings: {},
-      mode: "template",
     });
 
     // Saved by somebody else after the form opened.
@@ -893,10 +604,8 @@ describe("what an edit changed", () => {
           // Every dropdown is submitted; only Impact was changed.
           formValues: { ...opened, [key("impact")]: "Optional" },
           initialValues: opened,
-          mode: "template",
         }),
         startingSettings: storedNow,
-        mode: "template",
       }),
     ).toEqual({
       impact: "Optional",
@@ -927,7 +636,7 @@ describe("the misc data a create form sends", () => {
 describe("the dropdowns", () => {
   test("one per keyed field, titled with its name and described with its type", () => {
     const fields: Array<Field<JSONObject>> = buildCustomFieldSettingsFormFields(
-      { definitions: ALL, mode: "template" },
+      { definitions: ALL },
     );
 
     expect(
@@ -952,41 +661,27 @@ describe("the dropdowns", () => {
     ]);
   });
 
-  test("each is an optional dropdown of the mode's choices, starting on the unset one", () => {
+  test("each is an optional dropdown of a template's choices, starting on Default", () => {
     const [templateField]: Array<Field<JSONObject>> =
       buildCustomFieldSettingsFormFields({
         definitions: [IMPACT],
-        mode: "template",
       });
 
     expect(templateField!.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(templateField!.dropdownOptions).toEqual(
-      getCustomFieldSettingOptions(IMPACT, "template"),
+      getCustomFieldSettingOptions(IMPACT),
     );
     expect(templateField!.defaultValue).toBe(CustomFieldCreateSetting.Default);
     expect(templateField!.placeholder).toBe("Default (Required)");
     expect(templateField!.required).toBe(false);
     // "(Optional)" beside a choice that includes Optional would only confuse.
     expect(templateField!.hideOptionalLabel).toBe(true);
-
-    const [formField]: Array<Field<JSONObject>> =
-      buildCustomFieldSettingsFormFields({
-        definitions: [IMPACT],
-        mode: "form",
-      });
-
-    expect(formField!.dropdownOptions).toEqual(
-      getCustomFieldSettingOptions(IMPACT, "form"),
-    );
-    expect(formField!.defaultValue).toBe(CustomFieldCreateSetting.Hidden);
-    expect(formField!.placeholder).toBe("Not Asked");
   });
 
   test("a step only when asked for one, and no description for a field with no type", () => {
     const [withoutStep]: Array<Field<JSONObject>> =
       buildCustomFieldSettingsFormFields({
         definitions: [{ name: "Untyped", variableKey: "untyped" }],
-        mode: "template",
       });
 
     expect(withoutStep!.stepId).toBeUndefined();
@@ -995,7 +690,6 @@ describe("the dropdowns", () => {
     const [withStep]: Array<Field<JSONObject>> =
       buildCustomFieldSettingsFormFields({
         definitions: [IMPACT],
-        mode: "template",
         stepId: "custom-field-settings",
       });
 
@@ -1006,7 +700,6 @@ describe("the dropdowns", () => {
     expect(
       buildCustomFieldSettingsFormFields({
         definitions: [NO_KEY],
-        mode: "template",
       }),
     ).toEqual([]);
   });
@@ -1015,7 +708,6 @@ describe("the dropdowns", () => {
     const fields: Array<ModelField<IncidentTemplate>> =
       buildCustomFieldSettingsModelFormFields<IncidentTemplate>({
         definitions: [IMPACT, CATEGORY],
-        mode: "template",
         stepId: "custom-field-settings",
       });
 
@@ -1036,7 +728,7 @@ describe("the dropdowns", () => {
       }),
     ).toEqual([key("impact"), key("category")]);
     expect(fields[1]!.dropdownOptions).toEqual(
-      getCustomFieldSettingOptions(CATEGORY, "template"),
+      getCustomFieldSettingOptions(CATEGORY),
     );
   });
 });

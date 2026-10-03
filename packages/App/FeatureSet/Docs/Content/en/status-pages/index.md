@@ -11,7 +11,7 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 - **Created with two fields.** A new status page only asks for **Name** and **Description**. Resources, branding and domains are all configured afterwards.
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
-- **Visitor-facing routes are gated by settings.** Incidents, announcements, scheduled events and the subscribe page each appear only when their toggle on **Advanced Settings** is on.
+- **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
 - **Three ways to make it private.** Private users, a master password, or SAML SSO / OIDC — plus an IP whitelist.
 - **Subscribers get told automatically.** Email, SMS, Slack, Microsoft Teams and webhook subscribers can all follow a page, each channel behind its own toggle.
 
@@ -51,23 +51,23 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | Section               | What's in it                                                                                                                                   |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Basic**             | **Overview**, **Announcements**, **Owners**.                                                                                                   |
-| **Resources**         | A single **Resources** screen — groups on the left, the selected group's monitors on the right.                                                |
+| **Resources**         | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**.                       |
 | **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers.                                                                                          |
-| **Audit**             | **Audit Logs**.                                                                                                                                |
-| **Branding**          | **Essential Branding**, **HTML, CSS & JavaScript**, **Custom Domains**, **Header**, **Footer**, **Overview Page**, **Languages**.              |
+| **Branding**          | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**.         |
 | **Security**          | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**.                                                                   |
 | **AI**                | **MCP**.                                                                                                                                       |
-| **Advanced**          | **Monitor Rules**, **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Delete Status Page**.                         |
+| **Developer**         | **Terraform**, **API**, **AI Assistants** — the page as code.                                                                                  |
+| **Advanced**          | **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Audit Logs**, **Delete Status Page**.                            |
 
-**Advanced** starts collapsed, like the **Advanced** section of every menu in OneUptime: click it to show its pages. It opens by itself whenever you are on one of them, such as **Advanced Settings**.
+Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Advanced Settings** or **Email Subscribers**.
 
 Two naming quirks worth knowing before you go looking:
 
 - The **Resources** item is only labeled **Resources** when the project has monitor groups enabled. Otherwise it reads **Monitors**. It is the same screen either way.
 - There is no separate Groups page. Groups and resources were merged, and the old `/groups` route now redirects to the resources screen.
 
-Outside an individual page, the **Status Pages** section itself lists **All Status Pages** and **Archived** (status pages you took offline — see [Archiving a status page](#archiving-a-status-page)), has a **More** section with **Announcements**, and a collapsed **Settings** section holding **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules** — these are project-wide, shared across every status page.
+Outside an individual page, the **Status Pages** section itself lists **All Status Pages**, and a **More** section holds **Announcements**. A collapsed **Settings** section holds **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules**, which are project-wide and shared across every status page. A collapsed **Advanced** section holds **Archived**: the status pages you took offline (see [Archiving a status page](#archiving-a-status-page)).
 
 ## What visitors see
 
@@ -100,41 +100,25 @@ For what puts an incident on this page in the first place, and what takes it off
 
 ## Choosing what shows on the page
 
-Most of the display switches live in one place: **Status Pages → your page → Advanced → Advanced Settings**. Each card has its own **Edit Settings** button.
+What visitors see is set in one card: **What your status page shows**, on **Status Pages → your page → Advanced → Advanced Settings**. It has a row for each list the page can show, then **Uptime History** and the "Powered by OneUptime" line. There is no Edit button: a switch saves the moment you flip it, and a number of days when you leave its box or press Enter.
 
-**Incident Settings**:
+- **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Under it, **Show the last … days** (`showIncidentHistoryInDays`, default 14) is how far back the incident list reaches, and **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) is off by default.
+- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — also in the incidents row, off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. It also decides which incidents bring their episodes onto the page, so it stays when **Show Incidents** is off. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Show Episodes** (`showEpisodesOnStatusPage`) — on by default, with **Show the last … days** (`showEpisodeHistoryInDays`, default 14) and **Show Episode Labels** (`showEpisodeLabelsOnStatusPage`, off by default). Episodes are their own model with their own endpoints, not a view of incidents.
+- **Show Announcements** (`showAnnouncementsOnStatusPage`) — on by default, with **Show the last … days** (`showAnnouncementHistoryInDays`, default 14).
+- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default, with **Show the last … days** (`showScheduledEventHistoryInDays`, default 14) and **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`, off by default).
+- **Uptime History** — **Show the last … days** (`showUptimeHistoryInDays`) is the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number.
+- **Show Powered By OneUptime Branding** — on by default, so the visitor footer reads "Powered by OneUptime". Turn it off to hide the line. The column stores it the other way round, as `hidePoweredByOneUptimeBranding`.
 
-- **Show Incidents** (`showIncidentsOnStatusPage`) — on by default. Turning it off also removes the **Incidents** nav item.
-- **Show Incident History (in days)** (`showIncidentHistoryInDays`) — how far back the incident list reaches. Defaults to 14.
-- **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) — off by default.
-- **Only Show Incidents Scoped to This Page** (`onlyShowScopedIncidents`) — off by default. Turn it on and the page shows, and notifies its subscribers about, only the incidents limited to it with **Limit to these status pages**. Incidents that are not limited to any page, including the ones a monitor, Slack, Microsoft Teams, the API or AI opens on its own, never reach it until someone adds the page to them. For pages that share monitors but serve different audiences, see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+**A list that is off** is gone from the page, with its item in the nav bar if it has one; its public endpoint refuses, and the page's subscribers are not notified about that kind of event. Its row then shows only its switch: how far back a hidden list goes, and whether it shows labels, change nothing.
 
-**Episode Settings** — the same three switches for incident episodes: **Show Episodes** (`showEpisodesOnStatusPage`, on by default), **Show Episode History (in days)** (default 14), and **Show Episode Labels** (off by default). Episodes are their own model with their own endpoints, not a view of incidents.
+**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; hiding the "Powered by OneUptime" line needs **Scale**. The other history windows, **Uptime History** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own.
 
-**Announcement Settings**:
+Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
-- **Show Announcements** (`showAnnouncementsOnStatusPage`) — on by default.
-- **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`) — defaults to 14.
+Below the card are **Overall Uptime Percent** and **Downtime Monitor Statuses** (see [Uptime percent and downtime statuses](/docs/status-pages/branding-and-domains#uptime-percent-and-downtime-statuses)), then **Export Status Page as JSON**, which downloads the status page's own settings as a file you can import again, and **Archive status page** (see [Archiving a status page](#archiving-a-status-page)).
 
-**Scheduled Event Settings**:
-
-- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — on by default.
-- **Show Scheduled Event History (in days)** (`showScheduledEventHistoryInDays`) — defaults to 14.
-- **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`) — off by default.
-
-**Uptime History Settings**:
-
-- **Show Uptime History (in days)** (`showUptimeHistoryInDays`) — the length of the uptime bar next to each resource. Defaults to 90 and must be between 1 and 90. Every **Show Uptime %** and **Show Status History Chart** option on a resource or group reads this number.
-
-**Subscriber Settings**:
-
-- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — on by default, plus the five per-channel enable toggles. The same channel toggles also appear on the dedicated **Subscriber Settings** screen under the **Subscribers** section; treat that one as the canonical place to set them.
-
-**Powered By OneUptime Branding**:
-
-- **Hide Powered By OneUptime Branding** — off by default, so the visitor footer reads "Powered by OneUptime" until you turn this on.
-
-**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color**, the bar-color rules, the **Downtime Monitor Statuses** and **Show Overall Uptime Percent** all live on **Status Pages → your page → Branding → Overview Page**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
+**Where the colors are.** The uptime bar colors are not here — the **Default Bar Color** and the bar-color rules are under **Advanced** on **Status Pages → your page → Branding → Branding**. There is no theme or brand-color setting anywhere; anything beyond those controls is done with **Custom CSS**.
 
 ## Previewing before you go live
 
@@ -184,10 +168,10 @@ Archive a status page to take it offline without deleting it. An archived status
 
 - **Is offline.** Its URL, its custom domains, its embedded badge, its public API and its MCP server all answer as if the page did not exist ("Status Page not found"), so a visitor cannot tell an archived page from one that was never there. The dashboard preview link stops working too.
 - **Sends nothing to its subscribers.** No incident, episode, maintenance or announcement notifications, no reports, and no subscription confirmations. Nobody can subscribe to it.
-- **Leaves the Status Pages list.** Find it under **Status Pages → Archived**.
+- **Leaves the Status Pages list.** Find it under **Status Pages → Advanced → Archived**.
 - **Keeps everything.** Its resources, groups, branding, domains, private users and subscribers are kept, so unarchiving puts the page back online exactly as it was.
 
-To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
+To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
 ## Where to read next
 

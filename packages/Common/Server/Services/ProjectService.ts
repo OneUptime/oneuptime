@@ -58,13 +58,10 @@ import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
   Black,
-  Blue500,
-  Gray500,
   Green,
   Moroon500,
   Purple500,
   Red,
-  Teal500,
   Yellow,
   Yellow500,
 } from "../../Types/BrandColors";
@@ -81,6 +78,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
+import NumberPrefixUtil, {
+  NUMBER_PREFIX_COLUMNS,
+  NumberPrefixColumn,
+} from "../../Utils/Project/NumberPrefix";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
@@ -345,6 +346,32 @@ export class ProjectService extends DatabaseService<Model> {
     data.dataResidency = dataResidency;
   }
 
+  /*
+   * Runs on every create and update, before the write, for each number
+   * prefix the data carries: the prefix is stored trimmed, a blank one as
+   * null (numbers then start with "#"), and one that breaks the rules in
+   * NumberPrefixUtil - too long, a space or a character Markdown, Slack or
+   * HTML would read, a digit at the end that runs into the number - is
+   * refused. A prefix the data does not carry is left alone, so an update
+   * of anything else never touches the prefixes.
+   */
+  public applyNumberPrefixRules(
+    data: Partial<Record<NumberPrefixColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      if (values[info.column] === undefined) {
+        continue;
+      }
+
+      values[info.column] = NumberPrefixUtil.normalize(
+        values[info.column],
+        info.title,
+      );
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -354,6 +381,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     this.applyDataResidencyRules(data.data);
+    this.applyNumberPrefixRules(data.data);
 
     if (data.props.userId) {
       data.data.createdByUserId = data.props.userId;
@@ -561,25 +589,19 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.clickIds = user.clickIds!;
     data.data.firstTouchAttribution = user.firstTouchAttribution!;
 
-    // Set default number prefixes.
-    if (!data.data.incidentNumberPrefix) {
-      data.data.incidentNumberPrefix = "INC-";
-    }
+    /*
+     * A new project starts with a prefix for each kind of number (INC-, IE-,
+     * ALT-, AE-, SM-) unless the create request set one itself.
+     */
+    const newProject: Record<string, unknown> = data.data as unknown as Record<
+      string,
+      unknown
+    >;
 
-    if (!data.data.alertNumberPrefix) {
-      data.data.alertNumberPrefix = "ALT-";
-    }
-
-    if (!data.data.scheduledMaintenanceNumberPrefix) {
-      data.data.scheduledMaintenanceNumberPrefix = "SM-";
-    }
-
-    if (!data.data.incidentEpisodeNumberPrefix) {
-      data.data.incidentEpisodeNumberPrefix = "IE-";
-    }
-
-    if (!data.data.alertEpisodeNumberPrefix) {
-      data.data.alertEpisodeNumberPrefix = "AE-";
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      if (!newProject[info.column]) {
+        newProject[info.column] = info.defaultForNewProjects;
+      }
     }
 
     this.applyNewProjectAiDefaults(data.data);
@@ -725,6 +747,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     this.applyDataResidencyRules(updateBy.data);
+    this.applyNumberPrefixRules(updateBy.data);
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,
@@ -2176,6 +2199,24 @@ These are no longer recorded against the project and have to be cancelled by han
     return createdItem;
   }
 
+  /*
+   * A new project starts with one incident role: Incident Commander, the
+   * person in charge of the response. It is the primary role: declaring an
+   * incident from the dashboard puts the declarer in it when nobody else was
+   * picked, and an incident still without one gets the first person to
+   * change its state (IncidentStateTimelineService). So it is the one role
+   * that cannot be deleted, and it is always held by one person
+   * (IncidentRoleService refuses both).
+   *
+   * Projects used to start with Responder, Communications Lead and Observer
+   * too. The maintainer: "To make things simple, can we remove all the roles
+   * except Incident Commander by default? People can add more roles if they
+   * feel like." Projects that already have those roles keep them: nothing
+   * here, or anywhere else, removes a role.
+   *
+   * Public because the AddDefaultIncidentRolesToExistingProjects data
+   * migration seeds projects that have no roles at all through it.
+   */
   public async addDefaultIncidentRoles(createdItem: Model): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
 
@@ -2196,58 +2237,6 @@ These are no longer recorded against the project and have to be cancelled by han
 
       await IncidentRoleService.create({
         data: incidentCommander,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Responder")) {
-      const responder: IncidentRole = new IncidentRole();
-      responder.name = "Responder";
-      responder.description =
-        "Active participant in incident resolution. Performs hands-on work to resolve the incident.";
-      responder.color = Blue500;
-      responder.roleIcon = IconProp.Wrench;
-      responder.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: responder,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Communications Lead")) {
-      const communicationsLead: IncidentRole = new IncidentRole();
-      communicationsLead.name = "Communications Lead";
-      communicationsLead.description =
-        "Handles stakeholder communication and status updates during an incident.";
-      communicationsLead.color = Teal500;
-      communicationsLead.roleIcon = IconProp.Announcement;
-      communicationsLead.projectId = projectId;
-
-      await IncidentRoleService.create({
-        data: communicationsLead,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    if (!existingNames.has("Observer")) {
-      const observer: IncidentRole = new IncidentRole();
-      observer.name = "Observer";
-      observer.description =
-        "Read-only participant who monitors the incident without active involvement.";
-      observer.color = Gray500;
-      observer.roleIcon = IconProp.Activity;
-      observer.projectId = projectId;
-      observer.canAssignMultipleUsers = true;
-
-      await IncidentRoleService.create({
-        data: observer,
         props: {
           isRoot: true,
         },

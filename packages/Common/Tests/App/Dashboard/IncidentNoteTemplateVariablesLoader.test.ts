@@ -78,6 +78,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { isCustomFieldTemplateVariableName } from "../../../Types/CustomField/CustomFieldVariableKey";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import IncidentSubscriberAudience from "../../../Types/StatusPage/IncidentSubscriberAudience";
@@ -195,6 +196,9 @@ describe("fetchIncidentNoteTemplateVariables", () => {
     expect(variables["incident.labels"]).toBe("Region East, Payments");
     // Only the pages the author can see are named.
     expect(variables["incident.affectedStatusPages"]).toBe("Site 03, Site 07");
+    expect(variables["incident.customFields.impact"]).toBe("High");
+    expect(variables["incident.customFields.estimated_duration"]).toBe("0");
+    // And under the older name, for templates saved before the rename.
     expect(variables["customFields.impact"]).toBe("High");
     expect(variables["customFields.estimated_duration"]).toBe("0");
   });
@@ -273,9 +277,10 @@ describe("fetchIncidentNoteTemplateVariables", () => {
       await fetchIncidentNoteTemplateVariables(INCIDENT_ID);
 
     expect(variables["incident.title"]).toBe("Payments are failing");
+    // Under neither name.
     expect(
       Object.keys(variables).some((name: string) => {
-        return name.startsWith("customFields.");
+        return isCustomFieldTemplateVariableName(name);
       }),
     ).toBe(false);
   });
@@ -289,7 +294,7 @@ describe("fetchIncidentNoteTemplateVariables", () => {
       await fetchIncidentNoteTemplateVariables(INCIDENT_ID);
 
     expect(variables).not.toHaveProperty(["incident.affectedStatusPages"]);
-    expect(variables["customFields.impact"]).toBe("High");
+    expect(variables["incident.customFields.impact"]).toBe("High");
   });
 
   test("an incident with no labels fills the placeholder with nothing", async () => {

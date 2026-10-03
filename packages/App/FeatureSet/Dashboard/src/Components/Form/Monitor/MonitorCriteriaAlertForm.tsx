@@ -9,15 +9,25 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
+  useMemo,
   useState,
 } from "react";
+import OwnersPicker, {
+  OwnersPickerValue,
+} from "Common/UI/Components/PeoplePicker/OwnersPicker";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
+import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
+import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
+import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
 import { hasAlertAdvancedOptions } from "./CriteriaAdvancedOptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaAlert;
@@ -25,8 +35,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
-  userDropdownOptions: Array<DropdownOption>;
   monitorType?: MonitorType | undefined;
   seriesAttributeKeys?: Array<string> | undefined;
 }
@@ -34,6 +42,7 @@ export interface ComponentProps {
 const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [criteriaAlert, setCriteriaAlert] = React.useState<CriteriaAlert>(
     props.initialValue || {
       title: "",
@@ -46,6 +55,8 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     props.onChange?.(criteriaAlert);
   }, [criteriaAlert]);
+
+  const ownersLabelId: string = `${useId()}-owners-label`;
 
   const updateField: <K extends keyof CriteriaAlert>(
     field: K,
@@ -73,6 +84,18 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   // Only what the user chose: a default rule's auto-resolve does not count.
   const hasAdvancedOptions: boolean = hasAlertAdvancedOptions(criteriaAlert);
 
+  /*
+   * The variables this monitor's alert description and remediation notes
+   * can use, offered by their editors: collapsed under each, behind its
+   * Insert variable button, and when "{{" is typed.
+   */
+  const templateVariableGroups: TemplateVariableGroups = useMemo(() => {
+    return TemplateVariablesCatalog.getTemplateVariableGroups({
+      monitorType: props.monitorType ?? MonitorType.API,
+      seriesAttributeKeys: props.seriesAttributeKeys,
+    });
+  }, [props.monitorType, props.seriesAttributeKeys]);
+
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
     useState<boolean>(false);
 
@@ -84,7 +107,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       }}
       className="underline text-blue-600 hover:text-blue-800"
     >
-      Learn about dynamic templates
+      {translator.translateText("Learn about dynamic templates")}
     </button>
   );
 
@@ -106,7 +129,12 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Alert Title"
-            description={<span>Title for the alert. {templateDocsLink}</span>}
+            description={
+              <span>
+                {translator.translateText("Title for the alert.")}{" "}
+                {templateDocsLink}
+              </span>
+            }
             required={true}
           />
           <Input
@@ -149,12 +177,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Alert Description"
-            description={
-              <span>Description for the alert. {templateDocsLink}</span>
-            }
+            description={MonitorCriteriaTemplateCopy.alertDescriptionHelp}
           />
           <MarkdownEditor
             initialValue={criteriaAlert.description || ""}
+            templateVariables={templateVariableGroups}
+            templateVariablesDescription={
+              MonitorCriteriaTemplateCopy.alertVariablesDescription
+            }
             placeholder="Describe the alert..."
             onChange={(value: string) => {
               updateField("description", value);
@@ -174,64 +204,24 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div className="space-y-4">
           <div>
             <FieldLabelElement
-              title="Owner Teams"
-              description="Teams that will own and be notified about this alert"
+              id={ownersLabelId}
+              title="Owners"
+              description="People and teams who will own this alert and be notified about it"
             />
-            <Dropdown
-              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.ownerTeamIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.teamDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerTeamIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerTeamIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Teams"
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Owner Users"
-              description="Users that will own and be notified about this alert"
-            />
-            <Dropdown
-              value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.ownerUserIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.userDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerUserIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerUserIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Users"
-            />
+            <div className="mt-2">
+              <OwnersPicker
+                ariaLabelledby={ownersLabelId}
+                userIds={criteriaAlert.ownerUserIds}
+                teamIds={criteriaAlert.ownerTeamIds}
+                onChange={(owners: OwnersPickerValue) => {
+                  setCriteriaAlert({
+                    ...criteriaAlert,
+                    ownerUserIds: owners.userIds,
+                    ownerTeamIds: owners.teamIds,
+                  });
+                }}
+              />
+            </div>
           </div>
 
           <div>
@@ -341,15 +331,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Remediation Notes"
-              description={
-                <span>
-                  Notes for on-call engineer to resolve this alert.{" "}
-                  {templateDocsLink}
-                </span>
-              }
+              description={MonitorCriteriaTemplateCopy.alertRemediationHelp}
             />
             <MarkdownEditor
               initialValue={criteriaAlert.remediationNotes || ""}
+              templateVariables={templateVariableGroups}
+              templateVariablesDescription={
+                MonitorCriteriaTemplateCopy.alertVariablesDescription
+              }
               placeholder="Steps to resolve this alert..."
               onChange={(value: string) => {
                 updateField("remediationNotes", value);

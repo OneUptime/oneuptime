@@ -18,6 +18,13 @@ import ResourceCommandPolicy, {
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import { joinAiAccessProtections } from "../AiAccess/AiAccessModes";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The pure pieces behind "What AI may do" on a resource's AI agent page and
@@ -52,10 +59,11 @@ export const RESOURCE_REMEDIATION_MODE_SHORT_NAMES: Record<
   ResourceAiRemediationMode,
   string
 > = {
-  [ResourceAiRemediationMode.Disabled]: "Off",
-  [ResourceAiRemediationMode.RequireApproval]: "Ask for approval",
-  [ResourceAiRemediationMode.Automatic]: "Automatic",
-  [ResourceAiRemediationMode.BypassApproval]: "Bypass approval",
+  [ResourceAiRemediationMode.Disabled]: translationKey("Off"),
+  [ResourceAiRemediationMode.RequireApproval]:
+    translationKey("Ask for approval"),
+  [ResourceAiRemediationMode.Automatic]: translationKey("Automatic"),
+  [ResourceAiRemediationMode.BypassApproval]: translationKey("Bypass approval"),
 };
 
 /*
@@ -69,13 +77,18 @@ export const RESOURCE_REMEDIATION_MODE_SUMMARIES: Record<
   ResourceAiRemediationMode,
   string
 > = {
-  [ResourceAiRemediationMode.Disabled]: "AI never proposes or runs a fix.",
-  [ResourceAiRemediationMode.RequireApproval]:
+  [ResourceAiRemediationMode.Disabled]: translationKey(
+    "AI never proposes or runs a fix.",
+  ),
+  [ResourceAiRemediationMode.RequireApproval]: translationKey(
     "AI proposes fixes. A person approves each one before it runs.",
-  [ResourceAiRemediationMode.Automatic]:
+  ),
+  [ResourceAiRemediationMode.Automatic]: translationKey(
     "Safe fixes run on their own. Riskier ones wait for your one-click approval.",
-  [ResourceAiRemediationMode.BypassApproval]:
+  ),
+  [ResourceAiRemediationMode.BypassApproval]: translationKey(
     "Every allowed fix runs on its own. Changes that always need a person still ask.",
+  ),
 };
 
 /*
@@ -85,7 +98,14 @@ export const RESOURCE_REMEDIATION_MODE_SUMMARIES: Record<
 export function getResourceInvestigationOnSentence(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `AI may run ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun}: ${descriptor.readExamples}. They never change anything.`;
+  return translateTemplate(
+    "AI may run {{commands}} on this {{noun}}: {{examples}}. They never change anything.",
+    {
+      commands: translatableTerm(descriptor.readOnlyCommandsPhrase),
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+      examples: descriptor.readExamples,
+    },
+  );
 }
 
 // A stored mode the page does not know reads as Off, as the server reads it.
@@ -120,15 +140,33 @@ export function capitalizeFirst(value: string): string {
 export function getEveryModeProtections(
   descriptor: ResourceAiAgentDescriptor,
 ): Array<string> {
+  // Clauses of one sentence, so each starts lower-case.
   return [
-    "commands the policy denies (a shell, exec, deleting data, anything that reads credentials, anything it does not know) never run",
+    translateTemplate(
+      "commands the policy denies (a shell, exec, deleting data, anything that reads credentials, anything it does not know) never run",
+    ),
     ...(descriptor.alwaysHumanExamples
       ? [
-          `changes such as ${descriptor.alwaysHumanExamples} always need a human`,
+          translateTemplate(
+            "changes such as {{examples}} always need a human",
+            {
+              examples: translatableTerm(descriptor.alwaysHumanExamples),
+            },
+          ),
         ]
       : []),
-    `the ${descriptor.agentName} changes nothing unless it was started with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true, and then never itself, the collector beside it or a target outside ${RESOURCE_AI_WRITE_TARGETS_ENV}`,
-    `an unattended run becomes a proposal when the hourly circuit breaker trips or another unattended round already holds this ${descriptor.noun}`,
+    translateTemplate(
+      "the {{agent}} changes nothing unless it was started with {{allowWrites}}=true, and then never itself, the collector beside it or a target outside {{targets}}",
+      {
+        agent: translatableTerm(descriptor.agentName),
+        allowWrites: RESOURCE_AI_ALLOW_WRITES_ENV,
+        targets: RESOURCE_AI_WRITE_TARGETS_ENV,
+      },
+    ),
+    translateTemplate(
+      "an unattended run becomes a proposal when the hourly circuit breaker trips or another unattended round already holds this {{noun}}",
+      { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
+    ),
   ];
 }
 
@@ -154,16 +192,24 @@ export function getResourceRemediationModeOptionDescriptions(
   );
 
   return {
-    [ResourceAiRemediationMode.Disabled]:
+    [ResourceAiRemediationMode.Disabled]: translateTemplate(
       "AI never proposes or runs a fix. It can still investigate.",
-    [ResourceAiRemediationMode.RequireApproval]:
+    ),
+    [ResourceAiRemediationMode.RequireApproval]: translateTemplate(
       "AI proposes the exact fix, and a person approves it with one click before it runs. A follow-up fix asks again.",
-    [ResourceAiRemediationMode.Automatic]: `Safe changes, each on one named object, run on their own. Riskier ones, such as ${riskier}, wait for one-click approval unless the command allowlist names them.`,
-    [ResourceAiRemediationMode.BypassApproval]: `AI does not ask: every change the command policy allows runs on its own, riskier ones and follow-up rounds included.${
-      descriptor.alwaysHumanExamples
-        ? ` Changes such as ${descriptor.alwaysHumanExamples} still ask a person.`
-        : ""
-    }`,
+    ),
+    [ResourceAiRemediationMode.Automatic]: translateTemplate(
+      "Safe changes, each on one named object, run on their own. Riskier ones, such as {{riskier}}, wait for one-click approval unless the command allowlist names them.",
+      { riskier: translatableTerm(riskier) },
+    ),
+    [ResourceAiRemediationMode.BypassApproval]: descriptor.alwaysHumanExamples
+      ? translateTemplate(
+          "AI does not ask: every change the command policy allows runs on its own, riskier ones and follow-up rounds included. Changes such as {{examples}} still ask a person.",
+          { examples: translatableTerm(descriptor.alwaysHumanExamples) },
+        )
+      : translateTemplate(
+          "AI does not ask: every change the command policy allows runs on its own, riskier ones and follow-up rounds included.",
+        ),
   };
 }
 
@@ -593,7 +639,9 @@ export function getResourceAiAccessLooseningChanges(data: {
       getRemediationModeAutonomy(data.saved.aiRemediationMode)
   ) {
     loosening.push(
-      `switching fixes to ${RESOURCE_REMEDIATION_MODE_SHORT_NAMES[mode]}`,
+      translateTemplate("switching fixes to {{mode}}", {
+        mode: translatableTerm(RESOURCE_REMEDIATION_MODE_SHORT_NAMES[mode]),
+      }),
     );
   }
 
@@ -613,11 +661,20 @@ export function getResourceAiAccessLooseningChanges(data: {
 
     if (added.length > 0) {
       loosening.push(
-        `adding the allowlist entr${added.length === 1 ? "y" : "ies"} ${added
-          .map((pattern: string): string => {
-            return `"${pattern}"`;
-          })
-          .join(", ")}`,
+        translatePlural(
+          {
+            one: "adding the allowlist entry {{patterns}}",
+            other: "adding the allowlist entries {{patterns}}",
+          },
+          added.length,
+          {
+            patterns: added
+              .map((pattern: string): string => {
+                return `"${pattern}"`;
+              })
+              .join(", "),
+          },
+        ),
       );
     }
   }
@@ -645,7 +702,14 @@ export function getResourceAllowlistRemovalOnlyError(data: {
     const pattern: string = patterns[index]!;
 
     if (!stored.includes(pattern)) {
-      return `Entry ${index + 1} ("${pattern}") is not in the saved allowlist. You can remove entries or clear the list; adding or changing one needs one of these permissions: ${getResourceAiAccessAdminPermissionTitles().join(", ")}.`;
+      return translateTemplate(
+        'Entry {{number}} ("{{pattern}}") is not in the saved allowlist. You can remove entries or clear the list; adding or changing one needs one of these permissions: {{permissions}}.',
+        {
+          number: index + 1,
+          pattern: pattern,
+          permissions: getResourceAiAccessAdminPermissionTitles().join(", "),
+        },
+      );
     }
   }
 
@@ -680,9 +744,14 @@ export function getResourceAiAccessConfirmation(data: {
   if (newMode === ResourceAiRemediationMode.BypassApproval) {
     return {
       title: "Turn on Bypass approval?",
-      description: `With Bypass approval OneUptime AI does not ask: it applies every fix the command policy allows on this ${noun} on its own — ${data.descriptor.riskierExamples} included, in follow-up rounds too. Even so, ${getEveryModeProtectionsSentence(
-        data.descriptor,
-      )}.`,
+      description: translateTemplate(
+        "With Bypass approval OneUptime AI does not ask: it applies every fix the command policy allows on this {{noun}} on its own — {{riskierExamples}} included, in follow-up rounds too. Even so, {{protections}}.",
+        {
+          noun: translatableTerm(noun),
+          riskierExamples: translatableTerm(data.descriptor.riskierExamples),
+          protections: getEveryModeProtectionsSentence(data.descriptor),
+        },
+      ),
     };
   }
 
@@ -728,26 +797,33 @@ export function getResourceAiAccessConfirmation(data: {
     return null;
   }
 
-  const isOne: boolean = broadPatterns.length === 1;
   const quoted: string = broadPatterns
     .map((pattern: string): string => {
       return `"${pattern}"`;
     })
     .join(", ");
 
+  // One sentence per mode, each with its own singular and plural.
+  const broadEntriesSentence: PluralTemplate =
+    resultingMode === ResourceAiRemediationMode.Automatic
+      ? {
+          one: "The allowlist entry {{patterns}} uses a * for the object a change touches, so it pre-approves a whole class of changes, not one. In Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+          other:
+            "The allowlist entries {{patterns}} use a * for the object a change touches, so they pre-approve a whole class of changes, not one. In Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+        }
+      : {
+          one: "The allowlist entry {{patterns}} uses a * for the object a change touches, so it pre-approves a whole class of changes, not one. Once this {{noun}} is switched to Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+          other:
+            "The allowlist entries {{patterns}} use a * for the object a change touches, so they pre-approve a whole class of changes, not one. Once this {{noun}} is switched to Automatic mode, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, {{protections}}.",
+        };
+
   return {
     title: "Let riskier changes run without approval?",
-    description: `The allowlist entr${isOne ? "y" : "ies"} ${quoted} ${
-      isOne ? "uses" : "use"
-    } a * for the object a change touches, so ${
-      isOne ? "it pre-approves" : "they pre-approve"
-    } a whole class of changes, not one. ${
-      resultingMode === ResourceAiRemediationMode.Automatic
-        ? "In Automatic mode"
-        : `Once this ${noun} is switched to Automatic mode`
-    }, every riskier change of that shape — to any object the * covers — then runs with nobody asked. Even so, ${getEveryModeProtectionsSentence(
-      data.descriptor,
-    )}.`,
+    description: translatePlural(broadEntriesSentence, broadPatterns.length, {
+      patterns: quoted,
+      noun: translatableTerm(noun),
+      protections: getEveryModeProtectionsSentence(data.descriptor),
+    }),
   };
 }
 
@@ -772,5 +848,11 @@ export function getResourceAllowlistInEffect(
 export function getResourceAllowlistFieldDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return `One command per line, at most ${RESOURCE_ALLOWLIST_MAX_PATTERNS}. A riskier fix that matches an entry runs without approval. Entries are matched word by word: a * stands for exactly one whole word, and flags must be written out — for example: ${descriptor.allowlistPlaceholder}.`;
+  return translateTemplate(
+    "One command per line, at most {{max}}. A riskier fix that matches an entry runs without approval. Entries are matched word by word: a * stands for exactly one whole word, and flags must be written out — for example: {{example}}.",
+    {
+      max: RESOURCE_ALLOWLIST_MAX_PATTERNS,
+      example: descriptor.allowlistPlaceholder,
+    },
+  );
 }

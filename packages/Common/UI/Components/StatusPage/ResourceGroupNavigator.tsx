@@ -18,6 +18,8 @@ import React, {
   ReactElement,
   useRef,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   /* In render order, collapsed subtrees already removed, counts attached. */
@@ -109,6 +111,7 @@ const SELECT_SELECTOR: string =
 const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isUngroupedSelected: boolean =
     props.selection.type === StatusPageResourceSelectionType.Ungrouped;
 
@@ -316,9 +319,14 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         aria-label={
-          row.isExpanded
-            ? `Collapse ${row.name || "group"}`
-            : `Expand ${row.name || "group"}`
+          row.name
+            ? translator.translateTemplate(
+                row.isExpanded ? "Collapse {{name}}" : "Expand {{name}}",
+                { name: row.name },
+              )
+            : translator.translateText(
+                row.isExpanded ? "Collapse group" : "Expand group",
+              )
         }
         aria-expanded={row.isExpanded}
         data-testid="status-page-resource-navigator-disclosure"
@@ -463,7 +471,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
         <MoreMenuItem
           key="show-id"
           text="Show ID"
-          icon={IconProp.Info}
+          icon={IconProp.Identification}
           onClick={() => {
             props.onShowGroupId?.(row.statusPageGroup);
           }}
@@ -515,7 +523,18 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
           <Tooltip text="Add a sub group inside this group">
             <button
               type="button"
-              aria-label={`Add a sub group inside ${row.name || "this group"}`}
+              aria-label={
+                row.name
+                  ? translator.translateTemplate(
+                      "Add a sub group inside {{name}}",
+                      {
+                        name: row.name,
+                      },
+                    )
+                  : translator.translateText(
+                      "Add a sub group inside this group",
+                    )
+              }
               data-testid="status-page-resource-navigator-add-sub-group"
               disabled={isBusy}
               className={ROW_ACTION_CLASS_NAME}
@@ -532,7 +551,13 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 
         {menuItems.length > 0 ? (
           <MoreMenu
-            ariaLabel={`More actions for ${row.name || "this group"}`}
+            ariaLabel={
+              row.name
+                ? translator.translateTemplate("More actions for {{name}}", {
+                    name: row.name,
+                  })
+                : translator.translateText("More actions for this group")
+            }
             isDisabled={isBusy}
             elementToBeShownInsteadOfButton={
               <button
@@ -637,10 +662,10 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
                  */
                 row.isSearchMatch ? "" : "text-gray-400"
               }`}
-              title={row.name || "Untitled group"}
+              title={row.name || translator.translateText("Untitled group")}
               data-testid="status-page-resource-navigator-name"
             >
-              {row.name || "Untitled group"}
+              {row.name || translator.translateText("Untitled group")}
             </span>
 
             {renderCount(row, isSelected)}
@@ -665,7 +690,9 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         data-testid="status-page-resource-navigator-ungrouped"
-        title="Resources that are not in any group. Visitors see these first, above every group."
+        title={translator.translateText(
+          "Resources that are not in any group. Visitors see these first, above every group.",
+        )}
         aria-current={isUngroupedSelected ? "true" : undefined}
         className={`flex w-full items-center gap-2 rounded-lg py-2 pl-2 pr-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
           isUngroupedSelected
@@ -690,7 +717,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
             isUngroupedSelected ? "font-semibold" : "font-medium"
           }`}
         >
-          Top of page
+          {translator.translateText("Top of page")}
         </span>
         {props.countIndex.isComplete ? (
           <span
@@ -701,9 +728,13 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
                   ? "bg-gray-100 text-gray-400"
                   : "bg-gray-100 text-gray-500"
             }`}
-            title={`${props.countIndex.ungroupedCount.toLocaleString()} ${
-              props.countIndex.ungroupedCount === 1 ? "resource" : "resources"
-            } that are not in any group`}
+            title={translator.translatePlural(
+              {
+                one: "{{count}} resource that is not in any group",
+                other: "{{count}} resources that are not in any group",
+              },
+              props.countIndex.ungroupedCount,
+            )}
             data-testid="status-page-resource-navigator-ungrouped-count"
           >
             {props.countIndex.ungroupedCount.toLocaleString()}
@@ -726,8 +757,12 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
           data-testid="status-page-resource-navigator-empty"
         >
           {props.searchText
-            ? `No groups match “${props.searchText}”.`
-            : "No groups yet. Groups split a longer status page into sections, and they can be nested."}
+            ? translator.translateTemplate("No groups match “{{search}}”.", {
+                search: props.searchText,
+              })
+            : translator.translateText(
+                "No groups yet. Groups split a longer status page into sections, and they can be nested.",
+              )}
         </p>
       );
     }
@@ -737,7 +772,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
         <div
           ref={treeRef}
           role="tree"
-          aria-label="Status page groups"
+          aria-label={translator.translateText("Status page groups")}
           data-testid="status-page-resource-navigator-tree"
           className="space-y-0.5"
           onKeyDown={onTreeKeyDown}
@@ -753,10 +788,18 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
             data-testid="status-page-resource-navigator-show-more"
           >
             <Button
-              title={`Show ${Math.min(
-                props.hiddenRowCount,
-                StatusPageResourceExplorerUtil.NavigatorRowsPerPage,
-              ).toLocaleString()} more of ${props.hiddenRowCount.toLocaleString()}`}
+              title={translator.translateTemplate(
+                "Show {{shown}} more of {{total}}",
+                {
+                  shown: translator.formatNumber(
+                    Math.min(
+                      props.hiddenRowCount,
+                      StatusPageResourceExplorerUtil.NavigatorRowsPerPage,
+                    ),
+                  ),
+                  total: translator.formatNumber(props.hiddenRowCount),
+                },
+              )}
               icon={IconProp.ChevronDown}
               buttonSize={ButtonSize.Small}
               buttonStyle={ButtonStyleType.NORMAL}
@@ -781,14 +824,16 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
          */}
         <div className="flex items-center justify-between gap-2 px-1.5 pb-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-            Groups
+            {translator.translateText("Groups")}
           </p>
 
           {props.isCreateable && props.onCreateGroup ? (
             <Tooltip text="Create a top level group">
               <button
                 type="button"
-                aria-label="Create a top level group"
+                aria-label={translator.translateText(
+                  "Create a top level group",
+                )}
                 data-testid="status-page-resource-navigator-create-group"
                 className={ROW_ACTION_CLASS_NAME}
                 onClick={props.onCreateGroup}

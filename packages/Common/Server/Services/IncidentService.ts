@@ -1,5 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import IncidentMeasurementService from "./IncidentMeasurementService";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
@@ -2583,9 +2584,10 @@ export class Service extends DatabaseService<Model> {
 
     createBy.data.currentIncidentStateId = initialIncidentStateId;
     createBy.data.incidentNumber = incidentCounterResult.counter;
-    createBy.data.incidentNumberWithPrefix = incidentCounterResult.prefix
-      ? `${incidentCounterResult.prefix}${incidentCounterResult.counter}`
-      : `#${incidentCounterResult.counter}`;
+    createBy.data.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
+      incidentCounterResult.prefix,
+      incidentCounterResult.counter,
+    );
 
     if (
       (createBy.data.createdByUserId ||

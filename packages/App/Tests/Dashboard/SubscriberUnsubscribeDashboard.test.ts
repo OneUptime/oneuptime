@@ -10,9 +10,10 @@ import path from "path";
  *     (email, SMS, Slack, Microsoft Teams, webhook);
  *   - above each list, a notice naming the subscribers the team added that
  *     have unsubscribed recently - for that list's channel only;
- *   - on the email forms (one subscriber and Add in Bulk), a warning that
- *     anyone who reads a shared address such as a mailing list can
- *     unsubscribe it for everyone.
+ *   - on the email forms (one subscriber and Add in Bulk), one sentence in
+ *     the email field's description: anyone who reads a shared address
+ *     such as a mailing list can unsubscribe it for everyone. It was a
+ *     three-sentence warning box under the field, there on every visit.
  *
  * Every piece of text lives in SubscriberUnsubscribeCopy and reaches the
  * screen by looking its English text up in the Dashboard locale files. A
@@ -140,10 +141,10 @@ describe.each(PAGES)("$file", (page: SubscriberPage) => {
   });
 });
 
-describe("the email subscriber forms warn about shared addresses", () => {
+describe("the email subscriber forms advise against shared addresses", () => {
   const source: string = readPage("EmailSubscribers.tsx");
 
-  test("Add in Bulk puts the warning under the Emails field", () => {
+  test("Add in Bulk says it in the Emails field's description, after how to paste them", () => {
     const bulkForm: string = source.slice(
       source.indexOf("<BasicFormModal<BulkAddFormData>"),
     );
@@ -152,13 +153,15 @@ describe("the email subscriber forms warn about shared addresses", () => {
       bulkForm.indexOf("field: { isSubscriptionConfirmed: true }"),
     );
 
-    expect(emailsField).toContain("footerElement:");
-    expect(emailsField).toContain(
-      "title={SubscriberUnsubscribeCopy.sharedAddressWarning}",
+    expect(emailsField).toMatch(
+      /description: \( <> \{translator\.translateText\( "One email per line[^"]*", \)\}\{" "\} \{translator\.translateText\( SubscriberUnsubscribeCopy\.sharedAddressAdvice, \)\} <\/> \)/,
     );
+    // No warning box under the field any more.
+    expect(emailsField).not.toContain("footerElement");
+    expect(emailsField).not.toContain("<Alert");
   });
 
-  test("so does the form that adds one subscriber", () => {
+  test("so does the form that adds one subscriber, in the Email field's description", () => {
     const formFields: string = source.slice(
       source.indexOf(
         "const formFields: Array<ModelField<StatusPageSubscriber>>",
@@ -168,16 +171,28 @@ describe("the email subscriber forms warn about shared addresses", () => {
 
     expect(formFields).toContain("subscriberEmail: true");
     expect(formFields).toContain(
-      "title={SubscriberUnsubscribeCopy.sharedAddressWarning}",
+      "description: SubscriberUnsubscribeCopy.sharedAddressAdvice,",
     );
+    expect(formFields).not.toContain("footerElement");
+    expect(formFields).not.toContain("<Alert");
   });
 
-  test("the warning names a mailing list and says the team is told", () => {
-    expect(SubscriberUnsubscribeCopy.sharedAddressWarning).toContain(
-      "mailing list",
-    );
-    expect(SubscriberUnsubscribeCopy.sharedAddressWarning).toContain(
-      "owners and the person who added it are emailed",
+  test("the advice is one sentence that names a mailing list and says it is unsubscribed for everyone", () => {
+    const advice: string = SubscriberUnsubscribeCopy.sharedAddressAdvice;
+
+    expect(advice).toContain("mailing list");
+    expect(advice).toContain("can unsubscribe it for everyone");
+    expect(advice.endsWith(".")).toBe(true);
+    expect(advice.slice(0, -1)).not.toMatch(/[.!?] /);
+  });
+
+  test("the warning box and its three sentences are gone from every subscriber page", () => {
+    for (const page of PAGES) {
+      expect(readPage(page.file)).not.toContain("shared-address-warning");
+    }
+
+    expect(Object.keys(SubscriberUnsubscribeCopy)).not.toContain(
+      "sharedAddressWarning",
     );
   });
 });

@@ -5,6 +5,8 @@ import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentatio
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import { translationKey } from "../../Utils/TranslateTemplate";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import CommonURL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -31,13 +33,45 @@ import {
   isCaretOnEmptyLine,
   moveCaretIntoEmptyListAhead,
 } from "./MarkdownVisualEditing";
+import {
+  MarkdownToolbarLayout,
+  fitMarkdownToolbar,
+  getFullToolbarLayout,
+  isSameToolbarLayout,
+} from "./MarkdownToolbarLayout";
+import MoreMenu from "../MoreMenu/MoreMenu";
+import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import InsertTemplateVariableButton from "../TemplateVariables/InsertTemplateVariableButton";
+import TemplateVariableMenu, {
+  TemplateVariableMenuHandle,
+} from "../TemplateVariables/TemplateVariableMenu";
+import TemplateVariablePopup, {
+  TemplateVariablePopupMode,
+} from "../TemplateVariables/TemplateVariablePopup";
+import TemplateVariablesCopy from "../TemplateVariables/TemplateVariablesCopy";
+import TemplateVariablesList from "../TemplateVariables/TemplateVariablesList";
+import useTemplateVariableTyping, {
+  TemplateVariableTyping,
+} from "../TemplateVariables/useTemplateVariableTyping";
+import {
+  TemplateVariable,
+  TemplateVariableGroups,
+  TemplateVariableTrigger,
+  countTemplateVariables,
+  filterTemplateVariableGroups,
+  findTemplateVariableTrigger,
+  formatTemplateVariable,
+  hasTemplateVariables,
+} from "../../../Types/Template/TemplateVariable";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useState,
   useRef,
   useEffect,
   useId,
+  useLayoutEffect,
 } from "react";
 
 export interface ComponentProps {
@@ -60,9 +94,47 @@ export interface ComponentProps {
    * files are ignored rather than failing to upload.
    */
   allowImageUpload?: boolean | undefined;
+  /*
+   * The template variables this text can use - a note template's
+   * {{incident.title}}, an SLA reminder's {{elapsedTime}}. With any, the
+   * toolbar has an Insert variable button, typing "{{" opens them under the
+   * cursor, and the Template variables list sits collapsed under the editor;
+   * each puts the variable where the cursor is, in either view.
+   */
+  templateVariables?: TemplateVariableGroups | undefined;
+  // What the variables are filled with: the first line of the open list.
+  templateVariablesDescription?: string | ReactElement | undefined;
+  // More for the open list, after the variables (a panel of the field's own).
+  templateVariablesFooter?: ReactNode | undefined;
 }
 
 type EditorMode = "wysiwyg" | "markdown";
+
+// The visual editor's "{{" being typed: in which text node, and where.
+interface EditableVariableTrigger {
+  node: Text;
+  trigger: TemplateVariableTrigger;
+  rect: DOMRect;
+}
+
+// Keys that move the cursor without changing the text.
+const CARET_KEYS: Array<string> = [
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+];
+
+// A rectangle with nothing in it: no layout, or a cursor on an empty line.
+const isEmptyRect: (rect: DOMRect | null | undefined) => boolean = (
+  rect: DOMRect | null | undefined,
+): boolean => {
+  return !rect || (rect.width === 0 && rect.height === 0);
+};
 
 const MAX_IMAGE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB
 
@@ -274,40 +346,99 @@ type MarkdownTextEditor = (
   selectionEnd: number,
 ) => MarkdownTextEdit | null;
 
-interface ToolbarButtonProps {
-  icon: IconProp;
-  title: string;
+/*
+ * The toolbar's groups of formatting buttons, in order. A divider stands
+ * between two groups on the toolbar, and between them in the More
+ * formatting menu.
+ */
+type ToolbarGroup = "text" | "headings" | "lists" | "insert" | "blocks";
+
+const TOOLBAR_GROUPS: ReadonlyArray<ToolbarGroup> = [
+  "text",
+  "headings",
+  "lists",
+  "insert",
+  "blocks",
+];
+
+interface ToolbarAction {
+  /*
+   * What it does, in English: the button's title (after it, the key that
+   * does the same) and the words of its item in the More formatting menu.
+   * Looked up in the page's language before it is shown.
+   */
+  label: string;
+  shortcut?: string | undefined;
+  group: ToolbarGroup;
+  icon?: IconProp | undefined;
+  // Written in place of an icon: the H1 of Heading 1, a quote mark.
+  glyph?: string | undefined;
+  isGlyphMonospace?: boolean | undefined;
   onClick: () => void;
-  isActive?: boolean;
+}
+
+/*
+ * Every formatting button is the same 32px square (TOOLBAR_BUTTON_PX in
+ * MarkdownToolbarLayout), which is how the toolbar knows where its line
+ * ends without measuring them. The More formatting button is one too.
+ */
+const TOOLBAR_BUTTON_CLASS: string =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-600 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
+
+/*
+ * The switch's width while it is in the More formatting menu and has never
+ * been measured on the line. Generous, so the guess never brings it back
+ * onto a line it does not fit.
+ */
+const ESTIMATED_MODE_TOGGLE_PX: number = 96;
+
+/*
+ * Keeps the editor's focus and selection while a toolbar control is
+ * pressed: a click on a button would otherwise move the focus to it and,
+ * in the visual editor, lose the selection the button is for.
+ */
+const keepEditorFocus: (event: React.MouseEvent<HTMLElement>) => void = (
+  event: React.MouseEvent<HTMLElement>,
+): void => {
+  event.preventDefault();
+};
+
+interface ToolbarButtonProps {
+  action: ToolbarAction;
+  title: string;
 }
 
 const ToolbarButton: FunctionComponent<ToolbarButtonProps> = ({
-  icon,
+  action,
   title,
-  onClick,
-  isActive = false,
 }: ToolbarButtonProps): ReactElement => {
   return (
     <button
       type="button"
-      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-        /*
-         * Prevent toolbar clicks from stealing focus / collapsing the
-         * selection in contenteditable mode.
-         */
-        e.preventDefault();
-      }}
-      onClick={onClick}
+      onMouseDown={keepEditorFocus}
+      onClick={action.onClick}
       title={title}
-      className={`p-2 rounded-md transition-colors duration-200 ${
-        isActive
-          ? "bg-indigo-100 text-indigo-700"
-          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+      className={TOOLBAR_BUTTON_CLASS}
     >
-      <Icon icon={icon} className="h-4 w-4" />
+      {action.icon ? (
+        <Icon icon={action.icon} className="h-4 w-4" />
+      ) : (
+        <span
+          className={
+            action.isGlyphMonospace
+              ? "font-mono text-xs font-bold"
+              : "text-sm font-bold"
+          }
+        >
+          {action.glyph}
+        </span>
+      )}
     </button>
   );
+};
+
+const ToolbarDivider: FunctionComponent = (): ReactElement => {
+  return <div aria-hidden="true" className="h-6 w-px shrink-0 bg-gray-300" />;
 };
 
 const MarkdownEditor: FunctionComponent<ComponentProps> = (
@@ -369,6 +500,49 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * Template variables. Something to pick is what puts the toolbar button
+   * and the "{{" list in; the list under the editor also shows for a group
+   * with none yet, which says why (a project with no custom fields).
+   */
+  const templateVariables: TemplateVariableGroups =
+    props.templateVariables || [];
+  const canPickVariables: boolean =
+    countTemplateVariables(templateVariables) > 0;
+  const showsVariablesList: boolean = hasTemplateVariables(templateVariables);
+  const variableListboxId: string = `markdown-editor-variables-${useId()}`;
+  const variableMenuRef: React.MutableRefObject<TemplateVariableMenuHandle | null> =
+    useRef<TemplateVariableMenuHandle | null>(null);
+  // The visual editor's "{{" being typed, while its list is open.
+  const [editableTrigger, setEditableTrigger] =
+    useState<EditableVariableTrigger | null>(null);
+  const [editableActiveOptionId, setEditableActiveOptionId] = useState<
+    string | undefined
+  >(undefined);
+  /*
+   * Where the cursor last was in the visual editor. A pick made from outside
+   * it - the toolbar button's search box takes the focus, the list under the
+   * editor may be clicked long after - goes there.
+   */
+  const savedRangeRef: React.MutableRefObject<Range | null> =
+    useRef<Range | null>(null);
+  // The source view is a plain textarea: the shared typing support drives it.
+  const sourceTyping: TemplateVariableTyping = useTemplateVariableTyping({
+    groups: templateVariables,
+    getControl: (): HTMLTextAreaElement | null => {
+      return textareaRef.current;
+    },
+    isEnabled: canPickVariables && mode === "markdown",
+  });
+
+  const describeVariable: (variable: TemplateVariable) => string = (
+    variable: TemplateVariable,
+  ): string => {
+    return variable.isDescriptionVerbatim
+      ? variable.description
+      : translateString(variable.description) || variable.description;
+  };
+
   useEffect(() => {
     if (
       props.initialValue !== undefined &&
@@ -382,6 +556,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   // A new editable in each mode: records about the old one's nodes are no use.
   useEffect(() => {
     history.clear();
+    // Nor is a list opened for the other view's cursor, or its cursor.
+    setEditableTrigger(null);
+    setEditableActiveOptionId(undefined);
+    savedRangeRef.current = null;
+    sourceTyping.close();
   }, [mode]);
 
   /*
@@ -485,6 +664,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       history.clearRedo();
     }
     syncFromEditable();
+    updateEditableTrigger(true);
+    rememberEditableSelection();
   };
 
   /*
@@ -908,6 +1089,247 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     });
     syncFromEditable();
   };
+
+  // Remembers where the cursor is in the visual editor, when it is in it.
+  const rememberEditableSelection: () => void = (): void => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    const selection: Selection | null =
+      typeof window !== "undefined" ? window.getSelection() : null;
+    if (!editable || !selection || selection.rangeCount === 0) {
+      return;
+    }
+    const range: Range = selection.getRangeAt(0);
+    if (
+      editable.contains(range.startContainer) &&
+      editable.contains(range.endContainer)
+    ) {
+      savedRangeRef.current = range.cloneRange();
+    }
+  };
+
+  // The remembered cursor, while it is still somewhere in the editor.
+  const savedEditableRange: () => Range | null = (): Range | null => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    const saved: Range | null = savedRangeRef.current;
+    if (
+      !editable ||
+      !saved ||
+      !editable.contains(saved.startContainer) ||
+      !editable.contains(saved.endContainer)
+    ) {
+      return null;
+    }
+    return saved;
+  };
+
+  const closeEditableTrigger: () => void = (): void => {
+    setEditableTrigger(null);
+    setEditableActiveOptionId(undefined);
+  };
+
+  // Where the "{{" at `start` is on screen, for the list to open under it.
+  const rectOfBraces: (node: Text, start: number) => DOMRect | null = (
+    node: Text,
+    start: number,
+  ): DOMRect | null => {
+    const range: Range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, Math.min(start + 2, node.data.length));
+    const rect: DOMRect | null =
+      typeof range.getBoundingClientRect === "function"
+        ? range.getBoundingClientRect()
+        : null;
+    if (!isEmptyRect(rect)) {
+      return rect;
+    }
+    return editableRef.current?.getBoundingClientRect() || null;
+  };
+
+  /*
+   * The visual editor's cursor after "{{" opens the list of variables under
+   * the braces, filtered by what follows them; anywhere else it closes.
+   * Typing opens it; moving the cursor only keeps a list that is open (for
+   * the braces it was opened for), so clicking into an old "{{" does not.
+   */
+  const updateEditableTrigger: (isTyping: boolean) => void = (
+    isTyping: boolean,
+  ): void => {
+    if (!canPickVariables) {
+      return;
+    }
+    const editable: HTMLDivElement | null = editableRef.current;
+    const selection: Selection | null = window.getSelection();
+    const node: Node | null = selection?.anchorNode || null;
+    if (
+      !editable ||
+      !selection ||
+      selection.rangeCount === 0 ||
+      !selection.isCollapsed ||
+      !node ||
+      node.nodeType !== Node.TEXT_NODE ||
+      !editable.contains(node)
+    ) {
+      if (editableTrigger) {
+        closeEditableTrigger();
+      }
+      return;
+    }
+    const textNode: Text = node as Text;
+    const trigger: TemplateVariableTrigger | null = findTemplateVariableTrigger(
+      textNode.data,
+      selection.anchorOffset,
+    );
+    const sameBraces: boolean = Boolean(
+      trigger &&
+        editableTrigger &&
+        editableTrigger.node === textNode &&
+        editableTrigger.trigger.start === trigger.start,
+    );
+    if (
+      !trigger ||
+      (!isTyping && !sameBraces) ||
+      filterTemplateVariableGroups(
+        templateVariables,
+        trigger.query,
+        describeVariable,
+      ).length === 0
+    ) {
+      if (editableTrigger) {
+        closeEditableTrigger();
+      }
+      return;
+    }
+    // The list stays where it opened while the rest of the name is typed.
+    const rect: DOMRect | null =
+      sameBraces && editableTrigger
+        ? editableTrigger.rect
+        : rectOfBraces(textNode, trigger.start);
+    if (!rect) {
+      return;
+    }
+    setEditableTrigger({ node: textNode, trigger: trigger, rect: rect });
+  };
+
+  /*
+   * Puts {{name}} into the visual editor: over `range` (the braces and what
+   * was typed after them), else where the cursor is or last was, else at the
+   * end. It goes in as a paste of the same text would, so Ctrl+Z takes it
+   * back and the markdown is updated.
+   */
+  const insertVariableInEditable: (
+    variable: TemplateVariable,
+    range: Range | null,
+  ) => void = (variable: TemplateVariable, range: Range | null): void => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return;
+    }
+    const selection: Selection | null = window.getSelection();
+    const current: Range | null =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const isCurrentInEditor: boolean = Boolean(
+      current &&
+        editable.contains(current.startContainer) &&
+        editable.contains(current.endContainer),
+    );
+    let target: Range | null =
+      range || (isCurrentInEditor ? current : null) || savedEditableRange();
+    if (!target) {
+      // Never in the editor: on a line of its own at the end.
+      target = document.createRange();
+      target.selectNodeContents(editable);
+      target.collapse(false);
+    }
+    // Focusing an editable that lost its selection puts the cursor at its start.
+    const kept: Range = target.cloneRange();
+    editable.focus();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(kept);
+    }
+    insertHtmlAtCursorInEditable(
+      sanitizeHtml(markdownToHtml(formatTemplateVariable(variable.name))),
+    );
+    rememberEditableSelection();
+  };
+
+  // A pick from the list the visual editor's "{{" opened.
+  const pickEditableVariable: (variable: TemplateVariable) => void = (
+    variable: TemplateVariable,
+  ): void => {
+    const current: EditableVariableTrigger | null = editableTrigger;
+    closeEditableTrigger();
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!current || !editable || !editable.contains(current.node)) {
+      return;
+    }
+    const data: string = current.node.data;
+    // What is typed after the braces now, if the cursor is still after them.
+    let end: number = current.trigger.end;
+    const selection: Selection | null = window.getSelection();
+    if (selection && selection.anchorNode === current.node) {
+      const now: TemplateVariableTrigger | null = findTemplateVariableTrigger(
+        data,
+        selection.anchorOffset,
+      );
+      if (now && now.start === current.trigger.start) {
+        end = now.end;
+      }
+    }
+    const range: Range = document.createRange();
+    range.setStart(current.node, Math.min(current.trigger.start, data.length));
+    range.setEnd(current.node, Math.min(end, data.length));
+    insertVariableInEditable(variable, range);
+  };
+
+  // A pick from the toolbar button or the list under the editor.
+  const insertVariableAtCursor: (variable: TemplateVariable) => void = (
+    variable: TemplateVariable,
+  ): void => {
+    if (mode === "markdown") {
+      sourceTyping.insertAtCursor(variable);
+      return;
+    }
+    closeEditableTrigger();
+    insertVariableInEditable(variable, null);
+  };
+
+  // Back into the editor, where its cursor was: the toolbar list closed.
+  const focusEditor: () => void = (): void => {
+    if (mode === "markdown") {
+      textareaRef.current?.focus();
+      return;
+    }
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return;
+    }
+    const saved: Range | null = savedEditableRange();
+    editable.focus();
+    const selection: Selection | null = window.getSelection();
+    if (saved && selection) {
+      selection.removeAllRanges();
+      selection.addRange(saved.cloneRange());
+    }
+  };
+
+  /*
+   * Remember the visual editor's cursor wherever it moves, by keys or
+   * clicks: a variable picked from a list, or a button picked from the More
+   * formatting menu, goes where it was - both take the focus first.
+   */
+  useEffect(() => {
+    if (mode !== "wysiwyg") {
+      return undefined;
+    }
+    const listener: () => void = (): void => {
+      rememberEditableSelection();
+    };
+    document.addEventListener("selectionchange", listener);
+    return () => {
+      document.removeEventListener("selectionchange", listener);
+    };
+  }, [mode]);
 
   /*
    * Visual mode. The browser's own paste would bring the source's markup in
@@ -1557,6 +1979,391 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     },
   };
 
+  /*
+   * The formatting buttons, in toolbar order. Those that do not fit on the
+   * toolbar's one line are items of its More formatting menu instead (see
+   * MarkdownToolbarLayout): same order, same words.
+   */
+  const toolbarActions: Array<ToolbarAction> = [
+    {
+      label: "Bold",
+      shortcut: KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Mod, "B"]),
+      group: "text",
+      icon: IconProp.Bold,
+      onClick: formatActions.bold,
+    },
+    {
+      label: "Italic",
+      shortcut: KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Mod, "I"]),
+      group: "text",
+      icon: IconProp.Italic,
+      onClick: formatActions.italic,
+    },
+    {
+      label: "Underline",
+      group: "text",
+      icon: IconProp.Underline,
+      onClick: formatActions.underline,
+    },
+    {
+      label: "Strikethrough",
+      group: "text",
+      icon: IconProp.Strikethrough,
+      onClick: formatActions.strikethrough,
+    },
+    {
+      label: "Heading 1",
+      group: "headings",
+      glyph: "H1",
+      onClick: formatActions.heading1,
+    },
+    {
+      label: "Heading 2",
+      group: "headings",
+      glyph: "H2",
+      onClick: formatActions.heading2,
+    },
+    {
+      label: "Heading 3",
+      group: "headings",
+      glyph: "H3",
+      onClick: formatActions.heading3,
+    },
+    {
+      label: "Bullet List",
+      group: "lists",
+      icon: IconProp.ListBullet,
+      onClick: formatActions.unorderedList,
+    },
+    {
+      label: "Numbered List",
+      group: "lists",
+      icon: IconProp.List,
+      onClick: formatActions.orderedList,
+    },
+    {
+      label: "Task List",
+      group: "lists",
+      icon: IconProp.Check,
+      onClick: formatActions.taskList,
+    },
+    {
+      label: "Indent",
+      shortcut: KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab]),
+      group: "lists",
+      icon: IconProp.Indent,
+      onClick: formatActions.indent,
+    },
+    {
+      label: "Outdent",
+      shortcut: KeyboardKeyUtil.getDisplayLabel([
+        KeyboardKey.Shift,
+        KeyboardKey.Tab,
+      ]),
+      group: "lists",
+      icon: IconProp.Outdent,
+      onClick: formatActions.outdent,
+    },
+    {
+      label: "Link",
+      group: "insert",
+      icon: IconProp.Link,
+      onClick: formatActions.link,
+    },
+    ...(allowImageUpload
+      ? [
+          {
+            label: "Upload Image",
+            group: "insert" as ToolbarGroup,
+            icon: IconProp.Image,
+            onClick: formatActions.image,
+          },
+        ]
+      : []),
+    {
+      label: "Code",
+      group: "insert",
+      icon: IconProp.Code,
+      onClick: formatActions.code,
+    },
+    {
+      label: "Table",
+      group: "blocks",
+      icon: IconProp.TableCells,
+      onClick: formatActions.table,
+    },
+    {
+      label: "Horizontal Rule",
+      group: "blocks",
+      icon: IconProp.Minus,
+      onClick: formatActions.horizontalRule,
+    },
+    {
+      label: "Quote",
+      group: "blocks",
+      glyph: '"',
+      onClick: formatActions.quote,
+    },
+    {
+      label: "Code Block",
+      group: "blocks",
+      glyph: "{}",
+      isGlyphMonospace: true,
+      onClick: formatActions.codeBlock,
+    },
+  ];
+
+  const toolbarGroupSizes: Array<number> = TOOLBAR_GROUPS.map(
+    (group: ToolbarGroup): number => {
+      return toolbarActions.filter((action: ToolbarAction): boolean => {
+        return action.group === group;
+      }).length;
+    },
+  );
+  const toolbarGroupSizesKey: string = toolbarGroupSizes.join(",");
+
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) || value;
+  };
+
+  const getToolbarActionTitle: (action: ToolbarAction) => string = (
+    action: ToolbarAction,
+  ): string => {
+    return action.shortcut
+      ? `${tx(action.label)} (${action.shortcut})`
+      : tx(action.label);
+  };
+
+  const moreFormattingLabel: string = tx("More formatting");
+  // In English: MoreMenuItem looks its own words up.
+  const modeToggleAction: string =
+    mode === "wysiwyg"
+      ? translationKey("Switch to markdown source")
+      : translationKey("Switch to visual editor");
+  const modeToggleTitle: string = tx(modeToggleAction);
+
+  /*
+   * How much of the toolbar is on its line (MarkdownToolbarLayout). Starts
+   * with everything, as it is wherever nothing can be measured, and is
+   * fitted before the first paint and again whenever the line, the switch
+   * or Insert variable changes size: the dialog or the window resized, a
+   * font arrived, the switch now reads Visual.
+   */
+  const toolbarLineRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const modeToggleRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const variableButtonRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  /*
+   * The switch as last measured on the line, as each of its two words, for
+   * the fitting to use while it is in the menu.
+   */
+  const modeToggleWidthsRef: React.MutableRefObject<{
+    [key in EditorMode]?: number | undefined;
+  }> = useRef({});
+  const [toolbarLayout, setToolbarLayout] = useState<MarkdownToolbarLayout>(
+    (): MarkdownToolbarLayout => {
+      return getFullToolbarLayout(toolbarGroupSizes);
+    },
+  );
+  const toolbarLayoutRef: React.MutableRefObject<MarkdownToolbarLayout> =
+    useRef<MarkdownToolbarLayout>(toolbarLayout);
+  toolbarLayoutRef.current = toolbarLayout;
+
+  const fitToolbar: () => void = (): void => {
+    const line: HTMLDivElement | null = toolbarLineRef.current;
+
+    if (!line) {
+      return;
+    }
+
+    const modeToggleWidths: { [key in EditorMode]?: number | undefined } =
+      modeToggleWidthsRef.current;
+    const current: MarkdownToolbarLayout = toolbarLayoutRef.current;
+
+    const modeToggleWidth: number = modeToggleRef.current?.offsetWidth || 0;
+
+    if (modeToggleWidth > 0) {
+      modeToggleWidths[mode] = modeToggleWidth;
+    }
+
+    const next: MarkdownToolbarLayout = fitMarkdownToolbar({
+      availableWidth: line.clientWidth,
+      groupSizes: toolbarGroupSizes,
+      modeToggleWidth:
+        modeToggleWidths[mode] ||
+        modeToggleWidths[mode === "wysiwyg" ? "markdown" : "wysiwyg"] ||
+        ESTIMATED_MODE_TOGGLE_PX,
+      // Always on the line, so always measured as it is.
+      variableButtonWidth: variableButtonRef.current?.offsetWidth || 0,
+    });
+
+    if (!isSameToolbarLayout(current, next)) {
+      toolbarLayoutRef.current = next;
+      setToolbarLayout(next);
+    }
+  };
+
+  const fitToolbarRef: React.MutableRefObject<() => void> =
+    useRef<() => void>(fitToolbar);
+  fitToolbarRef.current = fitToolbar;
+
+  /*
+   * Before paint, so the toolbar is never drawn with buttons that do not
+   * fit; again after each change of layout, to measure what it put on the
+   * line.
+   */
+  useLayoutEffect(() => {
+    fitToolbarRef.current();
+  }, [
+    mode,
+    canPickVariables,
+    toolbarGroupSizesKey,
+    modeToggleTitle,
+    toolbarLayout,
+  ]);
+
+  useEffect(() => {
+    const line: HTMLDivElement | null = toolbarLineRef.current;
+
+    if (!line || typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    /*
+     * A frame later, not inside the observer's callback: fitting changes
+     * what is on the line, and a size change made inside the callback is
+     * reported as a ResizeObserver loop error.
+     */
+    let frame: number | null = null;
+    // Apart from the frame's id, which a frame run at once comes back after.
+    let isFitScheduled: boolean = false;
+
+    const observer: ResizeObserver = new ResizeObserver((): void => {
+      if (isFitScheduled) {
+        return;
+      }
+
+      isFitScheduled = true;
+      frame = window.requestAnimationFrame((): void => {
+        isFitScheduled = false;
+        frame = null;
+        fitToolbarRef.current();
+      });
+    });
+
+    observer.observe(line);
+
+    if (modeToggleRef.current) {
+      observer.observe(modeToggleRef.current);
+    }
+
+    if (variableButtonRef.current) {
+      observer.observe(variableButtonRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [canPickVariables, toolbarLayout.isModeToggleInBar]);
+
+  const visibleToolbarActions: Array<ToolbarAction> = toolbarActions.slice(
+    0,
+    toolbarLayout.visibleButtonCount,
+  );
+  const menuToolbarActions: Array<ToolbarAction> = toolbarActions.slice(
+    toolbarLayout.visibleButtonCount,
+  );
+
+  /*
+   * A pick from the More formatting menu: back into the editor first, to
+   * where its cursor was - the menu took the focus - then the action, as a
+   * click on its button would do it.
+   */
+  const runFromMoreMenu: (onClick: () => void) => void = (
+    onClick: () => void,
+  ): void => {
+    focusEditor();
+    onClick();
+  };
+
+  const toggleMode: () => void = (): void => {
+    setMode((current: EditorMode): EditorMode => {
+      return current === "wysiwyg" ? "markdown" : "wysiwyg";
+    });
+  };
+
+  const moreMenuItems: Array<ReactElement> = [];
+
+  menuToolbarActions.forEach((action: ToolbarAction, index: number) => {
+    const previous: ToolbarAction | undefined = menuToolbarActions[index - 1];
+
+    if (previous && previous.group !== action.group) {
+      moreMenuItems.push(
+        <div
+          key={`separator-${action.label}`}
+          role="separator"
+          className="mx-3 my-1 border-t border-gray-100"
+        />,
+      );
+    }
+
+    moreMenuItems.push(
+      <MoreMenuItem
+        key={action.label}
+        text={action.label}
+        icon={action.icon}
+        iconElement={
+          action.icon ? undefined : (
+            <span
+              className={`${
+                action.isGlyphMonospace ? "font-mono " : ""
+              }text-xs font-bold leading-none`}
+            >
+              {action.glyph}
+            </span>
+          )
+        }
+        rightElement={
+          action.shortcut ? (
+            <span className="ml-3 text-xs font-normal text-gray-400">
+              {action.shortcut}
+            </span>
+          ) : undefined
+        }
+        onClick={() => {
+          runFromMoreMenu(action.onClick);
+        }}
+      />,
+    );
+  });
+
+  if (!toolbarLayout.isModeToggleInBar) {
+    if (moreMenuItems.length > 0) {
+      moreMenuItems.push(
+        <div
+          key="separator-mode"
+          role="separator"
+          className="mx-3 my-1 border-t border-gray-100"
+        />,
+      );
+    }
+
+    moreMenuItems.push(
+      <MoreMenuItem
+        key="mode"
+        text={modeToggleAction}
+        icon={mode === "wysiwyg" ? IconProp.Code : IconProp.Eye}
+        onClick={toggleMode}
+      />,
+    );
+  }
+
   let className: string = "";
   if (!props.className) {
     className =
@@ -1583,6 +2390,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const handleEditableKeyDown: (
     e: React.KeyboardEvent<HTMLDivElement>,
   ) => void = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    /*
+     * While the list "{{" opened is showing, its keys are its own: the
+     * arrows move through it, Enter and Tab pick, and Escape closes the list
+     * - not the dialog the editor is in.
+     */
+    if (editableTrigger) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        closeEditableTrigger();
+        return;
+      }
+      if (variableMenuRef.current?.handleKeyDown(e)) {
+        e.stopPropagation();
+        return;
+      }
+    }
     /*
      * Ctrl+Z right after an edit the editor made itself -- a list move, an
      * insert made by hand -- takes that edit back, and Ctrl+Shift+Z makes
@@ -1623,6 +2447,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const handleTextareaKeyDown: (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => void = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    // The list "{{" opened takes its keys first, as in the visual editor.
+    if (sourceTyping.handleKeyDown(e)) {
+      e.stopPropagation();
+      return;
+    }
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
         case "b":
@@ -1673,209 +2502,110 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         .oneuptime-wysiwyg:empty::before { content: attr(data-placeholder); color: var(--ou-text-subtle, #9ca3af); pointer-events: none; }
       `}</style>
 
-      {/* Toolbar */}
-      <div className="p-2 bg-gray-50 border border-gray-300 rounded-t-md border-b-0">
-        <div className="flex flex-wrap items-center gap-1">
-          {/* Text Formatting */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton
-              icon={IconProp.Bold}
-              title={`Bold (${KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Mod,
-                "B",
-              ])})`}
-              onClick={formatActions.bold}
-            />
-            <ToolbarButton
-              icon={IconProp.Italic}
-              title={`Italic (${KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Mod,
-                "I",
-              ])})`}
-              onClick={formatActions.italic}
-            />
-            <ToolbarButton
-              icon={IconProp.Underline}
-              title="Underline"
-              onClick={formatActions.underline}
-            />
-            <ToolbarButton
-              icon={IconProp.Minus}
-              title="Strikethrough"
-              onClick={formatActions.strikethrough}
-            />
-          </div>
+      {/*
+       * Toolbar: one line at any width. The formatting buttons that do not
+       * fit go, from the end, under More formatting (...); the switch and
+       * Insert variable stay (see MarkdownToolbarLayout). Its own width never
+       * pushes the form it is in wider - contain: inline-size - since how
+       * much of it shows follows the width it is given.
+       */}
+      <div
+        data-testid="markdown-editor-toolbar"
+        className="overflow-hidden p-2 bg-gray-50 border border-gray-300 rounded-t-md border-b-0"
+        style={{ contain: "inline-size" }}
+      >
+        <div
+          ref={toolbarLineRef}
+          data-testid="markdown-editor-toolbar-line"
+          className="flex items-center gap-1"
+        >
+          {visibleToolbarActions.map((action: ToolbarAction, index: number) => {
+            const previous: ToolbarAction | undefined =
+              visibleToolbarActions[index - 1];
 
-          <div className="w-px h-6 bg-gray-300" />
+            return (
+              <React.Fragment key={action.label}>
+                {previous && previous.group !== action.group ? (
+                  <ToolbarDivider />
+                ) : null}
+                <ToolbarButton
+                  action={action}
+                  title={getToolbarActionTitle(action)}
+                />
+              </React.Fragment>
+            );
+          })}
 
-          {/* Headings */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={formatActions.heading1}
-              title="Heading 1"
-              className="px-2 py-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <span className="text-sm font-bold">H1</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={formatActions.heading2}
-              title="Heading 2"
-              className="px-2 py-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <span className="text-sm font-bold">H2</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={formatActions.heading3}
-              title="Heading 3"
-              className="px-2 py-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <span className="text-sm font-bold">H3</span>
-            </button>
-          </div>
-
-          <div className="w-px h-6 bg-gray-300" />
-
-          {/* Lists */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton
-              icon={IconProp.ListBullet}
-              title="Bullet List"
-              onClick={formatActions.unorderedList}
-            />
-            <ToolbarButton
-              icon={IconProp.List}
-              title="Numbered List"
-              onClick={formatActions.orderedList}
-            />
-            <ToolbarButton
-              icon={IconProp.Check}
-              title="Task List"
-              onClick={formatActions.taskList}
-            />
-            <ToolbarButton
-              icon={IconProp.Indent}
-              title={`Indent (${KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Tab,
-              ])})`}
-              onClick={formatActions.indent}
-            />
-            <ToolbarButton
-              icon={IconProp.Outdent}
-              title={`Outdent (${KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Shift,
-                KeyboardKey.Tab,
-              ])})`}
-              onClick={formatActions.outdent}
-            />
-          </div>
-
-          <div className="w-px h-6 bg-gray-300" />
-
-          {/* Links and Media */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton
-              icon={IconProp.Link}
-              title="Link"
-              onClick={formatActions.link}
-            />
-            {allowImageUpload && (
-              <ToolbarButton
-                icon={IconProp.Image}
-                title="Image"
-                onClick={formatActions.image}
-              />
-            )}
-            <ToolbarButton
-              icon={IconProp.Code}
-              title="Code"
-              onClick={formatActions.code}
-            />
-          </div>
-
-          <div className="w-px h-6 bg-gray-300" />
-
-          {/* Advanced */}
-          <div className="flex items-center gap-1">
-            <ToolbarButton
-              icon={IconProp.TableCells}
-              title="Table"
-              onClick={formatActions.table}
-            />
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={formatActions.horizontalRule}
-              title="Horizontal Rule"
-              className="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <span className="font-bold text-sm">-</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={formatActions.quote}
-              title="Quote"
-              className="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <span className="font-bold text-sm">&quot;</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={formatActions.codeBlock}
-              title="Code Block"
-              className="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              <span className="font-mono text-xs font-bold">{"{}"}</span>
-            </button>
-          </div>
-
-          <div className="w-px h-6 bg-gray-300" />
-
-          {/* Mode Toggle: WYSIWYG <-> Markdown */}
-          <div className="flex items-center">
-            <button
-              type="button"
-              onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault();
-              }}
-              onClick={() => {
-                setMode((current: EditorMode): EditorMode => {
-                  return current === "wysiwyg" ? "markdown" : "wysiwyg";
-                });
-              }}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
-                mode === "markdown"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
-              title={
-                mode === "wysiwyg"
-                  ? "Switch to markdown source"
-                  : "Switch to visual editor"
+          {toolbarLayout.hasMoreMenu ? (
+            <MoreMenu
+              isMenuPortaled={true}
+              ariaLabel={moreFormattingLabel}
+              elementToBeShownInsteadOfButton={
+                <button
+                  type="button"
+                  title={moreFormattingLabel}
+                  data-testid="markdown-editor-more-formatting"
+                  className={TOOLBAR_BUTTON_CLASS}
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    keepEditorFocus(event);
+                    rememberEditableSelection();
+                  }}
+                  onClick={() => {
+                    // A keyboard press has no mousedown: remember the cursor here too.
+                    rememberEditableSelection();
+                  }}
+                >
+                  <Icon
+                    icon={IconProp.EllipsisHorizontal}
+                    className="h-4 w-4"
+                  />
+                </button>
               }
             >
-              {mode === "wysiwyg" ? "Markdown" : "Visual"}
-            </button>
-          </div>
+              {moreMenuItems}
+            </MoreMenu>
+          ) : null}
+
+          {/* Mode Toggle: WYSIWYG <-> Markdown */}
+          {toolbarLayout.isModeToggleInBar ? (
+            <>
+              <ToolbarDivider />
+              <button
+                ref={modeToggleRef}
+                type="button"
+                onMouseDown={keepEditorFocus}
+                onClick={toggleMode}
+                className={`shrink-0 whitespace-nowrap px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  mode === "markdown"
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                title={modeToggleTitle}
+              >
+                {tx(mode === "wysiwyg" ? "Markdown" : "Visual")}
+              </button>
+            </>
+          ) : null}
+
+          {/*
+           * Template variables, at the far end of the toolbar: the list to
+           * pick one from, which goes in where the cursor is.
+           */}
+          {canPickVariables ? (
+            <div
+              ref={variableButtonRef}
+              className="ml-auto flex shrink-0 items-center"
+            >
+              <InsertTemplateVariableButton
+                groups={templateVariables}
+                dataTestId="markdown-editor-insert-variable"
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                onPressStart={rememberEditableSelection}
+                onPick={insertVariableAtCursor}
+                onCloseFocus={focusEditor}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1900,6 +2630,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
               aria-describedby={props.error ? errorId : undefined}
+              aria-autocomplete={canPickVariables ? "list" : undefined}
+              aria-controls={editableTrigger ? variableListboxId : undefined}
+              aria-activedescendant={
+                editableTrigger ? editableActiveOptionId : undefined
+              }
               contentEditable
               suppressContentEditableWarning
               spellCheck={props.disableSpellCheck !== true}
@@ -1913,12 +2648,25 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onKeyDown={handleEditableKeyDown}
+              onKeyUp={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                if (canPickVariables && CARET_KEYS.includes(e.key)) {
+                  updateEditableTrigger(false);
+                  rememberEditableSelection();
+                }
+              }}
+              onMouseUp={() => {
+                if (canPickVariables) {
+                  updateEditableTrigger(false);
+                  rememberEditableSelection();
+                }
+              }}
               onFocus={() => {
                 if (props.onFocus) {
                   props.onFocus();
                 }
               }}
               onBlur={() => {
+                closeEditableTrigger();
                 if (props.onBlur) {
                   props.onBlur();
                 }
@@ -1927,7 +2675,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             {isDraggingOver && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-b-md bg-indigo-50/70">
                 <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-indigo-700 shadow-sm">
-                  Drop image to upload
+                  {tx("Drop image to upload")}
                 </span>
               </div>
             )}
@@ -1958,6 +2706,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               spellCheck={props.disableSpellCheck !== true}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                 handleChange(e.target.value);
+                sourceTyping.handleInput();
               }}
               onPaste={handleTextareaPaste}
               onDragOver={handleDragOver}
@@ -1965,14 +2714,24 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onFocus={() => {
+                sourceTyping.handleFocus();
                 if (props.onFocus) {
                   props.onFocus();
                 }
               }}
               onBlur={() => {
+                sourceTyping.handleBlur();
                 if (props.onBlur) {
                   props.onBlur();
                 }
+              }}
+              onKeyUp={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                if (CARET_KEYS.includes(e.key)) {
+                  sourceTyping.handleCaretMove();
+                }
+              }}
+              onMouseUp={() => {
+                sourceTyping.handleCaretMove();
               }}
               onKeyDown={handleTextareaKeyDown}
               tabIndex={props.tabIndex}
@@ -1981,7 +2740,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             {isDraggingOver && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-b-md bg-indigo-50/70">
                 <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-indigo-700 shadow-sm">
-                  Drop image to upload
+                  {tx("Drop image to upload")}
                 </span>
               </div>
             )}
@@ -2004,47 +2763,111 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         </p>
       )}
 
+      {/*
+       * The template variables, collapsed under the editor: each one, when
+       * clicked, goes in where the cursor is.
+       */}
+      {showsVariablesList ? (
+        <TemplateVariablesList
+          groups={templateVariables}
+          description={props.templateVariablesDescription}
+          onInsert={canPickVariables ? insertVariableAtCursor : undefined}
+          supportsTyping={canPickVariables}
+          dataTestId="markdown-editor-template-variables"
+        >
+          {props.templateVariablesFooter}
+        </TemplateVariablesList>
+      ) : null}
+
+      {/* The list "{{" opened, under the braces (portalled). */}
+      {editableTrigger ? (
+        <TemplateVariablePopup
+          mode={TemplateVariablePopupMode.Inline}
+          ariaLabel={
+            translateString(TemplateVariablesCopy.listTitle) ||
+            TemplateVariablesCopy.listTitle
+          }
+          dataTestId="template-variable-suggestions"
+          positionKey={`${editableTrigger.trigger.start}-${editableTrigger.rect.left}-${editableTrigger.rect.top}`}
+          getAnchorRect={(): DOMRect | null => {
+            return editableTrigger.rect;
+          }}
+          isInsideAnchor={(target: Node): boolean => {
+            return Boolean(editableRef.current?.contains(target));
+          }}
+          onClose={closeEditableTrigger}
+        >
+          <TemplateVariableMenu
+            ref={variableMenuRef}
+            groups={templateVariables}
+            hasSearchBox={false}
+            query={editableTrigger.trigger.query}
+            listboxId={variableListboxId}
+            onActiveOptionChange={setEditableActiveOptionId}
+            onPick={pickEditableVariable}
+          />
+        </TemplateVariablePopup>
+      ) : null}
+      {sourceTyping.popup}
+
       {/* Help Text */}
       <TinyFormDocumentation title={helpTitle}>
         <>
           <div>
-            Type directly in the visual editor — use the toolbar to format.
+            {tx(
+              "Type directly in the visual editor — use the toolbar to format.",
+            )}
           </div>
           <div>
-            Switch to <strong>Markdown</strong> to view or edit the raw source.
+            <TranslatedSentence
+              template="Switch to {{markdown}} to view or edit the raw source."
+              slots={{ markdown: <strong>{tx("Markdown")}</strong> }}
+            />
           </div>
           <div>
-            In a list, press{" "}
-            <strong>
-              {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])}
-            </strong>{" "}
-            to indent an item and{" "}
-            <strong>
-              {KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Shift,
-                KeyboardKey.Tab,
-              ])}
-            </strong>{" "}
-            to outdent it, or use the Indent and Outdent buttons. Outside a
-            list, {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])} moves to
-            the next field.
+            <TranslatedSentence
+              template="In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field."
+              slots={{
+                indentKey: (
+                  <strong>
+                    {KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab])}
+                  </strong>
+                ),
+                outdentKey: (
+                  <strong>
+                    {KeyboardKeyUtil.getDisplayLabel([
+                      KeyboardKey.Shift,
+                      KeyboardKey.Tab,
+                    ])}
+                  </strong>
+                ),
+              }}
+              values={{
+                tabKey: KeyboardKeyUtil.getDisplayLabel([KeyboardKey.Tab]),
+              }}
+            />
           </div>
           <div>
-            Pasting keeps lists, links and formatting from Word, Outlook, web
-            pages and other notes. To paste plain text instead, press{" "}
-            <strong>
-              {KeyboardKeyUtil.getDisplayLabel([
-                KeyboardKey.Mod,
-                KeyboardKey.Shift,
-                "V",
-              ])}
-            </strong>
-            .
+            <TranslatedSentence
+              template="Pasting keeps lists, links and formatting from Word, Outlook, web pages and other notes. To paste plain text instead, press {{pasteKey}}."
+              slots={{
+                pasteKey: (
+                  <strong>
+                    {KeyboardKeyUtil.getDisplayLabel([
+                      KeyboardKey.Mod,
+                      KeyboardKey.Shift,
+                      "V",
+                    ])}
+                  </strong>
+                ),
+              }}
+            />
           </div>
           {allowImageUpload && (
             <div>
-              Tip: paste, drag &amp; drop, or click the image button to upload
-              screenshots inline.
+              {tx(
+                "Tip: paste, drag & drop, or click the image button to upload screenshots inline.",
+              )}
             </div>
           )}
         </>

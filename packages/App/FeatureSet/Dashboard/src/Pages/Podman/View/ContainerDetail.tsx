@@ -36,6 +36,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const CONTAINER_ID_ATTR: string = "resource.container.id";
 const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
@@ -55,6 +57,7 @@ const LOG_ATTRIBUTE_DISPLAY_KEYS: Record<string, string> = {
 const PodmanHostContainerDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const containerName: string = Navigation.getLastParamAsString();
 
@@ -197,7 +200,10 @@ const PodmanHostContainerDetail: FunctionComponent<
       metricAliasData: {
         metricVariable: "container_cpu",
         title: "CPU Utilization",
-        description: `CPU utilization for ${containerName}`,
+        description: translator.translateTemplate(
+          "CPU utilization for {{containerName}}",
+          { containerName: containerName },
+        ),
         legend: "CPU %",
         legendUnit: "%",
       },
@@ -215,7 +221,10 @@ const PodmanHostContainerDetail: FunctionComponent<
       metricAliasData: {
         metricVariable: "container_memory_percent",
         title: "Memory Usage",
-        description: `Memory usage percentage for ${containerName}`,
+        description: translator.translateTemplate(
+          "Memory usage percentage for {{containerName}}",
+          { containerName: containerName },
+        ),
         legend: "Memory %",
         legendUnit: "%",
       },
@@ -282,7 +291,10 @@ const PodmanHostContainerDetail: FunctionComponent<
       name: "Metrics",
       children: (
         <EmbeddedMetricCard
-          title={`Container Metrics: ${containerName}`}
+          title={translator.translateTemplate(
+            "Container Metrics: {{containerName}}",
+            { containerName: containerName },
+          )}
           description="CPU and memory usage for this container."
           queryConfigs={metricQueryConfigs}
         />

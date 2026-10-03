@@ -18,7 +18,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import ReplayStageOverlays, {
   REPLAY_GAP_TOAST_MS,
   REPLAY_IDLE_SKIP_TOAST_MS,
+  REPLAY_PAUSED_BAND_EXPLANATION,
   ReplayStageOverlaysProps,
+  describeIdleBandChip,
+  describeIdleSkip,
   findIdleBandAt,
   getReplayStageOverlaysRootClassName,
   getReplayStageOverlaysStageClassName,
@@ -258,6 +261,51 @@ describe("resolveUrlAtPlayhead", () => {
   });
 });
 
+describe("idle skip and chip copy", () => {
+  const band: (
+    kind: ReplayIdleBand["kind"],
+    fidelity?: ReplayIdleBand["fidelity"],
+  ) => ReplayIdleBand = (
+    kind: ReplayIdleBand["kind"],
+    fidelity: ReplayIdleBand["fidelity"] = "exact",
+  ): ReplayIdleBand => {
+    return {
+      startMs: 10000,
+      endMs: 10000 + 72000,
+      kind: kind,
+      fidelity: fidelity,
+    };
+  };
+
+  it("words a skip by the kind of stretch it jumped", () => {
+    expect(describeIdleSkip(band("idle"))).toBe("Skipped 1m 12s idle");
+    expect(describeIdleSkip(band("background-tab"))).toBe(
+      "Skipped 1m 12s in the background",
+    );
+    expect(describeIdleSkip(band("paused"))).toBe(
+      "Skipped 1m 12s: recording paused while the page was idle",
+    );
+  });
+
+  it("words the chip by kind, and only an idle guess as approximate", () => {
+    expect(describeIdleBandChip(band("idle"))).toBe("Idle 1m 12s");
+    expect(describeIdleBandChip(band("idle", "coarse"))).toBe(
+      "Idle 1m 12s (approx.)",
+    );
+    expect(describeIdleBandChip(band("background-tab"))).toBe(
+      "Tab was in the background for 1m 12s",
+    );
+    expect(describeIdleBandChip(band("paused"))).toBe(
+      "Recording paused · 1m 12s",
+    );
+  });
+
+  it("explains a pause by what nobody did, not as an idle stretch", () => {
+    expect(REPLAY_PAUSED_BAND_EXPLANATION).toContain("Nobody touched the page");
+    expect(REPLAY_PAUSED_BAND_EXPLANATION).toContain("nothing was recorded");
+  });
+});
+
 describe("findIdleBandAt", () => {
   const bands: Array<ReplayIdleBand> = [
     { startMs: 10000, endMs: 52000, kind: "idle", fidelity: "exact" },
@@ -275,6 +323,12 @@ describe("findIdleBandAt", () => {
     expect(findIdleBandAt(bands, 52000)).toBeNull();
     expect(findIdleBandAt(bands, 150000)?.kind).toBe("background-tab");
     expect(findIdleBandAt(undefined, 1)).toBeNull();
+    expect(
+      findIdleBandAt(
+        [{ startMs: 30000, endMs: 90000, kind: "paused", fidelity: "exact" }],
+        60000,
+      )?.kind,
+    ).toBe("paused");
   });
 });
 
@@ -848,6 +902,41 @@ describe("ReplayStageOverlays", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("says why a paused stretch was skipped, since it is skipped with Skip idle off", () => {
+      jest.useFakeTimers();
+
+      renderOverlays({
+        snapshot: makeSnapshot({
+          buffer: "ok",
+          intent: "playing",
+          skipInactive: false,
+          lastIdleSkip: {
+            startMs: 30000,
+            endMs: 30000 + 23 * 60 * 1000,
+            kind: "paused",
+            fidelity: "exact",
+          },
+        }),
+      });
+
+      const toast: HTMLElement = screen.getByTestId("replay-overlay-idle-skip");
+
+      expect(toast).toHaveTextContent(
+        "Skipped 23m: recording paused while the page was idle",
+      );
+      expect(toast).toHaveAttribute("data-kind", "paused");
+      expect(toast).toHaveAttribute("role", "status");
+      expect(toast).not.toHaveTextContent("Skipped 23m idle");
+
+      act((): void => {
+        jest.advanceTimersByTime(REPLAY_IDLE_SKIP_TOAST_MS);
+      });
+
+      expect(
+        screen.queryByTestId("replay-overlay-idle-skip"),
+      ).not.toBeInTheDocument();
+    });
+
     it("shows the ended card with Watch again and the continue-in-tab action", () => {
       const props: ReplayStageOverlaysProps = makeProps({
         snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),
@@ -1248,6 +1337,68 @@ describe("ReplayStageOverlays", () => {
       expect(
         screen.getByTestId("replay-background-tab-chip"),
       ).toHaveTextContent("Tab was in the background for 2m");
+    });
+
+    it("names a paused band as a recording pause, with the same Skip", () => {
+      const paused: ReplayIdleBand = {
+        startMs: 40000,
+        endMs: 40000 + 23 * 60 * 1000,
+        kind: "paused",
+        fidelity: "exact",
+      };
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({
+          buffer: "ok",
+          intent: "paused",
+          currentTimeMs: 41200,
+          durationMs: 40 * 60 * 1000,
+          idleBands: [paused],
+        }),
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      const chip: HTMLElement = screen.getByTestId("replay-paused-chip");
+
+      expect(chip).toHaveTextContent("Recording paused · 23m");
+      expect(chip).toHaveTextContent("skip");
+      expect(chip).not.toHaveTextContent("Idle");
+      expect(chip.getAttribute("title")).toContain(
+        REPLAY_PAUSED_BAND_EXPLANATION,
+      );
+      expect(chip.getAttribute("title")).toContain(
+        "Skip past this stretch (s)",
+      );
+      expect(screen.queryByTestId("replay-idle-chip")).not.toBeInTheDocument();
+
+      fireEvent.click(chip);
+      expect(props.onSkipIdle).toHaveBeenCalledWith(paused);
+    });
+
+    it("does not offer a skip of a paused band that is about to end, but still explains it", () => {
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({
+          buffer: "ok",
+          intent: "playing",
+          currentTimeMs: 89000,
+          idleBands: [
+            { startMs: 30000, endMs: 90000, kind: "paused", fidelity: "exact" },
+          ],
+        }),
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      const chip: HTMLElement = screen.getByTestId("replay-paused-chip");
+
+      expect(chip).toBeDisabled();
+      expect(chip).toHaveTextContent("Recording paused · 1m");
+      expect(chip).not.toHaveTextContent("skip");
+      expect(chip.getAttribute("title")).toBe(
+        `${REPLAY_PAUSED_BAND_EXPLANATION} The stretch ends in under two seconds`,
+      );
+      fireEvent.click(chip);
+      expect(props.onSkipIdle).not.toHaveBeenCalled();
     });
 
     it("does not offer a skip when the band is about to end", () => {

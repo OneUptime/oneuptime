@@ -9,6 +9,12 @@ import { useTranslation } from "react-i18next";
 export interface DashboardNavigationItems {
   navItems: NavItem[];
   moreMenuItems: MoreMenuItem[];
+  /*
+   * The categories the products menu opens on: Essentials. Every other
+   * category starts folded to one line until it is opened, so the menu
+   * opens on the core products rather than on every product at once.
+   */
+  moreMenuCategoriesOpenByDefault: Array<string>;
   rightElement: NavItem;
 }
 
@@ -754,6 +760,36 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "teal",
       category: analyticsAutomationCategory,
     },
+    /*
+     * Forms sit with the automation products: a form turns what someone
+     * outside the team fills in into an incident or a maintenance event,
+     * the way a workflow turns an event into actions.
+     */
+    {
+      title: t("navbar.items.formsTitle", "Forms"),
+      keywords: [
+        "form",
+        "form builder",
+        "public form",
+        "intake form",
+        "request form",
+        "report form",
+        "incident form",
+        "maintenance request",
+        "change request",
+        "questionnaire",
+        "submissions",
+      ],
+      description: t(
+        "navbar.items.formsDescription",
+        "Forms anyone can fill in that create incidents or scheduled maintenance events.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.FORMS] as Route),
+      activeRoute: RouteMap[PageMap.FORMS],
+      icon: IconProp.ClipboardDocumentList,
+      iconColor: "teal",
+      category: analyticsAutomationCategory,
+    },
     // Settings
     {
       title: t("navbar.items.usersTitle"),
@@ -794,6 +830,16 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
   ];
 
+  /*
+   * The products menu opens on Essentials, the products a problem flows
+   * through (see the top of the list). The rest - observability, AI, code,
+   * resources, every infrastructure platform, dashboards and automation,
+   * settings - are each folded to one line that names what is inside, one
+   * click or a search away. The category of the page the user is on opens by
+   * itself, and what someone opens or folds is remembered on their browser.
+   */
+  const moreMenuCategoriesOpenByDefault: Array<string> = [essentialsCategory];
+
   // Define the right element (User Settings)
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
@@ -805,7 +851,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     activeRoute: RouteMap[PageMap.USER_SETTINGS],
   };
 
-  return { navItems, moreMenuItems, rightElement };
+  return {
+    navItems,
+    moreMenuItems,
+    moreMenuCategoriesOpenByDefault,
+    rightElement,
+  };
 }
 
 export default useDashboardNavigationItems;

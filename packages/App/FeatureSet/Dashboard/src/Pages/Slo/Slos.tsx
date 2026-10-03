@@ -54,6 +54,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  translatePlural,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How SLOs and Error Budgets Work
@@ -97,7 +101,7 @@ The SLO's **Metrics** page charts its SLI, error budget and burn rate over time,
 
 ### Archiving
 
-Archive an SLO you no longer need but want to keep: from its **Settings** page, or select SLOs in this list and choose **Archive**. Archived SLOs are hidden from this list and are not evaluated, and their open burn-rate alerts and incidents are resolved. Find them on the **Archived** page in the side menu, where you can unarchive them to resume measuring.
+Archive an SLO you no longer need but want to keep: from its **Settings** page, or select SLOs in this list and choose **Archive**. Archived SLOs are hidden from this list and are not evaluated, and their open burn-rate alerts and incidents are resolved. Find them on the **Archived** page, under **Advanced** in the side menu, where you can unarchive them to resume measuring.
 
 Archiving and disabling are separate: unarchiving an SLO that was disabled leaves it disabled.
 
@@ -176,12 +180,20 @@ export const getSloTargetAndWindowColumns: GetSloTableColumnsFunction =
         getElement: (item: ServiceLevelObjective): ReactElement => {
           if (item.windowType === SloWindowType.CalendarMonth) {
             return (
-              <span className="text-sm text-gray-900">Calendar month</span>
+              <span className="text-sm text-gray-900">
+                {translateText("Calendar month")}
+              </span>
             );
           }
           return (
             <span className="text-sm text-gray-900">
-              {item.windowDays || 30} days rolling
+              {translatePlural(
+                {
+                  one: "{{count}} day rolling",
+                  other: "{{count}} days rolling",
+                },
+                item.windowDays || 30,
+              )}
             </span>
           );
         },
@@ -205,7 +217,11 @@ export const getSloLastEvaluatedColumns: GetSloTableColumnsFunction =
         hideOnMobile: true,
         getElement: (item: ServiceLevelObjective): ReactElement => {
           if (!item.lastEvaluatedAt) {
-            return <span className="text-sm text-gray-400">Never</span>;
+            return (
+              <span className="text-sm text-gray-400">
+                {translateText("Never")}
+              </span>
+            );
           }
 
           const lastEvaluatedAt: Date = OneUptimeDate.fromString(
@@ -416,8 +432,8 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
-    hasActiveFilters,
     facetSelections,
     facetOperators,
     setFacetSelection,
@@ -463,6 +479,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
          */
         query={mergeFiltersIntoQuery(getSloListBaseQuery())}
         topContent={filterBar}
+        emptyState={facetEmptyState}
         onFetchSuccess={(data: Array<ServiceLevelObjective>) => {
           onResourcesFetched(data);
 
@@ -496,14 +513,11 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Reliability targets measured from monitor uptime. Each SLO tracks its error budget and alerts you before the budget runs out.",
         }}
         /*
-         * An empty list under an active chip is not an empty project: say the
-         * SLOs are there and the bar is what is hiding them.
+         * An empty list under an active chip is not an empty project: the
+         * table hears about the chips through emptyState and says nothing
+         * matches them. This is what a project with no SLO at all is told.
          */
-        noItemsMessage={
-          hasActiveFilters
-            ? "No SLO matches the filters above."
-            : "No SLOs yet. Create one, then attach monitors or add a monitor rule to turn uptime into a reliability target with an error budget and burn-rate alerts."
-        }
+        noItemsMessage="No SLOs yet. Create one, then attach monitors or add a monitor rule to turn uptime into a reliability target with an error budget and burn-rate alerts."
         helpContent={{
           title: "How SLOs Work",
           description:

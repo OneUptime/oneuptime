@@ -11,6 +11,10 @@ import React, {
   useCallback,
   useState,
 } from "react";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export { NetworkRuleKind };
 
@@ -66,8 +70,8 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   }, [props.ruleKind, props.ruleId, reassignDevicesAlreadyInASite]);
 
   const title: string = props.ruleName
-    ? `Run "${props.ruleName}" Now`
-    : "Run This Rule Now";
+    ? translateTemplate('Run "{{name}}" Now', { name: props.ruleName })
+    : translateTemplate("Run This Rule Now");
 
   /*
    * Once the run has answered, the modal stops being a confirmation and
@@ -84,9 +88,14 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
     );
   }
 
+  // English keys: the confirmation looks its description up.
   const description: string = isSiteAssignment
-    ? "Evaluate this rule against the network devices that already exist and assign the ones it matches to its site. Rules normally only run when a device is discovered or renamed, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nDevices that already belong to a site are left alone, and a device that also matches a higher-priority rule is left to that rule."
-    : "Evaluate this rule against the network devices that already exist and attach its labels to the ones it matches. Rules normally only run when a device is discovered, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nLabels are only added, never removed, so running this more than once is safe.";
+    ? translationKey(
+        "Evaluate this rule against the network devices that already exist and assign the ones it matches to its site. Rules normally only run when a device is discovered or renamed, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nDevices that already belong to a site are left alone, and a device that also matches a rule higher in the list is left to that rule.",
+      )
+    : translationKey(
+        "Evaluate this rule against the network devices that already exist and attach its labels to the ones it matches. Rules normally only run when a device is discovered, so this is how a rule reaches devices that were already in your inventory when you wrote it.\n\nLabels are only added, never removed, so running this more than once is safe.",
+      );
 
   return (
     <ConfirmModal

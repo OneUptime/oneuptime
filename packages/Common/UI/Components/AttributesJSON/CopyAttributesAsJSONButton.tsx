@@ -8,6 +8,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  PluralTemplate,
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ATTRIBUTES_JSON_FORMATS,
@@ -56,13 +63,26 @@ type CopyStatus = "idle" | "copied" | "failed";
 
 const STATUS_RESET_MS: number = 1600;
 
-function pluralizeAttributes(count: number): string {
-  return `${count} ${count === 1 ? "attribute" : "attributes"}`;
-}
+// The attribute count and what copying them does, one sentence each.
+const ATTRIBUTE_COUNT: PluralTemplate = {
+  one: "{{count}} attribute",
+  other: "{{count}} attributes",
+};
+
+const COPY_ATTRIBUTES_TITLE: PluralTemplate = {
+  one: "Copy {{count}} attribute as {{format}} JSON",
+  other: "Copy {{count}} attributes as {{format}} JSON",
+};
+
+const COPIED_ATTRIBUTES_ANNOUNCEMENT: PluralTemplate = {
+  one: "Copied {{count}} attribute as {{format}} JSON",
+  other: "Copied {{count}} attributes as {{format}} JSON",
+};
 
 const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const [format, setFormat] = useAttributesJSONFormat();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [status, setStatus] = useState<CopyStatus>("idle");
@@ -82,8 +102,8 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
 
   const menuId: string = `${useId()}-json-format-menu`;
-  const label: string = props.label || "Copy JSON";
-  const subject: string = props.subject || "attributes";
+  const label: string = props.label || translationKey("Copy JSON");
+  const subject: string = props.subject || translationKey("attributes");
   const size: "xs" | "sm" = props.size || "xs";
   const menuAlign: "left" | "right" = props.menuAlign || "right";
 
@@ -178,8 +198,15 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
     showStatus(succeeded ? "copied" : "failed");
     setAnnouncement(
       succeeded
-        ? `Copied ${pluralizeAttributes(count)} as ${copyFormat} JSON`
-        : "Could not copy to the clipboard",
+        ? translator.translatePlural(COPIED_ATTRIBUTES_ANNOUNCEMENT, count, {
+            format: translatableTerm(
+              ATTRIBUTES_JSON_FORMAT_LABELS[copyFormat],
+              {
+                inSentence: true,
+              },
+            ),
+          })
+        : translator.translateText("Could not copy to the clipboard") || "",
     );
   };
 
@@ -318,13 +345,23 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900";
 
   const mainText: string =
-    status === "copied"
-      ? "Copied"
-      : status === "failed"
-        ? "Copy failed"
-        : label;
+    translator.translateText(
+      status === "copied"
+        ? "Copied"
+        : status === "failed"
+          ? "Copy failed"
+          : label,
+    ) || label;
 
-  const mainTitle: string = `Copy ${pluralizeAttributes(count)} as ${format} JSON`;
+  const mainTitle: string = translator.translatePlural(
+    COPY_ATTRIBUTES_TITLE,
+    count,
+    {
+      format: translatableTerm(ATTRIBUTES_JSON_FORMAT_LABELS[format], {
+        inSentence: true,
+      }),
+    },
+  );
 
   return (
     <div
@@ -341,7 +378,13 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
           type="button"
           className={`inline-flex items-center gap-1.5 rounded-l-[5px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${textClass} ${mainPaddingClass} ${mainStateClass}`}
           title={mainTitle}
-          aria-label={props.compact ? `Copy ${subject} as JSON` : undefined}
+          aria-label={
+            props.compact
+              ? translator.translateTemplate("Copy {{subject}} as JSON", {
+                  subject: translatableTerm(subject),
+                })
+              : undefined
+          }
           data-copy-format={format}
           onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
             event.preventDefault();
@@ -375,8 +418,8 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
           className={`inline-flex items-center rounded-r-[5px] px-1 text-gray-400 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
             isMenuOpen ? "bg-gray-50 text-gray-700" : ""
           }`}
-          title="Choose JSON format"
-          aria-label="Choose JSON format"
+          title={translator.translateText("Choose JSON format")}
+          aria-label={translator.translateText("Choose JSON format")}
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
           aria-controls={isMenuOpen ? menuId : undefined}
@@ -399,7 +442,7 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
         <div
           id={menuId}
           role="menu"
-          aria-label="Copy attributes as"
+          aria-label={translator.translateText("Copy attributes as")}
           aria-orientation="vertical"
           className={`absolute top-full z-50 mt-1.5 w-72 rounded-lg bg-white p-1 text-left shadow-lg ring-1 ring-gray-900/10 ${
             menuAlign === "right"
@@ -408,7 +451,9 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
           }`}
         >
           <div className="px-2.5 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-            Copy {subject} as
+            {translator.translateTemplate("Copy {{subject}} as", {
+              subject: translatableTerm(subject),
+            })}
           </div>
           {ATTRIBUTES_JSON_FORMATS.map(
             (itemFormat: AttributesJSONFormat, index: number): ReactElement => {
@@ -449,7 +494,11 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-gray-900">
-                        {ATTRIBUTES_JSON_FORMAT_LABELS[itemFormat]} JSON
+                        {translator.translateTemplate("{{format}} JSON", {
+                          format: translatableTerm(
+                            ATTRIBUTES_JSON_FORMAT_LABELS[itemFormat],
+                          ),
+                        })}
                       </span>
                       {isSelected && (
                         <Icon
@@ -459,7 +508,9 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
                       )}
                     </span>
                     <span className="block text-[11px] leading-4 text-gray-500">
-                      {ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[itemFormat]}
+                      {translator.translateText(
+                        ATTRIBUTES_JSON_FORMAT_DESCRIPTIONS[itemFormat],
+                      )}
                     </span>
                     <code
                       className="mt-1.5 block truncate rounded bg-gray-50 px-1.5 py-1 font-mono text-[10.5px] leading-4 text-gray-600 ring-1 ring-inset ring-gray-100"
@@ -474,9 +525,11 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
           )}
           <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-[10.5px] text-gray-400">
             <span className="whitespace-nowrap tabular-nums">
-              {pluralizeAttributes(count)}
+              {translator.translatePlural(ATTRIBUTE_COUNT, count)}
             </span>
-            <span className="truncate">Values keep their types</span>
+            <span className="truncate">
+              {translator.translateText("Values keep their types")}
+            </span>
           </div>
         </div>
       )}

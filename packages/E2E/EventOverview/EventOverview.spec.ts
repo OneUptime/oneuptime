@@ -188,6 +188,8 @@ interface EventPage {
   detailsCard: string;
   // Field labels of the details card, in order.
   detailLabels: ReadonlyArray<string>;
+  // The record's own ID, on the small line the details card ends with.
+  recordId: string;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -244,8 +246,8 @@ const INCIDENT_PAGE: EventPage = {
     "Status Page Scope",
     "Labels",
     "Incident Number",
-    "Incident ID",
   ],
+  recordId: INCIDENT_ID,
 };
 
 const ALERT_PAGE: EventPage = {
@@ -298,8 +300,8 @@ const ALERT_PAGE: EventPage = {
     "On-Call Duty Policies",
     "Labels",
     "Alert Number",
-    "Alert ID",
   ],
+  recordId: ALERT_ID,
 };
 
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
@@ -353,8 +355,8 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Subscriber Notifications",
     "Labels",
     "Scheduled Maintenance Number",
-    "Scheduled Maintenance ID",
   ],
+  recordId: SCHEDULED_MAINTENANCE_ID,
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -397,8 +399,8 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "On-Call Duty Policies",
     "Created At",
     "Labels",
-    "Episode ID",
   ],
+  recordId: INCIDENT_EPISODE_ID,
 };
 
 const ALERT_EPISODE_PAGE: EventPage = {
@@ -441,8 +443,8 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "On-Call Duty Policies",
     "Created At",
     "Labels",
-    "Episode ID",
   ],
+  recordId: ALERT_EPISODE_ID,
 };
 
 const EVENT_PAGES: ReadonlyArray<EventPage> = [
@@ -749,8 +751,8 @@ type DetailsTabName = "Evidence" | "Activity";
 
 /*
  * A tab of the details (or its panel, which the tab names) by the start of
- * its name: every tab name ends with its count, and phones shorten
- * "Evidence checked" to "Evidence".
+ * its name: every tab name ends with its count. Phones draw a shorter
+ * "Evidence" label, but the name stays "Evidence checked".
  */
 function detailsTab(page: Page, name: DetailsTabName): Locator {
   return investigationDetails(page).getByRole("tab", {
@@ -5294,6 +5296,34 @@ async function expectRightColumn(
     "Edit sits under the title",
   );
   expect(await detailLabels(details)).toEqual(eventPage.detailLabels);
+
+  /*
+   * The record's ID is not a field of the card any more: it is the small
+   * line the card ends with - "ID", the ID's first characters, and a copy
+   * button - with the whole ID in its text, clipped in the narrow column.
+   */
+  const idLine: Locator = details.getByTestId("detail-id-line");
+  const idValue: Locator = idLine.getByTestId("detail-id-value");
+  await expect(idLine).toBeVisible();
+  await expect(idLine.getByTestId("detail-id-label")).toHaveText("ID");
+  await expect(idValue).toHaveText(eventPage.recordId);
+  await expect(
+    idLine.getByRole("button", { name: "Copy ID to clipboard" }),
+  ).toBeVisible();
+  const idWidths: { shown: number; whole: number } = await idValue.evaluate(
+    (element: HTMLElement): { shown: number; whole: number } => {
+      return { shown: element.clientWidth, whole: element.scrollWidth };
+    },
+  );
+  expect(idWidths.shown, "the ID shows only its start").toBeLessThan(
+    idWidths.whole,
+  );
+  expect(idWidths.shown, "about nine characters wide").toBeLessThan(90);
+  await expectAbove(
+    details.locator("label").last(),
+    idLine,
+    "the ID line ends the card",
+  );
 }
 
 test.describe("incident and alert overview", () => {
@@ -5362,6 +5392,48 @@ test.describe("incident and alert overview", () => {
       const feed: Box = await documentBox(card(page, eventPage.feed));
       expect(Math.abs(investigation.x - feed.x)).toBeLessThanOrEqual(1);
       await expectRightColumn(page, eventPage);
+    });
+
+    test(`${eventPage.name} copies the whole ID from the details card's ID line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.addInitScript((): void => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async (text: string): Promise<void> => {
+              (window as unknown as { __copiedText?: string }).__copiedText =
+                text;
+            },
+          },
+        });
+      });
+      await openReady(page, eventPage);
+
+      const idLine: Locator = card(page, eventPage.detailsCard).getByTestId(
+        "detail-id-line",
+      );
+      const copiedText: () => Promise<string> = async (): Promise<string> => {
+        return page.evaluate((): string => {
+          return (
+            (window as unknown as { __copiedText?: string }).__copiedText || ""
+          );
+        });
+      };
+
+      // Hovering the clipped ID shows all of it.
+      await idLine.getByTestId("detail-id-value").hover();
+      await expect(page.getByRole("tooltip")).toHaveText(eventPage.recordId);
+
+      await idLine
+        .getByRole("button", { name: "Copy ID to clipboard" })
+        .click();
+      await expect.poll(copiedText).toBe(eventPage.recordId);
+      await expect(idLine.getByRole("status")).toHaveText(
+        "Copied to clipboard",
+      );
     });
   }
 
@@ -7746,9 +7818,15 @@ test.describe("episode overviews", () => {
           ? "Checkout incidents within 30 minutes"
           : "Payments webhook alerts",
       );
+      /*
+       * The episode's ID is no longer a full-width pill among the fields: it
+       * is the card's ID line, the whole ID in its text and one click from
+       * the clipboard.
+       */
       await expect(
         details.getByRole("button", { name: /^[0-9a-f-]{36}$/ }),
-      ).toHaveText(
+      ).toHaveCount(0);
+      await expect(details.getByTestId("detail-id-value")).toHaveText(
         eventPage === INCIDENT_EPISODE_PAGE
           ? INCIDENT_EPISODE_ID
           : ALERT_EPISODE_ID,
@@ -7937,12 +8015,34 @@ test.describe("responsive", () => {
     await expectNoHorizontalOverflow(page);
 
     /*
-     * Phones shorten "Evidence checked" to "Evidence" so both tabs share one
-     * row; the count still follows the name.
+     * Phones draw the short "Evidence" so both tabs share one row. Both
+     * labels are whole translated strings, never "Evidence" plus a hidden
+     * " checked", so the short one is drawn from an attribute and kept out
+     * of the name: a screen reader still hears the whole name, and the
+     * count still follows it.
      */
     const evidenceTab: Locator = detailsTab(page, "Evidence");
     const activityTab: Locator = detailsTab(page, "Activity");
-    await expect(evidenceTab).toHaveAccessibleName("Evidence 10");
+    await expect(evidenceTab).toHaveAccessibleName("Evidence checked 10");
+    const shortLabel: Locator = evidenceTab.locator("[data-short-label]");
+    await expect(shortLabel).toHaveAttribute("aria-hidden", "true");
+    expect(
+      await shortLabel.evaluate((element: Element): string => {
+        return window.getComputedStyle(element, "::before").content;
+      }),
+      "the tab draws the short label",
+    ).toBe('"Evidence"');
+    const shortLabelBox: Box = await documentBox(shortLabel);
+    expect(shortLabelBox.width, "the short label takes room").toBeGreaterThan(
+      0,
+    );
+    const fullLabelBox: Box = await documentBox(
+      evidenceTab.getByText("Evidence checked", { exact: true }),
+    );
+    expect(
+      Math.max(fullLabelBox.width, fullLabelBox.height),
+      "the whole name is for screen readers only",
+    ).toBeLessThanOrEqual(1);
     const evidenceBox: Box = await documentBox(evidenceTab);
     const activityBox: Box = await documentBox(activityTab);
     expect(

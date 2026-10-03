@@ -141,6 +141,10 @@ import {
   TelemetryEntityNameMap,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
+import useResultTotal, {
+  ResultTotalListAnswer,
+} from "Common/UI/Utils/Telemetry/UseResultTotal";
 import {
   buildFacetDisplayNames,
   buildLockedAttributeChip,
@@ -693,7 +697,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }, [initialUrlState]);
 
   const [spans, setSpans] = useState<Array<Span>>([]);
+  /*
+   * The list endpoint's `count` — a lower bound, not a total: it skips
+   * COUNT(*) and answers `skip + rows + 1` when more rows follow. The total
+   * is `resultTotal` below; this only seeds the footer while that is out.
+   */
   const [totalCount, setTotalCount] = useState<number>(0);
+  /*
+   * The newest page the list committed and the query it was fetched with,
+   * which is what lets the result total trust it (see useResultTotal).
+   */
+  const [listAnswer, setListAnswer] = useState<ResultTotalListAnswer<
+    Query<Span>
+  > | null>(null);
+  // Bumped by Refresh, so the total is counted again with the list.
+  const [resultTotalRefreshKey, setResultTotalRefreshKey] = useState<number>(0);
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -1554,12 +1572,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setIsLoading(true);
       }
       setError("");
+      const skip: number = (page - 1) * pageSize;
       try {
         const result: ListResult<Span> = await AnalyticsModelAPI.getList<Span>({
           modelType: Span,
           query: baseQuery,
           limit: pageSize,
-          skip: (page - 1) * pageSize,
+          skip: skip,
           select: listSelect,
           sort: { startTime: SortOrder.Descending } as Record<
             string,
@@ -1572,6 +1591,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }
         setSpans(result.data);
         setTotalCount(result.count);
+        setListAnswer({
+          query: baseQuery,
+          page: {
+            rowCount: result.data.length,
+            skip: skip,
+            hasMore: result.hasMore,
+          },
+        });
       } catch (err) {
         if (isSuperseded()) {
           return;
@@ -1590,6 +1617,27 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     },
     [baseQuery, page, pageSize, listSelect, viewMode],
   );
+
+  /*
+   * How many spans the list's query matches (issue #4202). Counted with the
+   * list's own query, so it is the number of rows the list pages through —
+   * not the chart's, whose window edges round to the minute — and exactly:
+   * a count that cannot finish in time says so rather than printing part of
+   * one. A page with nothing after it already proves the total, so a narrow
+   * search costs no count at all.
+   */
+  const resultTotal: ResultTotal = useResultTotal<Query<Span>>({
+    query: baseQuery,
+    listAnswer: listAnswer,
+    countRows: (query: Query<Span>): Promise<number> => {
+      return AnalyticsModelAPI.count<Span>(Span, query, undefined, {
+        exact: true,
+      });
+    },
+    // Analytics mode hides the list, and so the total.
+    isEnabled: viewMode !== "analytics",
+    refreshKey: resultTotalRefreshKey,
+  });
 
   // Build the aggregation request payload — shared by histogram and facets
   const aggregationRequest: JSONObject = useMemo(() => {
@@ -3088,6 +3136,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setAnalyticsRefreshTick((tick: number) => {
           return tick + 1;
         });
+        setResultTotalRefreshKey((key: number) => {
+          return key + 1;
+        });
       }}
       toolbarLeadingActions={
         enableSavedViews ? (
@@ -3199,7 +3250,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         </>
       }
       emptyMessage={props.emptyMessage || "No traces found"}
-      itemLabel="traces"
+      /*
+       * Each row is a span, so a count of them is a count of spans — called
+       * "traces" it read as roughly ten times the traffic it was. Limited to
+       * root spans, each row is one trace's entry point, and they are traces.
+       */
+      itemLabel={rootOnly ? "traces" : "spans"}
       renderRow={(span: Span): ReactElement => {
         /*
          * A loaded Service renders exactly as before; any other entity (a RUM
@@ -3356,8 +3412,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       showHistogram={true}
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
+      /*
+       * The bars count the rows the list holds, and are named like them: a
+       * bar's "Total" under "Traces over time" read as traces while it
+       * counted every span.
+       */
       histogramTitle={
-        chartMetric === "count" ? "Traces over time" : "Response time"
+        chartMetric === "count"
+          ? rootOnly
+            ? "Traces over time"
+            : "Spans over time"
+          : "Response time"
       }
       histogramLoading={histogramLoading}
       histogramBucketIntervalMs={histogramBucketIntervalMs}
@@ -3398,6 +3463,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       page={page}
       pageSize={pageSize}
       totalCount={totalCount}
+      hasMore={listAnswer?.page.hasMore}
+      resultTotal={resultTotal}
       onPageChange={setPage}
       onPageSizeChange={(size: number) => {
         setPageSize(size);

@@ -1,6 +1,10 @@
 import NetworkAlertPolicyScope, {
   NetworkAlertPolicyScopeUtil,
 } from "Common/Types/NetworkDevice/NetworkAlertPolicyScope";
+import {
+  translatePlural,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The form-side half of a Network Alert Policy's scope.
@@ -106,26 +110,35 @@ export function summarizeScope(scope: unknown): string {
   const parts: Array<string> = [];
 
   if (selection.siteIds.length > 0) {
-    parts.push(pluralize(selection.siteIds.length, "site", "sites"));
+    parts.push(
+      translatePlural(
+        { one: "{{count}} site", other: "{{count}} sites" },
+        selection.siteIds.length,
+      ),
+    );
   }
 
   if (selection.networkDeviceRoleIds.length > 0) {
     parts.push(
-      pluralize(selection.networkDeviceRoleIds.length, "role", "roles"),
+      translatePlural(
+        { one: "{{count}} role", other: "{{count}} roles" },
+        selection.networkDeviceRoleIds.length,
+      ),
     );
   }
 
   if (selection.labelIds.length > 0) {
-    parts.push(pluralize(selection.labelIds.length, "label", "labels"));
+    parts.push(
+      translatePlural(
+        { one: "{{count}} label", other: "{{count}} labels" },
+        selection.labelIds.length,
+      ),
+    );
   }
 
   if (parts.length === 0) {
-    return "All devices";
+    return translateTemplate("All devices");
   }
 
   return parts.join(", ");
-}
-
-function pluralize(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
 }

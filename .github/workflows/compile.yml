@@ -24,103 +24,39 @@ on:
 # around each compile, which also retried a lockfile or peer-dependency error
 # three times over. That retry stays around the compile for `npm run
 # dep-check`, which installs depcheck from the registry itself.
+#
+# The core packages compile in four jobs, not one each. A job's fixed cost
+# (runner, checkout, Node, Common's install) was most of its run time, and
+# there were nineteen of them a push on an organisation whose runners are
+# nearly always all busy. What a package can see while it compiles is the
+# same as in a job of its own, because the jobs follow the boundaries module
+# resolution has:
+#
+#   - compile-common and compile-services hold top-level packages
+#     (packages/<name>). Each resolves dependencies from its own node_modules,
+#     never from a sibling's, so installing several in one job changes nothing
+#     for any of them. Common's build output is written after the packages
+#     that never saw it and before the one that compiles against it.
+#   - compile-frontends holds the FeatureSet frontends. They sit inside
+#     packages/App, so resolution from them walks up into
+#     packages/App/node_modules: App is not installed in their job, so an
+#     import one of them does not declare still fails, and App, compiled in
+#     compile-services, never sees a FeatureSet's node_modules.
+#   - compile-recorders holds the two SDKs published to npm, which must
+#     compile with neither Common nor App installed.
+#
+# Every step after the setup runs even when an earlier one failed, so one run
+# still reports each package that does not compile.
+
 jobs:
 
-  compile-accounts:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install Accounts dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/App/FeatureSet/Accounts
-      - name: Compile Accounts
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/App/FeatureSet/Accounts && npm run compile && npm run dep-check
-
+  # Common, MobileApp and Home. Home compiles first, against Common's sources,
+  # before "Compile Common" writes Common's build output - as it always did.
+  # MobileApp compiles last: its tsconfig maps Common/* to
+  # ../Common/build/dist/*, the output "Compile Common" has just written, which
+  # its job of its own used to compile again for itself.
   compile-common:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Compile Common
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/Common && npm run compile && npm run dep-check
-      # The Common Test workflow runs its suite transpile-only
-      # (packages/Common/jest.config.json, isolatedModules), so this is the one
-      # place every Common test file is type-checked - as a single program, the
-      # way compile-app checks App's tests. Only Common is installed here, as
-      # in Common Test, so an import that only resolves on a full local
-      # install fails here too.
-      - name: Type-check Common tests
-        run: cd packages/Common && npm run compile-tests
-
-  compile-app:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install App dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/App
-      - name: Compile App
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/App && npm run compile && npm run dep-check
-
-  compile-home:
+    name: compile-common (Common, MobileApp, Home)
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -140,18 +76,51 @@ jobs:
         with:
           working-directory: packages/Common
       - name: Install Home dependencies
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/Home
       - name: Compile Home
+        if: ${{ !cancelled() }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/Home && npm run compile && npm run dep-check
+      - name: Compile Common
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/Common && npm run compile && npm run dep-check
+      # The Common Test workflow runs its suite transpile-only
+      # (packages/Common/jest.config.json, isolatedModules), so this is the one
+      # place every Common test file is type-checked - as a single program, the
+      # way compile-app checks App's tests. Only Common is installed here, as
+      # in Common Test, so an import that only resolves on a full local
+      # install fails here too.
+      - name: Type-check Common tests
+        if: ${{ !cancelled() }}
+        run: cd packages/Common && npm run compile-tests
+      - name: Install MobileApp dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
+      - name: Compile MobileApp
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/MobileApp && npm run compile
 
-
-  compile-nginx:
+  # App and the other top-level packages. None of them resolves anything from
+  # another's node_modules, and none of them is a FeatureSet: App's tsc sees
+  # no FeatureSet's dependencies here, as it saw none in a job of its own.
+  compile-services:
+    name: compile-services (App, Runner, Probe, Nginx, Test Server, CLI, E2E, Infrastructure Agent)
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -166,43 +135,122 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      - uses: actions/setup-go@v5
       - name: Install Common dependencies
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/Common
-      
+      - name: Install App dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App
+      - name: Compile App
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/App && npm run compile && npm run dep-check
+      - name: Install Runner dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Runner
+      - name: Compile Runner
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/Runner && npm run compile && npm run dep-check
+      - name: Install Probe dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Probe
+      - name: Compile Probe
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/Probe && npm run compile && npm run dep-check
       - name: Install Nginx dependencies
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/Nginx
       - name: Compile Nginx
+        if: ${{ !cancelled() }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/Nginx && npm run compile && npm run dep-check
-
-  compile-infrastructure-agent:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      # Setup Go
-      - uses: actions/setup-go@v5
+      - name: Install Test Server dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/TestServer
+      - name: Compile Test Server
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/TestServer && npm run compile && npm run dep-check
+      - name: Install CLI dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/CLI
+      - name: Compile CLI
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/CLI && npm run compile && npm run dep-check
+      - name: Install E2E dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/E2E
+          # --ignore-scripts skips E2E's preinstall hook (npx playwright
+          # install), which downloads browsers that compiling doesn't need
+          # and hangs on CI runners. Browsers for real E2E runs are installed
+          # in E2E/Dockerfile.
+          args: --ignore-scripts
+      - name: Compile E2E
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/E2E && npm run compile && npm run dep-check
+      # The release workflows split the default e2e suite into shards
+      # (packages/E2E/Sharding). A test that no shard picks up would never run,
+      # and every job would stay green, so this asks Playwright's own --list
+      # whether the shards those workflows use add up to exactly the whole
+      # suite. Listing loads the spec files but needs no browser.
+      - name: Check the e2e shards cover the whole suite
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-sharding
       - name: Compile Infrastructure Agent
+        if: ${{ !cancelled() }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
           command: cd agents/InfrastructureAgent && go build .
-  
 
-  compile-admin-dashboard:
+  # The FeatureSet frontends, with Common installed and App not: see the
+  # header. They are siblings, so one's node_modules is not on another's
+  # resolution path.
+  compile-frontends:
+    name: compile-frontends (Dashboard, Admin Dashboard, Public Dashboard, Status Page, Accounts)
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -221,51 +269,75 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/Common
-      
-      - name: Install Admin Dashboard dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/App/FeatureSet/AdminDashboard
-      - name: Compile Admin Dashboard
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/App/FeatureSet/AdminDashboard && npm run compile && npm run dep-check
-
-  compile-dashboard:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      
       - name: Install Dashboard dependencies
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App/FeatureSet/Dashboard
       - name: Compile Dashboard
+        if: ${{ !cancelled() }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/App/FeatureSet/Dashboard && npm run compile && npm run dep-check
+      - name: Install Admin Dashboard dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/AdminDashboard
+      - name: Compile Admin Dashboard
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/App/FeatureSet/AdminDashboard && npm run compile && npm run dep-check
+      # PublicDashboard imports Dashboard sources directly (e.g.
+      # src/Components/DashboardCanvas.tsx -> ../../../Dashboard/src/...), and
+      # those files resolve "Common/..." through Dashboard's own node_modules,
+      # so it compiles against the Dashboard install above.
+      - name: Install Public Dashboard dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/PublicDashboard
+      - name: Compile Public Dashboard
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/App/FeatureSet/PublicDashboard && npm run compile && npm run dep-check
+      - name: Install Status Page dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/StatusPage
+      - name: Compile Status Page
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/App/FeatureSet/StatusPage && npm run compile && npm run dep-check
+      - name: Install Accounts dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Accounts
+      - name: Compile Accounts
+        if: ${{ !cancelled() }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd packages/App/FeatureSet/Accounts && npm run compile && npm run dep-check
 
-
-  compile-browser-recorder:
+  # The two recorder SDKs published to npm, with neither Common nor App
+  # installed - the one condition a job of their own is for.
+  compile-recorders:
+    name: compile-recorders (Browser Recorder, Mobile Recorder)
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -280,7 +352,6 @@ jobs:
           node-version: 26
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-
       # The session-replay recorder deliberately does NOT depend on Common:
       # it is bundled and served to third-party origins, so it must not carry
       # any server dependency. No `cd packages/Common && npm install` here.
@@ -291,306 +362,32 @@ jobs:
       # the size budgets) that keep this artifact safe to put on a customer's
       # page.
       - name: Install Browser Recorder dependencies
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App/FeatureSet/BrowserRecorder
       - name: Compile Browser Recorder
+        if: ${{ !cancelled() }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 15
           max_attempts: 3
           command: cd packages/App/FeatureSet/BrowserRecorder && npm run compile && npm run build
-
-  compile-mobile-recorder:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-
       # This is a standalone React Native SDK. Its peer dependencies are
       # installed only for compilation/tests and Common is intentionally not
       # linked into the package that customers install in their mobile apps.
       - name: Install Mobile Recorder dependencies
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App/FeatureSet/MobileRecorder
       - name: Compile Mobile Recorder
+        if: ${{ !cancelled() }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 15
           max_attempts: 3
           command: cd packages/App/FeatureSet/MobileRecorder && npm run compile && npm run build
-
-
-  compile-e2e:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - run: sudo apt-get update
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install E2E dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/E2E
-          # --ignore-scripts skips E2E's preinstall hook (npx playwright
-          # install), which downloads browsers that compiling doesn't need
-          # and hangs on CI runners. Browsers for real E2E runs are installed
-          # in E2E/Dockerfile.
-          args: --ignore-scripts
-      - name: Compile E2E
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/E2E && npm run compile && npm run dep-check
-
-  compile-probe:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install Probe dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Probe
-      - name: Compile Probe
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/Probe && npm run compile && npm run dep-check
-
-  compile-status-page:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-
-      - name: Install Status Page dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/App/FeatureSet/StatusPage
-      - name: Compile Status Page
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/App/FeatureSet/StatusPage && npm run compile && npm run dep-check
-
-  # The only feature set this workflow used to skip, which is how it sat with a
-  # broken compile unnoticed.
-  compile-public-dashboard:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      # PublicDashboard imports Dashboard sources directly (e.g.
-      # src/Components/DashboardCanvas.tsx -> ../../../Dashboard/src/...), and
-      # those files resolve "Common/..." through Dashboard's own node_modules,
-      # so Dashboard has to be installed for this compile to resolve at all.
-      - name: Install Dashboard dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/App/FeatureSet/Dashboard
-
-      - name: Install Public Dashboard dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/App/FeatureSet/PublicDashboard
-      - name: Compile Public Dashboard
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/App/FeatureSet/PublicDashboard && npm run compile && npm run dep-check
-
-  compile-test-server:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install Test Server dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/TestServer
-      - name: Compile Test Server
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/TestServer && npm run compile && npm run dep-check
-
-  compile-mobile-app:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Compile Common
-        run: cd packages/Common && npm run compile
-      - name: Install MobileApp dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/MobileApp
-      - name: Compile MobileApp
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/MobileApp && npm run compile
-
-  compile-runner:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install Runner dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Runner
-      - name: Compile Runner
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/Runner && npm run compile && npm run dep-check
-
-  compile-cli:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - uses: actions/checkout@v4
-      # Core is the Community Edition by construction: it must build and pass
-      # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
-      - name: Remove the Enterprise Edition (core runs without ee/)
-        run: rm -rf ee
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 26
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
-      - name: Install Common dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/Common
-      - name: Install CLI dependencies
-        uses: ./.github/actions/npm-install
-        with:
-          working-directory: packages/CLI
-      - name: Compile CLI
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: cd packages/CLI && npm run compile && npm run dep-check
 
   # The Enterprise Edition (ee/): the one compile job that keeps it. `npm run
   # compile` type-checks the ee server against Common and App, and the ee

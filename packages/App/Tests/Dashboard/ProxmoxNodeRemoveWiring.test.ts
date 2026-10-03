@@ -264,8 +264,19 @@ describe("the confirm dialog", () => {
   });
 
   test("explains it is for a node removed from the cluster, that the alert resolves, and that the node can come back", () => {
-    const description: string = between(dialog, "description={`", "`}");
+    /*
+     * One translated sentence, so a locale can put the node's name where its
+     * grammar wants it; {{nodeName}} is filled with the node's Proxmox name.
+     */
+    const description: string = between(
+      dialog,
+      "description={translator.translateTemplate(",
+      ")}",
+    );
 
+    expect(description).toContain('"Only remove {{nodeName}} if it has');
+    expect(description).toContain("If {{nodeName}} reports again");
+    expect(description).toContain("{ nodeName: pveNodeName }");
     expect(description).toContain(
       "if it has been removed from the Proxmox cluster",
     );

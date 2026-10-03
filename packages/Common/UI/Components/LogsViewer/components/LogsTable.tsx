@@ -1,4 +1,7 @@
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
@@ -121,6 +124,7 @@ const stringifyLogValue: (value: unknown) => string = (
 const LogsTable: FunctionComponent<LogsTableProps> = (
   props: LogsTableProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const showEmptyState: boolean = !props.isLoading && props.logs.length === 0;
   const activeSortField: LogsTableSortField | undefined = props.sortField;
   const activeSortOrder: SortOrder = props.sortOrder || SortOrder.Descending;
@@ -213,7 +217,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         <Link
           to={traceRoute}
           className={linkClassName}
-          title={`View trace ${traceId}`}
+          title={translator.translateTemplate("View trace {{id}}", {
+            id: traceId,
+          })}
         >
           {traceId}
         </Link>
@@ -244,7 +250,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
           <Link
             to={spanRoute}
             className={linkClassName}
-            title={`View span ${spanId}`}
+            title={translator.translateTemplate("View span {{id}}", {
+              id: spanId,
+            })}
           >
             {spanId}
           </Link>
@@ -264,7 +272,9 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
               openSpanLazily(spanId, log);
             }}
             className={linkClassName}
-            title={`View span ${spanId}`}
+            title={translator.translateTemplate("View span {{id}}", {
+              id: spanId,
+            })}
           >
             {spanId}
           </Link>
@@ -301,7 +311,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 : "none"
             }
           >
-            <span>Time</span>
+            <span>{translator.translateText("Time")}</span>
             <Icon
               icon={resolveSortIcon("time")}
               className={resolveSortIconClass("time")}
@@ -331,7 +341,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 : "none"
             }
           >
-            <span>Severity</span>
+            <span>{translator.translateText("Severity")}</span>
             <Icon
               icon={resolveSortIcon("severityText")}
               className={resolveSortIconClass("severityText")}
@@ -345,7 +355,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "service") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Service
+          {translator.translateText("Service")}
         </th>
       );
     }
@@ -353,7 +363,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "message") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Message
+          {translator.translateText("Message")}
         </th>
       );
     }
@@ -361,7 +371,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "traceId") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Trace ID
+          {translator.translateText("Trace ID")}
         </th>
       );
     }
@@ -369,7 +379,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     if (columnId === "spanId") {
       return (
         <th scope="col" className="px-4 py-2.5" key={columnId}>
-          Span ID
+          {translator.translateText("Span ID")}
         </th>
       );
     }
@@ -403,10 +413,14 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                 resourceMaps: props.resourceEntityMaps,
                 entityNameMap: props.entityNameMap,
               });
-              const serviceName: string = entityDisplay.name || "Unknown";
+              const serviceName: string =
+                entityDisplay.name || translator.translateText("Unknown") || "";
               const serviceColor: string = entityDisplay.color || "#94a3b8";
               const serviceTitle: string = entityDisplay.typeLabel
-                ? `${entityDisplay.typeLabel}: ${serviceName}`
+                ? translator.translateTemplate("{{type}}: {{name}}", {
+                    type: translatableTerm(entityDisplay.typeLabel),
+                    name: serviceName,
+                  })
                 : serviceName;
 
               const message: string = log.body?.toString() || "";
@@ -493,13 +507,25 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                   <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
                                     {traceId && !showTraceColumn && (
                                       <span>
-                                        Trace:{" "}
-                                        {renderTraceIdValue(traceId, log)}
+                                        <TranslatedSentence
+                                          template="Trace: {{id}}"
+                                          slots={{
+                                            id: renderTraceIdValue(
+                                              traceId,
+                                              log,
+                                            ),
+                                          }}
+                                        />
                                       </span>
                                     )}
                                     {spanId && !showSpanColumn && (
                                       <span>
-                                        Span: {renderSpanIdValue(spanId, log)}
+                                        <TranslatedSentence
+                                          template="Span: {{id}}"
+                                          slots={{
+                                            id: renderSpanIdValue(spanId, log),
+                                          }}
+                                        />
                                       </span>
                                     )}
                                   </div>
@@ -612,10 +638,12 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         <div className="flex h-full items-center justify-center px-6 py-12 text-center bg-white">
           <div className="w-full max-w-xl rounded-md border border-gray-200 bg-white p-6 text-left shadow-sm">
             <p className="font-mono text-sm uppercase text-gray-500">
-              No logs found
+              {translator.translateText("No logs found")}
             </p>
             <p className="mt-3 font-mono text-xs text-gray-400">
-              {props.emptyMessage || "Adjust filters or check again later."}
+              {translator.translateText(
+                props.emptyMessage || "Adjust filters or check again later.",
+              )}
             </p>
           </div>
         </div>

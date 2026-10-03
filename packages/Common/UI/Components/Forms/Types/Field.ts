@@ -16,7 +16,10 @@ import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/Databas
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import MimeType from "../../../../Types/File/MimeType";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
+import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
+import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -50,11 +53,51 @@ export interface CategoryCheckboxProps {
   options: Array<CategoryCheckboxOption>;
 }
 
+/*
+ * A folded group of fields inside a form (or inside one step of it): a
+ * header the user opens to reach them. Every field that should be in the
+ * group carries the same section (same id), and the fields must be next to
+ * each other in the list - BasicForm folds consecutive fields that share an
+ * id into one section. For the usual case, rarely needed options under
+ * "Advanced", use getAdvancedFormSection (Forms/Utils/AdvancedFormSection)
+ * rather than writing one.
+ *
+ * A folded section says "Configured" on its header while anything in it is
+ * set, and opens by itself when a field in it fails validation.
+ */
 export interface FormFieldCollapsibleSection<TEntity> {
   id: string;
   title: string;
   description?: string | undefined;
-  isConfigured: (values: FormValues<TEntity>) => boolean;
+  /*
+   * Whether anything in the section is set. Left out, the section works it
+   * out from its own fields: one of them holding a value other than empty
+   * or its default (isFormSectionConfigured).
+   */
+  isConfigured?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * Whether the section starts open when it is configured as the form
+   * opens - an edit form, or a default that fills a field in. True when left
+   * out: a section of details someone wrote opens to show them. An Advanced
+   * section sets it to false: it always starts folded, and says
+   * "Configured" on its header instead.
+   */
+  openWhenConfigured?: boolean | undefined;
+  /*
+   * What the folded fields are set to, in plain words, shown under the
+   * title while the section is folded - so the form says what will happen
+   * without being opened, and a section whose defaults are right for most
+   * people can stay folded ("Subscribers of the event's status pages are
+   * notified when it is scheduled, when it starts and when it ends.").
+   * Worked out from the form's values as they are now, so it follows what
+   * is ticked. Whole English sentences: each is looked up in the
+   * translations on its own (keep them in translationKey() so the string
+   * extractor finds them). It takes the place of the "Configured" badge,
+   * which shows as usual while nothing is returned.
+   */
+  getSummary?:
+    | ((values: FormValues<TEntity>) => Array<string> | undefined)
+    | undefined;
 }
 
 export default interface Field<TEntity> {
@@ -87,10 +130,22 @@ export default interface Field<TEntity> {
     | undefined;
   showHorizontalRuleBelow?: boolean | undefined;
   showHorizontalRuleAbove?: boolean | undefined;
+  /*
+   * The model a dropdown lists. ModelForm fetches it with its colour column,
+   * so a state, severity or monitor status shows its colour before its name
+   * (Field.fetchDropdownOptions, when a field has one, keeps those colours).
+   */
   dropdownModal?: {
     type: DatabaseBaseModelType;
     labelField: string;
     valueField: string;
+    /*
+     * The order to list the options in, by columns of the dropdown's model -
+     * `{ order: SortOrder.Ascending }` lists states in the order an incident
+     * moves through them. Unset, the list comes in the server's default
+     * order (newest first).
+     */
+    sort?: { [columnName: string]: SortOrder } | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a
@@ -169,9 +224,39 @@ export default interface Field<TEntity> {
    * not there.
    */
   customElementDrawsOwnLabel?: boolean | undefined;
+  /*
+   * A stepped form may be finished from an earlier step without ever
+   * drawing this custom element: it writes the field's value only when the
+   * user changes something, and shows nothing that has to be read before
+   * saving - a picker that starts empty, say. Left out, a step holding the
+   * element is shown before the form can be finished from an earlier one,
+   * because an element can fill in a value of its own when it first shows
+   * (the default criteria of a monitor's type, a rule's conditions) or be a
+   * notice to read first (Forms/Utils/FinishFromAnyStep.ts).
+   */
+  customElementCanBeSkipped?: boolean | undefined;
   categoryCheckboxProps?: CategoryCheckboxProps | undefined; // props for the category checkbox component. If fieldType is CategoryCheckbox, this prop is required.
+  /*
+   * For a PeoplePicker field: the kinds of record it offers (people, teams),
+   * in the order its search list shows them, and the form value each kind's
+   * picks are kept in. One picker can so stand in for an "owner users" and an
+   * "owner teams" dropdown and save exactly what they saved: ModelForm saves
+   * a value that is a column of its model as that column, and sends any
+   * other as misc data. The field's own key names it in the form only (use
+   * formOnly). OwnersFormField.ts builds the owners one.
+   */
+  peoplePicker?: PeoplePickerFieldConfig | undefined;
   dataTestId?: string | undefined;
   autoComplete?: string | undefined;
+  /*
+   * A Password field that holds the person's own password, on a page where
+   * they sign in, sign up or change it. Set it together with the matching
+   * autoComplete ("current-password" to sign in, "new-password" to set one)
+   * so password managers fill and save it. Every other Password and
+   * EncryptedText field holds a secret the product stores for something else,
+   * and is kept away from password managers (see Input).
+   */
+  isOwnCredential?: boolean | undefined;
   ariaDescribedby?: string | undefined;
 
   // set this to true if you want to show this field in the form even when the form is in edit mode.
@@ -220,6 +305,30 @@ export default interface Field<TEntity> {
    * -- the Image button is hidden and image files are ignored.
    */
   allowImageUpload?: boolean | undefined;
+
+  /*
+   * The {{variables}} this field's value can use, when the value is a
+   * template: a note template, an SLA reminder, a subscriber notification.
+   * The field then shows them collapsed under its input, as cards that each
+   * add their variable where the cursor is, and typing "{{" in the field
+   * opens them under the cursor. A Markdown field's toolbar, and a code
+   * field's, also get an Insert variable button.
+   *
+   * Works for Markdown, Text, LongText and the code fields (HTML, CSS,
+   * JavaScript, JSON). A function is given the form's values, for variables
+   * that depend on another field (a subscriber template's event type).
+   * Don't also list the variables in the description: this is where they go.
+   */
+  templateVariables?:
+    | TemplateVariableGroups
+    | ((values: FormValues<TEntity>) => TemplateVariableGroups)
+    | undefined;
+  // What the variables are filled with: the first line of the open list.
+  templateVariablesDescription?: string | ReactElement | undefined;
+  // More for the open variables list, after the variables (a panel of its own).
+  getTemplateVariablesFooter?:
+    | ((values: FormValues<TEntity>) => ReactElement | undefined)
+    | undefined;
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
 

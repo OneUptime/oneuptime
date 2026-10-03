@@ -10,6 +10,12 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How to install a resource's AI agent, and how to give it write access,
@@ -137,7 +143,7 @@ interface InstallSpec {
 const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
   [AiResourceType.DockerHost]: {
     directory: null,
-    collectorName: "Docker agent",
+    collectorName: translationKey("Docker agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: true,
@@ -157,19 +163,23 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "Started the collector with a plain docker run? Start the agent beside it with docker run too, passing this service's settings as -e flags — the Docker agent's docs have the command, under AI agent.",
+      translationKey(
+        "Started the collector with a plain docker run? Start the agent beside it with docker run too, passing this service's settings as -e flags — the Docker agent's docs have the command, under AI agent.",
+      ),
     ],
-    writeTargetNoun: "container names",
+    writeTargetNoun: translationKey("container names"),
     writeTargetsExample: "web-*,api-*",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated container names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the collector.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent restart, start, stop, kill, pause and update (memory, CPU, restart policy) containers through the Docker socket — which is root on this host, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never runs exec, run, rm or prune, never changes the agent itself or the collector beside it, and with ONEUPTIME_AI_WRITE_TARGETS set only touches the containers it names.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.PodmanHost]: {
     directory: null,
-    collectorName: "Podman agent",
+    collectorName: translationKey("Podman agent"),
     collectorShipsAgent: true,
     runtime: "podman",
     hasContainerName: true,
@@ -189,20 +199,26 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "Started the collector with a plain podman run? Start the agent beside it with podman run too, passing this service's settings as -e flags — the Podman agent's docs have the command, under AI agent.",
-      "The Podman API socket must be on: sudo systemctl enable --now podman.socket.",
+      translationKey(
+        "Started the collector with a plain podman run? Start the agent beside it with podman run too, passing this service's settings as -e flags — the Podman agent's docs have the command, under AI agent.",
+      ),
+      translationKey(
+        "The Podman API socket must be on: sudo systemctl enable --now podman.socket.",
+      ),
     ],
-    writeTargetNoun: "container names",
+    writeTargetNoun: translationKey("container names"),
     writeTargetsExample: "web-*,api-*",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated container names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the collector.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent restart, start, stop, kill, pause and update (memory, CPU, restart policy) containers through the Podman socket — for rootful Podman that is root on this host, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never runs exec, run, rm or prune, never changes the agent itself or the collector beside it, and with ONEUPTIME_AI_WRITE_TARGETS set only touches the containers it names.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.DockerSwarmCluster]: {
     directory: "/opt/oneuptime-docker-swarm-agent",
-    collectorName: "Docker Swarm agent",
+    collectorName: translationKey("Docker Swarm agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: true,
@@ -222,19 +238,23 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "Run it on a manager node: services, tasks and nodes can only be read (and fixed) there.",
+      translationKey(
+        "Run it on a manager node: services, tasks and nodes can only be read (and fixed) there.",
+      ),
     ],
-    writeTargetNoun: "service and node names",
+    writeTargetNoun: translationKey("service and node names"),
     writeTargetsExample: "web_*,api_*",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated service and node names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself and the OneUptime collectors.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent force-update (restart), roll back, scale and update services and change a node's availability through a manager's Docker socket — root on that node, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never creates or removes services or stacks, never touches secrets or configs, draining a node always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the services and nodes it names.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.ProxmoxCluster]: {
     directory: "/opt/oneuptime-proxmox-agent",
-    collectorName: "Proxmox agent",
+    collectorName: translationKey("Proxmox agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: true,
@@ -291,20 +311,26 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "The token's Proxmox permissions are the hard limit: the collector's PVEAuditor token lets AI read and nothing else. Fixes need a token of the agent's own whose role may power guests (for example PVEVMUser on /vms), set as ONEUPTIME_AI_PVE_API_TOKEN_ID and ONEUPTIME_AI_PVE_API_TOKEN_SECRET — see the Proxmox agent's README.",
-      "The agent protects no guest of its own accord: if it runs in a VM or container of this cluster, put that guest's VMID in ONEUPTIME_AI_PROTECTED_TARGETS.",
+      translationKey(
+        "The token's Proxmox permissions are the hard limit: the collector's PVEAuditor token lets AI read and nothing else. Fixes need a token of the agent's own whose role may power guests (for example PVEVMUser on /vms), set as ONEUPTIME_AI_PVE_API_TOKEN_ID and ONEUPTIME_AI_PVE_API_TOKEN_SECRET — see the Proxmox agent's README.",
+      ),
+      translationKey(
+        "The agent protects no guest of its own accord: if it runs in a VM or container of this cluster, put that guest's VMID in ONEUPTIME_AI_PROTECTED_TARGETS.",
+      ),
     ],
-    writeTargetNoun: "guest ids (VMIDs)",
+    writeTargetNoun: translationKey("guest ids (VMIDs)"),
     writeTargetsExample: "100,101",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated guest ids (VMIDs) and node services (pve1/pveproxy) OneUptime AI must never change. The agent protects no guest on its own: put the VMID of the guest it runs in here, if it runs on this cluster.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent start, resume, reboot, shut down, stop, suspend and reset guests and restart node services through the Proxmox VE API — as far as its API token's role allows, which is the hard limit. OneUptime still holds the line: it never changes configuration, deletes anything, touches snapshots or /access, migrating a guest always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the guests it names.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.VMwareVCenter]: {
     directory: "/opt/oneuptime-vmware-agent",
-    collectorName: "VMware agent",
+    collectorName: translationKey("VMware agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: true,
@@ -359,19 +385,23 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "The vSphere role is the hard limit: the collector's Read-Only user lets AI read and nothing else. Fixes need a user of the agent's own whose role may power VMs on and off, set as ONEUPTIME_AI_VCENTER_USERNAME and ONEUPTIME_AI_VCENTER_PASSWORD — see the VMware agent's README.",
+      translationKey(
+        "The vSphere role is the hard limit: the collector's Read-Only user lets AI read and nothing else. Fixes need a user of the agent's own whose role may power VMs on and off, set as ONEUPTIME_AI_VCENTER_USERNAME and ONEUPTIME_AI_VCENTER_PASSWORD — see the VMware agent's README.",
+      ),
     ],
-    writeTargetNoun: "VM and host names or inventory paths",
+    writeTargetNoun: translationKey("VM and host names or inventory paths"),
     writeTargetsExample: "web-*,/dc1/vm/api-01",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated VM and host names (* matches any run of characters) OneUptime AI must never change, on top of the VM named after VCENTER_ENDPOINT's host. Put the vCenter appliance's VM here when VCENTER_ENDPOINT is an IP address or the VM is named otherwise: the agent knows the appliance by that name only.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent power VMs on, off, reset, suspend and reboot them and take hosts out of maintenance mode — as far as its vSphere role allows, which is the hard limit. OneUptime still holds the line: it never destroys, creates, reconfigures or snapshots a VM, migrating a VM or entering maintenance mode always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the VMs and hosts it names.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.CephCluster]: {
     directory: "/opt/oneuptime-ceph-agent",
-    collectorName: "Ceph agent",
+    collectorName: translationKey("Ceph agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: true,
@@ -392,20 +422,26 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      'Give the agent its own client, never the admin keyring: ceph auth get-or-create client.oneuptime-ai mon "allow r" mgr "allow r" osd "allow r" -o ceph/ceph.client.oneuptime-ai.keyring — read-only caps keep it read-only whatever else is set. Put it and a minimal ceph.conf (ceph config generate-minimal-conf > ceph/ceph.conf) in ./ceph next to docker-compose.yml, owned by UID 1000 with mode 600.',
-      "The container must reach the monitors (ports 3300 and 6789) and the mgr and OSD daemons (6800-7300).",
+      translationKey(
+        'Give the agent its own client, never the admin keyring: ceph auth get-or-create client.oneuptime-ai mon "allow r" mgr "allow r" osd "allow r" -o ceph/ceph.client.oneuptime-ai.keyring — read-only caps keep it read-only whatever else is set. Put it and a minimal ceph.conf (ceph config generate-minimal-conf > ceph/ceph.conf) in ./ceph next to docker-compose.yml, owned by UID 1000 with mode 600.',
+      ),
+      translationKey(
+        "The container must reach the monitors (ports 3300 and 6789) and the mgr and OSD daemons (6800-7300).",
+      ),
     ],
-    writeTargetNoun: "OSDs, daemons and PGs",
+    writeTargetNoun: translationKey("OSDs, daemons and PGs"),
     writeTargetsExample: "osd.*",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated OSDs, pools, daemons and PGs (for example osd.3) OneUptime AI must never change. The agent protects nothing of its own accord: this is the whole list.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent mark OSDs in, out and down, set and unset cluster flags, reweight OSDs, scrub and repair PGs, fail over the mgr and restart, stop and start daemons — as far as its keyring's caps allow, which are the hard limit. OneUptime still holds the line: it never purges or destroys an OSD, never deletes or reconfigures a pool, never touches auth or config-key, pausing client I/O always waits for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the targets it names.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.DatabaseServer]: {
     directory: "/opt/oneuptime-database-agent",
-    collectorName: "database agent",
+    collectorName: translationKey("database agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: false,
@@ -496,19 +532,23 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "The login's grants are the hard limit: the collector's monitoring login lets AI read and nothing else. Cancelling a query or ending a session needs a login that may signal other sessions (for example pg_signal_backend on PostgreSQL, CONNECTION_ADMIN on MySQL) — give the agent its own as ONEUPTIME_AI_DATABASE_USERNAME and ONEUPTIME_AI_DATABASE_PASSWORD.",
+      translationKey(
+        "The login's grants are the hard limit: the collector's monitoring login lets AI read and nothing else. Cancelling a query or ending a session needs a login that may signal other sessions (for example pg_signal_backend on PostgreSQL, CONNECTION_ADMIN on MySQL) — give the agent its own as ONEUPTIME_AI_DATABASE_USERNAME and ONEUPTIME_AI_DATABASE_PASSWORD.",
+      ),
     ],
     writeTargetNoun: null,
     writeTargetsExample: null,
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated session:<id> globs fixes never touch. The agent never ends its own session either way.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent cancel a running query and end one session at a time — as far as its login's grants allow, which are the hard limit. OneUptime still holds the line: it never runs free SQL, never changes a setting, schema, data, user or replication, and never ends its own session.",
+    ),
     isStandalone: false,
   },
   [AiResourceType.Host]: {
     directory: "/opt/oneuptime-host-ai-agent",
-    collectorName: "Host AI agent",
+    collectorName: translationKey("Host AI agent"),
     collectorShipsAgent: true,
     runtime: "docker",
     hasContainerName: true,
@@ -542,16 +582,24 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       },
     ],
     prerequisites: [
-      "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
-      "Put ONEUPTIME_URL and ONEUPTIME_TELEMETRY_INGESTION_KEY (your project's telemetry ingestion key) in a .env next to the file.",
-      "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.",
+      translationKey(
+        "Or let the installer write both files and start it: curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh && sudo bash install.sh",
+      ),
+      translationKey(
+        "Put ONEUPTIME_URL and ONEUPTIME_TELEMETRY_INGESTION_KEY (your project's telemetry ingestion key) in a .env next to the file.",
+      ),
+      translationKey(
+        "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.",
+      ),
     ],
-    writeTargetNoun: "systemd unit names",
+    writeTargetNoun: translationKey("systemd unit names"),
     writeTargetsExample: "nginx.service,app-*.service",
-    protectedTargetsDescription:
+    protectedTargetsDescription: translationKey(
       "Optional: comma-separated systemd unit names (* matches any run of characters) OneUptime AI must never change, on top of the agent itself.",
-    writeDisclosure:
+    ),
+    writeDisclosure: translationKey(
       "Write access lets the agent restart, start, reload, stop and reset systemd units, vacuum the journal and signal processes on this host — it runs privileged in the host's namespaces, so the command policy, the write switch and the write targets are the only limits. OneUptime still holds the line: it never enables, masks or edits a unit, never reboots or powers off, changes to protected units (sshd, systemd-*, dbus, networking, docker, …) and killing a process always wait for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches the units it names.",
+    ),
     isStandalone: true,
   },
 };
@@ -757,8 +805,17 @@ export function getResourceAiAgentInstall(data: {
             name: info.identityEnvVars[0] || "",
             value: identity || "from .env",
             description: identity
-              ? `The name this ${noun} reports. The agent must register with exactly this name, or it serves a different ${noun}.`
-              : `Must be the name the ${spec.collectorName} reports, so the agent serves this ${noun}.`,
+              ? translateTemplate(
+                  "The name this {{noun}} reports. The agent must register with exactly this name, or it serves a different {{noun}}.",
+                  { noun: translatableTerm(noun) },
+                )
+              : translateTemplate(
+                  "Must be the name the {{collectorName}} reports, so the agent serves this {{noun}}.",
+                  {
+                    collectorName: translatableTerm(spec.collectorName),
+                    noun: translatableTerm(noun),
+                  },
+                ),
           },
           ...(isIdentityPinned({ resourceType: data.resourceType, identity })
             ? []
@@ -766,7 +823,14 @@ export function getResourceAiAgentInstall(data: {
                 {
                   name: RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
                   value: "(empty)",
-                  description: `Optional: overrides ${info.identityEnvVars[0] || "the identity"} as the name the agent registers under.`,
+                  description: info.identityEnvVars[0]
+                    ? translateTemplate(
+                        "Optional: overrides {{variable}} as the name the agent registers under.",
+                        { variable: info.identityEnvVars[0] },
+                      )
+                    : translateTemplate(
+                        "Optional: overrides the identity as the name the agent registers under.",
+                      ),
                 },
               ]),
         ];
@@ -776,19 +840,41 @@ export function getResourceAiAgentInstall(data: {
    * lists every one the collector's shipped service does — so the .env
    * the collector uses configures the agent completely.
    */
-  const settingsSource: string =
-    "it takes every variable below from the same .env";
+  // Whole sentences, so each one reads in the reader's language.
+  const collectorName: TranslatableTerm = translatableTerm(spec.collectorName);
   let whereText: string;
 
   if (spec.isStandalone) {
-    whereText = `Save this as docker-compose.yml in ${spec.directory || "a directory of its own"} on the ${noun}, next to a .env file.`;
+    whereText = spec.directory
+      ? translateTemplate(
+          "Save this as docker-compose.yml in {{directory}} on the {{noun}}, next to a .env file.",
+          { directory: spec.directory, noun: translatableTerm(noun) },
+        )
+      : translateTemplate(
+          "Save this as docker-compose.yml in a directory of its own on the {{noun}}, next to a .env file.",
+          { noun: translatableTerm(noun) },
+        );
   } else if (!spec.collectorShipsAgent) {
-    whereText = `Add this service to the ${spec.collectorName}'s docker-compose.yml${spec.directory ? ` (in ${spec.directory} by default)` : ""} — ${settingsSource}.`;
+    whereText = spec.directory
+      ? translateTemplate(
+          "Add this service to the {{collectorName}}'s docker-compose.yml (in {{directory}} by default) — it takes every variable below from the same .env.",
+          { collectorName: collectorName, directory: spec.directory },
+        )
+      : translateTemplate(
+          "Add this service to the {{collectorName}}'s docker-compose.yml — it takes every variable below from the same .env.",
+          { collectorName: collectorName },
+        );
   } else if (!spec.directory) {
     // Usually installed with install.sh (plain containers): that comes first.
-    whereText = `Installed the ${spec.collectorName} with install.sh? Run it again: it now starts this agent too, as the container ${service}. With Compose, the ${spec.collectorName}'s docker-compose.yml ships this service; for an older Compose install, add it to your docker-compose.yml — ${settingsSource}.`;
+    whereText = translateTemplate(
+      "Installed the {{collectorName}} with install.sh? Run it again: it now starts this agent too, as the container {{service}}. With Compose, the {{collectorName}}'s docker-compose.yml ships this service; for an older Compose install, add it to your docker-compose.yml — it takes every variable below from the same .env.",
+      { collectorName: collectorName, service: service },
+    );
   } else {
-    whereText = `The ${spec.collectorName}'s docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in ${spec.directory} — ${settingsSource}.`;
+    whereText = translateTemplate(
+      "The {{collectorName}}'s docker-compose.yml ships this service; new installs run it already. For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env.",
+      { collectorName: collectorName, directory: spec.directory },
+    );
   }
 
   return {
@@ -812,7 +898,9 @@ export function getResourceAiAgentInstall(data: {
         value: "from .env",
         description: spec.isStandalone
           ? "Your project's telemetry ingestion key."
-          : `The key the ${spec.collectorName} already uses.`,
+          : translateTemplate("The key the {{collectorName}} already uses.", {
+              collectorName: collectorName,
+            }),
       },
       ...spec.connectionVariables.map(
         (variable: ConnectionVariable): ResourceAiAgentInstallVariable => {
@@ -836,7 +924,10 @@ export function getResourceAiAgentInstall(data: {
         name: RESOURCE_AI_WRITE_TARGETS_ENV,
         value: "(empty)",
         description: spec.writeTargetNoun
-          ? `Optional: comma-separated ${spec.writeTargetNoun} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.`
+          ? translateTemplate(
+              "Optional: comma-separated {{targets}} fixes may change (* matches any run of characters). Empty means any, except the agent itself and its collector.",
+              { targets: translatableTerm(spec.writeTargetNoun) },
+            )
           : "Optional: comma-separated targets fixes may change. Empty means any, except the agent's own.",
       },
       {
@@ -879,25 +970,54 @@ export function getResourceAiAgentWriteAccessCommands(
 ): ResourceAiAgentWriteAccessCommands {
   const spec: InstallSpec = INSTALL_SPECS[resourceType];
   const service: string = getResourceAiAgentServiceName(resourceType);
-  const envFile: string = spec.directory
-    ? "the .env next to its docker-compose.yml"
-    : "the .env next to your docker-compose.yml";
-  const envIntro: string = spec.writeTargetsExample
-    ? `Recommended: allow only the targets AI may fix. Set these in ${envFile}:`
-    : `Set this in ${envFile}:`;
+  // Whole sentences: with or without targets, in the collector's directory or not.
+  let envIntro: string;
+
+  if (spec.directory) {
+    envIntro = spec.writeTargetsExample
+      ? translateTemplate(
+          "Recommended: allow only the targets AI may fix. Set these in the .env next to its docker-compose.yml:",
+        )
+      : translateTemplate(
+          "Set this in the .env next to its docker-compose.yml:",
+        );
+  } else {
+    envIntro = spec.writeTargetsExample
+      ? translateTemplate(
+          "With Compose instead? Recommended: allow only the targets AI may fix. Set these in the .env next to your docker-compose.yml:",
+        )
+      : translateTemplate(
+          "With Compose instead? Set this in the .env next to your docker-compose.yml:",
+        );
+  }
 
   return {
     installerNote: spec.directory
       ? null
-      : `Installed the ${spec.collectorName} with install.sh? Run it again with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true (and ${RESOURCE_AI_WRITE_TARGETS_ENV}) set in its environment: it starts the agent again with them. Started the agent with ${spec.runtime} run? Remove it (${spec.runtime} rm -f ${service}) and start it again with -e ${RESOURCE_AI_ALLOW_WRITES_ENV}=true.`,
-    envIntro: spec.directory ? envIntro : `With Compose instead? ${envIntro}`,
+      : translateTemplate(
+          "Installed the {{collectorName}} with install.sh? Run it again with {{allowWrites}}=true (and {{writeTargets}}) set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} rm -f {{service}}) and start it again with -e {{allowWrites}}=true.",
+          {
+            collectorName: translatableTerm(spec.collectorName),
+            allowWrites: RESOURCE_AI_ALLOW_WRITES_ENV,
+            writeTargets: RESOURCE_AI_WRITE_TARGETS_ENV,
+            runtime: spec.runtime,
+            service: service,
+          },
+        ),
+    envIntro: envIntro,
     scopedEnv: spec.writeTargetsExample
       ? `${RESOURCE_AI_ALLOW_WRITES_ENV}=true
 ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
       : null,
     scopedNote:
       spec.writeTargetsExample && spec.writeTargetNoun
-        ? `Replace ${spec.writeTargetsExample} with the ${spec.writeTargetNoun} AI may fix (comma-separated, * matches any run of characters). A fix anywhere else is refused by the agent itself.`
+        ? translateTemplate(
+            "Replace {{example}} with the {{targets}} AI may fix (comma-separated, * matches any run of characters). A fix anywhere else is refused by the agent itself.",
+            {
+              example: spec.writeTargetsExample,
+              targets: translatableTerm(spec.writeTargetNoun),
+            },
+          )
         : null,
     allTargetsEnv: `${RESOURCE_AI_ALLOW_WRITES_ENV}=true`,
     restartCommand: composeCommand(resourceType, `up -d ${service}`),
@@ -912,7 +1032,7 @@ ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
 export function getResourceAiAgentWriteDisclosure(
   resourceType: AiResourceType,
 ): string {
-  return INSTALL_SPECS[resourceType].writeDisclosure;
+  return translateTemplate(INSTALL_SPECS[resourceType].writeDisclosure);
 }
 
 /*

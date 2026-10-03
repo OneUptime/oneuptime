@@ -5,7 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
@@ -16,10 +16,14 @@ import IconProp from "Common/Types/Icon/IconProp";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardUserUtil from "../../../Utils/User";
 import ScheduleSubscribeCard from "../../../Components/OnCallPolicy/CalendarFeed/ScheduleSubscribeCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [onCallSchedule, setOnCallSchedule] =
@@ -39,80 +43,116 @@ const OnCallDutyScheduleView: FunctionComponent<
       <div className="space-y-2">
         {onCallSchedule.currentUserOnRoster && (
           <div>
-            <strong>
-              <AppLink
-                className="underline"
-                to={DashboardUserUtil.getUserLinkInDashboard(
-                  onCallSchedule.currentUserOnRoster.id!,
-                )}
-              >
-                {onCallSchedule.currentUserOnRoster.name?.toString() ||
-                  onCallSchedule.currentUserOnRoster.email?.toString() ||
-                  ""}
-              </AppLink>
-            </strong>{" "}
-            is currently on the roster for this schedule. &nbsp;
+            <TranslatedSentence
+              template="{{user}} is currently on the roster for this schedule."
+              slots={{
+                user: (
+                  <strong>
+                    <AppLink
+                      className="underline"
+                      to={DashboardUserUtil.getUserLinkInDashboard(
+                        onCallSchedule.currentUserOnRoster.id!,
+                      )}
+                    >
+                      {onCallSchedule.currentUserOnRoster.name?.toString() ||
+                        onCallSchedule.currentUserOnRoster.email?.toString() ||
+                        ""}
+                    </AppLink>
+                  </strong>
+                ),
+              }}
+            />{" "}
+            &nbsp;
             {onCallSchedule.rosterStartAt && onCallSchedule.rosterHandoffAt && (
               <span>
-                This user has been on the roster since{" "}
-                <strong>
-                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    onCallSchedule.rosterStartAt,
-                  )}
-                </strong>{" "}
-                and will remain on the roster until{" "}
-                <strong>
-                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    onCallSchedule.rosterHandoffAt,
-                  )}
-                </strong>
-                . &nbsp;
+                <TranslatedSentence
+                  template="This user has been on the roster since {{start}} and will remain on the roster until {{end}}."
+                  slots={{
+                    start: (
+                      <strong>
+                        {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                          onCallSchedule.rosterStartAt,
+                        )}
+                      </strong>
+                    ),
+                    end: (
+                      <strong>
+                        {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                          onCallSchedule.rosterHandoffAt,
+                        )}
+                      </strong>
+                    ),
+                  }}
+                />{" "}
+                &nbsp;
               </span>
             )}
           </div>
         )}
         {!onCallSchedule.currentUserOnRoster && (
           <div>
-            <strong>No one is currently on call in this schedule.</strong>{" "}
+            <strong>
+              {translator.translateText(
+                "No one is currently on call in this schedule.",
+              )}
+            </strong>{" "}
             <span>
               {onCallSchedule.nextUserOnRoster
-                ? "This is a coverage gap: any alert that escalates to this schedule right now will not page anyone. Coverage resumes at the hand-off below."
-                : "Nobody is on call now and nobody is scheduled next, so every alert that escalates to this schedule will go unanswered. Check the layers below - a layer with no users assigned, or restricted active hours with no 24/7 fallback layer, will leave the schedule uncovered."}
+                ? translator.translateText(
+                    "This is a coverage gap: any alert that escalates to this schedule right now will not page anyone. Coverage resumes at the hand-off below.",
+                  )
+                : translator.translateText(
+                    "Nobody is on call now and nobody is scheduled next, so every alert that escalates to this schedule will go unanswered. Check the layers below - a layer with no users assigned, or restricted active hours with no 24/7 fallback layer, will leave the schedule uncovered.",
+                  )}
               &nbsp;
             </span>
           </div>
         )}
         {onCallSchedule.nextUserOnRoster && (
           <div>
-            <strong>
-              <AppLink
-                className="underline"
-                to={DashboardUserUtil.getUserLinkInDashboard(
-                  onCallSchedule.nextUserOnRoster.id!,
-                )}
-              >
-                {onCallSchedule.nextUserOnRoster.name?.toString() ||
-                  onCallSchedule.nextUserOnRoster.email?.toString() ||
-                  ""}
-              </AppLink>
-            </strong>{" "}
-            is the next user scheduled to be on the roster. &nbsp;
+            <TranslatedSentence
+              template="{{user}} is the next user scheduled to be on the roster."
+              slots={{
+                user: (
+                  <strong>
+                    <AppLink
+                      className="underline"
+                      to={DashboardUserUtil.getUserLinkInDashboard(
+                        onCallSchedule.nextUserOnRoster.id!,
+                      )}
+                    >
+                      {onCallSchedule.nextUserOnRoster.name?.toString() ||
+                        onCallSchedule.nextUserOnRoster.email?.toString() ||
+                        ""}
+                    </AppLink>
+                  </strong>
+                ),
+              }}
+            />{" "}
+            &nbsp;
             {onCallSchedule.rosterNextHandoffAt &&
               onCallSchedule.rosterNextStartAt && (
                 <span>
-                  This user will be on the roster from{" "}
-                  <strong>
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      onCallSchedule.rosterNextStartAt,
-                    )}
-                  </strong>{" "}
-                  and remain on the roster until{" "}
-                  <strong>
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      onCallSchedule.rosterNextHandoffAt,
-                    )}
-                  </strong>
-                  . &nbsp;
+                  <TranslatedSentence
+                    template="This user will be on the roster from {{start}} and remain on the roster until {{end}}."
+                    slots={{
+                      start: (
+                        <strong>
+                          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            onCallSchedule.rosterNextStartAt,
+                          )}
+                        </strong>
+                      ),
+                      end: (
+                        <strong>
+                          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            onCallSchedule.rosterNextHandoffAt,
+                          )}
+                        </strong>
+                      ),
+                    }}
+                  />{" "}
+                  &nbsp;
                 </span>
               )}
           </div>
@@ -130,16 +170,6 @@ const OnCallDutyScheduleView: FunctionComponent<
           title: "On-Call Schedule Details",
           description: "Here are more details for this on-call Schedule.",
         }}
-        formSteps={[
-          {
-            title: "On-Call Schedule Info",
-            id: "on-call-Schedule-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         isEditable={true}
         formFields={[
           {
@@ -147,7 +177,6 @@ const OnCallDutyScheduleView: FunctionComponent<
               name: true,
             },
             title: "Name",
-            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "On-Call Schedule Name",
@@ -159,29 +188,12 @@ const OnCallDutyScheduleView: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "on-call-Schedule-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<OnCallDutySchedule>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

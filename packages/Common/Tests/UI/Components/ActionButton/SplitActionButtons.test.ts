@@ -9,6 +9,7 @@ import splitActionButtons, {
 } from "../../../../UI/Components/ActionButton/SplitActionButtons";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import { describe, expect, test } from "@jest/globals";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
  * A table row shows one of its actions as a button and folds the rest into a ⋯
@@ -37,6 +38,7 @@ const action: ActionFunction = (
 ): ActionButtonSchema<Row> => {
   return {
     title,
+    icon: IconProp.Circle,
     buttonStyleType,
     onClick: () => {},
     ...extra,

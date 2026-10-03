@@ -78,14 +78,13 @@ SLO owners are notified when the status changes to **At Risk** or **Budget Exhau
 
 1. Go to **SLOs** in the OneUptime Dashboard
 2. Click **Create SLO**
-3. Work through the four steps:
+3. Work through the three steps:
 
 | Step           | What you set                                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic Info** | The **name** and an optional **description**.                                                                                                                 |
+| **Basic Info** | The **name** and an optional **description**. Optional **labels**, to organize and filter SLOs, are under **Advanced**.                                        |
 | **Objective**  | The **target percentage** (e.g., `99.9`) and the **at-risk threshold** (20 by default).                                                                       |
 | **Period**     | The **window type** — **Rolling** (then the window length in days, 1 to 366, 30 by default) or **Calendar Month** (then the **timezone** the month rolls over in). |
-| **Labels**     | Optional **labels** to organize and filter SLOs.                                                                                                              |
 
 The create form asks only what the SLO is. Everything about how it measures starts from a default you can change later:
 
@@ -128,6 +127,8 @@ Open an SLO from the SLO list to see its pages in the side menu:
 | **Settings**        | The objective, compliance period, downtime calculation and evaluation switch, and the archive card.                                                                                 |
 | **Audit Logs**      | Who changed the SLO, its burn rate rules, monitor rules and owners, and when.                                                                                                       |
 | **Delete SLO**      | Deletes the SLO permanently. Its open burn rate alerts and incidents are resolved first. To stop measuring an SLO but keep it, archive it instead.                                  |
+
+In the side menu, the configuration pages (**Monitors**, **Monitor Rules**, **Burn Rate Rules**) sit in a **Configuration** section and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. Both start collapsed, so the menu opens on the SLO's health and activity: click a section's title to show its pages. Each opens by itself whenever you are on one of its pages.
 
 Links to the old **Charts** page still work and show the same history charts as **Metrics** → **Error Budget History**.
 
@@ -178,7 +179,7 @@ When an SLO is archived:
 - Its open burn rate alerts and incidents are **resolved**.
 - Its settings, history, burn rate rules, monitor rules and owners are kept. Monitor rules keep the monitor list current while it is archived, so it resumes with the right monitors.
 
-Archived SLOs are listed on the **Archived** page in the SLO list's side menu, with their target, window, last evaluation, labels, when they were archived and by whom. Select SLOs there and choose **Unarchive** to bring them back.
+Archived SLOs are listed on the **Archived** page, under **Advanced** in the SLO list's side menu, with their target, window, last evaluation, labels, when they were archived and by whom. Select SLOs there and choose **Unarchive** to bring them back.
 
 An unarchived SLO reappears in the SLO list and is evaluated again on the next run, with its SLI and error budget recomputed from its monitors' history.
 

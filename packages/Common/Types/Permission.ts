@@ -17,6 +17,7 @@ export enum PermissionGroup {
   Telemetry = "Telemetry",
   Workflow = "Workflow",
   Runbook = "Runbook",
+  Form = "Form",
   AutoRemediation = "Auto Remediation",
   Team = "Team",
   Billing = "Billing",
@@ -1902,15 +1903,21 @@ enum Permission {
   EditIncidentAlert = "EditIncidentAlert",
   ReadIncidentAlert = "ReadIncidentAlert",
 
-  // Incident Form (public forms that declare incidents) Permissions
-  CreateIncidentForm = "CreateIncidentForm",
-  DeleteIncidentForm = "DeleteIncidentForm",
-  EditIncidentForm = "EditIncidentForm",
-  ReadIncidentForm = "ReadIncidentForm",
+  /*
+   * Form (the Forms product: forms anyone with the link can fill in, whose
+   * submissions create incidents or scheduled maintenance events)
+   * Permissions. They replaced the incident form permissions, and the
+   * migration that moved incident forms into Forms gave every team and API
+   * key holding one of those the matching one of these.
+   */
+  CreateForm = "CreateForm",
+  DeleteForm = "DeleteForm",
+  EditForm = "EditForm",
+  ReadForm = "ReadForm",
 
-  // Incident Form Submission Permissions
-  DeleteIncidentFormSubmission = "DeleteIncidentFormSubmission",
-  ReadIncidentFormSubmission = "ReadIncidentFormSubmission",
+  // Form Submission Permissions
+  DeleteFormSubmission = "DeleteFormSubmission",
+  ReadFormSubmission = "ReadFormSubmission",
 
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
@@ -15590,68 +15597,67 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
-      // Incident Form Permissions
+      // Form Permissions
       {
-        permission: Permission.CreateIncidentForm,
-        title: "Create Incident Form",
+        permission: Permission.CreateForm,
+        title: "Create Form",
         description:
-          "This permission can create incident forms in this project. Anyone with a form's link can declare an incident through it.",
+          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a scheduled maintenance event.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
-        group: PermissionGroup.Incident,
+        group: PermissionGroup.Form,
       },
       {
-        permission: Permission.DeleteIncidentForm,
-        title: "Delete Incident Form",
-        description:
-          "This permission can delete incident forms in this project.",
+        permission: Permission.DeleteForm,
+        title: "Delete Form",
+        description: "This permission can delete forms in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
-        group: PermissionGroup.Incident,
+        group: PermissionGroup.Form,
       },
       {
-        permission: Permission.EditIncidentForm,
-        title: "Edit Incident Form",
+        permission: Permission.EditForm,
+        title: "Edit Form",
         description:
-          "This permission can edit incident forms in this project, including turning a form off and resetting its link.",
+          "This permission can edit forms in this project: their questions, what a submission creates, turning a form off and resetting its link.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
-        group: PermissionGroup.Incident,
+        group: PermissionGroup.Form,
       },
       {
-        permission: Permission.ReadIncidentForm,
-        title: "Read Incident Form",
+        permission: Permission.ReadForm,
+        title: "Read Form",
         description:
-          "This permission can read incident forms in this project, including their links.",
+          "This permission can read forms in this project, including their links.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
-        group: PermissionGroup.Incident,
+        group: PermissionGroup.Form,
       },
 
-      // Incident Form Submission Permissions
+      // Form Submission Permissions
       {
-        permission: Permission.DeleteIncidentFormSubmission,
-        title: "Delete Incident Form Submission",
+        permission: Permission.DeleteFormSubmission,
+        title: "Delete Form Submission",
         description:
-          "This permission can delete incident form submissions, and the reporter's name and email they hold, in this project.",
+          "This permission can delete form submissions in this project, and the answers, name and email they hold.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
-        group: PermissionGroup.Incident,
+        group: PermissionGroup.Form,
       },
       {
-        permission: Permission.ReadIncidentFormSubmission,
-        title: "Read Incident Form Submission",
+        permission: Permission.ReadFormSubmission,
+        title: "Read Form Submission",
         description:
-          "This permission can read the submissions made through incident forms in this project, including the reporter's name and email.",
+          "This permission can read the submissions made through forms in this project, including every answer and the submitter's name and email.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
-        group: PermissionGroup.Incident,
+        group: PermissionGroup.Form,
       },
 
       // Incident Episode State Timeline Permissions

@@ -1,12 +1,4 @@
-import UserCall from "../../../../Components/NotificationMethods/Call";
-import UserEmailMethods from "../../../../Components/NotificationMethods/Email";
-import UserPush from "../../../../Components/NotificationMethods/Push";
-import UserSMS from "../../../../Components/NotificationMethods/SMS";
-import UserTelegram from "../../../../Components/NotificationMethods/Telegram";
-import UserSlackMethods from "../../../../Components/NotificationMethods/Slack";
-import UserMicrosoftTeamsMethods from "../../../../Components/NotificationMethods/MicrosoftTeams";
-import UserWebhook from "../../../../Components/NotificationMethods/Webhook";
-import UserWhatsApp from "../../../../Components/NotificationMethods/WhatsApp";
+import NotificationMethodTabs from "../../../../Components/NotificationMethods/NotificationMethodTabs";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -28,7 +20,6 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -39,6 +30,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * Users > View > Notification Methods — where a project owner or admin can set
@@ -216,6 +210,7 @@ interface AddMethodFormValues {
 const UserViewNotificationMethods: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const context: UserOnCallContextValue = useUserOnCallContext();
 
   const { userId, firstName, displayName, isSelf, canManageMethods } = context;
@@ -311,40 +306,7 @@ const UserViewNotificationMethods: FunctionComponent<
   if (isSelf) {
     return (
       <Fragment>
-        <Tabs
-          tabs={[
-            {
-              name: "Direct Contact",
-              children: (
-                <div className="space-y-4">
-                  <UserEmailMethods />
-                  <UserSMS />
-                  <UserCall />
-                  <UserWhatsApp />
-                  <UserTelegram />
-                </div>
-              ),
-            },
-            {
-              name: "Workspace Apps",
-              children: (
-                <div className="space-y-4">
-                  <UserSlackMethods />
-                  <UserMicrosoftTeamsMethods />
-                </div>
-              ),
-            },
-            {
-              name: "Push Notifications",
-              children: <UserPush />,
-            },
-            {
-              name: "Webhooks",
-              children: <UserWebhook />,
-            },
-          ]}
-          onTabChange={() => {}}
-        />
+        <NotificationMethodTabs />
       </Fragment>
     );
   }
@@ -585,16 +547,33 @@ const UserViewNotificationMethods: FunctionComponent<
           data-testid="no-methods-empty-state"
         >
           <p className="text-sm leading-relaxed text-gray-700">
-            <span className="font-semibold text-gray-900">
-              {displayName || "This user"}
-            </span>{" "}
-            has no notification methods at all, so every page routed to them is
-            dropped no matter what their notification rules say.
+            {displayName ? (
+              <TranslatedSentence
+                template="{{name}} has no notification methods at all, so every page routed to them is dropped no matter what their notification rules say."
+                slots={{
+                  name: (
+                    <span className="font-semibold text-gray-900">
+                      {displayName}
+                    </span>
+                  ),
+                }}
+              />
+            ) : (
+              translator.translateText(
+                "This user has no notification methods at all, so every page routed to them is dropped no matter what their notification rules say.",
+              )
+            )}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
             {canManageMethods
-              ? `Add one for ${firstName} and a verification code goes to that address or device. Only ${firstName} can enter it, so the method stays inactive until they do.`
-              : `Ask a project owner or admin for the "Manage User Notification Methods" permission, or send ${firstName} the setup link.`}
+              ? translator.translateTemplate(
+                  "Add one for {{name}} and a verification code goes to that address or device. Only {{name}} can enter it, so the method stays inactive until they do.",
+                  { name: firstName },
+                )
+              : translator.translateTemplate(
+                  'Ask a project owner or admin for the "Manage User Notification Methods" permission, or send {{name}} the setup link.',
+                  { name: firstName },
+                )}
           </p>
         </div>
       );
@@ -619,11 +598,16 @@ const UserViewNotificationMethods: FunctionComponent<
 
               {method.isVerified ? (
                 <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                  Verified
+                  {translator.translateText("Verified")}
                 </span>
               ) : (
                 <span className="ml-auto inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                  Waiting for {firstName} to verify
+                  {translator.translateTemplate(
+                    "Waiting for {{name}} to verify",
+                    {
+                      name: firstName,
+                    },
+                  )}
                 </span>
               )}
 
@@ -639,15 +623,31 @@ const UserViewNotificationMethods: FunctionComponent<
   };
 
   const getDeletionDescription: () => ReactElement = (): ReactElement => {
+    const identifierElement: ReactElement = (
+      <span className="font-medium text-gray-900">
+        {methodToDelete?.maskedIdentifier}
+      </span>
+    );
+
     return (
       <div className="space-y-2 text-sm text-gray-600">
         <p>
-          This removes the {methodToDelete?.methodType} method{" "}
-          <span className="font-medium text-gray-900">
-            {methodToDelete?.maskedIdentifier}
-          </span>{" "}
-          from {displayName || "this user"}&apos;s account, and every
-          notification rule that points at it goes with it.
+          {displayName ? (
+            <TranslatedSentence
+              template="This removes the {{methodType}} method {{identifier}} from {{name}}'s account, and every notification rule that points at it goes with it."
+              slots={{ identifier: identifierElement }}
+              values={{
+                methodType: methodToDelete?.methodType || "",
+                name: displayName,
+              }}
+            />
+          ) : (
+            <TranslatedSentence
+              template="This removes the {{methodType}} method {{identifier}} from this user's account, and every notification rule that points at it goes with it."
+              slots={{ identifier: identifierElement }}
+              values={{ methodType: methodToDelete?.methodType || "" }}
+            />
+          )}
         </p>
 
         {isLoadingPreview ? (
@@ -659,16 +659,31 @@ const UserViewNotificationMethods: FunctionComponent<
         {deletionPreview ? (
           <div data-testid="deletion-preview">
             <p>
-              {deletionPreview.rulesDeletedCount === 1
-                ? "1 notification rule will be deleted"
-                : `${deletionPreview.rulesDeletedCount} notification rules will be deleted`}
               {deletionPreview.coverageLostCount > 0
-                ? `, leaving ${
-                    deletionPreview.coverageLostCount === 1
-                      ? "1 severity"
-                      : `${deletionPreview.coverageLostCount} severities`
-                  } with no rule at all.`
-                : "."}
+                ? translator.translatePlural(
+                    {
+                      one: "{{count}} notification rule will be deleted, leaving {{severities}} with no rule at all.",
+                      other:
+                        "{{count}} notification rules will be deleted, leaving {{severities}} with no rule at all.",
+                    },
+                    deletionPreview.rulesDeletedCount,
+                    {
+                      severities: translator.translatePlural(
+                        {
+                          one: "{{count}} severity",
+                          other: "{{count}} severities",
+                        },
+                        deletionPreview.coverageLostCount,
+                      ),
+                    },
+                  )
+                : translator.translatePlural(
+                    {
+                      one: "{{count}} notification rule will be deleted.",
+                      other: "{{count}} notification rules will be deleted.",
+                    },
+                    deletionPreview.rulesDeletedCount,
+                  )}
             </p>
 
             {/*
@@ -678,8 +693,10 @@ const UserViewNotificationMethods: FunctionComponent<
              */}
             {deletionPreview.verifiedMethodCountAfterDeletion === 0 ? (
               <p className="mt-2 font-medium text-red-700">
-                {firstName} will have no verified notification method left, so
-                nothing will be able to page them until they add one.
+                {translator.translateTemplate(
+                  "{{name}} will have no verified notification method left, so nothing will be able to page them until they add one.",
+                  { name: firstName },
+                )}
               </p>
             ) : (
               <></>
@@ -687,8 +704,9 @@ const UserViewNotificationMethods: FunctionComponent<
 
             {deletionPreview.isTruncated ? (
               <p className="mt-2 text-xs text-gray-500">
-                These numbers are a lower bound — there were more rules than
-                could be read in one go.
+                {translator.translateText(
+                  "These numbers are a lower bound — there were more rules than could be read in one go.",
+                )}
               </p>
             ) : (
               <></>
@@ -698,7 +716,16 @@ const UserViewNotificationMethods: FunctionComponent<
           <></>
         )}
 
-        <p>{displayName || "This user"} is emailed about this removal.</p>
+        <p>
+          {displayName
+            ? translator.translateTemplate(
+                "{{name}} is emailed about this removal.",
+                { name: displayName },
+              )
+            : translator.translateText(
+                "This user is emailed about this removal.",
+              )}
+        </p>
       </div>
     );
   };
@@ -707,7 +734,10 @@ const UserViewNotificationMethods: FunctionComponent<
     <Fragment>
       <Card
         title="Notification methods"
-        description={`The devices and addresses ${firstName}'s on-call notification rules can send to.`}
+        description={translator.translateTemplate(
+          "The devices and addresses {{name}}'s on-call notification rules can send to.",
+          { name: firstName },
+        )}
         buttons={
           canManageMethods
             ? [
@@ -737,15 +767,16 @@ const UserViewNotificationMethods: FunctionComponent<
            */}
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <p className="text-sm leading-relaxed text-gray-700">
-              You can add an email address, phone number or WhatsApp number for{" "}
-              {firstName}, and remove any method they no longer use. Identifiers
-              are always shown masked.
+              {translator.translateTemplate(
+                "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
+                { name: firstName },
+              )}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              A method you add stays inactive until {firstName} verifies it —
-              the code goes to the address or device itself and only they can
-              enter it. Push devices, Telegram and webhooks have to be set up by{" "}
-              {firstName} on their own device.
+              {translator.translateTemplate(
+                "A method you add stays inactive until {{name}} verifies it — the code goes to the address or device itself and only they can enter it. Push devices, Telegram and webhooks have to be set up by {{name}} on their own device.",
+                { name: firstName },
+              )}
             </p>
             {context.readiness ? (
               <a
@@ -753,7 +784,9 @@ const UserViewNotificationMethods: FunctionComponent<
                 className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
               >
                 <Icon icon={IconProp.Email} className="h-3.5 w-3.5" />
-                Email {firstName} the setup link
+                {translator.translateTemplate("Email {{name}} the setup link", {
+                  name: firstName,
+                })}
               </a>
             ) : (
               <></>
@@ -764,8 +797,20 @@ const UserViewNotificationMethods: FunctionComponent<
 
       {showAddModal ? (
         <BasicFormModal<AddMethodFormValues>
-          title={`Add a notification method for ${displayName || "this user"}`}
-          description={`A verification code is sent to the address or device you enter. ${firstName} has to enter that code before this method can notify them — you cannot verify it for them.`}
+          title={
+            displayName
+              ? translator.translateTemplate(
+                  "Add a notification method for {{name}}",
+                  { name: displayName },
+                )
+              : translator.translateTemplate(
+                  "Add a notification method for this user",
+                )
+          }
+          description={translator.translateTemplate(
+            "A verification code is sent to the address or device you enter. {{name}} has to enter that code before this method can notify them — you cannot verify it for them.",
+            { name: firstName },
+          )}
           isLoading={isSaving}
           error={addError}
           submitButtonText="Add"
@@ -822,7 +867,10 @@ const UserViewNotificationMethods: FunctionComponent<
 
       {methodToDelete ? (
         <ConfirmModal
-          title={`Remove this ${methodToDelete.methodType} method?`}
+          title={translator.translateTemplate(
+            "Remove this {{methodType}} method?",
+            { methodType: methodToDelete.methodType },
+          )}
           description={getDeletionDescription()}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}
@@ -846,7 +894,10 @@ const UserViewNotificationMethods: FunctionComponent<
       {resendMethod ? (
         <ConfirmModal
           title="Resend verification code"
-          description={`We will send a new verification code to ${resendMethod.maskedIdentifier}. Only ${firstName} can read it and enter it.`}
+          description={translator.translateTemplate(
+            "We will send a new verification code to {{identifier}}. Only {{name}} can read it and enter it.",
+            { identifier: resendMethod.maskedIdentifier, name: firstName },
+          )}
           submitButtonText="Resend code"
           isLoading={isSaving}
           error={resendError}
@@ -867,7 +918,10 @@ const UserViewNotificationMethods: FunctionComponent<
       {showResentConfirmation ? (
         <ConfirmModal
           title="Code sent"
-          description={`A new verification code is on its way. ${firstName} needs to enter it in their own user settings before this method can page them.`}
+          description={translator.translateTemplate(
+            "A new verification code is on its way. {{name}} needs to enter it in their own user settings before this method can page them.",
+            { name: firstName },
+          )}
           submitButtonText="Close"
           onSubmit={() => {
             setShowResentConfirmation(false);

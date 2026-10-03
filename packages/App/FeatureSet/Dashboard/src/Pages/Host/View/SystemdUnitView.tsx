@@ -78,6 +78,12 @@ import {
   systemdStatePlotRank,
   unitTypeLabel,
 } from "../Utils/SystemdUnits";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TemplateValues,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface UnitIdentity {
   latestSampleAt: Date | null;
@@ -137,6 +143,7 @@ interface StatTileProps {
 const StatTile: FunctionComponent<StatTileProps> = (
   props: StatTileProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     colorClasses[props.iconColor];
 
@@ -150,7 +157,7 @@ const StatTile: FunctionComponent<StatTileProps> = (
       <div className="flex items-center justify-between mb-3">
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {props.title}
+            {translator.translateText(props.title)}
           </span>
           <InfoTooltip label={props.title} text={props.description} />
         </div>
@@ -164,7 +171,9 @@ const StatTile: FunctionComponent<StatTileProps> = (
         {props.value}
       </div>
       {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
+        <div className="mt-1 text-xs text-gray-500">
+          {translator.translateText(props.sublabel)}
+        </div>
       ) : (
         <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
       )}
@@ -183,13 +192,14 @@ const StatTile: FunctionComponent<StatTileProps> = (
 const StatePill: FunctionComponent<{ state: string | null }> = (props: {
   state: string | null;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const meta: SystemdStateMeta = activeStateMeta(props.state);
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${meta.pill}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-      {meta.label}
+      {translator.translateText(meta.label)}
     </span>
   );
 };
@@ -209,6 +219,7 @@ const availabilityBarClass: (percent: number) => string = (
 const HostSystemdUnitView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const unitName: string = decodeUnitNameFromUrl(
     Navigation.getLastParamAsString(),
@@ -479,17 +490,21 @@ const HostSystemdUnitView: FunctionComponent<
     const hostDisplayName: string =
       (host.name as string | undefined) ||
       (host.hostIdentifier as string | undefined) ||
-      "host";
+      translator.translateTerm("host");
 
     const chips: Array<{ icon: IconProp; label: string }> = [];
     chips.push({
       icon: IconProp.Cog,
-      label: `Type: ${unitTypeLabel(unitName)}`,
+      label: translator.translateTemplate("Type: {{type}}", {
+        type: translatableTerm(unitTypeLabel(unitName)),
+      }),
     });
     if (identity?.latestSampleAt) {
       chips.push({
         icon: IconProp.Clock,
-        label: `Last sample ${OneUptimeDate.fromNow(identity.latestSampleAt)}`,
+        label: translator.translateTemplate("Last sample {{time}}", {
+          time: OneUptimeDate.fromNow(identity.latestSampleAt),
+        }),
       });
     }
 
@@ -523,7 +538,7 @@ const HostSystemdUnitView: FunctionComponent<
                       to={unitsRoute}
                       className="text-indigo-600 hover:text-indigo-900"
                     >
-                      Systemd Units
+                      {translator.translateText("Systemd Units")}
                     </Link>
                     <span className="mx-1.5 text-gray-300">/</span>
                     <Link
@@ -606,10 +621,14 @@ const HostSystemdUnitView: FunctionComponent<
                 ? "amber"
                 : "slate"
           }
-          value={activeStateMeta(identity.currentState).label}
+          value={translator.translateTerm(
+            activeStateMeta(identity.currentState).label,
+          )}
           sublabel={
             identity.latestSampleAt
-              ? `as of ${OneUptimeDate.fromNow(identity.latestSampleAt)}`
+              ? translator.translateTemplate("as of {{time}}", {
+                  time: OneUptimeDate.fromNow(identity.latestSampleAt),
+                })
               : "no samples in range"
           }
         />
@@ -623,7 +642,25 @@ const HostSystemdUnitView: FunctionComponent<
               ? "—"
               : `${availability.percent.toFixed(1)}%`
           }
-          sublabel={`active in ${availability.activeSampleCount} of ${availability.totalSampleCount} sample${availability.totalSampleCount === 1 ? "" : "s"}${truncatedFrom ? " (capped)" : ""}`}
+          sublabel={
+            truncatedFrom
+              ? translator.translatePlural(
+                  {
+                    one: "active in {{active}} of {{count}} sample (capped)",
+                    other: "active in {{active}} of {{count}} samples (capped)",
+                  },
+                  availability.totalSampleCount,
+                  { active: availability.activeSampleCount },
+                )
+              : translator.translatePlural(
+                  {
+                    one: "active in {{active}} of {{count}} sample",
+                    other: "active in {{active}} of {{count}} samples",
+                  },
+                  availability.totalSampleCount,
+                  { active: availability.activeSampleCount },
+                )
+          }
           percent={availability.percent}
           barClassName={
             availability.percent === null
@@ -636,7 +673,7 @@ const HostSystemdUnitView: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.unitType}
           icon={IconProp.Cog}
           iconColor="violet"
-          value={unitTypeLabel(unitName)}
+          value={translator.translateTerm(unitTypeLabel(unitName))}
           sublabel="systemd unit type"
         />
         <StatTile
@@ -647,7 +684,10 @@ const HostSystemdUnitView: FunctionComponent<
           value={transitions.length.toString()}
           sublabel={
             truncatedFrom
-              ? `since ${OneUptimeDate.fromNow(truncatedFrom)} (sample cap reached)`
+              ? translator.translateTemplate(
+                  "since {{time}} (sample cap reached)",
+                  { time: OneUptimeDate.fromNow(truncatedFrom) },
+                )
               : "in selected range"
           }
         />
@@ -703,7 +743,9 @@ const HostSystemdUnitView: FunctionComponent<
         min: 0,
         max: SYSTEMD_PLOT_RANK_MAX,
         precision: YAxisPrecision.NoDecimals,
-        formatter: systemdPlotRankLabel,
+        formatter: (rank: number): string => {
+          return translator.translateTerm(systemdPlotRankLabel(rank));
+        },
       },
     };
 
@@ -724,7 +766,7 @@ const HostSystemdUnitView: FunctionComponent<
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1">
               <h2 className="text-sm font-semibold text-gray-900">
-                State timeline
+                {translator.translateText("State timeline")}
               </h2>
               <InfoTooltip
                 label="State timeline"
@@ -734,11 +776,14 @@ const HostSystemdUnitView: FunctionComponent<
             <TimeRangeZoomHint revealOnHover={true} />
           </div>
           <p className="text-xs text-gray-500">
-            {`Worst observed state per interval${
-              truncatedFrom
-                ? `, from the most recent ${SAMPLE_FETCH_LIMIT} samples`
-                : " over the selected time range"
-            }. Exact changes are listed under State Changes.`}
+            {truncatedFrom
+              ? translator.translateTemplate(
+                  "Worst observed state per interval, from the most recent {{limit}} samples. Exact changes are listed under State Changes.",
+                  { limit: SAMPLE_FETCH_LIMIT },
+                )
+              : translator.translateText(
+                  "Worst observed state per interval over the selected time range. Exact changes are listed under State Changes.",
+                )}
           </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -770,23 +815,54 @@ const HostSystemdUnitView: FunctionComponent<
       MAX_TRANSITIONS_SHOWN,
     );
 
-    const scopeLabel: string = truncatedFrom
-      ? `since ${OneUptimeDate.getDateAsLocalFormattedString(truncatedFrom)} — the selected range exceeded the ${SAMPLE_FETCH_LIMIT}-sample cap`
-      : "in the selected time range";
+    /*
+     * Each case is a whole sentence: where the changes were looked for, and
+     * whether the list below is capped.
+     */
+    const cappedSince: string = truncatedFrom
+      ? OneUptimeDate.getDateAsLocalFormattedString(truncatedFrom)
+      : "";
+    const isListCapped: boolean = transitions.length > MAX_TRANSITIONS_SHOWN;
+    const listValues: TemplateValues = {
+      date: cappedSince,
+      limit: SAMPLE_FETCH_LIMIT,
+      shown: MAX_TRANSITIONS_SHOWN,
+      total: transitions.length,
+    };
+    let transitionsDescription: string = "";
+
+    if (transitions.length === 0) {
+      transitionsDescription = truncatedFrom
+        ? translator.translateTemplate(
+            "The unit state did not change since {{date}} — the selected range exceeded the {{limit}}-sample cap.",
+            listValues,
+          )
+        : translator.translateTemplate(
+            "The unit state did not change in the selected time range.",
+          );
+    } else if (truncatedFrom) {
+      transitionsDescription = isListCapped
+        ? translator.translateTemplate(
+            "State changes observed since {{date}} — the selected range exceeded the {{limit}}-sample cap, newest first (showing the latest {{shown}} of {{total}}).",
+            listValues,
+          )
+        : translator.translateTemplate(
+            "State changes observed since {{date}} — the selected range exceeded the {{limit}}-sample cap, newest first.",
+            listValues,
+          );
+    } else {
+      transitionsDescription = isListCapped
+        ? translator.translateTemplate(
+            "State changes observed in the selected time range, newest first (showing the latest {{shown}} of {{total}}).",
+            listValues,
+          )
+        : translator.translateTemplate(
+            "State changes observed in the selected time range, newest first.",
+          );
+    }
 
     return (
-      <Card
-        title="State Changes"
-        description={
-          transitions.length === 0
-            ? `The unit state did not change ${scopeLabel}.`
-            : `State changes observed ${scopeLabel}, newest first${
-                transitions.length > MAX_TRANSITIONS_SHOWN
-                  ? ` (showing the latest ${MAX_TRANSITIONS_SHOWN} of ${transitions.length})`
-                  : ""
-              }.`
-        }
-      >
+      <Card title="State Changes" description={transitionsDescription}>
         {transitions.length === 0 ? (
           <Fragment />
         ) : (
@@ -839,7 +915,10 @@ const HostSystemdUnitView: FunctionComponent<
     return (
       <Card
         title="No unit metrics in range"
-        description={`No "${unitName}" samples were found on this host during the selected time window. Pick a wider time range, or verify the OTel collector's systemd receiver is enabled on this host and that "${unitName}" matches its "units" patterns — the Documentation tab has setup steps, and the receiver needs otelcol-contrib ${MIN_OTELCOL_CONTRIB_VERSION} or newer.`}
+        description={translator.translateTemplate(
+          'No "{{unitName}}" samples were found on this host during the selected time window. Pick a wider time range, or verify the OTel collector\'s systemd receiver is enabled on this host and that "{{unitName}}" matches its "units" patterns — the Documentation tab has setup steps, and the receiver needs otelcol-contrib {{version}} or newer.',
+          { unitName: unitName, version: MIN_OTELCOL_CONTRIB_VERSION },
+        )}
       >
         <ResetTimeRangeZoomButton />
       </Card>

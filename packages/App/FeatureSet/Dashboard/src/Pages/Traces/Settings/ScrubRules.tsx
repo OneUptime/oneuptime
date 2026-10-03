@@ -20,6 +20,8 @@ import {
   Indigo500,
 } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface PillConfig {
   label: string;
@@ -148,6 +150,7 @@ Email, Credit Card, SSN, Phone Number, IP Address, or your own custom regex.
 const TraceScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelTable<TraceScrubRule>
       modelType={TraceScrubRule}
@@ -185,9 +188,7 @@ const TraceScrubRules: FunctionComponent<
         fieldsToScrub: "all",
       }}
       onBeforeCreate={async (item: TraceScrubRule) => {
-        if (!item.sortOrder) {
-          item.sortOrder = 1;
-        }
+        // No sortOrder: the server puts a new rule at the end of the list.
         if (!item.scrubAction) {
           item.scrubAction = "redact";
         }
@@ -323,7 +324,7 @@ const TraceScrubRules: FunctionComponent<
             return (
               <div>
                 <div className="font-medium text-gray-900">
-                  {item.name || "Untitled"}
+                  {item.name || translator.translateText("Untitled")}
                 </div>
                 {item.description && (
                   <div className="text-xs text-gray-500 mt-0.5">

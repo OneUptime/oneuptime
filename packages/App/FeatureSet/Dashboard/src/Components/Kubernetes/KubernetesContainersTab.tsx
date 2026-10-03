@@ -15,6 +15,8 @@ import type Columns from "Common/UI/Components/Table/Types/Columns";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/KubernetesResourceMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 function formatK8sResourceValue(key: string, value: string): string {
   if (!value) {
@@ -144,6 +146,7 @@ const volumeMountColumns: Columns<VolumeMountRow> = [
 const ContainerCard: FunctionComponent<ContainerCardProps> = (
   props: ContainerCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showEnv, setShowEnv] = useState<boolean>(false);
   const [showMounts, setShowMounts] = useState<boolean>(false);
 
@@ -158,7 +161,10 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
 
   return (
     <Card
-      title={`${props.isInit ? "Init Container: " : "Container: "}${props.container.name}`}
+      title={translator.translateTemplate(
+        props.isInit ? "Init Container: {{name}}" : "Container: {{name}}",
+        { name: props.container.name },
+      )}
       description={props.container.image}
     >
       <div className="space-y-5">
@@ -218,7 +224,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
         {props.container.command.length > 0 && (
           <div>
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-              Command
+              {translator.translateText("Command")}
             </div>
             <code className="text-sm bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg block font-mono text-gray-800">
               {props.container.command.join(" ")}
@@ -228,7 +234,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
         {props.container.args.length > 0 && (
           <div>
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-              Args
+              {translator.translateText("Args")}
             </div>
             <code className="text-sm bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg block font-mono text-gray-800">
               {props.container.args.join(" ")}
@@ -240,7 +246,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
         {props.container.ports.length > 0 && (
           <div>
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              Ports
+              {translator.translateText("Ports")}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {props.container.ports.map(
@@ -264,7 +270,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             {Object.keys(props.container.resources.requests).length > 0 && (
               <div>
                 <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <span>Requests</span>
+                  <span>{translator.translateText("Requests")}</span>
                   <InfoTooltip
                     label="Requests"
                     text={
@@ -283,7 +289,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             {Object.keys(props.container.resources.limits).length > 0 && (
               <div>
                 <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <span>Limits</span>
+                  <span>{translator.translateText("Limits")}</span>
                   <InfoTooltip
                     label="Limits"
                     text={
@@ -312,7 +318,8 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
               <span className="text-xs">{showEnv ? "▼" : "▶"}</span>
-              Environment Variables ({props.container.env.length})
+              {translator.translateText("Environment Variables")} (
+              {props.container.env.length})
             </button>
             {showEnv && (
               <div className="mt-3">
@@ -332,7 +339,8 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
               <span className="text-xs">{showMounts ? "▼" : "▶"}</span>
-              Volume Mounts ({props.container.volumeMounts.length})
+              {translator.translateText("Volume Mounts")} (
+              {props.container.volumeMounts.length})
             </button>
             {showMounts && (
               <div className="mt-3">
@@ -367,10 +375,11 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
 const KubernetesContainersTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (props.containers.length === 0 && props.initContainers.length === 0) {
     return (
       <div className="text-gray-500 text-sm p-4">
-        No container information available.
+        {translator.translateText("No container information available.")}
       </div>
     );
   }

@@ -23,6 +23,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Incidents", "Workspace Microsoft Teams Connection"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_WORKSPACE_CONNECTIONS, [
+      "Project",
+      "Incidents",
+      "Workspace",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_CREATE, [
       "Project",
       "Incidents",
@@ -271,11 +276,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Incident Roles",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_MORE, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX, [
       "Project",
       "Incidents",
       "Settings",
-      "More Settings",
+      "Number Prefix",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_STATE, [
       "Project",
@@ -301,19 +306,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Incident Templates",
       "View Template",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_FORMS, [
-      "Project",
-      "Incidents",
-      "Settings",
-      "Forms",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_FORMS_VIEW, [
-      "Project",
-      "Incidents",
-      "Settings",
-      "Forms",
-      "View Form",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES, [
       "Project",
@@ -350,6 +342,12 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Incidents",
       "Settings",
       "Measurements",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Linked Alerts",
     ]),
 
     /*

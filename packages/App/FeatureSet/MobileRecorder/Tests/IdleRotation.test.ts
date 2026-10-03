@@ -2,6 +2,7 @@ import { gunzipSync, strFromU8 } from "fflate";
 import {
   CUSTOM_EVENT_TAG,
   ERROR_CUSTOM_EVENT_TAG,
+  IDLE_PAUSED_CUSTOM_EVENT_TAG,
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   RrwebEvent,
   RrwebEventType,
@@ -522,9 +523,9 @@ describe("MobileReplayRecorder idle sessions", () => {
       const test: IdleHarness = harness();
       const oldSessionId: string = await start(test);
 
-      /* Four hours of use in the foreground, a touch every twenty minutes. */
-      for (let step: number = 0; step < 11; step += 1) {
-        await elapse(20 * MINUTE_MS);
+      /* Four hours of use, a touch every 4 minutes: active under the 5-minute idle pause (#4208). */
+      for (let step: number = 0; step < 59; step += 1) {
+        await elapse(4 * MINUTE_MS);
         await touch(test, 50 + step, 60);
       }
       expect(test.recorder.getSessionId()).toBe(oldSessionId);
@@ -614,8 +615,9 @@ describe("MobileReplayRecorder idle sessions", () => {
       expect(test.seenSessionIds).toEqual([oldSessionId, null]);
 
       /*
-       * The screen stayed on, so the footage runs up to the seal - and the
-       * session ends with it: no chunk, and no marker, dated after it.
+       * The footage runs up to the idle pause five minutes in (#4208), its
+       * marker last - and the session ends with it: no chunk, and no
+       * marker, dated after it.
        */
       const oldPosts: Array<DecodedPost> = postsFor(test, oldSessionId);
       expect(oldPosts.length).toBeGreaterThan(1);
@@ -623,6 +625,11 @@ describe("MobileReplayRecorder idle sessions", () => {
         expect(chunkEndUnixMs(post)).toBeLessThanOrEqual(sealedAtUnixMs);
         expect(post.envelope["eventCount"]).toBeGreaterThan(0);
       }
+      const lastOldEvents: Array<RrwebEvent> =
+        oldPosts[oldPosts.length - 1]!.events;
+      expect(customTag(lastOldEvents[lastOldEvents.length - 1])).toBe(
+        IDLE_PAUSED_CUSTOM_EVENT_TAG,
+      );
       expect(rotationMarkers(allEvents(oldPosts))).toEqual([]);
 
       /* Two more hours: nothing captured, uploaded, refreshed or started. */
@@ -634,7 +641,8 @@ describe("MobileReplayRecorder idle sessions", () => {
       expect(test.posted).toHaveLength(postsAtSeal);
       expect(test.configFetches()).toBe(configFetchesAtSeal);
       expect(test.recorder.getSessionId()).toBeNull();
-      expect(test.recorder.getDiagnostics().status).toBe("recording");
+      /* "paused", as idle-paused recorders report (#4208): nothing is captured until the user is back. */
+      expect(test.recorder.getDiagnostics().status).toBe("paused");
 
       /* Stopping sends nothing more for a session that already ended. */
       await test.recorder.stop();

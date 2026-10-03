@@ -12,9 +12,9 @@ import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
-import Team from "Common/Models/DatabaseModels/Team";
-import ProjectUser from "../../../Utils/ProjectUser";
-import ProjectUtil from "Common/UI/Utils/Project";
+import getOwnersFormField, {
+  OWNER_RULE_OWNERS_DESCRIPTION,
+} from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const hostOwnerDocumentation: string = `
 ### How Host Owner Rules Work
@@ -157,7 +157,7 @@ const HostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { hostNamePattern: true },
-          title: "Host Name Pattern",
+          title: "Host Name",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -168,41 +168,16 @@ const HostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
         {
           field: { hostDescriptionPattern: true },
-          title: "Host Description Pattern",
+          title: "Host Description",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { ownerTeams: true },
-          title: "Owner Teams",
+        getOwnersFormField({
           stepId: "owners",
-          sectionTitle: "Owners to Assign",
-          sectionDescription:
-            "When this rule matches, every selected user and team is added as an owner. Already-assigned owners are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Team,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Teams",
-        },
-        {
-          field: { ownerUsers: true },
-          title: "Owner Users",
-          stepId: "owners",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          fetchDropdownOptions: async () => {
-            return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-              ProjectUtil.getCurrentProjectId()!,
-            );
-          },
-          required: false,
-          placeholder: "Select Users",
-        },
+          description: OWNER_RULE_OWNERS_DESCRIPTION,
+        }),
       ]}
       showRefreshButton={true}
     />

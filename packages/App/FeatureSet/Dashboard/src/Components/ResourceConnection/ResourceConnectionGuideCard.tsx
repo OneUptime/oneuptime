@@ -6,6 +6,12 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Link from "Common/UI/Components/Link/Link";
 import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
   ResourceConnectionGuide,
   ResourceConnectionGuideStep,
 } from "./ResourceConnectionGuides";
@@ -57,20 +63,38 @@ const getStateCopy: (
   state: ResourceConnectionState,
   guide: ResourceConnectionGuide,
   lastSeenAt: Date | null,
+  translator: Translator,
 ) => StateCopy = (
   state: ResourceConnectionState,
   guide: ResourceConnectionGuide,
   lastSeenAt: Date | null,
+  translator: Translator,
 ): StateCopy => {
+  // The resource and its agent as they read in the middle of a sentence.
+  const resourceNoun: TranslatableTerm = translatableTerm(guide.resourceNoun, {
+    inSentence: true,
+  });
+  const agentName: TranslatableTerm = translatableTerm(guide.agentName);
+
   if (state === ResourceConnectionState.Disconnected) {
     const lastHeard: string = lastSeenAt
       ? OneUptimeDate.fromNow(lastSeenAt)
-      : "a while ago";
+      : translator.translateTemplate("a while ago");
 
     return {
       icon: IconProp.SignalSlash,
-      title: `This ${guide.resourceNoun} stopped sending data`,
-      description: `OneUptime last heard from this ${guide.resourceNoun} ${lastHeard}. The ${guide.agentName} is no longer reporting — check on it with the steps below.`,
+      title: translator.translateTemplate(
+        "This {{resourceNoun}} stopped sending data",
+        { resourceNoun: resourceNoun },
+      ),
+      description: translator.translateTemplate(
+        "OneUptime last heard from this {{resourceNoun}} {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+        {
+          resourceNoun: resourceNoun,
+          lastHeard: lastHeard,
+          agentName: agentName,
+        },
+      ),
       steps: guide.troubleshootingSteps,
       accent: {
         border: "border-amber-200",
@@ -84,8 +108,13 @@ const getStateCopy: (
 
   return {
     icon: IconProp.RocketLaunch,
-    title: `Connect this ${guide.resourceNoun}`,
-    description: `No data has arrived from this ${guide.resourceNoun} yet, which is why it shows as Disconnected. Set up the ${guide.agentName} — it takes a few minutes.`,
+    title: translator.translateTemplate("Connect this {{resourceNoun}}", {
+      resourceNoun: resourceNoun,
+    }),
+    description: translator.translateTemplate(
+      "No data has arrived from this {{resourceNoun}} yet, which is why it shows as Disconnected. Set up the {{agentName}} — it takes a few minutes.",
+      { resourceNoun: resourceNoun, agentName: agentName },
+    ),
     steps: guide.setupSteps,
     accent: {
       border: "border-indigo-200",
@@ -102,6 +131,7 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // Before the early return: hooks run on every render.
   const titleId: string = useId();
+  const translator: Translator = useTranslator();
 
   const state: ResourceConnectionState = getResourceConnectionState({
     status: props.status,
@@ -116,6 +146,7 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
     state,
     props.guide,
     getResourceLastSeenDate(props.lastSeenAt),
+    translator,
   );
 
   return (
@@ -149,7 +180,7 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
           className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 self-start rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
           <Icon icon={IconProp.BookOpen} className="h-4 w-4" />
-          <span>Open the setup guide</span>
+          <span>{translator.translateText("Open the setup guide")}</span>
         </Link>
       </div>
 
@@ -170,10 +201,12 @@ const ResourceConnectionGuideCard: FunctionComponent<ComponentProps> = (
                     {index + 1}
                   </span>
                   <h3 className="text-sm font-medium text-gray-900">
-                    {step.title}
+                    {translator.translateText(step.title)}
                   </h3>
                 </div>
-                <p className="mt-2 text-sm text-gray-600">{step.description}</p>
+                <p className="mt-2 text-sm text-gray-600">
+                  {translator.translateText(step.description)}
+                </p>
                 {step.code ? (
                   <div className="mt-2 flex items-start gap-2 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5">
                     <code className="min-w-0 flex-1 break-all font-mono text-xs text-gray-800">

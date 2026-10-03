@@ -134,7 +134,12 @@ describe("IncidentCustomField settings in the published API", () => {
     },
   );
 
-  test("sortOrder is a number with no default, so leaving it out means no order", () => {
+  /*
+   * No published default: a client that leaves it out sends nothing, and
+   * the server puts the new field at the end of the list (@ListOrderColumn).
+   * A default would be sent on every create and put each new field there.
+   */
+  test("sortOrder is a number with no default, so leaving it out puts the field at the end", () => {
     const property: JSONObject = propertiesOf(create)[
       "sortOrder"
     ] as JSONObject;
@@ -175,6 +180,10 @@ describe("IncidentCustomField settings in the published API", () => {
     );
     // The key survives a rename.
     expect(description("variableKey")).toContain("never changed afterwards");
+    // And is placed the way the dashboard and the docs write it.
+    expect(description("variableKey")).toContain(
+      "{{incident.customFields.<key>}}",
+    );
   });
 });
 

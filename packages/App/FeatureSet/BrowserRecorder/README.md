@@ -605,6 +605,43 @@ nobody, so a page from an older recorder cannot undo it either.
   `SessionReplayFidelityNotice` enum, so the player renders it as an unknown
   code rather than with dedicated copy.
 
+## Idle pause
+
+A tab nobody is using records nothing after `SESSION_REPLAY_IDLE_PAUSE_MS`
+(five minutes). Until then it records as usual: nobody can know the user has
+gone sooner.
+
+- **Activity is a person.** It is `keydown`, `mousedown`, `mousemove`, `wheel`,
+  `touchstart` and `touchmove`, heard directly on the document (capture phase,
+  passive), plus rrweb's pointer, touch and drag sources. Mutations, scrolls,
+  input values, style rules, canvas frames and media events are not activity:
+  a page produces all of them on its own, and counting them kept the idle
+  clocks from ever running on such pages. keydown is heard because rrweb
+  records none: someone writing in a rich-text editor reaches the recording
+  only as mutations.
+- **Pausing** happens on the flush tick (`maybePauseForIdle`). It reports the
+  page's vitals as a hidden tab would, puts an `oneuptime.idle-paused` marker
+  at the end of the footage, closes the open chunk through the ordinary path,
+  drops the in-memory pre-roll and stops rrweb.
+- **While paused**, `emitCustomEvent` drops rather than queues. The console,
+  network, error and route recorders are `isSuspended`, so they neither
+  record nor spend their caps. Triggers other than `Manual` are ignored,
+  `track()` is dropped, and no session id goes on the page's requests. Every
+  seal (`getRecordingEndUnixMs`) is dated at the last activity, and the
+  chunker clamps that to the end of the footage (the pause marker).
+- **Resuming** happens on the next input (`resumeFromIdlePause`, deferred a
+  tick). rrweb starts again, which takes the snapshot, followed by an
+  `oneuptime.idle-resumed` marker and, if the stream last said `hidden`, a
+  `visible` one. It is the same session, the same tab and the next chunk
+  index. `captureSession()` resumes too, without counting as input.
+- **Rollovers while paused** do not start a session on an empty room. A
+  duration cap, a lost store or a sibling's rotation seals this tab's part and
+  waits, as an idle seal does (`sealedForIdle`). The user's return starts or
+  adopts the next session through `switchSession`, which resumes capture.
+
+The player draws the stretch between the two markers as a "paused" band and
+always skips it (`ReplayPlaybackIntent.shouldAutoSkipBand`).
+
 ## Offline mode
 
 Recording never depends on the network. When the visitor loses their
@@ -804,15 +841,16 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 316.7 KB raw / 95.6 KB gzip**, **loader.js 13.3 KB raw /
-4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (95 KB gzip
+Measured: **recorder.js 325.4 KB raw / 97.7 KB gzip**, **loader.js 13.3 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (97 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
 regression — gzip being the number a customer's browser actually pays. The
 recorder budget went from 90 KB to 92 KB for offline mode, to 93 KB on
 2026-09-24 for automatic same-origin trace propagation (issue #3979: 92376 →
-94178 bytes gzip), and to 95 KB on 2026-09-26 for INP per single-page-app
-view (issue #3975: 94102 → 95550 bytes gzip); `esbuild.config.js` carries
-each measurement and reason.
+94178 bytes gzip), to 95 KB on 2026-09-26 for INP per single-page-app
+view (issue #3975: 94102 → 95550 bytes gzip), and to 97 KB on 2026-10-02 for
+the idle pause (issue #4208: 96723 → 97650 bytes gzip); `esbuild.config.js`
+carries each measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
 that arrived with it is web vitals, the retry/backoff transport, cross-tab

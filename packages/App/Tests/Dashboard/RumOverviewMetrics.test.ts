@@ -964,7 +964,9 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
       'title: "Event duration (p95)"',
     );
 
-    expect(errorRateTile).toContain("`${formatCompact(m.errors)} errored`");
+    expect(errorRateTile).toContain(
+      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors), })',
+    );
     expect(D.errorRate).toContain("the line below is how many errored");
   });
 

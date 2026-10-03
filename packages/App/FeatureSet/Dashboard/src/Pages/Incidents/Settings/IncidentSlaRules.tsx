@@ -11,6 +11,8 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import { INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Incident/IncidentSlaNoteTemplateVariables";
+import IncidentSlaNoteReminderCopy from "../../../Components/Incident/IncidentSlaNoteReminderCopy";
 
 const documentationMarkdown: string = `
 ### How Incident SLA Rules Work
@@ -109,7 +111,7 @@ const IncidentSlaRulesPage: FunctionComponent<
         cardProps={{
           title: "Incident SLA Rules",
           description:
-            "Define SLA rules to automatically track response and resolution times for incidents. Rules are evaluated in order - lower order numbers are evaluated first.",
+            "Define SLA rules to automatically track response and resolution times for incidents. Rules are evaluated from top to bottom - drag a rule to change its place.",
         }}
         helpContent={{
           title: "How Incident SLA Rules Work",
@@ -119,8 +121,10 @@ const IncidentSlaRulesPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        // Evaluated from the top down; a new rule goes to the end.
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
         }}
         filters={[
@@ -153,13 +157,6 @@ const IncidentSlaRulesPage: FunctionComponent<
             },
             title: "Description",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
           },
           {
             field: {
@@ -242,6 +239,8 @@ const IncidentSlaRulesPage: FunctionComponent<
             title: "Enabled",
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
+            // A rule starts on: the switch is on its edit form only.
+            doNotShowWhenCreating: true,
             required: false,
             description: "Enable or disable this SLA rule.",
           },
@@ -315,6 +314,9 @@ const IncidentSlaRulesPage: FunctionComponent<
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -353,7 +355,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             field: {
               incidentTitlePattern: true,
             },
-            title: "Incident Title Pattern",
+            title: "Incident Title",
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
@@ -366,7 +368,7 @@ const IncidentSlaRulesPage: FunctionComponent<
             field: {
               incidentDescriptionPattern: true,
             },
-            title: "Incident Description Pattern",
+            title: "Incident Description",
             stepId: "match-criteria",
             fieldType: FormFieldSchemaType.Text,
             required: false,
@@ -396,8 +398,11 @@ const IncidentSlaRulesPage: FunctionComponent<
             required: false,
             placeholder:
               "**SLA Reminder**: This incident has been open for {{elapsedTime}}...",
-            description:
-              "Markdown. Variables: {{incidentTitle}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}.",
+            description: IncidentSlaNoteReminderCopy.templateFieldDescription,
+            // Every variable the reminder is filled with, under the editor.
+            templateVariables: INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              IncidentSlaNoteReminderCopy.templateVariablesDescription,
           },
           {
             field: {
@@ -422,8 +427,11 @@ const IncidentSlaRulesPage: FunctionComponent<
             required: false,
             placeholder:
               "**Status Update**: Our team continues to work on resolving this incident...",
-            description:
-              "Markdown. Variables: {{incidentTitle}}, {{elapsedTime}}, {{responseDeadline}}, {{resolutionDeadline}}, {{slaStatus}}.",
+            description: IncidentSlaNoteReminderCopy.templateFieldDescription,
+            // Every variable the reminder is filled with, under the editor.
+            templateVariables: INCIDENT_SLA_NOTE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              IncidentSlaNoteReminderCopy.templateVariablesDescription,
           },
         ]}
         showRefreshButton={true}

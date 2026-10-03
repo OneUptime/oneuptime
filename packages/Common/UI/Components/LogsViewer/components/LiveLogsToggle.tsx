@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { LiveLogsOptions } from "../types";
 
 export type LiveLogsToggleProps = LiveLogsOptions;
@@ -6,6 +8,7 @@ export type LiveLogsToggleProps = LiveLogsOptions;
 const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
   props: LiveLogsToggleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { isLive, onToggle, isDisabled } = props;
 
   const baseClasses: string =
@@ -36,7 +39,7 @@ const LiveLogsToggle: FunctionComponent<LiveLogsToggleProps> = (
           isLive ? "bg-emerald-500 animate-pulse" : "bg-gray-300"
         }`}
       />
-      <span>Live</span>
+      <span>{translator.translateText("Live")}</span>
     </button>
   );
 

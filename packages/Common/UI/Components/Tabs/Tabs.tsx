@@ -1,4 +1,6 @@
 import TabElement, { Tab } from "./Tab";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -20,6 +22,7 @@ export interface ComponentProps {
 const Tabs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [currentTabName, setCurrentTabName] = useState<string | null>(null);
   const hasInitialized: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -132,7 +135,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
         role="tablist"
         aria-orientation="horizontal"
         className="flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4"
-        aria-label="Tabs"
+        aria-label={translator.translateText("Tabs")}
         onKeyDown={handleTabListKeyDown}
       >
         {props.tabs.map((tab: Tab) => {

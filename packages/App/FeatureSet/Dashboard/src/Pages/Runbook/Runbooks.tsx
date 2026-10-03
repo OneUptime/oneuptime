@@ -1,11 +1,13 @@
 import PageComponentProps from "../PageComponentProps";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
 import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
@@ -53,6 +55,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     isLoadingOwners,
     onResourcesFetched,
     filterBar,
+    emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
     facetSaveState,
     restoreFacetState,
@@ -65,6 +68,14 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: runbookExtraFacets,
   });
 
+  /*
+   * The create form asks for a name and what the runbook is for, and folds
+   * the rest under Advanced: the Enabled switch (on by default, and on the
+   * runbook's Settings page) and the labels. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<Runbook> =
+    getAdvancedFormSection<Runbook>();
+
   return (
     <Fragment>
       <ModelTable<Runbook>
@@ -72,6 +83,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id="runbooks-table"
         userPreferencesKey="runbooks-table"
         topContent={filterBar}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(undefined)}
@@ -95,15 +107,10 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Reusable response procedures: ordered checklists of manual or automated steps.",
         }}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Database failover runbook",
@@ -112,7 +119,6 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { description: true },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -121,24 +127,12 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { isEnabled: true },
             title: "Enabled",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Toggle,
+            collapsibleSection: advancedSection,
           },
-          {
-            field: { labels: true },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Runbook>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}

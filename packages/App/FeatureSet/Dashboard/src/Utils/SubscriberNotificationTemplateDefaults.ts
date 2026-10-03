@@ -12,7 +12,7 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
  *   "Include in Subscriber Notifications": the workers add them to the
  *   default incident emails, Slack and Teams messages when an incident has
  *   values for them, but which fields a project has is not known here. A
- *   custom template places them with `{{customFields.<key>}}`.
+ *   custom template places them with `{{incident.customFields.<key>}}`.
  * - Email defaults are simplified, email-safe inline-CSS HTML that mirrors the
  *   structure (title + intro + key/value detail box + action button +
  *   unsubscribe footer) and reuses the wording from the corresponding

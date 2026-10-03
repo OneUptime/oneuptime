@@ -320,6 +320,7 @@ const PodmanHostContainers: FunctionComponent<
   const actionButtons: Array<ActionButtonSchema<PodmanContainerRow>> = [
     {
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (
         row: PodmanContainerRow,

@@ -1103,6 +1103,72 @@ test("plays incremental frames, pauses, seeks and keeps speed options visible ab
   await screenshot(page, "session-replay-player");
 });
 
+/*
+ * #4208: after five minutes without input the recorder pauses, and nothing
+ * at all is stored until the user is back - so the player must jump the
+ * stretch, with the real Replayer and the real chunk loader, rather than
+ * hold the last frame for twenty minutes. Skip idle stays off: that toggle
+ * is for footage of a page nobody touched, and this is no footage.
+ */
+test("jumps a stretch the recorder paused through, with Skip idle off, and says why", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?pause=idle&t=20");
+
+  await expect(page.getByTestId("replay-skip-idle")).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+
+  /* The timeline draws the pause before playback reaches it. */
+  const band: Locator = page.getByTestId("timeline-paused-band");
+
+  await expect(band).toBeVisible({ timeout: 15000 });
+  await expect(band).toHaveAttribute("data-kind", "paused");
+  await expect(band).toHaveAttribute(
+    "aria-label",
+    /^Recording paused while the page was idle: /,
+  );
+
+  const toast: Locator = page.getByTestId("replay-overlay-idle-skip");
+
+  await expect(toast).toBeVisible({ timeout: 30000 });
+  await expect(toast).toHaveAttribute("data-kind", "paused");
+  await expect(toast).toContainText("recording paused while the page was idle");
+
+  /* Landed just before the resume, twenty minutes on, and still playing. */
+  await expect
+    .poll(
+      async (): Promise<number> => {
+        return clockSeconds(await page.getByTestId("replay-time").innerText());
+      },
+      { timeout: 15000 },
+    )
+    .toBeGreaterThanOrEqual(20 * 60 + 28);
+  await expect(page.getByTestId("replay-phase")).toHaveText("playing");
+  await expect(
+    page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .getByText("Complete your order"),
+  ).toBeVisible();
+
+  /* The rail says where recording paused and where it came back. */
+  await page.getByTestId("rail-search-input").fill("Recording");
+  await expect(
+    page
+      .getByTestId("rail-row")
+      .filter({ hasText: "Recording paused: no input for 5m" }),
+  ).toHaveCount(1);
+  await expect(
+    page
+      .getByTestId("rail-row")
+      .filter({ hasText: /Recording resumed after 20m/ }),
+  ).toHaveCount(1);
+  await screenshot(page, "session-replay-idle-pause-skipped");
+});
+
 test("plays a React Native view tree while keeping text, images and webviews private", async ({
   page,
 }: {

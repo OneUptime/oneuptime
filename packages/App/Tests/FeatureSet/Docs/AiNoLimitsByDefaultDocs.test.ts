@@ -97,7 +97,7 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Paramètres",
     rules: "Règles",
     runbookRules: "Règles de runbook",
-    autoRemediationRules: "Règles d'auto-remédiation",
+    autoRemediationRules: "Règles de remédiation automatique",
   },
   hi: {
     ai: "एआई",

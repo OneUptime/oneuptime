@@ -11,11 +11,11 @@ You can declare an incident by hand at 3am, or let a monitor declare it for you 
 - **Top-level feature** — **Incidents** in the dashboard's left navigation, at `/dashboard/{projectId}/incidents`.
 - **Three seeded states** — **Identified**, **Acknowledged** and **Resolved** are created for every new project. You can add your own; the three seeded ones can be renamed and recolored but never deleted.
 - **Three seeded severities** — **Critical Incident**, **Major Incident** and **Minor Incident**. Severity is a label with a color and an order — it carries no behavior of its own.
-- **Five ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, `POST /api/incident`, or an [incident form](/docs/incidents/forms) that anyone with its link can fill in.
+- **Five ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, `POST /api/incident`, or a [form](/docs/forms/index) that anyone with its link can fill in.
 - **Numbered per project** — every incident gets an incident number, rendered as `#42` by default or with your own prefix, like `INC-42`.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
 - **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from alerts — from an alerts list or from an alert's own page — and acknowledge them as you do. See [Linked Alerts](/docs/incidents/linked-alerts).
-- **Settings live under Incidents, not Project Settings** — states, severities, templates, forms, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
+- **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
 
 ## Key terms
 
@@ -55,7 +55,7 @@ That distinction matters more than it sounds:
 
 **Note the naming.** The first seeded state is named **Identified**, even though several descriptions inside the product still call it the created state. If you are looking for "Created" in your project's state list, it is the row named **Identified**.
 
-You can add your own states at **Incidents → Settings → Incident State**. New states are appended to the end of the ordered list and you can drag to reorder. The three flagged states cannot be deleted — OneUptime blocks it — but you can rename and recolor them, which is why the UI reads state names dynamically.
+You can add your own states at **Incidents → Settings → Incident State**. A new state is added just above the resolved state, and you drag the rows to reorder them; the **Counts as** column shows what an incident in each state counts as — not acknowledged, acknowledged or resolved. The three flagged states are tagged **Built-in**: they keep their order and cannot be deleted, but you can rename, recolor and move them, which is why the UI reads state names dynamically.
 
 Order is enforced, not cosmetic: an incident cannot move to a state that sits earlier in the order than its current one.
 
@@ -83,11 +83,11 @@ Edit or add severities at **Incidents → Settings → Incident Severity**.
 
 Five routes lead to the same object:
 
-- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, five steps long: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call**, **More**. **Declare Incident** on a selection of alerts, or in one alert's header, opens the same wizard, prefilled from the alerts, links them to the new incident and, unless you untick the box, acknowledges them so they stop escalating — see [Linked Alerts](/docs/incidents/linked-alerts).
+- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, three steps long: **Incident Details**, **Resources Affected**, **On-Call & Roles**. The first step asks for a title, a severity and a description, with what most incidents never need folded under **Advanced**. Only the first step asks for anything you have to answer, so you can declare from it; **Next** walks the rest. **Declare Incident** on a selection of alerts, or in one alert's header, opens the same wizard, prefilled from the alerts, links them to the new incident and, unless you untick the box, acknowledges them so they stop escalating — see [Linked Alerts](/docs/incidents/linked-alerts).
 - **From a template** — click **Create from Template** and pick a saved **Incident Template**. Templates prefill title, description, severity, initial state, resources, on-call policies, owners and labels.
 - **From a monitor** — a monitor criteria rule with the "declare an incident" toggle enabled creates the incident automatically the moment its filters match. Titles and descriptions there support `{{variable}}` templating.
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
-- **Through an incident form** — somebody outside your team fills in a form you shared as a link, without a OneUptime account. The incident is declared hidden from status pages, from the form's incident template if it has one. See [Incident Forms](/docs/incidents/forms).
+- **Through a form** — somebody outside your team fills in a form you shared as a link, without a OneUptime account. The incident is declared hidden from status pages, from the form's incident template if it has one. See [Forms](/docs/forms/index).
 
 See [Declaring an Incident](/docs/incidents/declaring-incidents) for the field-by-field walkthrough.
 
@@ -117,11 +117,11 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overview**  | **All Incidents** and **Active Incidents** — the latter carries a red badge with the count of incidents that are not in the resolved state.                                |
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
-| **Workspace** | **Slack** and **Microsoft Teams** connections for incidents.                                                                                                               |
+| **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
-| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Forms**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **More Settings**. |
+| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
 
-**Rules** and **Settings** are collapsed by default — expand them to find the pages the rest of these docs refer to. Incident configuration is not under Project Settings; it all lives here.
+**Overview** and **Episodes** are open; **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 
 The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**, with a **Change State** bulk action for closing several at once.
 
@@ -129,7 +129,7 @@ The incidents list itself shows **Incident Number**, **Title**, **State**, **Sev
 
 Open an incident and you get a left side menu, grouped like this:
 
-- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**.
+- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**.
 - **State Timeline** — every state the incident has been in, with **Starts At**, **Ends At**, **Duration** and the subscriber notification status for each transition. **View Cause** and **View Logs** explain why each change happened.
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.
@@ -137,7 +137,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **Postmortem** — the write-up, which you can optionally publish to the status page.
 - **Linked Alerts** — the alerts linked to this incident, with each alert's current state, and who linked it and when. Alerts have a matching **Linked Incidents** page. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
-- **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed.
+- **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed. The first two are under **Notifications**, which starts collapsed: click **Notifications** to show them. **Audit Logs** is under **Advanced**.
 - **Private Notes** and **Public Notes** — under the **Notes** section of the side menu.
 - **Custom Fields**, **Settings**, **Delete Incident** — under **Advanced**, which starts collapsed: click **Advanced** to show them. The **Settings** page holds **Visible on Status Page**, **Private Incident** and the **Reminders** card.
 
@@ -146,8 +146,8 @@ Open an incident and you get a left side menu, grouped like this:
 ## How incidents fit with the rest of OneUptime
 
 - **Monitors spot the problem; incidents record it.** A monitor criteria rule can declare an incident automatically, pre-filling title, severity, on-call policies, owners, labels and remediation notes. See [Incident and Alert Templating](/docs/monitor/incident-alert-templating) for the variables available there.
-- **Alerts are the signals; incidents are the response.** Link the alerts an incident explains to it, from either side, and two opt-in project switches can acknowledge and resolve those alerts along with the incident. See [Linked Alerts](/docs/incidents/linked-alerts).
-- **On-call policies do the paging.** Attach policies on the **On-Call** step of the declare wizard, on a template, or through **Incidents → Rules → On-Call Rules**. Every matching rule fires — the executed set is the union of all matches plus anything attached directly, deduplicated.
+- **Alerts are the signals; incidents are the response.** Link the alerts an incident explains to it, from either side, and two project switches, on for new projects, acknowledge and resolve those alerts along with the incident. See [Linked Alerts](/docs/incidents/linked-alerts).
+- **On-call policies do the paging.** Attach policies on the **On-Call & Roles** step of the declare wizard, on a template, or through **Incidents → Rules → On-Call Rules**. Every matching rule fires — the executed set is the union of all matches plus anything attached directly, deduplicated.
 - **Runbooks tell people what to do.** Runbook rules attach a procedure automatically when a matching incident is created, and responders can start one by hand from the incident. See [Runbooks Overview](/docs/runbooks/index).
 - **Status pages tell customers.** An incident shows in a status page's active list when the page lists one of its monitors, the page has incidents enabled, the incident is marked visible on the status page, and its current state is not the resolved state. An incident limited to some status pages shows only on those. Private incidents are hidden from every status page, always. See [Status Pages Overview](/docs/status-pages/index) and [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Workflows automate around it.** The **On Create Incident**, **On Update Incident** and **On Delete Incident** triggers let you build no-code automation on top of the incident lifecycle. See [Workflows Overview](/docs/workflows/index).
@@ -159,6 +159,6 @@ Open an incident and you get a left side menu, grouped like this:
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public and private notes, owners, and the activity feed.
 - [Linked Alerts](/docs/incidents/linked-alerts) — linking alerts to incidents, declaring incidents from alerts, and keeping alert states in step.
 - [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, number prefixes and the rule engines.
-- [Incident Forms](/docs/incidents/forms) — a link anyone can use to report an incident, and what it declares.
+- [Forms](/docs/forms/index) — a link anyone can use to report an incident, and what it declares.
 - [Status Pages Overview](/docs/status-pages/index) — how incidents reach your customers.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who gets notified when an incident moves.

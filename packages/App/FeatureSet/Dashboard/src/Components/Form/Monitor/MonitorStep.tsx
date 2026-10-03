@@ -157,6 +157,9 @@ import {
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
   REQUEST_TIMEOUT_DESCRIPTION,
 } from "../../../Utils/MonitorRetryHelpText";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -181,7 +184,6 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
   labelDropdownOptions: Array<DropdownOption>;
-  teamDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   value?: undefined | MonitorStep;
@@ -203,6 +205,7 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [
     showAdvancedOptionsRequestBodyAndHeaders,
     setShowAdvancedOptionsRequestBodyAndHeaders,
@@ -870,25 +873,45 @@ return {
               <TinyFormDocumentation title="URL placeholder help">
                 <>
                   <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{timestamp}}"}
-                    </code>{" "}
-                    — replaced with current Unix timestamp
+                    <TranslatedSentence
+                      template="{{placeholder}} — replaced with current Unix timestamp"
+                      slots={{
+                        placeholder: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"{{timestamp}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{random}}"}
-                    </code>{" "}
-                    — replaced with a random unique string
+                    <TranslatedSentence
+                      template="{{placeholder}} — replaced with a random unique string"
+                      slots={{
+                        placeholder: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"{{random}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    Example:{" "}
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"https://example.com?cb={{timestamp}}"}
-                    </code>
+                    <TranslatedSentence
+                      template="Example: {{url}}"
+                      slots={{
+                        url: (
+                          <code className="bg-gray-100 px-1 rounded">
+                            {"https://example.com?cb={{timestamp}}"}
+                          </code>
+                        ),
+                      }}
+                    />
                   </div>
                   <div>
-                    Useful for busting CDN or proxy caches on each check.{" "}
+                    {translator.translateText(
+                      "Useful for busting CDN or proxy caches on each check.",
+                    )}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -899,7 +922,7 @@ return {
                             : "/monitor/website-monitor"),
                       )}
                     >
-                      Learn more.
+                      {translator.translateText("Learn more.")}
                     </Link>
                   </div>
                 </>
@@ -983,7 +1006,7 @@ return {
                 title={"Request Headers"}
                 description={
                   <p>
-                    Request Headers to send.{" "}
+                    {translator.translateText("Request Headers to send.")}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -991,7 +1014,7 @@ return {
                         DOCS_URL.toString() + "/monitor/monitor-secrets",
                       )}
                     >
-                      You can use secrets here.
+                      {translator.translateText("You can use secrets here.")}
                     </Link>
                   </p>
                 }
@@ -1016,7 +1039,9 @@ return {
                 title={"Request Body (in JSON)"}
                 description={
                   <p>
-                    Request Headers to send in JSON.{" "}
+                    {translator.translateText(
+                      "Request Headers to send in JSON.",
+                    )}{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -1024,7 +1049,7 @@ return {
                         DOCS_URL.toString() + "/monitor/monitor-secrets",
                       )}
                     >
-                      You can use secrets here.
+                      {translator.translateText("You can use secrets here.")}
                     </Link>
                   </p>
                 }
@@ -1122,12 +1147,16 @@ return {
                     title={"Client Certificate (PEM)"}
                     description={
                       <p>
-                        Client certificate (mTLS). Paste the PEM-encoded
-                        certificate, or reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>
-                        .{" "}
+                        <TranslatedSentence
+                          template="Client certificate (mTLS). Paste the PEM-encoded certificate, or reference a monitor secret with {{secret}}."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />{" "}
                         <Link
                           className="underline"
                           openInNewTab={true}
@@ -1135,7 +1164,9 @@ return {
                             DOCS_URL.toString() + "/monitor/monitor-secrets",
                           )}
                         >
-                          Learn more about secrets.
+                          {translator.translateText(
+                            "Learn more about secrets.",
+                          )}
                         </Link>
                       </p>
                     }
@@ -1161,12 +1192,16 @@ return {
                     title={"Client Private Key (PEM)"}
                     description={
                       <p>
-                        Private key paired with the client certificate above.
-                        Reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>{" "}
-                        to keep the key encrypted at rest.
+                        <TranslatedSentence
+                          template="Private key paired with the client certificate above. Reference a monitor secret with {{secret}} to keep the key encrypted at rest."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />
                       </p>
                     }
                     required={true}
@@ -1299,12 +1334,16 @@ return {
                     title={"Client Certificate (PEM)"}
                     description={
                       <p>
-                        Client certificate (mTLS). Paste the PEM-encoded
-                        certificate, or reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>
-                        .{" "}
+                        <TranslatedSentence
+                          template="Client certificate (mTLS). Paste the PEM-encoded certificate, or reference a monitor secret with {{secret}}."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />{" "}
                         <Link
                           className="underline"
                           openInNewTab={true}
@@ -1312,7 +1351,9 @@ return {
                             DOCS_URL.toString() + "/monitor/monitor-secrets",
                           )}
                         >
-                          Learn more about secrets.
+                          {translator.translateText(
+                            "Learn more about secrets.",
+                          )}
                         </Link>
                       </p>
                     }
@@ -1338,12 +1379,16 @@ return {
                     title={"Client Private Key (PEM)"}
                     description={
                       <p>
-                        Private key paired with the client certificate above.
-                        Reference a monitor secret with{" "}
-                        <code className="bg-gray-100 px-1 rounded">
-                          {"{{monitorSecrets.name}}"}
-                        </code>{" "}
-                        to keep the key encrypted at rest.
+                        <TranslatedSentence
+                          template="Private key paired with the client certificate above. Reference a monitor secret with {{secret}} to keep the key encrypted at rest."
+                          slots={{
+                            secret: (
+                              <code className="bg-gray-100 px-1 rounded">
+                                {"{{monitorSecrets.name}}"}
+                              </code>
+                            ),
+                          }}
+                        />
                       </p>
                     }
                     required={true}
@@ -1927,7 +1972,7 @@ return {
                     DOCS_URL.toString() + "/monitor/monitor-secrets",
                   )}
                 >
-                  You can use secrets here.
+                  {translator.translateText("You can use secrets here.")}
                 </Link>
               </p>
               {props.monitorType === MonitorType.SyntheticMonitor && (
@@ -1939,7 +1984,9 @@ return {
                       DOCS_URL.toString() + "/monitor/synthetic-monitor",
                     )}
                   >
-                    Read the OneUptime Synthetic Monitor documentation.
+                    {translator.translateText(
+                      "Read the OneUptime Synthetic Monitor documentation.",
+                    )}
                   </Link>
                 </p>
               )}
@@ -2073,7 +2120,6 @@ return {
           alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
           labelDropdownOptions={props.labelDropdownOptions}
-          teamDropdownOptions={props.teamDropdownOptions}
           userDropdownOptions={props.userDropdownOptions}
           incidentRoleOptions={props.incidentRoleOptions}
           value={monitorStep?.data?.monitorCriteria}

@@ -145,13 +145,35 @@ describe("the SLO create form steps", () => {
     );
   });
 
-  test("ask what the SLO is, its objective, its period and its labels, in that order", () => {
-    expect(stepIds()).toEqual(["basic-info", "objective", "period", "labels"]);
+  test("ask what the SLO is, its objective and its period, in that order", () => {
+    /*
+     * No Labels step: the labels fold under Advanced at the end of Basic
+     * Info (getLabelsFormField), rather than walk a fourth step for one
+     * optional field.
+     */
+    expect(stepIds()).toEqual(["basic-info", "objective", "period"]);
     expect(
       SLO_FORM_STEPS.map((step: SloStep): string => {
         return step.title;
       }),
-    ).toEqual(["Basic Info", "Objective", "Period", "Labels"]);
+    ).toEqual(["Basic Info", "Objective", "Period"]);
+  });
+
+  test("fold the labels under Advanced, last on Basic Info", () => {
+    const labels: SloField = fieldFor("labels");
+
+    expect(labels.stepId).toBe("basic-info");
+    expect(labels.collapsibleSection?.id).toBe("advanced");
+    expect(labels.collapsibleSection?.title).toBe("Advanced");
+    expect(labels.required).toBe(false);
+
+    const basicInfo: Array<SloField> = CREATE_FIELDS.filter(
+      (field: SloField): boolean => {
+        return field.stepId === "basic-info";
+      },
+    );
+
+    expect(basicInfo[basicInfo.length - 1]).toBe(labels);
   });
 
   test("use unique step ids", () => {
@@ -174,7 +196,11 @@ describe("the SLO create form steps", () => {
   });
 
   test("group fields by the question each step answers", () => {
-    expect(columnsOnStep("basic-info")).toEqual(["name", "description"]);
+    expect(columnsOnStep("basic-info")).toEqual([
+      "name",
+      "description",
+      "labels",
+    ]);
     expect(columnsOnStep("objective")).toEqual([
       "targetPercentage",
       "atRiskThresholdPercentage",
@@ -184,7 +210,6 @@ describe("the SLO create form steps", () => {
       "windowDays",
       "timezone",
     ]);
-    expect(columnsOnStep("labels")).toEqual(["labels"]);
   });
 
   test.each([
@@ -318,8 +343,10 @@ describe("validating the SLO create form one step at a time", () => {
     });
   });
 
-  test("Labels are optional", () => {
-    expect(validateStep("labels", withValues({}))).toEqual({});
+  test("Basic Info passes with no labels: they are optional", () => {
+    expect(
+      validateStep("basic-info", withValues({ name: "API Availability" })),
+    ).toEqual({});
   });
 
   test("a user who answers every step can walk the whole wizard", () => {

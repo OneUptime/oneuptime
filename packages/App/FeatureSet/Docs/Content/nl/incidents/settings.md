@@ -20,7 +20,7 @@ Open **Incidenten** in de linkernavigatie en vouw onderaan het zijmenu **Instell
 | **Postmortem-sjablonen** | Herbruikbare postmortemstructuren.                                                           |
 | **Aangepaste velden**    | Extra velden definiëren die op elk incident verschijnen.                                     |
 | **Incidentrollen**       | De rollen definiëren waaraan je responders toewijst, zoals Incident Commander.               |
-| **Meer instellingen**    | De nummervoorvoegsels voor incidenten en incident-episodes.                                  |
+| **Nummervoorvoegsel**    | De nummervoorvoegsels voor incidenten en incident-episodes.                                  |
 
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina pakt de draad op bij **Incident-sjablonen**.
 
@@ -30,14 +30,12 @@ Vouw **Regels** uit en je krijgt negen pagina's erbij: **Groeperingsregels**, **
 
 Een incidentsjabloon is een opgeslagen skelet van een incident. In plaats van elke keer dat het betaalcluster wiebelt dezelfde titel, dezelfde monitorlijst en hetzelfde bereikbaarheidsbeleid opnieuw in te tikken, sla je het één keer op en meld je het incident vanuit dat sjabloon.
 
-Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**. Er een aanmaken loopt via een wizard van zes stappen:
+Ga naar **Incidenten → Instellingen → Incident-sjablonen** (`/dashboard/{projectId}/incidents/settings/templates`). De kaart heet **Incident-sjablonen**. Er een aanmaken loopt via een wizard van vier stappen:
 
 - **Sjablooninformatie** — **Sjabloonnaam** en **Sjabloonbeschrijving**. Die benoemen het sjabloon zelf; ze komen nooit op het incident terecht.
-- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht.
+- **Incidentdetails** — **Titel**, **Beschrijving** (Markdown), **Ernst van incident** en **Initiële incidentstatus**. **Initiële incidentstatus** is optioneel en begint leeg; de opties staan in statusvolgorde. Laat je het leeg, dan komen incidenten uit dit sjabloon in de aangemaakt-status van het project terecht. Onder **Advanced**, dat **Configured** toont zolang een van beide is ingesteld: **Eigenaren** (mensen en teams, gekozen uit één lijst) en **Labels**.
 - **Getroffen middelen** — de monitoren, hosts, clusters en services waaraan het incident gekoppeld moet worden, plus **Change Monitor Status to**.
 - **Bereikbaarheid** — **Bereikbaarheidsbeleid**, het beleid dat wordt uitgevoerd zodra een incident uit dit sjabloon wordt gemeld.
-- **Eigenaren** — **Eigenaar - Teams** en **Eigenaar - Gebruikers**.
-- **Labels** — **Labels**.
 
 Een paar snelle regels:
 
@@ -105,12 +103,14 @@ Rollen zijn alleen definities. Mensen wijs je er per incident aan toe — de mel
 
 Elk incident krijgt een nummer. Standaard wordt dat weergegeven als `#42`. Zegt je team hardop "INC-42", laat het product dat dan ook zeggen.
 
-Ga naar **Incidenten → Instellingen → Meer instellingen** (`/dashboard/{projectId}/incidents/settings/more`). De kaart heet **Nummervoorvoegsel** en bevat twee velden op het project:
+Ga naar **Incidenten → Instellingen → Nummervoorvoegsel** (`/dashboard/{projectId}/incidents/settings/number-prefix`). De kaart **Nummervoorvoegsel** toont voor incidenten en voor incident-episodes het voorvoegsel en een voorbeeld van het nummer dat het oplevert: `INC-` met **Voorbeeld:** `INC-42`; zonder voorvoegsel staat er **Geen voorvoegsel** en `#42`. **Bijwerken** opent **Nummervoorvoegsel bewerken** met twee velden:
 
-- **Voorvoegsel incidentnummer** — maximaal 20 tekens, placeholder `INC-`. Stel het in en incident `#42` verschijnt als `INC-42`.
-- **Nummervoorvoegsel voor incident-episode** — hetzelfde idee voor de nummers van incident-episodes, placeholder `IE-`.
+- **Voorvoegsel incidentnummer** — placeholder `INC-`.
+- **Nummervoorvoegsel voor incident-episode** — placeholder `IE-`.
 
-Laat een van beide leeg om het standaardvoorvoegsel `#` te houden; een niet-ingesteld veld toont `# (default)`. Opslaan doe je met **Bijwerken**. De waarde met voorvoegsel wordt op het incident opgeslagen als `incidentNumberWithPrefix`, en dat is wat de incidentenlijst en de incidentkop weergeven.
+Onder elk veld toont **Voorvertoning:** het nummer terwijl je typt. Laat een veld leeg om terug te gaan naar `#`. Een voorvoegsel heeft hoogstens 20 tekens, bestaat uit letters, cijfers en `-` `_` `.` `/` `:` `#` (geen spaties) en eindigt niet op een cijfer, dat anders overloopt in het nummer: `SEV1` zou `SEV142` geven. Het dialoogvenster zegt wat er mis is voordat je opslaat, en de API weigert dezelfde voorvoegsels.
+
+Een nieuw voorvoegsel geldt alleen voor incidenten en episodes die daarna worden aangemaakt. Bestaande houden hun nummer, en de teller loopt door. De waarde met voorvoegsel wordt op het incident opgeslagen als `incidentNumberWithPrefix`, en dat is wat de incidentenlijst en de incidentkop weergeven. Waarschuwingen en gepland onderhoud hebben dezelfde pagina: **Waarschuwingen → Instellingen → Nummervoorvoegsel** en **Geplande onderhoud → Instellingen → Nummervoorvoegsel**. Het oude adres van **Meer instellingen** (`…/settings/more`) leidt er nog steeds naartoe.
 
 ## Regels die draaien wanneer een incident wordt aangemaakt
 

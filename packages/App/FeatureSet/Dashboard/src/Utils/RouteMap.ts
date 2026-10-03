@@ -16,6 +16,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.MONITORS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Monitor Settings
   [PageMap.MONITORS_SETTINGS]: "settings/status",
@@ -638,6 +639,19 @@ export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
 };
 
+/*
+ * The Forms product, under /forms: the list is the mount itself, a form's
+ * builder is its bare id, and its other pages hang off that.
+ */
+export const FormsRoutePath: Dictionary<string> = {
+  [PageMap.FORMS_SUBMISSIONS]: "submissions",
+  [PageMap.FORM_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
+  [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
+  [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
+  [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -823,11 +837,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS]: `${RouteParams.ModelID}/slack-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS]: `${RouteParams.ModelID}/microsoft-teams-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
-  [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: `${RouteParams.ModelID}/header-style`,
-  [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: `${RouteParams.ModelID}/footer-style`,
-  [PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]: `${RouteParams.ModelID}/overview-page-branding`,
   [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
-  [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: `${RouteParams.ModelID}/navbar-style`,
   [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: `${RouteParams.ModelID}/announcements`,
   [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: `${RouteParams.ModelID}/embedded`,
   [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: `${RouteParams.ModelID}/subscriber-settings`,
@@ -836,12 +846,10 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_SCIM]: `${RouteParams.ModelID}/scim`,
   [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: `${RouteParams.ModelID}/custom-code`,
   [PageMap.STATUS_PAGE_VIEW_RESOURCES]: `${RouteParams.ModelID}/resources`,
-  [PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]: `${RouteParams.ModelID}/advanced-options`,
   [PageMap.STATUS_PAGE_VIEW_REPORTS]: `${RouteParams.ModelID}/reports`,
   [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.STATUS_PAGE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.STATUS_PAGE_VIEW_MCP]: `${RouteParams.ModelID}/mcp`,
-  [PageMap.STATUS_PAGE_VIEW_LANGUAGES]: `${RouteParams.ModelID}/languages`,
   [PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
 };
 
@@ -850,6 +858,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   [PageMap.INCIDENT_CREATE]: "create",
 
   // Incident Episodes
@@ -877,8 +886,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_SEVERITY]: "settings/severity",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
-  [PageMap.INCIDENTS_SETTINGS_FORMS]: "settings/forms",
-  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: `settings/forms/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES]:
@@ -903,7 +910,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
-  [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
+  [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
+  [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
   [PageMap.INCIDENTS_SETTINGS_AI]: "settings/ai",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
@@ -934,6 +942,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ALERTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Alert Episodes
   [PageMap.ALERT_EPISODES]: "episodes",
@@ -972,7 +981,7 @@ export const AlertsRoutePath: Dictionary<string> = {
     "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
-  [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
+  [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
   [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
@@ -1000,6 +1009,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]:
+    "workspace-connections",
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: "create",
 
   // Scheduled Maintenance Settings
@@ -1024,7 +1035,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/reminder-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]:
     "settings/measurements",
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: "settings/more",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX]:
+    "settings/number-prefix",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -1148,6 +1160,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
     "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: "workspace-connections",
 
   // Incoming Call Policy
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES]: "incoming-call-policies",
@@ -1246,6 +1259,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.MONITORS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTIONS]
     }`,
   ),
 
@@ -1478,6 +1497,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_WORKSPACE_CONNECTIONS]
+    }`,
+  ),
+
   [PageMap.ALERT_CREATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_CREATE]
@@ -1695,9 +1720,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERTS_SETTINGS_MORE]: new Route(
+  [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE]
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]
     }`,
   ),
 
@@ -1823,6 +1848,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]
     }`,
   ),
 
@@ -2115,18 +2146,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.INCIDENTS_SETTINGS_FORMS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW]
-    }`,
-  ),
-
   [PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES]
@@ -2259,9 +2278,15 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.INCIDENTS_SETTINGS_MORE]: new Route(
+  [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE]
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]
     }`,
   ),
 
@@ -2304,6 +2329,14 @@ const RouteMap: Dictionary<Route> = {
         ]
       }`,
     ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS
+      ]
+    }`,
+  ),
 
   [PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
@@ -2521,10 +2554,10 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: new Route(
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
-        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
       ]
     }`,
   ),
@@ -5586,33 +5619,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]
-    }`,
-  ),
-
   [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]
     }`,
   ),
 
@@ -5664,12 +5673,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]
-    }`,
-  ),
-
   [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]
@@ -5685,12 +5688,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGE_VIEW_MCP]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_MCP]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_LANGUAGES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_LANGUAGES]
     }`,
   ),
 
@@ -5909,6 +5906,12 @@ const RouteMap: Dictionary<Route> = {
       OnCallDutyRoutePath[
         PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
       ]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]
     }`,
   ),
 
@@ -6842,6 +6845,42 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOWS_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  // forms.
+  [PageMap.FORMS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/*`,
+  ),
+  [PageMap.FORMS]: new Route(`/dashboard/${RouteParams.ProjectID}/forms`),
+  [PageMap.FORMS_SUBMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORMS_SUBMISSIONS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_ON_SUBMIT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_ON_SUBMIT]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_SHARE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_SHARE]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_SUBMISSIONS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_DELETE]
     }`,
   ),
 

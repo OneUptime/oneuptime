@@ -7,7 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -40,11 +40,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import IncidentsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
   MenuLink,
   PROJECT_ID,
+  activeLinkTitles,
   goTo,
   hrefsInMenu,
   iconCountIn,
@@ -68,10 +71,24 @@ describe("Incidents side menu", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
     goTo(`/dashboard/${PROJECT_ID}/incidents`);
+
+    /*
+     * A project with Slack and Microsoft Teams both connected, so the
+     * Workspace section lists both. The other combinations, and what is
+     * listed while nothing is connected, are pinned in
+     * WorkspaceMenusConnected.test.tsx.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
   });
 
   afterEach(() => {
     cleanup();
+    ConnectedWorkspaces.reset();
   });
 
   describe("sections", () => {
@@ -88,14 +105,70 @@ describe("Incidents side menu", () => {
       ]);
     });
 
+    /*
+     * The maintainer's picture of this menu: Overview and Episodes open, and
+     * Workspace, Rules and Settings folded down to their titles.
+     */
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderIncidentsMenu();
 
       expect(isExpanded("Overview")).toBe(true);
       expect(isExpanded("Episodes")).toBe(true);
-      expect(isExpanded("Workspace")).toBe(true);
+      expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+    });
+
+    test.each([
+      ["Slack", PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK],
+      [
+        "Microsoft Teams",
+        PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ],
+    ])(
+      "Workspace opens by itself on the %s page, and marks it",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderIncidentsMenu();
+
+        expect(isExpanded("Workspace")).toBe(true);
+        expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
+
+    test("Workspace opens with a click, and folds away again", async () => {
+      await renderIncidentsMenu();
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).toHaveClass("opacity-100");
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(isExpanded("Workspace")).toBe(false);
+      expect(sectionBody("Workspace")).toHaveClass("max-h-0");
+    });
+
+    test("with nothing connected, Workspace holds one entry, to the Workspace page", async () => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+      await renderIncidentsMenu();
+
+      expect(linksIn("Workspace")).toEqual([
+        {
+          title: "Connect Slack or Teams",
+          href: routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTIONS),
+        },
+      ]);
     });
 
     test("the overview, episode and workspace sections are unchanged by the move", async () => {
@@ -329,11 +402,6 @@ describe("Incidents side menu", () => {
           title: "Incident Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_TEMPLATES),
         },
-        // Incident forms (issue #4114): right after the templates.
-        {
-          title: "Forms",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_FORMS),
-        },
         {
           title: "Note Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_NOTE_TEMPLATES),
@@ -354,11 +422,76 @@ describe("Incidents side menu", () => {
           title: "Measurements",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_MEASUREMENTS),
         },
+        // The linked alert switches, on a page of their own.
         {
-          title: "More Settings",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_MORE),
+          title: "Linked Alerts",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS),
+        },
+        /*
+         * The number prefixes, on a page named for them. It replaced More
+         * Settings, which held nothing else.
+         */
+        {
+          title: "Number Prefix",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX),
         },
       ]);
+    });
+
+    test("lists Number Prefix last, at settings/number-prefix", async () => {
+      await renderIncidentsMenu();
+
+      const settings: Array<MenuLink> = linksIn("Settings");
+
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Number Prefix",
+        href: `/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`,
+      });
+    });
+
+    test("has no More Settings entry, and nothing points at the old address", async () => {
+      await renderIncidentsMenu();
+
+      expect(titlesInMenu()).not.toContain("More Settings");
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/incidents/settings/more`,
+      );
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Number Prefix page, and marks it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
+      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
+    });
+
+    test("lists Linked Alerts at settings/linked-alerts", async () => {
+      await renderIncidentsMenu();
+
+      const linkedAlerts: Array<MenuLink> = linksIn("Settings").filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Linked Alerts";
+        },
+      );
+
+      expect(linkedAlerts).toEqual([
+        {
+          title: "Linked Alerts",
+          href: `/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`,
+        },
+      ]);
+    });
+
+    // Settings is collapsed by default, so it must open itself on its pages.
+    test("opens itself on the Linked Alerts page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
     });
 
     test("does not hold the auto-remediation rules, which are a rule page", async () => {
@@ -373,6 +506,25 @@ describe("Incidents side menu", () => {
       expect(settingsHrefs).not.toContain(
         routeFor(PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES),
       );
+    });
+
+    /*
+     * Incident forms became the Forms product (/dashboard/:projectId/forms),
+     * with a menu of its own: the incidents menu links to no form page.
+     */
+    test("holds no Forms page, which is a product of its own now", async () => {
+      await renderIncidentsMenu();
+
+      expect(
+        hrefsInMenu().filter((href: string): boolean => {
+          return href.includes("/forms");
+        }),
+      ).toEqual([]);
+      expect(
+        linksIn("Settings").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("Forms");
     });
 
     test("no longer holds any rule page", async () => {
@@ -409,7 +561,8 @@ describe("Incidents side menu", () => {
       PageMap.INCIDENTS_SETTINGS_SLA_RULES,
       PageMap.INCIDENTS_SETTINGS_REMINDER_RULES,
       PageMap.INCIDENTS_SETTINGS_ROLES,
-      PageMap.INCIDENTS_SETTINGS_MORE,
+      // More Settings, renamed for the one thing it held.
+      PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
@@ -463,6 +616,34 @@ describe("Incidents side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / AI");
     });
 
+    test("names the Workspace section on the Slack page", async () => {
+      goTo(routeFor(PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK));
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Workspace / Slack");
+    });
+
+    /*
+     * The phone menu is a panel that closes when a page is picked; a tap on
+     * a folded section's header opens the section and leaves the panel open.
+     */
+    test("opens Workspace from the phone menu without closing it", async () => {
+      await renderIncidentsMenu();
+
+      fireEvent.click(screen.getByTestId("mobile-sidemenu-toggle"));
+
+      expect(isExpanded("Workspace")).toBe(false);
+
+      fireEvent.click(sectionToggle("Workspace"));
+
+      expect(screen.getByTestId("mobile-sidemenu-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+    });
+
     test("names the Rules section on the auto-remediation rules page", async () => {
       goTo(
         `/dashboard/${PROJECT_ID}/incidents/settings/auto-remediation-rules`,
@@ -486,12 +667,18 @@ describe("Incidents side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / Incident Roles");
     });
 
-    // Forms are configuration, like templates, not a rule.
-    test("names the Settings section on the forms page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/forms`);
+    test("names the Settings section on the Number Prefix page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`);
       await renderIncidentsMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / Forms");
+      expect(mobileSummaryText()).toContain("Settings / Number Prefix");
+    });
+
+    test("names the Settings section on the Linked Alerts page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/linked-alerts`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
     });
   });
 });

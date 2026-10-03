@@ -7,10 +7,8 @@ import {
   describeBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
-  withOwnerUserDropdownOptions,
 } from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
-import ProjectUser from "../../../Utils/ProjectUser";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -26,8 +24,6 @@ import {
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -43,6 +39,12 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TranslatableTerm,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Burn Rate Rules Work
@@ -153,7 +155,6 @@ The alert and incident steps appear and disappear with the toggles on **What It 
 export {
   BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
-  BURN_RATE_RULE_OWNER_USER_COLUMNS,
   BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
   describeBurnRateOutputOptions,
   describeBurnRateOutputs,
@@ -162,39 +163,17 @@ export {
   validateBurnRateWindows,
   willCreateAlert,
   willDeclareIncident,
-  withOwnerUserDropdownOptions,
 } from "../Utils/BurnRateRuleForm";
 export type {
   BurnRateRuleOptionFlags,
   BurnRateRuleOutputFlags,
   DescribeBurnRateOutputOptionsFunction,
   DescribeBurnRateOutputsFunction,
-  FetchBurnRateRuleOwnerUserOptionsFunction,
   ReadsBurnRateOutputFlagFunction,
   ValidateBurnRateOutputsFunction,
   ValidateBurnRateThresholdFunction,
   ValidateBurnRateWindowsFunction,
-  WithOwnerUserDropdownOptionsFunction,
 } from "../Utils/BurnRateRuleForm";
-
-/*
- * The form fields, with the two owner-user pickers given their options. User
- * is not a project-listable model, so a dropdownModal cannot list it; the
- * project's users come from its team members instead. Built once at module
- * level: the loader reads the current project when it RUNS, not when this is
- * built, and a stable array keeps ModelTable from seeing new form fields on
- * every render.
- */
-const BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS: Array<
-  ModelField<ServiceLevelObjectiveBurnRateRule>
-> = withOwnerUserDropdownOptions(
-  BURN_RATE_RULE_FORM_FIELDS,
-  async (): Promise<Array<DropdownOption>> => {
-    return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-      ProjectUtil.getCurrentProjectId()!,
-    );
-  },
-);
 
 type RenderLinesFunction = (lines: Array<string>) => ReactElement;
 
@@ -222,12 +201,12 @@ const renderLines: RenderLinesFunction = (
 type DescribeOwnersFunction = (
   teams: Array<Team> | undefined,
   users: Array<User> | undefined,
-) => string;
+) => string | TranslatableTerm;
 
 const describeOwners: DescribeOwnersFunction = (
   teams: Array<Team> | undefined,
   users: Array<User> | undefined,
-): string => {
+): string | TranslatableTerm => {
   const names: Array<string> = [
     ...(teams || []).map((team: Team): string => {
       return team.name || "";
@@ -239,12 +218,13 @@ const describeOwners: DescribeOwnersFunction = (
     return Boolean(name);
   });
 
-  return names.length > 0 ? names.join(", ") : "None";
+  return names.length > 0 ? names.join(", ") : translatableTerm("None");
 };
 
 const SloBurnRateRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   /*
@@ -343,7 +323,7 @@ const SloBurnRateRules: FunctionComponent<
         ]}
         createEditModalWidth={ModalWidth.Large}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
-        formFields={BURN_RATE_RULE_FORM_FIELDS_WITH_OWNER_USERS}
+        formFields={BURN_RATE_RULE_FORM_FIELDS}
         columns={[
           {
             field: {
@@ -392,11 +372,16 @@ const SloBurnRateRules: FunctionComponent<
               return (
                 <div>
                   <div className="text-sm text-gray-900">
-                    {item.longWindowInMinutes || 0}m / {""}
-                    {item.shortWindowInMinutes || 0}m
+                    {translator.translateTemplate("{{long}}m / {{short}}m", {
+                      long: item.longWindowInMinutes || 0,
+                      short: item.shortWindowInMinutes || 0,
+                    })}
                   </div>
                   <div className="text-xs text-gray-500">
-                    Suppress {suppressionMinutes}m after resolve
+                    {translator.translateTemplate(
+                      "Suppress {{minutes}}m after resolve",
+                      { minutes: suppressionMinutes },
+                    )}
                   </div>
                 </div>
               );
@@ -423,12 +408,12 @@ const SloBurnRateRules: FunctionComponent<
               return (
                 <div>
                   <div className="text-sm text-gray-900">
-                    {describeBurnRateOutputs(item)}
+                    {translator.translateText(describeBurnRateOutputs(item))}
                   </div>
                   {options.map((option: string) => {
                     return (
                       <div key={option} className="text-xs text-gray-500">
-                        {option}
+                        {translator.translateText(option)}
                       </div>
                     );
                   })}
@@ -468,7 +453,9 @@ const SloBurnRateRules: FunctionComponent<
 
               if (firedAtCandidates.length === 0) {
                 return (
-                  <span className="text-sm text-gray-400">Never fired</span>
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("Never fired")}
+                  </span>
                 );
               }
 
@@ -487,7 +474,9 @@ const SloBurnRateRules: FunctionComponent<
                     lastFiredAt,
                   )}
                 >
-                  Last fired {OneUptimeDate.fromNow(lastFiredAt)}
+                  {translator.translateTemplate("Last fired {{time}}", {
+                    time: OneUptimeDate.fromNow(lastFiredAt),
+                  })}
                 </span>
               );
             },
@@ -513,12 +502,21 @@ const SloBurnRateRules: FunctionComponent<
               const lines: Array<string> = [];
 
               if (willCreateAlert(item)) {
-                lines.push(`Alert: ${item.alertSeverity?.name || "Default"}`);
+                lines.push(
+                  translator.translateTemplate("Alert: {{severity}}", {
+                    severity:
+                      item.alertSeverity?.name || translatableTerm("Default"),
+                  }),
+                );
               }
 
               if (willDeclareIncident(item)) {
                 lines.push(
-                  `Incident: ${item.incidentSeverity?.name || "Default"}`,
+                  translator.translateTemplate("Incident: {{severity}}", {
+                    severity:
+                      item.incidentSeverity?.name ||
+                      translatableTerm("Default"),
+                  }),
                 );
               }
 
@@ -539,9 +537,9 @@ const SloBurnRateRules: FunctionComponent<
             ): ReactElement => {
               const describePolicies: (
                 policies: Array<OnCallDutyPolicy> | undefined,
-              ) => string = (
+              ) => string | TranslatableTerm = (
                 policies: Array<OnCallDutyPolicy> | undefined,
-              ): string => {
+              ): string | TranslatableTerm => {
                 const names: Array<string> = (policies || [])
                   .map((policy: OnCallDutyPolicy) => {
                     return policy.name || "";
@@ -553,24 +551,30 @@ const SloBurnRateRules: FunctionComponent<
                  * but nothing escalates it — worth saying, because "I have a
                  * fast-burn rule" is usually shorthand for "I will get paged".
                  */
-                return names.length > 0 ? names.join(", ") : "No escalation";
+                return names.length > 0
+                  ? names.join(", ")
+                  : translatableTerm("No escalation");
               };
 
               const lines: Array<string> = [];
 
               if (willCreateAlert(item)) {
                 lines.push(
-                  `Alert: ${describePolicies(
-                    item.onCallDutyPolicies as Array<OnCallDutyPolicy>,
-                  )}`,
+                  translator.translateTemplate("Alert: {{policies}}", {
+                    policies: describePolicies(
+                      item.onCallDutyPolicies as Array<OnCallDutyPolicy>,
+                    ),
+                  }),
                 );
               }
 
               if (willDeclareIncident(item)) {
                 lines.push(
-                  `Incident: ${describePolicies(
-                    item.incidentOnCallDutyPolicies as Array<OnCallDutyPolicy>,
-                  )}`,
+                  translator.translateTemplate("Incident: {{policies}}", {
+                    policies: describePolicies(
+                      item.incidentOnCallDutyPolicies as Array<OnCallDutyPolicy>,
+                    ),
+                  }),
                 );
               }
 
@@ -597,24 +601,28 @@ const SloBurnRateRules: FunctionComponent<
 
               if (willCreateAlert(item)) {
                 lines.push(
-                  `Alert: ${describeOwners(
-                    item.alertOwnerTeams,
-                    item.alertOwnerUsers,
-                  )}`,
+                  translator.translateTemplate("Alert: {{owners}}", {
+                    owners: describeOwners(
+                      item.alertOwnerTeams,
+                      item.alertOwnerUsers,
+                    ),
+                  }),
                 );
               }
 
               if (willDeclareIncident(item)) {
                 lines.push(
-                  `Incident: ${describeOwners(
-                    item.incidentOwnerTeams,
-                    item.incidentOwnerUsers,
-                  )}`,
+                  translator.translateTemplate("Incident: {{owners}}", {
+                    owners: describeOwners(
+                      item.incidentOwnerTeams,
+                      item.incidentOwnerUsers,
+                    ),
+                  }),
                 );
               }
 
               if (lines.length > 0 && item.addSloOwnersAsOwners === true) {
-                lines.push("+ SLO owners");
+                lines.push(translator.translateTemplate("+ SLO owners"));
               }
 
               return renderLines(lines);

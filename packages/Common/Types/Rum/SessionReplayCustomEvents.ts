@@ -56,6 +56,13 @@ export interface SessionReplayCustomEventTagMap {
   readonly Identify: "oneuptime.identify";
   /* setTags()/addTag() changed the session's tag map. */
   readonly Tags: "oneuptime.tags";
+  /*
+   * Nobody touched the page for SESSION_REPLAY_IDLE_PAUSE_MS, so capture
+   * stopped here. Nothing is recorded until the matching IdleResumed.
+   */
+  readonly IdlePaused: "oneuptime.idle-paused";
+  /* Input came back after an idle pause; capture resumed on a snapshot. */
+  readonly IdleResumed: "oneuptime.idle-resumed";
 }
 
 export const SessionReplayCustomEventTag: SessionReplayCustomEventTagMap = {
@@ -74,6 +81,8 @@ export const SessionReplayCustomEventTag: SessionReplayCustomEventTagMap = {
   CustomDropped: "oneuptime.custom-dropped",
   Identify: "oneuptime.identify",
   Tags: "oneuptime.tags",
+  IdlePaused: "oneuptime.idle-paused",
+  IdleResumed: "oneuptime.idle-resumed",
 };
 
 export type SessionReplayCustomEventTagValue =
@@ -327,6 +336,32 @@ export interface SessionReplayTagsPayload {
   tags: Record<string, string>;
 }
 
+/* ---- Payloads introduced with the idle pause. ---- */
+
+/*
+ * The last thing in the stream before an idle pause. Nothing is recorded
+ * between this and the next IdleResumed of the same tab - no DOM, no
+ * requests, no console, no errors - so the player treats that stretch as
+ * unrecorded rather than as footage of a page that sat still.
+ */
+export interface SessionReplayIdlePausedPayload {
+  /* The last input before the pause: where the user actually stopped. */
+  idleSinceUnixMs: number;
+  /* When capture stopped. */
+  pausedAtUnixMs: number;
+}
+
+/*
+ * The first marker after an idle pause, directly behind the fresh snapshot
+ * that resumed capture. Carries the pause's start as well, so the stretch
+ * that was not recorded can be drawn from this one marker even when the
+ * chunk holding the IdlePaused marker has not been decoded.
+ */
+export interface SessionReplayIdleResumedPayload {
+  pausedAtUnixMs: number;
+  resumedAtUnixMs: number;
+}
+
 /* ---- Type guards. Minimum required fields only; the rest is optional. ---- */
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -572,4 +607,29 @@ export function isSessionReplayTagsPayload(
   value: unknown,
 ): value is SessionReplayTagsPayload {
   return isRecord(value) && isSessionReplayStringMap(value["tags"]);
+}
+
+export function isSessionReplayIdlePausedPayload(
+  value: unknown,
+): value is SessionReplayIdlePausedPayload {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value["idleSinceUnixMs"]) &&
+    isFiniteNumber(value["pausedAtUnixMs"])
+  );
+}
+
+/*
+ * A resume before its own pause describes no stretch at all, and drawing
+ * one would hand the skipper a band with its end before its start.
+ */
+export function isSessionReplayIdleResumedPayload(
+  value: unknown,
+): value is SessionReplayIdleResumedPayload {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value["pausedAtUnixMs"]) &&
+    isFiniteNumber(value["resumedAtUnixMs"]) &&
+    value["resumedAtUnixMs"] >= value["pausedAtUnixMs"]
+  );
 }

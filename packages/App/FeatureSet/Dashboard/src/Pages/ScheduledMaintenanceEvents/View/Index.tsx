@@ -27,7 +27,7 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import AffectedResourcesPicker, {
@@ -48,7 +48,11 @@ import React, {
   useState,
 } from "react";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
@@ -67,9 +71,19 @@ import {
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getMaintenanceEndsAtError,
+  moveMaintenanceEndWithStart,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
 
 // How many status page names the header lists before summarising the rest.
 const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
+
+// The details card's Edit: labels folded under Advanced on Event, as on the create form.
+const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getAdvancedFormSection<ScheduledMaintenance>();
 
 type GetStatusPagesFactFunction = (
   statusPages: Array<StatusPage> | undefined,
@@ -211,6 +225,7 @@ interface ResendNotificationErrorState {
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
@@ -447,22 +462,22 @@ const ScheduledMaintenanceView: FunctionComponent<
               headerLayout: "stacked",
             }}
             refresher={refreshToggle}
+            /*
+             * The create form's steps, for what this card edits: the
+             * resources, the description and the owners have cards and
+             * pages of their own, so the second step holds only the status
+             * pages and the reminders. Whether subscribers hear about the
+             * event when it is scheduled, starts and ends is set once, when
+             * it is created (those columns cannot be updated).
+             */
             formSteps={[
               {
-                title: "Event Info",
-                id: "event-info",
+                title: "Event",
+                id: "event",
               },
               {
                 title: "Status Pages",
                 id: "status-pages",
-              },
-              {
-                title: "Subscribers",
-                id: "subscribers",
-              },
-              {
-                title: "Labels",
-                id: "labels",
               },
             ]}
             isEditable={true}
@@ -479,36 +494,46 @@ const ScheduledMaintenanceView: FunctionComponent<
                 field: {
                   title: true,
                 },
-                stepId: "event-info",
-                title: "Scheduled Maintenance Title",
+                stepId: "event",
+                title: "Title",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
-                placeholder: "Scheduled Maintenance Title",
+                placeholder: "Event Title",
                 validation: {
                   minLength: 2,
                 },
               },
-
+              // Moving the start moves the end with it, as on the create form.
               {
                 field: {
                   startsAt: true,
                 },
-                stepId: "event-info",
-                title: "Event Starts At",
+                stepId: "event",
+                title: "Starts At",
                 fieldType: FormFieldSchemaType.DateTime,
                 required: true,
                 placeholder: "Pick Date and Time",
+                onChange: moveMaintenanceEndWithStart,
               },
               {
                 field: {
                   endsAt: true,
                 },
                 title: "Ends At",
-                stepId: "event-info",
+                stepId: "event",
                 fieldType: FormFieldSchemaType.DateTime,
                 required: true,
                 placeholder: "Pick Date and Time",
+                customValidation: (
+                  values: FormValues<ScheduledMaintenance>,
+                ): string | null => {
+                  return getMaintenanceEndsAtError(values);
+                },
               },
+              getLabelsFormField<ScheduledMaintenance>({
+                stepId: "event",
+                collapsibleSection: detailsAdvancedSection,
+              }),
               {
                 field: {
                   statusPages: true,
@@ -525,56 +550,14 @@ const ScheduledMaintenanceView: FunctionComponent<
                 required: false,
                 placeholder: "Select Status Pages",
               },
-
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-                },
-
-                title: "Event Created: Notify Status Page Subscribers",
-                stepId: "subscribers",
-                description:
-                  "Should status page subscribers be notified when this event is created?",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: true,
-                required: false,
-              },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
-                    true,
-                },
-
-                title: "Event Ongoing: Notify Status Page Subscribers",
-                stepId: "subscribers",
-                description:
-                  "Should status page subscribers be notified when this event state changes to ongoing?",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: true,
-                required: false,
-              },
-              {
-                field: {
-                  shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
-                    true,
-                },
-
-                title: "Event Ended: Notify Status Page Subscribers",
-                stepId: "subscribers",
-                description:
-                  "Should status page subscribers be notified when this event state changes to ended?",
-                fieldType: FormFieldSchemaType.Checkbox,
-                defaultValue: true,
-                required: false,
-              },
               {
                 field: {
                   sendSubscriberNotificationsOnBeforeTheEvent: true,
                 },
-                stepId: "subscribers",
-                title: "Send reminders to subscribers before the event",
+                stepId: "status-pages",
+                title: "Reminders before the event",
                 description:
-                  "Please add a list of notification options to notify subscribers before the event",
+                  "Remind subscribers before the event starts, for example 1 day before.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 getCustomElement: (
                   value: FormValues<ScheduledMaintenance>,
@@ -590,23 +573,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                   );
                 },
                 required: false,
-              },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
               },
             ]}
             modelDetailProps={{
@@ -675,7 +641,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     if (reminders.length === 0) {
                       return (
                         <span className="text-gray-500">
-                          No reminders configured
+                          {translator.translateText("No reminders configured")}
                         </span>
                       );
                     }
@@ -688,11 +654,15 @@ const ScheduledMaintenanceView: FunctionComponent<
                         />
                         <div className="text-xs text-gray-500">
                           {item.nextSubscriberNotificationBeforeTheEventAt
-                            ? "Next reminder: " +
-                              OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                                item.nextSubscriberNotificationBeforeTheEventAt,
+                            ? translator.translateTemplate(
+                                "Next reminder: {{date}}",
+                                {
+                                  date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                                    item.nextSubscriberNotificationBeforeTheEventAt,
+                                  ),
+                                },
                               )
-                            : "No upcoming reminders"}
+                            : translator.translateText("No upcoming reminders")}
                         </div>
                       </div>
                     );
@@ -721,8 +691,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                             role="alert"
                             className="mt-1.5 text-xs text-red-600"
                           >
-                            {"Could not resend notifications: " +
-                              resendNotificationError}
+                            {translator.translateTemplate(
+                              "Could not resend notifications: {{error}}",
+                              { error: resendNotificationError },
+                            )}
                           </p>
                         )}
                       </div>

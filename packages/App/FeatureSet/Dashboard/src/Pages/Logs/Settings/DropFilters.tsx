@@ -19,6 +19,8 @@ import {
   MIN_SAMPLE_PERCENTAGE,
 } from "Common/Types/Telemetry/DropFilterSampling";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const documentationMarkdown: string = `
 ### How Log Drop Filters Work
@@ -97,6 +99,7 @@ Filter queries determine which logs this drop filter applies to.
 const LogDropFilters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <ModelTable<LogDropFilter>
       modelType={LogDropFilter}
@@ -136,9 +139,7 @@ const LogDropFilters: FunctionComponent<
         action: LogDropFilterAction.Drop,
       }}
       onBeforeCreate={async (item: LogDropFilter) => {
-        if (!item.sortOrder) {
-          item.sortOrder = 1;
-        }
+        // No sortOrder: the server puts a new filter at the end of the list.
         if (!item.action) {
           item.action = LogDropFilterAction.Drop;
         }
@@ -310,7 +311,13 @@ const LogDropFilters: FunctionComponent<
               return (
                 <Pill
                   color={Yellow}
-                  text={`Sample ${item.samplePercentage ? item.samplePercentage + "%" : ""}`}
+                  text={
+                    item.samplePercentage
+                      ? translator.translateTemplate("Sample {{percent}}%", {
+                          percent: item.samplePercentage,
+                        })
+                      : "Sample"
+                  }
                 />
               );
             }
@@ -347,7 +354,7 @@ const LogDropFilters: FunctionComponent<
             if (dropped === 0) {
               return (
                 <span className="text-sm text-gray-400">
-                  Nothing dropped yet
+                  {translator.translateText("Nothing dropped yet")}
                 </span>
               );
             }

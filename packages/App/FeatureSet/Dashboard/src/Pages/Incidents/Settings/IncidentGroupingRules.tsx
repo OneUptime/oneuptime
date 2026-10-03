@@ -1,5 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
+import { INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Episode/EpisodeTemplateVariables";
+import EpisodeTemplateVariablesCopy from "../../../Components/IncidentGroupingRule/EpisodeTemplateVariablesCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Select from "Common/Types/BaseDatabase/Select";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -21,6 +24,30 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import EpisodeMemberRoleAssignmentsFormField from "../../../Components/IncidentGroupingRule/EpisodeMemberRoleAssignmentsFormField";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  GROUPING_RULE_COPY,
+  GROUPING_RULE_TEMPLATES,
+  GroupingRuleKind,
+  GroupingRuleValues,
+  getGroupingRuleSummarySelect,
+  getGroupingRuleSummaryText,
+} from "../../../Utils/GroupingRule/GroupingRuleSetup";
+import GroupingRuleSummary from "../../../Components/GroupingRule/GroupingRuleSummary";
+import {
+  getGroupingModeFormField,
+  getGroupingRuleColumnFormFields,
+  getInactivityTimeoutFormField,
+  getReopenWindowFormField,
+  getResolveDelayFormField,
+  getShowAdvancedSettingsFormField,
+  getTimeWindowFormField,
+  isCustomGroupingSelected,
+  isShowingAdvancedSettings,
+} from "../../../Components/GroupingRule/GroupingRuleFormFields";
+import useGroupingRuleTableExtras, {
+  GroupingRuleTableExtras,
+} from "../../../Components/GroupingRule/GroupingRuleTableExtras";
+import { translateGroupingRuleText } from "../../../Components/GroupingRule/GroupingRuleTranslate";
 
 const documentationMarkdown: string = `
 ### How Incident Grouping Works
@@ -139,9 +166,25 @@ flowchart TD
 **Result:** Very specific episodes - one per unique combination of monitor + severity + title.
 `;
 
+const KIND: GroupingRuleKind = GroupingRuleKind.Incident;
+
+/*
+ * Grouping rules, made simple to set up (see Utils/GroupingRule/
+ * GroupingRuleSetup for the whole story): an empty list offers four
+ * ready-made rules that are added in one click, the list says what each rule
+ * does in words, and the form asks two questions - how to group, and how close
+ * together - with everything else behind "Show advanced settings". The rule
+ * stores and the engine reads exactly what they did before.
+ */
 const IncidentGroupingRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const extras: GroupingRuleTableExtras<IncidentGroupingRule> =
+    useGroupingRuleTableExtras<IncidentGroupingRule>({
+      kind: KIND,
+      modelType: IncidentGroupingRule,
+    });
+
   return (
     <Fragment>
       <ModelTable<IncidentGroupingRule>
@@ -158,8 +201,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Incident Grouping Rules",
-          description:
-            "Define rules to automatically group related incidents into episodes. Rules are evaluated in priority order - lower priority numbers are evaluated first.",
+          description: GROUPING_RULE_COPY.cardDescription[KIND],
+          buttons: extras.cardButtons,
         }}
         helpContent={{
           title: "How Incident Grouping Rules Work",
@@ -167,12 +210,23 @@ const IncidentGroupingRulesPage: FunctionComponent<
             "Understanding Match Criteria, Group By, and how incidents are organized into episodes",
           markdown: documentationMarkdown,
         }}
+        noItemsMessage={extras.noItemsMessage}
+        createInitialValues={extras.createInitialValues}
+        showCreateForm={extras.showCreateForm}
+        onCreateEditModalClose={extras.onCreateEditModalClose}
+        refreshToggle={extras.refreshToggle}
         sortBy="priority"
         sortOrder={SortOrder.Ascending}
-        selectMoreFields={{
-          priority: true,
-          isEnabled: true,
-        }}
+        // Evaluated from the top down; a new rule goes to the end.
+        enableDragAndDrop={true}
+        dragDropIndexField="priority"
+        selectMoreFields={
+          {
+            isEnabled: true,
+            description: true,
+            ...getGroupingRuleSummarySelect(KIND),
+          } as Select<IncidentGroupingRule>
+        }
         filters={[
           {
             field: {
@@ -196,20 +250,46 @@ const IncidentGroupingRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+            wrapContent: true,
+            getElement: (item: IncidentGroupingRule): ReactElement => {
+              return (
+                <div>
+                  <p className="font-medium text-gray-900">{item.name}</p>
+                  {item.description ? (
+                    <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">
+                      {item.description}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {
-              description: true,
+              _id: true,
             },
-            title: "Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              priority: true,
+            id: "grouping-summary",
+            title: GROUPING_RULE_COPY.summaryColumnTitle,
+            type: FieldType.Element,
+            disableSort: true,
+            wrapContent: true,
+            getElement: (item: IncidentGroupingRule): ReactElement => {
+              return (
+                <GroupingRuleSummary
+                  rule={item as unknown as GroupingRuleValues}
+                  kind={KIND}
+                />
+              );
             },
-            title: "Priority",
-            type: FieldType.Number,
+            getExportValue: (item: IncidentGroupingRule): string => {
+              return getGroupingRuleSummaryText({
+                rule: item as unknown as GroupingRuleValues,
+                kind: KIND,
+                translate: translateGroupingRuleText,
+              });
+            },
           },
           {
             field: {
@@ -224,225 +304,101 @@ const IncidentGroupingRulesPage: FunctionComponent<
               return <Pill color={Red} text="Disabled" />;
             },
           },
-          {
-            field: {
-              timeWindowMinutes: true,
-            },
-            title: "Time Window (min)",
-            type: FieldType.Number,
-          },
-          {
-            field: {
-              inactivityTimeoutMinutes: true,
-            },
-            title: "Inactivity Timeout (min)",
-            type: FieldType.Number,
-          },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * Two questions, then Create: how to group and how close together
+         * (Grouping), and which incidents (every one, unless narrowed down).
+         * Group By only appears for a custom mix of switches, and the last
+         * three steps only behind "Show advanced settings" - which a rule
+         * that already uses them opens with.
+         */
         formSteps={[
           {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Match Criteria",
-            id: "match-criteria",
-            columns: 2,
+            title: GROUPING_RULE_COPY.groupingStepTitle,
+            id: "grouping",
           },
           {
             title: "Group By",
             id: "group-by",
             columns: 2,
-          },
-          /*
-           * Four on/off windows, each with its minutes and a paragraph of
-           * help, were one step of eight fields. Split by the question each
-           * answers: does a new incident join an existing episode (the time
-           * window and the reopen window), and when does an episode resolve
-           * on its own (the resolve delay and the inactivity timeout).
-           */
-          {
-            title: "Time Windows",
-            id: "time-settings",
+            showIf: (values: FormValues<IncidentGroupingRule>): boolean => {
+              return isCustomGroupingSelected(
+                values as unknown as GroupingRuleValues,
+                KIND,
+              );
+            },
           },
           {
-            title: "Auto-Resolve",
-            id: "auto-resolve",
+            title: GROUPING_RULE_COPY.whichStepTitle[KIND],
+            id: "match-criteria",
+            columns: 2,
           },
           {
-            title: "Episode Template",
-            id: "episode-template",
+            title: "Episode Lifecycle",
+            id: "episode-lifecycle",
+            showIf: (values: FormValues<IncidentGroupingRule>): boolean => {
+              return isShowingAdvancedSettings(
+                values as unknown as GroupingRuleValues,
+              );
+            },
           },
           {
-            title: "Episode Settings",
-            id: "episode-settings",
-          },
-          {
-            title: "Episode Roles",
-            id: "episode-roles",
+            title: "Details",
+            id: "details",
+            showIf: (values: FormValues<IncidentGroupingRule>): boolean => {
+              return isShowingAdvancedSettings(
+                values as unknown as GroupingRuleValues,
+              );
+            },
           },
           {
             title: "On-Call & Ownership",
             id: "on-call-ownership",
             columns: 2,
+            showIf: (values: FormValues<IncidentGroupingRule>): boolean => {
+              return isShowingAdvancedSettings(
+                values as unknown as GroupingRuleValues,
+              );
+            },
           },
         ]}
         formFields={[
+          // Grouping
+          getGroupingModeFormField<IncidentGroupingRule>(KIND),
+          getTimeWindowFormField<IncidentGroupingRule>(KIND),
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
+            stepId: "grouping",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Critical Service Incidents",
+            placeholder: GROUPING_RULE_TEMPLATES[0]!.name[KIND],
             validation: {
               minLength: 2,
             },
           },
           {
             field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Groups all critical incidents from production services",
-          },
-          {
-            field: {
-              priority: true,
-            },
-            title: "Priority",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "1",
-            description:
-              "Lower numbers have higher priority. Rules are evaluated in order.",
-          },
-          {
-            field: {
               isEnabled: true,
             },
             title: "Enabled",
-            stepId: "basic-info",
+            stepId: "grouping",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            /*
+             * The column default. Without it the switch rendered off on the
+             * create form, and the form saved what it showed: every rule
+             * created here was disabled until somebody turned it on.
+             */
+            defaultValue: true,
             description: "Enable or disable this grouping rule.",
           },
-          // Match Criteria Fields
-          {
-            field: {
-              monitors: true,
-            },
-            title: "Monitors",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Attributes",
-            sectionDescription:
-              "Filter incidents by which monitor produced them and their severity/labels. Leave a filter empty to skip it.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Monitors (optional)",
-          },
-          {
-            field: {
-              incidentSeverities: true,
-            },
-            title: "Incident Severities",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: IncidentSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Severities (optional)",
-          },
-          {
-            field: {
-              incidentLabels: true,
-            },
-            title: "Incident Labels",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Incident Labels (optional)",
-          },
-          {
-            field: {
-              monitorLabels: true,
-            },
-            title: "Monitor Labels",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Monitor Labels (optional)",
-          },
-          {
-            field: {
-              incidentTitlePattern: true,
-            },
-            title: "Incident Title Pattern",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Pattern",
-            sectionDescription:
-              "Case-insensitive regex matched against incident and monitor text.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "CPU.*high",
-          },
-          {
-            field: {
-              incidentDescriptionPattern: true,
-            },
-            title: "Incident Description Pattern",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "timeout|connection refused",
-          },
-          {
-            field: {
-              monitorNamePattern: true,
-            },
-            title: "Monitor Name Pattern",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "prod-.*|api-server-.*",
-          },
-          {
-            field: {
-              monitorDescriptionPattern: true,
-            },
-            title: "Monitor Description Pattern",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "production|critical",
-          },
-          // Group By Fields
+          getShowAdvancedSettingsFormField<IncidentGroupingRule>(),
+          ...getGroupingRuleColumnFormFields<IncidentGroupingRule>(),
+          // Group By - a custom mix of the five switches
           {
             field: {
               groupByMonitor: true,
@@ -498,117 +454,142 @@ const IncidentGroupingRulesPage: FunctionComponent<
             description:
               "When enabled, incidents whose monitors have different sets of labels will be grouped into separate episodes (exact set match). When disabled, monitor labels are ignored for grouping.",
           },
-          // Time Settings Fields
+          // Which incidents - drawn as one conditions builder
           {
             field: {
-              enableTimeWindow: true,
+              monitors: true,
             },
-            title: "Enable Time Window",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Checkbox,
+            title: "Monitors",
+            stepId: "match-criteria",
+            sectionTitle: "Match by Attributes",
+            sectionDescription:
+              "Filter incidents by which monitor produced them and their severity/labels. Leave a filter empty to skip it.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
             required: false,
-            description:
-              "Enable time-based grouping to limit how long an episode stays open for new incidents. When disabled, all incidents matching the grouping criteria (severity, title, monitor, etc.) will be grouped into a single ongoing episode regardless of when they occur. When enabled, incidents are only grouped if they arrive within the specified time window of the last incident.",
+            placeholder: "Select Monitors (optional)",
           },
           {
             field: {
-              timeWindowMinutes: true,
+              incidentSeverities: true,
             },
-            title: "Time Window (minutes)",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Number,
+            title: "Incident Severities",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: IncidentSeverity,
+              labelField: "name",
+              valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
+            },
             required: false,
-            placeholder: "60",
-            showIf: (model: FormValues<IncidentGroupingRule>): boolean => {
-              return model.enableTimeWindow === true;
-            },
-            description:
-              "Rolling window that determines how long an episode stays open for new incidents. Incidents arriving within this time gap of the last incident will be grouped into the same episode. For example, if set to 60 minutes, incidents will keep grouping as long as each new incident arrives within 60 minutes of the previous one.",
+            placeholder: "Select Severities (optional)",
           },
           {
             field: {
-              enableResolveDelay: true,
+              incidentLabels: true,
             },
-            title: "Enable Resolve Delay",
-            stepId: "auto-resolve",
-            fieldType: FormFieldSchemaType.Checkbox,
+            title: "Incident Labels",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
             required: false,
-            description:
-              "Enable this to add a grace period before auto-resolving an episode after all its incidents are resolved. This helps prevent unnecessary state changes during incident flapping - when incidents rapidly toggle between triggered and resolved states. Without this, the episode would resolve immediately when incidents resolve, then potentially reopen moments later if the issue recurs.",
+            placeholder: "Select Incident Labels (optional)",
           },
           {
             field: {
-              resolveDelayMinutes: true,
+              monitorLabels: true,
             },
-            title: "Resolve Delay (minutes)",
-            stepId: "auto-resolve",
-            fieldType: FormFieldSchemaType.Number,
+            title: "Monitor Labels",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
             required: false,
-            placeholder: "5",
-            showIf: (model: FormValues<IncidentGroupingRule>): boolean => {
-              return model.enableResolveDelay === true;
-            },
-            description:
-              "Number of minutes to wait after all incidents in the episode are resolved before automatically resolving the episode itself.",
+            placeholder: "Select Monitor Labels (optional)",
           },
           {
             field: {
-              enableReopenWindow: true,
+              incidentTitlePattern: true,
             },
-            title: "Enable Reopen Window",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Checkbox,
+            title: "Incident Title",
+            stepId: "match-criteria",
+            sectionTitle: "Match by Pattern",
+            sectionDescription:
+              "Case-insensitive regex matched against incident and monitor text.",
+            fieldType: FormFieldSchemaType.Text,
             required: false,
-            description:
-              "Enable this to reopen recently resolved episodes instead of creating new ones when matching incidents arrive. This is useful for recurring issues - if a problem returns shortly after being resolved, it makes more sense to continue tracking it in the same episode rather than fragmenting the incident history across multiple episodes.",
+            placeholder: "CPU.*high",
           },
           {
             field: {
-              reopenWindowMinutes: true,
+              incidentDescriptionPattern: true,
             },
-            title: "Reopen Window (minutes)",
-            stepId: "time-settings",
-            fieldType: FormFieldSchemaType.Number,
+            title: "Incident Description",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "30",
-            showIf: (model: FormValues<IncidentGroupingRule>): boolean => {
-              return model.enableReopenWindow === true;
-            },
-            description:
-              "Time window after an episode is resolved during which a new matching incident will reopen that episode instead of creating a new one.",
+            placeholder: "timeout|connection refused",
           },
           {
             field: {
-              enableInactivityTimeout: true,
+              monitorNamePattern: true,
             },
-            title: "Enable Inactivity Timeout",
-            stepId: "auto-resolve",
-            fieldType: FormFieldSchemaType.Checkbox,
+            title: "Monitor Name",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
             required: false,
-            description:
-              "Enable this to automatically resolve episodes after a period of inactivity. This helps clean up stale episodes that are no longer receiving incidents, ensuring your active episode list stays current and relevant. Without this, episodes would remain open indefinitely until manually resolved.",
+            placeholder: "prod-.*|api-server-.*",
           },
           {
             field: {
-              inactivityTimeoutMinutes: true,
+              monitorDescriptionPattern: true,
             },
-            title: "Inactivity Timeout (minutes)",
-            stepId: "auto-resolve",
-            fieldType: FormFieldSchemaType.Number,
+            title: "Monitor Description",
+            stepId: "match-criteria",
+            fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "60",
-            showIf: (model: FormValues<IncidentGroupingRule>): boolean => {
-              return model.enableInactivityTimeout === true;
+            placeholder: "production|critical",
+          },
+          // Episode lifecycle - reopen, wait to resolve, resolve when quiet
+          getReopenWindowFormField<IncidentGroupingRule>(KIND),
+          getResolveDelayFormField<IncidentGroupingRule>(KIND),
+          getInactivityTimeoutFormField<IncidentGroupingRule>(KIND),
+          // Details - the rule's own description, and the episodes it opens
+          {
+            field: {
+              description: true,
             },
-            description:
-              "Number of minutes of inactivity (no new incidents added) after which the episode will be automatically resolved.",
+            title: "Description",
+            stepId: "details",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder:
+              "Groups all critical incidents from production services",
           },
           {
             field: {
               episodeTitleTemplate: true,
             },
+            // The variables, under the field and one "{{" away.
+            templateVariables: INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.incidentVariablesDescription,
             title: "Episode Title Template",
-            stepId: "episode-template",
+            stepId: "details",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder:
@@ -620,78 +601,25 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               episodeDescriptionTemplate: true,
             },
+            // The variables, under the field and one "{{" away.
+            templateVariables: INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.incidentVariablesDescription,
             title: "Episode Description Template",
-            stepId: "episode-template",
+            stepId: "details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
               "Episode created from {{incidentSeverity}} incident: {{incidentTitle}} on monitor {{monitorName}}",
             description:
               "Template for auto-generated episode descriptions. Uses the first incident's data to generate the description.",
-            footerElement: (
-              <div className="mt-4 p-4 bg-gray-50 rounded-md border border-gray-200 text-sm">
-                <p className="font-medium mb-3">
-                  Supported Template Variables:
-                </p>
-                <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Static Variables (from first incident):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentTitle}}"}
-                      </code>{" "}
-                      - Title of the incident
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentDescription}}"}
-                      </code>{" "}
-                      - Description of the incident
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentSeverity}}"}
-                      </code>{" "}
-                      - Severity level (e.g., Critical, Warning)
-                    </li>
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{monitorName}}"}
-                      </code>{" "}
-                      - Name of the monitor that triggered the incident
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">
-                    Dynamic Variables (updated as incidents join):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-gray-700">
-                    <li>
-                      <code className="bg-gray-200 px-1 rounded">
-                        {"{{incidentCount}}"}
-                      </code>{" "}
-                      - Number of incidents in the episode
-                    </li>
-                  </ul>
-                </div>
-                <p className="mt-3 text-gray-500 text-xs">
-                  Static variables use data from the first incident. Dynamic
-                  variables update automatically when incidents are added or
-                  removed.
-                </p>
-              </div>
-            ),
           },
-          // Episode Settings Fields
           {
             field: {
               showEpisodeOnStatusPage: true,
             },
             title: "Show Episodes on Status Page",
-            stepId: "episode-settings",
+            stepId: "details",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -702,7 +630,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               episodeLabels: true,
             },
             title: "Episode Labels",
-            stepId: "episode-settings",
+            stepId: "details",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Label,
@@ -714,39 +642,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               "Labels to automatically attach to episodes created by this rule.",
             placeholder: "Select Labels (optional)",
           },
-          // Episode Roles Fields
-          {
-            field: {
-              episodeMemberRoleAssignments: true,
-            },
-            title: "Episode Role Assignments",
-            stepId: "episode-roles",
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            description:
-              "Automatically assign users to specific roles when episodes are created with this rule. These role assignments will be applied to all new episodes that match this grouping rule.",
-            getCustomElement: (
-              values: FormValues<IncidentGroupingRule>,
-              props: CustomElementProps,
-            ): ReactElement => {
-              return (
-                <EpisodeMemberRoleAssignmentsFormField
-                  initialValue={
-                    (values.episodeMemberRoleAssignments as Array<EpisodeMemberRoleAssignment>) ||
-                    []
-                  }
-                  onChange={(
-                    assignments: Array<EpisodeMemberRoleAssignment>,
-                  ) => {
-                    if (props.onChange) {
-                      props.onChange(assignments);
-                    }
-                  }}
-                  error={props.error}
-                />
-              );
-            },
-          },
+          // On-call and ownership of the episodes this rule opens
           {
             field: {
               onCallDutyPolicies: true,
@@ -799,9 +695,46 @@ const IncidentGroupingRulesPage: FunctionComponent<
             required: false,
             placeholder: "Select User",
           },
+          {
+            field: {
+              episodeMemberRoleAssignments: true,
+            },
+            title: "Episode Role Assignments",
+            stepId: "on-call-ownership",
+            // Writes only the roles someone fills in.
+            customElementCanBeSkipped: true,
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            spanFullRow: true,
+            description:
+              "Automatically assign users to specific roles when episodes are created with this rule. These role assignments will be applied to all new episodes that match this grouping rule.",
+            getCustomElement: (
+              values: FormValues<IncidentGroupingRule>,
+              props: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <EpisodeMemberRoleAssignmentsFormField
+                  initialValue={
+                    (values.episodeMemberRoleAssignments as Array<EpisodeMemberRoleAssignment>) ||
+                    []
+                  }
+                  onChange={(
+                    assignments: Array<EpisodeMemberRoleAssignment>,
+                  ) => {
+                    if (props.onChange) {
+                      props.onChange(assignments);
+                    }
+                  }}
+                  error={props.error}
+                />
+              );
+            },
+          },
         ]}
         showRefreshButton={true}
       />
+      {extras.templatesModal}
+      {extras.statusMessage}
     </Fragment>
   );
 };

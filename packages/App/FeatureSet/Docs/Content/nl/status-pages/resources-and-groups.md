@@ -52,7 +52,7 @@ De stap **Geavanceerd** is identiek op het enkelvoudige formulier en in de bulkm
 
 ## Uptimepercentages en geschiedenisgrafieken
 
-Zowel **Uptime % weergeven** als **Statusgeschiedenisgrafiek weergeven** hangt van een instelling af die ergens anders staat. Het venster dat ze beslaan is **Uptimegeschiedenis weergeven (in dagen)** onder **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen**, in de kaart **Instellingen uptime-geschiedenis**. Het accepteert 1 tot 90 dagen en staat standaard op 90.
+Zowel **Uptime % weergeven** als **Statusgeschiedenisgrafiek weergeven** hangt van een instelling af die ergens anders staat. Het venster dat ze beslaan is **Uptimegeschiedenis** in de kaart **Wat uw statuspagina toont** onder **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen**. Het accepteert 1 tot 90 dagen en staat standaard op 90.
 
 De volgorde is dus: zet de schakelaars per resource aan, en stel het venster daarna één keer in voor de hele pagina.
 

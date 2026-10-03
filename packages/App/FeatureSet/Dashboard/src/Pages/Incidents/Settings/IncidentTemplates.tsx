@@ -1,5 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import ProjectUser from "../../../Utils/ProjectUser";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -9,7 +8,8 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -21,15 +21,13 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
-import { StatusPagePickerAccessHint } from "../../../Components/Incident/IncidentStatusPageScopeNotices";
-import useStatusPagePickerAccess, {
-  StatusPagePickerAccess,
-} from "../../../Components/Incident/useStatusPagePickerAccess";
 import React, {
   Fragment,
   FunctionComponent,
@@ -41,7 +39,6 @@ import React, {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import {
   buildCustomFieldModelFormFields,
@@ -69,6 +66,7 @@ import {
   removeCustomFieldSettingsFormKeys,
 } from "../../../Components/Incident/IncidentCustomFieldCreateSettingsForm";
 import { CustomFieldCreateSettings } from "Common/Types/CustomField/CustomFieldCreateSettings";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 
 const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -76,10 +74,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   const [createInitialValues, setCreateInitialValues] = useState<
     FormValues<IncidentTemplate>
   >({});
-
-  // Picking status pages needs status page read access (see the hint).
-  const statusPagePickerAccess: StatusPagePickerAccess =
-    useStatusPagePickerAccess();
 
   /*
    * The project's incident custom fields, so a new template can set the
@@ -143,7 +137,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
       const fields: Array<ModelField<IncidentTemplate>> =
         buildCustomFieldSettingsModelFormFields<IncidentTemplate>({
           definitions: customFieldSettingDefinitions,
-          mode: "template",
           stepId: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_ID,
         });
 
@@ -213,6 +206,16 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     loadCustomFieldDefinitions();
   }, []);
 
+  /*
+   * The owners and the labels of the incidents declared from a template are
+   * options few templates set, so they fold under Advanced at the end of
+   * Incident Details - as a scheduled maintenance template folds its owners
+   * and labels on its Event step - rather than walking two steps of one
+   * optional field each.
+   */
+  const advancedSection: FormFieldCollapsibleSection<IncidentTemplate> =
+    getAdvancedFormSection<IncidentTemplate>();
+
   return (
     <Fragment>
       <ModelTable<IncidentTemplate>
@@ -272,7 +275,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             packCustomFieldSettingsFormValues({
               definitions: customFieldSettingDefinitions,
               formValues: formValues,
-              mode: "template",
             });
 
           removeCustomFieldSettingsFormKeys(miscDataProps);
@@ -301,14 +303,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           {
             title: "On-Call",
             id: "on-call",
-          },
-          {
-            title: "Owners",
-            id: "owners",
-          },
-          {
-            title: "Labels",
-            id: "labels",
           },
         ]}
         formFields={[
@@ -372,6 +366,9 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Incident Severity",
@@ -385,50 +382,37 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the initial state for incidents created from this template",
             fieldType: FormFieldSchemaType.Dropdown,
+            /*
+             * Listed in the order an incident moves through its states, each
+             * with its colour - as the severity above shows its own.
+             */
             dropdownModal: {
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Initial State",
-            fetchDropdownOptions: async () => {
-              const projectId: ObjectID | null =
-                ProjectUtil.getCurrentProjectId();
-              if (!projectId) {
-                return [];
-              }
-
-              try {
-                const incidentStates: ListResult<IncidentState> =
-                  await ModelAPI.getList<IncidentState>({
-                    modelType: IncidentState,
-                    query: {
-                      projectId: projectId,
-                    },
-                    limit: LIMIT_PER_PROJECT,
-                    skip: 0,
-                    select: {
-                      _id: true,
-                      name: true,
-                    },
-                    sort: {
-                      order: SortOrder.Ascending,
-                    },
-                  });
-
-                return incidentStates.data.map((state: IncidentState) => {
-                  return {
-                    label: state.name || "",
-                    value: state._id?.toString() || "",
-                  };
-                });
-              } catch {
-                // Silently fail and return empty array
-                return [];
-              }
-            },
           },
+          /*
+           * People and teams in one picker, kept in ownerUsers / ownerTeams:
+           * IncidentTemplateService adds them as the template's owners.
+           */
+          getOwnersFormField({
+            stepId: "incident-details",
+            description:
+              "Who owns incidents declared from this template. They are notified when the incident is created or updated.",
+            collapsibleSection: advancedSection,
+          }),
+          getLabelsFormField<IncidentTemplate>({
+            stepId: "incident-details",
+            description:
+              "Incidents declared from this template start with these labels.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               monitors: true,
@@ -439,6 +423,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
+            // The picker writes only what is picked: the form can be finished without it.
+            customElementCanBeSkipped: true,
             getCustomElement: (
               values: FormValues<IncidentTemplate>,
               elementProps: CustomElementProps,
@@ -500,9 +486,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: IncidentStatusPageScopeCopy.pickerPlaceholder,
-            footerElement: (
-              <StatusPagePickerAccessHint access={statusPagePickerAccess} />
-            ),
           },
           /*
            * Hidden registrations so ModelForm.getSelectFields includes
@@ -590,65 +573,12 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
               type: MonitorStatus,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Monitor Status",
-          },
-          {
-            overrideField: {
-              ownerTeams: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Owner - Teams",
-            stepId: "owners",
-            description:
-              "Select which teams own this incident. They will be notified when the incident is created or updated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Teams",
-            overrideFieldKey: "ownerTeams",
-          },
-          {
-            overrideField: {
-              ownerUsers: true,
-            },
-            showEvenIfPermissionDoesNotExist: true,
-            title: "Owner - Users",
-            stepId: "owners",
-            description:
-              "Select which users own this incident. They will be notified when the incident is created or updated.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            required: false,
-            placeholder: "Select Users",
-            overrideFieldKey: "ownerUsers",
-          },
-          {
-            field: {
-              labels: true,
-            },
-
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         showRefreshButton={true}

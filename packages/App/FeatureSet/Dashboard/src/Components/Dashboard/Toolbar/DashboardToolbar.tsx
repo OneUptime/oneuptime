@@ -27,6 +27,8 @@ import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -198,6 +200,7 @@ interface AutoRefreshDropdownProps {
 const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
   props: AutoRefreshDropdownProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dropdownRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
@@ -234,7 +237,7 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
         onClick={() => {
           setIsOpen(!isOpen);
         }}
-        title="Auto-refresh settings"
+        title={translator.translateText("Auto-refresh settings")}
       >
         {props.isAutoRefreshActive && props.autoRefreshMs ? (
           <CountdownCircle
@@ -250,7 +253,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
               icon={IconProp.Refresh}
               className="w-3.5 h-3.5 text-gray-500"
             />
-            <span className="text-xs text-gray-500">Auto-refresh: Off</span>
+            <span className="text-xs text-gray-500">
+              {translator.translateText("Auto-refresh: Off")}
+            </span>
           </>
         )}
       </button>
@@ -287,8 +292,13 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
                     {isSelected ? "\u2713" : ""}
                   </span>
                   {interval === AutoRefreshInterval.OFF
-                    ? "Auto-refresh Off"
-                    : `Refresh every ${getAutoRefreshIntervalLabel(interval)}`}
+                    ? translator.translateText("Auto-refresh Off")
+                    : translator.translateTemplate(
+                        "Refresh every {{interval}}",
+                        {
+                          interval: getAutoRefreshIntervalLabel(interval),
+                        },
+                      )}
                 </button>
               );
             },
@@ -302,6 +312,7 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
 const DashboardToolbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
@@ -349,7 +360,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 {isEditMode && (
                   <span className="inline-flex items-center px-1.5 py-px rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
                     <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span>
-                    Editing
+                    {translator.translateText("Editing")}
                   </span>
                 )}
               </div>
@@ -390,8 +401,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                    title="Reset the dashboard to the time range it had before the zoom"
-                    aria-label="Reset zoom"
+                    title={translator.translateText(
+                      "Reset the dashboard to the time range it had before the zoom",
+                    )}
+                    aria-label={translator.translateText("Reset zoom")}
                     onClick={() => {
                       props.onResetTimeRangeZoom?.();
                     }}
@@ -400,7 +413,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       icon={IconProp.MagnifyingGlassMinus}
                       className="h-3.5 w-3.5"
                     />
-                    Reset zoom
+                    {translator.translateText("Reset zoom")}
                   </button>
                 )}
 
@@ -425,8 +438,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="More dashboard options"
-                    aria-label="More dashboard options"
+                    title={translator.translateText("More dashboard options")}
+                    aria-label={translator.translateText(
+                      "More dashboard options",
+                    )}
                   >
                     <Icon
                       icon={IconProp.EllipsisHorizontal}
@@ -471,10 +486,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                       setShowAddWidgetModal(true);
                     }}
-                    title="Add Widget"
+                    title={translator.translateText("Add Widget")}
                   >
                     <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
-                    <span>Add Widget</span>
+                    <span>{translator.translateText("Add Widget")}</span>
                   </button>
 
                   {props.onVariablesDefinitionChange && (
@@ -484,10 +499,10 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                       onClick={() => {
                         setShowVariablesModal(true);
                       }}
-                      title="Variables"
+                      title={translator.translateText("Variables")}
                     >
                       <Icon icon={IconProp.Variable} className="w-3.5 h-3.5" />
-                      <span>Variables</span>
+                      <span>{translator.translateText("Variables")}</span>
                       {props.variables && props.variables.length > 0 && (
                         <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
                           {props.variables.length}
@@ -505,18 +520,18 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                       setShowCancelModal(true);
                     }}
-                    title="Cancel"
+                    title={translator.translateText("Cancel")}
                   >
-                    Cancel
+                    {translator.translateText("Cancel")}
                   </button>
                   <button
                     type="button"
                     className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
                     onClick={props.onSaveClick}
-                    title="Save Changes"
+                    title={translator.translateText("Save Changes")}
                   >
                     <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
-                    <span>Save Changes</span>
+                    <span>{translator.translateText("Save Changes")}</span>
                   </button>
                 </div>
               </div>
@@ -525,7 +540,9 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             {isSaving && (
               <div className="flex items-center gap-2">
                 <Loader />
-                <span className="text-xs text-gray-500">Saving...</span>
+                <span className="text-xs text-gray-500">
+                  {translator.translateText("Saving...")}
+                </span>
               </div>
             )}
           </div>

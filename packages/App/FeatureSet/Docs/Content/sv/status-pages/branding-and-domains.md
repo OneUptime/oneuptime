@@ -34,7 +34,7 @@ Använd det när: sidan bara är intern eller fortfarande håller på att sätta
 
 **Statussidor → din sida → Varumärke → Sidhuvud** (`{id}/header-style`). Trots namnet i sidomenyn är det här era två största varumärkestillgångar bor.
 
-Första kortet heter **Logotyp, omslag och favicon** och har en knapp **Edit Images**:
+Första kortet heter **Logotyp och omslagsbild** och har en knapp **Edit Images**:
 
 - **Logotyp** — bilduppladdning, platshållare `Upload logo`.
 - **Logo Alt Text** — platshållare `Logo of My Company`. Lämnar du den tom används statussidans titel i stället.
@@ -64,7 +64,7 @@ Länkar till juridik, integritetspolicy och villkor hör hemma här. Sidhuvudets
 - **Standardfärg för stapeln i historikdiagrammet** — **Edit Default Bar Color** öppnar väljaren **Standardfärg för stapel**, den färg som används när ingen regel matchar.
 - **Övergripande drifttid i procent** — **Edit Settings** öppnar växeln **Visa total upptidsprocent** och en rullgardinsmeny **Välj precision för drifttid**, som är två decimaler som standard (`99.99% (Two Decimal)`).
 
-**Hur många dagar diagrammet täcker sätts inte här.** Det är **Visa upptidshistorik (i dagar)** på **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), giltigt från 1 till 90.
+**Hur många dagar diagrammet täcker sätts inte här.** Det är **Upptidshistorik** i kortet **Vad din statussida visar** på **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), från 1 till 90 dagar.
 
 ## Anpassad HTML, CSS och JavaScript
 
@@ -152,7 +152,7 @@ Sitter en rad kvar på "Action Required: Please add your CNAME record." långt e
 
 ## Powered by OneUptime
 
-Raden "Powered by OneUptime" är ingen inställning i varumärkessektionen. Den bor på **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), i kortet **Drivs av OneUptime-varumärke**, som en enda växel: **Dölj "Powered By OneUptime"-varumärke**. **Edit Settings** öppnar den, precis som varje annat kort på den sidan.
+Raden "Powered by OneUptime" är ingen inställning i varumärkessektionen. Det är den sista växeln i kortet **Vad din statussida visar** på **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Slå av den för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den.
 
 ## Läs vidare
 

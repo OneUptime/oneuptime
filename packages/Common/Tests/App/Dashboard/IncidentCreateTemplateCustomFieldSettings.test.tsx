@@ -651,6 +651,8 @@ describe("the template's values under its settings", () => {
 
     const values: Record<string, unknown> = {
       title: "Customer data exposed",
+      // The preview is offered only on a monitor: without one nothing is sent.
+      monitors: ["c0000000-0000-4000-8000-000000000001"],
       [getCustomFieldFormKey("Impact")]: "Low",
       [getCustomFieldFormKey("Category")]: "Network",
       [getCustomFieldFormKey("Estimated Duration")]: 0,

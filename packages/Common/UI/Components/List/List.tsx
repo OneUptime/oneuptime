@@ -1,7 +1,20 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import Field from "../Detail/Field";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import TableEmptyState, {
+  TableEmptyStateKind,
+  TableEmptyStateProps,
+} from "../Table/TableEmptyState";
+import {
+  EmptyMessageParts,
+  getEmptyTableTitle,
+} from "../Table/EmptyTableMessage";
+import {
+  getFilteredEmptyStateProps,
+  getLoadErrorStateProps,
+  getMessageEmptyStateParts,
+  hasFilterValues,
+} from "../Table/TableEmptyStateBuilders";
 import FilterViewer from "../Filters/FilterViewer";
 import FilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
@@ -9,7 +22,11 @@ import Pagination from "../Pagination/Pagination";
 import ListBody from "./ListBody";
 import ListSkeleton from "./ListSkeleton";
 import { ListDetailProps } from "./ListRow";
+import { DRAG_HANDLE_USAGE_INSTRUCTIONS } from "../Table/Table";
 import GenericObject from "../../../Types/GenericObject";
+import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
@@ -30,14 +47,24 @@ export interface ComponentProps<T extends GenericObject> {
   enableDragAndDrop?: boolean | undefined;
   dragDropIndexField?: keyof T | undefined;
   dragDropIdField?: keyof T | undefined;
-  onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
+  // See Table: positions in `data`, never called for a drop that moved nothing.
+  onDragDrop?:
+    | ((id: string, destinationIndex: number, sourceIndex: number) => void)
+    | undefined;
+  isDragDisabled?: boolean | undefined;
+  dragDisabledReason?: string | undefined;
+  // What a card is ("Rule: Call the on-call engineer"), for its grip's name.
+  itemToString?: ((item: T) => string) | undefined;
   error: string;
   isLoading: boolean;
   singularLabel: string;
   pluralLabel: string;
   actionButtons?: undefined | Array<ActionButtonSchema<T>>;
   onRefreshClick?: undefined | (() => void);
+  // See Table: a sentence is split into a title and a description.
   noItemsMessage?: undefined | string | ReactElement;
+  // See Table: the empty state, fully built. Wins over noItemsMessage.
+  emptyStateProps?: TableEmptyStateProps | undefined;
   listDetailOptions?: undefined | ListDetailProps;
 
   isFilterLoading?: undefined | boolean;
@@ -67,6 +94,8 @@ type ListFunction = <T extends GenericObject>(
 const List: ListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   /*
    * A refetch with cards already on screen (pagination, sort, refresh - the
    * parent never clears `data` while fetching) keeps those cards visible and
@@ -74,6 +103,84 @@ const List: ListFunction = <T extends GenericObject>(
    */
   const isRefetchingWithData: boolean =
     props.isLoading && props.data.length > 0;
+
+  const isEmptyResult: boolean =
+    !props.isLoading && !props.error && props.data.length === 0;
+
+  const isLoadError: boolean = !props.isLoading && Boolean(props.error);
+
+  // See Table: an empty first page has nothing to page through.
+  const isPaginationHidden: boolean =
+    Boolean(props.disablePagination) ||
+    ((isEmptyResult || isLoadError) &&
+      props.currentPageNumber <= 1 &&
+      !props.hasMore);
+
+  const translate: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
+  const getEmptyStateElement: GetReactElementFunction = (): ReactElement => {
+    if (props.emptyStateProps) {
+      return <TableEmptyState {...props.emptyStateProps} />;
+    }
+
+    // The page's own element, in the frame the old message had.
+    if (React.isValidElement(props.noItemsMessage)) {
+      return (
+        <div className="my-10 text-center text-sm text-gray-500">
+          {props.noItemsMessage}
+        </div>
+      );
+    }
+
+    const parts: EmptyMessageParts = getMessageEmptyStateParts({
+      pluralLabel: props.pluralLabel,
+      noItemsMessage:
+        typeof props.noItemsMessage === "string"
+          ? props.noItemsMessage
+          : undefined,
+      translate: translate,
+      translator: translator,
+    });
+
+    // See Table: its own filter form hid every card.
+    if (
+      hasFilterValues(
+        props.filterData as { [key: string]: unknown } | undefined,
+      )
+    ) {
+      return (
+        <TableEmptyState
+          {...getFilteredEmptyStateProps({
+            title:
+              typeof props.noItemsMessage === "string" &&
+              props.noItemsMessage.trim()
+                ? parts.title
+                : getEmptyTableTitle({
+                    pluralLabel: props.pluralLabel,
+                    isFiltered: true,
+                    translate: translate,
+                    translator: translator,
+                  }),
+            onClear: props.onFilterChanged
+              ? (): void => {
+                  props.onFilterChanged?.({});
+                }
+              : undefined,
+          })}
+        />
+      );
+    }
+
+    return (
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        title={parts.title}
+        description={parts.description}
+      />
+    );
+  };
 
   const getListbody: GetReactElementFunction = (): ReactElement => {
     if (props.isLoading && props.data.length === 0) {
@@ -90,12 +197,17 @@ const List: ListFunction = <T extends GenericObject>(
      * skeletons): while a refetch is in flight the stale cards render, never
      * a stale error or a premature "no items".
      */
-    if (!props.isLoading && props.error) {
+    if (isLoadError) {
       return (
-        <div className="p-6">
-          <ErrorMessage
-            message={props.error}
-            onRefreshClick={props.onRefreshClick}
+        <div className="px-6" data-testid={`${props.id}-load-error`}>
+          <TableEmptyState
+            {...getLoadErrorStateProps({
+              pluralLabel: props.pluralLabel,
+              error: props.error,
+              onRetry: props.onRefreshClick,
+              translate: translate,
+              translator: translator,
+            })}
           />
         </div>
       );
@@ -103,15 +215,8 @@ const List: ListFunction = <T extends GenericObject>(
 
     if (props.data.length === 0) {
       return (
-        <div className="p-6">
-          <ErrorMessage
-            message={
-              props.noItemsMessage
-                ? props.noItemsMessage
-                : `No ${props.singularLabel.toLocaleLowerCase()}`
-            }
-            onRefreshClick={props.onRefreshClick}
-          />
+        <div className="px-6" data-testid={`${props.id}-no-items`}>
+          {getEmptyStateElement()}
         </div>
       );
     }
@@ -126,6 +231,9 @@ const List: ListFunction = <T extends GenericObject>(
         dragAndDropScope={`${props.id}-dnd`}
         dragDropIdField={props.dragDropIdField}
         dragDropIndexField={props.dragDropIndexField}
+        isDragDisabled={props.isDragDisabled}
+        dragDisabledReason={props.dragDisabledReason}
+        itemToString={props.itemToString}
         listDetailOptions={props.listDetailOptions}
       />
     );
@@ -157,10 +265,25 @@ const List: ListFunction = <T extends GenericObject>(
         </div>
         <div className="">
           <DragDropContext
+            dragHandleUsageInstructions={
+              translateString(DRAG_HANDLE_USAGE_INSTRUCTIONS) ||
+              DRAG_HANDLE_USAGE_INSTRUCTIONS
+            }
             onDragEnd={(result: DropResult) => {
-              if (result.destination?.index && props.onDragDrop) {
-                props.onDragDrop(result.draggableId, result.destination.index);
+              // Index 0 is the top of the list: a drop there is a real move.
+              if (
+                !props.onDragDrop ||
+                !result.destination ||
+                result.destination.index === result.source.index
+              ) {
+                return;
               }
+
+              props.onDragDrop(
+                result.draggableId,
+                result.destination.index,
+                result.source.index,
+              );
             }}
           >
             {/*
@@ -179,7 +302,17 @@ const List: ListFunction = <T extends GenericObject>(
               {getListbody()}
             </div>
           </DragDropContext>
-          {!props.disablePagination && (
+          {/*
+           * The footer used to run on into the card's bottom padding. With
+           * it left out, the list's grey runs on there instead, so the card
+           * does not end in a white band under the empty state.
+           */}
+          {isPaginationHidden && !props.disablePagination ? (
+            <div className="-mb-6 h-6 rounded-b-xl bg-gray-50" />
+          ) : (
+            <></>
+          )}
+          {!isPaginationHidden && (
             <div className="mt-5 -mb-6">
               <Pagination
                 singularLabel={props.singularLabel}

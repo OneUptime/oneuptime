@@ -20,11 +20,13 @@ import PermissionGate, {
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   ExceptionTriageAction,
-  describeExceptionStatusChange,
+  formatRelativeTime,
 } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { ExceptionTriageActionId } from "./ExceptionTriageActions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   exception: TelemetryException;
@@ -72,9 +74,81 @@ function getUserName(
   return user?.name?.toString() || user?.email?.toString() || undefined;
 }
 
+type StatusChangeKind = "resolved" | "archived";
+
+interface StatusChangeTemplates {
+  withTimeAndName: string;
+  withTime: string;
+  withName: string;
+  bare: string;
+}
+
+/*
+ * "Resolved 2 hours ago by Priya Raman": each status change as whole
+ * sentences, so a language words resolving and archiving its own way.
+ */
+const STATUS_CHANGE_TEMPLATES: Record<StatusChangeKind, StatusChangeTemplates> =
+  {
+    resolved: {
+      withTimeAndName: translationKey("Resolved {{time}} by {{name}}"),
+      withTime: translationKey("Resolved {{time}}"),
+      withName: translationKey("Resolved by {{name}}"),
+      bare: translationKey("Resolved"),
+    },
+    archived: {
+      withTimeAndName: translationKey("Archived {{time}} by {{name}}"),
+      withTime: translationKey("Archived {{time}}"),
+      withName: translationKey("Archived by {{name}}"),
+      bare: translationKey("Archived"),
+    },
+  };
+
+/*
+ * Who last changed a status and when, or - while the status is off - what
+ * that means. The time reads as the rest of the page writes it ("2 hours
+ * ago"); the name is the person's own.
+ */
+export function describeExceptionStatusHistory(
+  translator: Translator,
+  data: {
+    kind: StatusChangeKind;
+    isActive: boolean;
+    at: Date | undefined;
+    byName: string | undefined;
+    inactiveText: string;
+    now?: Date | undefined;
+  },
+): string {
+  if (!data.isActive) {
+    return translator.translateText(data.inactiveText) || data.inactiveText;
+  }
+
+  const templates: StatusChangeTemplates = STATUS_CHANGE_TEMPLATES[data.kind];
+  const time: string | null = formatRelativeTime(data.at, data.now);
+  const name: string = (data.byName || "").trim();
+
+  if (time && name) {
+    return translator.translateTemplate(templates.withTimeAndName, {
+      time,
+      name,
+    });
+  }
+
+  if (time) {
+    return translator.translateTemplate(templates.withTime, { time });
+  }
+
+  if (name) {
+    return translator.translateTemplate(templates.withName, { name });
+  }
+
+  return translator.translateTemplate(templates.bare);
+}
+
 const ExceptionSettings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isResolved: boolean = Boolean(props.exception.isResolved);
   const isArchived: boolean = Boolean(props.exception.isArchived);
 
@@ -90,16 +164,18 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
         ? "bg-emerald-50 text-emerald-600"
         : "bg-red-50 text-red-600",
       title: "Resolution",
-      stateLabel: isResolved ? "Resolved" : "Unresolved",
+      stateLabel: isResolved
+        ? translationKey("Resolved")
+        : translationKey("Unresolved"),
       stateClassName: isResolved
         ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
         : "bg-red-50 text-red-700 ring-red-600/20",
-      history: describeExceptionStatusChange({
+      history: describeExceptionStatusHistory(translator, {
+        kind: "resolved",
         isActive: isResolved,
         at: props.exception.markedAsResolvedAt,
         byName: getUserName(props.exception.markedAsResolvedByUser),
-        activeVerb: "Resolved",
-        inactiveText: "Open and waiting for a fix.",
+        inactiveText: translationKey("Open and waiting for a fix."),
       }),
       historyTitle: props.exception.markedAsResolvedAt
         ? OneUptimeDate.getDateAsLocalFormattedString(
@@ -132,16 +208,20 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
         ? "bg-amber-50 text-amber-600"
         : "bg-gray-100 text-gray-500",
       title: "Archive",
-      stateLabel: isArchived ? "Archived" : "Not archived",
+      stateLabel: isArchived
+        ? translationKey("Archived")
+        : translationKey("Not archived"),
       stateClassName: isArchived
         ? "bg-amber-50 text-amber-700 ring-amber-600/20"
         : "bg-gray-50 text-gray-600 ring-gray-500/20",
-      history: describeExceptionStatusChange({
+      history: describeExceptionStatusHistory(translator, {
+        kind: "archived",
         isActive: isArchived,
         at: props.exception.markedAsArchivedAt,
         byName: getUserName(props.exception.markedAsArchivedByUser),
-        activeVerb: "Archived",
-        inactiveText: "Shown in the exception lists and notifications.",
+        inactiveText: translationKey(
+          "Shown in the exception lists and notifications.",
+        ),
       }),
       historyTitle: props.exception.markedAsArchivedAt
         ? OneUptimeDate.getDateAsLocalFormattedString(
@@ -202,13 +282,13 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-semibold text-gray-900">
-                        {row.title}
+                        {translator.translateText(row.title)}
                       </h3>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${row.stateClassName}`}
                         data-testid={`exception-settings-${row.id}-state`}
                       >
-                        {row.stateLabel}
+                        {translator.translateText(row.stateLabel)}
                       </span>
                     </div>
                     <p
@@ -219,7 +299,7 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
                       {row.history}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      {row.explanation}
+                      {translator.translateText(row.explanation)}
                     </p>
                   </div>
                 </div>

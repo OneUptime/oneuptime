@@ -25,6 +25,8 @@ import DictionaryForm from "Common/UI/Components/Dictionary/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import SeriesColorSelector from "../../Metrics/SeriesColorSelector";
 import SeriesGroupColorSelector from "../../Metrics/SeriesGroupColorSelector";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
@@ -138,6 +140,7 @@ const Field: FunctionComponent<FieldProps> = (
 const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const args: TraceChartArguments =
     (props.component.arguments as unknown as TraceChartArguments) || {};
 
@@ -457,9 +460,9 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
                   className="text-xs text-gray-500"
                   data-testid="trace-chart-status-split-colors"
                 >
-                  A split by status keeps each status&apos;s own color: Unset
-                  green, Ok cyan, Error red. To change one, pin its stored value
-                  below: 0 for Unset, 1 for Ok, 2 for Error.
+                  {translator.translateText(
+                    "A split by status keeps each status's own color: Unset green, Ok cyan, Error red. To change one, pin its stored value below: 0 for Unset, 1 for Ok, 2 for Error.",
+                  )}
                 </p>
               ) : (
                 <SeriesColorSelector

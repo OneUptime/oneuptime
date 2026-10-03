@@ -1,4 +1,11 @@
 import { ActiveFilter, FacetData } from "./types";
+import {
+  translatableTerm,
+  translatePlural,
+  translateTemplate,
+  translateText,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 
 /*
  * Which facet sections a telemetry sidebar (Logs, Traces, Metrics,
@@ -46,8 +53,9 @@ export interface FacetVisibility {
   hiddenCount: number;
 }
 
-export const DEFAULT_FACET_EMPTY_STATE_TEXT: string =
-  "No values in this time range";
+export const DEFAULT_FACET_EMPTY_STATE_TEXT: string = translationKey(
+  "No values in this time range",
+);
 
 const hasActiveValues: (activeValues: Set<string> | undefined) => boolean = (
   activeValues: Set<string> | undefined,
@@ -199,8 +207,11 @@ export const getScopedHiddenFacetEmptyStateText: (
 ) => string = (pluralNoun: string | undefined): string => {
   const noun: string = (pluralNoun || "").trim();
   return noun
-    ? `No ${noun} in this time range`
-    : DEFAULT_FACET_EMPTY_STATE_TEXT;
+    ? translateTemplate("No {{itemsName}} in this time range", {
+        itemsName: translatableTerm(noun),
+      })
+    : translateText(DEFAULT_FACET_EMPTY_STATE_TEXT) ||
+        DEFAULT_FACET_EMPTY_STATE_TEXT;
 };
 
 // Keeps only entries with non-blank text, trimmed.
@@ -242,24 +253,40 @@ export const getFacetSearchExemptKeys: (
   ]);
 };
 
+/*
+ * The sentences below are in the reader's language: they are built where a
+ * sidebar renders, so a language switch re-renders them.
+ */
+
 // "1 empty filter", "3 empty filters".
 export const formatEmptyFacetCount: (count: number) => string = (
   count: number,
 ): string => {
-  return `${count} empty ${count === 1 ? "filter" : "filters"}`;
+  return translatePlural(
+    { one: "{{count}} empty filter", other: "{{count}} empty filters" },
+    count,
+  );
 };
 
 // "1 empty filter hidden", "3 empty filters hidden".
 export const formatHiddenFacetCount: (hiddenCount: number) => string = (
   hiddenCount: number,
 ): string => {
-  return `${formatEmptyFacetCount(hiddenCount)} hidden`;
+  return translatePlural(
+    {
+      one: "{{count}} empty filter hidden",
+      other: "{{count}} empty filters hidden",
+    },
+    hiddenCount,
+  );
 };
 
 export const getFacetNoMatchesText: (searchText: string) => string = (
   searchText: string,
 ): string => {
-  return `No matches for “${searchText.trim()}”`;
+  return translateTemplate("No matches for “{{search}}”", {
+    search: searchText.trim(),
+  });
 };
 
 // Empty state of a resource facet: the project has none of that resource.
@@ -267,7 +294,11 @@ export const getHiddenFacetEmptyStateText: (
   pluralNoun: string | undefined,
 ) => string = (pluralNoun: string | undefined): string => {
   const noun: string = (pluralNoun || "").trim();
-  return noun ? `No ${noun} in this project` : "No values in this project";
+  return noun
+    ? translateTemplate("No {{itemsName}} in this project", {
+        itemsName: translatableTerm(noun),
+      })
+    : translateText("No values in this project") || "No values in this project";
 };
 
 export interface FacetEmptyStateTextOptions {
@@ -283,7 +314,11 @@ export const getFacetEmptyStateText: (
   if (options.searchText.trim()) {
     return getFacetNoMatchesText(options.searchText);
   }
-  return options.emptyStateText || DEFAULT_FACET_EMPTY_STATE_TEXT;
+  return (
+    options.emptyStateText ||
+    translateText(DEFAULT_FACET_EMPTY_STATE_TEXT) ||
+    DEFAULT_FACET_EMPTY_STATE_TEXT
+  );
 };
 
 export interface SidebarFacetEmptyStateOptions {

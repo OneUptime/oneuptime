@@ -171,6 +171,9 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                 required: true,
                 placeholder: t("accounts.masterPassword.passwordPlaceholder"),
                 fieldType: FormFieldSchemaType.Password,
+                // What unlocks the page: password managers may fill it.
+                autoComplete: "current-password",
+                isOwnCredential: true,
                 disableSpellCheck: true,
               },
             ]}

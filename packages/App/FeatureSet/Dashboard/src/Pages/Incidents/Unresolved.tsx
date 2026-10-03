@@ -14,7 +14,11 @@ const IncidentsPage: FunctionComponent<
           isResolvedState: false,
         },
       }}
-      noItemsMessage="Nice work! No Active Incidents so far."
+      emptyState={{
+        isAllClear: true,
+        title: "No active incidents",
+        description: "Nice work! Every incident is resolved.",
+      }}
       title="Active Incidents"
       description="Incidents that are not resolved yet: problems affecting your users right now. View an incident to see who is responding and to post updates."
     />

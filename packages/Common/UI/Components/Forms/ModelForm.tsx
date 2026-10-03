@@ -33,6 +33,14 @@ import { FormStep } from "./Types/FormStep";
 import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import {
+  CreateFormColumnDefault,
+  getCreateFormColumnDefault,
+} from "./Utils/CreateFormDefaults";
+import {
+  getPeoplePickerValueKeys,
+  toPeoplePickerIds,
+} from "../PeoplePicker/PeoplePickerTypes";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -59,8 +67,11 @@ import Permission, {
 } from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
+import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
+import Sort from "../../../Types/BaseDatabase/Sort";
 
 /*
  * Whether a dropdown's list request was refused because the person may not
@@ -94,6 +105,16 @@ export type ModelFormOnBeforeCreate<
   miscDataProps: JSONObject,
   formValues: JSONObject,
 ) => Promise<TBaseModel>;
+
+/*
+ * The same, on an Update form: the model that is about to be saved (its _id
+ * set), the misc data the request carries and every value the form holds.
+ * What it returns is what is saved - an escalation rule's edit dialog names a
+ * rule whose name was cleared after its level here.
+ */
+export type ModelFormOnBeforeUpdate<
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+> = ModelFormOnBeforeCreate<TBaseModel>;
 
 export interface ModelField<TBaseModel extends BaseModel | AnalyticsBaseModel>
   extends Field<TBaseModel> {
@@ -139,11 +160,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   submitButtonStyleType?: ButtonStyleType | undefined;
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
   onIsLastFormStep?: undefined | ((isLastFormStep: boolean) => void);
+  // Whether the form can be finished from the step on screen (see BasicForm).
+  onCanFinishFromCurrentStep?: undefined | ((canFinish: boolean) => void);
   onLoadingChange?: undefined | ((isLoading: boolean) => void);
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
   onError?: ((error: string) => void) | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
@@ -166,6 +190,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const [error, setError] = useState<string>("");
   const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
   const model: TBaseModel = new props.modelType();
+  const translator: Translator = useTranslator();
 
   /*
    * Almost every caller writes its `fields` as an inline array literal in JSX,
@@ -200,11 +225,79 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
+  /*
+   * A people picker writes a form value per kind of pick - owners are
+   * ownerUsers and ownerTeams - and names itself with a key of its own that
+   * is no column ("owners"). The values that are columns of this model (an
+   * owner rule's) are selected and saved as columns; any other (a template's
+   * owners) goes in the misc data, as the dropdowns it replaces did.
+   */
+  type PeoplePickerFieldFunction<TResult> = (
+    field: Field<TBaseModel>,
+  ) => TResult;
+
+  const isPeoplePickerField: PeoplePickerFieldFunction<boolean> = (
+    field: Field<TBaseModel>,
+  ): boolean => {
+    return (
+      field.fieldType === FormFieldSchemaType.PeoplePicker &&
+      Boolean(field.peoplePicker)
+    );
+  };
+
+  const getPeoplePickerColumnKeys: PeoplePickerFieldFunction<Array<string>> = (
+    field: Field<TBaseModel>,
+  ): Array<string> => {
+    if (!field.peoplePicker) {
+      return [];
+    }
+
+    return getPeoplePickerValueKeys(field.peoplePicker).filter(
+      (key: string): boolean => {
+        return model.hasColumn(key);
+      },
+    );
+  };
+
+  const getPermittedPeoplePickerColumnKeys: PeoplePickerFieldFunction<
+    Array<string>
+  > = (field: Field<TBaseModel>): Array<string> => {
+    return getPeoplePickerColumnKeys(field).filter((key: string): boolean => {
+      return (
+        Boolean(field.showEvenIfPermissionDoesNotExist) ||
+        hasPermissionOnField(key)
+      );
+    });
+  };
+
+  /*
+   * Shown when its picks can be saved: one of its columns may be written,
+   * or it has no columns at all - its picks are misc data, which the server
+   * checks for itself.
+   */
+  const isPeoplePickerFieldPermitted: PeoplePickerFieldFunction<boolean> = (
+    field: Field<TBaseModel>,
+  ): boolean => {
+    if (getPeoplePickerColumnKeys(field).length === 0) {
+      return true;
+    }
+
+    return getPermittedPeoplePickerColumnKeys(field).length > 0;
+  };
+
   type GetSelectFieldsFunction = () => Select<TBaseModel>;
 
   const getSelectFields: GetSelectFieldsFunction = (): Select<TBaseModel> => {
     const select: Select<TBaseModel> = {};
     for (const field of props.fields) {
+      if (isPeoplePickerField(field)) {
+        for (const key of getPermittedPeoplePickerColumnKeys(field)) {
+          (select as Dictionary<boolean>)[key] = true;
+        }
+
+        continue;
+      }
+
       const key: string | null = field.field
         ? (Object.keys(field.field)[0] as string)
         : null;
@@ -229,6 +322,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
       const relationSelect: Select<TBaseModel> = {};
 
       for (const field of props.fields) {
+        if (isPeoplePickerField(field)) {
+          for (const key of getPeoplePickerColumnKeys(field)) {
+            if (model.isEntityColumn(key)) {
+              (relationSelect as JSONObject)[key] = true;
+            }
+          }
+
+          continue;
+        }
+
         const key: string | null = field.field
           ? (Object.keys(field.field)[0] as string)
           : null;
@@ -342,7 +445,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
          */
         const effectiveFieldKey: string = field.overrideFieldKey || key;
 
-        const hasPermission: boolean = hasPermissionOnField(key);
+        const hasPermission: boolean = isPeoplePickerField(field)
+          ? isPeoplePickerFieldPermitted(field)
+          : hasPermissionOnField(key);
 
         if (
           (field.showEvenIfPermissionDoesNotExist || hasPermission) &&
@@ -377,8 +482,23 @@ const ModelForm: <TBaseModel extends BaseModel>(
             };
           }
 
+          /*
+           * A Create form starts from the model's own column defaults - what
+           * the server stores for a field left out - unless the field or the
+           * form's initial values say otherwise (Utils/CreateFormDefaults).
+           * Without this a switch whose column defaults to on was drawn off
+           * and saved off. An Edit form shows the record as it is.
+           */
+          const columnDefault: CreateFormColumnDefault | undefined =
+            props.formType === FormType.Create
+              ? getCreateFormColumnDefault(model, field)
+              : undefined;
+
           fieldsToSet.push({
             ...field,
+            ...(columnDefault !== undefined
+              ? { defaultValue: columnDefault }
+              : {}),
             field: {
               [key]: true,
             } as SelectFormFields<TBaseModel>,
@@ -411,9 +531,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
             model.getTableColumnMetadata(fieldName);
 
           setError(
-            `You don't have enough permissions to ${
-              props.formType === FormType.Create ? "create" : "edit"
-            } ${columnMetadata.title} on ${model.singularName}. You need one of the following permissions: ${fieldPermissions.join(", ")}`,
+            translator.translateTemplate(
+              props.formType === FormType.Create
+                ? "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}"
+                : "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
+              {
+                columnName: translatableTerm(columnMetadata.title || fieldName),
+                itemName: translatableTerm(model.singularName || ""),
+                permissions: fieldPermissions.join(", "),
+              },
+            ),
           );
         }
       }
@@ -525,10 +652,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) => Promise<Fields<TBaseModel>>;
 
   /*
-   * What a dropdown's options depend on, and nothing else: the model, and the
-   * two columns read off it. The request below takes no query and no closure
-   * state, so two fields with the same three always get the same list back -
-   * which is what makes caching them safe.
+   * What a dropdown's options depend on, and nothing else: the model, the
+   * two columns read off it, and the order it is listed in. The request below
+   * takes no query and no closure state, so two fields with the same four
+   * always get the same list back - which is what makes caching them safe.
    */
   type GetCachedDropdownOptionsFunction = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
@@ -544,7 +671,13 @@ const ModelForm: <TBaseModel extends BaseModel>(
   ) => string = (
     dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
   ): string => {
-    return `${dropdownModal.labelField}|${dropdownModal.valueField}`;
+    const sortKey: string = Object.entries(dropdownModal.sort || {})
+      .map((entry: [string, string]): string => {
+        return `${entry[0]}:${entry[1]}`;
+      })
+      .join(",");
+
+    return `${dropdownModal.labelField}|${dropdownModal.valueField}|${sortKey}`;
   };
 
   const getCachedDropdownOptions: GetCachedDropdownOptionsFunction = (
@@ -625,8 +758,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
      * editing this one, so someone may edit a field whose options they cannot
      * list - an incident member and the status pages an incident is limited
      * to - and a form-wide error on every step would say the form is broken
-     * when it is not. Pages that care explain the empty list next to the
-     * field.
+     * when it is not. The dropdown then just has nothing to pick.
      */
     let firstFetchError: unknown = null;
 
@@ -649,6 +781,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
             shouldSelectColorColumn = true;
           }
 
+          /*
+           * A sorted column is selected too: with the labels relation below
+           * the list goes down TypeORM's paginated path, which orders by a
+           * column only if it was selected - leaving it out fails the request.
+           */
+          for (const sortColumnName of Object.keys(
+            field.dropdownModal.sort || {},
+          )) {
+            select[sortColumnName] = true;
+          }
+
           const accessControlColumnName: string | null =
             tempModel.getAccessControlColumn();
 
@@ -668,7 +811,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: select,
-              sort: {},
+              sort: (field.dropdownModal.sort || {}) as Sort<BaseModel>,
             });
 
           if (listResult.data && listResult.data.length > 0) {
@@ -865,8 +1008,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
    * so a form that mounts before its id is known still fetches once it
    * arrives. It used to run only on mount, which left an Update form showing
    * blank defaults: submitting that silently wrote empty values - and false
-   * for every Toggle, since BasicForm defaults untouched toggles to false -
-   * over the real record.
+   * for every Toggle, since BasicForm sends an untouched toggle as false -
+   * over the real record. (A Create form starts from the column defaults
+   * instead; an Update form only ever from the record it fetched.)
    */
   useAsyncEffect(async () => {
     if (props.formType !== FormType.Update || props.doNotFetchExistingModel) {
@@ -915,6 +1059,25 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const result: JSONObject = {};
 
     for (const field of fields) {
+      /*
+       * A people picker's values that are not columns of the model - a
+       * template's ownerUsers and ownerTeams - are sent as misc data, as
+       * plain ids. Its columns are saved with the model.
+       */
+      if (isPeoplePickerField(field) && field.peoplePicker) {
+        for (const key of getPeoplePickerValueKeys(field.peoplePicker)) {
+          if (model.hasColumn(key)) {
+            continue;
+          }
+
+          if (values[key] !== undefined && values[key] !== null) {
+            result[key] = toPeoplePickerIds(values[key]);
+          }
+        }
+
+        continue;
+      }
+
       // A form-only field drives the form; nothing of it is sent.
       if (field.formOnly) {
         continue;
@@ -1096,6 +1259,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
         );
       }
 
+      if (props.onBeforeUpdate && props.formType === FormType.Update) {
+        tBaseModel = await props.onBeforeUpdate(
+          tBaseModel,
+          miscDataProps,
+          values as JSONObject,
+        );
+      }
+
       result = await modelAPI.createOrUpdate<TBaseModel>({
         model: tBaseModel as TBaseModel,
         modelType: props.modelType,
@@ -1221,6 +1392,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         )}
         onFormStepChange={props.onFormStepChange}
         onIsLastFormStep={props.onIsLastFormStep}
+        onCanFinishFromCurrentStep={props.onCanFinishFromCurrentStep}
         fields={fields}
         steps={props.steps}
         onChange={(

@@ -48,9 +48,11 @@ import {
 /*
  * Every product's list menu ends in a Settings section of rules and
  * configuration that people visit rarely, and it starts collapsed so the pages
- * they use every day sit at the top. That is a per-menu `defaultCollapsed`
- * flag, so a new product (or a menu rewritten by hand) quietly ships with its
- * Settings open — which is how the SLO menu ended up that way.
+ * they use every day sit at the top. It used to take a per-menu
+ * `defaultCollapsed` flag, so a new product (or a menu rewritten by hand)
+ * quietly shipped with its Settings open, which is how the SLO menu ended up
+ * that way. A section titled Settings now folds by its title in every menu
+ * (SECTION_TITLES_COLLAPSED_BY_DEFAULT in SideMenuSectionState.ts).
  *
  * So this renders every Pages/<Product>/SideMenu.tsx against the real RouteMap
  * and checks two things for each one with a Settings section:
@@ -99,6 +101,14 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "OnCallDuty",
   "Podman",
   "Proxmox",
+  /*
+   * RUM's Settings holds the project-wide Session Replay switch, and was
+   * kept open for a while because the replay copy points people at it. It
+   * folds like every other product's now: the switch is set once, and the
+   * copy's path (Real User Monitoring > Settings > Session Replay) still
+   * reads true, since the folded section shows its title.
+   */
+  "Rum",
   "Runbook",
   "ScheduledMaintenanceEvents",
   "Serverless",
@@ -112,12 +122,11 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
 ];
 
 /*
- * The deliberate exception. RUM's Settings holds the project-wide Session
- * Replay switch that every piece of replay copy points people to, so it is
- * kept open (see the note in Rum/SideMenu.tsx). Listed so that changing it
- * either way is a decision, not an accident.
+ * Products whose Settings section starts open on purpose. None: listed so
+ * that keeping one open is a decision written down here, with its reason,
+ * and not an accident.
  */
-const OPEN_SETTINGS_PRODUCTS: Array<string> = ["Rum"];
+const OPEN_SETTINGS_PRODUCTS: Array<string> = [];
 
 function productMenuDirectories(): Array<string> {
   return fs
@@ -225,16 +234,21 @@ describe("product list menus keep Settings collapsed", () => {
     },
   );
 
-  test.each(OPEN_SETTINGS_PRODUCTS)(
-    "%s keeps Settings open on purpose",
-    async (product: string) => {
+  // A loop, not test.each: jest refuses an empty table, and the list is empty today.
+  test("a product listed as keeping Settings open does keep it open", async () => {
+    for (const product of OPEN_SETTINGS_PRODUCTS) {
       const landingPath: string = await landingPathOf(product);
 
       await renderProductMenuAt(product, landingPath);
 
-      expect(isExpanded("Settings")).toBe(true);
-    },
-  );
+      expect({ product, expanded: isExpanded("Settings") }).toEqual({
+        product,
+        expanded: true,
+      });
+
+      cleanup();
+    }
+  });
 
   test("every product menu with a Settings section is listed above", async () => {
     const listed: Set<string> = new Set([

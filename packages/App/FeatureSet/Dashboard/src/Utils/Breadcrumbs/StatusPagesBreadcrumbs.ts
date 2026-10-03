@@ -112,7 +112,7 @@ export function getStatusPagesBreadcrumbs(
       "Project",
       "Status Pages",
       "View Status Page",
-      "Essential Branding",
+      "Branding",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS, [
       "Project",
@@ -125,28 +125,6 @@ export function getStatusPagesBreadcrumbs(
       "Status Pages",
       "View Status Page",
       "Domains",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_HEADER_STYLE, [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Header",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE, [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Footer",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING,
-      ["Project", "Status Pages", "View Status Page", "Overview Page Branding"],
-    ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE, [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Navbar",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS, [
       "Project",
@@ -192,12 +170,6 @@ export function getStatusPagesBreadcrumbs(
       "Status Pages",
       "View Status Page",
       "MCP",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_LANGUAGES, [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Languages",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS,

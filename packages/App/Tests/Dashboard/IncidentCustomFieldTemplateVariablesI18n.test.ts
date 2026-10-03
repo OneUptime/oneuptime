@@ -6,11 +6,10 @@ import path from "path";
 
 /*
  * The text under a subscriber notification template's variable reference
- * for an incident event - the warning that custom fields and the affected
- * status pages are internal data, and the project's incident custom fields
- * with their template variables - reaches the screen by looking its English
- * text up in the Dashboard locale files. A string with no entry silently
- * stays English, so this pins:
+ * for an incident event - who may place custom fields and labels, and the
+ * project's incident custom fields with their template variables - reaches
+ * the screen by looking its English text up in the Dashboard locale files.
+ * A string with no entry silently stays English, so this pins:
  *
  *   - en.json maps every string to itself, and all sixteen other locales
  *     carry a translation;
@@ -63,8 +62,6 @@ const SHARED_WITH_OTHER_FEATURES: Array<string> = [
   "In Subscriber Notifications",
   "Yes",
   "No",
-  // "Interne data" in Danish and Norwegian reads like English.
-  "Internal data",
 ];
 
 const STRINGS: Array<string> = Array.from(
@@ -138,12 +135,14 @@ describe("the incident custom field template variable strings in every Dashboard
   });
 });
 
-describe("the template pages show the incident custom fields panel", () => {
-  test.each([
-    ["SubscriberNotificationTemplates.tsx"],
-    ["SubscriberNotificationTemplateView.tsx"],
-  ])("%s renders it under the variable reference", (file: string) => {
-    const source: string = readSource("Pages", "StatusPages", "Settings", file);
+describe("the template pages show the incident custom fields", () => {
+  test("a template's page renders the panel under its variable reference card", () => {
+    const source: string = readSource(
+      "Pages",
+      "StatusPages",
+      "Settings",
+      "SubscriberNotificationTemplateView.tsx",
+    );
 
     expect(source).toContain(
       "<IncidentCustomFieldTemplateVariables eventType={eventType} />",
@@ -152,6 +151,24 @@ describe("the template pages show the incident custom fields panel", () => {
       source.indexOf(
         "getSubscriberNotificationTemplateVariablesDocumentation(",
       ),
-    ).toBeLessThan(source.indexOf("<IncidentCustomFieldTemplateVariables"));
+    ).toBeLessThan(
+      source.indexOf("<IncidentCustomFieldTemplateVariables eventType"),
+    );
+  });
+
+  /*
+   * In the template's forms the fields are variables like the rest: under
+   * the body, collapsed, each one a click (or a "{{") from going in - with
+   * the line on who may place them at the end of that list.
+   */
+  test.each([
+    ["SubscriberNotificationTemplates.tsx"],
+    ["SubscriberNotificationTemplateView.tsx"],
+  ])("%s offers them in the body's variables", (file: string) => {
+    const source: string = readSource("Pages", "StatusPages", "Settings", file);
+
+    expect(source).toContain("getSubscriberTemplateVariableGroups(");
+    expect(source).toContain("<SubscriberTemplateVariablesFooter");
+    expect(source).toContain("onCustomFieldsChange={setCustomFields}");
   });
 });

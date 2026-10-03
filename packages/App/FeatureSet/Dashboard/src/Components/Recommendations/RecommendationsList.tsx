@@ -8,6 +8,8 @@ import {
   RecommendationStatus,
   RecommendationViewModel,
 } from "./RecommendationViewModel";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   groups: Array<RecommendationCategoryGroup>;
@@ -31,6 +33,8 @@ export interface ComponentProps {
 const RecommendationsList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   type ToggleOneFunction = (
     recommendationId: string,
     isChecked: boolean,
@@ -89,16 +93,20 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                 </h4>
                 {availableInGroup.length > 0 ? (
                   <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200/80">
-                    {availableInGroup.length} to set up
+                    {translator.translateTemplate("{{count}} to set up", {
+                      count: translator.formatNumber(availableInGroup.length),
+                    })}
                   </span>
                 ) : (
                   <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/80">
-                    All handled
+                    {translator.translateText("All handled")}
                   </span>
                 )}
                 {handledInGroup > 0 && availableInGroup.length > 0 ? (
                   <span className="max-sm:hidden text-xs text-gray-400 sm:inline">
-                    {handledInGroup} handled
+                    {translator.translateTemplate("{{count}} handled", {
+                      count: translator.formatNumber(handledInGroup),
+                    })}
                   </span>
                 ) : (
                   <></>
@@ -121,8 +129,10 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   {areAllSelected
-                    ? "Clear all"
-                    : `Select all ${availableInGroup.length}`}
+                    ? translator.translateText("Clear all")
+                    : translator.translateTemplate("Select all {{count}}", {
+                        count: translator.formatNumber(availableInGroup.length),
+                      })}
                 </button>
               ) : (
                 <></>

@@ -18,7 +18,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 const documentationMarkdown: string = `
 ### How Incident Reminder Rules Work
 
-Reminder rules periodically re-notify incident owners while an incident is still open. When an incident is created, the first matching rule (by order) is applied, and reminders are sent to incident owners at the configured interval until the incident reaches the stop state.
+Reminder rules periodically re-notify incident owners while an incident is still open. When an incident is created, the first matching rule, from the top of the list down, is applied, and reminders are sent to incident owners at the configured interval until the incident reaches the stop state.
 
 \`\`\`mermaid
 flowchart TD
@@ -40,7 +40,7 @@ flowchart TD
 |----------|-------------|
 | **Severities** | Only incidents with these severity levels. Leave empty to match all severities. |
 
-Rules are evaluated in order - the first matching rule wins.
+Rules are evaluated from the top of the list down - the first matching rule wins. Drag a rule by its handle to change its place; a new rule is added to the end.
 
 ---
 
@@ -81,8 +81,13 @@ const IncidentReminderRulesPage: FunctionComponent<
         }}
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /*
+         * The first rule that matches wins, so where a rule sits matters:
+         * drag it up or down. A new rule goes to the end.
+         */
+        enableDragAndDrop={true}
+        dragDropIndexField="order"
         selectMoreFields={{
-          order: true,
           isEnabled: true,
           labels: {
             name: true,
@@ -112,13 +117,6 @@ const IncidentReminderRulesPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              order: true,
-            },
-            title: "Order",
-            type: FieldType.Number,
           },
           {
             field: {
@@ -176,10 +174,6 @@ const IncidentReminderRulesPage: FunctionComponent<
               id: "reminder-settings",
               title: "Reminder Settings",
             },
-            {
-              id: "status",
-              title: "Status",
-            },
           ] as Array<FormStep<IncidentReminderRule>>
         }
         formFields={[
@@ -207,6 +201,21 @@ const IncidentReminderRulesPage: FunctionComponent<
             placeholder:
               "Remind owners of critical incidents every 30 minutes until resolved",
           },
+          /*
+           * A rule starts on, so the create form does not ask. Turning it
+           * off is an edit, with the rule's name - not a step of its own.
+           */
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            stepId: "rule-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            doNotShowWhenCreating: true,
+            description: "Enable or disable this reminder rule.",
+          },
           {
             field: {
               incidentSeverities: true,
@@ -218,6 +227,9 @@ const IncidentReminderRulesPage: FunctionComponent<
               type: IncidentSeverity,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
             required: false,
             placeholder: "Select Severities (optional)",
@@ -266,16 +278,6 @@ const IncidentReminderRulesPage: FunctionComponent<
             placeholder: "Resolved",
             description:
               "Stop sending reminders once the incident reaches this state. Defaults to Resolved.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "status",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this reminder rule.",
           },
         ]}
         showRefreshButton={true}

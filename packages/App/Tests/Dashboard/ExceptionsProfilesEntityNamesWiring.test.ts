@@ -331,7 +331,10 @@ describe("ProfileTable names every source", () => {
       "`${serviceIdFilter.substring(0, 8)}…`",
     );
     expect(PROFILE_TABLE).toContain("getProfileServiceFilterChipDisplay({");
-    expect(PROFILE_TABLE).toContain("{serviceFilterChip.key}");
+    // The key is a type label ("Service", "Host"), shown in the reader's language.
+    expect(PROFILE_TABLE).toContain(
+      "{translator.translateText(serviceFilterChip.key)}",
+    );
     expect(PROFILE_TABLE).toContain("{serviceFilterChip.value}");
   });
 

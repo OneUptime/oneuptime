@@ -18,6 +18,7 @@ import ScheduledMaintenanceEventView from "../Pages/ScheduledMaintenanceEvents/V
 import ScheduledMaintenanceEventViewDelete from "../Pages/ScheduledMaintenanceEvents/View/Delete";
 
 import ScheduledMaintenanceEventsWorkspaceConnectionMicrosoftTeams from "../Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import ScheduledMaintenanceEventViewOwner from "../Pages/ScheduledMaintenanceEvents/View/Owners";
 import ScheduledMaintenanceEventViewRunbooks from "../Pages/ScheduledMaintenanceEvents/View/Runbooks";
@@ -63,7 +64,9 @@ import ScheduledMaintenanceSettingsReminderRules from "../Pages/ScheduledMainten
 
 import ScheduledMaintenanceSettingsMeasurements from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements";
 
-import ScheduledMaintenanceSettingsMore from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMoreSettings";
+import ScheduledMaintenanceSettingsNumberPrefix from "../Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumberPrefix";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import ScheduledMaintenanceLabelRule from "Common/Models/DatabaseModels/ScheduledMaintenanceLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -85,6 +88,22 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Number prefixes were on More Settings. Its old URL forwards to the
+       * Number Prefix page - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
+            }
+          />
+        }
+      />
+
       <PageRoute
         path="/"
         element={
@@ -152,6 +171,24 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
                   PageMap
                     .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS
+            ] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK
+              }
+              microsoftTeamsPage={
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               }
             />
           }
@@ -412,15 +449,15 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
-              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
             ] || ""
           }
           element={
-            <ScheduledMaintenanceSettingsMore
+            <ScheduledMaintenanceSettingsNumberPrefix
               {...props}
               pageRoute={
                 RouteMap[
-                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE
+                  PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
                 ] as Route
               }
             />

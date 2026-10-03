@@ -19,6 +19,7 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -32,6 +33,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Device Overview — the "is it OK, and what is it?" page. Health hero on
@@ -42,6 +45,7 @@ import React, {
 const NetworkDeviceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
@@ -94,10 +98,14 @@ const NetworkDeviceView: FunctionComponent<
             "Name, address, and organization for this device. SNMP credentials are managed in Settings.",
         }}
         isEditable={true}
+        /*
+         * Two steps: what the device is (its name, description and site,
+         * with the labels folded under Advanced) and where it is reached.
+         * The site used to share a last step with the labels.
+         */
         formSteps={[
           { title: "Device Details", id: "device-details" },
           { title: "Address", id: "address" },
-          { title: "Site & Labels", id: "site-and-labels" },
         ]}
         formFields={[
           {
@@ -122,22 +130,10 @@ const NetworkDeviceView: FunctionComponent<
           },
           {
             field: {
-              hostname: true,
-            },
-            title: "Hostname",
-            stepId: "address",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "10.0.0.1 or switch-01.example.com",
-            description: HOSTNAME_FIELD_DESCRIPTION,
-          },
-          getMacAddressFormField({ stepId: "address" }),
-          {
-            field: {
               site: true,
             },
             title: "Site",
-            stepId: "site-and-labels",
+            stepId: "device-details",
             description:
               "The network site this device belongs to. Site health rolls up from its devices.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -149,22 +145,21 @@ const NetworkDeviceView: FunctionComponent<
             required: false,
             placeholder: "Select Site (optional)",
           },
+          getLabelsFormField<NetworkDevice>({
+            stepId: "device-details",
+          }),
           {
             field: {
-              labels: true,
+              hostname: true,
             },
-            title: "Labels",
-            stepId: "site-and-labels",
-            description: "Organize and filter devices with labels.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
+            title: "Hostname",
+            stepId: "address",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "10.0.0.1 or switch-01.example.com",
+            description: HOSTNAME_FIELD_DESCRIPTION,
           },
+          getMacAddressFormField({ stepId: "address" }),
         ]}
         modelDetailProps={{
           modelType: NetworkDevice,
@@ -234,7 +229,9 @@ const NetworkDeviceView: FunctionComponent<
               getElement: (item: NetworkDevice): ReactElement => {
                 if (!item.site?.name) {
                   return (
-                    <span className="text-gray-400">No site assigned</span>
+                    <span className="text-gray-400">
+                      {translator.translateText("No site assigned")}
+                    </span>
                   );
                 }
                 return <span>{item.site.name}</span>;

@@ -6,7 +6,7 @@ import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -84,6 +84,8 @@ import {
   displayNameForResource,
   hasFreshMetrics,
 } from "../Utils/VMwareResourceUtils";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type VCenterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -174,6 +176,7 @@ const REFRESH_STORAGE_KEY: string = "vmware-overview-auto-refresh-interval";
 const VMwareVCenterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [vcenter, setVCenter] = useState<VMwareVCenter | null>(null);
@@ -1367,33 +1370,55 @@ const VMwareVCenterOverview: FunctionComponent<
     if (datacenterCount > 0) {
       specChips.push({
         icon: IconProp.Folder,
-        label: `${datacenterCount} datacenter${datacenterCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} datacenter", other: "{{count}} datacenters" },
+          datacenterCount,
+        ),
       });
     }
     if (clusterCount > 0) {
       specChips.push({
         icon: IconProp.SquareStack,
-        label: `${clusterCount} cluster${clusterCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} cluster", other: "{{count}} clusters" },
+          clusterCount,
+        ),
       });
     }
     if (hostCount > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
-        label: `${hostCount} ESXi host${hostCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} ESXi host", other: "{{count}} ESXi hosts" },
+          hostCount,
+        ),
       });
     }
     if (vmTotal > 0) {
       specChips.push({
         icon: IconProp.Cube,
         label: vmPowerStateKnown
-          ? `${vmPoweredOn}/${vmTotal} VM${vmTotal === 1 ? "" : "s"} powered on`
-          : `${vmTotal} VM${vmTotal === 1 ? "" : "s"}`,
+          ? translator.translatePlural(
+              {
+                one: "{{poweredOn}}/{{count}} VM powered on",
+                other: "{{poweredOn}}/{{count}} VMs powered on",
+              },
+              vmTotal,
+              { poweredOn: vmPoweredOn },
+            )
+          : translator.translatePlural(
+              { one: "{{count}} VM", other: "{{count}} VMs" },
+              vmTotal,
+            ),
       });
     }
     if (datastoreCount > 0) {
       specChips.push({
         icon: IconProp.Database,
-        label: `${datastoreCount} datastore${datastoreCount === 1 ? "" : "s"}`,
+        label: translator.translatePlural(
+          { one: "{{count}} datastore", other: "{{count}} datastores" },
+          datastoreCount,
+        ),
       });
     }
     // Every chip so far is a count; the agent version below is metadata.
@@ -1401,7 +1426,9 @@ const VMwareVCenterOverview: FunctionComponent<
     if (vcenter.agentVersion) {
       specChips.push({
         icon: IconProp.Terminal,
-        label: `Agent ${String(vcenter.agentVersion)}`,
+        label: translator.translateTemplate("Agent {{version}}", {
+          version: String(vcenter.agentVersion),
+        }),
       });
     }
 
@@ -1459,7 +1486,9 @@ const VMwareVCenterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    Last seen {lastSeenText}
+                    {translator.translateTemplate("Last seen {{time}}", {
+                      time: lastSeenText,
+                    })}
                   </div>
                 </div>
               </div>
@@ -1567,7 +1596,13 @@ const VMwareVCenterOverview: FunctionComponent<
             hostEffectivenessPct === null
               ? "clustered hosts DRS/HA can schedule"
               : clusterHostsEffective < clusterHostsTotal
-                ? `${clusterHostsTotal - clusterHostsEffective} in maintenance or unresponsive`
+                ? translator.translatePlural(
+                    {
+                      one: "{{count}} in maintenance or unresponsive",
+                      other: "{{count}} in maintenance or unresponsive",
+                    },
+                    clusterHostsTotal - clusterHostsEffective,
+                  )
                 : "clustered hosts DRS/HA can schedule"
           }
           percent={hostEffectivenessPct}
@@ -1591,7 +1626,10 @@ const VMwareVCenterOverview: FunctionComponent<
           value={formatPercent(s.hostMemoryPercent)}
           sublabel={
             s.hostMemoryUsedBytes !== null && s.hostMemoryCapacityBytes !== null
-              ? `${formatBytes(s.hostMemoryUsedBytes)} of ${formatBytes(s.hostMemoryCapacityBytes)}`
+              ? translator.translateTemplate("{{used}} of {{total}}", {
+                  used: formatBytes(s.hostMemoryUsedBytes),
+                  total: formatBytes(s.hostMemoryCapacityBytes),
+                })
               : "of ESXi host memory"
           }
           percent={s.hostMemoryPercent}
@@ -1605,7 +1643,9 @@ const VMwareVCenterOverview: FunctionComponent<
           value={formatPercent(worstDatastorePercent)}
           sublabel={
             inventory?.worstDatastoreName
-              ? `fullest: ${inventory.worstDatastoreName}`
+              ? translator.translateTemplate("fullest: {{storageName}}", {
+                  storageName: inventory.worstDatastoreName,
+                })
               : "fullest datastore"
           }
           percent={worstDatastorePercent}
@@ -1622,7 +1662,14 @@ const VMwareVCenterOverview: FunctionComponent<
           value={formatPercent(s.vmCpuReadyAvgPercent)}
           sublabel={
             s.vmCpuReadyMaxPercent !== null
-              ? `max ${formatPercent(s.vmCpuReadyMaxPercent)} across ${s.vmCpuReadyVmCount} powered-on VM${s.vmCpuReadyVmCount === 1 ? "" : "s"}`
+              ? translator.translatePlural(
+                  {
+                    one: "max {{max}} across {{count}} powered-on VM",
+                    other: "max {{max}} across {{count}} powered-on VMs",
+                  },
+                  s.vmCpuReadyVmCount,
+                  { max: formatPercent(s.vmCpuReadyMaxPercent) },
+                )
               : "avg across powered-on VMs"
           }
           percent={s.vmCpuReadyAvgPercent}
@@ -1646,11 +1693,15 @@ const VMwareVCenterOverview: FunctionComponent<
           }
           sublabel={
             vmPowerStateKnown
-              ? `powered on${
-                  inventory && inventory.templateCount > 0
-                    ? ` · ${inventory.templateCount} template${inventory.templateCount === 1 ? "" : "s"}`
-                    : ""
-                }`
+              ? inventory && inventory.templateCount > 0
+                ? translator.translatePlural(
+                    {
+                      one: "powered on · {{count}} template",
+                      other: "powered on · {{count}} templates",
+                    },
+                    inventory.templateCount,
+                  )
+                : translator.translateTemplate("powered on")
               : "power state inferred after the first collection"
           }
           percent={vmPoweredOnPct}
@@ -1796,11 +1847,12 @@ const VMwareVCenterOverview: FunctionComponent<
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold text-gray-900">
-              vCenter resource usage
+              {translator.translateText("vCenter resource usage")}
             </h2>
             <p className="text-xs text-gray-500">
-              Aggregated across ESXi hosts (CPU/memory), datastores (used space)
-              and powered-on VMs (CPU ready) over the selected time range
+              {translator.translateText(
+                "Aggregated across ESXi hosts (CPU/memory), datastores (used space) and powered-on VMs (CPU ready) over the selected time range",
+              )}
             </p>
           </div>
           <TimeRangeZoomHint revealOnHover={true} />
@@ -2295,11 +2347,19 @@ const VMwareVCenterOverview: FunctionComponent<
         {datastoreCapacityBytes !== null && datastoreUsedBytes !== null && (
           <div className="mt-1.5">
             <div className="mb-1 text-xs text-gray-500">
-              {formatBytes(datastoreUsedBytes)} of{" "}
-              {formatBytes(datastoreCapacityBytes)} used
               {datastoreUsedPercent !== null
-                ? ` (${datastoreUsedPercent.toFixed(1)}%)`
-                : ""}
+                ? translator.translateTemplate(
+                    "{{used}} of {{total}} used ({{percent}}%)",
+                    {
+                      used: formatBytes(datastoreUsedBytes),
+                      total: formatBytes(datastoreCapacityBytes),
+                      percent: datastoreUsedPercent.toFixed(1),
+                    },
+                  )
+                : translator.translateTemplate("{{used}} of {{total}} used", {
+                    used: formatBytes(datastoreUsedBytes),
+                    total: formatBytes(datastoreCapacityBytes),
+                  })}
             </div>
             <div className="h-1.5 w-full rounded-full bg-gray-200">
               <div
@@ -2393,11 +2453,13 @@ const VMwareVCenterOverview: FunctionComponent<
               {clusterHostsTotal > 0 &&
                 clusterHostsEffective < clusterHostsTotal && (
                   <span className="text-sm text-red-500 ml-1">
-                    ({clusterHostsTotal - clusterHostsEffective} host
-                    {clusterHostsTotal - clusterHostsEffective === 1
-                      ? ""
-                      : "s"}{" "}
-                    not effective)
+                    {translator.translatePlural(
+                      {
+                        one: "({{count}} host not effective)",
+                        other: "({{count}} hosts not effective)",
+                      },
+                      clusterHostsTotal - clusterHostsEffective,
+                    )}
                   </span>
                 )}
             </span>,
@@ -2425,7 +2487,9 @@ const VMwareVCenterOverview: FunctionComponent<
             <span className="text-2xl font-semibold">
               {vmPowerStateKnown ? `${vmPoweredOn} / ${vmTotal}` : vmTotal}
               {vmPowerStateKnown && (
-                <span className="text-sm text-gray-500 ml-1">powered on</span>
+                <span className="text-sm text-gray-500 ml-1">
+                  {translator.translateText("powered on")}
+                </span>
               )}
             </span>,
           )}
@@ -2498,16 +2562,6 @@ const VMwareVCenterOverview: FunctionComponent<
       <CardModelDetail<VMwareVCenter>
         name="vCenter Details"
         refresher={detailsRefresher}
-        formSteps={[
-          {
-            title: "vCenter Info",
-            id: "vcenter-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         cardProps={{
           title: "vCenter Details",
           description: "Basic information about this vCenter.",
@@ -2519,7 +2573,6 @@ const VMwareVCenterOverview: FunctionComponent<
             field: {
               name: true,
             },
-            stepId: "vcenter-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -2531,29 +2584,12 @@ const VMwareVCenterOverview: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "vcenter-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production vCenter Server in the US East datacenter",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<VMwareVCenter>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

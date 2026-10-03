@@ -1,9 +1,17 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -35,7 +43,7 @@ import {
 } from "../BulkUpdate/BulkUpdateForm";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
-import MoreMenu from "../MoreMenu/MoreMenu";
+import CardMoreMenu from "../Card/CardMoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
   CardButtonSchema,
@@ -43,7 +51,6 @@ import Card, {
 } from "../Card/Card";
 import { getRefreshButton } from "../Card/CardButtons/Refresh";
 import Field from "../Detail/Field";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
@@ -61,10 +68,16 @@ import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
-import OrderedStatesList from "../OrderedStatesList/OrderedStatesList";
 import Pill from "../Pill/Pill";
 import Table from "../Table/Table";
-import { getEmptyTableMessage } from "../Table/EmptyTableMessage";
+import TableEmptyState from "../Table/TableEmptyState";
+import { hasFilterValues } from "../Table/TableEmptyStateBuilders";
+import EmptyStateOptions from "./EmptyStateOptions";
+import {
+  ModelTableEmptyState,
+  buildModelTableEmptyState,
+  buildNoAccessState,
+} from "./ModelTableEmptyState";
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
@@ -110,6 +123,9 @@ import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
+import { getDropTargetValue, moveListItem } from "../../../Utils/ListOrder";
+import Alert, { AlertType } from "../Alerts/Alert";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -145,10 +161,25 @@ import UserPreferences, {
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 
+/*
+ * How many rows a drag-ordered table shows at once unless told otherwise.
+ * Rows can only be dragged within the page on screen, so it should hold the
+ * whole list - these are settings lists of a handful of rows to a few dozen.
+ */
+export const MANUALLY_ORDERED_ITEMS_ON_PAGE: number = 50;
+
+export const REORDER_OFF_WHILE_FILTERED: string =
+  "Drag to reorder is off while a filter or search is on.";
+
+export const REORDER_SAVING: string = "Saving the new order...";
+
+export const REORDER_SAVED: string = "The new order is saved.";
+
+export const REORDER_FAILED: string = "The new order could not be saved.";
+
 export enum ShowAs {
   Table,
   List,
-  OrderedStatesList,
 }
 
 /*
@@ -276,7 +307,18 @@ export interface BaseTableProps<
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
   formSteps?: undefined | Array<FormStep<TBaseModel>>;
+  /*
+   * The page's own words for an empty table. A sentence is split into the
+   * empty state's title (its first sentence) and description (the rest);
+   * an element replaces the whole empty state. See emptyState.
+   */
   noItemsMessage?: undefined | string | ReactElement;
+  /*
+   * The table's own title, description or icon for its empty state, or
+   * that an empty list is good news here (isAllClear). See
+   * EmptyStateOptions: most tables need none of it.
+   */
+  emptyState?: EmptyStateOptions | undefined;
   showRefreshButton?: undefined | boolean;
   isViewable?: undefined | boolean;
   showViewIdButton?: undefined | boolean;
@@ -308,6 +350,16 @@ export interface BaseTableProps<
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   /*
+   * Rows that can never be deleted - a project's built-in states, say - and
+   * why: the reason, or undefined for a row that can be deleted. Such a row
+   * keeps Delete in its menu, locked, with the reason as its tooltip, and a
+   * bulk Delete that includes it skips it and lists it, with the reason,
+   * among the rows it could not delete.
+   */
+  getDeleteDisabledReason?:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined;
+  /*
    * Supplies the per-row Delete confirmation's wording for the row that was
    * clicked. Runs after onBeforeDelete and before the dialog opens, so it may
    * fetch; if it throws, the dialog does not open and the row shows the error.
@@ -321,13 +373,6 @@ export interface BaseTableProps<
   dragDropIdField?: keyof TBaseModel | undefined;
   dragDropIndexField?: keyof TBaseModel | undefined;
   createEditModalWidth?: ModalWidth | undefined;
-  orderedStatesListProps?: {
-    titleField: keyof TBaseModel;
-    descriptionField?: keyof TBaseModel | undefined;
-    orderField: keyof TBaseModel;
-    shouldAddItemInTheEnd?: boolean;
-    shouldAddItemInTheBeginning?: boolean;
-  };
   onViewComplete?: ((item: TBaseModel) => void) | undefined;
   createEditFromRef?:
     | undefined
@@ -495,15 +540,97 @@ const getDeleteLabel: GetDeleteLabelFunction = (
   return singularName?.trim() || modelSingularName?.trim() || "Item";
 };
 
+/*
+ * The create button for each verb a table uses, as a whole phrase a locale
+ * can reorder ("{{itemName}} erstellen"). A verb not listed here goes through
+ * the verb-and-noun template, which only reorders.
+ */
+const CREATE_BUTTON_TEMPLATES: Record<string, string> = {
+  Add: translationKey("Add {{itemName}}"),
+  Create: translationKey("Create {{itemName}}"),
+  Declare: translationKey("Declare {{itemName}}"),
+  Invite: translationKey("Invite {{itemName}}"),
+  Link: translationKey("Link {{itemName}}"),
+};
+
+/*
+ * "<verb> <noun>" on a create button - the table header's, and the create
+ * dialog's submit button. Translating the two words separately reads the
+ * verb out of context - "Link" comes back as the noun in many languages, and
+ * word order differs - so the whole phrase is looked up first ("Link Alert"),
+ * then the verb's template with the locale's word for the noun in it. In
+ * English all of them read the same.
+ */
+export const translateCreateAction: (
+  translator: Translator,
+  data: { verb?: string | undefined; itemName: string },
+) => string = (
+  translator: Translator,
+  data: { verb?: string | undefined; itemName: string },
+): string => {
+  const verb: string = data.verb || "Create";
+  const noun: string = data.itemName.trim();
+
+  // A table that keeps its button down to the verb ("Invite").
+  if (!noun) {
+    return translator.translateText(verb) || verb;
+  }
+
+  return translateNamedAction(translator, {
+    template: CREATE_BUTTON_TEMPLATES[verb] || "{{action}} {{itemName}}",
+    itemName: noun,
+    values: { action: translatableTerm(verb) },
+  });
+};
+
+export const BULK_DELETE_TITLE: PluralTemplate = {
+  one: "Delete {{count}} {{itemName}}",
+  other: "Delete {{count}} {{itemsName}}",
+};
+
+export const BULK_DELETE_QUESTION: PluralTemplate = {
+  one: "Are you sure you want to delete {{count}} {{itemName}}? This action cannot be undone.",
+  other:
+    "Are you sure you want to delete {{count}} {{itemsName}}? This action cannot be undone.",
+};
+
+// A table that names its own verb ("Unlink") for the bulk action.
+export const BULK_ACTION_TITLE: PluralTemplate = {
+  one: "{{action}} {{count}} {{itemName}}",
+  other: "{{action}} {{count}} {{itemsName}}",
+};
+
+export const BULK_ACTION_QUESTION: PluralTemplate = {
+  one: "Are you sure you want to {{action}} {{count}} {{itemName}}?",
+  other: "Are you sure you want to {{action}} {{count}} {{itemsName}}?",
+};
+
+export const SEARCH_MATCH_COUNT: PluralTemplate = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
+
+export const SEARCH_RESULT_COUNT: PluralTemplate = {
+  one: "{{count}} result",
+  other: "{{count}} results",
+};
+
+export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
+  one: "{{count}} result on this page",
+  other: "{{count}} results on this page",
+};
+
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const { translateValue, translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
+
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -529,27 +656,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return getRecordDisplayName(item, { model: model });
   };
 
-  /*
-   * The header's create button, "<verb> <noun>". Translating the two words
-   * separately reads the verb out of context - "Link" comes back as the noun
-   * in many languages, and word order differs - so the whole phrase is looked
-   * up first ("Link Alert") and the word-by-word join is only the fallback
-   * for a phrase with no entry of its own. In English both are the same.
-   */
+  // The header's create button, "<verb> <noun>".
   const getCreateButtonTitle: () => string = (): string => {
-    const verb: string = props.createVerb || "Create";
-    const noun: string = props.singularName || model.singularName || "";
-
-    if (noun) {
-      const phrase: string = `${verb} ${noun}`;
-      const translatedPhrase: string = tx(phrase);
-
-      if (translatedPhrase && translatedPhrase !== phrase) {
-        return translatedPhrase;
-      }
-    }
-
-    return `${tx(verb)} ${tx(noun)}`;
+    return translateCreateAction(translator, {
+      verb: props.createVerb,
+      itemName: props.singularName || model.singularName || "",
+    });
   };
 
   /*
@@ -665,9 +777,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     });
 
   const isColumnCustomizationEnabled: boolean = Boolean(
-    !props.disableColumnCustomization &&
-      props.userPreferencesKey &&
-      showAs !== ShowAs.OrderedStatesList,
+    !props.disableColumnCustomization && props.userPreferencesKey,
   );
 
   type ReadStoredColumnPreferenceFunction = () => ColumnPreference | null;
@@ -844,6 +954,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
   }, [props.modelType]);
 
+  /*
+   * A list people put in order by dragging its rows (enableDragAndDrop with
+   * the column that holds the order). Such a list is always shown in that
+   * order - sorting it by another column would make "drag it above that
+   * one" meaningless - and its order is never typed in: the server puts a
+   * new row at the end and keeps the numbers (@ListOrderColumn).
+   */
+  const isManuallyOrdered: boolean = Boolean(
+    props.enableDragAndDrop && props.dragDropIndexField,
+  );
+
+  /*
+   * Which end of the numbers is the top: the model says so when it is a
+   * @ListOrderColumn list (site assignment rules count down), else the
+   * table's own sort order.
+   */
+  const getManualSortOrder: () => SortOrder = (): SortOrder => {
+    const listOrder: ListOrderSettings | null =
+      model instanceof BaseModel ? model.getListOrder() : null;
+
+    if (listOrder && listOrder.column === props.dragDropIndexField) {
+      return listOrder.sortOrder;
+    }
+
+    return props.sortOrder || SortOrder.Ascending;
+  };
+
   const getItemsOnPage: () => number = (): number => {
     if (props.userPreferencesKey) {
       const itemsOnPage: number | null =
@@ -856,7 +993,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    return props.initialItemsOnPage || 10;
+    return (
+      props.initialItemsOnPage ||
+      (isManuallyOrdered ? MANUALLY_ORDERED_ITEMS_ON_PAGE : 10)
+    );
   };
 
   /*
@@ -914,9 +1054,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return TableFilterUrlState.claimKey(urlStateKey);
   }, [urlStateKey]);
 
-  const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
-    useState<number | null>(null);
-
   const [onBeforeFetchData, setOnBeforeFetchData] = useState<
     TBaseModel | undefined
   >(undefined);
@@ -942,6 +1079,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
+
+  // A dropped row's new place is being saved.
+  const [isReordering, setIsReordering] = useState<boolean>(false);
+  // Why the last drop could not be saved - the rows went back.
+  const [reorderError, setReorderError] = useState<string>("");
+  // For screen readers: the last drop was saved.
+  const [isReorderSaved, setIsReorderSaved] = useState<boolean>(false);
 
   /*
    * Auto-detect label support from the existing filters array. We look for
@@ -2104,9 +2248,47 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.onQueryChange?.(buildEffectiveQuery());
   }, [effectiveQueryKey]);
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+  type FetchItemsFunction = (options?: {
+    /*
+     * Refresh the rows without the loading state - after a drop, whose rows
+     * are already on screen in their new order. Dimming them and blocking
+     * clicks would make a finished move look like it was still going on.
+     */
+    quiet?: boolean | undefined;
+  }) => Promise<void>;
+
+  const getFetchSort: () => Sort<TBaseModel> = (): Sort<TBaseModel> => {
+    if (isManuallyOrdered) {
+      /*
+       * Always in the list's own order, ties broken the way the server
+       * breaks them (Common/Utils/ListOrder), so the row a drop lands on is
+       * the row the server moves it next to.
+       */
+      return {
+        [props.dragDropIndexField as string]: getManualSortOrder(),
+        createdAt: SortOrder.Ascending,
+      } as Sort<TBaseModel>;
+    }
+
+    return (
+      sortBy
+        ? {
+            [sortBy as any]: sortOrder,
+          }
+        : {}
+    ) as Sort<TBaseModel>;
+  };
+
+  const fetchItems: FetchItemsFunction = async (options?: {
+    quiet?: boolean | undefined;
+  }): Promise<void> => {
+    const isQuiet: boolean = Boolean(options?.quiet);
+
     setError("");
-    setIsLoading(true);
+
+    if (!isQuiet) {
+      setIsLoading(true);
+    }
 
     if (props.onFetchInit) {
       props.onFetchInit(currentPageNumber, itemsOnPage);
@@ -2132,11 +2314,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ...getSelect(),
           ...getRelationSelect(),
         },
-        sort: sortBy
-          ? {
-              [sortBy as any]: sortOrder,
-            }
-          : {},
+        sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
       });
 
@@ -2155,7 +2333,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setError(API.getFriendlyMessage(err));
     }
 
-    setIsLoading(false);
+    if (!isQuiet) {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -2435,16 +2615,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const showFilterButton: boolean = props.filters.length > 0;
 
     /*
-     * because ordered list add button is inside the table and not on the card
-     * header. Without create permission the button is shown locked rather than
+     * Without create permission the button is shown locked rather than
      * removed, so the user can see the action exists and read why it is not
      * available to them.
      */
-    if (
-      props.isCreateable &&
-      createGate.show &&
-      showAs !== ShowAs.OrderedStatesList
-    ) {
+    if (props.isCreateable && createGate.show) {
       headerbuttons.push({
         title: getCreateButtonTitle(),
         buttonStyle: ButtonStyleType.NORMAL,
@@ -2544,6 +2719,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     columnName: keyof TBaseModel | null,
   ): boolean => {
     if (!columnName) {
+      return true;
+    }
+
+    // A drag-ordered list is always shown in its own order.
+    if (isManuallyOrdered) {
       return true;
     }
 
@@ -2786,6 +2966,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     if (props.showViewIdButton) {
       actionsSchema.push({
         title: tx("Show ID"),
+        /*
+         * An ID card: the icon "Show ID" wears in every menu, the status
+         * page's resource lists too. Not the info circle it once had there -
+         * beside "View Status Message" and "View Error", whose circle holds
+         * a "!", the two could not be told apart.
+         */
+        icon: IconProp.Identification,
         buttonStyleType: ButtonStyleType.OUTLINE,
         hideOnMobile: true,
         // A utility every row carries - it belongs in the ⋯ menu, not on the row.
@@ -2821,7 +3008,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         actionsSchema.push({
           title: props.viewButtonText
             ? tx(props.viewButtonText)
-            : `${tx("View")} ${tx(props.singularName || model.singularName || "")}`,
+            : translateNamedAction(translator, {
+                template: "View {{itemName}}",
+                itemName: props.singularName || model.singularName || "",
+              }),
+          /*
+           * Drawn when View is in the ⋯ menu - on a table that marks one of
+           * its own actions Primary. On the row it is a label (RowActions).
+           */
+          icon: IconProp.Eye,
           buttonStyleType: ButtonStyleType.NORMAL,
           /*
            * Opening the record is what a row is for, so View is the row's one
@@ -2888,6 +3083,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       if (props.isEditable && updateGate.show) {
         actionsSchema.push({
           title: tx(props.editButtonText || "Edit"),
+          icon: IconProp.Edit,
           buttonStyleType: ButtonStyleType.OUTLINE,
           disabled: updateGate.disabled,
           tooltip: updateGate.tooltip,
@@ -2928,6 +3124,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
           disabled: deleteGate.disabled,
           tooltip: deleteGate.tooltip,
+          getDisabledReason: props.getDeleteDisabledReason,
           onClick: async (
             item: TBaseModel,
             onCompleteAction: VoidFunction,
@@ -3029,14 +3226,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       const deleteVerb: string | undefined =
         props.bulkActions?.deleteVerb?.trim() || undefined;
 
-      type GetTypeLabelFunction = (items: Array<TBaseModel>) => string;
+      // The table's names for one and for several, translated with the sentence.
+      type GetNounValuesFunction = (
+        inSentence: boolean,
+      ) => Record<string, ReturnType<typeof translatableTerm>>;
 
-      const getTypeLabel: GetTypeLabelFunction = (
-        items: Array<TBaseModel>,
-      ): string => {
-        return items.length === 1
-          ? props.singularName || model.singularName || "item"
-          : props.pluralName || model.pluralName || "items";
+      const getNounValues: GetNounValuesFunction = (
+        inSentence: boolean,
+      ): Record<string, ReturnType<typeof translatableTerm>> => {
+        return {
+          itemName: translatableTerm(
+            props.singularName || model.singularName || "item",
+            { inSentence: inSentence },
+          ),
+          itemsName: translatableTerm(
+            props.pluralName || model.pluralName || "items",
+            { inSentence: inSentence },
+          ),
+        };
       };
 
       return {
@@ -3044,20 +3251,40 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyleType: ButtonStyleType.DANGER,
         icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          const itemLabel: string = getTypeLabel(items);
-
           const warning: string = props.bulkActions?.deleteConfirmationWarning
-            ? ` ${props.bulkActions.deleteConfirmationWarning}`
+            ? ` ${tx(props.bulkActions.deleteConfirmationWarning)}`
             : "";
 
           if (deleteVerb) {
-            return `Are you sure you want to ${deleteVerb.toLowerCase()} ${items.length} ${itemLabel.toLowerCase()}?${warning}`;
+            return `${translator.translatePlural(
+              BULK_ACTION_QUESTION,
+              items.length,
+              {
+                action: translatableTerm(deleteVerb, { inSentence: true }),
+                ...getNounValues(true),
+              },
+            )}${warning}`;
           }
 
-          return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.${warning}`;
+          return `${translator.translatePlural(
+            BULK_DELETE_QUESTION,
+            items.length,
+            getNounValues(false),
+          )}${warning}`;
         },
         confirmTitle: (items: Array<TBaseModel>) => {
-          return `${deleteVerb || "Delete"} ${items.length} ${getTypeLabel(items)}`;
+          if (deleteVerb) {
+            return translator.translatePlural(BULK_ACTION_TITLE, items.length, {
+              action: translatableTerm(deleteVerb),
+              ...getNounValues(false),
+            });
+          }
+
+          return translator.translatePlural(
+            BULK_DELETE_TITLE,
+            items.length,
+            getNounValues(false),
+          );
         },
         /*
          * "Are you sure you want to delete 12 monitors?" says how many, not
@@ -3094,7 +3321,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             // remove items from inProgressItems
             inProgressItems.splice(inProgressItems.indexOf(item), 1);
 
+            /*
+             * A row the table says can never be deleted is not sent to the
+             * server at all: it is listed with the reason, like a row the
+             * server refused.
+             */
+            const deleteDisabledReason: string | undefined =
+              props.getDeleteDisabledReason
+                ? props.getDeleteDisabledReason(item)
+                : undefined;
+
             try {
+              if (deleteDisabledReason) {
+                throw new BadDataException(deleteDisabledReason);
+              }
+
               await props.callbacks.deleteItem(item);
               successItems.push(item);
             } catch (err) {
@@ -3153,87 +3394,42 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * Lifted out of the onFilterChanged callback below, which is where this test
    * used to live inline. Two definitions of "a filter is applied" in one
-   * component is exactly the kind of thing that drifts apart.
+   * component is exactly the kind of thing that drifts apart - so it is the
+   * plain Table's own test (hasFilterValues). It used to be truthiness, which
+   * missed a yes/no filter set to "No" (false): the list was filtered, but
+   * the table called itself unfiltered, offered "No X yet" and a Create
+   * button under it, and let rows be dragged while some were hidden.
    */
   const hasFilterApplied: HasFilterAppliedFunction = (
     dataToCheck: FilterData<TBaseModel>,
   ): boolean => {
-    for (const key in dataToCheck) {
-      if (dataToCheck[key]) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  type GetNoItemsMessageFunction = () => string | ReactElement;
-
-  /*
-   * An empty table has two quite different causes and used to have one
-   * sentence for both. A monitors table with nothing in it said "No monitor"
-   * - ungrammatical, and worse, it said the same thing after a search that
-   * matched nothing, so a typo in the search box looked exactly like an empty
-   * project. A caller's own noItemsMessage is deliberately overridden while a
-   * search or filter is active: those are usually "create your first X"
-   * panels, and offering one to someone whose search just missed is wrong.
-   */
-  const getNoItemsMessage: GetNoItemsMessageFunction = ():
-    | string
-    | ReactElement => {
-    const pluralLabel: string = props.pluralName || model.pluralName || "items";
-
-    if (isSearchActive() || hasFilterApplied(filterData)) {
-      return getEmptyTableMessage({
-        pluralLabel: pluralLabel,
-        isFiltered: true,
-        translate: tx,
-      });
-    }
-
-    return (
-      props.noItemsMessage ||
-      getEmptyTableMessage({
-        pluralLabel: pluralLabel,
-        isFiltered: false,
-        translate: tx,
-      })
+    return hasFilterValues(
+      dataToCheck as unknown as { [key: string]: unknown } | undefined,
     );
   };
 
-  type GetNoItemsActionFunction = () => ReactElement | undefined;
+  type GetMirroredCreateButtonFunction = () => CardButtonSchema | undefined;
 
   /*
    * The way forward from an empty table: the "Create X" button the card's
    * header already shows - same handler, same permission gate, same label -
-   * repeated under "No X yet.", where a new user is looking. It is drawn the
-   * way the header's is, as a NORMAL button: a filled indigo one in the
-   * middle of an otherwise quiet empty card shouted, and made the two
-   * buttons that do the same thing look like different actions.
+   * repeated in the empty state, where a new user is looking. It is drawn
+   * the way the header's is, as a plain button: a filled indigo one in the
+   * middle of an otherwise quiet card shouted, and made two buttons that do
+   * the same thing look like different actions.
    *
-   * Only under the table's own "No X yet.". A page that words its empty
-   * state itself is describing a slice of the list ("Nice work! No Active
-   * Incidents so far.", "No monitors are reporting a problem."), where a big
-   * "Create" button answers a question nobody asked. And never when a
-   * search or filter emptied the table: creating one is the wrong answer to
-   * a search that missed.
+   * A header button counts as "create" when it carries the Add icon and is
+   * drawn NORMAL or PRIMARY - an OUTLINE Add is an import or a template
+   * picker, not the way to make the first one.
    */
-  const getNoItemsAction: GetNoItemsActionFunction = ():
-    | ReactElement
+  const getMirroredCreateButton: GetMirroredCreateButtonFunction = ():
+    | CardButtonSchema
     | undefined => {
     if (!props.cardProps) {
       return undefined;
     }
 
-    if (isSearchActive() || hasFilterApplied(filterData)) {
-      return undefined;
-    }
-
-    if (props.noItemsMessage) {
-      return undefined;
-    }
-
-    const createButton: CardButtonSchema | undefined = cardButtons.find(
+    return cardButtons.find(
       (button: CardButtonSchema | ReactElement): boolean => {
         if (React.isValidElement(button)) {
           return false;
@@ -3248,32 +3444,237 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         );
       },
     ) as CardButtonSchema | undefined;
+  };
 
-    if (!createButton) {
-      return undefined;
+  type GetEmptyStateFunction = () => ModelTableEmptyState;
+
+  /*
+   * What the table shows when a load comes back with no rows. An empty table
+   * has quite different causes and used to have one grey sentence for all of
+   * them: a typo in the search box looked exactly like an empty project, and
+   * neither said what the list was for. buildModelTableEmptyState decides
+   * between "nothing here yet", "nothing matches" and "all clear", and what
+   * each offers.
+   */
+  const getEmptyState: GetEmptyStateFunction = (): ModelTableEmptyState => {
+    const isSearchOn: boolean = isSearchActive();
+    const isFilterOn: boolean = hasFilterApplied(filterData);
+    const createCheck: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Create,
+    );
+
+    return buildModelTableEmptyState({
+      pluralLabel: props.pluralName || model.pluralName || "items",
+      options: props.emptyState,
+      noItemsMessage:
+        typeof props.noItemsMessage === "string"
+          ? props.noItemsMessage
+          : undefined,
+      hasCustomElement: React.isValidElement(props.noItemsMessage),
+      cardDescription: props.cardProps?.description,
+      modelIcon: (model as { icon?: IconProp | null }).icon,
+      isSearchActive: isSearchOn,
+      isFilterActive: isFilterOn,
+      onClearSearchAndFilters: (): void => {
+        clearSearchAndFilters({ isFilterOn: isFilterOn });
+      },
+      createButton: getMirroredCreateButton(),
+      isCreateDeniedByPermission:
+        !createCheck.isAllowed && Boolean(createCheck.disabledReason),
+      help: props.helpContent
+        ? {
+            title: props.helpContent.title,
+            onClick: (): void => {
+              setShowHelpModal(true);
+            },
+          }
+        : undefined,
+      onDocumentationClick: props.documentationLink
+        ? (): void => {
+            Navigation.navigate(props.documentationLink!, {
+              openInNewTab: true,
+            });
+          }
+        : undefined,
+      translate: tx,
+      translator: translator,
+    });
+  };
+
+  type ClearSearchAndFiltersFunction = (data: { isFilterOn: boolean }) => void;
+
+  /*
+   * The empty state's way out of a search or filter that hides every row:
+   * the search box and its label chips are emptied at once (not after the
+   * search debounce), and the filters go the way the filter form clears them.
+   */
+  const clearSearchAndFilters: ClearSearchAndFiltersFunction = (data: {
+    isFilterOn: boolean;
+  }): void => {
+    setSearchText("");
+    setDebouncedSearchText("");
+    setSelectedLabels([]);
+    setIsSearchExpanded(false);
+
+    if (data.isFilterOn) {
+      onFilterChanged({});
+      setTableView(null);
+      props.onFilterApplied?.(false);
+    }
+  };
+
+  const emptyState: ModelTableEmptyState = getEmptyState();
+
+  /*
+   * Drag-and-drop reordering, for both the table and the list layout.
+   *
+   * A drop moves the row on screen at once and saves it in the background:
+   * the row is given the number of the row it was dropped on, and the server
+   * gives it that place and moves the rows in the way one place along
+   * (@ListOrderColumn). The list is then refreshed quietly to pick up their
+   * new numbers. If the save fails, the rows go back where they were and say
+   * why.
+   *
+   * While a filter or search narrows the list, dragging is off - the rows in
+   * between are not on screen, so "drop it above this one" would mean
+   * something the person cannot see. The grips stay, greyed out, and a line
+   * above the list says why.
+   */
+  const isReorderBlockedByFilter: boolean =
+    isManuallyOrdered && (isSearchActive() || hasFilterApplied(filterData));
+
+  const isDragDisabled: boolean = isReorderBlockedByFilter || isReordering;
+
+  const dragDisabledReason: string | undefined = isReorderBlockedByFilter
+    ? REORDER_OFF_WHILE_FILTERED
+    : isReordering
+      ? REORDER_SAVING
+      : undefined;
+
+  type OnRowDroppedFunction = (
+    id: string,
+    destinationIndex: number,
+    sourceIndex: number,
+  ) => Promise<void>;
+
+  const onRowDropped: OnRowDroppedFunction = async (
+    id: string,
+    destinationIndex: number,
+    sourceIndex: number,
+  ): Promise<void> => {
+    const orderField: keyof TBaseModel | undefined = props.dragDropIndexField;
+
+    if (!orderField || isDragDisabled || destinationIndex === sourceIndex) {
+      return;
     }
 
-    return (
-      <Button
-        title={createButton.title}
-        icon={createButton.icon}
-        buttonStyle={ButtonStyleType.NORMAL}
-        disabled={createButton.disabled}
-        tooltip={createButton.tooltip}
-        dataTestId="empty-table-create-button"
-        onClick={() => {
-          if (createButton.disabled) {
-            return;
-          }
+    const rowsBeforeDrop: Array<TBaseModel> = data;
 
-          createButton.onClick?.();
-        }}
-      />
+    let value: number | null = getDropTargetValue<TBaseModel>({
+      items: rowsBeforeDrop,
+      sourceIndex: sourceIndex,
+      destinationIndex: destinationIndex,
+      getValue: (item: TBaseModel): unknown => {
+        return (item as unknown as Dictionary<unknown>)[orderField as string];
+      },
+    });
+
+    if (value === null) {
+      /*
+       * The row it landed on has no number yet - a list saved before the
+       * server kept them. Its place on screen is the best there is.
+       */
+      const position: number =
+        (currentPageNumber - 1) * itemsOnPage + destinationIndex + 1;
+
+      value =
+        getManualSortOrder() === SortOrder.Descending
+          ? Math.max(totalItemsCount - position + 1, 1)
+          : position;
+    }
+
+    setReorderError("");
+    setIsReorderSaved(false);
+    setData(moveListItem(rowsBeforeDrop, sourceIndex, destinationIndex));
+    setIsReordering(true);
+
+    try {
+      await props.callbacks.updateById({
+        id: new ObjectID(id),
+        data: {
+          [orderField]: value,
+        },
+      });
+    } catch (err) {
+      setData(rowsBeforeDrop);
+      setReorderError(API.getFriendlyMessage(err));
+      setIsReordering(false);
+      return;
+    }
+
+    setIsReordering(false);
+    setIsReorderSaved(true);
+
+    await fetchItems({ quiet: true });
+  };
+
+  type GetReorderMessagesFunction = () => ReactElement | null;
+
+  const getReorderMessages: GetReorderMessagesFunction =
+    (): ReactElement | null => {
+      if (!isManuallyOrdered) {
+        return null;
+      }
+
+      return (
+        <>
+          <span className="sr-only" role="status" aria-live="polite">
+            {isReordering
+              ? tx(REORDER_SAVING)
+              : isReorderSaved
+                ? tx(REORDER_SAVED)
+                : ""}
+          </span>
+          {reorderError ? (
+            <Alert
+              type={AlertType.DANGER}
+              strongTitle={REORDER_FAILED}
+              title={reorderError}
+              onClose={() => {
+                setReorderError("");
+              }}
+              className="mb-4"
+              dataTestId="reorder-error"
+            />
+          ) : null}
+          {isReorderBlockedByFilter && data.length > 1 ? (
+            <div
+              className="mb-3 flex items-center gap-1.5 text-xs text-gray-500"
+              data-testid="reorder-off-while-filtered"
+            >
+              <Icon icon={IconProp.GripVertical} className="h-4 w-4" />
+              <span>{tx(REORDER_OFF_WHILE_FILTERED)}</span>
+            </div>
+          ) : null}
+        </>
+      );
+    };
+
+  // A reorderable list with its messages - saving, failed, paused - above it.
+  const withReorderMessages: (element: ReactElement) => ReactElement = (
+    element: ReactElement,
+  ): ReactElement => {
+    return (
+      <>
+        {getReorderMessages()}
+        {element}
+      </>
     );
   };
 
   const getTable: GetReactElementFunction = (): ReactElement => {
-    return (
+    return withReorderMessages(
       <Table
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3526,28 +3927,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         enableDragAndDrop={props.enableDragAndDrop}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
+        isDragDisabled={isDragDisabled}
+        dragDisabledReason={dragDisabledReason}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
         data={data}
         id={props.id}
         columns={tableColumns}
         itemsOnPage={itemsOnPage}
-        onDragDrop={async (id: string, newOrder: number) => {
-          if (!props.dragDropIndexField) {
-            return;
-          }
-
-          setIsLoading(true);
-
-          await props.callbacks.updateById({
-            id: new ObjectID(id),
-            data: {
-              [props.dragDropIndexField]: newOrder,
-            },
-          });
-
-          await fetchItems();
-        }}
+        onDragDrop={onRowDropped}
         disablePagination={props.disablePagination || false}
         onNavigateToPage={async (
           pageNumber: number,
@@ -3562,87 +3950,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={getNoItemsMessage()}
-        noItemsAction={getNoItemsAction()}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
-        actionButtons={actionButtonSchema}
-      />
-    );
-  };
-
-  const getOrderedStatesList: GetReactElementFunction = (): ReactElement => {
-    if (!props.orderedStatesListProps) {
-      throw new BadDataException(
-        "props.orderedStatesListProps required when showAs === ShowAs.OrderedStatesList",
-      );
-    }
-
-    let getTitleElement:
-      | ((
-          item: TBaseModel,
-          onBeforeFetchData?: TBaseModel | undefined,
-        ) => ReactElement)
-      | undefined = undefined;
-
-    let getDescriptionElement:
-      | ((item: TBaseModel) => ReactElement)
-      | undefined = undefined;
-
-    for (const column of props.columns) {
-      const key: string | undefined = Object.keys(
-        column.field as SelectEntityField<TBaseModel>,
-      )[0];
-
-      if (key === props.orderedStatesListProps.titleField) {
-        getTitleElement = column.getElement;
-      }
-
-      if (key === props.orderedStatesListProps.descriptionField) {
-        getDescriptionElement = column.getElement;
-      }
-    }
-
-    return (
-      <OrderedStatesList<TBaseModel>
-        error={error}
-        isLoading={isLoading}
-        data={data}
-        id={props.id}
-        titleField={props.orderedStatesListProps?.titleField}
-        descriptionField={props.orderedStatesListProps?.descriptionField}
-        orderField={props.orderedStatesListProps?.orderField}
-        shouldAddItemInTheBeginning={
-          props.orderedStatesListProps.shouldAddItemInTheBeginning
-        }
-        shouldAddItemInTheEnd={
-          props.orderedStatesListProps.shouldAddItemInTheEnd
-        }
-        noItemsMessage={getNoItemsMessage()}
-        onRefreshClick={async () => {
-          await fetchItems();
-        }}
-        onCreateNewItem={
-          props.isCreateable && getActionGate(ModelAction.Create).show
-            ? (order: number) => {
-                setOrderedStatesListNewItemOrder(order);
-                setModalType(ModalType.Create);
-                setShowModal(true);
-              }
+        noItemsMessage={
+          React.isValidElement(props.noItemsMessage)
+            ? props.noItemsMessage
             : undefined
         }
-        createDisabledReason={getActionGate(ModelAction.Create).tooltip}
-        singularLabel={props.singularName || model.singularName || "Item"}
+        emptyStateProps={emptyState.emptyStateProps}
+        onRefreshClick={async () => {
+          await fetchItems();
+        }}
         actionButtons={actionButtonSchema}
-        getTitleElement={getTitleElement}
-        getDescriptionElement={getDescriptionElement}
-      />
+      />,
     );
   };
 
   const getList: GetReactElementFunction = (): ReactElement => {
-    return (
+    return withReorderMessages(
       <List
         onFilterChanged={(filterData: FilterData<TBaseModel>) => {
           onFilterChanged(filterData);
@@ -3668,21 +3991,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         currentPageNumber={currentPageNumber}
         listDetailOptions={props.listDetailOptions}
         enableDragAndDrop={props.enableDragAndDrop}
-        onDragDrop={async (id: string, newOrder: number) => {
-          if (!props.dragDropIndexField) {
-            return;
-          }
-
-          setIsLoading(true);
-
-          await props.callbacks.updateById({
-            id: new ObjectID(id),
-            data: {
-              [props.dragDropIndexField]: newOrder,
-            },
-          });
-
-          await fetchItems();
+        onDragDrop={onRowDropped}
+        isDragDisabled={isDragDisabled}
+        dragDisabledReason={dragDisabledReason}
+        itemToString={(item: TBaseModel): string => {
+          const label: string = props.singularName || item.singularName || "";
+          const name: string = getItemLabel(item);
+          return name && label ? `${label}: ${name}` : name || label;
         }}
         dragDropIdField={"_id"}
         dragDropIndexField={props.dragDropIndexField}
@@ -3706,12 +4021,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={getNoItemsMessage()}
+        noItemsMessage={
+          React.isValidElement(props.noItemsMessage)
+            ? props.noItemsMessage
+            : undefined
+        }
+        emptyStateProps={emptyState.emptyStateProps}
         onRefreshClick={async () => {
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
-      />
+      />,
     );
   };
 
@@ -3764,7 +4084,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               marginLeft: "5px",
             }}
           >
-            <Pill text={`${planName} Plan`} color={Yellow} />
+            <Pill
+              text={translator.translateTemplate("{{planName}} Plan", {
+                planName: planName,
+              })}
+              color={Yellow}
+            />
           </span>
         )}
       </span>
@@ -3848,18 +4173,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return <></>;
     }
 
-    const pluralLabel: string = (
-      props.pluralName ||
-      model.pluralName ||
-      "items"
-    ).toLowerCase();
+    const pluralTerm: ReturnType<typeof translatableTerm> = translatableTerm(
+      props.pluralName || model.pluralName || "items",
+      { inSentence: true },
+    );
 
     const hasLabelSupport: boolean = Boolean(labelFilterConfig);
 
     const defaultPlaceholder: string = hasLabelSupport
-      ? `Search ${pluralLabel}… (try @ for labels)`
-      : `Search ${pluralLabel} by name, description…`;
-    const placeholder: string = props.searchPlaceholder || defaultPlaceholder;
+      ? translator.translateTemplate(
+          "Search {{itemsName}}… (try @ for labels)",
+          {
+            itemsName: pluralTerm,
+          },
+        )
+      : translator.translateTemplate(
+          "Search {{itemsName}} by name, description…",
+          { itemsName: pluralTerm },
+        );
+    const placeholder: string = props.searchPlaceholder
+      ? tx(props.searchPlaceholder)
+      : defaultPlaceholder;
 
     /*
      * Effective search = input minus the trailing @<prefix> mention. The pill
@@ -3962,7 +4296,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                     <span
                       key={label.id}
                       className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
-                      title={`Label: ${label.name}`}
+                      title={translator.translateTemplate("Label: {{name}}", {
+                        name: label.name,
+                      })}
                     >
                       <span
                         className="h-2 w-2 flex-none rounded-full"
@@ -3982,8 +4318,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         onClick={() => {
                           removeLabel(label.id);
                         }}
-                        title="Remove label"
-                        aria-label={`Remove ${label.name}`}
+                        title={tx("Remove label")}
+                        aria-label={translator.translateTemplate(
+                          "Remove {{name}}",
+                          { name: label.name },
+                        )}
                         className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
                       >
                         <Icon icon={IconProp.Close} className="h-3 w-3" />
@@ -4073,7 +4412,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   }
                 }}
                 placeholder={
-                  selectedLabels.length === 0 ? placeholder : "Refine search…"
+                  selectedLabels.length === 0
+                    ? placeholder
+                    : tx("Refine search…")
                 }
                 spellCheck={false}
                 autoComplete="off"
@@ -4082,7 +4423,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               />
             </div>
             {isSearching && (
-              <div className="flex-none text-gray-400" title="Searching…">
+              <div className="flex-none text-gray-400" title={tx("Searching…")}>
                 <Icon
                   icon={IconProp.Spinner}
                   className="h-4 w-4 animate-spin"
@@ -4092,20 +4433,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             {showMatchPill && totalItemsCount >= 0 && hasMore === undefined && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={`${totalItemsCount} ${totalItemsCount === 1 ? "result" : "results"}`}
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT,
+                  totalItemsCount,
+                )}
               >
-                {totalItemsCount} {totalItemsCount === 1 ? "match" : "matches"}
+                {translator.translatePlural(
+                  SEARCH_MATCH_COUNT,
+                  totalItemsCount,
+                )}
               </span>
             )}
             {showMatchPill && hasMore !== undefined && data.length > 0 && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                title={`${data.length}${hasMore ? "+" : ""} ${
-                  data.length === 1 ? "result" : "results"
-                } on this page`}
+                title={translator.translatePlural(
+                  SEARCH_RESULT_COUNT_ON_PAGE,
+                  data.length,
+                  {
+                    count: `${translator.formatNumber(data.length)}${
+                      hasMore ? "+" : ""
+                    }`,
+                  },
+                )}
               >
-                {data.length}
-                {hasMore ? "+" : ""} {data.length === 1 ? "match" : "matches"}
+                {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
+                  count: `${translator.formatNumber(data.length)}${
+                    hasMore ? "+" : ""
+                  }`,
+                })}
               </span>
             )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
@@ -4117,8 +4473,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 onClick={() => {
                   collapseSearch();
                 }}
-                title="Clear search (Esc Esc)"
-                aria-label="Clear search"
+                title={tx("Clear search (Esc Esc)")}
+                aria-label={tx("Clear search")}
                 className="flex-none rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               >
                 <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
@@ -4126,7 +4482,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             ) : (
               <kbd
                 className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex"
-                title="Press / to focus search"
+                title={tx("Press / to focus search")}
               >
                 /
               </kbd>
@@ -4144,23 +4500,38 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                  {isLabelsLoading ? "Loading labels…" : "Filter by label"}
+                  {tx(isLabelsLoading ? "Loading labels…" : "Filter by label")}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  <kbd className="font-mono">↑</kbd>
-                  <kbd className="ml-0.5 font-mono">↓</kbd>
-                  <span className="ml-1">to navigate</span>
+                  <TranslatedSentence
+                    template="{{arrowKeys}} to navigate"
+                    slots={{
+                      arrowKeys: (
+                        <>
+                          <kbd className="font-mono">↑</kbd>
+                          <kbd className="ml-0.5 font-mono">↓</kbd>
+                        </>
+                      ),
+                    }}
+                  />
                   <span className="mx-1.5">·</span>
-                  <kbd className="font-mono">↵</kbd>
-                  <span className="ml-1">to select</span>
+                  <TranslatedSentence
+                    template="{{enterKey}} to select"
+                    slots={{
+                      enterKey: <kbd className="font-mono">↵</kbd>,
+                    }}
+                  />
                 </span>
               </div>
               <div className="max-h-64 overflow-y-auto py-1">
                 {!isLabelsLoading && dropdownLabels.length === 0 && (
                   <div className="px-3 py-3 text-sm text-gray-500">
                     {availableLabels.length === 0
-                      ? "No labels available for this resource."
-                      : `No labels matching "${mention.prefix}"`}
+                      ? tx("No labels available for this resource.")
+                      : translator.translateTemplate(
+                          'No labels matching "{{prefix}}"',
+                          { prefix: mention.prefix },
+                        )}
                   </div>
                 )}
                 {dropdownLabels.map((label: SearchLabelOption, idx: number) => {
@@ -4368,15 +4739,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       },
     );
 
-    return (
-      <MoreMenu
-        key="model-table-more-menu"
-        menuIcon={IconProp.EllipsisHorizontal}
-        text=""
-      >
-        {children}
-      </MoreMenu>
-    );
+    // The same ⋯ every card header has: a feed's, too.
+    return <CardMoreMenu key="model-table-more-menu">{children}</CardMoreMenu>;
   };
 
   /*
@@ -4458,8 +4822,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 searchInputRef.current?.focus();
               });
             }}
-            title="Search (/)"
-            aria-label="Open search"
+            title={tx("Search (/)")}
+            aria-label={tx("Open search")}
             tabIndex={isExpanded ? -1 : 0}
             className={`absolute inset-0 inline-flex items-center gap-2 rounded-md border bg-white px-3 text-sm shadow-sm transition-all duration-200 ease-out ${
               isExpanded
@@ -4472,7 +4836,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               className="h-4 w-4 flex-none text-gray-400"
             />
             <span className="flex-1 truncate text-left text-gray-400">
-              Search…
+              {tx("Search…")}
             </span>
             <kbd className="max-sm:hidden flex-none select-none items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-gray-500 sm:inline-flex">
               /
@@ -4728,12 +5092,29 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const headerButtons: Array<CardButtonSchema | ReactElement> =
       getHeaderButtonsWithSearch();
 
+    /*
+     * While the empty state is on screen and says what the list is for in
+     * the card's own words, the card leaves its description out of the
+     * header - the same sentence twice, a few lines apart, read as a bug.
+     */
+    const isEmptyStateShown: boolean =
+      !getTableLoadingState() &&
+      !error &&
+      data.length === 0 &&
+      tableColumns.length > 0;
+
+    const cardDescription: CardComponentProps["description"] =
+      isEmptyStateShown && emptyState.usesCardDescription
+        ? undefined
+        : props.cardProps?.description;
+
     if (showAs === ShowAs.Table || showAs === ShowAs.List) {
       return (
         <div>
           {props.cardProps && (
             <Card
               {...props.cardProps}
+              description={cardDescription}
               buttons={headerButtons}
               bodyClassName={
                 showAs === ShowAs.List
@@ -4750,11 +5131,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                * what it always did: every column was denied by permission.
                */}
               {tableColumns.length === 0 && allColumns.length > 0 ? (
-                <ErrorMessage
-                  message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionGate.getPermissionTitles(
-                    model.getReadPermissions(),
-                  ).join(", ")}`}
-                />
+                <div data-testid={`${props.id}-no-access`}>
+                  <TableEmptyState
+                    {...buildNoAccessState({
+                      permissionTitles: PermissionGate.getPermissionTitles(
+                        model.getReadPermissions(),
+                      ),
+                      translate: tx,
+                    })}
+                  />
+                </div>
               ) : (
                 <></>
               )}
@@ -4792,21 +5178,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
     }
 
-    return (
-      <div>
-        {props.cardProps && (
-          <Card
-            {...props.cardProps}
-            buttons={headerButtons}
-            title={getCardTitle(props.cardProps.title || "")}
-          >
-            {getOrderedStatesList()}
-          </Card>
-        )}
-
-        {!props.cardProps && getOrderedStatesList()}
-      </div>
-    );
+    return <></>;
   };
 
   return (
@@ -4824,17 +5196,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             miscDataProps: JSONObject,
             formValues: JSONObject,
           ) => {
-            if (
-              showAs === ShowAs.OrderedStatesList &&
-              props.orderedStatesListProps?.orderField &&
-              orderedStatesListNewItemOrder
-            ) {
-              item.setColumnValue(
-                props.orderedStatesListProps.orderField as string,
-                orderedStatesListNewItemOrder,
-              );
-            }
-
             if (props.onBeforeCreate) {
               item = await props.onBeforeCreate(
                 item,
@@ -4881,7 +5242,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={
             deleteConfirmation?.title ||
-            `Delete ${getDeleteLabel(props.singularName, model.singularName)}`
+            translateNamedAction(translator, {
+              template: "Delete {{itemName}}",
+              itemName: getDeleteLabel(props.singularName, model.singularName),
+            })
           }
           description={
             deleteConfirmation?.description || (
@@ -4923,11 +5287,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       {showViewIdModal && (
         <ConfirmModal
-          title={`${props.singularName || model.singularName || ""} ID`}
+          title={translator.translateTemplate("{{itemName}} ID", {
+            itemName: translatableTerm(
+              props.singularName || model.singularName || "",
+            ),
+          })}
           description={
             <div>
               <span>
-                ID of this {props.singularName || model.singularName || ""}:
+                {translator.translateTemplate("ID of this {{itemName}}:", {
+                  itemName: translatableTerm(
+                    props.singularName || model.singularName || "",
+                  ),
+                })}
               </span>
               {/*
                * Handing over the id is the entire point of this dialog, and it
@@ -4942,15 +5314,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 <CopyTextButton
                   textToBeCopied={viewId || ""}
                   size="sm"
-                  title="Copy ID to clipboard"
+                  title={tx("Copy ID to clipboard")}
                 />
               </div>
               <br />
 
               <span>
-                You can use this ID to interact with{" "}
-                {props.singularName || model.singularName || ""} via the
-                OneUptime API. Click the button below to go to API Reference.
+                {translator.translateTemplate(
+                  "You can use this ID to interact with {{itemName}} via the OneUptime API. Click the button below to go to API Reference.",
+                  {
+                    itemName: translatableTerm(
+                      props.singularName || model.singularName || "",
+                    ),
+                  },
+                )}
               </span>
             </div>
           }

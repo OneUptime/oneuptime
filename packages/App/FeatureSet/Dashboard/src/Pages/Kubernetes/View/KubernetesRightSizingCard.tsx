@@ -39,6 +39,8 @@ import {
   formatMemoryBytes,
 } from "Common/Types/Kubernetes/KubernetesRightSizing";
 import { KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   kubernetesClusterId: ObjectID;
@@ -64,7 +66,7 @@ function getRequestChangeElement(
     return (
       <span
         className="text-gray-400"
-        title={resource.unavailableReason || "Not enough data."}
+        title={resource.unavailableReason || translateText("Not enough data.")}
       >
         -
       </span>
@@ -77,7 +79,9 @@ function getRequestChangeElement(
         <span className="tabular-nums text-gray-600">
           {format(resource.current)}
         </span>
-        <span className="text-xs text-gray-400">right-sized</span>
+        <span className="text-xs text-gray-400">
+          {translateText("right-sized")}
+        </span>
       </span>
     );
   }
@@ -93,7 +97,9 @@ function getRequestChangeElement(
   return (
     <span className="inline-flex items-center gap-1.5 tabular-nums">
       <span className="text-gray-400 line-through">
-        {resource.current === null ? "none" : format(resource.current)}
+        {resource.current === null
+          ? translateText("none")
+          : format(resource.current)}
       </span>
       <span className={arrowClassName}>&rarr;</span>
       <span className="font-medium text-gray-900">
@@ -158,6 +164,7 @@ function getContainerElement(
 const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<RightSizingResult | null>(null);
@@ -302,8 +309,10 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
     if (isWindowTooShort) {
       return (
         <span>
-          Right-sizing needs at least {MIN_OBSERVED_HOURS} hours of cost data.
-          Widen the time range above to see recommendations.
+          {translator.translateTemplate(
+            "Right-sizing needs at least {{hours}} hours of cost data. Widen the time range above to see recommendations.",
+            { hours: MIN_OBSERVED_HOURS },
+          )}
         </span>
       );
     }
@@ -311,19 +320,21 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
     if (summary && summary.analyzedCount > 0) {
       return (
         <span>
-          Every container in this window is already within 15% of its
-          recommended request. Nothing to change.
+          {translator.translateText(
+            "Every container in this window is already within 15% of its recommended request. Nothing to change.",
+          )}
         </span>
       );
     }
 
     return (
       <span>
-        No container-level cost data in this window yet. Right-sizing reads the
-        same allocation rows as the spend breakdowns above.
+        {translator.translateText(
+          "No container-level cost data in this window yet. Right-sizing reads the same allocation rows as the spend breakdowns above.",
+        )}
       </span>
     );
-  }, [isWindowTooShort, summary]);
+  }, [isWindowTooShort, summary, translator.language]);
 
   if (error) {
     return (
@@ -406,7 +417,15 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             <Alert
               type={AlertType.INFO}
               strongTitle="Memory recommendations are partly unavailable"
-              title={`${summary.missingMemoryPeakCount} of ${summary.analyzedCount} containers reported no memory peak, so their memory requests were left unsized. Peaks come from Prometheus — a memory request sized from an hourly average is how containers get OOMKilled, so we would rather say nothing. Set cost.engine.prometheusUrl on the agent to fill this in.`}
+              title={translator.translatePlural(
+                {
+                  one: "{{missing}} of {{count}} container reported no memory peak, so their memory requests were left unsized. Peaks come from Prometheus — a memory request sized from an hourly average is how containers get OOMKilled, so we would rather say nothing. Set cost.engine.prometheusUrl on the agent to fill this in.",
+                  other:
+                    "{{missing}} of {{count}} containers reported no memory peak, so their memory requests were left unsized. Peaks come from Prometheus — a memory request sized from an hourly average is how containers get OOMKilled, so we would rather say nothing. Set cost.engine.prometheusUrl on the agent to fill this in.",
+                },
+                summary.analyzedCount,
+                { missing: summary.missingMemoryPeakCount },
+              )}
             />
           </div>
         ) : null}
@@ -416,7 +435,14 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             <Alert
               type={AlertType.WARNING}
               strongTitle="Containers with no resource requests"
-              title={`${summary.noRequestSetCount} containers run without a request set. They cost nothing extra today, but the scheduler cannot place them safely and they are first to be evicted under pressure.`}
+              title={translator.translatePlural(
+                {
+                  one: "{{count}} container runs without a request set. It costs nothing extra today, but the scheduler cannot place it safely and it is first to be evicted under pressure.",
+                  other:
+                    "{{count}} containers run without a request set. They cost nothing extra today, but the scheduler cannot place them safely and they are first to be evicted under pressure.",
+                },
+                summary.noRequestSetCount,
+              )}
             />
           </div>
         ) : null}

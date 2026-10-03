@@ -1,4 +1,5 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
@@ -24,7 +25,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,
@@ -59,7 +60,10 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Service from "Common/Models/DatabaseModels/Service";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
@@ -105,6 +109,11 @@ import OverviewCustomFields from "../../../Components/CustomFields/OverviewCusto
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -141,7 +150,16 @@ interface FetchDataOptions {
   isBackgroundRefresh: boolean;
 }
 
+/*
+ * The Alert Details card's Edit asks for the title and the severity, and
+ * folds the labels and Private Alert under Advanced, in the order Create
+ * Alert folds them. Three rows, so no steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<Alert> =
+  getAdvancedFormSection<Alert>();
+
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
 
@@ -426,8 +444,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name: true,
             isAcknowledgedState: true,
             isResolvedState: true,
+            order: true,
           },
-          sort: {},
+          sort: {
+            order: SortOrder.Ascending,
+          },
         }),
         ModelAPI.getItem<Alert>({
           id: modelId,
@@ -713,7 +734,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
         >
           <span className="min-w-0 break-words">
-            {`Could not refresh this alert. ${refreshError}`}
+            {translator.translateTemplate(
+              "Could not refresh this alert. {{error}}",
+              { error: refreshError },
+            )}
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <button
@@ -721,7 +745,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onClick={refreshData}
               className="rounded-md text-sm font-semibold text-red-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Try again
+              {translator.translateText("Try again")}
             </button>
             <button
               type="button"
@@ -730,7 +754,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }}
               className="rounded-md text-sm font-medium text-red-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
             >
-              Dismiss
+              {translator.translateText("Dismiss")}
             </button>
           </div>
         </div>
@@ -765,7 +789,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       >
         <EventStatTile
           variant="segment"
-          label={`${acknowledgeState?.name || "Acknowledged"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName:
+              acknowledgeState?.name || translatableTerm("Acknowledged"),
+          })}
           icon={IconProp.Check}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -777,7 +804,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
         <EventStatTile
           variant="segment"
-          label={`${resolvedState?.name || "Resolved"} in`}
+          label={translator.translateTemplate("{{stateName}} in", {
+            stateName: resolvedState?.name || translatableTerm("Resolved"),
+          })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText({
             startedAt: responseTimes.startedAt,
@@ -802,7 +831,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )
           }
           description={
-            durationEndDate ? `Ended ${formatDate(durationEndDate)}` : undefined
+            durationEndDate
+              ? translator.translateTemplate("Ended {{date}}", {
+                  date: formatDate(durationEndDate) || "",
+                })
+              : undefined
           }
         />
       </EventStatBar>
@@ -908,7 +941,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         title={"Metrics"}
                         description={
                           seriesSummary
-                            ? `Metrics for this alert, scoped to the affected series (${seriesSummary}).`
+                            ? translator.translateTemplate(
+                                "Metrics for this alert, scoped to the affected series ({{seriesSummary}}).",
+                                { seriesSummary: seriesSummary },
+                              )
                             : "Metrics for this alert."
                         }
                         rightElement={snapshotWindowAlert}
@@ -1007,23 +1043,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               refreshData();
               refreshFeed();
             }}
-            formSteps={[
-              {
-                title: "Alert Details",
-                id: "alert-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Alert Title",
-                stepId: "alert-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Alert Title",
@@ -1039,42 +1064,30 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Alert Severity",
                 description: "What type of alert is this?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "alert-details",
                 dropdownModal: {
                   type: AlertSeverity,
                   labelField: "name",
                   valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
                 },
                 required: true,
                 placeholder: "Alert Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<Alert>({
+                collapsibleSection: advancedSection,
+              }),
               {
                 field: {
                   isPrivate: true,
                 },
                 title: "Private Alert",
-                stepId: "alert-details",
                 description:
                   "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
+                collapsibleSection: advancedSection,
               },
             ]}
             modelDetailProps={{
@@ -1129,7 +1142,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       return <UserElement user={item.createdByUser} />;
                     }
 
-                    return <span className="text-gray-500">Unknown</span>;
+                    return (
+                      <span className="text-gray-500">
+                        {translator.translateText("Unknown")}
+                      </span>
+                    );
                   },
                 },
                 {
@@ -1148,7 +1165,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   fieldType: FieldType.Element,
                   getElement: (item: Alert): ReactElement => {
                     if (!item.monitor) {
-                      return <span className="text-gray-500">No monitor</span>;
+                      return (
+                        <span className="text-gray-500">
+                          {translator.translateText("No monitor")}
+                        </span>
+                      );
                     }
 
                     return <MonitorElement monitor={item.monitor} />;
@@ -1171,7 +1192,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
                     return (
                       <span className="text-gray-500">
-                        Not part of an episode
+                        {translator.translateText("Not part of an episode")}
                       </span>
                     );
                   },

@@ -1,5 +1,5 @@
 import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAgentRunner";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import { KUBERNETES_AGENT_RUNNER_NAME_PREFIX } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import Field from "Common/UI/Components/Forms/Types/Field";
@@ -10,7 +10,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 /*
  * The Runner create / edit form, shared by the Runner list and the Runner
- * detail page - both walk the same three steps - and what it leaves out on
+ * detail page - both walk the same two steps - and what it leaves out on
  * a Runner the Kubernetes agent chart installed.
  *
  * RunnerService refuses, for any non-root write:
@@ -112,17 +112,17 @@ export function getReservedRunnerNameError(name: unknown): string | null {
 
 /*
  * The form's steps, on the list and on the detail page. Every one of them
- * keeps a field on an agent row too: the description, Runs AI Remediation
- * Commands and the labels are never left out.
+ * keeps a field on an agent row too: the description and the labels (folded
+ * under Advanced on Runner), and Runs AI Remediation Commands, are never
+ * left out.
  */
 export const RUNNER_FORM_STEPS: Array<FormStep<Runner>> = [
   { title: "Runner", id: "runner" },
   { title: "Capabilities", id: "capabilities" },
-  { title: "Labels", id: "labels" },
 ];
 
 export interface RunnerFormFieldOptions {
-  // Put the fields on RUNNER_FORM_STEPS (runner, capabilities, labels).
+  // Put the fields on RUNNER_FORM_STEPS (runner, capabilities).
   withSteps: boolean;
   restrictions: RunnerFormRestrictions;
 }
@@ -208,21 +208,12 @@ export function getRunnerFormFields(
       required: false,
       defaultValue: false,
     },
-    {
-      field: { labels: true },
-      title: "Labels",
-      ...onStep("labels"),
-      description:
-        "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
-    },
+    /*
+     * On the Runner step, folded under Advanced after the description: the
+     * last of that step's fields, as the capabilities follow on a step of
+     * their own.
+     */
+    getLabelsFormField<Runner>(onStep("runner")),
   );
 
   return fields;

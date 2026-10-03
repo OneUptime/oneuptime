@@ -51,7 +51,8 @@ type FiltersFormFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement;
 
-const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
+// The form itself. FiltersForm below decides whether to draw it.
+const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
@@ -60,9 +61,6 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
   ): string => {
     return translateString(value) ?? value ?? "";
   };
-  if (!props.showFilter) {
-    return <></>;
-  }
 
   type ChangeFilterDataFunction = (filterData: FilterData<T>) => void;
 
@@ -262,6 +260,23 @@ const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
       )}
     </div>
   );
+};
+
+/*
+ * Whether to draw the form calls no hook, so it is decided here and the hooks
+ * live in ShownFiltersForm: hiding and showing the form unmounts and mounts
+ * it. While the check sat between the translation hook and the form's own
+ * state, showing a hidden form (or hiding a shown one) changed how many hooks
+ * one component called, and React threw instead of drawing it.
+ */
+const FiltersForm: FiltersFormFunction = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  if (!props.showFilter) {
+    return <></>;
+  }
+
+  return <ShownFiltersForm<T> {...props} />;
 };
 
 export default FiltersForm;

@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import {
   BarChart,
   Bar,
@@ -89,6 +91,7 @@ function formatYAxisTick(value: number): string {
 const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   props: LogsHistogramProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
     onTimeRangeSelect: props.onTimeRangeSelect,
     onZoomOut: props.onZoomOut,
@@ -154,17 +157,21 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       {/* Header with legend */}
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">Log Volume</span>
+          <span className="text-xs font-medium text-gray-500">
+            {translator.translateText("Log Volume")}
+          </span>
           {props.onTimeRangeSelect && pivotedData.length > 0 && (
             <span className="text-[10px] text-gray-300">
-              {selection.canClickToZoom
-                ? "Click or drag to zoom"
-                : "Drag to zoom"}
+              {translator.translateText(
+                selection.canClickToZoom
+                  ? "Click or drag to zoom"
+                  : "Drag to zoom",
+              )}
             </span>
           )}
           {props.onZoomOut && (
             <span className="text-[10px] text-gray-300">
-              Double-click to reset
+              {translator.translateText("Double-click to reset")}
             </span>
           )}
         </div>
@@ -192,7 +199,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
           {props.isLoading ? (
             <ComponentLoader />
           ) : (
-            "No logs in the selected range"
+            translator.translateText("No logs in the selected range")
           )}
         </div>
       )}

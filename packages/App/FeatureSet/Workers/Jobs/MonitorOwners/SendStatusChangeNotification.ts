@@ -18,6 +18,7 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -201,9 +202,15 @@ RunCron(
           monitorName: monitor.name!,
           projectName: monitorStatusTimeline.project!.name!,
           currentStatus: monitorStatus!.name!,
-          currentStatusColor: monitorStatus!.color?.toString() || "#000000",
+          ...EmailColorUtil.getTemplateVariables(
+            "currentStatus",
+            monitorStatus!.color,
+          ),
           previousStatus: previousStatus?.name || "",
-          previousStatusColor: previousStatus?.color?.toString() || "#94a3b8",
+          ...EmailColorUtil.getTemplateVariables(
+            "previousStatus",
+            previousStatus?.color,
+          ),
           previousStatusDurationText: previousStatusDurationText,
           monitorDescription: monitorDescriptionHtml,
           statusChangedAt:

@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -12,18 +14,31 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
+
+  /*
+   * Like Create On-Call Policy, the create form asks for the name and folds
+   * the description and the labels under Advanced. The timezone stays in
+   * view: it decides when hand-offs happen, and it starts on the reader's
+   * own. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<OnCallDutySchedule> =
+    getAdvancedFormSection<OnCallDutySchedule>();
 
   return (
     <Fragment>
@@ -73,17 +88,12 @@ const OnCallDutyPage: FunctionComponent<
             },
           ],
         }}
-        formSteps={[
-          { title: "On-Call Schedule Info", id: "on-call-Schedule-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "on-call-Schedule-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Schedule Name",
@@ -93,20 +103,9 @@ const OnCallDutyPage: FunctionComponent<
           },
           {
             field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "on-call-Schedule-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
               timezone: true,
             },
             title: "Timezone",
-            stepId: "on-call-Schedule-info",
             description:
               "The timezone this schedule's active-hour restrictions and hand-off times are interpreted in. Defaults to your current timezone.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -117,21 +116,17 @@ const OnCallDutyPage: FunctionComponent<
           },
           {
             field: {
-              labels: true,
+              description: true,
             },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Labels",
+            placeholder: "Description",
+            collapsibleSection: advancedSection,
           },
+          getLabelsFormField<OnCallDutySchedule>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
@@ -218,18 +213,19 @@ const OnCallDutyPage: FunctionComponent<
                 <div className="flex flex-col gap-0.5">
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
                     <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                    No one on call
+                    {translator.translateText("No one on call")}
                   </span>
                   {item.rosterNextStartAt && item.nextUserOnRoster ? (
                     <span className="text-xs text-gray-400">
-                      Resumes{" "}
-                      {OneUptimeDate.getDateAsLocalFormattedString(
-                        item.rosterNextStartAt,
-                      )}
+                      {translator.translateTemplate("Resumes {{date}}", {
+                        date: OneUptimeDate.getDateAsLocalFormattedString(
+                          item.rosterNextStartAt,
+                        ),
+                      })}
                     </span>
                   ) : (
                     <span className="text-xs text-gray-400">
-                      No upcoming shifts
+                      {translator.translateText("No upcoming shifts")}
                     </span>
                   )}
                 </div>

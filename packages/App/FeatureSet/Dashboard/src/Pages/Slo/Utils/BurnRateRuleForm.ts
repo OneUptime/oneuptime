@@ -1,22 +1,28 @@
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import Team from "Common/Models/DatabaseModels/Team";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
+  SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
   SLO_BURN_RATE_TEMPLATE_VARIABLES,
   SLO_BURN_RATE_TITLE_TEMPLATE_MAX_LENGTH,
   SloBurnRateTemplateVariableDefinition,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The burn rate rule form's pure half, split out of BurnRateRules.tsx so it
@@ -32,10 +38,9 @@ import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
  * App/Tests/FeatureSetImportsStayReactFree.test.ts is the guard for that,
  * and it is what caught this.
  *
- * The same constraint is why nothing here fetches anything: the owner-user
- * picker needs ProjectUser and ProjectUtil, which reach ModelAPI and read
- * `window` at module load, so the page injects that loader through
- * withOwnerUserDropdownOptions instead of this module importing it.
+ * The same constraint is why nothing here fetches anything. The owners
+ * pickers are plain data too (getOwnersFormField): the people picker the form
+ * draws them with does its own searching.
  *
  * BurnRateRules.tsx re-exports these names, so existing importers are
  * unchanged.
@@ -163,19 +168,20 @@ export const describeBurnRateOutputs: DescribeBurnRateOutputsFunction = (
   const createsAlert: boolean = willCreateAlert(rule);
   const createsIncident: boolean = willDeclareIncident(rule);
 
+  // English; the page translates the label it shows.
   if (createsAlert && createsIncident) {
-    return "Alert + Incident";
+    return translationKey("Alert + Incident");
   }
 
   if (createsIncident) {
-    return "Incident";
+    return translationKey("Incident");
   }
 
   if (createsAlert) {
-    return "Alert";
+    return translationKey("Alert");
   }
 
-  return "Nothing";
+  return translationKey("Nothing");
 };
 
 /*
@@ -199,33 +205,52 @@ export type DescribeBurnRateOutputOptionsFunction = (
   rule: BurnRateRuleOptionFlags,
 ) => Array<string>;
 
+/*
+ * Each line whole, so a translation never has to glue "Alert" to a list of
+ * options: the page translates the English line it is given.
+ */
+interface OutputOptionLines {
+  resolvedByHand: string;
+  isPrivate: string;
+  both: string;
+}
+
+const ALERT_OPTION_LINES: OutputOptionLines = {
+  resolvedByHand: translationKey("Alert: resolved by hand"),
+  isPrivate: translationKey("Alert: private"),
+  both: translationKey("Alert: resolved by hand, private"),
+};
+
+const INCIDENT_OPTION_LINES: OutputOptionLines = {
+  resolvedByHand: translationKey("Incident: resolved by hand"),
+  isPrivate: translationKey("Incident: private"),
+  both: translationKey("Incident: resolved by hand, private"),
+};
+
 export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunction =
   (rule: BurnRateRuleOptionFlags): Array<string> => {
     const lines: Array<string> = [];
 
     type DescribeOutputFunction = (data: {
-      label: string;
+      lines: OutputOptionLines;
       isPrivate: boolean | undefined;
       autoResolve: boolean | undefined;
     }) => void;
 
     const describeOutput: DescribeOutputFunction = (data: {
-      label: string;
+      lines: OutputOptionLines;
       isPrivate: boolean | undefined;
       autoResolve: boolean | undefined;
     }): void => {
-      const options: Array<string> = [];
+      const resolvedByHand: boolean = data.autoResolve === false;
+      const isPrivate: boolean = data.isPrivate === true;
 
-      if (data.autoResolve === false) {
-        options.push("resolved by hand");
-      }
-
-      if (data.isPrivate === true) {
-        options.push("private");
-      }
-
-      if (options.length > 0) {
-        lines.push(`${data.label}: ${options.join(", ")}`);
+      if (resolvedByHand && isPrivate) {
+        lines.push(data.lines.both);
+      } else if (resolvedByHand) {
+        lines.push(data.lines.resolvedByHand);
+      } else if (isPrivate) {
+        lines.push(data.lines.isPrivate);
       }
     };
 
@@ -234,7 +259,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
 
     if (createsAlert) {
       describeOutput({
-        label: "Alert",
+        lines: ALERT_OPTION_LINES,
         isPrivate: rule.isAlertPrivate,
         autoResolve: rule.autoResolveAlert,
       });
@@ -242,7 +267,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
 
     if (createsIncident) {
       describeOutput({
-        label: "Incident",
+        lines: INCIDENT_OPTION_LINES,
         isPrivate: rule.isIncidentPrivate,
         autoResolve: rule.autoResolveIncident,
       });
@@ -252,7 +277,7 @@ export const describeBurnRateOutputOptions: DescribeBurnRateOutputOptionsFunctio
       rule.addSloOwnersAsOwners === true &&
       (createsAlert || createsIncident)
     ) {
-      lines.push("SLO owners added as owners");
+      lines.push(translationKey("SLO owners added as owners"));
     }
 
     return lines;
@@ -275,11 +300,13 @@ export const BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE: string = [
 ].join("\n");
 
 /*
- * Named in the descriptions of every template field. Three is enough to show
- * the shape; the help panel carries the full table.
+ * Every template field offers the variables itself: collapsed under the
+ * field, behind the Markdown editor's Insert variable button, and when "{{"
+ * is typed. They were three names run into each field's description, with
+ * the rest in the page's help panel.
  */
-const TEMPLATE_VARIABLES_HINT: string =
-  'Supports template variables such as {{sloName}}, {{ruleName}} and {{longWindowBurnRate}} - see "How Burn Rate Rules Work" for the full list.';
+export const BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION: string =
+  "When the rule fires, these variables are filled in with the SLO's values at that moment.";
 
 /*
  * Each output has one step, matching the monitor form: title and severity
@@ -603,8 +630,16 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertTitleTemplate: true,
     },
     title: "Alert Title",
-    description: `Title of the alert this rule raises. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    // A getter, so the form reads it in the language of the moment.
+    get description(): string {
+      return translateTemplate(
+        "Title of the alert this rule raises. Leave empty to use the default: {{defaultTitle}}",
+        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
+      );
+    },
     fieldType: FormFieldSchemaType.Text,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -625,6 +660,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: AlertSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Alert Severity",
@@ -635,8 +673,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertDescriptionTemplate: true,
     },
     title: "Alert Description",
-    description: `Description of the alert, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    description:
+      "Description of the alert, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
@@ -645,42 +686,20 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     collapsibleSection: alertDescriptionSection,
     stepId: "alert-details",
   },
-  {
-    field: {
-      alertOwnerTeams: true,
-    },
-    title: "Alert Owner Teams",
-    description:
-      "Teams added as owners of the alert. Owners are notified when the alert is created.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Teams (optional)",
-    collapsibleSection: alertOwnershipSection,
-    stepId: "alert-details",
-  },
   /*
-   * No dropdownModal: User is not a project-listable model, so its options
-   * come from the project's team members, which the page injects through
-   * withOwnerUserDropdownOptions (this module must not fetch).
+   * People and teams in one picker, saved to the rule's alertOwnerUsers and
+   * alertOwnerTeams columns.
    */
-  {
-    field: {
-      alertOwnerUsers: true,
-    },
-    title: "Alert Owner Users",
+  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
+    fieldKey: "alertOwners",
+    usersKey: "alertOwnerUsers",
+    teamsKey: "alertOwnerTeams",
+    title: "Alert Owners",
     description:
-      "Users added as owners of the alert. Owners are notified when the alert is created.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    placeholder: "Select Users (optional)",
+      "People and teams added as owners of the alert. Owners are notified when the alert is created.",
     collapsibleSection: alertOwnershipSection,
     stepId: "alert-details",
-  },
+  }),
   {
     field: {
       alertLabels: true,
@@ -750,8 +769,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       alertRemediationNotes: true,
     },
     title: "Alert Remediation Notes",
-    description: `Steps for whoever picks the alert up, in Markdown. ${TEMPLATE_VARIABLES_HINT}`,
+    description: "Steps for whoever picks the alert up, in Markdown.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
@@ -764,8 +785,16 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentTitleTemplate: true,
     },
     title: "Incident Title",
-    description: `Title of the incident this rule declares. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default: ${DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE}`,
+    // A getter, so the form reads it in the language of the moment.
+    get description(): string {
+      return translateTemplate(
+        "Title of the incident this rule declares. Leave empty to use the default: {{defaultTitle}}",
+        { defaultTitle: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE },
+      );
+    },
     fieldType: FormFieldSchemaType.Text,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     placeholder: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
     defaultValue: DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
@@ -786,6 +815,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       type: IncidentSeverity,
       labelField: "name",
       valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
     },
     required: false,
     placeholder: "Select Incident Severity",
@@ -796,8 +828,11 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentDescriptionTemplate: true,
     },
     title: "Incident Description",
-    description: `Description of the incident, in Markdown. ${TEMPLATE_VARIABLES_HINT} Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.`,
+    description:
+      "Description of the incident, in Markdown. Leave empty to use the default, which states both burn rates, the threshold and the error budget remaining.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     defaultValue: DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
     required: false,
     validation: {
@@ -806,37 +841,17 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     collapsibleSection: incidentDescriptionSection,
     stepId: "incident-details",
   },
-  {
-    field: {
-      incidentOwnerTeams: true,
-    },
-    title: "Incident Owner Teams",
+  // Saved to the rule's incidentOwnerUsers and incidentOwnerTeams columns.
+  getOwnersFormField<ServiceLevelObjectiveBurnRateRule>({
+    fieldKey: "incidentOwners",
+    usersKey: "incidentOwnerUsers",
+    teamsKey: "incidentOwnerTeams",
+    title: "Incident Owners",
     description:
-      "Teams added as owners of the incident. Owners are notified when the incident is declared.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownModal: {
-      type: Team,
-      labelField: "name",
-      valueField: "_id",
-    },
-    required: false,
-    placeholder: "Select Teams (optional)",
+      "People and teams added as owners of the incident. Owners are notified when the incident is declared.",
     collapsibleSection: incidentOwnershipSection,
     stepId: "incident-details",
-  },
-  {
-    field: {
-      incidentOwnerUsers: true,
-    },
-    title: "Incident Owner Users",
-    description:
-      "Users added as owners of the incident. Owners are notified when the incident is declared.",
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    placeholder: "Select Users (optional)",
-    collapsibleSection: incidentOwnershipSection,
-    stepId: "incident-details",
-  },
+  }),
   {
     field: {
       incidentLabels: true,
@@ -904,8 +919,10 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       incidentRemediationNotes: true,
     },
     title: "Incident Remediation Notes",
-    description: `Steps for whoever picks the incident up, in Markdown. ${TEMPLATE_VARIABLES_HINT}`,
+    description: "Steps for whoever picks the incident up, in Markdown.",
     fieldType: FormFieldSchemaType.Markdown,
+    templateVariables: SLO_BURN_RATE_TEMPLATE_VARIABLE_GROUPS,
+    templateVariablesDescription: BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION,
     required: false,
     validation: {
       maxLength: SLO_BURN_RATE_MARKDOWN_TEMPLATE_MAX_LENGTH,
@@ -914,55 +931,3 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "incident-details",
   },
 ];
-
-// The two fields whose options only the page can load.
-export const BURN_RATE_RULE_OWNER_USER_COLUMNS: ReadonlyArray<string> = [
-  "alertOwnerUsers",
-  "incidentOwnerUsers",
-];
-
-export type FetchBurnRateRuleOwnerUserOptionsFunction = NonNullable<
-  ModelField<ServiceLevelObjectiveBurnRateRule>["fetchDropdownOptions"]
->;
-
-export type WithOwnerUserDropdownOptionsFunction = (
-  fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>>,
-  fetchOptions: FetchBurnRateRuleOwnerUserOptionsFunction,
-) => Array<ModelField<ServiceLevelObjectiveBurnRateRule>>;
-
-/*
- * Hands the owner-user fields their option loader, and leaves every other
- * field - and the input array - untouched. A MultiSelectDropdown with neither
- * a dropdownModal nor a loader renders an empty list, which reads as "this
- * project has no users" rather than as a bug, so the page must not forget this.
- */
-export const withOwnerUserDropdownOptions: WithOwnerUserDropdownOptionsFunction =
-  (
-    fields: Array<ModelField<ServiceLevelObjectiveBurnRateRule>>,
-    fetchOptions: FetchBurnRateRuleOwnerUserOptionsFunction,
-  ): Array<ModelField<ServiceLevelObjectiveBurnRateRule>> => {
-    return fields.map(
-      (
-        field: ModelField<ServiceLevelObjectiveBurnRateRule>,
-      ): ModelField<ServiceLevelObjectiveBurnRateRule> => {
-        const columns: Array<string> = Object.keys(
-          (field.field || {}) as Record<string, unknown>,
-        );
-
-        const isOwnerUserField: boolean = columns.some(
-          (column: string): boolean => {
-            return BURN_RATE_RULE_OWNER_USER_COLUMNS.includes(column);
-          },
-        );
-
-        if (!isOwnerUserField) {
-          return field;
-        }
-
-        return {
-          ...field,
-          fetchDropdownOptions: fetchOptions,
-        };
-      },
-    );
-  };

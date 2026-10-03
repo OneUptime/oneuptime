@@ -11,6 +11,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface ComponentProps {
   scan: NetworkDeviceDiscoveryScan;
@@ -53,6 +55,7 @@ export function formatDiscoveryDuration(milliseconds: number): string {
 const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const scan: NetworkDeviceDiscoveryScan = props.scan;
   const [now, setNow] = useState<number>(Date.now());
   const isRunning: boolean = scan.status === DiscoveryScanStatus.InProgress;
@@ -88,12 +91,13 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
       : undefined;
   const isFinalizing: boolean = isRunning && percentage === 100;
   const label: string = isPending
-    ? "Queued"
+    ? translator.translateTemplate("Queued")
     : isFinalizing
-      ? "Final checks"
+      ? translator.translateTemplate("Final checks")
       : isRunning
-        ? "Scanning"
-        : scan.status || "Unknown";
+        ? translator.translateTemplate("Scanning")
+        : translator.translateText(scan.status) ||
+          translator.translateTemplate("Unknown");
   const colors: string = isRunning
     ? "bg-blue-50 text-blue-700 ring-blue-200"
     : isCompleted
@@ -103,19 +107,45 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
         : "bg-gray-50 text-gray-700 ring-gray-200";
   const countLabel: string = hasCount
     ? total > 0
-      ? `${covered.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} addresses swept`
-      : `${covered.toLocaleString("en-US")} addresses swept`
+      ? translator.translatePlural(
+          {
+            one: "{{covered}} of {{count}} address swept",
+            other: "{{covered}} of {{count}} addresses swept",
+          },
+          total,
+          { covered: translator.formatNumber(covered) },
+        )
+      : translator.translatePlural(
+          {
+            one: "{{count}} address swept",
+            other: "{{count}} addresses swept",
+          },
+          covered,
+        )
     : isPending
       ? total > 0
-        ? `${total.toLocaleString("en-US")} addresses queued`
-        : "Waiting for the probe"
-      : "Waiting for the first progress update";
+        ? translator.translatePlural(
+            {
+              one: "{{count}} address queued",
+              other: "{{count}} addresses queued",
+            },
+            total,
+          )
+        : translator.translateTemplate("Waiting for the probe")
+      : translator.translateTemplate("Waiting for the first progress update");
   const startedAt: number | null = timestamp(scan.startedAt);
   const completedAt: number | null = timestamp(scan.completedAt);
   const end: number | null = isRunning ? now : completedAt;
   const duration: string | null =
     !isPending && startedAt !== null && end !== null && end >= startedAt
-      ? `${isRunning ? "Running for" : isFailed ? "Stopped after" : "Finished in"} ${formatDiscoveryDuration(end - startedAt)}`
+      ? translator.translateTemplate(
+          isRunning
+            ? "Running for {{duration}}"
+            : isFailed
+              ? "Stopped after {{duration}}"
+              : "Finished in {{duration}}",
+          { duration: formatDiscoveryDuration(end - startedAt) },
+        )
       : null;
 
   return (
@@ -139,13 +169,25 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
       {isRunning && (
         <div
           role="progressbar"
-          aria-label={`${ScanNameUtil.getScanLabel(scan) || "Discovery scan"} address sweep progress`}
+          aria-label={
+            ScanNameUtil.getScanLabel(scan)
+              ? translator.translateTemplate(
+                  "{{scan}} address sweep progress",
+                  { scan: ScanNameUtil.getScanLabel(scan) },
+                )
+              : translator.translateTemplate(
+                  "Discovery scan address sweep progress",
+                )
+          }
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percentage}
           aria-valuetext={
             isFinalizing
-              ? `${countLabel}. Final checks are still running.`
+              ? translator.translateTemplate(
+                  "{{progress}}. Final checks are still running.",
+                  { progress: countLabel },
+                )
               : countLabel
           }
           className="h-1.5 overflow-hidden rounded-full bg-blue-100"
@@ -164,11 +206,15 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
         </p>
       )}
       {isPending && total > 0 && (
-        <p className="text-xs text-gray-500">Waiting for the probe to start.</p>
+        <p className="text-xs text-gray-500">
+          {translator.translateText("Waiting for the probe to start.")}
+        </p>
       )}
       {isFinalizing && (
         <p className="text-xs text-blue-700">
-          Address sweep complete. Finishing discovery checks.
+          {translator.translateText(
+            "Address sweep complete. Finishing discovery checks.",
+          )}
         </p>
       )}
       {duration && (
@@ -176,7 +222,9 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
           className="text-xs text-gray-500 tabular-nums"
           title={
             startedAt !== null
-              ? `Started ${new Date(startedAt).toLocaleString()}`
+              ? translator.translateTemplate("Started {{time}}", {
+                  time: new Date(startedAt).toLocaleString(),
+                })
               : undefined
           }
         >
@@ -185,7 +233,9 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
       )}
       {isFailed && hasCount && (
         <p className="text-xs text-red-700">
-          This run stopped before discovery completed.
+          {translator.translateText(
+            "This run stopped before discovery completed.",
+          )}
         </p>
       )}
     </div>

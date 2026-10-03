@@ -1,9 +1,6 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
-import TeamElement from "../../../Components/Team/Team";
-import UserElement from "../../../Components/User/User";
 import PageMap from "../../../Utils/PageMap";
-import ProjectUser from "../../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import {
@@ -16,34 +13,28 @@ import {
 } from "./RunnerFormFields";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectUtil from "Common/UI/Utils/Project";
-import useTranslateValue, {
-  UseTranslateValueResult,
-} from "Common/UI/Utils/Translation";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
-import Team from "Common/Models/DatabaseModels/Team";
-import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
+import OwnersCard from "../../../Components/Owners/OwnersCard";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const RunnerView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -61,7 +52,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   const kubernetesAgentRunnerNote: string | null =
     getKubernetesAgentRunnerFormNote(formRestrictions);
 
-  const { translateString }: UseTranslateValueResult = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   /*
    * Reused by the three Status-card fields that have nothing to show until the
@@ -76,7 +67,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   const notReportedYet: GetReactElementFunction = (): ReactElement => {
     return (
       <span className="text-gray-500">
-        {translateString("Not reported yet") || "Not reported yet"}
+        {translator.translateText("Not reported yet")}
       </span>
     );
   };
@@ -89,8 +80,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
           title: "Runner Details",
           description: kubernetesAgentRunnerNote ? (
             <span>
-              {translateString("Here are more details for this Runner.") ||
-                "Here are more details for this Runner."}{" "}
+              {translator.translateText(
+                "Here are more details for this Runner.",
+              )}{" "}
               <span data-testid="kubernetes-agent-runner-note">
                 {kubernetesAgentRunnerNote}
               </span>
@@ -130,6 +122,13 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
               field: { _id: true },
               title: "Runner ID",
               fieldType: FieldType.ObjectID,
+              /*
+               * A Runner is installed with its ID and its key
+               * (ONEUPTIME_RUNNER_ID, ONEUPTIME_RUNNER_KEY), so the ID stays
+               * a field, read beside the key, rather than going to the
+               * card's ID line.
+               */
+              showIdAsField: true,
             },
             {
               field: { name: true },
@@ -327,186 +326,18 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         />
       )}
 
-      <ModelTable<RunnerOwnerTeam>
-        modelType={RunnerOwnerTeam}
-        id="table-runbook-agent-owner-team"
-        userPreferencesKey="runbook-agent-owner-team-table"
-        name="Runner > Owner Team"
-        saveFilterProps={{
-          tableId: "runbook-agent-owner-team-table",
-        }}
-        singularName="Team"
-        isDeleteable={true}
-        createVerb={"Add"}
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        query={{
-          runnerId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(item: RunnerOwnerTeam): Promise<RunnerOwnerTeam> => {
-          item.runnerId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Teams)",
-          description:
-            "Here is the list of teams that own this Runner. They will be alerted when this Runner's status changes.",
-        }}
-        noItemsMessage={"No teams associated with this Runner so far."}
-        formFields={[
-          {
-            field: { team: true },
-            title: "Team",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select Team",
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: { team: true },
-            type: FieldType.Entity,
-            title: "Team",
-            filterEntityType: Team,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: { createdAt: true },
-            title: "Owner since",
-            type: FieldType.Date,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              team: {
-                name: true,
-              },
-            },
-            title: "Team",
-            type: FieldType.Entity,
-            getElement: (item: RunnerOwnerTeam): ReactElement => {
-              if (!item["team"]) {
-                throw new BadDataException("Team not found");
-              }
-              return <TeamElement team={item["team"] as Team} />;
-            },
-          },
-          {
-            field: { createdAt: true },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
-
-      <ModelTable<RunnerOwnerUser>
-        modelType={RunnerOwnerUser}
-        id="table-runbook-agent-owner-user"
-        userPreferencesKey="runbook-agent-owner-user-table"
-        name="Runner > Owner User"
-        saveFilterProps={{
-          tableId: "runbook-agent-owner-user-table",
-        }}
-        singularName="User"
-        isDeleteable={true}
-        createVerb={"Add"}
-        isCreateable={true}
-        isViewable={false}
-        showViewIdButton={true}
-        query={{
-          runnerId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(item: RunnerOwnerUser): Promise<RunnerOwnerUser> => {
-          item.runnerId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        cardProps={{
-          title: "Owners (Users)",
-          description:
-            "Here is the list of users that own this Runner. They will be alerted when this Runner's status changes.",
-        }}
-        noItemsMessage={"No users associated with this Runner so far."}
-        formFields={[
-          {
-            field: { user: true },
-            title: "User",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select User",
-            fetchDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-          },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: { user: true },
-            title: "User",
-            type: FieldType.Entity,
-            filterEntityType: User,
-            fetchFilterDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: { createdAt: true },
-            title: "Owner since",
-            type: FieldType.Date,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              user: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: "User",
-            type: FieldType.Entity,
-            getElement: (item: RunnerOwnerUser): ReactElement => {
-              if (!item["user"]) {
-                throw new BadDataException("User not found");
-              }
-              return <UserElement user={item["user"] as User} />;
-            },
-          },
-          {
-            field: { createdAt: true },
-            title: "Owner since",
-            type: FieldType.DateTime,
-          },
-        ]}
+      {/*
+       * Its owners, people and teams together, added and removed the way
+       * the Owners pages and every owners field do.
+       */}
+      <OwnersCard<RunnerOwnerUser, RunnerOwnerTeam>
+        resourceId={modelId}
+        resourceIdField="runnerId"
+        resourceDisplayName="runner"
+        ownerUserModelType={RunnerOwnerUser}
+        ownerTeamModelType={RunnerOwnerTeam}
+        description="People and teams who own this runner. They are alerted when its status changes."
+        emptyDescription="Add a teammate or a team so they are alerted when this runner's status changes."
       />
 
       <ResetObjectID<Runner>
@@ -518,10 +349,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         title={"Reset Runner Key"}
         description={
           <p className="mt-2">
-            Resetting the secret key will generate a new key. The secret is used
-            to authenticate this Runner&apos;s requests. This Runner will stop
-            connecting until the new key is configured on it, so re-run the
-            setup command on its host afterwards.
+            {translator.translateText(
+              "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.",
+            )}
           </p>
         }
         modelId={modelId}

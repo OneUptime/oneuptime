@@ -52,6 +52,18 @@ function readCode(...relativeParts: Array<string>): string {
   );
 }
 
+/*
+ * The Dashboard's English locale: every key `npm run i18n:extract` found,
+ * each mapped to itself (a plural's one-form under "<key>_one"). Copy the
+ * card renders through translation has to be in it, or no locale can ever
+ * translate it.
+ */
+function readEnglishLocale(): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", "en.json"), "utf8"),
+  );
+}
+
 const EXPLORER: string = readSource(
   "Components",
   "Topology",
@@ -482,13 +494,38 @@ describe("the filter's effect reaches a screen reader", () => {
     );
   });
 
+  /*
+   * The card's accessible name is one whole sentence per case, looked up in
+   * the reader's language (#4295) rather than a fragment spliced into it.
+   * So what has to hold is: the highlighted arm is the one that says so, it
+   * is the plain sentence plus exactly those words, and both arms name the
+   * same site — read off the ternary itself, so swapping the arms or
+   * dropping the words fails here.
+   */
   test("the highlighted card says so in words, not only in colour", () => {
     const CARD: string = readCode("Components", "NetworkSite", "SiteCard.tsx");
-    expect(CARD).toContain(
-      squash(
-        'props.isHighlighted ? ", first match for the current filter" : ""',
+    const SITE_VALUES: string =
+      "\\{\\s*name:\\s*props\\.site\\.name\\s*,\\s*siteType:\\s*props\\.site\\.siteType\\s*,?\\s*\\}";
+    const arms: RegExpMatchArray | null = CARD.match(
+      new RegExp(
+        `aria-label=\\{\\s*isClickable\\s*\\?\\s*props\\.isHighlighted\\s*\\?\\s*translator\\.translateTemplate\\(\\s*"([^"]+)"\\s*,\\s*${SITE_VALUES}\\s*,?\\s*\\)\\s*:\\s*translator\\.translateTemplate\\(\\s*"([^"]+)"\\s*,\\s*${SITE_VALUES}\\s*,?\\s*\\)\\s*:\\s*undefined\\s*\\}`,
       ),
     );
+    expect(arms).not.toBeNull();
+
+    const highlighted: string = arms![1]!;
+    const plain: string = arms![2]!;
+    expect(highlighted).toBe(
+      "{{name}} — {{siteType}}, first match for the current filter, open this site",
+    );
+    expect(plain).toBe("{{name}} — {{siteType}}, open this site");
+    expect(
+      highlighted.replace(", first match for the current filter", ""),
+    ).toBe(plain);
+
+    const english: Record<string, string> = readEnglishLocale();
+    expect(english[highlighted]).toBe(highlighted);
+    expect(english[plain]).toBe(plain);
   });
 });
 
@@ -544,7 +581,45 @@ describe("the site card reports device health", () => {
    */
   test("a card with something wrong leads with what is wrong", () => {
     expect(CARD).toContain("devicesNeedingAttention > 0");
-    expect(CARD).toContain("describeDeviceAttention(deviceStats)");
+    // Handed the card's translator since #4295, so it words the line itself.
+    expect(CARD).toContain("describeDeviceAttention(deviceStats, translator)");
+    // In the arm the gate picks, ahead of the plain device count.
+    expect(CARD).toMatch(
+      /\{devicesNeedingAttention > 0 \? \( <span[^>]*> \{describeDeviceAttention\(deviceStats, translator\)\} <\/span> \) : \(/,
+    );
+
+    /*
+     * "3 down, 1 degraded of 128 devices": one whole sentence for each mix
+     * of down and degraded, counted over every device, never a list of
+     * fragments glued together — and each recorded for translation, with
+     * its one-device form.
+     */
+    const english: Record<string, string> = readEnglishLocale();
+    for (const [one, other] of [
+      [
+        "{{down}} down, {{degraded}} degraded of {{count}} device",
+        "{{down}} down, {{degraded}} degraded of {{count}} devices",
+      ],
+      [
+        "{{down}} down of {{count}} device",
+        "{{down}} down of {{count}} devices",
+      ],
+      [
+        "{{degraded}} degraded of {{count}} device",
+        "{{degraded}} degraded of {{count}} devices",
+      ],
+    ] as Array<[string, string]>) {
+      expect(CARD).toContain(squash(`one: "${one}", other: "${other}",`));
+      expect(english[other]).toBe(other);
+      expect(english[`${other}_one`]).toBe(one);
+    }
+    // {{down}} and {{degraded}} are the tallies, {{count}} the whole subtree.
+    expect(CARD).toContain(
+      squash(
+        "const values: { down: string; degraded: string } = { down: translator.formatNumber(counts.down), degraded: translator.formatNumber(counts.degraded), };",
+      ),
+    );
+    expect(CARD.split("counts.total, values,").length - 1).toBe(3);
   });
 
   test("the attention line is colored, and only rendered when it applies", () => {

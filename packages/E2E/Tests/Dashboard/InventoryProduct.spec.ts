@@ -1,6 +1,8 @@
 import { Page, expect, test, Locator } from "@playwright/test";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import { openProductsMenuSection } from "./Helpers/ProductsMenu";
 
 /*
  * The Inventory product, end to end.
@@ -35,6 +37,8 @@ test.describe.skip("Inventory Product", () => {
      * a block comment. A user could not reach the product at all.
      */
     await page.getByRole("button", { name: "Products" }).click();
+    // Inventory is under Resources, which the menu opens folded.
+    await openProductsMenuSection(page, "Resources");
 
     const inventoryNavOption: Locator = page
       .getByRole("option")
@@ -75,7 +79,7 @@ test.describe.skip("Inventory Product", () => {
     const itemName: string =
       "E2E Vendor API " + Faker.generateName().toString();
 
-    await page.getByRole("button", { name: "Add Item" }).click();
+    await getCardButton(page, "Add Item").click();
 
     /*
      * Only the manual types are offered — everything else is discovered, and
@@ -169,7 +173,7 @@ test.describe.skip("Inventory Product", () => {
 
     const itemName: string = "E2E Appliance " + Faker.generateName().toString();
 
-    await page.getByRole("button", { name: "Add Item" }).click();
+    await getCardButton(page, "Add Item").click();
     await page.getByText("Appliance").first().click();
     await page.getByPlaceholder("Stripe Payments API").fill(itemName);
     await page.getByRole("button", { name: "Save" }).click();
@@ -211,7 +215,7 @@ test.describe.skip("Inventory Product", () => {
     const itemName: string =
       "E2E Archive Me " + Faker.generateName().toString();
 
-    await page.getByRole("button", { name: "Add Item" }).click();
+    await getCardButton(page, "Add Item").click();
     await page.getByText("External Database").first().click();
     await page.getByPlaceholder("Stripe Payments API").fill(itemName);
     await page.getByRole("button", { name: "Save" }).click();

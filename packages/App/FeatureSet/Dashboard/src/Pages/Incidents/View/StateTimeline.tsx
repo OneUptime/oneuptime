@@ -12,6 +12,10 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import {
+  getStateTimelineDurationColumn,
+  getStateTimelineEndsAtColumn,
+} from "Common/UI/Components/StateTimeline/StateTimelineColumns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -150,6 +154,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               type: IncidentState,
               labelField: "name",
               valueField: "_id",
+              sort: {
+                order: SortOrder.Ascending,
+              },
             },
           },
           {
@@ -242,31 +249,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
             title: "Starts At",
             type: FieldType.DateTime,
           },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Ends At",
-            type: FieldType.DateTime,
-            noValueMessage: "Currently Active",
-          },
-          {
-            field: {
-              endsAt: true,
-            },
-            title: "Duration",
-            type: FieldType.Text,
-            getElement: (item: IncidentStateTimeline): ReactElement => {
-              return (
-                <p>
-                  {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-                    item["startsAt"] as Date,
-                    (item["endsAt"] as Date) || OneUptimeDate.getCurrentDate(),
-                  )}
-                </p>
-              );
-            },
-          },
+          getStateTimelineEndsAtColumn<IncidentStateTimeline>(),
+          getStateTimelineDurationColumn<IncidentStateTimeline>(),
           {
             field: {
               subscriberNotificationStatus: true,

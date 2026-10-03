@@ -12,6 +12,9 @@ import NotContains from "../../../Types/BaseDatabase/NotContains";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import GenericObject from "../../../Types/GenericObject";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { getFilterPlaceholder } from "./FilterPlaceholder";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -117,18 +120,12 @@ const buildQueryValue: BuildQueryValueFunction = (
   }
 };
 
-const TextFilter: TextFilterFunction = <T extends GenericObject>(
+// A text filter's controls. TextFilter below decides whether to draw them.
+const TextFilterControls: TextFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
-
-  if (filter.filterDropdownOptions) {
-    return <></>;
-  }
-
-  if (!TEXT_FIELD_TYPES.includes(filter.type)) {
-    return <></>;
-  }
 
   const detected: { operator: FilterOperator; value: string } =
     detectCurrentState(props.filterData[filter.key]);
@@ -200,13 +197,35 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               apply({ operator, value: e.target.value });
             }}
-            placeholder={`Filter by ${filter.title}`}
+            placeholder={getFilterPlaceholder(translator, filter.title)}
             className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
       )}
     </div>
   );
+};
+
+/*
+ * FiltersForm draws every filter component in each of its rows, and each one
+ * draws nothing for a filter it does not own (a text column offered as a list
+ * of values is DropdownFilter's). That check calls no hook, so it lives in
+ * this wrapper and the hooks in TextFilterControls: a row whose filter changes
+ * mounts or unmounts the controls. See DateFilter for the crash that a check
+ * below a hook caused.
+ */
+const TextFilter: TextFilterFunction = <T extends GenericObject>(
+  props: ComponentProps<T>,
+): ReactElement => {
+  if (props.filter.filterDropdownOptions) {
+    return <></>;
+  }
+
+  if (!TEXT_FIELD_TYPES.includes(props.filter.type)) {
+    return <></>;
+  }
+
+  return <TextFilterControls<T> {...props} />;
 };
 
 export default TextFilter;

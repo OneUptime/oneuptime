@@ -191,6 +191,49 @@ For CI environments, the `CI` environment variable is automatically detected:
 - `test.only` usage will fail the build
 - Parallel test execution is disabled (workers: 1)
 
+### Sharding the suite
+
+The release workflows (`.github/workflows/test-release.yaml` on every push to
+master, `release.yml` for a release) do not run the default suite on one
+runner. They split it into shards - four for the SaaS stack, three for the
+self-hosted one - and each shard boots its own stack and runs its part with
+`workers: 1`, exactly as an unsharded run does. A job selects its shard with
+`E2E_SHARD`:
+
+```bash
+E2E_SHARD=2/4 npx playwright test
+```
+
+A shard is a set of **whole spec files** per browser project
+(`Sharding/Sharding.ts`). Playwright's own `--shard` splits by test count in
+file order, which for this suite meant shards of 3, 28, 5 and 21 minutes; whole
+files are instead packed longest-first using the per-file durations in
+`Sharding/ShardWeights.json`. A spec file that has no weight yet still runs, in
+exactly one shard, at the median weight - the weights only decide where a file
+runs, never whether it does. `npm run test-sharding` checks that against
+Playwright's own `--list`: the shards the workflows use must list disjoint sets
+of tests that add up to exactly the unsharded suite. The Compile workflow runs
+it on every pull request.
+
+#### Refreshing the weights
+
+`Sharding/ShardTimingReporter.ts` writes how long each spec file took in each
+project to `test-results/shard-timings.json`, and every shard uploads it as an
+`e2e-shard-timings-*` artifact. When the shards drift apart (one regularly
+finishing minutes after the others), download those artifacts from a green run
+of `test-release.yaml` and merge them over the current weights:
+
+```bash
+gh run download <run-id> --pattern 'e2e-shard-timings-*' --dir /tmp/e2e-timings
+jq -S -s 'reduce .[] as $timings ({}; . * $timings)' \
+  Sharding/ShardWeights.json /tmp/e2e-timings/*/shard-timings.json \
+  > /tmp/ShardWeights.json && mv /tmp/ShardWeights.json Sharding/ShardWeights.json
+npm run test-sharding
+```
+
+Where two timing files cover the same spec and project (a SaaS shard and a
+self-hosted one, say), the one merged last wins.
+
 ## Troubleshooting
 
 ### Playwright browsers not installed
@@ -457,7 +500,8 @@ other stack, which `Tests/App/SingleSignOn.spec.ts` proves on the same stack.
 
 It lives in `Tests/` rather than beside the enterprise suites because the
 community stack is booted by `test-e2e-test-self-hosted`, which runs the whole
-`./Tests` tree and nothing else — a focused suite would never run there. That
+`./Tests` tree across its shards. A focused suite runs there only when the job
+is given a step for it, as the live label rule suite (`LabelRules/`) is. That
 tree also runs on the SaaS stack, which boots the enterprise image, so the spec
 detects the edition at runtime from `GET /api/global-config/license` and
 **skips** (the pattern `Tests/Dashboard/BillingPaidUsage.spec.ts` uses) when it

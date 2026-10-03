@@ -245,7 +245,12 @@ const CephClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Observability">
+      {/*
+       * The cluster's own log is read when something needs checking, as a
+       * Kubernetes cluster's events are, so it folds down to the section's
+       * title until opened (and opens by itself on its page).
+       */}
+      <SideMenuSection title="Observability" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Cluster Log",

@@ -54,6 +54,12 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import {
+  translateText,
+  translateTemplate,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export enum ModelColumnEditorMode {
   /** Conditions that select records: column, operator, value. */
@@ -221,14 +227,21 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
     return {
       compatible: false,
       reasons: [
-        hasTemplateExpressions
-          ? "This value uses a {{ }} reference where a value goes, which the rows can't show. It stays as JSON."
-          : "The current value isn't a JSON object.",
+        translateText(
+          hasTemplateExpressions
+            ? "This value uses a {{ }} reference where a value goes, which the rows can't show. It stays as JSON."
+            : "The current value isn't a JSON object.",
+        ) || "",
       ],
     };
   }
 
+  /*
+   * In the reader's language. Whether a reason locks the editor is tracked
+   * apart from its wording: an unknown column name is only a warning.
+   */
   const reasons: Array<string> = [];
+  let hasBlockingReason: boolean = false;
 
   for (const key of Object.keys(parsed)) {
     /*
@@ -238,7 +251,11 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
      * this endpoint does not surface.
      */
     if (columns.length > 0 && !findColumn(columns, key)) {
-      reasons.push(`"${key}" isn't a known column on this model.`);
+      reasons.push(
+        translateTemplate('"{{key}}" isn\'t a known column on this model.', {
+          key: key,
+        }),
+      );
     }
 
     const value: unknown = parsed[key];
@@ -262,10 +279,14 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
        * for a control that is not on their screen.
        */
       reasons.push(
-        mode === ModelColumnEditorMode.Query
-          ? `"${key}" holds a list. Use the "is any of" operator instead, or keep editing as JSON.`
-          : `"${key}" holds a list, which the rows can't show. Keep editing as JSON.`,
+        translateTemplate(
+          mode === ModelColumnEditorMode.Query
+            ? '"{{key}}" holds a list. Use the "is any of" operator instead, or keep editing as JSON.'
+            : '"{{key}}" holds a list, which the rows can\'t show. Keep editing as JSON.',
+          { key: key },
+        ),
       );
+      hasBlockingReason = true;
       continue;
     }
 
@@ -281,28 +302,37 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
       }
 
       if (typeof objectType === "string") {
-        reasons.push(`"${key}" uses ${objectType}, which the rows can't show.`);
+        reasons.push(
+          translateTemplate(
+            '"{{key}}" uses {{type}}, which the rows can\'t show.',
+            { key: key, type: objectType },
+          ),
+        );
+        hasBlockingReason = true;
         continue;
       }
 
       reasons.push(
-        `"${key}" holds a nested record, which the rows can't show.`,
+        translateTemplate(
+          '"{{key}}" holds a nested record, which the rows can\'t show.',
+          { key: key },
+        ),
       );
+      hasBlockingReason = true;
       continue;
     }
 
-    reasons.push(`"${key}" has an unexpected value.`);
+    reasons.push(
+      translateTemplate('"{{key}}" has an unexpected value.', { key: key }),
+    );
+    hasBlockingReason = true;
   }
 
   /*
    * An unknown column name is a warning, not a reason to lock the editor —
    * the builder can still fix it in the row that shows it.
    */
-  const blocking: Array<string> = reasons.filter((reason: string) => {
-    return !reason.includes("isn't a known column");
-  });
-
-  return { compatible: blocking.length === 0, reasons: reasons };
+  return { compatible: !hasBlockingReason, reasons: reasons };
 };
 
 type BuildQueryJsonFunction = (
@@ -356,6 +386,7 @@ export const buildColumnValueJson: BuildQueryJsonFunction = (
 const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isQuery: boolean = props.mode === ModelColumnEditorMode.Query;
 
   /*
@@ -565,8 +596,6 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
         });
       }).length;
 
-  const noun: string = isQuery ? "condition" : "field";
-
   return (
     <div>
       {schema.error && (
@@ -576,15 +605,21 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500"
           />
           <p className="text-sm text-red-700">
-            Couldn&apos;t load this model&apos;s columns ({schema.error}). You
-            can still write {isQuery ? "the query" : "these fields"} as JSON.
+            {translator.translateTemplate(
+              isQuery
+                ? "Couldn't load this model's columns ({{error}}). You can still write the query as JSON."
+                : "Couldn't load this model's columns ({{error}}). You can still write these fields as JSON.",
+              { error: schema.error },
+            )}
           </p>
         </div>
       )}
 
       {isLockedToJson && compatibility.reasons.length > 0 && (
         <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
-          <p className="text-sm text-amber-800">Editing as JSON, because:</p>
+          <p className="text-sm text-amber-800">
+            {translator.translateText("Editing as JSON, because:")}
+          </p>
           <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
             {compatibility.reasons.map((reason: string, i: number) => {
               return <li key={i}>{reason}</li>;
@@ -606,8 +641,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       {returnToRowsBlockedBy.length > 0 && (
         <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
           <p className="text-sm text-amber-800">
-            This can&apos;t go back to {isQuery ? "conditions" : "fields"},
-            because:
+            {translator.translateText(
+              isQuery
+                ? "This can't go back to conditions, because:"
+                : "This can't go back to fields, because:",
+            )}
           </p>
           <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
             {returnToRowsBlockedBy.map((reason: string, i: number) => {
@@ -621,18 +659,40 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
         <p className="text-xs text-gray-500">
           {effectiveMode === "builder" ? (
             <>
-              {filledRowCount} {noun}
-              {filledRowCount === 1 ? "" : "s"} set
+              {isQuery
+                ? translator.translatePlural(
+                    {
+                      one: "{{count}} condition set",
+                      other: "{{count}} conditions set",
+                    },
+                    filledRowCount,
+                  )
+                : translator.translatePlural(
+                    {
+                      one: "{{count}} field set",
+                      other: "{{count}} fields set",
+                    },
+                    filledRowCount,
+                  )}
               {emptyRequiredCount > 0 && (
                 <span className="text-amber-600">
-                  {" "}
-                  · {emptyRequiredCount} required field
-                  {emptyRequiredCount === 1 ? "" : "s"} still empty
+                  {" · "}
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} required field still empty",
+                      other: "{{count}} required fields still empty",
+                    },
+                    emptyRequiredCount,
+                  )}
                 </span>
               )}
             </>
           ) : (
-            <>Editing the raw JSON this step will send.</>
+            <>
+              {translator.translateText(
+                "Editing the raw JSON this step will send.",
+              )}
+            </>
           )}
         </p>
 
@@ -658,11 +718,13 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
               }
               className="h-3.5 w-3.5 text-gray-500"
             />
-            {effectiveMode === "builder"
-              ? "Edit as JSON"
-              : isQuery
-                ? "Back to conditions"
-                : "Back to fields"}
+            {translator.translateText(
+              effectiveMode === "builder"
+                ? "Edit as JSON"
+                : isQuery
+                  ? "Back to conditions"
+                  : "Back to fields",
+            )}
           </button>
         )}
       </div>

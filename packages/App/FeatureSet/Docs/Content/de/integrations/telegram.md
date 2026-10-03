@@ -26,7 +26,7 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Schritt 4 — Den Workflow erstellen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Telegram`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Telegram`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie eine **Telegram**-Komponente verbunden mit dem Auslöser hinzu:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`

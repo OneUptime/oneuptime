@@ -46,6 +46,8 @@ import {
   SpanMetrics,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
 import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServerlessMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -54,6 +56,7 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
 const ServerlessFunctionOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [serverlessFunction, setServerlessFunction] =
@@ -283,7 +286,11 @@ const ServerlessFunctionOverview: FunctionComponent<
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
-      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      sublabel: m
+        ? translator.translateTemplate("{{errors}} errored", {
+            errors: formatCompact(m.errors),
+          })
+        : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
       description: SERVERLESS_METRIC_DESCRIPTIONS.errorRate,

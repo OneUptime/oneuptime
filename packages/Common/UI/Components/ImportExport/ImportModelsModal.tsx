@@ -12,6 +12,12 @@ import { ButtonStyleType } from "../Button/Button";
 import CodeEditor from "../CodeEditor/CodeEditor";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import ProgressBar from "../ProgressBar/ProgressBar";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -35,6 +41,7 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
   const model: TBaseModel = new props.modelType();
   const singularName: string = model.singularName || "Resource";
   const pluralName: string = model.pluralName || "Resources";
+  const translator: Translator = useTranslator();
 
   const [phase, setPhase] = useState<ImportPhase>(ImportPhase.Edit);
   const [fileText, setFileText] = useState<string>("");
@@ -119,8 +126,13 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
   if (phase === ImportPhase.Importing) {
     return (
       <Modal
-        title={`Importing ${pluralName}`}
-        description={`Please wait while your ${pluralName.toLowerCase()} are being imported.`}
+        title={translator.translateTemplate("Importing {{itemsName}}", {
+          itemsName: translatableTerm(pluralName),
+        })}
+        description={translator.translateTemplate(
+          "Please wait while your {{itemsName}} are being imported.",
+          { itemsName: translatableTerm(pluralName, { inSentence: true }) },
+        )}
         isBodyLoading={false}
         onSubmit={() => {}}
         disableSubmitButton={true}
@@ -151,9 +163,19 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
           {result.successCount > 0 ? (
             <Alert
               type={AlertType.SUCCESS}
-              strongTitle={`${result.successCount} ${
-                result.successCount === 1 ? singularName : pluralName
-              } imported successfully.`}
+              strongTitle={translator.translatePlural(
+                {
+                  one: "{{count}} {{itemName}} imported successfully.",
+                  other: "{{count}} {{itemsName}} imported successfully.",
+                },
+                result.successCount,
+                {
+                  itemName: translatableTerm(singularName, {
+                    inSentence: true,
+                  }),
+                  itemsName: translatableTerm(pluralName, { inSentence: true }),
+                },
+              )}
             />
           ) : (
             <></>
@@ -163,9 +185,21 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
             <div>
               <Alert
                 type={AlertType.DANGER}
-                strongTitle={`${result.failures.length} ${
-                  result.failures.length === 1 ? singularName : pluralName
-                } could not be imported.`}
+                strongTitle={translator.translatePlural(
+                  {
+                    one: "{{count}} {{itemName}} could not be imported.",
+                    other: "{{count}} {{itemsName}} could not be imported.",
+                  },
+                  result.failures.length,
+                  {
+                    itemName: translatableTerm(singularName, {
+                      inSentence: true,
+                    }),
+                    itemsName: translatableTerm(pluralName, {
+                      inSentence: true,
+                    }),
+                  },
+                )}
               />
               <ul className="mt-3 list-disc pl-5 text-sm text-gray-600">
                 {result.failures.map(
@@ -190,8 +224,17 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
 
   return (
     <Modal
-      title={`Import ${pluralName}`}
-      description={`Upload a ${singularName.toLowerCase()} JSON export file, or paste its contents below. New ${pluralName.toLowerCase()} will be created in this project. Related resources (like owners, labels, or other linked resources) are not part of export files, and references to resources from another project may need to be re-selected after import.`}
+      title={translateNamedAction(translator, {
+        template: "Import {{itemsName}}",
+        itemName: pluralName,
+      })}
+      description={translator.translateTemplate(
+        "Upload a {{itemName}} JSON export file, or paste its contents below. New {{itemsName}} will be created in this project. Related resources (like owners, labels, or other linked resources) are not part of export files, and references to resources from another project may need to be re-selected after import.",
+        {
+          itemName: translatableTerm(singularName, { inSentence: true }),
+          itemsName: translatableTerm(pluralName, { inSentence: true }),
+        },
+      )}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
       onSubmit={async () => {
@@ -206,7 +249,7 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
           htmlFor="import-file-input"
           className="block text-sm font-medium text-gray-700"
         >
-          Select export file
+          {translator.translateText("Select export file")}
         </label>
         <input
           id="import-file-input"
@@ -219,7 +262,7 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
 
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Or paste the export JSON
+            {translator.translateText("Or paste the export JSON")}
           </label>
           <CodeEditor
             type={CodeType.JSON}
@@ -228,7 +271,12 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
               setFileText(value);
               setError("");
             }}
-            placeholder={`Paste your ${singularName.toLowerCase()} export JSON here.`}
+            placeholder={translator.translateTemplate(
+              "Paste your {{itemName}} export JSON here.",
+              {
+                itemName: translatableTerm(singularName, { inSentence: true }),
+              },
+            )}
           />
         </div>
       </div>

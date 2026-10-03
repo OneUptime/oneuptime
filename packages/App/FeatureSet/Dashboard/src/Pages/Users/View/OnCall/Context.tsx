@@ -35,6 +35,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Users > View > On-Call — the state every page in that section is built on,
@@ -185,7 +187,7 @@ export const getFirstName: (displayName: string) => string = (
   const trimmed: string = displayName.trim();
 
   if (!trimmed) {
-    return "this user";
+    return translateTerm("this user", { inSentence: true });
   }
 
   return trimmed.split(" ")[0] || trimmed;
@@ -520,6 +522,8 @@ export function OnBehalfOfBanner(props: {
   displayName: string;
   firstName: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   if (props.isSelf) {
     return (
       <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -528,8 +532,9 @@ export function OnBehalfOfBanner(props: {
           className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-500"
         />
         <p className="text-sm leading-relaxed text-gray-700">
-          This is your own on-call configuration. Changes here are the same as
-          the ones you would make in User Settings.
+          {translator.translateText(
+            "This is your own on-call configuration. Changes here are the same as the ones you would make in User Settings.",
+          )}
         </p>
       </div>
     );
@@ -544,15 +549,31 @@ export function OnBehalfOfBanner(props: {
         />
         <div>
           <p className="text-sm font-semibold text-amber-900">
-            {props.canEdit
-              ? "You are editing on behalf of "
-              : "You are viewing "}
-            {props.displayName || "another user"}
+            {props.displayName
+              ? props.canEdit
+                ? translator.translateTemplate(
+                    "You are editing on behalf of {{name}}",
+                    { name: props.displayName },
+                  )
+                : translator.translateTemplate("You are viewing {{name}}", {
+                    name: props.displayName,
+                  })
+              : props.canEdit
+                ? translator.translateText(
+                    "You are editing on behalf of another user",
+                  )
+                : translator.translateText("You are viewing another user")}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-amber-800">
             {props.canEdit
-              ? `This decides how ${props.firstName} is paged — not you. Every change is recorded in the audit log and ${props.firstName} is notified of it.`
-              : `You can see ${props.firstName}'s configuration but not change it. Ask a project owner or admin for the "Edit User Notification Rules" permission.`}
+              ? translator.translateTemplate(
+                  "This decides how {{name}} is paged — not you. Every change is recorded in the audit log and {{name}} is notified of it.",
+                  { name: props.firstName },
+                )
+              : translator.translateTemplate(
+                  'You can see {{name}}\'s configuration but not change it. Ask a project owner or admin for the "Edit User Notification Rules" permission.',
+                  { name: props.firstName },
+                )}
           </p>
         </div>
       </div>

@@ -21,6 +21,8 @@ import Filter from "Common/UI/Components/Filters/Types/Filter";
 import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import Search from "Common/Types/BaseDatabase/Search";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -195,6 +197,7 @@ function getMemoryBarColor(pct: number): string {
 const ResourceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const showGroupColumn: boolean = props.showGroupColumn !== false;
   const groupColumnTitle: string = props.groupColumnTitle || "Group";
   const groupFallbackLabel: string = props.groupFallbackLabel || "-";
@@ -423,7 +426,11 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.cpuUtilization === null ||
             resource.cpuUtilization === undefined
           ) {
-            return <span className="text-gray-400">N/A</span>;
+            return (
+              <span className="text-gray-400">
+                {translator.translateText("N/A")}
+              </span>
+            );
           }
           const pct: number = Math.min(resource.cpuUtilization, 100);
           return (
@@ -451,7 +458,11 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             resource.memoryUsageBytes === null ||
             resource.memoryUsageBytes === undefined
           ) {
-            return <span className="text-gray-400">N/A</span>;
+            return (
+              <span className="text-gray-400">
+                {translator.translateText("N/A")}
+              </span>
+            );
           }
 
           /*
@@ -553,6 +564,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
 
     actionButtons.push({
       title: "View",
+      icon: IconProp.Eye,
       buttonStyleType: ButtonStyleType.NORMAL,
       onClick: (
         resource: InfrastructureResource,

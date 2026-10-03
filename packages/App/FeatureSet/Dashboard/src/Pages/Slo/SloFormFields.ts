@@ -1,5 +1,5 @@
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
@@ -12,6 +12,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The SLO form's field list and its client-side validators, kept in a plain
@@ -69,10 +70,6 @@ export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
     id: "period",
     title: "Period",
   },
-  {
-    id: "labels",
-    title: "Labels",
-  },
 ];
 
 /*
@@ -93,10 +90,12 @@ export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
  * describe the same choice differently.
  */
 export const SLO_WINDOW_TYPE_DESCRIPTIONS: Record<SloWindowType, string> = {
-  [SloWindowType.Rolling]:
+  [SloWindowType.Rolling]: translationKey(
     "The last N days, recovering continuously as old downtime ages out of the window.",
-  [SloWindowType.CalendarMonth]:
+  ),
+  [SloWindowType.CalendarMonth]: translationKey(
     "Each calendar month on its own. The whole error budget resets on the 1st.",
+  ),
 };
 
 export type GetSloWindowTypeDropdownOptionsFunction =
@@ -219,6 +218,13 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       required: false,
       placeholder: "99.9% availability for the public API",
     },
+    /*
+     * Folded under Advanced on Basic Info, with the name and description it
+     * is filed with, rather than walked as a last step of its own.
+     */
+    getLabelsFormField<ServiceLevelObjective>({
+      stepId: "basic-info",
+    }),
     {
       field: {
         targetPercentage: true,
@@ -334,22 +340,6 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       showIf: (item: FormValues<ServiceLevelObjective>): boolean => {
         return item.windowType === SloWindowType.CalendarMonth;
       },
-    },
-    {
-      field: {
-        labels: true,
-      },
-      title: "Labels",
-      stepId: "labels",
-      description: "Organize and filter SLOs with labels.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
     },
   ];
 };

@@ -33,6 +33,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   widget: AIChatWidget;
@@ -55,6 +57,7 @@ function formatValue(value: number, unit?: string | undefined): string {
 const ChartWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { widget } = props;
   const rawSeries: Array<AIChatWidgetSeries> | undefined = widget.data.series;
 
@@ -258,7 +261,7 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
   if (!hasData) {
     return (
       <div className="flex h-24 items-center justify-center text-xs text-gray-400">
-        No data points in this range.
+        {translator.translateText("No data points in this range.")}
       </div>
     );
   }

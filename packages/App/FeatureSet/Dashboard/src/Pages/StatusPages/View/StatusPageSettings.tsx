@@ -1,500 +1,85 @@
+import MonitorStatuesElement from "../../../Components/MonitorStatus/MonitorStatusesElement";
 import PageComponentProps from "../../PageComponentProps";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
+import StatusPageDisplaySettingsCard from "../../../Components/StatusPage/StatusPageDisplaySettingsCard";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 
-const StatusPageDelete: FunctionComponent<
+/*
+ * Advanced -> Advanced Settings: what the status page shows, then the things
+ * done to the page as a whole - export and archive - as on a monitor's, a
+ * workflow's, a dashboard's or an on-call policy's Settings page.
+ *
+ * What the page shows was six cards here, each behind its own Edit button
+ * (and the incidents one a two-step dialog); it is one card now, whose
+ * switches and numbers save as they are changed. Whether the page shows a
+ * Subscribe link, and which channels visitors can use there, are switched in
+ * one place: the Channels card on Subscribers -> Subscriber Settings.
+ */
+const StatusPageSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <Fragment>
+      <StatusPageDisplaySettingsCard statusPageId={modelId} />
+
+      {/*
+       * The overall uptime % and the statuses that count as downtime were on
+       * Branding's Overview Page screen, which is gone (its branding is on
+       * the one Branding page). They are about what the page shows, so they
+       * are here, as they were, until they become rows of the card above.
+       */}
       <CardModelDetail<StatusPage>
         name="Status Page > Settings"
         cardProps={{
-          title: "Incident Settings",
-          description: "Incident Settings for Status Page",
+          title: "Overall Uptime Percent",
+          description: "Settings for overall uptime percent on status page",
         }}
         editButtonText="Edit Settings"
         isEditable={true}
-        formSteps={[
-          { title: "Incidents", id: "incidents" },
-          { title: "Labels & Scope", id: "labels-and-scope" },
-        ]}
         formFields={[
           {
             field: {
-              showIncidentsOnStatusPage: true,
+              showOverallUptimePercentOnStatusPage: true,
             },
-            title: "Show Incidents",
-            stepId: "incidents",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              showIncidentHistoryInDays: true,
-            },
-            title: "Show Incident History (in days)",
-            stepId: "incidents",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "14",
-          },
-          {
-            field: {
-              showIncidentLabelsOnStatusPage: true,
-            },
-            title: "Show Incident Labels",
-            stepId: "labels-and-scope",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          /*
-           * For a page on a monitor shared with other pages: incidents that
-           * are not limited to any page - including the ones monitors,
-           * Slack, Teams, the API and AI create - never reach it.
-           */
-          {
-            field: {
-              onlyShowScopedIncidents: true,
-            },
-            title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
-            stepId: "labels-and-scope",
+            title: "Show Overall Uptime Percent",
             description:
-              IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page",
-          fields: [
-            {
-              field: {
-                showIncidentsOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Incidents",
-              placeholder: "No",
-            },
-            {
-              field: {
-                showIncidentHistoryInDays: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Show Incident History (in days)",
-            },
-            {
-              field: {
-                showIncidentLabelsOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Incident Labels",
-              placeholder: "No",
-            },
-            {
-              field: {
-                onlyShowScopedIncidents: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
-              description:
-                IncidentStatusPageScopeCopy.onlyShowScopedIncidentsDescription,
-              placeholder: "No",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "Episode Settings",
-          description: "Episode Settings for Status Page",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              showEpisodesOnStatusPage: true,
-            },
-            title: "Show Episodes",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              showEpisodeHistoryInDays: true,
-            },
-            title: "Show Episode History (in days)",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "14",
-          },
-          {
-            field: {
-              showEpisodeLabelsOnStatusPage: true,
-            },
-            title: "Show Episode Labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-episodes",
-          fields: [
-            {
-              field: {
-                showEpisodesOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Episodes",
-              placeholder: "No",
-            },
-            {
-              field: {
-                showEpisodeHistoryInDays: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Show Episode History (in days)",
-            },
-            {
-              field: {
-                showEpisodeLabelsOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Episode Labels",
-              placeholder: "No",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "Announcement Settings",
-          description: "Announcement Settings for Status Page",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              showAnnouncementsOnStatusPage: true,
-            },
-            title: "Show Announcements",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              showAnnouncementHistoryInDays: true,
-            },
-            title: "Show Announcement History (in days)",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "14",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page",
-          fields: [
-            {
-              field: {
-                showAnnouncementsOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Announcements",
-              placeholder: "No",
-            },
-            {
-              field: {
-                showAnnouncementHistoryInDays: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Show Announcement History (in days)",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "Scheduled Event Settings",
-          description: "Scheduled Event Settings for Status Page",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              showScheduledMaintenanceEventsOnStatusPage: true,
-            },
-            title: "Show Scheduled Maintenance Events",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              showScheduledEventHistoryInDays: true,
-            },
-            title: "Show Scheduled Event History (in days)",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "14",
-          },
-          {
-            field: {
-              showScheduledEventLabelsOnStatusPage: true,
-            },
-            title: "Show Event Labels",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page",
-          fields: [
-            {
-              field: {
-                showScheduledMaintenanceEventsOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Scheduled Maintenance Events",
-              placeholder: "No",
-            },
-            {
-              field: {
-                showScheduledEventHistoryInDays: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Show Scheduled Event History (in days)",
-            },
-            {
-              field: {
-                showScheduledEventLabelsOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Event Labels",
-              placeholder: "No",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "Uptime History Settings",
-          description:
-            "Configure how many days of uptime history to show on the status page",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              showUptimeHistoryInDays: true,
-            },
-            title: "Show Uptime History (in days)",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "90",
-            validation: {
-              minValue: 1,
-              maxValue: 90,
-            },
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-uptime-history",
-          fields: [
-            {
-              field: {
-                showUptimeHistoryInDays: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Show Uptime History (in days)",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "Subscriber Settings",
-          description: "Subscriber Settings for Status Page",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formSteps={[
-          { title: "Subscriber Page", id: "subscriber-page" },
-          { title: "Email & SMS", id: "email-and-sms" },
-          { title: "Chat & Webhooks", id: "chat-and-webhooks" },
-        ]}
-        formFields={[
-          {
-            field: {
-              showSubscriberPageOnStatusPage: true,
-            },
-            title: "Show Subscriber Page",
-            stepId: "subscriber-page",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableEmailSubscribers: true,
-            },
-            title: "Enable Email Subscribers",
-            stepId: "email-and-sms",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableSmsSubscribers: true,
-            },
-            title: "Enable SMS Subscribers",
-            stepId: "email-and-sms",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableSlackSubscribers: true,
-            },
-            title: "Enable Slack Subscribers",
-            stepId: "chat-and-webhooks",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableMicrosoftTeamsSubscribers: true,
-            },
-            title: "Enable Microsoft Teams Subscribers",
-            stepId: "chat-and-webhooks",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              enableWebhookSubscribers: true,
-            },
-            title: "Enable Webhook Subscribers",
-            stepId: "chat-and-webhooks",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page",
-          fields: [
-            {
-              field: {
-                showSubscriberPageOnStatusPage: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Show Subscriber Page",
-              placeholder: "No",
-            },
-            {
-              field: {
-                enableEmailSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Email Subscribers",
-              placeholder: "No",
-            },
-            {
-              field: {
-                enableSmsSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable SMS Subscribers",
-              placeholder: "No",
-            },
-            {
-              field: {
-                enableSlackSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Slack Subscribers",
-              placeholder: "No",
-            },
-            {
-              field: {
-                enableMicrosoftTeamsSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Microsoft Teams Subscribers",
-              placeholder: "No",
-            },
-            {
-              field: {
-                enableWebhookSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Webhook Subscribers",
-              placeholder: "No",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "Powered By OneUptime Branding",
-          description: "Show or hide the Powered By OneUptime Branding",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              hidePoweredByOneUptimeBranding: true,
-            },
-            title: "Hide Powered By OneUptime Branding",
+              "Show or hide the overall uptime percent on the status page",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             placeholder: "No",
           },
+          {
+            field: {
+              overallUptimePercentPrecision: true,
+            },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
+            showIf: (item: FormValues<StatusPage>): boolean => {
+              return Boolean(item.showOverallUptimePercentOnStatusPage);
+            },
+            title: "Select Uptime Precision",
+            defaultValue: UptimePrecision.TWO_DECIMAL,
+            required: true,
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -503,15 +88,99 @@ const StatusPageDelete: FunctionComponent<
           fields: [
             {
               field: {
-                hidePoweredByOneUptimeBranding: true,
+                showOverallUptimePercentOnStatusPage: true,
               },
               fieldType: FieldType.Boolean,
-              title: "Hide Powered By OneUptime Branding",
+              title: "Show Overall Uptime Percent",
+            },
+
+            {
+              field: {
+                overallUptimePercentPrecision: true,
+              },
+              title: "Overall Uptime Precision",
+              fieldType: FieldType.Text,
             },
           ],
           modelId: modelId,
         }}
       />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Branding > Downtime Monitor Statuses"
+        cardProps={{
+          title: "Downtime Monitor Statuses",
+          description:
+            "These monitor statuses are be considered as down when we calculate uptime %.",
+        }}
+        isEditable={true}
+        editButtonText={"Edit Statuses"}
+        formFields={[
+          {
+            field: {
+              downtimeMonitorStatuses: true,
+            },
+            title: "These monitor statuses are considered as down",
+            description:
+              "These monitor statuses are be considered as down when we calculate uptime %.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+              sort: {
+                priority: SortOrder.Ascending,
+              },
+            },
+            required: true,
+            placeholder: "Select monitor statuses",
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "downtime-monitor-statuses",
+          fields: [
+            {
+              field: {
+                downtimeMonitorStatuses: {
+                  _id: true,
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Downtime Monitor Statuses",
+              description:
+                "These monitor statuses are be considered as down when we calculate uptime %",
+              fieldType: FieldType.EntityArray,
+              getElement: (item: StatusPage): ReactElement => {
+                if (item["downtimeMonitorStatuses"]) {
+                  return (
+                    <MonitorStatuesElement
+                      shouldAnimate={false}
+                      monitorStatuses={
+                        (item[
+                          "downtimeMonitorStatuses"
+                        ] as Array<MonitorStatus>) || []
+                      }
+                    />
+                  );
+                }
+
+                return <></>;
+              },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      {/*
+       * The page's JSON export lived on a page no menu linked to. The status
+       * page list can export several at once; this is the one-page export
+       * every other resource keeps on its Settings page.
+       */}
+      <ExportModelCard modelId={modelId} modelType={StatusPage} />
 
       {/*
        * Last on the page: taking the page offline is a decision about the
@@ -537,4 +206,4 @@ const StatusPageDelete: FunctionComponent<
   );
 };
 
-export default StatusPageDelete;
+export default StatusPageSettings;

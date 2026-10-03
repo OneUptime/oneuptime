@@ -12,6 +12,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -20,6 +21,17 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Only the chat workspaces this project has connected, or one entry to
+   * connect one when it has none (WorkspaceSideMenuSection.ts).
+   */
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams: PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.ALERTS_WORKSPACE_CONNECTIONS,
+    });
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Alerts",
@@ -90,31 +102,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
-    {
-      title: "Workspace",
-      items: [
-        {
-          link: {
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK] as Route,
-            ),
-          },
-          icon: IconProp.Slack,
-        },
-        {
-          link: {
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-              ] as Route,
-            ),
-          },
-          icon: IconProp.MicrosoftTeams,
-        },
-      ],
-    },
+    ...(workspaceSection ? [workspaceSection] : []),
     /*
      * Every "when an alert looks like X, do Y" page lives here. Collapsed by
      * default because these are set up once and rarely revisited, and left
@@ -260,14 +248,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
+        // The text in front of alert and episode numbers (ALT-42).
         {
           link: {
-            title: "More Settings",
+            title: "Number Prefix",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route,
+              RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route,
             ),
           },
-          icon: IconProp.Settings,
+          icon: IconProp.Hashtag,
         },
       ],
     },

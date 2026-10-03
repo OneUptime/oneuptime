@@ -20,6 +20,8 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   value: Array<SnmpOid>;
@@ -43,7 +45,10 @@ interface OidRowIssue {
   advisory?: string | undefined;
 }
 
-type GetRowIssuesFunction = (list: Array<SnmpOid>) => Array<OidRowIssue>;
+type GetRowIssuesFunction = (
+  list: Array<SnmpOid>,
+  translator: Translator,
+) => Array<OidRowIssue>;
 
 /*
  * Mirrors SnmpOidListUtil.validateOidList rather than reimplementing it: the
@@ -56,6 +61,7 @@ type GetRowIssuesFunction = (list: Array<SnmpOid>) => Array<OidRowIssue>;
  */
 const getRowIssues: GetRowIssuesFunction = (
   list: Array<SnmpOid>,
+  translator: Translator,
 ): Array<OidRowIssue> => {
   const firstRowByOid: Map<string, number> = new Map();
 
@@ -68,7 +74,10 @@ const getRowIssues: GetRowIssuesFunction = (
 
     if (!SnmpOidListUtil.isValidOid(normalized)) {
       return {
-        error: `"${entry.oid}" is not a numeric OID. Use dotted numbers, for example 1.3.6.1.2.1.1.3.0.`,
+        error: translator.translateTemplate(
+          '"{{oid}}" is not a numeric OID. Use dotted numbers, for example 1.3.6.1.2.1.1.3.0.',
+          { oid: entry.oid },
+        ),
       };
     }
 
@@ -78,9 +87,10 @@ const getRowIssues: GetRowIssuesFunction = (
       firstRowByOid.set(normalized, index);
     } else {
       return {
-        error: `${normalized} is already on row ${
-          firstRow + 1
-        }. Only the first copy is kept when this is saved.`,
+        error: translator.translateTemplate(
+          "{{oid}} is already on row {{row}}. Only the first copy is kept when this is saved.",
+          { oid: normalized, row: firstRow + 1 },
+        ),
       };
     }
 
@@ -96,7 +106,10 @@ const getRowIssues: GetRowIssuesFunction = (
 
     if (collectedBy) {
       return {
-        advisory: `This is already collected as ${collectedBy}. Adding it here polls the device twice and charts one number with no port name attached.`,
+        advisory: translator.translateTemplate(
+          "This is already collected as {{metric}}. Adding it here polls the device twice and charts one number with no port name attached.",
+          { metric: collectedBy },
+        ),
       };
     }
 
@@ -107,6 +120,7 @@ const getRowIssues: GetRowIssuesFunction = (
 const SnmpOidEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [oids, setOids] = useState<Array<SnmpOid>>(props.value || []);
   const [showTemplates, setShowTemplates] = useState<boolean>(false);
 
@@ -190,7 +204,7 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
       };
     });
 
-  const rowIssues: Array<OidRowIssue> = getRowIssues(oids);
+  const rowIssues: Array<OidRowIssue> = getRowIssues(oids, translator);
 
   return (
     <div>

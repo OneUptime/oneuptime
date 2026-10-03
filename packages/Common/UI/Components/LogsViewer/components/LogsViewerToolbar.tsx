@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import LiveLogsToggle from "./LiveLogsToggle";
 import LogTimeRangePicker from "./LogTimeRangePicker";
 import ColumnSelector from "./ColumnSelector";
@@ -15,12 +17,25 @@ import {
   LogsViewMode,
 } from "../types";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
+import { ResultTotal } from "../../../Utils/Telemetry/ResultTotal";
+import TelemetryResultTotal from "../../TelemetryViewer/components/TelemetryResultTotal";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 
 export interface LogsViewerToolbarProps {
   resultCount: number;
+  // `resultCount` is only how many logs are known so far: "100+ results".
+  isResultCountLowerBound?: boolean | undefined;
+  /*
+   * The size of the result set when the list cannot say (see
+   * UseResultTotal): shown instead of `resultCount` — "1,234,567 logs",
+   * "Counting logs…", "50+ logs". Without it `resultCount` is the total.
+   */
+  resultTotal?: ResultTotal | undefined;
+  // Logs shown up to the end of this page: all an uncounted total vouches for.
+  rowsThroughPage?: number | undefined;
   currentPage?: number;
-  totalPages?: number;
+  // Undefined while the total is not known, and then the page has no "of N".
+  totalPages?: number | undefined;
   className?: string;
   liveOptions?: LiveLogsOptions;
   timeRange?: RangeStartAndEndDateTime;
@@ -66,10 +81,15 @@ export const LOGS_VIEWER_EXPORT_MENU_TEST_ID: string =
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
   props: LogsViewerToolbarProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { currentPage, totalPages } = props;
   const hasPaginationSummary: boolean = Boolean(
-    currentPage && totalPages && totalPages > 0,
+    currentPage &&
+      ((totalPages && totalPages > 0) ||
+        props.resultTotal ||
+        props.isResultCountLowerBound),
   );
+  const hasPageCount: boolean = Boolean(totalPages && totalPages > 0);
 
   const {
     ref: exportDropdownRef,
@@ -107,7 +127,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             onClick={props.onToggleFacetPanel}
           >
             <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
-            <span>Filters</span>
+            <span>{translator.translateText("Filters")}</span>
           </button>
         )}
 
@@ -137,7 +157,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                   d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"
                 />
               </svg>
-              List
+              {translator.translateText("List")}
             </button>
             <button
               type="button"
@@ -163,7 +183,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                   d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
                 />
               </svg>
-              Analytics
+              {translator.translateText("Analytics")}
             </button>
           </div>
         )}
@@ -171,21 +191,21 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         {props.signalPivotActions && props.signalPivotActions.length > 0 && (
           <div
             className="inline-flex items-center gap-0.5 rounded-md border border-gray-200 bg-white p-0.5 shadow-sm"
-            aria-label="Related telemetry signals"
+            aria-label={translator.translateText("Related telemetry signals")}
           >
             {props.signalPivotActions.map((action: LogsSignalPivotAction) => {
               return (
                 <Tooltip key={action.id} text={action.tooltip}>
                   <button
                     type="button"
-                    aria-label={action.tooltip}
+                    aria-label={translator.translateText(action.tooltip)}
                     className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     onClick={action.onClick}
                   >
                     {action.icon && (
                       <Icon icon={action.icon} className="h-3.5 w-3.5" />
                     )}
-                    <span>{action.label}</span>
+                    <span>{translator.translateText(action.label)}</span>
                   </button>
                 </Tooltip>
               );
@@ -207,13 +227,38 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
 
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span className="font-medium text-gray-700">
-            {props.resultCount.toLocaleString()} result
-            {props.resultCount === 1 ? "" : "s"}
-          </span>
+          {props.resultTotal ? (
+            <TelemetryResultTotal
+              total={props.resultTotal}
+              rowsThroughPage={props.rowsThroughPage ?? props.resultCount}
+              itemLabel="logs"
+            />
+          ) : (
+            <span className="font-medium text-gray-700">
+              {props.isResultCountLowerBound
+                ? translator.translatePlural(
+                    { one: "{{count}}+ results", other: "{{count}}+ results" },
+                    props.resultCount,
+                  )
+                : translator.translatePlural(
+                    { one: "{{count}} result", other: "{{count}} results" },
+                    props.resultCount,
+                  )}
+            </span>
+          )}
           {hasPaginationSummary && (
-            <span className="text-gray-400">
-              Page {currentPage} of {totalPages}
+            <span className="whitespace-nowrap text-gray-400">
+              {hasPageCount
+                ? translator.translateTemplate(
+                    "Page {{current}} of {{total}}",
+                    {
+                      current: translator.formatNumber(currentPage || 0),
+                      total: translator.formatNumber(totalPages || 0),
+                    },
+                  )
+                : translator.translateTemplate("Page {{current}}", {
+                    current: translator.formatNumber(currentPage || 0),
+                  })}
             </span>
           )}
         </div>
@@ -239,7 +284,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             type="button"
             className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
             onClick={props.onShowDocumentation}
-            title="Setup Documentation"
+            title={translator.translateText("Setup Documentation")}
           >
             <svg
               className="h-3.5 w-3.5"
@@ -254,7 +299,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                 d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
               />
             </svg>
-            Docs
+            {translator.translateText("Docs")}
           </button>
         )}
 
@@ -268,7 +313,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                   : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
               }`}
               onClick={props.onToggleKeyboardShortcuts}
-              title="Keyboard shortcuts (?)"
+              title={translator.translateText("Keyboard shortcuts (?)")}
             >
               <kbd className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded border border-current px-0.5 font-mono text-[10px] font-semibold leading-none">
                 ?
@@ -304,7 +349,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                   d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
                 />
               </svg>
-              Export
+              {translator.translateText("Export")}
               <svg
                 className="h-3 w-3"
                 fill="none"
@@ -333,7 +378,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                       props.onExportCSV!();
                     }}
                   >
-                    Export as CSV
+                    {translator.translateText("Export as CSV")}
                   </button>
                 )}
                 {props.onExportJSON && (
@@ -345,7 +390,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
                       props.onExportJSON!();
                     }}
                   >
-                    Export as JSON
+                    {translator.translateText("Export as JSON")}
                   </button>
                 )}
               </div>

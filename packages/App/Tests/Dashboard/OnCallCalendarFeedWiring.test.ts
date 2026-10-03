@@ -221,13 +221,24 @@ describe("Breadcrumbs", () => {
 });
 
 describe("Side menus", () => {
+  /*
+   * The section folds down to its title until opened, like every section of
+   * User Settings after Alerts & Notifications: the feed is set up once.
+   */
   test("User Settings has a Calendar section before Workspace, holding Calendar Feed", () => {
     const menu: string = readCode("Pages", "UserSettings", "SideMenu.tsx");
 
     const calendarIndex: number = menu.indexOf(
-      '{ title: "Calendar", items: [ { link: { title: "Calendar Feed", to: RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route, ), }, icon: IconProp.Calendar, }, ], }',
+      '{ title: "Calendar", defaultCollapsed: true, items: [ { link: { title: "Calendar Feed", to: RouteUtil.populateRouteParams( RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route, ), }, icon: IconProp.Calendar, }, ], }',
     );
-    const workspaceIndex: number = menu.indexOf('{ title: "Workspace",');
+    /*
+     * The Workspace section lists only the chat workspaces the project has
+     * connected, so it is built by useWorkspaceSideMenuSection and placed in
+     * the list by this spread.
+     */
+    const workspaceIndex: number = menu.indexOf(
+      "...(workspaceSection ? [workspaceSection] : [])",
+    );
 
     expect(calendarIndex).toBeGreaterThan(-1);
     expect(workspaceIndex).toBeGreaterThan(calendarIndex);

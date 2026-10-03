@@ -2,6 +2,7 @@ import { BASE_URL } from "../../Config";
 import { Browser, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import { getCardButton } from "../Helpers/CardButton";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -44,6 +45,11 @@ test.describe.configure({ mode: "serial" });
 // ModelTable names its create form after the model class.
 const createFormSelector: string = "#create-LogDropFilter-from";
 
+/*
+ * The card's own Create button: the first filter is created from an empty
+ * list, which offers the same button again under its "No drop filters
+ * found" message.
+ */
 const createButtonName: string = "Create Log Drop Filter";
 
 interface SharedContext {
@@ -100,9 +106,7 @@ test.describe("Log Drop Filters", () => {
   async function openCreateModalAndFillConditions(name: string): Promise<void> {
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: createButtonName,
-    });
+    const createButton: Locator = getCardButton(page, createButtonName);
 
     await gotoProjectPage({
       page,
@@ -119,9 +123,20 @@ test.describe("Log Drop Filters", () => {
     const form: Locator = page.locator(createFormSelector);
     await form.waitFor({ state: "visible", timeout: 30000 });
 
+    /*
+     * The one button that reads Next walks the wizard. A create wizard
+     * offers its action as soon as every step left is optional: on Filter
+     * Conditions the main button already reads Create Log Drop Filter, the
+     * Action step having its default, and a plain Next beside it walks on.
+     */
+    const nextButton: Locator = modal.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
+
     // Step 1 — Basic Info.
     await form.getByLabel("Name").fill(name);
-    await page.getByTestId("modal-footer-submit-button").click();
+    await nextButton.click();
 
     /*
      * Step 2 — Filter Conditions. The step renders exactly one condition
@@ -141,16 +156,14 @@ test.describe("Log Drop Filters", () => {
       timeout: 30000,
     });
 
-    await page.getByTestId("modal-footer-submit-button").click();
+    await nextButton.click();
   }
 
   test("should reach the log drop filters settings page", async () => {
     test.setTimeout(120000);
     const page: Page = ctx.page;
 
-    const createButton: Locator = page.getByRole("button", {
-      name: createButtonName,
-    });
+    const createButton: Locator = getCardButton(page, createButtonName);
 
     await gotoProjectPage({
       page,
@@ -160,7 +173,8 @@ test.describe("Log Drop Filters", () => {
     });
 
     await expect(createButton).toBeVisible({ timeout: 60000 });
-    await expect(page.getByText("No drop filters found.")).toBeVisible({
+    // The page's sentence heads the table's empty state, without its stop.
+    await expect(page.getByText("No drop filters found")).toBeVisible({
       timeout: 60000,
     });
   });

@@ -40,8 +40,10 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
  * orient a new user, by mounting the real components and reading them the
  * way a user would:
  *
- *  - the Products menu groups 41 products into small, named sections, with
- *    the core products first and in the order a problem flows through them;
+ *  - the Products menu groups 42 products into small, named sections, with
+ *    the core products first and in the order a problem flows through them,
+ *    and opens on those core products alone: every other section is one
+ *    line, opened with a click or found by searching;
  *  - Home explains how the core products fit together;
  *  - Help links to the documentation.
  *
@@ -195,7 +197,41 @@ async function renderGettingStarted(): Promise<void> {
 }
 
 function productsMenu(): HTMLElement {
-  return screen.getByRole("dialog", { name: "Products menu" });
+  // The dialog's name is translated like everything else in it.
+  return screen.getByRole("dialog", {
+    name: String(activeLocale["Products menu"] ?? "Products menu"),
+  });
+}
+
+// The heading rows that open and fold a section of the menu.
+function sectionToggles(): Array<HTMLElement> {
+  return within(productsMenu())
+    .queryAllByRole("button")
+    .filter((button: HTMLElement): boolean => {
+      return button.hasAttribute("aria-expanded");
+    });
+}
+
+function foldedSectionNames(): Array<string> {
+  return sectionToggles()
+    .filter((button: HTMLElement): boolean => {
+      return button.getAttribute("aria-expanded") === "false";
+    })
+    .map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
+}
+
+/*
+ * The menu opens on Essentials and folds every other section to one line.
+ * Open each folded one, as a user would, to read the whole catalog.
+ */
+function openEverySection(): void {
+  for (const toggle of sectionToggles()) {
+    if (toggle.getAttribute("aria-expanded") === "false") {
+      fireEvent.click(toggle);
+    }
+  }
 }
 
 function openProductsMenu(): void {
@@ -212,12 +248,18 @@ interface MenuSection {
   items: Array<string>;
 }
 
-// Reads the open menu top to bottom, the way a user scans it.
+/*
+ * Reads the menu top to bottom, the way a user scans it, with every folded
+ * section opened.
+ */
 function readMenuSections(): Array<MenuSection> {
+  openEverySection();
   const listbox: HTMLElement = within(productsMenu()).getByRole("listbox");
   return Array.from(listbox.querySelectorAll("h3")).map(
     (heading: HTMLHeadingElement): MenuSection => {
-      const section: HTMLElement = heading.closest(".mb-6") as HTMLElement;
+      const section: HTMLElement = heading.closest(
+        '[role="group"]',
+      ) as HTMLElement;
       const items: Array<string> = within(section)
         .getAllByRole("option")
         .map((option: HTMLElement): string => {
@@ -229,6 +271,7 @@ function readMenuSections(): Array<MenuSection> {
 }
 
 function optionFor(title: string): HTMLElement {
+  openEverySection();
   return within(productsMenu())
     .getAllByRole("option")
     .find((option: HTMLElement): boolean => {
@@ -382,7 +425,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 41 are still listed exactly once", () => {
+  test("regrouping lost no product: all 42 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -390,10 +433,105 @@ describe("Products menu sections", () => {
         return section.items;
       },
     );
-    // 41, not 42: Code Repositories became a page of Tasks.
-    expect(titles).toHaveLength(41);
-    expect(new Set(titles).size).toBe(41);
+    /*
+     * 42: Code Repositories became a page of Tasks, and Forms (which
+     * replaced Incidents > Settings > Forms) became a product.
+     */
+    expect(titles).toHaveLength(42);
+    expect(new Set(titles).size).toBe(42);
     expect(titles).not.toContain("Code Repositories");
+    expect(titles).toContain("Forms");
+  });
+});
+
+describe("the Products menu opens on the essentials", () => {
+  test("only Essentials' products are listed; every other section is one folded line", () => {
+    openProductsMenu();
+
+    expect(foldedSectionNames()).toEqual([
+      "Observability",
+      "AI",
+      "Code",
+      "Resources",
+      "Infrastructure",
+      "Dashboards & Automation",
+      "Settings",
+    ]);
+    expect(
+      within(productsMenu())
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.querySelector(".font-medium, .text-sm")!.textContent!;
+        }),
+    ).toEqual([
+      "Monitors",
+      "Incidents",
+      "Alerts",
+      "On-Call Duty",
+      "Status Pages",
+      "Scheduled Maintenance",
+      "SLOs",
+    ]);
+  });
+
+  test("a folded line says how many products it holds and what they are", () => {
+    openProductsMenu();
+
+    const infrastructure: HTMLElement = within(productsMenu()).getByRole(
+      "button",
+      { name: "Infrastructure" },
+    );
+
+    expect(infrastructure).toHaveAttribute("aria-expanded", "false");
+    expect(infrastructure).toHaveAccessibleDescription(
+      "12 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Serverless, Cloud, Proxmox, VMware, Ceph, Network, IoT",
+    );
+    expect(
+      within(productsMenu()).getByRole("button", { name: "Code" }),
+    ).toHaveAccessibleDescription("1 product Tasks");
+  });
+
+  test("opening a folded line lists its products, one click away", () => {
+    openProductsMenu();
+
+    fireEvent.click(
+      within(productsMenu()).getByRole("button", { name: "Settings" }),
+    );
+
+    expect(optionFor("Project Settings")).toBeInTheDocument();
+    expect(
+      within(productsMenu()).getByRole("button", { name: "Settings" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("a search finds a product in a folded section", () => {
+    openProductsMenu();
+
+    fireEvent.change(within(productsMenu()).getByRole("combobox"), {
+      target: { value: "proxmox" },
+    });
+
+    expect(within(productsMenu()).getAllByRole("option")).toHaveLength(1);
+    expect(within(productsMenu()).getByRole("option")).toHaveTextContent(
+      "Proxmox",
+    );
+  });
+
+  test("the folded lines are named in German too", () => {
+    activeLocale = DE;
+    openProductsMenu();
+
+    expect(foldedSectionNames()).toContain(
+      lookupNested(DE, "navbar.categories.infrastructure"),
+    );
+    expect(foldedSectionNames()).not.toContain(
+      lookupNested(DE, "navbar.categories.essentials"),
+    );
+    expect(
+      within(productsMenu()).getByRole("button", {
+        name: lookupNested(DE, "navbar.categories.essentials")!,
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 });
 

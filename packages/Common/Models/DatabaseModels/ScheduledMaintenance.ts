@@ -1386,7 +1386,7 @@ export default class ScheduledMaintenance extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
     type: TableColumnType.Entity,
-    modelType: ScheduledMaintenanceState,
+    modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
       "Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing.",
@@ -1911,6 +1911,7 @@ export default class ScheduledMaintenance extends BaseModel {
     computed: true,
     title: "Scheduled Maintenance Number",
     description: "Scheduled Maintenance Number",
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -1940,6 +1941,7 @@ export default class ScheduledMaintenance extends BaseModel {
     description:
       "Scheduled maintenance number with prefix (e.g., 'SM-42' or '#42')",
     computed: true,
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.ShortText,

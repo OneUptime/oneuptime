@@ -21,8 +21,8 @@ import GenericObject from "../../../Types/GenericObject";
  *  4. A lone destructive action. With nothing else on the row, hiding "Delete"
  *     behind a menu of one would only add a click.
  *
- * Within 2 and 3, an action this viewer can use beats one that is locked for
- * them. A read-only member should not find the row's one button disabled while
+ * Within 2 and 3, an action this viewer can use on this row beats one that is
+ * locked for them (or for the row). A read-only member should not find the row's one button disabled while
  * the thing they are allowed to do is tucked away in the menu; the locked
  * action still sits in the menu, explaining itself. A locked action is only the
  * button when nothing on the row is usable.
@@ -70,6 +70,39 @@ export const isDestructiveActionButton: <T extends GenericObject>(
   button: ActionButtonSchema<T>,
 ): boolean => {
   return DESTRUCTIVE_STYLES.includes(button.buttonStyleType);
+};
+
+export interface ActionButtonLock {
+  isDisabled: boolean;
+  tooltip: string | undefined;
+}
+
+/*
+ * Whether an action is locked on this row, and what its tooltip says: locked
+ * for the viewer (`disabled`, with the action's own tooltip), else locked for
+ * this row (`getDisabledReason`, whose reason becomes the tooltip), else
+ * usable with its usual tooltip.
+ */
+export const getActionButtonLock: <T extends GenericObject>(
+  button: ActionButtonSchema<T>,
+  item: T,
+) => ActionButtonLock = <T extends GenericObject>(
+  button: ActionButtonSchema<T>,
+  item: T,
+): ActionButtonLock => {
+  if (button.disabled) {
+    return { isDisabled: true, tooltip: button.tooltip };
+  }
+
+  const reason: string | undefined = button.getDisabledReason
+    ? button.getDisabledReason(item)
+    : undefined;
+
+  if (reason) {
+    return { isDisabled: true, tooltip: reason };
+  }
+
+  return { isDisabled: false, tooltip: button.tooltip };
 };
 
 export const isActionButtonVisible: <T extends GenericObject>(
@@ -126,7 +159,7 @@ const splitActionButtons: SplitActionButtonsFunction = <
 
   const usableCandidates: Array<IndexedActionButton<T>> =
     nonDestructiveCandidates.filter((entry: IndexedActionButton<T>) => {
-      return !entry.button.disabled;
+      return !getActionButtonLock(entry.button, options.item).isDisabled;
     });
 
   type FindCallToActionFunction = (

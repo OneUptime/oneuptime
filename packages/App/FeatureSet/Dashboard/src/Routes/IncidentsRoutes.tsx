@@ -30,6 +30,7 @@ import IncidentViewDelete from "../Pages/Incidents/View/Delete";
 import IncidentWorkspaceConnectionSlack from "../Pages/Incidents/WorkspaceConnectionSlack";
 
 import IncidentWorkspaceConnectionMicrosoftTeams from "../Pages/Incidents/WorkspaceConnectionMicrosoftTeams";
+import WorkspaceConnectionsOverview from "../Components/Workspace/WorkspaceConnectionsOverview";
 
 import IncidentViewStateTimeline from "../Pages/Incidents/View/StateTimeline";
 
@@ -62,10 +63,6 @@ import IncidentSettingsTemplates from "../Pages/Incidents/Settings/IncidentTempl
 
 import IncidentSettingsTemplatesView from "../Pages/Incidents/Settings/IncidentTemplatesView";
 
-import IncidentSettingsForms from "../Pages/Incidents/Settings/IncidentForms";
-
-import IncidentSettingsFormView from "../Pages/Incidents/Settings/IncidentFormView";
-
 import IncidentSettingsNoteTemplates from "../Pages/Incidents/Settings/IncidentNoteTemplates";
 
 import IncidentSettingsNoteTemplatesView from "../Pages/Incidents/Settings/IncidentNoteTemplateView";
@@ -96,7 +93,11 @@ import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
 import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMeasurements";
 
-import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
+import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
+
+import IncidentSettingsNumberPrefix from "../Pages/Incidents/Settings/IncidentNumberPrefix";
+import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
+import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
 
 // Incident Episode Pages
@@ -145,6 +146,17 @@ import IncidentModel from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedirect";
+import RouteParams from "../Utils/RouteParams";
+
+/*
+ * Where incident forms lived before Forms replaced them (Incidents > Settings
+ * > Forms), relative to the incidents mount. They forward to Forms.
+ */
+export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
+  forms: "settings/forms",
+  formView: `settings/forms/${RouteParams.ModelID}`,
+};
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -163,6 +175,34 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
   return (
     <Routes>
+      {/*
+       * Incident forms became Forms, a product of its own, and kept their
+       * ids. Their old URLs forward there (see MovedFormPageRedirect) -
+       * outside the Incidents layout, so its menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_INCIDENT_FORM_PATHS.forms}
+        element={<MovedFormPageRedirect pageMap={PageMap.FORMS} />}
+      />
+      <PageRoute
+        path={MOVED_INCIDENT_FORM_PATHS.formView}
+        element={<MovedFormPageRedirect pageMap={PageMap.FORM_VIEW} />}
+      />
+
+      {/*
+       * Number prefixes were on More Settings. Its old URL forwards to the
+       * Number Prefix page - outside the layout, so the side menu never
+       * flashes on the way.
+       */}
+      <PageRoute
+        path={MORE_SETTINGS_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX}
+          />
+        }
+      />
+
       <PageRoute
         path="/"
         element={<Layout {...props} hideSideMenu={hideSideMenu} />}
@@ -221,6 +261,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTIONS] || ""
+          }
+          element={
+            <WorkspaceConnectionsOverview
+              slackPage={PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK}
+              microsoftTeamsPage={
+                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENT_CREATE] || ""}
           element={
             <IncidentCreate
@@ -272,28 +326,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_TEMPLATES_VIEW] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS] || ""}
-          element={
-            <IncidentSettingsForms
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW] || ""}
-          element={
-            <IncidentSettingsFormView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.INCIDENTS_SETTINGS_FORMS_VIEW] as Route
               }
             />
           }
@@ -631,11 +663,29 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE] || ""}
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] || ""
+          }
           element={
-            <IncidentSettingsMore
+            <IncidentSettingsLinkedAlerts
               {...props}
-              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] || ""
+          }
+          element={
+            <IncidentSettingsNumberPrefix
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route
+              }
             />
           }
         />
