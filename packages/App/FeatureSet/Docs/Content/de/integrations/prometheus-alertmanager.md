@@ -152,7 +152,7 @@ amtool alert add test_alert severity=warning \
 
 Verwenden Sie das, wenn Sie Logik jenseits von „Alarm wird Vorfall" brauchen.
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Alertmanager → Incidents`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Alertmanager → Incidents`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Webhook**-Auslöser hinzu und **kopieren Sie seine URL**. Benennen Sie den Block in `Alertmanager` um.
 3. Fügen Sie einen **Bedingungen**-Block verbunden mit dem Auslöser hinzu:
    - **Links**: `{{Alertmanager.Request Body.status}}`

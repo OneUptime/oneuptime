@@ -30,17 +30,18 @@ export type GetFormIpAllowlistEntriesFunction = (
   value: string | null | undefined,
 ) => Array<string>;
 
-export const getFormIpAllowlistEntries: GetFormIpAllowlistEntriesFunction =
-  (value: string | null | undefined): Array<string> => {
-    return (value || "")
-      .split(/\r?\n/)
-      .map((entry: string): string => {
-        return entry.trim();
-      })
-      .filter((entry: string): boolean => {
-        return entry.length > 0;
-      });
-  };
+export const getFormIpAllowlistEntries: GetFormIpAllowlistEntriesFunction = (
+  value: string | null | undefined,
+): Array<string> => {
+  return (value || "")
+    .split(/\r?\n/)
+    .map((entry: string): string => {
+      return entry.trim();
+    })
+    .filter((entry: string): boolean => {
+      return entry.length > 0;
+    });
+};
 
 const MAX_LISTED_PROBLEMS: number = 5;
 const MAX_QUOTED_LENGTH: number = 80;
@@ -157,50 +158,49 @@ const getEntryProblem: GetEntryProblemFunction = (
   return "is not an IP address or an IPv4 range";
 };
 
-export type ValidateFormIpAllowlistFunction = (
-  value: unknown,
-) => string | null;
+export type ValidateFormIpAllowlistFunction = (value: unknown) => string | null;
 
 /**
  * Null when every line of the list is an entry the public routes can match
  * (or the list is empty, or not set); otherwise one message naming each
  * problem line, the first five of them.
  */
-export const validateFormIpAllowlist: ValidateFormIpAllowlistFunction =
-  (value: unknown): string | null => {
-    if (value === null || value === undefined) {
-      return null;
+export const validateFormIpAllowlist: ValidateFormIpAllowlistFunction = (
+  value: unknown,
+): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return `IP Allowlist must be text. ${HINT}`;
+  }
+
+  const problems: Array<string> = [];
+
+  value.split(/\r?\n/).forEach((line: string, index: number): void => {
+    const entry: string = line.trim();
+
+    if (!entry) {
+      return;
     }
 
-    if (typeof value !== "string") {
-      return `IP Allowlist must be text. ${HINT}`;
+    const problem: string | null = getEntryProblem(entry);
+
+    if (problem) {
+      problems.push(`line ${index + 1} (${quote(entry)}) ${problem}`);
     }
+  });
 
-    const problems: Array<string> = [];
+  if (problems.length === 0) {
+    return null;
+  }
 
-    value.split(/\r?\n/).forEach((line: string, index: number): void => {
-      const entry: string = line.trim();
+  const more: number = problems.length - MAX_LISTED_PROBLEMS;
 
-      if (!entry) {
-        return;
-      }
-
-      const problem: string | null = getEntryProblem(entry);
-
-      if (problem) {
-        problems.push(`line ${index + 1} (${quote(entry)}) ${problem}`);
-      }
-    });
-
-    if (problems.length === 0) {
-      return null;
-    }
-
-    const more: number = problems.length - MAX_LISTED_PROBLEMS;
-
-    return `IP Allowlist: ${problems.slice(0, MAX_LISTED_PROBLEMS).join("; ")}${
-      more > 0
-        ? `; and ${more} more ${more === 1 ? "line is" : "lines are"} not valid either`
-        : ""
-    }. ${HINT}`;
-  };
+  return `IP Allowlist: ${problems.slice(0, MAX_LISTED_PROBLEMS).join("; ")}${
+    more > 0
+      ? `; and ${more} more ${more === 1 ? "line is" : "lines are"} not valid either`
+      : ""
+  }. ${HINT}`;
+};

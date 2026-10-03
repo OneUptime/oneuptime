@@ -1,6 +1,6 @@
 # Einen Workflow erstellen
 
-Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Workflow erstellen**. Der Dialog **Workflow erstellen** fragt zuerst, wie Sie beginnen möchten, und dann nach einem Namen. Eine Vorlage, die eigene Einstellungen braucht, etwa eine Slack-Webhook-URL, fragt in einem weiteren Schritt danach.
+Um einen Workflow anzulegen, öffnen Sie **Arbeitsabläufe** und klicken auf **Arbeitsablauf erstellen**. Der Dialog **Arbeitsablauf erstellen** fragt zuerst, wie Sie beginnen möchten, und dann nach einem Namen. Eine Vorlage, die eigene Einstellungen braucht, etwa eine Slack-Webhook-URL, fragt in einem weiteren Schritt danach.
 
 Wählen Sie, wie Sie beginnen:
 
@@ -9,7 +9,7 @@ Wählen Sie, wie Sie beginnen:
 
 Klicken Sie auf eine Vorlage, um zu sehen, was sie tut: ihren Trigger, die Blöcke, aus denen sie besteht, und die Einstellungen, nach denen sie fragt. Klicken Sie dann auf **Diese Vorlage verwenden**, oder doppelklicken Sie auf die Vorlage. Im Suchfeld wählen die Pfeiltasten eine Vorlage aus, und **Enter** verwendet sie. `/` bringt Sie zurück ins Suchfeld.
 
-Workflows werden ausgeschaltet angelegt, sodass nichts ausgeführt wird, bis Sie sie einschalten. Ein neuer Workflow öffnet sich im **Builder**, der Arbeitsfläche, auf der Sie ihn entwerfen.
+Workflows werden ausgeschaltet angelegt, sodass nichts ausgeführt wird, bis Sie sie einschalten. Ein neuer Workflow öffnet sich im **Editor**, der Arbeitsfläche, auf der Sie ihn entwerfen.
 
 ## Die Arbeitsfläche
 
@@ -54,14 +54,14 @@ Klicken Sie auf einen Baustein, um seine Einstellungen in einem Dialog zu öffne
 Im selben Dialog finden Sie außerdem:
 
 - **Löschen** – entfernt diesen Baustein.
-- **Run just this step** – führt diesen einen Baustein für sich aus, ohne den Rest des Workflows. Werte, die er aus anderen Schritten gelesen hätte, kommen leer an, und alles, was er sendet, schreibt oder löscht, passiert wirklich.
+- **Nur diesen Schritt ausführen** – führt diesen einen Baustein für sich aus, ohne den Rest des Workflows. Werte, die er aus anderen Schritten gelesen hätte, kommen leer an, und alles, was er sendet, schreibt oder löscht, passiert wirklich.
 - **Dokumentation**, **Inputs**, **Outputs** und **Returns** – Referenzkarten dazu, was dieser Baustein erwartet und was er liefert.
 
 Die meisten Textfelder nehmen Variablen entgegen – so fließen Daten von einem Baustein zum nächsten. Tippen Sie die Syntax nicht von Hand, sondern nutzen Sie die Werteauswahl im Editor: Sie baut aus dem gewählten Baustein und Feld eine korrekte Referenz. Siehe [Workflow-Variablen](/docs/workflows/variables).
 
 ## Prüfungen beim Bauen
 
-Der Builder prüft bei jeder Änderung den gesamten Graphen und meldet das Ergebnis in einer Pille in der Werkzeugleiste. Ein Klick auf die Pille öffnet **Problems with this workflow**: Dort steht jedes Problem, und ein Klick bringt Sie zum verantwortlichen Baustein. Auf der Arbeitsfläche steht auf einem Baustein, dessen Pflichteinstellungen noch leer sind, **Click to set up**; ein Baustein mit einem anderen Problem trägt ein Abzeichen in der Ecke: rot für einen Fehler, gelb für eine Warnung. Fahren Sie mit der Maus über das Abzeichen, um zu lesen, was nicht stimmt.
+Der Editor prüft bei jeder Änderung den gesamten Graphen und meldet das Ergebnis in einer Pille in der Werkzeugleiste. Ein Klick auf die Pille öffnet **Probleme mit diesem Arbeitsablauf**: Dort steht jedes Problem, und ein Klick bringt Sie zum verantwortlichen Baustein. Auf der Arbeitsfläche steht auf einem Baustein, dessen Pflichteinstellungen noch leer sind, **Click to set up**; ein Baustein mit einem anderen Problem trägt ein Abzeichen in der Ecke: rot für einen Fehler, gelb für eine Warnung. Fahren Sie mit der Maus über das Abzeichen, um zu lesen, was nicht stimmt.
 
 Er fängt die Fehler ab, die sonst unsichtbar bleiben, bis eine Ausführung schiefgeht: kein Trigger, zwei Bausteine mit derselben ID, ein Punkt in einer ID, ein Baustein, zu dem nichts führt, eine leer gelassene Pflichteinstellung, fehlerhaftes JSON, Leerzeichen in `{{ }}` und Referenzen auf einen Schritt oder Rückgabewert, den es nicht gibt.
 
@@ -74,19 +74,19 @@ Der schnellste Weg, ein Gefühl für die Arbeitsfläche zu bekommen:
 1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Panel **Add Trigger** auf **Manual**.
 2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Popular** auf **Log**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
 3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und setzen Sie sein Feld **Wert** auf `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` ist der **Identifier** des Triggers, angezeigt auf dem Trigger-Baustein – prüfen Sie, ob er übereinstimmt.
-4. Schalten Sie oben im Builder **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand; wenn Sie diesen Schritt auslassen, fragt **Arbeitsablauf ausführen** zuerst, ob er eingeschaltet werden soll.
-5. Zurück im **Builder** klicken Sie auf **Arbeitsablauf ausführen**, tragen `{ "name": "Ada" }` in das Feld **JSON** ein, klicken auf **Run Workflow Manually** und bestätigen mit **Run**.
+4. Schalten Sie oben im Editor **Aktiviert** ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, nicht einmal von Hand; wenn Sie diesen Schritt auslassen, fragt **Arbeitsablauf ausführen** zuerst, ob er eingeschaltet werden soll.
+5. Zurück im **Editor** klicken Sie auf **Arbeitsablauf ausführen**, tragen `{ "name": "Ada" }` in das Feld **JSON** ein, klicken auf **Arbeitsablauf manuell ausführen** und bestätigen mit **Ausführen**.
 6. Ein Panel **Workflow Run** öffnet sich von selbst und verfolgt die Ausführung. Das Protokoll zeigt `Value:` gefolgt von `Hello from Ada`.
 
 Dieser Zyklus – hinzufügen, verbinden, konfigurieren, ausführen, Protokoll lesen – ist die Art, wie Sie jeden Workflow bauen werden.
 
 ## Den Workflow einschalten
 
-Neue Workflows starten deaktiviert, und ebenso jeder Workflow, den Sie duplizieren oder importieren. Solange ein Workflow ausgeschaltet ist, sagt der Builder das über der Arbeitsfläche, mit der Schaltfläche **Arbeitsablauf einschalten**.
+Neue Workflows starten deaktiviert, und ebenso jeder Workflow, den Sie duplizieren oder importieren. Solange ein Workflow ausgeschaltet ist, sagt der Editor das über der Arbeitsfläche, mit der Schaltfläche **Arbeitsablauf einschalten**.
 
-Der Schalter **Aktiviert** sitzt oben im **Builder**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Sie finden ihn auch auf der Seite **Übersicht** des Workflows: Klicken Sie in der Karte **Details zum Arbeitsablauf** auf **Workflow bearbeiten**. Die Karte zeigt den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert**. Nur wer den Workflow bearbeiten darf, kann ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
+Der Schalter **Aktiviert** sitzt oben im **Editor**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Sie finden ihn auch auf der Seite **Übersicht** des Workflows: Klicken Sie in der Karte **Details zum Arbeitsablauf** auf **Arbeitsablauf bearbeiten**. Die Karte zeigt den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert**. Nur wer den Workflow bearbeiten darf, kann ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
 
-Ein deaktivierter Workflow läuft überhaupt nicht: Sein Trigger wird ignoriert, ebenso **Arbeitsablauf ausführen** und **Run just this step**. Führen Sie ihn oder einen seiner Bausteine aus, während er ausgeschaltet ist, fragt der Builder stattdessen **Diesen Arbeitsablauf einschalten?**. **Einschalten und ausführen** (bzw. **Einschalten und Schritt ausführen**) schaltet den Workflow ein und führt dann aus, was Sie verlangt haben, mit den Werten, die Sie angegeben haben. Die Reihenfolge lautet also: bauen, mit **Arbeitsablauf ausführen** testen, das Ausführungsprotokoll lesen und **Aktiviert** wieder ausschalten, falls Sie noch nicht so weit sind, dass sein Trigger feuern darf. Um einen einzelnen Baustein zu testen, ohne das Ganze laufen zu lassen, nutzen Sie **Run just this step** in dessen Einstellungen.
+Ein deaktivierter Workflow läuft überhaupt nicht: Sein Trigger wird ignoriert, ebenso **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen**. Führen Sie ihn oder einen seiner Bausteine aus, während er ausgeschaltet ist, fragt der Editor stattdessen **Diesen Arbeitsablauf einschalten?**. **Einschalten und ausführen** (bzw. **Einschalten und Schritt ausführen**) schaltet den Workflow ein und führt dann aus, was Sie verlangt haben, mit den Werten, die Sie angegeben haben. Die Reihenfolge lautet also: bauen, mit **Arbeitsablauf ausführen** testen, das Ausführungsprotokoll lesen und **Aktiviert** wieder ausschalten, falls Sie noch nicht so weit sind, dass sein Trigger feuern darf. Um einen einzelnen Baustein zu testen, ohne das Ganze laufen zu lassen, nutzen Sie **Nur diesen Schritt ausführen** in dessen Einstellungen.
 
 Alles andere, was einen deaktivierten Workflow startet, wird mit demselben Hinweis abgewiesen. Ein Aufruf seiner Webhook-URL erhält HTTP 400 und „This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again.“ Ein **Execute Workflow**-Baustein, der ihn aufruft, nimmt seinen **Error**-Pfad, und der Fehler nennt den aufgerufenen Workflow.
 

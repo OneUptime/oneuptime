@@ -154,7 +154,7 @@ interface PageUnderTest {
    * page's shared range.
    */
   picker: "page" | "card";
-  initial: { label: string; range: string; window: TimeWindow };
+  initial: { label: string; window: TimeWindow };
   /*
    * Every aggregate queried over the page's range: after a zoom (or a
    * reset) each must have been asked for exactly the new window, and for
@@ -220,7 +220,6 @@ const KUBERNETES_OVERVIEW: PageUnderTest = {
   picker: "page",
   initial: {
     label: "Past 30 Minutes",
-    range: "Past 30 Mins",
     window: { start: at("11:30"), end: at("12:00") },
   },
   rangeMetrics: [
@@ -258,7 +257,6 @@ const HOST_OVERVIEW: PageUnderTest = {
   picker: "page",
   initial: {
     label: "Past 30 Minutes",
-    range: "Past 30 Mins",
     window: { start: at("11:30"), end: at("12:00") },
   },
   rangeMetrics: [
@@ -304,7 +302,6 @@ const KUBERNETES_INSIGHTS: PageUnderTest = {
   picker: "card",
   initial: {
     label: "Past 1 Hour",
-    range: "Past 1 Hour",
     window: { start: at("11:00"), end: at("12:00") },
   },
   rangeMetrics: [
@@ -984,10 +981,13 @@ async function expectZoomed(
     await expect(button).toBeVisible();
     await expect(button).toHaveText("Reset zoom");
     await expect(button).toHaveAttribute("aria-label", "Reset zoom");
-    // However deep the zoom, it goes back to the range before the first one.
+    /*
+     * However deep the zoom, it goes back to the range before the first
+     * one, named as the picker names it.
+     */
     await expect(button).toHaveAttribute(
       "title",
-      `Go back to ${subject.initial.range}, the time range before the zoom`,
+      `Go back to ${subject.initial.label}, the time range before the zoom`,
     );
   }
   await expectResetBesidePickers(page, subject);

@@ -4,7 +4,7 @@ Ein Trigger ist der erste Baustein eines Workflows – er entscheidet, wann der 
 
 ## Manual
 
-Führen Sie den Workflow bei Bedarf aus: Klicken Sie auf der Seite **Builder** auf **Arbeitsablauf ausführen**, füllen Sie die Felder des Triggers aus und bestätigen Sie mit **Run Workflow Manually**. Der Manual-Trigger nimmt eine JSON-Payload entgegen, die der Rest des Workflows lesen kann.
+Führen Sie den Workflow bei Bedarf aus: Klicken Sie auf der Seite **Editor** auf **Arbeitsablauf ausführen**, füllen Sie die Felder des Triggers aus und bestätigen Sie mit **Arbeitsablauf manuell ausführen**. Der Manual-Trigger nimmt eine JSON-Payload entgegen, die der Rest des Workflows lesen kann.
 
 Gut geeignet für: Automatisierungen auf Knopfdruck, für die Sie einen Knopf haben wollen – „diesen Schlüssel rotieren“ oder „eine Testwarnung schicken“.
 

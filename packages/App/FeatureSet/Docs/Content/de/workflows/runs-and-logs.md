@@ -30,10 +30,10 @@ Klicken Sie bei einer Ausführung auf **Protokolle anzeigen**, um sie zu öffnen
 
 **Schritte** – eine Zeile pro gelaufenem Baustein, in der Reihenfolge. Jede Zeile zeigt den Titel des Bausteins, seine Komponenten-ID, wie lange er gedauert hat und über welchen Ausgang er verlassen wurde (`→ success`, `→ error`, `→ yes`). Klappen Sie eine Zeile auf, und Sie bekommen zwei Detailblöcke:
 
-- **Received** – die Einstellungen, die der Baustein bekommen hat, nachdem alle Variablen aufgelöst waren.
-- **Returned** – was er produziert hat.
+- **Empfangen** – die Einstellungen, die der Baustein bekommen hat, nachdem alle Variablen aufgelöst waren.
+- **Zurückgegeben** – was er produziert hat.
 
-Fehlgeschlagene Schritte sind rot und starten aufgeklappt, mit der Fehlermeldung über **Received**.
+Fehlgeschlagene Schritte sind rot und starten aufgeklappt, mit der Fehlermeldung über **Empfangen**.
 
 **Full Log** – das rohe, zeilenweise Protokoll, das der Runner ausgegeben hat, einschließlich allem, was die Bausteine selbst protokolliert haben. Nutzen Sie es, wenn die Ansicht **Schritte** den Fehlschlag nicht erklärt.
 
@@ -41,13 +41,13 @@ Zwei Details lohnen sich zu wissen. Die Komponenten-ID unter jedem Schritt-Titel
 
 Die gezeigten Werte sind das, was der Baustein nach dem Einsetzen der Variablen gesehen hat – mit zwei Ausnahmen: Geheimnisse und Felder, die der Baustein als sensibel markiert, werden geschwärzt, und sehr lange Werte werden mit „… (truncated)“ abgeschnitten.
 
-Starten Sie eine Ausführung aus dem **Builder** heraus, öffnet sich genau diese Ansicht und verfolgt die Ausführung bereits, sodass Sie ihr zusehen können, statt sie hinterher zu suchen.
+Starten Sie eine Ausführung aus dem **Editor** heraus, öffnet sich genau diese Ansicht und verfolgt die Ausführung bereits, sodass Sie ihr zusehen können, statt sie hinterher zu suchen.
 
 ## Häufige Fehlersuche
 
 ### „Mein Workflow ist nicht gelaufen.“
 
-1. Stellen Sie sicher, dass der Workflow auf **Aktiviert** steht: Der Schalter sitzt oben in seinem **Builder**, der über der Arbeitsfläche Bescheid gibt, wenn der Workflow ausgeschaltet ist. Neue Workflows starten deaktiviert, und ein deaktivierter Workflow lehnt jede Ausführung ab – auch manuelle. Ein Aufruf seines Webhooks erhält HTTP 400 mit einer Meldung, wie er eingeschaltet wird.
+1. Stellen Sie sicher, dass der Workflow auf **Aktiviert** steht: Der Schalter sitzt oben in seinem **Editor**, der über der Arbeitsfläche Bescheid gibt, wenn der Workflow ausgeschaltet ist. Neue Workflows starten deaktiviert, und ein deaktivierter Workflow lehnt jede Ausführung ab – auch manuelle. Ein Aufruf seines Webhooks erhält HTTP 400 mit einer Meldung, wie er eingeschaltet wird.
 2. Bei einem OneUptime-Ereignis-Trigger: Prüfen Sie, ob das Ereignis wirklich stattgefunden hat. Öffnen Sie den Datensatz und sehen Sie sich seine Historie an.
 3. Bei einem Webhook-Trigger: Prüfen Sie, ob das andere System an die richtige URL sendet. Die meisten Tools protokollieren, wenn sie einen Webhook schicken – schauen Sie dort nach.
 4. Bei einem Zeitplan-Trigger: Prüfen Sie, ob der Cron-Ausdruck zu der Zeit passt, die Sie erwarten.
@@ -56,14 +56,14 @@ Taucht die Ausführung *doch* auf, und zwar mit dem Status **Execution Exceeded 
 
 ### „Ein späterer Baustein ist nie gelaufen.“
 
-Ein Baustein, der nicht läuft, ist meist ein Verdrahtungsproblem. Öffnen Sie den **Builder** und prüfen Sie:
+Ein Baustein, der nicht läuft, ist meist ein Verdrahtungsproblem. Öffnen Sie den **Editor** und prüfen Sie:
 
 - Ist der Ausgang des früheren Bausteins mit dem Eingang dieses Bausteins verbunden?
 - Hat der frühere Baustein einen anderen Ausgang genommen als erwartet – **Fehler** statt **Erfolg** oder **Nein** statt **Ja**? Der Reiter **Schritte** zeigt, welchen er genommen hat.
 
 ### „Eine Variable kam leer an.“
 
-Öffnen Sie die Ausführung und sehen Sie sich den Block **Received** des fehlgeschlagenen Schritts an.
+Öffnen Sie die Ausführung und sehen Sie sich den Block **Empfangen** des fehlgeschlagenen Schritts an.
 
 - Steht dort wörtlich `{{local.components.…}}`, wurde die Referenz nicht aufgelöst. Meist ist das ein Tippfehler in der Komponenten-ID oder in der ID des Rückgabewerts – denken Sie daran: gemeint ist der **Identifier** des Bausteins, nicht der Name, der darauf angezeigt wird. Prüfen Sie auch die Schreibweise von `local.components` selbst: `{{local.componets.api-get-1.returnValues.response-body}}` wird als wörtlicher Text verschickt, und die Ausführung meldet trotzdem **Executed**.
 - Sehen Sie eine leere Zeichenkette, ist der frühere Baustein zwar gelaufen, hat dieses Feld aber nicht erzeugt.
@@ -72,11 +72,11 @@ Der Reiter **Full Log** enthält eine Warnzeile, die jede nicht aufgelöste Refe
 
 ### „Von Hand läuft es, über den Trigger nicht.“
 
-Öffnen Sie den **Builder**, klicken Sie auf **Arbeitsablauf ausführen** und füllen Sie die Felder des Triggers mit Werten, wie sie der echte Trigger schicken würde. Vergleichen Sie dann die Werte unter **Received** dieser Ausführung Seite an Seite mit denen der echten Ausführung. Der Unterschied ist meist ein einzelner Feldname oder Typ.
+Öffnen Sie den **Editor**, klicken Sie auf **Arbeitsablauf ausführen** und füllen Sie die Felder des Triggers mit Werten, wie sie der echte Trigger schicken würde. Vergleichen Sie dann die Werte unter **Empfangen** dieser Ausführung Seite an Seite mit denen der echten Ausführung. Der Unterschied ist meist ein einzelner Feldname oder Typ.
 
 ## Einen Workflow erneut ausführen
 
-Es gibt keinen Knopf „diese Ausführung wiederholen“. Wir führen alte Ausführungen nicht automatisch erneut aus, weil die Nebenwirkungen – Slack-Nachrichten, API-Aufrufe, Tickets – nicht unbedingt gefahrlos wiederholbar sind. Um die Arbeit noch einmal zu erledigen, reparieren Sie den Workflow und lassen ihn vom nächsten echten Trigger auslösen, oder Sie öffnen den **Builder** und klicken mit denselben Werten auf **Arbeitsablauf ausführen**.
+Es gibt keinen Knopf „diese Ausführung wiederholen“. Wir führen alte Ausführungen nicht automatisch erneut aus, weil die Nebenwirkungen – Slack-Nachrichten, API-Aufrufe, Tickets – nicht unbedingt gefahrlos wiederholbar sind. Um die Arbeit noch einmal zu erledigen, reparieren Sie den Workflow und lassen ihn vom nächsten echten Trigger auslösen, oder Sie öffnen den **Editor** und klicken mit denselben Werten auf **Arbeitsablauf ausführen**.
 
 ## Wie lange werden Ausführungen aufbewahrt?
 

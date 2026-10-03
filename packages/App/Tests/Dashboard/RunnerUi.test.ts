@@ -537,7 +537,8 @@ describe("capabilities render as pills", () => {
 
   test("it still handles a Runner with no capabilities", () => {
     expect(source).toContain("if (capabilities.length === 0)");
-    expect(source).toContain('translateString("None")');
+    // translateText answers with "None" itself when a locale has no wording.
+    expect(source).toContain('translator.translateText("None")');
   });
 
   test("the capability labels are translated", () => {

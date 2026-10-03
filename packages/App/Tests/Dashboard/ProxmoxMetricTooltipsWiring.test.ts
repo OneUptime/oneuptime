@@ -84,6 +84,15 @@ function tooltipPattern(
   );
 }
 
+/*
+ * A heading as the page draws it: its English text, looked up in the
+ * reader's language. The (i) beside it keeps the English text as its label,
+ * which InfoTooltip translates for the screen reader itself.
+ */
+function shown(text: string): string {
+  return `{translator.translateText("${text}")}`;
+}
+
 function referencedKeys(source: string): Array<string> {
   return Array.from(source.matchAll(DESCRIPTION_REFERENCE)).map(
     (match: RegExpMatchArray): string => {
@@ -356,7 +365,11 @@ describe("cluster overview: hero, cards and tables", () => {
     );
 
     expect(ceph).toMatch(
-      tooltipPattern("Capacity used", "cephCapacityUsed", "Capacity used "),
+      tooltipPattern(
+        "Capacity used",
+        "cephCapacityUsed",
+        `${shown("Capacity used")} `,
+      ),
     );
   });
 
@@ -367,7 +380,7 @@ describe("cluster overview: hero, cards and tables", () => {
     "the top consumers heading %s carries %s",
     (heading: string, key: ProxmoxMetric) => {
       expect(OVERVIEW).toMatch(
-        tooltipPattern(heading, key, `${heading} </h4> `),
+        tooltipPattern(heading, key, `${shown(heading)} </h4> `),
       );
     },
   );
@@ -509,7 +522,7 @@ function expectThroughputHeaders(
       tooltipPattern(
         header,
         key,
-        `${header} `,
+        `${shown(header)} `,
         ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
       ),
     );
@@ -671,7 +684,7 @@ describe("insights", () => {
       tooltipPattern(
         "Disk Throughput",
         "insightsDiskThroughput",
-        "Disk Throughput ",
+        `${shown("Disk Throughput")} `,
         ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
       ),
     );

@@ -56,6 +56,16 @@ export interface AdvancedFormSectionOptions<TEntity> {
    * value other than empty or its default".
    */
   isConfigured?: ((values: FormValues<TEntity>) => boolean) | undefined;
+  /*
+   * What a default folded in here will do, in plain words under the title
+   * while the section is folded (FormFieldCollapsibleSection.getSummary) -
+   * for a default people should know about without opening Advanced, such
+   * as "The key expires a year from today." Whole English sentences in
+   * translationKey(). Return nothing to fall back to the "Configured" badge.
+   */
+  getSummary?:
+    | ((values: FormValues<TEntity>) => Array<string> | undefined)
+    | undefined;
 }
 
 export type GetAdvancedFormSectionFunction = <TEntity>(
@@ -78,6 +88,10 @@ export const getAdvancedFormSection: GetAdvancedFormSectionFunction = <TEntity>(
 
   if (options?.isConfigured) {
     section.isConfigured = options.isConfigured;
+  }
+
+  if (options?.getSummary) {
+    section.getSummary = options.getSummary;
   }
 
   return section;

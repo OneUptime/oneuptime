@@ -47,7 +47,7 @@ Verwenden Sie das, wenn Sie Logik jenseits von „Alarm wird Vorfall" brauchen.
 
 ### Schritt 1 — Den OneUptime-Workflow erstellen
 
-1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Grafana → Incidents`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Grafana → Incidents`, und öffnen Sie den **Editor**.
 2. Fügen Sie einen **Webhook**-Auslöser hinzu und **kopieren Sie seine URL**. Benennen Sie den Block in `Grafana` um.
 3. Fügen Sie einen **Bedingungen**-Block verbunden mit dem Auslöser hinzu:
    - **Links**: `{{Grafana.Request Body.status}}`

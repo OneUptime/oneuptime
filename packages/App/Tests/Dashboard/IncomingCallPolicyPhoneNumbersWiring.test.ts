@@ -261,8 +261,9 @@ describe("the incoming-call policies table", () => {
     expect(POLICIES_TABLE_CODE).toContain(
       "getCompactPhoneNumberSummary(phoneNumbers)",
     );
-    expect(POLICIES_TABLE_CODE).toContain(
-      "+{summary.additionalPhoneNumbersCount} more",
+    // "+2 more" is one translated sentence, filled with the overflow count.
+    expect(POLICIES_TABLE_CODE).toMatch(
+      /translatePlural\(\s*\{\s*one: "\+\{\{count\}\} more",\s*other: "\+\{\{count\}\} more",?\s*\},\s*summary\.additionalPhoneNumbersCount,?\s*\)/,
     );
     expect(POLICIES_TABLE_CODE).toContain('title: "Phone Numbers"');
   });

@@ -1,10 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddUserNotificationEmailRollup1791000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791000000000-AddUserNotificationEmailRollup";
 import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791900000000-AddSeverityAndStateToNotificationEmailRollup";
+import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
 import UserNotificationEmailRollupBatch from "../../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import Columns from "../../../../Types/Database/Columns";
@@ -157,6 +158,68 @@ function definitionOf(
   return definition as string;
 }
 
+type MigrationClass = new () => MigrationInterface;
+
+const ITEM_TABLE: string = "UserNotificationEmailRollupItem";
+
+/*
+ * Every registered migration after the one that created the queue table whose
+ * source alters that table, in the order the runner applies them. They are
+ * found by reading the migrations directory, so a migration that adds a column
+ * is held to this file the day it lands: a list written out here went stale
+ * the first time a column was added without editing it.
+ */
+function laterItemTableMigrations(): Array<MigrationClass> {
+  const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
+  const createdAt: number = registered.indexOf(
+    AddUserNotificationEmailRollup1791000000000,
+  );
+  const migrationsDirectory: string = path.dirname(MIGRATION_PATH);
+  const found: Array<MigrationClass> = [];
+
+  expect(createdAt).toBeGreaterThan(-1);
+
+  for (const fileName of fs.readdirSync(migrationsDirectory).sort()) {
+    if (
+      !fileName.endsWith(".ts") ||
+      fileName === "Index.ts" ||
+      fileName === MIGRATION_FILE_NAME
+    ) {
+      continue;
+    }
+
+    const filePath: string = path.join(migrationsDirectory, fileName);
+
+    if (!fs.readFileSync(filePath, "utf8").includes(`"${ITEM_TABLE}"`)) {
+      continue;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const exported: Record<string, unknown> = require(filePath);
+    const migrations: Array<unknown> = Object.values(exported).filter(
+      (value: unknown): boolean => {
+        return registered.includes(value);
+      },
+    );
+
+    // Only a registered migration runs, so only its columns count.
+    expect({ fileName, registeredClasses: migrations.length }).toEqual({
+      fileName,
+      registeredClasses: 1,
+    });
+    expect({
+      fileName,
+      runsAfterTheTableIsCreated: registered.indexOf(migrations[0]) > createdAt,
+    }).toEqual({ fileName, runsAfterTheTableIsCreated: true });
+
+    found.push(migrations[0] as MigrationClass);
+  }
+
+  return found.sort((left: MigrationClass, right: MigrationClass): number => {
+    return registered.indexOf(left) - registered.indexOf(right);
+  });
+}
+
 function persistedColumnsOf(
   model: UserNotificationEmailRollupItem | UserNotificationEmailRollupBatch,
 ): Array<string> {
@@ -246,44 +309,68 @@ describe("the queue table it creates", () => {
    * the current model is held to the schema after subsequent migrations too.
    * Keep ITEM_COLUMNS unchanged so the original CREATE TABLE assertions still
    * describe the historical migration. Later columns must come from a
-   * registered migration's up() rather than an exception list in this test.
+   * registered migration's up() rather than an exception list in this test:
+   * every registered migration that alters the table is run here, in order.
    */
   test("every column the model persists exists after registered migrations", async () => {
     const migratedItemColumns: Set<string> = new Set<string>(
       ITEM_COLUMNS.keys(),
     );
 
-    expect(
-      SchemaMigrations.indexOf(
+    const laterMigrations: Array<MigrationClass> = laterItemTableMigrations();
+
+    // The search finds the migrations known to alter the table.
+    expect(laterMigrations).toEqual(
+      expect.arrayContaining([
         AddSeverityAndStateToNotificationEmailRollup1791900000000,
-      ),
-    ).toBeGreaterThan(
-      SchemaMigrations.indexOf(AddUserNotificationEmailRollup1791000000000),
+        AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
+      ]),
     );
 
-    await new AddSeverityAndStateToNotificationEmailRollup1791900000000().up({
-      query: async (statement: string): Promise<void> => {
-        const addedColumn: string | undefined = statement.match(
-          /^ALTER TABLE "UserNotificationEmailRollupItem" ADD "(\w+)" /,
-        )?.[1];
+    for (const LaterMigration of laterMigrations) {
+      let itemTableStatements: number = 0;
 
-        expect(addedColumn).toBeDefined();
+      await new LaterMigration().up({
+        query: async (statement: string): Promise<void> => {
+          if (!statement.startsWith(`ALTER TABLE "${ITEM_TABLE}" `)) {
+            return;
+          }
 
-        if (addedColumn) {
-          migratedItemColumns.add(addedColumn);
-        }
-      },
-    } as QueryRunner);
+          itemTableStatements++;
+
+          const addedColumn: string | undefined = statement.match(
+            /^ALTER TABLE "\w+" ADD "(\w+)" /,
+          )?.[1];
+          const droppedColumn: string | undefined = statement.match(
+            /^ALTER TABLE "\w+" DROP COLUMN "(\w+)"/,
+          )?.[1];
+
+          if (addedColumn) {
+            migratedItemColumns.add(addedColumn);
+          }
+
+          if (droppedColumn) {
+            migratedItemColumns.delete(droppedColumn);
+          }
+        },
+      } as QueryRunner);
+
+      expect({
+        migration: LaterMigration.name,
+        altersTheTable: itemTableStatements > 0,
+      }).toEqual({ migration: LaterMigration.name, altersTheTable: true });
+    }
 
     const persisted: Array<string> = persistedColumnsOf(
       new UserNotificationEmailRollupItem(),
     );
 
     expect(persisted.length).toBeGreaterThan(0);
-
-    for (const columnName of persisted) {
-      expect(migratedItemColumns.has(columnName)).toBe(true);
-    }
+    expect(
+      persisted.filter((columnName: string): boolean => {
+        return !migratedItemColumns.has(columnName);
+      }),
+    ).toEqual([]);
   });
 
   /*

@@ -78,6 +78,40 @@ describe("getAdvancedFormSection", () => {
     expect(section.openWhenConfigured).toBe(false);
   });
 
+  test("takes what its defaults do, to say while it is folded", () => {
+    const getSummary: (values: Values) => Array<string> | undefined = (
+      values: Values,
+    ): Array<string> | undefined => {
+      return values["expiresAt"]
+        ? undefined
+        : ["The key expires a year from today."];
+    };
+
+    const section: FormFieldCollapsibleSection<JSONObject> =
+      getAdvancedFormSection<JSONObject>({ getSummary });
+
+    // Handed to BasicForm as the section's own summary, unchanged.
+    expect(section.getSummary).toBe(getSummary);
+    expect(section.getSummary!({} as Values)).toEqual([
+      "The key expires a year from today.",
+    ]);
+    expect(
+      section.getSummary!({ expiresAt: "2030-01-15" } as Values),
+    ).toBeUndefined();
+    // Still an Advanced section: folded, and set by its fields.
+    expect(section.title).toBe(ADVANCED_FORM_SECTION_TITLE);
+    expect(section.openWhenConfigured).toBe(false);
+    expect(section.isConfigured).toBeUndefined();
+  });
+
+  test("says nothing folded unless asked to", () => {
+    expect(getAdvancedFormSection<JSONObject>().getSummary).toBeUndefined();
+    expect(
+      getAdvancedFormSection<JSONObject>({ description: "Rarely needed." })
+        .getSummary,
+    ).toBeUndefined();
+  });
+
   test("builds a new section each time, so no form changes another's", () => {
     expect(getAdvancedFormSection()).not.toBe(getAdvancedFormSection());
   });
