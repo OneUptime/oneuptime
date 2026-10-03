@@ -16,6 +16,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ProjectUser from "../../../Utils/ProjectUser";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -24,6 +26,7 @@ export interface ComponentProps {
 const UserOverrideTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const query: Query<OnCallDutyPolicyUserOverride> = {
     projectId: ProjectUtil.getCurrentProjectId()!,
   };
@@ -56,7 +59,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
               />
             );
           }
-          return <p>No on-call policy.</p>;
+          return <p>{translator.translateText("No on-call policy.")}</p>;
         },
       },
     ]);
@@ -112,7 +115,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         if (item["overrideUser"]) {
           return <UserElement user={item["overrideUser"] as User} />;
         }
-        return <p>No user.</p>;
+        return <p>{translator.translateText("No user.")}</p>;
       },
     },
     {
@@ -129,7 +132,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         if (item["routeAlertsToUser"]) {
           return <UserElement user={item["routeAlertsToUser"] as User} />;
         }
-        return <p>No user.</p>;
+        return <p>{translator.translateText("No user.")}</p>;
       },
     },
     {

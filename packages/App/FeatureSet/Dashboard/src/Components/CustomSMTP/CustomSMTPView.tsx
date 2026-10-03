@@ -3,6 +3,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -13,8 +15,9 @@ export interface ComponentProps {
 const CustomSMTPElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   if (!props.smtp) {
-    return <span>OneUptime Mail Server</span>;
+    return <span>{translator.translateText("OneUptime Mail Server")}</span>;
   }
 
   if (props.smtp._id) {

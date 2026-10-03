@@ -130,14 +130,14 @@ Os anexos são servidos por `GET {statusPageCrudPath}/status-page-announcement/a
 **Show At** (`showAnnouncementAt`) e **End At** (`endAnnouncementAt`) governam tudo, mas a página de visão geral e a lista de anúncios fazem perguntas diferentes, e é aí que as pessoas tropeçam.
 
 - **A página de visão geral** mostra um anúncio quando `showAnnouncementAt` está no passado e `endAnnouncementAt` está no futuro ou vazio.
-- **A lista `/announcements`** mostra os anúncios cujo `showAnnouncementAt` cai dentro de **Mostrar histórico de anúncios (em dias)** (`showAnnouncementHistoryInDays`, 14 por padrão) e depois os separa, no cliente, entre ativos e anteriores.
+- **A lista `/announcements`** mostra os anúncios cujo `showAnnouncementAt` cai dentro da janela de histórico dos anúncios (`showAnnouncementHistoryInDays`, 14 por padrão) e depois os separa, no cliente, entre ativos e anteriores.
 
 Duas consequências que vale planejar:
 
 - **Um anúncio sem data de término nunca expira.** Deixe **Parar de exibir o anúncio em** vazio e ele fica fixado na página de visão geral indefinidamente. Defina uma data de término em tudo o que tiver prazo.
 - **Um anúncio antigo, mas ainda ativo, pode sumir da lista.** Se ele começou há mais de `showAnnouncementHistoryInDays`, ele cai fora de `/announcements` mas continua na visão geral. Aumente a janela de histórico se você mantém avisos de longa duração.
 
-Se os anúncios aparecem ou não é decidido pelo cartão **Configurações do anúncio**, em **Configurações avançadas**: **Mostrar anúncios** (`showAnnouncementsOnStatusPage`, `true` por padrão) e **Mostrar histórico de anúncios (em dias)** (14 por padrão). Com **Mostrar anúncios** desligado, o endpoint de anúncios recusa a requisição de saída.
+Se os anúncios aparecem ou não é definido no cartão **O que sua página de status mostra**, em **Configurações avançadas**: **Mostrar anúncios** (`showAnnouncementsOnStatusPage`, `true` por padrão) e, abaixo dela, **Mostrar … dias de histórico** (`showAnnouncementHistoryInDays`, 14 por padrão). Com **Mostrar anúncios** desligado, o endpoint de anúncios recusa a requisição de saída.
 
 ## Modelos de anúncio
 

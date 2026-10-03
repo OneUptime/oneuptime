@@ -89,6 +89,13 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import {
+  translatePlural,
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
@@ -153,21 +160,27 @@ const formatMinutes: (minutes: number | undefined | null) => string = (
   minutes: number | undefined | null,
 ): string => {
   if (!minutes || minutes <= 0) {
-    return "immediately";
+    return translateTemplate("immediately");
   }
 
   if (minutes < 60) {
-    return `${minutes} min`;
+    return translateTemplate("{{minutes}} min", { minutes: minutes });
   }
 
   const hours: number = Math.floor(minutes / 60);
   const remainingMinutes: number = minutes % 60;
 
   if (remainingMinutes === 0) {
-    return hours === 1 ? "1 hr" : `${hours} hrs`;
+    return translatePlural(
+      { one: "{{count}} hr", other: "{{count}} hrs" },
+      hours,
+    );
   }
 
-  return `${hours} hr ${remainingMinutes} min`;
+  return translateTemplate("{{hours}} hr {{minutes}} min", {
+    hours: hours,
+    minutes: remainingMinutes,
+  });
 };
 
 /*
@@ -233,7 +246,9 @@ export const getEscalationRuleDeletionImpact: (params: {
     }
 
     usersNamedNowhereElse.push(
-      join.user?.name?.toString() || join.user?.email?.toString() || "A user",
+      join.user?.name?.toString() ||
+        join.user?.email?.toString() ||
+        translateTemplate("A user"),
     );
   }
 
@@ -254,21 +269,31 @@ const describeResponderCounts: (
 
   if (impact.userCount > 0) {
     parts.push(
-      `${impact.userCount} ${impact.userCount === 1 ? "user" : "users"}`,
+      translatePlural(
+        { one: "{{count}} user", other: "{{count}} users" },
+        impact.userCount,
+      ),
     );
   }
 
   if (impact.teamCount > 0) {
     parts.push(
-      `${impact.teamCount} ${impact.teamCount === 1 ? "team" : "teams"}`,
+      translatePlural(
+        { one: "{{count}} team", other: "{{count}} teams" },
+        impact.teamCount,
+      ),
     );
   }
 
   if (impact.scheduleCount > 0) {
     parts.push(
-      `${impact.scheduleCount} on-call ${
-        impact.scheduleCount === 1 ? "schedule" : "schedules"
-      }`,
+      translatePlural(
+        {
+          one: "{{count}} on-call schedule",
+          other: "{{count}} on-call schedules",
+        },
+        impact.scheduleCount,
+      ),
     );
   }
 
@@ -280,7 +305,10 @@ const describeResponderCounts: (
     return parts[0]!;
   }
 
-  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return translateTemplate("{{items}} and {{last}}", {
+    items: parts.slice(0, -1).join(", "),
+    last: parts[parts.length - 1]!,
+  });
 };
 
 /*
@@ -299,29 +327,42 @@ export const describeEscalationRuleDeletion: (
   const responderSummary: string = describeResponderCounts(impact);
 
   if (responderSummary) {
-    sentences.push(`"${ruleName}" notifies ${responderSummary}.`);
+    sentences.push(
+      translateTemplate('"{{name}}" notifies {{responders}}.', {
+        name: ruleName,
+        responders: responderSummary,
+      }),
+    );
   } else {
-    sentences.push(`"${ruleName}" currently notifies no one.`);
+    sentences.push(
+      translateTemplate('"{{name}}" currently notifies no one.', {
+        name: ruleName,
+      }),
+    );
   }
 
   if (impact.isLastRule) {
     sentences.push(
-      "This is the only escalation level on this policy. Deleting it leaves the policy with nobody to notify, so an incident routed here would page no one.",
+      translateTemplate(
+        "This is the only escalation level on this policy. Deleting it leaves the policy with nobody to notify, so an incident routed here would page no one.",
+      ),
     );
   }
 
   if (impact.usersNamedNowhereElse.length > 0) {
-    const names: string = impact.usersNamedNowhereElse.join(", ");
-    const isSingle: boolean = impact.usersNamedNowhereElse.length === 1;
-
     sentences.push(
-      `${names} ${
-        isSingle ? "is" : "are"
-      } not named on any other level of this policy.`,
+      translatePlural(
+        {
+          one: "{{names}} is not named on any other level of this policy.",
+          other: "{{names}} are not named on any other level of this policy.",
+        },
+        impact.usersNamedNowhereElse.length,
+        { names: impact.usersNamedNowhereElse.join(", ") },
+      ),
     );
   }
 
-  sentences.push("This action cannot be undone.");
+  sentences.push(translateTemplate("This action cannot be undone."));
 
   return sentences.join(" ");
 };
@@ -379,6 +420,7 @@ const syncJoinType: <TJoin extends BaseModel>(config: {
 const EscalationRules: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rules, setRules] = useState<Array<OnCallDutyEscalationRule>>([]);
   const [membersByRuleId, setMembersByRuleId] = useState<MembersByRuleId>({});
 
@@ -1060,7 +1102,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         key={`schedule-${schedule.id?.toString()}`}
         title={
           isUncovered
-            ? "No one is currently on call in this schedule - this level would not notify anyone right now."
+            ? translator.translateText(
+                "No one is currently on call in this schedule - this level would not notify anyone right now.",
+              )
             : undefined
         }
         className={`inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
@@ -1084,7 +1128,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         </span>
         {isUncovered && (
           <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-            No one on call
+            {translator.translateText("No one on call")}
           </span>
         )}
       </span>
@@ -1130,8 +1174,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 text-amber-500 mt-0.5 shrink-0"
           />
           <span>
-            No responders assigned. No one will be notified at this level — edit
-            this rule to add responders.
+            {translator.translateText(
+              "No responders assigned. No one will be notified at this level — edit this rule to add responders.",
+            )}
           </span>
         </div>
       );
@@ -1341,8 +1386,12 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                         icon={IconProp.Clock}
                         className="h-3 w-3 text-gray-400"
                       />
-                      Escalates after{" "}
-                      {formatMinutes(rule.escalateAfterInMinutes)}
+                      {translator.translateTemplate(
+                        "Escalates after {{duration}}",
+                        {
+                          duration: formatMinutes(rule.escalateAfterInMinutes),
+                        },
+                      )}
                     </span>
                   </div>
                   {rule.description?.toString() ? (
@@ -1366,7 +1415,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               <div className="mt-4">
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                    Notifies
+                    {translator.translateText("Notifies")}
                   </div>
                   {/*
                    * The warning, where the thing it is about lives. It used to
@@ -1405,11 +1454,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <div className="my-1 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
           <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-400" />
           <span>
-            If unacknowledged after{" "}
-            <span className="font-semibold text-gray-900">
-              {formatMinutes(rule.escalateAfterInMinutes)}
-            </span>
-            , escalate to the next level
+            <TranslatedSentence
+              template="If unacknowledged after {{duration}}, escalate to the next level"
+              slots={{
+                duration: (
+                  <span className="font-semibold text-gray-900">
+                    {formatMinutes(rule.escalateAfterInMinutes)}
+                  </span>
+                ),
+              }}
+            />
           </span>
         </div>
         <Icon icon={IconProp.ChevronDown} className="h-4 w-4 text-gray-300" />
@@ -1677,11 +1731,12 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Escalation Rules
+              {translator.translateText("Escalation Rules")}
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-              Who gets notified when an incident is triggered, and how it climbs
-              the ladder if no one responds.
+              {translator.translateText(
+                "Who gets notified when an incident is triggered, and how it climbs the ladder if no one responds.",
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2 sm:shrink-0">

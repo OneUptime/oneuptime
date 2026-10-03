@@ -130,14 +130,14 @@ Vedhæftninger serveres fra `GET {statusPageCrudPath}/status-page-announcement/a
 **Show At** (`showAnnouncementAt`) og **End At** (`endAnnouncementAt`) styrer det hele, men oversigtssiden og meddelelseslisten stiller hver sit spørgsmål, og forskellen snyder folk.
 
 - **Oversigtssiden** viser en meddelelse, når `showAnnouncementAt` ligger i fortiden, og `endAnnouncementAt` enten ligger i fremtiden eller er tom.
-- **Listen på `/announcements`** viser de meddelelser, hvis `showAnnouncementAt` falder inden for **Vis meddelelseshistorik (i dage)** (`showAnnouncementHistoryInDays`, standard 14), og deler dem så op i aktive og tidligere på klienten.
+- **Listen på `/announcements`** viser de meddelelser, hvis `showAnnouncementAt` falder inden for meddelelsernes historikvindue (`showAnnouncementHistoryInDays`, standard 14), og deler dem så op i aktive og tidligere på klienten.
 
 To konsekvenser, det er værd at planlægge efter:
 
 - **En meddelelse uden slutdato udløber aldrig.** Lad **Stop visning af meddelelse kl.** stå tom, og den bliver hængende på oversigtssiden i det uendelige. Sæt en slutdato på alt, der er tidsbegrænset.
 - **En gammel, men stadig aktiv meddelelse kan forsvinde fra listen.** Startede den for mere end `showAnnouncementHistoryInDays` siden, falder den ud af `/announcements`, men bliver på oversigten. Skru historikvinduet op, hvis du kører langvarige opslag.
 
-Om meddelelser overhovedet vises, styres af kortet **Meddelelsesindstillinger** på **Avancerede indstillinger**: **Vis meddelelser** (`showAnnouncementsOnStatusPage`, standard true) og **Vis meddelelseshistorik (i dage)** (standard 14). Er **Vis meddelelser** slået fra, afviser meddelelsesendepunktet anmodningen helt.
+Om meddelelser overhovedet vises, indstilles i kortet **Hvad din statusside viser** på **Avancerede indstillinger**: **Vis meddelelser** (`showAnnouncementsOnStatusPage`, standard true) og under den **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14). Er **Vis meddelelser** slået fra, afviser meddelelsesendepunktet anmodningen helt.
 
 ## Meddelelsesskabeloner
 

@@ -40,6 +40,8 @@
  * Change the fetch, change the words.
  */
 
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
 export type DockerSwarmMetric =
   | "nodes"
   | "managers"
@@ -67,48 +69,69 @@ export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
   DockerSwarmMetric,
   string
 > = {
-  nodes:
+  nodes: translationKey(
     "Machines running Docker that have joined this swarm, from the agent's latest inventory snapshot (taken every 5 minutes by default). Ready counts the nodes the managers currently see as up; a node that is Down cannot run tasks.",
-  managers:
+  ),
+  managers: translationKey(
     "Nodes acting as swarm managers: they keep the swarm's state and decide which node runs each task, and they can run tasks too. Every other node is a worker.",
-  services:
+  ),
+  services: translationKey(
     "Services defined in this swarm - each tells Swarm which image to run and how many copies to keep running. Converged counts the services with every wanted copy running; a service scaled to 0 never counts as converged.",
-  tasks:
+  ),
+  tasks: translationKey(
     "Tasks Swarm wants running, where one task is one container of a service; running counts those actually running, while the rest are starting, stopped or failed. From the latest inventory snapshot, so a replaced task can linger for up to about 25 minutes.",
-  stacks:
+  ),
+  stacks: translationKey(
     "Groups of services deployed together, for example with docker stack deploy, counted from the stack name Docker puts on each service. Services created on their own are not part of a stack.",
-  networks:
+  ),
+  networks: translationKey(
     "Swarm-wide networks, such as overlay networks and the built-in ingress network, that connect services across nodes. Networks that exist on a single node only, such as bridge or host, are not counted.",
-  volumes:
+  ),
+  volumes: translationKey(
     "Docker volumes on the node where the OneUptime inventory poller runs, which is normally one manager. Volumes belong to individual nodes, so volumes on nodes without the poller are not counted.",
-  serviceStatus:
+  ),
+  serviceStatus: translationKey(
     "Running tasks out of the tasks this service wants, such as 2/3, from the latest inventory snapshot. Green when every wanted task is running; amber when some are missing or the service is scaled to 0.",
-  serviceStatusColumn:
+  ),
+  serviceStatusColumn: translationKey(
     "For a service the status is its replica count: running tasks out of wanted tasks, the same figure as Replicas. It comes from the latest inventory snapshot.",
-  replicas:
+  ),
+  replicas: translationKey(
     "Copies of the service running now, out of the copies it should be running - 2/3 means one is missing. A global service wants one copy on every eligible node.",
-  taskCpu:
+  ),
+  taskCpu: translationKey(
     "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds). Unlike the Tasks list, this page keeps showing that reading even when it is more than 15 minutes old.",
-  taskMemory:
+  ),
+  taskMemory: translationKey(
     "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently. This page keeps showing that reading even when it is more than 15 minutes old.",
-  taskCpuColumn:
+  ),
+  taskCpuColumn: translationKey(
     "CPU used by each task's container at the OneUptime agent's latest reading, shown only when that reading is under 15 minutes old. Tasks on nodes where the agent does not run show N/A.",
-  taskMemoryColumn:
+  ),
+  taskMemoryColumn: translationKey(
     "Memory used by each task's container at the agent's latest reading, not counting file cache the system has not used recently, shown only when that reading is under 15 minutes old. Tasks on nodes without the agent show N/A.",
-  nodeUsageColumns:
+  ),
+  nodeUsageColumns: translationKey(
     "Swarm CPU and memory are collected per task container, not per node, so these columns show N/A for nodes. The Tasks list shows each task's node and what it is using.",
-  serviceUsageColumns:
+  ),
+  serviceUsageColumns: translationKey(
     "Swarm CPU and memory are collected per task container, not per service, so these columns show N/A for services. The Tasks list names each task's service and shows what it is using.",
-  stackServices:
+  ),
+  stackServices: translationKey(
     "How many services carry this stack's name, which Docker adds to every service a stack deploys. They count whatever their state, including ones scaled to 0; from the agent's latest inventory snapshot, taken every 5 minutes by default.",
-  stackStatusColumn:
+  ),
+  stackStatusColumn: translationKey(
     "For a stack the status only repeats its service count from the latest inventory snapshot; it is not a health check. The Services list shows whether each service has all its copies running.",
-  clusterListNodes:
+  ),
+  clusterListNodes: translationKey(
     "Nodes in the swarm at the agent's latest inventory snapshot (taken every 5 minutes by default), shown as ready out of total. Ready means the managers see the node as up; the figure turns red when any node is not ready.",
-  clusterListServices:
+  ),
+  clusterListServices: translationKey(
     "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's overview shows how many have every wanted copy running.",
-  clusterListTasks:
+  ),
+  clusterListTasks: translationKey(
     "Tasks Swarm wants running at the latest inventory snapshot (one task is one container of a service), shown as how many are actually running out of that total. The rest are still starting, or have stopped or failed.",
+  ),
 };
 
 /*
@@ -131,16 +154,22 @@ export const DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS: Record<
   DockerSwarmInsightsChart,
   string
 > = {
-  clusterCpu:
+  clusterCpu: translationKey(
     "100% is one full CPU core, so a busy container can go above 100%. One line per container on the nodes where the OneUptime agent runs, averaged per interval.",
-  clusterMemoryPercent:
+  ),
+  clusterMemoryPercent: translationKey(
     "Memory as a percent of each container's memory limit, or of the node's total memory when the service sets no limit. One line per container, averaged per interval.",
-  taskMemory:
+  ),
+  taskMemory: translationKey(
     "Memory used by each container, not counting file cache the system has not used recently. One line per container, averaged per interval.",
-  topTasksCpu:
+  ),
+  topTasksCpu: translationKey(
     "The highest CPU reading of each container in each interval, so short spikes are not averaged away. By default only the 10 containers that peaked highest are drawn; 100% is one full CPU core.",
-  topTasksMemory:
+  ),
+  topTasksMemory: translationKey(
     "The highest memory use of each container in each interval, so short spikes are not averaged away. By default only the 10 containers that peaked highest are drawn.",
-  taskProcesses:
+  ),
+  taskProcesses: translationKey(
     "Processes and threads running inside each container, averaged per interval. A count that keeps climbing can point to a leak or a runaway process.",
+  ),
 };

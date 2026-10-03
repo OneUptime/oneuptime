@@ -227,7 +227,7 @@ describe("the pagination control in Japanese", () => {
     expect(
       screen.getByTestId("pagination-current-page-indicator"),
     ).toHaveTextContent("12 / 24 ページ");
-    expect(screen.getByLabelText("1ページの行数")).toBeInTheDocument();
+    expect(screen.getByLabelText("1 ページの行数")).toBeInTheDocument();
     expect(screen.getByTestId("pagination-page-24")).toHaveAccessibleName(
       "24 ページへ移動",
     );
@@ -244,7 +244,7 @@ describe("switching language", () => {
       await i18next.changeLanguage("ja");
     });
 
-    expect(screen.getByLabelText("1ページの行数")).toBeInTheDocument();
+    expect(screen.getByLabelText("1 ページの行数")).toBeInTheDocument();
     expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
       "240 件中 111-120 件を表示",
     );

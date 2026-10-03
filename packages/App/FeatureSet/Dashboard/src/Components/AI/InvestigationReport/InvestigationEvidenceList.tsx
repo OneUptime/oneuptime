@@ -43,6 +43,11 @@ import Link from "Common/UI/Components/Link/Link";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -184,6 +189,7 @@ function prefersReducedMotion(): boolean {
 const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const idPrefix: string = useId();
   const contextKey: string = `${props.subjectType}:${props.subjectId}:${props.runId || ""}`;
   const [expandedCitationIds, setExpandedCitationIds] = useState<Array<string>>(
@@ -527,7 +533,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
   return (
     <ul
       role="list"
-      aria-label="Evidence checked"
+      aria-label={translator.translateText("Evidence checked")}
       className="divide-y divide-gray-100"
     >
       {hasItems
@@ -544,7 +550,11 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
              * or returned an error (0); a cluster listing counts clusters.
              */
             const clusterOutcome: ClusterToolOutcome | null =
-              describeClusterToolOutcome(item.toolName, item.rowCount);
+              describeClusterToolOutcome(
+                item.toolName,
+                item.rowCount,
+                translator,
+              );
             const isOutcomeError: boolean = clusterOutcome?.isError === true;
             const icon: IconProp = item.target
               ? targetTypeToIcon[item.target.type] || tool.icon
@@ -606,7 +616,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                       {displayLabel}
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {tool.description}
+                      {translator.translateText(tool.description)}
                       {executedAt ? ` · ${executedAt}` : ""}
                     </span>
                   </span>
@@ -630,7 +640,10 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                 <div
                   id={detailsId}
                   role="region"
-                  aria-label={`${displayLabel} details`}
+                  aria-label={translator.translateTemplate(
+                    "{{label}} details",
+                    { label: displayLabel },
+                  )}
                   hidden={!isExpanded}
                   className="pb-4 pt-1 sm:pl-12"
                 >
@@ -712,6 +725,7 @@ interface EvidenceDetailsProps {
 const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
   props: EvidenceDetailsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const item: InvestigationEvidenceItem = props.item;
   const argumentsRows: Array<FormattedEvidenceArgument> =
     formatEvidenceArguments(item.toolName, item.queryArguments);
@@ -724,7 +738,10 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
    * Infrastructure commands (through a resource's AI agent) likewise.
    */
   const isClusterTool: boolean = isLiveInfrastructureToolName(item.toolName);
-  const clusterNote: string | null = getClusterEvidenceNote(item.toolName);
+  const clusterNote: string | null = getClusterEvidenceNote(
+    item.toolName,
+    translator,
+  );
 
   if (ranAt) {
     detailRows.push({ key: "ranAt", label: "Ran at", value: ranAt });
@@ -738,11 +755,15 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
     <div className="space-y-4">
       <div>
         <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          {isClusterTool ? "What was run" : "What was queried"}
+          {translator.translateText(
+            isClusterTool ? "What was run" : "What was queried",
+          )}
         </h4>
         {argumentsRows.length === 0 ? (
           <p className="mt-1 text-xs text-gray-500">
-            No filters — the query ran with its defaults.
+            {translator.translateText(
+              "No filters — the query ran with its defaults.",
+            )}
           </p>
         ) : (
           <></>
@@ -755,7 +776,7 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
                 className="grid grid-cols-1 gap-0.5 py-1.5 sm:grid-cols-3 sm:gap-3"
               >
                 <dt className="text-xs font-medium text-gray-500">
-                  {row.label}
+                  {translator.translateText(row.label)}
                 </dt>
                 <dd className="min-w-0 break-words text-sm text-gray-900 sm:col-span-2">
                   {row.value}
@@ -764,7 +785,9 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
             );
           })}
           <div className="grid grid-cols-1 gap-0.5 py-1.5 sm:grid-cols-3 sm:gap-3">
-            <dt className="text-xs font-medium text-gray-500">Tool</dt>
+            <dt className="text-xs font-medium text-gray-500">
+              {translator.translateText("Tool")}
+            </dt>
             <dd className="min-w-0 break-all font-mono text-xs leading-5 text-gray-700 sm:col-span-2">
               {item.toolName}
             </dd>
@@ -779,7 +802,13 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
             className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-gray-900"
           >
             <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            <span>Open in {describeCitationTargetPage(item.target.type)}</span>
+            <span>
+              {translator.translateTemplate("Open in {{page}}", {
+                page: translatableTerm(
+                  describeCitationTargetPage(item.target.type),
+                ),
+              })}
+            </span>
           </Link>
         </div>
       ) : (
@@ -796,8 +825,9 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
         <p className="text-xs leading-5 text-gray-500">{clusterNote}</p>
       ) : (
         <p className="text-xs leading-5 text-gray-500">
-          This query can&apos;t be re-run from the dashboard, so its rows
-          aren&apos;t available here.
+          {translator.translateText(
+            "This query can't be re-run from the dashboard, so its rows aren't available here.",
+          )}
         </p>
       )}
     </div>
@@ -813,6 +843,7 @@ interface EvidenceRowsProps {
 const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
   props: EvidenceRowsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const state: EvidenceRowsState | undefined = props.rowsState;
   const headingId: string = useId();
   const containerRef: React.RefObject<HTMLDivElement> =
@@ -825,7 +856,9 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
         <span className="block h-3 w-2/3 rounded bg-gray-100 motion-safe:animate-pulse" />
         <span className="block h-3 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
         <span className="block h-3 w-3/4 rounded bg-gray-100 motion-safe:animate-pulse" />
-        <span className="sr-only">Loading rows</span>
+        <span className="sr-only">
+          {translator.translateText("Loading rows")}
+        </span>
       </div>
     );
   } else if (state.status === "error") {
@@ -850,7 +883,7 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
           }}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-          Try again
+          {translator.translateText("Try again")}
         </button>
       </div>
     );
@@ -870,7 +903,7 @@ const EvidenceRows: FunctionComponent<EvidenceRowsProps> = (
         id={headingId}
         className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500"
       >
-        Rows
+        {translator.translateText("Rows")}
       </h4>
       {body}
     </div>
@@ -885,15 +918,25 @@ interface LoadedEvidenceRowsProps {
 const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
   props: LoadedEvidenceRowsProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const response: InvestigationEvidenceRowsResponse = props.response;
   const investigatedAt: string | null = formatEvidenceDateTime(
     response.investigatedAt || props.item.executedAt,
   );
-  const notice: string = response.isPinnedToInvestigationTime
-    ? "Re-run with your permissions over the same time window the AI used."
-    : `Shows current data with your permissions — it may differ from what the AI saw${
-        investigatedAt ? ` at ${investigatedAt}` : ""
-      }.`;
+  let notice: string = translator.translateText(
+    "Shows current data with your permissions — it may differ from what the AI saw.",
+  ) as string;
+
+  if (response.isPinnedToInvestigationTime) {
+    notice = translator.translateText(
+      "Re-run with your permissions over the same time window the AI used.",
+    ) as string;
+  } else if (investigatedAt) {
+    notice = translator.translateTemplate(
+      "Shows current data with your permissions — it may differ from what the AI saw at {{time}}.",
+      { time: investigatedAt },
+    );
+  }
   let content: ReactElement;
 
   if (response.rowCount === 0) {
@@ -908,13 +951,17 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
 
     content = emptyRowsMessage ? (
       <div>
-        <p className="text-sm font-medium text-gray-700">No rows returned.</p>
+        <p className="text-sm font-medium text-gray-700">
+          {translator.translateText("No rows returned.")}
+        </p>
         <p className="mt-1 max-h-40 overflow-y-auto whitespace-pre-line break-words text-xs leading-5 text-gray-500">
           {emptyRowsMessage}
         </p>
       </div>
     ) : (
-      <p className="text-sm text-gray-500">No rows returned.</p>
+      <p className="text-sm text-gray-500">
+        {translator.translateText("No rows returned.")}
+      </p>
     );
   } else if (response.widget) {
     content = <WidgetRenderer widgets={[response.widget]} />;
@@ -925,7 +972,11 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
       </pre>
     );
   } else {
-    content = <p className="text-sm text-gray-500">No rows returned.</p>;
+    content = (
+      <p className="text-sm text-gray-500">
+        {translator.translateText("No rows returned.")}
+      </p>
+    );
   }
 
   return (
@@ -943,7 +994,9 @@ const LoadedEvidenceRows: FunctionComponent<LoadedEvidenceRowsProps> = (
       </div>
       {response.isTruncated && response.rowCount > 0 ? (
         <p className="text-xs text-gray-500">
-          The result was long, so only part of it is shown.
+          {translator.translateText(
+            "The result was long, so only part of it is shown.",
+          )}
         </p>
       ) : (
         <></>

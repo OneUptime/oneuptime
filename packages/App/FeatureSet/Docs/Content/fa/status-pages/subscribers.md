@@ -260,14 +260,14 @@
 مقادیر **Show At** (`showAnnouncementAt`) و **End At** (`endAnnouncementAt`) همه‌چیز را می‌رانند، اما صفحه نمای کلی و فهرست اعلامیه‌ها پرسش‌های متفاوتی می‌پرسند، و تفاوت آدم‌ها را می‌لغزاند.
 
 - **صفحه نمای کلی** اعلامیه‌ای را وقتی نشان می‌دهد که `showAnnouncementAt` در گذشته باشد و `endAnnouncementAt` یا در آینده باشد یا خالی.
-- **فهرست `/announcements`** اعلامیه‌هایی را نشان می‌دهد که `showAnnouncementAt` آن‌ها در **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`، پیش‌فرض ۱۴) می‌افتد، سپس در سمت کلاینت به فعال و گذشته تقسیمشان می‌کند.
+- **فهرست `/announcements`** اعلامیه‌هایی را نشان می‌دهد که `showAnnouncementAt` آن‌ها در بازه تاریخچه اعلامیه‌ها (`showAnnouncementHistoryInDays`، پیش‌فرض ۱۴) می‌افتد، سپس در سمت کلاینت به فعال و گذشته تقسیمشان می‌کند.
 
 دو پیامد که برنامه‌ریزی برایشان می‌ارزد:
 
 - **اعلامیه‌ای بدون تاریخ پایان هرگز منقضی نمی‌شود.** گزینه **End Showing Announcement At** را خالی بگذارید و بی‌پایان به صفحه نمای کلی سنجاق می‌ماند. روی هر چیزی که زمان‌بند دارد تاریخ پایانی بگذارید.
 - **اعلامیه‌ای قدیمی اما هنوز فعال می‌تواند از فهرست ناپدید شود.** اگر بیش از `showAnnouncementHistoryInDays` پیش آغاز شده باشد، از `/announcements` می‌افتد در حالی که روی نمای کلی می‌ماند. اگر اطلاعیه‌های طولانی‌مدت نگه می‌دارید پنجره تاریخچه را بالا ببرید.
 
-اینکه اصلاً اعلامیه‌ها پدیدار شوند یا نه با کارت **Announcement Settings** روی **Advanced Settings** کنترل می‌شود: **Show Announcements** (`showAnnouncementsOnStatusPage`، پیش‌فرض درست) و **Show Announcement History (in days)** (پیش‌فرض ۱۴). با خاموش بودن **Show Announcements**، نقطه پایانی اعلامیه‌ها درخواست را یکسره رد می‌کند.
+اینکه اصلاً اعلامیه‌ها پدیدار شوند یا نه در کارت **What your status page shows** روی **Advanced Settings** تنظیم می‌شود: **Show Announcements** (`showAnnouncementsOnStatusPage`، پیش‌فرض درست) و زیرش **Show the last … days** (`showAnnouncementHistoryInDays`، پیش‌فرض ۱۴). با خاموش بودن **Show Announcements**، نقطه پایانی اعلامیه‌ها درخواست را یکسره رد می‌کند.
 
 ## قالب‌های اعلامیه
 

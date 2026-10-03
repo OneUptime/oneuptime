@@ -12,6 +12,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -191,8 +197,9 @@ function countInfrastructureEvent(
 export interface ComponentProps {
   events: Array<AIRunEvent>;
   /*
-   * Header text above the steps. Defaults to the live "Investigating…"
-   * wording used by chat and the AI investigation panel.
+   * Header text above the steps, in English (translated here). Defaults to
+   * the live "Investigating…" wording used by chat and the AI investigation
+   * panel.
    */
   title?: string | undefined;
   // Show the pulsing "live" dot next to the title. Defaults to true.
@@ -223,33 +230,47 @@ interface ActivityStep {
   severity?: string | undefined;
 }
 
+// English keys, translated as the steps are built.
 const friendlyToolNames: { [key: string]: string } = {
-  query_incidents: "Checking incidents",
-  query_alerts: "Checking alerts",
-  query_monitors: "Checking monitors",
-  top_exceptions: "Ranking exceptions",
-  search_logs: "Searching logs",
-  log_histogram: "Charting log volume",
-  query_metrics: "Aggregating metrics",
-  query_traces: "Analyzing traces",
-  get_trace: "Reading trace",
-  lookup_context: "Resolving names",
-  create_incident: "Creating incident",
-  acknowledge_incident: "Acknowledging incident",
-  resolve_incident: "Resolving incident",
-  acknowledge_alert: "Acknowledging alert",
-  resolve_alert: "Resolving alert",
-  run_kubectl: "Running kubectl on the cluster",
-  list_cluster_access: "Checking cluster access",
-  run_infrastructure_command: "Running a command on the infrastructure",
-  list_infrastructure_access: "Checking infrastructure access",
-  list_command_targets: "Listing where commands may run",
-  execute_remediation_command: "Applying a fix",
-  propose_remediation_commands: "Proposing a fix for approval",
+  query_incidents: translationKey("Checking incidents"),
+  query_alerts: translationKey("Checking alerts"),
+  query_monitors: translationKey("Checking monitors"),
+  top_exceptions: translationKey("Ranking exceptions"),
+  search_logs: translationKey("Searching logs"),
+  log_histogram: translationKey("Charting log volume"),
+  query_metrics: translationKey("Aggregating metrics"),
+  query_traces: translationKey("Analyzing traces"),
+  get_trace: translationKey("Reading trace"),
+  lookup_context: translationKey("Resolving names"),
+  create_incident: translationKey("Creating incident"),
+  acknowledge_incident: translationKey("Acknowledging incident"),
+  resolve_incident: translationKey("Resolving incident"),
+  acknowledge_alert: translationKey("Acknowledging alert"),
+  resolve_alert: translationKey("Resolving alert"),
+  run_kubectl: translationKey("Running kubectl on the cluster"),
+  list_cluster_access: translationKey("Checking cluster access"),
+  run_infrastructure_command: translationKey(
+    "Running a command on the infrastructure",
+  ),
+  list_infrastructure_access: translationKey("Checking infrastructure access"),
+  list_command_targets: translationKey("Listing where commands may run"),
+  execute_remediation_command: translationKey("Applying a fix"),
+  propose_remediation_commands: translationKey("Proposing a fix for approval"),
 };
 
-function friendlyToolName(toolName: string | undefined): string {
-  return friendlyToolNames[toolName || ""] || `Running ${toolName || "query"}`;
+function friendlyToolName(
+  toolName: string | undefined,
+  translator: Translator,
+): string {
+  const friendlyName: string | undefined = friendlyToolNames[toolName || ""];
+
+  if (friendlyName) {
+    return translator.translateText(friendlyName) as string;
+  }
+
+  return toolName
+    ? translator.translateTemplate("Running {{tool}}", { tool: toolName })
+    : (translator.translateText("Running query") as string);
 }
 
 /*
@@ -258,27 +279,42 @@ function friendlyToolName(toolName: string | undefined): string {
  * reported back, in which case it may have run. Say which rather than
  * implying it ran and will be retried.
  */
-function describeFailedToolCall(event: AIRunEvent): string {
+function describeFailedToolCall(
+  event: AIRunEvent,
+  translator: Translator,
+): string {
   // The same three outcomes for a command on an infrastructure resource.
   if (event.toolName === RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME) {
-    return isInfrastructureResultUnknownMessage(
-      event.resultSummary?.errorMessage,
-    )
-      ? "no result came back — it may have run"
-      : "did not run on the infrastructure";
+    return translator.translateText(
+      isInfrastructureResultUnknownMessage(event.resultSummary?.errorMessage)
+        ? "no result came back — it may have run"
+        : "did not run on the infrastructure",
+    ) as string;
   }
 
   if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
-    return "did not succeed — retrying differently";
+    return translator.translateText(
+      "did not succeed — retrying differently",
+    ) as string;
   }
 
-  return isKubectlResultUnknownMessage(event.resultSummary?.errorMessage)
-    ? "no result came back — it may have run"
-    : "did not run on the cluster";
+  return translator.translateText(
+    isKubectlResultUnknownMessage(event.resultSummary?.errorMessage)
+      ? "no result came back — it may have run"
+      : "did not run on the cluster",
+  ) as string;
 }
 
-function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
+/*
+ * The steps the events draw, in the reader's language. A step is completed
+ * by matching its text, which is always produced by the same translator.
+ */
+function buildSteps(
+  events: Array<AIRunEvent>,
+  translator: Translator = getGlobalTranslator(),
+): Array<ActivityStep> {
   const steps: Array<ActivityStep> = [];
+  const thinking: string = translator.translateText("Thinking") as string;
 
   const completeLastRunning: (
     text: string | undefined,
@@ -304,18 +340,22 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
 
     switch (event.eventType) {
       case AIRunEventType.RunStarted:
-        steps.push({ key, text: "Starting investigation", status: "done" });
+        steps.push({
+          key,
+          text: translator.translateText("Starting investigation") as string,
+          status: "done",
+        });
         break;
       case AIRunEventType.LlmCallStarted:
-        steps.push({ key, text: "Thinking", status: "running" });
+        steps.push({ key, text: thinking, status: "running" });
         break;
       case AIRunEventType.LlmCallCompleted:
-        completeLastRunning("Thinking", undefined, false);
+        completeLastRunning(thinking, undefined, false);
         break;
       case AIRunEventType.ToolCallStarted:
         steps.push({
           key,
-          text: friendlyToolName(event.toolName),
+          text: friendlyToolName(event.toolName, translator),
           status: "running",
         });
         break;
@@ -330,17 +370,22 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
          * (0), and a cluster listing's is how many clusters it listed.
          */
         const clusterOutcome: ClusterToolOutcome | null =
-          describeClusterToolOutcome(event.toolName, rowCount);
+          describeClusterToolOutcome(event.toolName, rowCount, translator);
         if (clusterOutcome) {
           parts.push(clusterOutcome.detail);
         } else if (rowCount !== undefined) {
-          parts.push(`${rowCount} ${rowCount === 1 ? "row" : "rows"}`);
+          parts.push(
+            translator.translatePlural(
+              { one: "{{count}} row", other: "{{count}} rows" },
+              rowCount,
+            ),
+          );
         }
         if (durationInMs !== undefined) {
           parts.push(`${(durationInMs / 1000).toFixed(1)}s`);
         }
         completeLastRunning(
-          friendlyToolName(event.toolName),
+          friendlyToolName(event.toolName, translator),
           parts.join(" · ") || undefined,
           clusterOutcome?.isError === true,
         );
@@ -348,8 +393,8 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
       }
       case AIRunEventType.ToolCallFailed:
         completeLastRunning(
-          friendlyToolName(event.toolName),
-          describeFailedToolCall(event),
+          friendlyToolName(event.toolName, translator),
+          describeFailedToolCall(event, translator),
           true,
         );
         break;
@@ -373,9 +418,19 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
       // A mutating action was executed — e.g. "Opened pull request: … — <url>".
       case AIRunEventType.ActionExecuted: {
         const message: string | undefined = event.resultSummary?.message;
+        let text: string | undefined = message;
+
+        if (!text) {
+          text = event.toolName
+            ? translator.translateTemplate("Executed {{tool}}", {
+                tool: event.toolName,
+              })
+            : (translator.translateText("Executed action") as string);
+        }
+
         steps.push({
           key,
-          text: message || `Executed ${event.toolName || "action"}`,
+          text: text,
           status: "done",
           kind: "action",
         });
@@ -418,7 +473,8 @@ export function countActivitySteps(events: Array<AIRunEvent>): number {
 const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const steps: Array<ActivityStep> = buildSteps(props.events);
+  const translator: Translator = useTranslator();
+  const steps: Array<ActivityStep> = buildSteps(props.events, translator);
   const maxVisibleSteps: number = props.maxVisibleSteps ?? 7;
   const hiddenStepCount: number = Math.max(0, steps.length - maxVisibleSteps);
   const visibleSteps: Array<ActivityStep> = steps.slice(-1 * maxVisibleSteps);
@@ -546,8 +602,13 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       <div className="space-y-1.5">
         {hiddenStepCount > 0 && (
           <div className="text-[11px] text-gray-400">
-            + {hiddenStepCount} earlier{" "}
-            {hiddenStepCount === 1 ? "step" : "steps"}
+            {translator.translatePlural(
+              {
+                one: "+ {{count}} earlier step",
+                other: "+ {{count}} earlier steps",
+              },
+              hiddenStepCount,
+            )}
           </div>
         )}
         {visibleSteps.map((step: ActivityStep) => {
@@ -588,7 +649,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               <></>
             )}
             <span className="text-sm font-medium text-gray-700">
-              {props.title || "Investigating…"}
+              {translator.translateText(props.title || "Investigating…")}
             </span>
           </div>
 

@@ -603,7 +603,6 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/status-pages/:id/scim",
   "/dashboard/:projectId/status-pages/:id/custom-code",
   "/dashboard/:projectId/status-pages/:id/resources",
-  "/dashboard/:projectId/status-pages/:id/advanced-options",
   "/dashboard/:projectId/status-pages/:id/authentication-settings",
   "/dashboard/:projectId/status-pages/:id/settings",
   "/dashboard/:projectId/status-pages/:id/mcp",

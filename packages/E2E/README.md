@@ -500,7 +500,8 @@ other stack, which `Tests/App/SingleSignOn.spec.ts` proves on the same stack.
 
 It lives in `Tests/` rather than beside the enterprise suites because the
 community stack is booted by `test-e2e-test-self-hosted`, which runs the whole
-`./Tests` tree and nothing else — a focused suite would never run there. That
+`./Tests` tree across its shards. A focused suite runs there only when the job
+is given a step for it, as the live label rule suite (`LabelRules/`) is. That
 tree also runs on the SaaS stack, which boots the enterprise image, so the spec
 detects the edition at runtime from `GET /api/global-config/license` and
 **skips** (the pattern `Tests/Dashboard/BillingPaidUsage.spec.ts` uses) when it

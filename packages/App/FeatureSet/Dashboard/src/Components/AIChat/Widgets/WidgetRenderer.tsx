@@ -6,6 +6,8 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
 import ChartWidget from "./ChartWidget";
@@ -58,6 +60,8 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
 }: {
   widget: AIChatWidget;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   // The resource card is self-contained (its own styled surface).
   if (widget.type === AIChatWidgetType.ResourceCard) {
     return renderBody(widget);
@@ -92,7 +96,7 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             }}
             className="flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
-            Open
+            {translator.translateText("Open")}
             <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
           </button>
         )}

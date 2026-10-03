@@ -7,7 +7,8 @@ import React, {
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon from "Common/UI/Components/Icon/Icon";
-import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import {
@@ -30,7 +31,7 @@ export interface ComponentProps {
 const AddWidgetModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategoryName, setSelectedCategoryName] = useState<
     string | null
@@ -146,7 +147,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
           }`}
         />
         <span className="flex-1 truncate">
-          {translateString(options.label)}
+          {translator.translateText(options.label)}
         </span>
         <span
           className={`ml-1 shrink-0 text-xs tabular-nums ${
@@ -177,20 +178,22 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
             ref={searchInputRef}
             type="text"
             value={searchTerm}
-            aria-label="Search widgets"
+            aria-label={translator.translateText("Search widgets")}
             data-testid="add-widget-search"
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setSearchTerm(e.target.value);
             }}
             onKeyDown={onSearchKeyDown}
-            placeholder="Search widgets by name, e.g. chart, logs, pods..."
+            placeholder={translator.translateText(
+              "Search widgets by name, e.g. chart, logs, pods...",
+            )}
             className="block w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-9 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
             autoFocus={true}
           />
           {isSearching && (
             <button
               type="button"
-              aria-label="Clear search"
+              aria-label={translator.translateText("Clear search")}
               data-testid="add-widget-search-clear"
               onClick={clearSearch}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -205,7 +208,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
               list with group headings from md up. Hidden entirely when a
               search matched nothing — there is nothing to navigate to. */}
           <nav
-            aria-label="Widget categories"
+            aria-label={translator.translateText("Widget categories")}
             className={`shrink-0 flex-row gap-1 overflow-x-auto pb-1 md:max-h-[60vh] md:w-52 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0 md:pr-1 ${
               totalMatches === 0 ? "hidden" : "flex"
             }`}
@@ -226,7 +229,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
               return (
                 <div key={section.group} className="contents md:block">
                   <h5 className="mt-4 max-md:hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:block">
-                    {translateString(section.group)}
+                    {translator.translateText(section.group)}
                   </h5>
                   {section.categories.map((category: WidgetCatalogCategory) => {
                     return renderRailButton({
@@ -255,10 +258,15 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                 data-testid="add-widget-result-count"
                 className="text-xs text-gray-400"
               >
-                {totalMatches}{" "}
-                {totalMatches === 1 ? "widget matches" : "widgets match"}
-                &nbsp;&ldquo;{searchTerm.trim()}&rdquo;. Press Enter to add the
-                first one.
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} widget matches “{{term}}”. Press Enter to add the first one.",
+                    other:
+                      "{{count}} widgets match “{{term}}”. Press Enter to add the first one.",
+                  },
+                  totalMatches,
+                  { term: searchTerm.trim() },
+                )}
               </p>
             )}
 
@@ -274,7 +282,12 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                   />
                 </div>
                 <p className="text-sm">
-                  No widgets match &ldquo;{searchTerm.trim()}&rdquo;.
+                  {translator.translateTemplate(
+                    "No widgets match “{{term}}”.",
+                    {
+                      term: searchTerm.trim(),
+                    },
+                  )}
                 </p>
                 <button
                   type="button"
@@ -282,7 +295,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                   onClick={clearSearch}
                   className="mt-3 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-indigo-300"
                 >
-                  Clear search
+                  {translator.translateText("Clear search")}
                 </button>
               </div>
             )}
@@ -297,10 +310,10 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                     />
                     <div className="min-w-0">
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        {translateString(category.name)}
+                        {translator.translateText(category.name)}
                       </h4>
                       <p className="mt-0.5 text-xs text-gray-400">
-                        {translateString(category.description)}
+                        {translator.translateText(category.description)}
                       </p>
                     </div>
                   </div>
@@ -311,7 +324,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                           key={item.type}
                           type="button"
                           data-testid={`widget-card-${item.type}`}
-                          title={translateString(item.description)}
+                          title={translator.translateText(item.description)}
                           onClick={() => {
                             addWidget(item.type);
                           }}
@@ -322,10 +335,10 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-medium text-gray-800">
-                              {translateString(item.label)}
+                              {translator.translateText(item.label)}
                             </div>
                             <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
-                              {translateString(item.description)}
+                              {translator.translateText(item.description)}
                             </div>
                           </div>
                           <Icon

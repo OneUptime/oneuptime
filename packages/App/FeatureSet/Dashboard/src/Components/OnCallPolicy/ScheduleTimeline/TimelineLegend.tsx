@@ -4,6 +4,8 @@ import ScheduleTimelineLayout, {
   TimelineViewMode,
 } from "Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * Under the grid: everyone on call in view (their colour, their load, and a
@@ -24,15 +26,17 @@ export interface ComponentProps {
 const TimelineLegend: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const period: string =
-    props.mode === TimelineViewMode.Month ? "month" : "week";
+  const translator: Translator = useTranslator();
+  const isMonth: boolean = props.mode === TimelineViewMode.Month;
 
   return (
     <div className="mt-4 space-y-3" data-testid="timeline-legend">
       {props.people.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-            On call this {period}
+            {translator.translateText(
+              isMonth ? "On call this month" : "On call this week",
+            )}
           </span>
           {props.people.map((person: TimelinePerson) => {
             const isHighlighted: boolean =
@@ -48,11 +52,26 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   props.onToggleHighlight(person.userId);
                 }}
-                title={`${person.userName}: ${ScheduleTimelineLayout.formatDuration(
-                  person.onCallMilliseconds,
-                )} on call across ${person.scheduleCount} ${
-                  person.scheduleCount === 1 ? "schedule" : "schedules"
-                } this ${period}. Click to highlight.`}
+                title={translator.translatePlural(
+                  isMonth
+                    ? {
+                        one: "{{name}}: {{duration}} on call across {{count}} schedule this month. Click to highlight.",
+                        other:
+                          "{{name}}: {{duration}} on call across {{count}} schedules this month. Click to highlight.",
+                      }
+                    : {
+                        one: "{{name}}: {{duration}} on call across {{count}} schedule this week. Click to highlight.",
+                        other:
+                          "{{name}}: {{duration}} on call across {{count}} schedules this week. Click to highlight.",
+                      },
+                  person.scheduleCount,
+                  {
+                    name: person.userName,
+                    duration: ScheduleTimelineLayout.formatDuration(
+                      person.onCallMilliseconds,
+                    ),
+                  },
+                )}
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ring-1 ring-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                   isHighlighted
                     ? "bg-gray-900 text-white ring-gray-900"
@@ -74,7 +93,7 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
                 {person.isOnCallNow && (
                   <span
                     className="inline-block h-1.5 w-1.5 rounded-full bg-green-500"
-                    title="On call now"
+                    title={translator.translateText("On call now")}
                   />
                 )}
               </button>
@@ -89,7 +108,7 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
               }}
               className="text-xs font-medium text-indigo-600 hover:underline"
             >
-              Clear highlight
+              {translator.translateText("Clear highlight")}
             </button>
           )}
         </div>
@@ -101,27 +120,30 @@ const TimelineLegend: FunctionComponent<ComponentProps> = (
             <span className="rounded bg-indigo-50 px-1 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200">
               {OVERRIDE_TITLE_MARKER}
             </span>
-            Covering someone else&apos;s shift (the struck-through name
-            underneath)
+            {translator.translateText(
+              "Covering someone else's shift (the struck-through name underneath)",
+            )}
           </span>
         )}
         {props.showGapKey && (
           <span className="inline-flex items-center gap-1.5">
             <span className="oneuptime-schedule-timeline-gap-swatch inline-block h-3 w-4 rounded-sm" />
-            No one on call
+            {translator.translateText("No one on call")}
           </span>
         )}
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-0.5 rounded bg-red-500" />
-          Now
+          {translator.translateText("Now")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-4 rounded-sm bg-gray-300 opacity-60" />
-          Past shift
+          {translator.translateText("Past shift")}
         </span>
         <span className="text-gray-400 sm:ml-auto">
-          Times in {props.timezone}. Past shifts are recomputed from each
-          schedule&apos;s current setup.
+          {translator.translateTemplate(
+            "Times in {{timezone}}. Past shifts are recomputed from each schedule's current setup.",
+            { timezone: props.timezone },
+          )}
         </span>
       </div>
     </div>

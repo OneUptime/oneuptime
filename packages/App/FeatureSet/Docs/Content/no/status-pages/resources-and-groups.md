@@ -52,7 +52,7 @@ Trinnet **Avansert** er det samme i enkeltskjemaet og i bulkmodalen. Alt her gje
 
 ## Oppetidsprosenter og historikkdiagrammer
 
-Både **Vis oppetid %** og **Vis statushistorikkdiagram** avhenger av en innstilling som bor et annet sted. Vinduet de dekker, er **Vis oppetidshistorikk (i dager)** under **Statussider → siden din → Avansert → Avanserte innstillinger**, i kortet **Innstillinger for oppetidshistorikk**. Det tar imot 1 til 90 dager og er 90 som standard.
+Både **Vis oppetid %** og **Vis statushistorikkdiagram** avhenger av en innstilling som bor et annet sted. Vinduet de dekker, er **Oppetidshistorikk** i kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger**. Det tar imot 1 til 90 dager og er 90 som standard.
 
 Rekkefølgen er altså: slå på bryterne per ressurs, og sett så vinduet én gang for hele siden.
 

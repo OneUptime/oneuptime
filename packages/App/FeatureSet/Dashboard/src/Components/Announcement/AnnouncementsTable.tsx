@@ -31,6 +31,8 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   query?: Query<StatusPageAnnouncement> | undefined;
@@ -43,6 +45,7 @@ export interface ComponentProps {
 const AnnouncementTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [announcementTemplates, setAnnouncementTemplates] = useState<
     Array<StatusPageAnnouncementTemplate>
   >([]);
@@ -237,7 +240,13 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             getElement: (item: StatusPageAnnouncement) => {
               if (!item.statusPages || !Array.isArray(item.statusPages)) {
-                return <p>No status pages selected for this announcement.</p>;
+                return (
+                  <p>
+                    {translator.translateText(
+                      "No status pages selected for this announcement.",
+                    )}
+                  </p>
+                );
               }
               return (
                 <div>

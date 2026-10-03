@@ -15,6 +15,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -46,22 +47,31 @@ interface PolicyOverview {
   levelsUncoveredBySchedule: number;
 }
 
-// Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
-const formatDuration: (minutes: number) => string = (
+// Compact human duration, e.g. "5 min", "1 hr", "1 hr 30 min".
+const formatDuration: (minutes: number, translator: Translator) => string = (
   minutes: number,
+  translator: Translator,
 ): string => {
   if (!minutes || minutes <= 0) {
-    return "0 min";
+    return translator.translateTemplate("{{minutes}} min", { minutes: 0 });
   }
   if (minutes < 60) {
-    return `${minutes} min`;
+    return translator.translateTemplate("{{minutes}} min", {
+      minutes: minutes,
+    });
   }
   const hours: number = Math.floor(minutes / 60);
   const remaining: number = minutes % 60;
   if (remaining === 0) {
-    return hours === 1 ? "1 hr" : `${hours} hrs`;
+    return translator.translatePlural(
+      { one: "{{count}} hr", other: "{{count}} hrs" },
+      hours,
+    );
   }
-  return `${hours} hr ${remaining} min`;
+  return translator.translateTemplate("{{hours}} hr {{minutes}} min", {
+    hours: hours,
+    minutes: remaining,
+  });
 };
 
 const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
@@ -216,7 +226,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         if (id) {
           scheduleNamesById[id] =
             join.onCallDutyPolicySchedule?.name?.toString() ||
-            "On-call schedule";
+            translator.translateTemplate("On-call schedule");
         }
         const ruleId: string =
           join.onCallDutyPolicyEscalationRuleId?.toString() || "";
@@ -231,7 +241,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       for (const join of teamJoins.data) {
         const id: string = join.team?.id?.toString() || "";
         if (id) {
-          teamNamesById[id] = join.team?.name?.toString() || "Team";
+          teamNamesById[id] =
+            join.team?.name?.toString() || translator.translateTemplate("Team");
         }
         const ruleId: string =
           join.onCallDutyPolicyEscalationRuleId?.toString() || "";
@@ -247,7 +258,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           userNamesById[id] =
             join.user?.name?.toString() ||
             join.user?.email?.toString() ||
-            "User";
+            translator.translateTemplate("User");
         }
         const ruleId: string =
           join.onCallDutyPolicyEscalationRuleId?.toString() || "";
@@ -321,7 +332,9 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       <div className="bg-white px-4 py-3.5">
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
           <Icon icon={params.icon} className="h-3.5 w-3.5 text-gray-400" />
-          <span className="truncate">{params.label}</span>
+          <span className="truncate">
+            {translator.translateText(params.label)}
+          </span>
         </div>
         <div
           className={`mt-2 truncate text-xl font-semibold leading-none ${
@@ -353,7 +366,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
             icon={params.icon}
             className={`h-3.5 w-3.5 ${params.iconColor}`}
           />
-          {params.label}
+          {translator.translateText(params.label)}
           <span className="text-gray-300">·</span>
           <span className="tabular-nums text-gray-500">
             {params.names.length}
@@ -422,71 +435,103 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       overview.levels <= 1
         ? "—"
         : overview.timeToFinalLevelMinutes > 0
-          ? formatDuration(overview.timeToFinalLevelMinutes)
-          : "Instant";
+          ? formatDuration(overview.timeToFinalLevelMinutes, translator)
+          : translator.translateText("Instant") || "Instant";
+
+    const boldText: (text: string) => ReactElement = (
+      text: string,
+    ): ReactElement => {
+      return <span className="font-semibold text-gray-900">{text}</span>;
+    };
+
+    const levelsText: string = translator.translatePlural(
+      {
+        one: "{{count}} escalation level",
+        other: "{{count}} escalation levels",
+      },
+      overview.levels,
+    );
 
     return (
       <div>
         {/* Hero narrative — the confident, read-it-in-five-seconds summary. */}
         <p className="mb-6 text-base leading-relaxed text-gray-600">
-          When this policy is triggered, it works through{" "}
-          <span className="font-semibold text-gray-900">
-            {overview.levels}{" "}
-            {overview.levels === 1 ? "escalation level" : "escalation levels"}
-          </span>
           {hasResponders ? (
-            <>
-              {" "}
-              and can page up to{" "}
-              <span className="font-semibold text-gray-900">
-                {totalResponders}{" "}
-                {totalResponders === 1 ? "responder" : "responders"}
-              </span>
-              .{" "}
-            </>
+            <TranslatedSentence
+              template="When this policy is triggered, it works through {{levels}} and can page up to {{responders}}."
+              slots={{
+                levels: boldText(levelsText),
+                responders: boldText(
+                  translator.translatePlural(
+                    {
+                      one: "{{count}} responder",
+                      other: "{{count}} responders",
+                    },
+                    totalResponders,
+                  ),
+                ),
+              }}
+            />
           ) : (
-            <>
-              , but{" "}
-              <span className="font-semibold text-amber-700">
-                no responders are assigned yet
-              </span>
-              .{" "}
-            </>
-          )}
-          The first level is notified immediately;{" "}
+            <TranslatedSentence
+              template="When this policy is triggered, it works through {{levels}}, but {{noResponders}}."
+              slots={{
+                levels: boldText(levelsText),
+                noResponders: (
+                  <span className="font-semibold text-amber-700">
+                    {translator.translateText("no responders are assigned yet")}
+                  </span>
+                ),
+              }}
+            />
+          )}{" "}
           {overview.levels > 1 ? (
             overview.timeToFinalLevelMinutes > 0 ? (
-              <>
-                if no one acknowledges, the alert climbs to the final level
-                after{" "}
-                <span className="font-semibold text-gray-900">
-                  {formatDuration(overview.timeToFinalLevelMinutes)}
-                </span>
-                .{" "}
-              </>
+              <TranslatedSentence
+                template="The first level is notified immediately; if no one acknowledges, the alert climbs to the final level after {{duration}}."
+                slots={{
+                  duration: boldText(
+                    formatDuration(
+                      overview.timeToFinalLevelMinutes,
+                      translator,
+                    ),
+                  ),
+                }}
+              />
             ) : (
-              <>
-                if no one acknowledges, every remaining level is engaged{" "}
-                <span className="font-semibold text-gray-900">right away</span>.{" "}
-              </>
+              <TranslatedSentence
+                template="The first level is notified immediately; if no one acknowledges, every remaining level is engaged {{rightAway}}."
+                slots={{
+                  rightAway: boldText(
+                    translator.translateText("right away") || "right away",
+                  ),
+                }}
+              />
             )
           ) : (
-            <>there are no further levels to escalate to. </>
-          )}
+            translator.translateText(
+              "The first level is notified immediately; there are no further levels to escalate to.",
+            )
+          )}{" "}
           {repeatsEnabled ? (
-            <>
-              If it is still unacknowledged, the whole policy repeats up to{" "}
-              <span className="font-semibold text-gray-900">
-                {overview.repeatCount} more{" "}
-                {overview.repeatCount === 1 ? "time" : "times"}
-              </span>{" "}
-              before stopping.
-            </>
+            <TranslatedSentence
+              template="If it is still unacknowledged, the whole policy repeats up to {{times}} before stopping."
+              slots={{
+                times: boldText(
+                  translator.translatePlural(
+                    {
+                      one: "{{count}} more time",
+                      other: "{{count}} more times",
+                    },
+                    overview.repeatCount,
+                  ),
+                ),
+              }}
+            />
           ) : (
-            <>
-              If it is still unacknowledged after the final level, escalation
-              stops.
-            </>
+            translator.translateText(
+              "If it is still unacknowledged after the final level, escalation stops.",
+            )
           )}
         </p>
 
@@ -511,7 +556,9 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           {getMetric({
             icon: IconProp.Reload,
             label: "Repeats",
-            value: repeatsEnabled ? `${overview.repeatCount}×` : "None",
+            value: repeatsEnabled
+              ? `${overview.repeatCount}×`
+              : translator.translateText("None") || "None",
             valueClassName: repeatsEnabled ? "text-gray-900" : "text-gray-400",
           })}
         </div>
@@ -521,10 +568,12 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
             <div className="mb-3.5 flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                Who gets paged
+                {translator.translateText("Who gets paged")}
               </span>
               <span className="text-xs font-medium tabular-nums text-gray-500">
-                {totalResponders} total
+                {translator.translateTemplate("{{count}} total", {
+                  count: totalResponders,
+                })}
               </span>
             </div>
             <div className="space-y-3.5">
@@ -557,13 +606,27 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                   className="mt-px h-3.5 w-3.5 flex-shrink-0 text-amber-500"
                 />
                 <span>
-                  <span className="font-semibold">
-                    {overview.levelsWithNoResponders}{" "}
-                    {overview.levelsWithNoResponders === 1 ? "level" : "levels"}
-                  </span>{" "}
-                  along the way{" "}
-                  {overview.levelsWithNoResponders === 1 ? "has" : "have"} no
-                  responders and will notify no one when reached.
+                  <TranslatedSentence
+                    template={{
+                      one: "{{levels}} along the way has no responders and will notify no one when reached.",
+                      other:
+                        "{{levels}} along the way have no responders and will notify no one when reached.",
+                    }}
+                    count={overview.levelsWithNoResponders}
+                    slots={{
+                      levels: (
+                        <span className="font-semibold">
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} level",
+                              other: "{{count}} levels",
+                            },
+                            overview.levelsWithNoResponders,
+                          )}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
               </div>
             ) : (
@@ -576,17 +639,27 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                   className="mt-px h-3.5 w-3.5 flex-shrink-0 text-amber-500"
                 />
                 <span>
-                  <span className="font-semibold">
-                    {overview.levelsUncoveredBySchedule}{" "}
-                    {overview.levelsUncoveredBySchedule === 1
-                      ? "level"
-                      : "levels"}
-                  </span>{" "}
-                  {overview.levelsUncoveredBySchedule === 1 ? "has" : "have"}{" "}
-                  responders assigned, but every one of them is an on-call
-                  schedule with no one on call right now — so{" "}
-                  {overview.levelsUncoveredBySchedule === 1 ? "it" : "they"}{" "}
-                  would still notify no one if reached now.
+                  <TranslatedSentence
+                    template={{
+                      one: "{{levels}} has responders assigned, but every one of them is an on-call schedule with no one on call right now — so it would still notify no one if reached now.",
+                      other:
+                        "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.",
+                    }}
+                    count={overview.levelsUncoveredBySchedule}
+                    slots={{
+                      levels: (
+                        <span className="font-semibold">
+                          {translator.translatePlural(
+                            {
+                              one: "{{count}} level",
+                              other: "{{count}} levels",
+                            },
+                            overview.levelsUncoveredBySchedule,
+                          )}
+                        </span>
+                      ),
+                    }}
+                  />
                 </span>
               </div>
             ) : (
@@ -629,11 +702,12 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       {/* Header — plain title, no icon box (matches the standard Card). */}
       <div className="border-b border-gray-100 px-6 py-5">
         <h2 className="text-lg font-semibold text-gray-900">
-          Policy at a glance
+          {translator.translateText("Policy at a glance")}
         </h2>
         <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-          A quick snapshot of how this on-call policy responds when it is
-          triggered.
+          {translator.translateText(
+            "A quick snapshot of how this on-call policy responds when it is triggered.",
+          )}
         </p>
       </div>
 

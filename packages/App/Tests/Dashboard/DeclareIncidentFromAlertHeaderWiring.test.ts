@@ -441,7 +441,7 @@ describe("EventStatusPanel secondary actions", () => {
   test("render after the state actions and before the More actions menu, whatever the state", () => {
     const cluster: string = sectionBetween(
       dense(EVENT_STATUS_PANEL),
-      'aria-label="Eventactions">',
+      'aria-label={translateString("Eventactions")}>',
       "</MoreMenu>",
     );
 
@@ -520,12 +520,14 @@ describe("EventStatusPanel layouts", () => {
     const code: string = dense(EVENT_STATUS_PANEL);
 
     expect(code).toContain(
-      'constgetActionsCluster:(widthClassName:string)=>ReactElement=(widthClassName:string,):ReactElement=>{return(<divclassName={`flexw-fullflex-wrapitems-centerjustify-endgap-2${widthClassName}`}role="group"aria-label="Eventactions">',
+      'constgetActionsCluster:(widthClassName:string)=>ReactElement=(widthClassName:string,):ReactElement=>{return(<divclassName={`flexw-fullflex-wrapitems-centerjustify-endgap-2${widthClassName}`}role="group"aria-label={translateString("Eventactions")}>',
     );
     // One call per layout, and no shared, fixed-width cluster left behind.
     expect(countOf(code, "getActionsCluster(")).toBe(2);
     expect(code).not.toContain("{actionsCluster}");
-    expect(countOf(code, 'aria-label="Eventactions"')).toBe(1);
+    expect(countOf(code, 'aria-label={translateString("Eventactions")}')).toBe(
+      1,
+    );
   });
 
   test("put the actions beside the title only from xl in the titled header", () => {

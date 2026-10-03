@@ -3,6 +3,11 @@ import {
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getServerlessPlatformForCloudPlatform } from "../Serverless/ServerlessSetupGuide";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The steps the "how do I connect this?" card (ResourceConnectionGuideCard)
@@ -20,6 +25,10 @@ import { getServerlessPlatformForCloudPlatform } from "../Serverless/ServerlessS
  * Any other name registers a second resource and leaves this one
  * disconnected, so the setup steps spell out the exact value to use, taken
  * from the resource being viewed.
+ *
+ * Fixed titles and descriptions are English translation keys the card
+ * translates where it draws them; a sentence with a value in it is filled
+ * here, in the reader's language, from a whole-sentence template.
  */
 
 export interface ResourceConnectionGuideStep {
@@ -111,17 +120,24 @@ const waitForDataStep: (
   resourceNoun: string,
   check?: { description: string; code: string } | undefined,
 ): ResourceConnectionGuideStep => {
+  const waitSentence: string = translateTemplate(
+    "Refresh this page after a few minutes — the {{resourceNoun}} switches to Connected once its first data arrives.",
+    { resourceNoun: translatableTerm(resourceNoun, { inSentence: true }) },
+  );
+
   return {
     title: "Wait for the first data",
-    description: `Refresh this page after a few minutes — the ${resourceNoun} switches to Connected once its first data arrives.${
-      check ? ` ${check.description}` : ""
-    }`,
+    description: check
+      ? `${waitSentence} ${translateTemplate(check.description)}`
+      : waitSentence,
     code: check?.code,
   };
 };
 
-const KEY_OR_NETWORK_ERRORS: string =
-  "A 401 means the ingestion key was deleted or changed; a connection error means it cannot reach OneUptime.";
+// Reading an agent's logs: what its export errors mean.
+const EXPORT_ERRORS_DESCRIPTION: string = translationKey(
+  "Look for export errors. A 401 means the ingestion key was deleted or changed; a connection error means it cannot reach OneUptime.",
+);
 
 // ---- Kubernetes ------------------------------------------------------------
 
@@ -133,7 +149,7 @@ export const getKubernetesClusterConnectionGuide: (
   const podsCommand: string = `kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}`;
 
   return {
-    resourceNoun: "cluster",
+    resourceNoun: translationKey("cluster"),
     agentName: "OneUptime Kubernetes Agent",
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -157,12 +173,15 @@ export const getKubernetesClusterConnectionGuide: (
       },
       {
         title: "Read the agent's logs",
-        description: `Look for export errors. ${KEY_OR_NETWORK_ERRORS}`,
+        description: EXPORT_ERRORS_DESCRIPTION,
         code: `kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} deploy/${KUBERNETES_AGENT_HELM_RELEASE} --tail=50`,
       },
       {
         title: "Reinstall if needed",
-        description: `If the agent was uninstalled, or its key or cluster name changed, run the install from the setup guide again with clusterName "${clusterIdentifier}".`,
+        description: translateTemplate(
+          'If the agent was uninstalled, or its key or cluster name changed, run the install from the setup guide again with clusterName "{{clusterName}}".',
+          { clusterName: clusterIdentifier },
+        ),
       },
     ],
   };
@@ -172,6 +191,8 @@ export const getKubernetesClusterConnectionGuide: (
 
 interface ContainerHostAgent {
   runtimeName: string; // "Docker"
+  // What the host is called in running text: "Docker host".
+  resourceNoun: string;
   cli: string; // "docker"
   containerName: string; // "oneuptime-docker-agent"
   hostNameVariable: string; // "DOCKER_HOST_NAME"
@@ -184,7 +205,7 @@ const getContainerHostConnectionGuide: (
   agent: ContainerHostAgent,
   hostIdentifier: string,
 ): ResourceConnectionGuide => {
-  const resourceNoun: string = `${agent.runtimeName} host`;
+  const resourceNoun: string = agent.resourceNoun;
   const psCommand: string = `${agent.cli} ps --filter name=${agent.containerName}`;
 
   return {
@@ -194,7 +215,14 @@ const getContainerHostConnectionGuide: (
       PICK_INGESTION_KEY_STEP,
       {
         title: `Run the agent on this host`,
-        description: `Run the ${agent.cli} run command from the setup guide on this host. Set ${agent.hostNameVariable} as below so the data lands on this ${resourceNoun}:`,
+        description: translateTemplate(
+          "Run the {{cli}} run command from the setup guide on this host. Set {{variable}} as below so the data lands on this {{resourceNoun}}:",
+          {
+            cli: agent.cli,
+            variable: agent.hostNameVariable,
+            resourceNoun: translatableTerm(resourceNoun, { inSentence: true }),
+          },
+        ),
         code: `-e ${agent.hostNameVariable}=${quoteForShell(hostIdentifier)}`,
       },
       waitForDataStep(resourceNoun, {
@@ -205,17 +233,27 @@ const getContainerHostConnectionGuide: (
     troubleshootingSteps: [
       {
         title: "Check the agent is running",
-        description: `The ${agent.containerName} container should be listed and Up. If it is missing or restarting, start it again from the setup guide.`,
+        description: translateTemplate(
+          "The {{containerName}} container should be listed and Up. If it is missing or restarting, start it again from the setup guide.",
+          { containerName: agent.containerName },
+        ),
         code: psCommand,
       },
       {
         title: "Read the agent's logs",
-        description: `Look for export errors. ${KEY_OR_NETWORK_ERRORS}`,
+        description: EXPORT_ERRORS_DESCRIPTION,
         code: `${agent.cli} logs ${agent.containerName} --tail 50`,
       },
       {
         title: "Check the host name",
-        description: `The agent must still run with ${agent.hostNameVariable}="${hostIdentifier}". A different name sends the data to a different ${resourceNoun}.`,
+        description: translateTemplate(
+          'The agent must still run with {{variable}}="{{hostName}}". A different name sends the data to a different {{resourceNoun}}.',
+          {
+            variable: agent.hostNameVariable,
+            hostName: hostIdentifier,
+            resourceNoun: translatableTerm(resourceNoun, { inSentence: true }),
+          },
+        ),
       },
     ],
   };
@@ -229,6 +267,7 @@ export const getDockerHostConnectionGuide: (
   return getContainerHostConnectionGuide(
     {
       runtimeName: "Docker",
+      resourceNoun: translationKey("Docker host"),
       cli: "docker",
       containerName: "oneuptime-docker-agent",
       hostNameVariable: "DOCKER_HOST_NAME",
@@ -245,6 +284,7 @@ export const getPodmanHostConnectionGuide: (
   return getContainerHostConnectionGuide(
     {
       runtimeName: "Podman",
+      resourceNoun: translationKey("Podman host"),
       cli: "podman",
       containerName: "oneuptime-podman-agent",
       hostNameVariable: "PODMAN_HOST_NAME",
@@ -260,8 +300,12 @@ interface ComposeAgent {
   agentName: string; // "OneUptime Proxmox Agent"
   containerName: string; // "oneuptime-proxmox-agent"
   nameVariable: string; // "PROXMOX_CLUSTER_NAME"
-  // Where the install script is asked to run, e.g. "on a manager node".
-  installWhere: string;
+  /*
+   * The install step as one sentence, which says where the install script is
+   * asked to run ("on a manager node") and what it asks for, with the name
+   * as {{name}}.
+   */
+  installDescription: string;
   // The agent's diagnostic script, when its guide documents one.
   troubleshootScriptUrl?: string | undefined;
 }
@@ -282,7 +326,9 @@ const getComposeAgentConnectionGuide: (
       PICK_INGESTION_KEY_STEP,
       {
         title: "Install the agent",
-        description: `Run the install script from the setup guide ${agent.installWhere}. When it asks for the ${agent.resourceNoun} name, enter "${name}" — or, with Docker Compose, put this in the .env file:`,
+        description: translateTemplate(agent.installDescription, {
+          name: name,
+        }),
         code: formatEnvFileLine(agent.nameVariable, name),
       },
       waitForDataStep(agent.resourceNoun, {
@@ -293,23 +339,46 @@ const getComposeAgentConnectionGuide: (
     troubleshootingSteps: [
       {
         title: "Check the agent is running",
-        description: `The ${agent.containerName} container should be listed and Up. If it is missing or restarting, start it again with docker compose up -d.`,
+        description: translateTemplate(
+          "The {{containerName}} container should be listed and Up. If it is missing or restarting, start it again with docker compose up -d.",
+          { containerName: agent.containerName },
+        ),
         code: psCommand,
       },
       agent.troubleshootScriptUrl
         ? {
             title: "Run the diagnostic script",
-            description: `It checks the whole chain — the agent, what it scrapes, the ${agent.resourceNoun} name and the ingestion key — and says what is wrong.`,
+            description: translateTemplate(
+              "It checks the whole chain — the agent, what it scrapes, the {{resourceNoun}} name and the ingestion key — and says what is wrong.",
+              {
+                resourceNoun: translatableTerm(agent.resourceNoun, {
+                  inSentence: true,
+                }),
+              },
+            ),
             code: `curl -sSL ${agent.troubleshootScriptUrl} -o troubleshoot.sh && bash troubleshoot.sh`,
           }
         : {
             title: "Read the agent's logs",
-            description: `Look for export errors. ${KEY_OR_NETWORK_ERRORS}`,
+            description: EXPORT_ERRORS_DESCRIPTION,
             code: `docker logs ${agent.containerName} --tail 50`,
           },
       {
-        title: `Check the ${agent.resourceNoun} name`,
-        description: `${agent.nameVariable} in the agent's .env must still be "${name}". A different name sends the data to a different ${agent.resourceNoun}.`,
+        title: translateTemplate("Check the {{resourceNoun}} name", {
+          resourceNoun: translatableTerm(agent.resourceNoun, {
+            inSentence: true,
+          }),
+        }),
+        description: translateTemplate(
+          '{{variable}} in the agent\'s .env must still be "{{name}}". A different name sends the data to a different {{resourceNoun}}.',
+          {
+            variable: agent.nameVariable,
+            name: name,
+            resourceNoun: translatableTerm(agent.resourceNoun, {
+              inSentence: true,
+            }),
+          },
+        ),
       },
     ],
   };
@@ -328,11 +397,13 @@ export const getDockerSwarmClusterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: "cluster",
+      resourceNoun: translationKey("cluster"),
       agentName: "OneUptime Docker Swarm Agent",
       containerName: "oneuptime-docker-swarm-agent",
       nameVariable: "DOCKER_SWARM_CLUSTER_NAME",
-      installWhere: "on a manager node of the swarm",
+      installDescription: translationKey(
+        'Run the install script from the setup guide on a manager node of the swarm. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+      ),
       troubleshootScriptUrl: troubleshootScript("DockerSwarmAgent"),
     },
     clusterName,
@@ -346,11 +417,13 @@ export const getProxmoxClusterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: "cluster",
+      resourceNoun: translationKey("cluster"),
       agentName: "OneUptime Proxmox Agent",
       containerName: "oneuptime-proxmox-agent",
       nameVariable: "PROXMOX_CLUSTER_NAME",
-      installWhere: "on a machine that can reach the Proxmox API",
+      installDescription: translationKey(
+        'Run the install script from the setup guide on a machine that can reach the Proxmox API. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+      ),
       troubleshootScriptUrl: troubleshootScript("ProxmoxAgent"),
     },
     clusterName,
@@ -364,11 +437,13 @@ export const getCephClusterConnectionGuide: (
 ): ResourceConnectionGuide => {
   return getComposeAgentConnectionGuide(
     {
-      resourceNoun: "cluster",
+      resourceNoun: translationKey("cluster"),
       agentName: "OneUptime Ceph Agent",
       containerName: "oneuptime-ceph-agent",
       nameVariable: "CEPH_CLUSTER_NAME",
-      installWhere: "on a machine that can reach the Ceph manager",
+      installDescription: translationKey(
+        'Run the install script from the setup guide on a machine that can reach the Ceph manager. When it asks for the cluster name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+      ),
       troubleshootScriptUrl: troubleshootScript("CephAgent"),
     },
     clusterName,
@@ -386,7 +461,9 @@ export const getVMwareVCenterConnectionGuide: (
       agentName: "OneUptime VMware Agent",
       containerName: "oneuptime-vmware-agent",
       nameVariable: "VMWARE_VCENTER_NAME",
-      installWhere: "on a machine that can reach vCenter",
+      installDescription: translationKey(
+        'Run the install script from the setup guide on a machine that can reach vCenter. When it asks for the vCenter name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+      ),
       troubleshootScriptUrl: troubleshootScript("VMwareAgent"),
     },
     vcenterName,
@@ -401,7 +478,7 @@ export const getHostConnectionGuide: (
   hostIdentifier: string,
 ): ResourceConnectionGuide => {
   return {
-    resourceNoun: "host",
+    resourceNoun: translationKey("host"),
     agentName: "OpenTelemetry Collector",
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -412,7 +489,10 @@ export const getHostConnectionGuide: (
       },
       {
         title: "Check the machine's hostname",
-        description: `OneUptime matches the data by host.name, which the collector reads from the machine's hostname. It has to be "${hostIdentifier}" (any letter case) for the data to land here. The host then switches to Connected within a few minutes.`,
+        description: translateTemplate(
+          'OneUptime matches the data by host.name, which the collector reads from the machine\'s hostname. It has to be "{{hostName}}" (any letter case) for the data to land here. The host then switches to Connected within a few minutes.',
+          { hostName: hostIdentifier },
+        ),
         code: "hostname",
       },
     ],
@@ -425,12 +505,15 @@ export const getHostConnectionGuide: (
       },
       {
         title: "Read the collector's logs",
-        description: `Look for export errors. ${KEY_OR_NETWORK_ERRORS}`,
+        description: EXPORT_ERRORS_DESCRIPTION,
         code: "sudo journalctl -u otelcol-contrib -n 50",
       },
       {
         title: "Check the machine's hostname",
-        description: `It must still be "${hostIdentifier}". A renamed machine reports as a new host.`,
+        description: translateTemplate(
+          'It must still be "{{hostName}}". A renamed machine reports as a new host.',
+          { hostName: hostIdentifier },
+        ),
         code: "hostname",
       },
     ],
@@ -445,8 +528,10 @@ export const getIoTFleetConnectionGuide: (
   const encoded: string = encodeResourceAttributeValue(fleetName);
 
   return {
-    resourceNoun: "fleet",
-    agentName: "OpenTelemetry exporter on your devices or gateway",
+    resourceNoun: translationKey("fleet"),
+    agentName: translationKey(
+      "OpenTelemetry exporter on your devices or gateway",
+    ),
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
       {
@@ -470,7 +555,10 @@ export const getIoTFleetConnectionGuide: (
       },
       {
         title: "Check the fleet name",
-        description: `iot.fleet.name must still be "${fleetName}", set as a resource attribute. A different name sends the data to a different fleet.`,
+        description: translateTemplate(
+          'iot.fleet.name must still be "{{fleetName}}", set as a resource attribute. A different name sends the data to a different fleet.',
+          { fleetName: fleetName },
+        ),
         code: `iot.fleet.name=${encoded}`,
       },
     ],
@@ -504,8 +592,8 @@ export const getCloudResourceConnectionGuide: (
     .join(",");
 
   return {
-    resourceNoun: "environment",
-    agentName: "OpenTelemetry SDK or collector",
+    resourceNoun: translationKey("environment"),
+    agentName: translationKey("OpenTelemetry SDK or collector"),
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
       {
@@ -545,8 +633,8 @@ export const getRumApplicationConnectionGuide: (
   appIdentifier: string,
 ): ResourceConnectionGuide => {
   return {
-    resourceNoun: "application",
-    agentName: "OpenTelemetry browser or mobile SDK",
+    resourceNoun: translationKey("application"),
+    agentName: translationKey("OpenTelemetry browser or mobile SDK"),
     setupSteps: [
       {
         title: "Create a Browser ingestion key",
@@ -574,7 +662,10 @@ export const getRumApplicationConnectionGuide: (
       },
       {
         title: "Check the service name",
-        description: `service.name must still be "${appIdentifier}", with the browser.* or device.* attributes set. Otherwise the data lands somewhere else.`,
+        description: translateTemplate(
+          'service.name must still be "{{serviceName}}", with the browser.* or device.* attributes set. Otherwise the data lands somewhere else.',
+          { serviceName: appIdentifier },
+        ),
         code: `service.name=${encodeResourceAttributeValue(appIdentifier)}`,
       },
     ],
@@ -611,7 +702,7 @@ export const getServerlessFunctionConnectionGuide: (
       )}`;
 
   return {
-    resourceNoun: "function",
+    resourceNoun: translationKey("function"),
     agentName: "OpenTelemetry SDK",
     setupSteps: [
       PICK_INGESTION_KEY_STEP,
@@ -636,11 +727,18 @@ export const getServerlessFunctionConnectionGuide: (
       },
       {
         title: "Check the function's logs",
-        description: `Look for OpenTelemetry export errors. ${KEY_OR_NETWORK_ERRORS}`,
+        description: translationKey(
+          "Look for OpenTelemetry export errors. A 401 means the ingestion key was deleted or changed; a connection error means it cannot reach OneUptime.",
+        ),
       },
       {
-        title: `Check ${nameAttribute}`,
-        description: `It must still be "${functionIdentifier}". A different name sends the data to a different function.`,
+        title: translateTemplate("Check {{attribute}}", {
+          attribute: nameAttribute,
+        }),
+        description: translateTemplate(
+          'It must still be "{{functionName}}". A different name sends the data to a different function.',
+          { functionName: functionIdentifier },
+        ),
         code: attributes,
       },
     ],

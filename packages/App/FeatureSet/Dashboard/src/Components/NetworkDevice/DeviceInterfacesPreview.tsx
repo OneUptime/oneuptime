@@ -18,6 +18,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -42,6 +44,7 @@ const PREVIEW_TITLE: string = "Interfaces";
 const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [interfaces, setInterfaces] = useState<Array<NetworkInterface>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -104,7 +107,7 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
     if (!row.isAdministrativelyUp) {
       return (
         <span
-          title="Administratively disabled"
+          title={translator.translateText("Administratively disabled")}
           className="inline-block h-2 w-2 rounded-full bg-gray-400"
         ></span>
       );
@@ -113,7 +116,7 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
     if (row.isOperationallyUp) {
       return (
         <span
-          title="Up"
+          title={translator.translateText("Up")}
           className="inline-block h-2 w-2 rounded-full bg-emerald-500"
         ></span>
       );
@@ -121,7 +124,7 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
 
     return (
       <span
-        title="Down"
+        title={translator.translateText("Down")}
         className="inline-block h-2 w-2 rounded-full bg-red-500"
       ></span>
     );
@@ -141,8 +144,9 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
     if (interfaces.length === 0) {
       return (
         <p className="py-6 text-center text-sm text-gray-500">
-          No interfaces discovered yet. Interfaces appear after the first
-          successful SNMP poll.
+          {translator.translateText(
+            "No interfaces discovered yet. Interfaces appear after the first successful SNMP poll.",
+          )}
         </p>
       );
     }
@@ -162,8 +166,13 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
       <div>
         {downCount > 0 && (
           <p className="mb-3 text-sm font-medium text-red-700">
-            {downCount} interface{downCount === 1 ? " is" : "s are"} down on
-            this device.
+            {translator.translatePlural(
+              {
+                one: "{{count}} interface is down on this device.",
+                other: "{{count}} interfaces are down on this device.",
+              },
+              downCount,
+            )}
           </p>
         )}
         <div className="divide-y divide-gray-100">
@@ -177,7 +186,10 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
                   {getStatusDot(row)}
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-gray-900">
-                      {row.name || `ifIndex ${row.interfaceIndex}`}
+                      {row.name ||
+                        translator.translateTemplate("ifIndex {{index}}", {
+                          index: row.interfaceIndex ?? "",
+                        })}
                     </div>
                     {row.alias && (
                       <div className="truncate text-xs text-gray-500">
@@ -189,7 +201,13 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
                 <div className="flex flex-shrink-0 items-center gap-4 text-sm text-gray-600">
                   <span className="max-sm:hidden sm:inline">
                     {row.inRateMbps !== undefined && row.inRateMbps !== null
-                      ? `${row.inRateMbps} / ${row.outRateMbps ?? "—"} Mbps`
+                      ? translator.translateTemplate(
+                          "{{inRate}} / {{outRate}} Mbps",
+                          {
+                            inRate: row.inRateMbps,
+                            outRate: row.outRateMbps ?? "—",
+                          },
+                        )
                       : "—"}
                   </span>
                   <span
@@ -214,7 +232,13 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
             to={interfacesRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
           >
-            {`View all ${totalCount} interfaces →`}
+            {translator.translatePlural(
+              {
+                one: "View all {{count}} interface →",
+                other: "View all {{count}} interfaces →",
+              },
+              totalCount,
+            )}
           </AppLink>
         </div>
       </div>

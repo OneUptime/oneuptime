@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The loading states of a chart that fetches its own data, such as the
@@ -57,6 +59,8 @@ export interface ComponentProps {
 const ChartRefetchFrame: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div>
       {props.refetchError ? (
@@ -69,8 +73,10 @@ const ChartRefetchFrame: FunctionComponent<ComponentProps> = (
             className="h-4 w-4 shrink-0 text-red-500"
           />
           <span>
-            Couldn&apos;t refresh — showing previously loaded data.{" "}
-            {props.refetchError}
+            {translator.translateTemplate(
+              "Couldn't refresh — showing previously loaded data. {{error}}",
+              { error: props.refetchError },
+            )}
           </span>
         </div>
       ) : null}
@@ -84,7 +90,7 @@ const ChartRefetchFrame: FunctionComponent<ComponentProps> = (
               icon={IconProp.Refresh}
               className="h-3 w-3 animate-spin text-gray-400"
             />
-            Refreshing
+            {translator.translateText("Refreshing")}
           </div>
         ) : null}
         <div

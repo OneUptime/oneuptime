@@ -11,7 +11,7 @@ Le pagine di stato stanno sotto **Pagine di stato** nella navigazione a sinistra
 - **Si crea con due campi.** Una nuova pagina di stato chiede solo **Nome** e **Descrizione**. Risorse, branding e domini si configurano dopo.
 - **Le risorse sono ciò che i visitatori vedono.** Ogni riga della pagina è una **Pagina di stato Risorsa** — un monitor (o un gruppo di monitor) con un proprio nome visualizzato, un tooltip e le sue opzioni di uptime. I gruppi dividono una pagina lunga in sezioni e possono essere annidati.
 - **Un URL di anteprima fin dal primo giorno.** Ogni pagina di stato riceve un link di anteprima, così puoi guardarla prima ancora che esista un dominio personalizzato.
-- **Le pagine visibili ai visitatori dipendono dalle impostazioni.** Incidenti, annunci, eventi pianificati e la pagina di iscrizione compaiono solo quando il relativo interruttore in **Impostazioni avanzate** è attivo.
+- **Le pagine visibili ai visitatori dipendono dalle impostazioni.** Incidenti, episodi, annunci ed eventi pianificati compaiono solo finché il relativo interruttore in **Cosa mostra la tua pagina di stato** (in **Impostazioni avanzate**) è attivo, e la pagina di iscrizione solo finché **Mostra pagina iscritti** è attivo.
 - **Tre modi per renderla privata.** Utenti privati, una password principale, oppure SAML SSO / OIDC — più una whitelist IP.
 - **Gli iscritti vengono avvisati da soli.** Possono seguire una pagina iscritti via email, SMS, Slack, Microsoft Teams e webhook, ciascun canale dietro il proprio interruttore.
 
@@ -98,36 +98,23 @@ Per capire che cosa porta un incidente su questa pagina e che cosa lo toglie, ve
 
 ## Scegliere che cosa compare sulla pagina
 
-Quasi tutti gli interruttori di visualizzazione stanno nello stesso posto: **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate**. Ogni scheda ha il proprio pulsante **Edit Settings**.
+Quello che vedono i visitatori si imposta in un'unica scheda: **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la tua pagina → Avanzato → Impostazioni avanzate**. Ha una riga per ogni elenco che la pagina può mostrare, poi **Cronologia uptime** e la riga "Offerto da OneUptime". Non c'è un pulsante di modifica: un interruttore si salva appena lo cambi, e un numero di giorni quando esci dal campo o premi Invio.
 
-**Impostazioni incidente**:
+- **Mostra incidenti** (`showIncidentsOnStatusPage`) — attivo per impostazione predefinita. Sotto, **Mostra … giorni di cronologia** (`showIncidentHistoryInDays`, predefinito 14) stabilisce quanto indietro arriva l'elenco degli incidenti, e **Mostra etichette degli incidenti** (`showIncidentLabelsOnStatusPage`) è disattivo per impostazione predefinita.
+- **Mostra solo gli incidenti limitati a questa pagina** (`onlyShowScopedIncidents`) — anch'esso nella riga degli incidenti, disattivo per impostazione predefinita. Se attivo, la pagina mostra solo gli incidenti limitati a lei con **Limita a queste pagine di stato**, e avvisa i suoi iscritti solo di quelli. Decide anche quali incidenti portano i propri episodi sulla pagina, perciò resta anche quando **Mostra incidenti** è disattivo.
+- **Mostra episodi** (`showEpisodesOnStatusPage`) — attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showEpisodeHistoryInDays`, predefinito 14) e **Mostra etichette degli episodi** (`showEpisodeLabelsOnStatusPage`, disattivo per impostazione predefinita). Gli episodi sono un modello a sé con i propri endpoint, non una vista sugli incidenti.
+- **Mostra annunci** (`showAnnouncementsOnStatusPage`) — attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, predefinito 14).
+- **Mostra eventi di manutenzione programmata** (`showScheduledMaintenanceEventsOnStatusPage`) — attivo per impostazione predefinita, con **Mostra … giorni di cronologia** (`showScheduledEventHistoryInDays`, predefinito 14) e **Mostra etichette degli eventi** (`showScheduledEventLabelsOnStatusPage`, disattivo per impostazione predefinita).
+- **Cronologia uptime** — **Mostra … giorni di cronologia** (`showUptimeHistoryInDays`) è la lunghezza della barra di uptime accanto a ogni risorsa. Predefinito 90, e deve stare tra 1 e 90. Ogni opzione **Mostra % di uptime** e **Mostra grafico cronologia stato** su una risorsa o un gruppo legge questo numero.
+- **Mostra il marchio Powered By OneUptime** — attivo per impostazione predefinita, quindi il piè di pagina che i visitatori vedono riporta "Offerto da OneUptime". Disattivalo per nascondere la riga. La colonna lo salva al contrario, come `hidePoweredByOneUptimeBranding`.
 
-- **Mostra incidenti** (`showIncidentsOnStatusPage`) — attivo per impostazione predefinita. Disattivarlo rimuove anche la voce di navigazione **Incidenti**.
-- **Mostra cronologia incidenti (in giorni)** (`showIncidentHistoryInDays`) — quanto indietro arriva l'elenco degli incidenti. Predefinito: 14.
-- **Mostra etichette degli incidenti** (`showIncidentLabelsOnStatusPage`) — disattivo per impostazione predefinita.
+**Un elenco disattivato** sparisce dalla pagina, insieme alla sua voce nella barra di navigazione se ne ha una; il suo endpoint pubblico rifiuta le richieste e gli iscritti della pagina non ricevono avvisi su quel tipo di evento. La sua riga mostra allora solo l'interruttore: quanto indietro arriva un elenco nascosto, e se mostra etichette, non cambia nulla.
 
-**Impostazioni episodio** — gli stessi tre interruttori per gli episodi di incidente: **Mostra episodi** (`showEpisodesOnStatusPage`, attivo per impostazione predefinita), **Mostra cronologia episodi (in giorni)** (predefinito 14) e **Mostra etichette degli episodi** (disattivo per impostazione predefinita). Gli episodi sono un modello a sé con i propri endpoint, non una vista sugli incidenti.
-
-**Impostazioni annuncio**:
-
-- **Mostra annunci** (`showAnnouncementsOnStatusPage`) — attivo per impostazione predefinita.
-- **Mostra cronologia annunci (in giorni)** (`showAnnouncementHistoryInDays`) — predefinito 14.
-
-**Impostazioni evento pianificato**:
-
-- **Mostra eventi di manutenzione programmata** (`showScheduledMaintenanceEventsOnStatusPage`) — attivo per impostazione predefinita.
-- **Mostra cronologia eventi programmati (in giorni)** (`showScheduledEventHistoryInDays`) — predefinito 14.
-- **Mostra etichette degli eventi** (`showScheduledEventLabelsOnStatusPage`) — disattivo per impostazione predefinita.
-
-**Impostazioni cronologia di disponibilità**:
-
-- **Mostra cronologia uptime (in giorni)** (`showUptimeHistoryInDays`) — la lunghezza della barra di uptime accanto a ogni risorsa. Predefinito 90, e deve stare tra 1 e 90. Ogni opzione **Mostra % di uptime** e **Mostra grafico cronologia stato** su una risorsa o un gruppo legge questo numero.
+**Piani.** Su OneUptime Cloud, accanto a un'impostazione che il tuo piano non consente di cambiare compare il piano necessario. I quattro interruttori degli elenchi, i tre delle etichette e la cronologia degli episodi richiedono **Growth**; nascondere la riga "Offerto da OneUptime" richiede **Scale**. Le altre finestre di cronologia, **Cronologia uptime** e **Mostra solo gli incidenti limitati a questa pagina** si possono cambiare con qualsiasi piano, e ogni impostazione si salva da sola.
 
 Se la pagina mostra la voce **Iscriviti** (**Mostra pagina iscritti**, `showSubscriberPageOnStatusPage`, attivo per impostazione predefinita) e con quali canali i visitatori possono iscriversi non si imposta in questa schermata: entrambe le cose sono nella scheda **Canali** in **Iscritti → Impostazioni iscritti** (vedi [Iscritti e annunci](/docs/status-pages/subscribers)).
 
-**Branding "Powered By OneUptime"**:
-
-- **Nascondi il marchio Powered By OneUptime** — disattivo per impostazione predefinita, quindi il piè di pagina che i visitatori vedono riporta "Offerto da OneUptime" finché non lo attivi.
+Sotto la scheda ci sono una scheda che esporta le impostazioni della pagina di stato in un file JSON da poter reimportare e la scheda per archiviare la pagina di stato.
 
 **Dove stanno i colori.** I colori della barra di uptime non sono qui — il **Colore predefinito della barra**, le regole sui colori delle barre, gli **Stati del monitor per i tempi di inattività** e **Mostra percentuale di uptime complessiva** stanno tutti in **Pagine di stato → la tua pagina → Branding → Pagina di panoramica**. Non esiste da nessuna parte un'impostazione di tema o di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
 

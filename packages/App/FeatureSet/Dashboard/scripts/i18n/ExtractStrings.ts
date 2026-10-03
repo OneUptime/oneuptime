@@ -151,6 +151,7 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "legend",
   "linkText",
   "loadingMessage",
+  "loadingText",
   "meaning",
   "message",
   "moreText",

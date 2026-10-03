@@ -1,4 +1,6 @@
 import React, { KeyboardEvent, ReactElement, useRef } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface SegmentedControlOption<TValue extends string> {
   value: TValue;
@@ -20,6 +22,8 @@ export interface ComponentProps<TValue extends string> {
 /*
  * A compact radio group styled as joined buttons. Used for the trend window
  * and the stack trace view switches, where every option is always visible.
+ * The group's label and each option's label and title are English keys,
+ * looked up here; a hint (a count) is shown as given.
  *
  * Keyboard follows the radio group pattern: Tab reaches the checked option
  * only, and the arrow keys (plus Home/End) move and select within the group.
@@ -29,6 +33,7 @@ const ExceptionSegmentedControl: <TValue extends string>(
 ) => ReactElement = <TValue extends string>(
   props: ComponentProps<TValue>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const groupRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
@@ -99,7 +104,7 @@ const ExceptionSegmentedControl: <TValue extends string>(
     <div
       ref={groupRef}
       role="radiogroup"
-      aria-label={props.label}
+      aria-label={translator.translateText(props.label)}
       data-testid={props.testId}
       className="inline-flex rounded-lg bg-gray-100 p-0.5"
       onKeyDown={onKeyDown}
@@ -116,7 +121,7 @@ const ExceptionSegmentedControl: <TValue extends string>(
               aria-checked={isActive}
               tabIndex={option.value === tabStopValue ? 0 : -1}
               disabled={option.isDisabled}
-              title={option.title}
+              title={translator.translateText(option.title)}
               data-testid={
                 props.testId ? `${props.testId}-${option.value}` : undefined
               }
@@ -133,7 +138,7 @@ const ExceptionSegmentedControl: <TValue extends string>(
                     : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              {option.label}
+              {translator.translateText(option.label)}
               {option.hint && (
                 <span
                   className={`tabular-nums ${isActive ? "text-gray-500" : "text-gray-400"}`}

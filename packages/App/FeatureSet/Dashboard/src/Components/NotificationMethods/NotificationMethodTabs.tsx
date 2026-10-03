@@ -16,6 +16,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import React, { FunctionComponent, ReactElement } from "react";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Where a person sets up the ways OneUptime reaches them: User Settings >
@@ -40,7 +41,7 @@ export function getWorkspaceAppsTab(
   }
 
   return {
-    name: "Workspace Apps",
+    name: translationKey("Workspace Apps"),
     children: (
       <div className="space-y-4">
         {offered.includes(WorkspaceType.Slack) ? <UserSlack /> : <></>}
@@ -67,7 +68,7 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
 
   const tabs: Array<Tab> = [
     {
-      name: "Direct Contact",
+      name: translationKey("Direct Contact"),
       children: (
         <div className="space-y-4">
           <UserEmail />
@@ -80,11 +81,11 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
     },
     ...(workspaceAppsTab ? [workspaceAppsTab] : []),
     {
-      name: "Push Notifications",
+      name: translationKey("Push Notifications"),
       children: <UserPush />,
     },
     {
-      name: "Webhooks",
+      name: translationKey("Webhooks"),
       children: <UserWebhook />,
     },
   ];

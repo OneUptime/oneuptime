@@ -232,7 +232,9 @@ describe("the grouping rule pages in Japanese", () => {
 
     expect(
       screen.getByTestId("grouping-rule-summary-grouping"),
-    ).toHaveTextContent("一致するすべてのインシデントで1つのエピソードを共有");
+    ).toHaveTextContent(
+      "一致するすべてのインシデントで 1 つのエピソードを共有",
+    );
     expect(
       screen.getByTestId("grouping-rule-summary-details"),
     ).toHaveTextContent(

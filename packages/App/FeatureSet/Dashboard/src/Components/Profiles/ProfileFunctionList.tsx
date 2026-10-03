@@ -17,6 +17,9 @@ import { JSONObject } from "Common/Types/JSON";
 import ProfileUtil, { ModuleCategory } from "../../Utils/ProfileUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ProfileFunctionListProps {
   profileId: string;
@@ -62,6 +65,7 @@ const FUNCTION_LIST_LIMIT: number = 100;
 const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
   props: ProfileFunctionListProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [functionRows, setFunctionRows] = useState<Array<FunctionRow>>([]);
   const [windowTotal, setWindowTotal] = useState<number>(0);
   const [isTruncated, setIsTruncated] = useState<boolean>(false);
@@ -192,7 +196,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
   if (functionRows.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 text-sm">
-        No performance data in this profile yet.
+        {translator.translateText("No performance data in this profile yet.")}
       </div>
     );
   }
@@ -206,12 +210,22 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
             className="h-3.5 w-3.5 mt-0.5 text-gray-400 flex-shrink-0"
           />
           <div>
-            <span className="font-medium text-gray-800">Self</span> = work the
-            function did itself.{" "}
-            <span className="font-medium text-gray-800">Total</span> = work it
-            plus everything it called. Optimizing a function only helps if it
-            has a meaningful <em>self</em> value — a high total but low self
-            just means it orchestrated slow work.
+            <TranslatedSentence
+              template="{{self}} = work the function did itself. {{total}} = work it plus everything it called. Optimizing a function only helps if it has a meaningful {{selfValue}} value — a high total but low self just means it orchestrated slow work."
+              slots={{
+                self: (
+                  <span className="font-medium text-gray-800">
+                    {translator.translateText("Self")}
+                  </span>
+                ),
+                total: (
+                  <span className="font-medium text-gray-800">
+                    {translator.translateText("Total")}
+                  </span>
+                ),
+                selfValue: <em>{translator.translateText("self")}</em>,
+              }}
+            />
           </div>
         </div>
       </div>
@@ -223,9 +237,9 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
             className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500"
           />
           <span>
-            Data is truncated to the largest stacks — the sample limit was hit.
-            Per-function values may undercount; percentages are of the full
-            window.
+            {translator.translateText(
+              "Data is truncated to the largest stacks — the sample limit was hit. Per-function values may undercount; percentages are of the full window.",
+            )}
           </span>
         </div>
       )}
@@ -244,7 +258,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            Rank by self time
+            {translator.translateText("Rank by self time")}
           </button>
           <button
             type="button"
@@ -257,7 +271,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            Rank by total time
+            {translator.translateText("Rank by total time")}
           </button>
         </div>
 
@@ -270,7 +284,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
               setOnlyOwnCode(e.target.checked);
             }}
           />
-          Only my code
+          {translator.translateText("Only my code")}
         </label>
 
         <div className="relative flex-1 min-w-[180px] max-w-sm ml-auto">
@@ -280,7 +294,7 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
           />
           <input
             type="text"
-            placeholder="Search…"
+            placeholder={translator.translateText("Search…")}
             className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             value={search}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -294,14 +308,14 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
       <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
         <div className="grid grid-cols-[2.5rem_1fr_9rem_8rem] px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-gray-500 bg-gray-50 border-b border-gray-200">
           <div>#</div>
-          <div>Function</div>
-          <div className="text-right">Self</div>
-          <div className="text-right">Total</div>
+          <div>{translator.translateText("Function")}</div>
+          <div className="text-right">{translator.translateText("Self")}</div>
+          <div className="text-right">{translator.translateText("Total")}</div>
         </div>
 
         {displayedRows.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-500">
-            No functions matched your filters.
+            {translator.translateText("No functions matched your filters.")}
           </div>
         ) : (
           displayedRows.map((row: FunctionRow, index: number) => {
@@ -329,18 +343,28 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                   <div className="flex items-center gap-2">
                     <span
                       className={`inline-block h-2 w-2 rounded-sm ${style.bg} flex-shrink-0`}
-                      title={ProfileUtil.getModuleCategoryLabel(row.category)}
+                      title={translator.translateText(
+                        ProfileUtil.getModuleCategoryLabel(row.category),
+                      )}
                     />
                     <span className="font-mono text-sm text-gray-900 truncate">
-                      {row.functionName || "(anonymous)"}
+                      {row.functionName ||
+                        translator.translateText("(anonymous)")}
                     </span>
                     {props.onFocusFunction && (
                       <button
                         type="button"
-                        title={`Show callers and callees of ${
-                          row.functionName || "(anonymous)"
-                        }`}
-                        aria-label="Show callers and callees"
+                        title={translator.translateTemplate(
+                          "Show callers and callees of {{name}}",
+                          {
+                            name:
+                              row.functionName ||
+                              translator.translateTemplate("(anonymous)"),
+                          },
+                        )}
+                        aria-label={translator.translateText(
+                          "Show callers and callees",
+                        )}
                         className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-gray-300 hover:bg-gray-200 hover:text-gray-700 transition-colors"
                         onClick={() => {
                           props.onFocusFunction?.({
@@ -376,7 +400,9 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                     {ProfileUtil.formatProfileValue(row.selfValue, unit)}
                   </div>
                   <div className="text-[11px] text-gray-400">
-                    {ProfileUtil.formatPercent(selfSharePct)} of total
+                    {translator.translateTemplate("{{percent}} of total", {
+                      percent: ProfileUtil.formatPercent(selfSharePct),
+                    })}
                   </div>
                 </div>
 
@@ -385,7 +411,10 @@ const ProfileFunctionList: FunctionComponent<ProfileFunctionListProps> = (
                     {ProfileUtil.formatProfileValue(row.totalValue, unit)}
                   </div>
                   <div className="text-[11px] text-gray-400">
-                    {row.sampleCount.toLocaleString()} samples
+                    {translator.translatePlural(
+                      { one: "{{count}} sample", other: "{{count}} samples" },
+                      row.sampleCount,
+                    )}
                   </div>
                 </div>
               </div>

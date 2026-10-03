@@ -17,6 +17,12 @@ import { InvestigationEvidenceItem } from "Common/Types/AI/InvestigationEvidence
 import IconProp from "Common/Types/Icon/IconProp";
 import { InvestigationEvidenceCheckedEntry } from "Common/Utils/AI/InvestigationReport";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   KeyboardEvent,
@@ -31,8 +37,10 @@ export interface InvestigationRunUsage {
   totalTokens: number;
 }
 
-export const INVESTIGATION_READ_ONLY_TEXT: string =
-  "Read-only — nothing in your systems was changed";
+// An English key, translated where it is drawn.
+export const INVESTIGATION_READ_ONLY_TEXT: string = translationKey(
+  "Read-only — nothing in your systems was changed",
+);
 
 export interface UsageLineProps {
   usage: InvestigationRunUsage | null;
@@ -56,6 +64,7 @@ export interface UsageLineProps {
   showCost?: boolean | undefined;
   // The read-only guarantee. Defaults to true.
   showReadOnly?: boolean | undefined;
+  // English, translated here.
   label?: string | undefined;
   className?: string | undefined;
 }
@@ -73,6 +82,7 @@ const USAGE_ICON_CLASS_NAME: string = "h-3.5 w-3.5 flex-shrink-0 text-gray-400";
  */
 export function describeKubectlUsage(
   activity: KubectlActivitySummary | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | null {
   if (!activity) {
     return null;
@@ -91,38 +101,100 @@ export function describeKubectlUsage(
   }
 
   if (executed === 0 && unknown === 0) {
-    return `${notRun.toLocaleString()} kubectl ${
-      notRun === 1 ? "command" : "commands"
-    } did not run`;
+    return translator.translatePlural(
+      {
+        one: "{{count}} kubectl command did not run",
+        other: "{{count}} kubectl commands did not run",
+      },
+      notRun,
+    );
   }
 
   if (executed === 0 && notRun === 0) {
-    return `${unknown.toLocaleString()} kubectl ${
-      unknown === 1 ? "command" : "commands"
-    } returned no result`;
+    return translator.translatePlural(
+      {
+        one: "{{count}} kubectl command returned no result",
+        other: "{{count}} kubectl commands returned no result",
+      },
+      unknown,
+    );
   }
 
   if (executed === 0) {
-    return `${(notRun + unknown).toLocaleString()} kubectl commands without a result (${notRun.toLocaleString()} did not run, ${unknown.toLocaleString()} returned no result)`;
+    return translator.translateTemplate(
+      "{{total}} kubectl commands without a result ({{notRun}} did not run, {{unknown}} returned no result)",
+      {
+        total: translator.formatNumber(notRun + unknown),
+        notRun: translator.formatNumber(notRun),
+        unknown: translator.formatNumber(unknown),
+      },
+    );
   }
 
+  const notes: Array<string> = describeCommandNotes(
+    { failed, notRun, unknown },
+    translator,
+  );
+
+  return notes.length > 0
+    ? translator.translatePlural(
+        {
+          one: "{{count}} kubectl command ({{notes}})",
+          other: "{{count}} kubectl commands ({{notes}})",
+        },
+        executed,
+        { notes: notes.join(", ") },
+      )
+    : translator.translatePlural(
+        {
+          one: "{{count}} kubectl command",
+          other: "{{count}} kubectl commands",
+        },
+        executed,
+      );
+}
+
+/*
+ * What happened to the commands that did not simply succeed, one clause per
+ * outcome, each in the reader's language: "1 failed", "2 did not run".
+ */
+function describeCommandNotes(
+  counts: { failed: number; notRun: number; unknown: number },
+  translator: Translator,
+): Array<string> {
   const notes: Array<string> = [];
 
-  if (failed > 0) {
-    notes.push(`${failed.toLocaleString()} failed`);
+  if (counts.failed > 0) {
+    notes.push(
+      translator.translatePlural(
+        { one: "{{count}} failed", other: "{{count}} failed" },
+        counts.failed,
+      ),
+    );
   }
 
-  if (notRun > 0) {
-    notes.push(`${notRun.toLocaleString()} did not run`);
+  if (counts.notRun > 0) {
+    notes.push(
+      translator.translatePlural(
+        { one: "{{count}} did not run", other: "{{count}} did not run" },
+        counts.notRun,
+      ),
+    );
   }
 
-  if (unknown > 0) {
-    notes.push(`${unknown.toLocaleString()} returned no result`);
+  if (counts.unknown > 0) {
+    notes.push(
+      translator.translatePlural(
+        {
+          one: "{{count}} returned no result",
+          other: "{{count}} returned no result",
+        },
+        counts.unknown,
+      ),
+    );
   }
 
-  return `${executed.toLocaleString()} kubectl ${
-    executed === 1 ? "command" : "commands"
-  }${notes.length > 0 ? ` (${notes.join(", ")})` : ""}`;
+  return notes;
 }
 
 /*
@@ -132,6 +204,7 @@ export function describeKubectlUsage(
  */
 export function describeInfrastructureUsage(
   activity: InfrastructureActivitySummary | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | null {
   if (!activity) {
     return null;
@@ -144,43 +217,63 @@ export function describeInfrastructureUsage(
   );
   const notRun: number = Math.max(0, activity.notRun);
   const unknown: number = Math.max(0, activity.unknown);
-  const noun: (count: number) => string = (count: number): string => {
-    return `infrastructure ${count === 1 ? "command" : "commands"}`;
-  };
 
   if (executed === 0 && notRun === 0 && unknown === 0) {
     return null;
   }
 
   if (executed === 0 && unknown === 0) {
-    return `${notRun.toLocaleString()} ${noun(notRun)} did not run`;
+    return translator.translatePlural(
+      {
+        one: "{{count}} infrastructure command did not run",
+        other: "{{count}} infrastructure commands did not run",
+      },
+      notRun,
+    );
   }
 
   if (executed === 0 && notRun === 0) {
-    return `${unknown.toLocaleString()} ${noun(unknown)} returned no result`;
+    return translator.translatePlural(
+      {
+        one: "{{count}} infrastructure command returned no result",
+        other: "{{count}} infrastructure commands returned no result",
+      },
+      unknown,
+    );
   }
 
   if (executed === 0) {
-    return `${(notRun + unknown).toLocaleString()} infrastructure commands without a result (${notRun.toLocaleString()} did not run, ${unknown.toLocaleString()} returned no result)`;
+    return translator.translateTemplate(
+      "{{total}} infrastructure commands without a result ({{notRun}} did not run, {{unknown}} returned no result)",
+      {
+        total: translator.formatNumber(notRun + unknown),
+        notRun: translator.formatNumber(notRun),
+        unknown: translator.formatNumber(unknown),
+      },
+    );
   }
 
-  const notes: Array<string> = [];
+  const notes: Array<string> = describeCommandNotes(
+    { failed, notRun, unknown },
+    translator,
+  );
 
-  if (failed > 0) {
-    notes.push(`${failed.toLocaleString()} failed`);
-  }
-
-  if (notRun > 0) {
-    notes.push(`${notRun.toLocaleString()} did not run`);
-  }
-
-  if (unknown > 0) {
-    notes.push(`${unknown.toLocaleString()} returned no result`);
-  }
-
-  return `${executed.toLocaleString()} ${noun(executed)}${
-    notes.length > 0 ? ` (${notes.join(", ")})` : ""
-  }`;
+  return notes.length > 0
+    ? translator.translatePlural(
+        {
+          one: "{{count}} infrastructure command ({{notes}})",
+          other: "{{count}} infrastructure commands ({{notes}})",
+        },
+        executed,
+        { notes: notes.join(", ") },
+      )
+    : translator.translatePlural(
+        {
+          one: "{{count}} infrastructure command",
+          other: "{{count}} infrastructure commands",
+        },
+        executed,
+      );
 }
 
 /*
@@ -192,6 +285,7 @@ export function describeInfrastructureUsage(
 export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
   props: UsageLineProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const usage: InvestigationRunUsage | null = props.usage;
   /*
    * The run's tool calls include every cluster tool call (run_kubectl and
@@ -208,9 +302,11 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
   const stepCount: number = props.stepCount || 0;
   const kubectlUsage: string | null = describeKubectlUsage(
     props.kubectlActivity,
+    translator,
   );
   const infrastructureUsage: string | null = describeInfrastructureUsage(
     props.kubectlActivity?.infrastructure,
+    translator,
   );
   const items: Array<ReactElement> = [];
 
@@ -218,8 +314,13 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
     items.push(
       <li key="queries" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Database} className={USAGE_ICON_CLASS_NAME} />
-        {queryCount.toLocaleString()} telemetry{" "}
-        {queryCount === 1 ? "query" : "queries"}
+        {translator.translatePlural(
+          {
+            one: "{{count}} telemetry query",
+            other: "{{count}} telemetry queries",
+          },
+          queryCount,
+        )}
       </li>,
     );
   }
@@ -246,7 +347,10 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
     items.push(
       <li key="steps" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Activity} className={USAGE_ICON_CLASS_NAME} />
-        {stepCount.toLocaleString()} {stepCount === 1 ? "step" : "steps"}
+        {translator.translatePlural(
+          { one: "{{count}} step", other: "{{count}} steps" },
+          stepCount,
+        )}
       </li>,
     );
   }
@@ -255,7 +359,10 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
     items.push(
       <li key="tokens" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Bolt} className={USAGE_ICON_CLASS_NAME} />
-        {usage.totalTokens.toLocaleString()} tokens
+        {translator.translatePlural(
+          { one: "{{count}} token", other: "{{count}} tokens" },
+          usage.totalTokens,
+        )}
       </li>,
     );
   }
@@ -264,7 +371,11 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
     items.push(
       <li key="model" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Sparkles} className={USAGE_ICON_CLASS_NAME} />
-        <span className="break-all">Model {props.modelName}</span>
+        <span className="break-all">
+          {translator.translateTemplate("Model {{name}}", {
+            name: props.modelName,
+          })}
+        </span>
       </li>,
     );
   }
@@ -276,7 +387,7 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
           icon={IconProp.ShieldCheck}
           className="h-3.5 w-3.5 flex-shrink-0 text-emerald-500"
         />
-        {INVESTIGATION_READ_ONLY_TEXT}
+        {translator.translateText(INVESTIGATION_READ_ONLY_TEXT)}
       </li>,
     );
   }
@@ -288,7 +399,9 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
   return (
     <ul
       role="list"
-      aria-label={props.label || "Investigation usage"}
+      aria-label={translator.translateText(
+        props.label || "Investigation usage",
+      )}
       className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 ${
         props.className || ""
       }`}
@@ -339,6 +452,7 @@ export interface ComponentProps {
 const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const idPrefix: string = useId();
   const contextKey: string = `${props.subjectType}:${props.subjectId}:${props.runId || ""}`;
   const focusRequestId: number | null = props.focusRequest
@@ -447,11 +561,13 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   };
   const hasTabs: boolean = tabs.length > 1;
   // Named for what is inside: evidence only exists next to a report.
-  const title: string = hasTabs
-    ? "Evidence and activity"
-    : activeTab === "evidence"
-      ? "Evidence checked"
-      : "Investigation activity";
+  const title: string = translator.translateText(
+    hasTabs
+      ? "Evidence and activity"
+      : activeTab === "evidence"
+        ? "Evidence checked"
+        : "Investigation activity",
+  ) as string;
 
   const onTabKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void = (
     event: KeyboardEvent<HTMLButtonElement>,
@@ -484,13 +600,25 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
     activity: stepCount,
   };
   const tabLabels: Record<DetailsTab, ReactElement> = {
-    // "Evidence checked" and "Activity" do not share one row on a phone.
+    /*
+     * "Evidence checked" and "Activity" do not share one row on a phone, so
+     * the tab shows the short name there, drawn from an attribute so it is
+     * never part of the tab's text; a screen reader always hears the full
+     * name.
+     */
     evidence: (
       <span>
-        Evidence<span className="max-sm:hidden sm:inline"> checked</span>
+        <span className="max-sm:sr-only">
+          {translator.translateText("Evidence checked")}
+        </span>
+        <span
+          aria-hidden="true"
+          data-short-label={translator.translateText("Evidence")}
+          className="before:content-[attr(data-short-label)] sm:hidden"
+        />
       </span>
     ),
-    activity: <span>Activity</span>,
+    activity: <span>{translator.translateText("Activity")}</span>,
   };
 
   const renderPanel: (tab: DetailsTab) => ReactElement = (
@@ -527,13 +655,15 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
               a list with cluster calls in it promises rows only for the
               telemetry queries.
             */}
-            {props.evidence.length === 0
-              ? "Every query OneUptime AI ran while investigating."
-              : hasInfrastructureEvidence
-                ? "Every telemetry query and command OneUptime AI ran on your infrastructure. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
-                : hasClusterEvidence
-                  ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
-                  : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
+            {translator.translateText(
+              props.evidence.length === 0
+                ? "Every query OneUptime AI ran while investigating."
+                : hasInfrastructureEvidence
+                  ? "Every telemetry query and command OneUptime AI ran on your infrastructure. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                  : hasClusterEvidence
+                    ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                    : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned.",
+            )}
           </p>
           <InvestigationEvidenceList
             items={props.evidence}
@@ -637,7 +767,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
         {hasTabs ? (
           <div
             role="tablist"
-            aria-label="Investigation details"
+            aria-label={translator.translateText("Investigation details")}
             className="flex gap-x-5 border-b border-gray-200"
           >
             {tabs.map((tab: DetailsTab): ReactElement => {
@@ -677,7 +807,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {tabCounts[tab].toLocaleString()}
+                    {translator.formatNumber(tabCounts[tab])}
                   </span>
                 </button>
               );

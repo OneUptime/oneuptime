@@ -130,14 +130,14 @@ Los adjuntos se sirven desde `GET {statusPageCrudPath}/status-page-announcement/
 **Show At** (`showAnnouncementAt`) y **End At** (`endAnnouncementAt`) lo gobiernan todo, pero la página de resumen y la lista de anuncios hacen preguntas distintas, y esa diferencia despista.
 
 - **La página de resumen** muestra un anuncio cuando `showAnnouncementAt` ya pasó y `endAnnouncementAt` está en el futuro o vacío.
-- **La lista `/announcements`** muestra los anuncios cuyo `showAnnouncementAt` cae dentro de **Mostrar historial de anuncios (en días)** (`showAnnouncementHistoryInDays`, 14 por defecto) y luego los separa en el cliente entre activos y pasados.
+- **La lista `/announcements`** muestra los anuncios cuyo `showAnnouncementAt` cae dentro de la ventana de historial de los anuncios (`showAnnouncementHistoryInDays`, 14 por defecto) y luego los separa en el cliente entre activos y pasados.
 
 Dos consecuencias que conviene tener previstas:
 
 - **Un anuncio sin fecha de fin no caduca nunca.** Deja **Dejar de mostrar el anuncio el** vacío y se queda fijado en la página de resumen indefinidamente. Pon fecha de fin a todo lo que tenga plazo.
 - **Un anuncio antiguo pero aún activo puede desaparecer de la lista.** Si empezó hace más de `showAnnouncementHistoryInDays`, se cae de `/announcements` aunque siga en la página de resumen. Amplía la ventana de historial si mantienes avisos de larga duración.
 
-Que los anuncios aparezcan siquiera lo controla la tarjeta **Ajustes del anuncio** de **Ajustes Avanzados**: **Mostrar anuncios** (`showAnnouncementsOnStatusPage`, true por defecto) y **Mostrar historial de anuncios (en días)** (14 por defecto). Con **Mostrar anuncios** apagado, el endpoint de anuncios rechaza la solicitud de plano.
+Que los anuncios aparezcan siquiera se ajusta en la tarjeta **Lo que muestra su página de estado** de **Ajustes Avanzados**: **Mostrar anuncios** (`showAnnouncementsOnStatusPage`, true por defecto) y, debajo, **Mostrar … días de historial** (`showAnnouncementHistoryInDays`, 14 por defecto). Con **Mostrar anuncios** apagado, el endpoint de anuncios rechaza la solicitud de plano.
 
 ## Plantillas de anuncios
 

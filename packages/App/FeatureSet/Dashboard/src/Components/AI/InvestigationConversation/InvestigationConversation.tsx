@@ -21,6 +21,8 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,8 +72,11 @@ export interface ComponentProps {
   investigationStage?: AIInvestigationStage | undefined;
 }
 
-// The section's title, and the name of the text box it ends with.
-export const CONVERSATION_TITLE: string = `Ask ${AI_DISPLAY_NAME}`;
+/*
+ * The section's title, and the name of the text box it ends with. An
+ * English key, translated where it is drawn.
+ */
+export const CONVERSATION_TITLE: string = translationKey("Ask OneUptime AI");
 
 const PersonAvatar: FunctionComponent<{
   author: ThreadAuthor;
@@ -118,7 +123,11 @@ const AIAvatar: FunctionComponent = (): ReactElement => {
 const AnswerCitationChip: FunctionComponent<{
   citation: AIChatCitation;
 }> = (props: { citation: AIChatCitation }): ReactElement => {
-  const label: string = `Citation ${props.citation.id}: ${props.citation.label}`;
+  const translator: Translator = useTranslator();
+  const label: string = translator.translateTemplate(
+    "Citation {{id}}: {{label}}",
+    { id: props.citation.id, label: props.citation.label },
+  );
 
   if (!props.citation.target) {
     return (
@@ -200,6 +209,7 @@ const SPINNER_CLASS_NAME: string =
 const InvestigationConversation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const subjectType: InvestigationConversationSubjectType = props.subjectType;
   const subjectIdString: string = props.subjectId.toString();
   const subjectKey: string = `${subjectType}:${subjectIdString}`;
@@ -216,7 +226,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   const isBusy: boolean = isThreadBusy(view);
   const activeMessage: ThreadMessage | undefined =
     findActiveAssistantMessage(view);
-  const activityLine: string | null = describeThreadActivity(view);
+  const activityLine: string | null = describeThreadActivity(view, translator);
   const suggestions: Array<SuggestedPrompt> = useMemo(() => {
     return getSuggestedPrompts(subjectType, stage);
   }, [subjectType, stage]);
@@ -324,10 +334,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         </div>
         <div className={MESSAGE_BYLINE_CLASS_NAME}>
           <span className="text-sm font-semibold text-gray-900">
-            {describeAuthor(message.author, viewerUserId)}
+            {describeAuthor(message.author, viewerUserId, translator)}
           </span>
           {message.isOptimistic ? (
-            <span className="text-xs text-gray-400">Sending…</span>
+            <span className="text-xs text-gray-400">
+              {translator.translateText("Sending…")}
+            </span>
           ) : (
             <MessageTime date={message.createdAt} />
           )}
@@ -366,7 +378,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         </div>
         <p className="min-w-0 break-words text-gray-700">
           {action.title}
-          <span className="text-gray-500"> · {outcome.label}</span>
+          <span className="text-gray-500">
+            {" "}
+            · {translator.translateText(outcome.label)}
+          </span>
         </p>
       </li>
     );
@@ -407,7 +422,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
       settledActions.length > 0 ? (
         <ul
           role="list"
-          aria-label="Actions"
+          aria-label={translator.translateText("Actions")}
           data-testid="investigation-conversation-actions"
           className="space-y-0.5"
         >
@@ -425,7 +440,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
             </div>
             <p className="min-w-0 break-words">
-              {message.content || "Stopped."}
+              {message.content || translator.translateText("Stopped.")}
             </p>
           </div>
           {settledActionList}
@@ -450,10 +465,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             <div className="min-w-0">
               <p className="break-words text-gray-900">
                 {message.errorMessage ||
-                  "Something went wrong while answering."}
+                  translator.translateText(
+                    "Something went wrong while answering.",
+                  )}
               </p>
               <p className="text-xs leading-5 text-gray-500">
-                Ask again to retry.
+                {translator.translateText("Ask again to retry.")}
               </p>
             </div>
           </div>
@@ -493,8 +510,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         ) : isWaiting ? (
           <p className="text-sm leading-6 text-gray-700">
             {awaitingApproval.length > 1
-              ? "I'd like to take these actions. Review them and approve to continue."
-              : "I'd like to take this action. Review it and approve to continue."}
+              ? translator.translateText(
+                  "I'd like to take these actions. Review them and approve to continue.",
+                )
+              : translator.translateText(
+                  "I'd like to take this action. Review it and approve to continue.",
+                )}
           </p>
         ) : isWorking ? (
           <div
@@ -503,7 +524,8 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           >
             <span className={SPINNER_CLASS_NAME} />
             <span>
-              {activityLine || `${AI_DISPLAY_NAME} is looking into it…`}
+              {activityLine ||
+                translator.translateText("OneUptime AI is looking into it…")}
             </span>
           </div>
         ) : (
@@ -539,7 +561,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           everywhere else it is drawn, grouped and named for a screen reader.
         */}
         {widgets.length > 0 ? (
-          <div role="group" aria-label="Data from this answer">
+          <div
+            role="group"
+            aria-label={translator.translateText("Data from this answer")}
+          >
             <WidgetRenderer widgets={widgets} />
           </div>
         ) : (
@@ -554,7 +579,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           the approval prompt of the Ask AI panel, as a group of controls.
         */}
         {awaitingApproval.length > 0 ? (
-          <div role="group" aria-label="Actions waiting for approval">
+          <div
+            role="group"
+            aria-label={translator.translateText(
+              "Actions waiting for approval",
+            )}
+          >
             <ToolApprovalCard
               toolActions={awaitingApproval}
               interactive={isWaiting}
@@ -591,7 +621,9 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
                 }
                 className="h-3.5 w-3.5"
               />
-              {copiedMessageId === message.id ? "Copied" : "Copy"}
+              {copiedMessageId === message.id
+                ? translator.translateText("Copied")
+                : translator.translateText("Copy")}
             </button>
           </div>
         ) : (
@@ -620,7 +652,9 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           </span>
           {!isViewer(message.author, viewerUserId) && message.author.name ? (
             <span className="text-xs text-gray-400">
-              to {message.author.name}
+              {translator.translateTemplate("to {{name}}", {
+                name: message.author.name,
+              })}
             </span>
           ) : (
             <></>
@@ -644,21 +678,25 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-gray-900">
-          {CONVERSATION_TITLE}
+          {translator.translateText(CONVERSATION_TITLE)}
         </h3>
         <p className="mt-1 text-xs leading-5 text-gray-500">
-          {describeConversation(subjectType, stage)}
+          {describeConversation(subjectType, stage, translator)}
         </p>
       </div>
       {participants.length > 0 ? (
         <div
           className="flex flex-shrink-0 items-center"
-          aria-label={`${participants.length} ${
-            participants.length === 1 ? "person has" : "people have"
-          } asked in this conversation`}
+          aria-label={translator.translatePlural(
+            {
+              one: "{{count}} person has asked in this conversation",
+              other: "{{count}} people have asked in this conversation",
+            },
+            participants.length,
+          )}
           title={participants
             .map((author: ThreadAuthor): string => {
-              return describeAuthor(author, viewerUserId);
+              return describeAuthor(author, viewerUserId, translator);
             })
             .join(", ")}
         >
@@ -694,7 +732,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   const loading: ReactElement = (
     <p role="status" className="flex items-center gap-2 text-sm text-gray-500">
       <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-gray-200 border-t-gray-500 motion-safe:animate-spin" />
-      Loading the conversation…
+      {translator.translateText("Loading the conversation…")}
     </p>
   );
 
@@ -707,7 +745,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   const suggestionChips: ReactElement = (
     <div
       role="group"
-      aria-label="Suggested questions"
+      aria-label={translator.translateText("Suggested questions")}
       data-testid="investigation-conversation-empty"
       className="flex flex-wrap gap-2"
     >
@@ -736,7 +774,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            {suggestion.label}
+            {translator.translateText(suggestion.label)}
           </button>
         );
       })}
@@ -750,7 +788,12 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
   } else if (conversation.loadError && view.messages.length === 0) {
     body = (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
-        <span>Could not load the conversation: {conversation.loadError}</span>
+        <span>
+          {translator.translateTemplate(
+            "Could not load the conversation: {{error}}",
+            { error: conversation.loadError },
+          )}
+        </span>
         <button
           type="button"
           onClick={() => {
@@ -760,7 +803,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
           }}
           className="-mx-2 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          Try again
+          {translator.translateText("Try again")}
         </button>
       </div>
     );
@@ -785,8 +828,14 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             className="-mx-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <Icon icon={IconProp.ChevronUp} className="h-3.5 w-3.5" />
-            {/* Always plural: a thread never folds fewer than two away. */}
-            Show {tail.hiddenCount} earlier messages
+            {/* A thread never folds fewer than two away. */}
+            {translator.translatePlural(
+              {
+                one: "Show {{count}} earlier message",
+                other: "Show {{count}} earlier messages",
+              },
+              tail.hiddenCount,
+            )}
           </button>
         ) : (
           <></>
@@ -811,7 +860,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      aria-label={`Conversation with ${AI_DISPLAY_NAME}`}
+      aria-label={translator.translateText("Conversation with OneUptime AI")}
       data-testid="investigation-conversation"
       className="space-y-4 border-t border-gray-200 pt-5"
     >
@@ -858,11 +907,15 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
             : undefined
         }
         isStopping={conversation.isCancelling}
-        label={CONVERSATION_TITLE}
+        label={translator.translateText(CONVERSATION_TITLE) as string}
         placeholder={
-          isBusy
-            ? "Type your next question — send it when this answer finishes…"
-            : `Ask about this ${subjectType}, or ask ${AI_DISPLAY_NAME} to act…`
+          translator.translateText(
+            isBusy
+              ? "Type your next question — send it when this answer finishes…"
+              : subjectType === "incident"
+                ? "Ask about this incident, or ask OneUptime AI to act…"
+                : "Ask about this alert, or ask OneUptime AI to act…",
+          ) as string
         }
         permissionMode={conversation.permissionMode}
         onPermissionModeChange={conversation.setPermissionMode}

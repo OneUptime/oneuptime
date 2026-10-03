@@ -57,6 +57,8 @@ import {
   buildBulkStateChangeMiscDataProps,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
@@ -71,6 +73,7 @@ export interface ComponentProps {
 const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
@@ -504,7 +507,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
               if (item["alertGroupingRule"]) {
                 return <span>{item.alertGroupingRule.name || "-"}</span>;
               }
-              return <span>Manual</span>;
+              return <span>{translator.translateText("Manual")}</span>;
             },
           },
           {

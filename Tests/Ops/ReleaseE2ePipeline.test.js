@@ -17,6 +17,13 @@
  *     (CI_PIPELINE_ID), or it `git pull`s, which moves the checkout too - and
  *     fetches every branch and tag first, ~45 seconds a job.
  *
+ * release.yml is held to the same checkout rule, for the same reason: a
+ * release run takes hours and its jobs start far apart, queued behind the
+ * organization's concurrent-job limit, so a push to `release` mid-run would
+ * have one release publish images of two commits, all tagged with its
+ * version and labelled with its github.sha. A job stays on the branch tip
+ * only from BRANCH_TIP_CHECKOUTS, which says why.
+ *
  * The e2e jobs wait for the images of the stack they boot and nothing else:
  * they used to wait for the Helm chart test and, through it, a 35-minute
  * Terraform provider dry run. That is checked here against the compose files
@@ -62,6 +69,66 @@ function commandOf(step) {
   return step.with && typeof step.with.command === "string"
     ? step.with.command
     : "";
+}
+
+// The `ref` of a checkout that gets the commit that triggered the run:
+// none (actions/checkout's default), or that commit by name.
+const RUN_COMMIT_REFS = [undefined, "${{ github.sha }}"];
+
+/**
+ * The jobs that may check out the branch tip instead of the commit that
+ * triggered the run, by workflow, as { job: "why it must" }. A job belongs
+ * here only if it has to build on commits pushed after the run started - one
+ * that commits and pushes back to the branch it runs on, say, whose push from
+ * the run's own commit would be rejected as a non-fast-forward.
+ *
+ * No job does. helm-chart-deploy (release.yml) commits and pushes, but to
+ * OneUptime/helm-chart's master, from a clone of its own: its checkout of this
+ * repository is only the chart source it packages, and that has to be the
+ * commit the rest of the run built and tested, not one pushed since. A
+ * checkout of another repository is not held to the rule at all (see
+ * checksOutThisRepository).
+ */
+const BRANCH_TIP_CHECKOUTS = {
+  [TEST_RELEASE]: {},
+  [RELEASE]: {},
+};
+
+/**
+ * Whether a step checks out this repository: any actions/checkout, unless its
+ * `repository` names another one outright. Another repository's checkout is
+ * not this run's code, and may pin whatever ref it needs.
+ * @param {Object} step
+ * @returns {boolean}
+ */
+function checksOutThisRepository(step) {
+  if (!/^actions\/checkout@/.test(step.uses || "")) {
+    return false;
+  }
+  const repository = String((step.with || {}).repository || "");
+  const another =
+    /^[\w.-]+\/[\w.-]+$/.test(repository) &&
+    repository.toLowerCase() !== "oneuptime/oneuptime";
+  return !another;
+}
+
+/**
+ * The jobs of a workflow's run, as [label, job]: its own, with each job that
+ * calls a workflow of this repository (`uses: ./.github/workflows/...`)
+ * replaced by the called workflow's jobs, labelled "caller -> job". Those run
+ * inside the caller's run, against the same github.sha.
+ * @param {string} relativePath
+ * @returns {Array<[string, Object]>}
+ */
+function jobsOfRun(relativePath) {
+  return Object.entries(readYaml(relativePath).jobs).flatMap(([name, job]) => {
+    if (typeof job.uses !== "string" || !job.uses.startsWith("./")) {
+      return [[name, job]];
+    }
+    return jobsOfRun(job.uses.slice(2)).map(([called, calledJob]) => {
+      return [`${name} -> ${called}`, calledJob];
+    });
+  });
 }
 
 /**
@@ -185,9 +252,47 @@ describe("the helpers this suite reads the workflows with", () => {
   test("read the shard counts test-sharding checks", () => {
     expect(verifiedShardTotals().length).toBeGreaterThan(0);
   });
+
+  test("tell a checkout of this repository from one of another", () => {
+    const checkout = (inputs) => {
+      return { uses: "actions/checkout@v4", with: inputs };
+    };
+
+    expect(checksOutThisRepository({ uses: "actions/checkout@v4" })).toBe(true);
+    expect(checksOutThisRepository(checkout({ path: "src" }))).toBe(true);
+    expect(
+      checksOutThisRepository(
+        checkout({ repository: "${{ github.repository }}" }),
+      ),
+    ).toBe(true);
+    expect(
+      checksOutThisRepository(checkout({ repository: "OneUptime/oneuptime" })),
+    ).toBe(true);
+    expect(
+      checksOutThisRepository(checkout({ repository: "OneUptime/helm-chart" })),
+    ).toBe(false);
+    expect(checksOutThisRepository({ uses: "actions/setup-node@v4" })).toBe(
+      false,
+    );
+  });
+
+  test("read a run's jobs with those of the workflows it calls", () => {
+    const labels = jobsOfRun(RELEASE).map(([label]) => {
+      return label;
+    });
+
+    expect(labels).toContain("read-version");
+    // The Terraform provider gate is a workflow of its own, called by a job.
+    expect(labels).not.toContain("terraform-provider-e2e");
+    expect(
+      labels.filter((label) => {
+        return label.startsWith("terraform-provider-e2e -> ");
+      }).length,
+    ).toBeGreaterThan(0);
+  });
 });
 
-describe(`${TEST_RELEASE}: a started run finishes, and builds only its own commit`, () => {
+describe(`${TEST_RELEASE}: a started run finishes`, () => {
   const workflow = readYaml(TEST_RELEASE);
   const jobs = Object.entries(workflow.jobs);
 
@@ -202,30 +307,6 @@ describe(`${TEST_RELEASE}: a started run finishes, and builds only its own commi
     expect(Number.isInteger(job["timeout-minutes"])).toBe(true);
     expect(job["timeout-minutes"]).toBeGreaterThan(0);
   });
-
-  test("checks out code in its jobs (the check below is not vacuous)", () => {
-    const checkouts = jobs.flatMap(([, job]) => {
-      return (job.steps || []).filter((step) => {
-        return /^actions\/checkout@/.test(step.uses || "");
-      });
-    });
-
-    expect(checkouts.length).toBeGreaterThan(20);
-  });
-
-  test.each(jobs)(
-    "%s checks out the commit that triggered the run, never the branch tip",
-    (_name, job) => {
-      for (const step of job.steps || []) {
-        if (!/^actions\/checkout@/.test(step.uses || "")) {
-          continue;
-        }
-        const ref = (step.with || {}).ref;
-        // Unset is actions/checkout's default: the triggering commit.
-        expect([undefined, "${{ github.sha }}"]).toContain(ref);
-      }
-    },
-  );
 
   /*
    * generate-build-number creates a tag through the API, which can be
@@ -248,6 +329,61 @@ describe(`${TEST_RELEASE}: a started run finishes, and builds only its own commi
     },
   );
 });
+
+describe.each([TEST_RELEASE, RELEASE])(
+  "%s: every job builds the commit that triggered the run",
+  (workflow) => {
+    const jobs = jobsOfRun(workflow);
+    const branchTip = BRANCH_TIP_CHECKOUTS[workflow];
+    const mayCheckOutBranchTip = (label) => {
+      return Object.prototype.hasOwnProperty.call(branchTip, label);
+    };
+
+    test("checks out code in its jobs (the check below is not vacuous)", () => {
+      const checkouts = jobs.flatMap(([, job]) => {
+        return (job.steps || []).filter(checksOutThisRepository);
+      });
+
+      expect(checkouts.length).toBeGreaterThan(20);
+    });
+
+    test.each(
+      jobs.filter(([label]) => {
+        return !mayCheckOutBranchTip(label);
+      }),
+    )(
+      "%s checks out the commit that triggered the run, never the branch tip",
+      (_label, job) => {
+        for (const step of (job.steps || []).filter(checksOutThisRepository)) {
+          expect(RUN_COMMIT_REFS).toContain((step.with || {}).ref);
+        }
+      },
+    );
+
+    test("lets a job check out the branch tip only if it says why, and still does", () => {
+      const byLabel = new Map(jobs);
+      const problems = Object.entries(branchTip).flatMap(([label, reason]) => {
+        const job = byLabel.get(label);
+        if (!job) {
+          return [`${label} is not a job of this run`];
+        }
+        if (typeof reason !== "string" || reason.trim() === "") {
+          return [`${label} does not say why it needs the branch tip`];
+        }
+        const onBranchTip = (job.steps || [])
+          .filter(checksOutThisRepository)
+          .some((step) => {
+            return !RUN_COMMIT_REFS.includes((step.with || {}).ref);
+          });
+        return onBranchTip
+          ? []
+          : [`${label} checks out the run's own commit; take it off the list`];
+      });
+
+      expect(problems).toEqual([]);
+    });
+  },
+);
 
 describe("every CI job that runs prerun tells configure.sh it is in CI", () => {
   // `npm run prerun` ends in configure.sh; dev, force-build and update run it.

@@ -20,13 +20,18 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { SubscriptionSwitchColumn } from "./SubscriberChannelsCopy";
+import {
+  DisplaySettingColumn,
+  DisplaySwitchColumn,
+} from "./StatusPageDisplaySettingsCopy";
 
 /*
- * One switch for one of a status page's subscription columns, that saves the
+ * One switch for one of a status page's boolean columns, that saves the
  * moment it is flipped - there is nothing else to fill in, so there is no
  * Edit button and no dialog. The same row is the Channels card's on
  * Subscriber Settings and the panel's at the top of a channel's subscriber
- * list, so a channel reads and behaves the same in both places.
+ * list, so a channel reads and behaves the same in both places, and every
+ * switch on the "What your status page shows" card on Advanced Settings.
  *
  * The switch moves at once and is locked while the change is saved; a change
  * the server refuses moves it back and says why under it (a plan that does
@@ -37,19 +42,38 @@ import { SubscriptionSwitchColumn } from "./SubscriberChannelsCopy";
  * before anyone tries - the same pill a table shows for a plan feature.
  */
 
+// The status page columns a switch row can write.
+export type StatusPageSwitchColumn =
+  | SubscriptionSwitchColumn
+  | DisplaySwitchColumn;
+
 export interface ComponentProps {
   statusPageId: ObjectID;
-  column: SubscriptionSwitchColumn;
-  // What the column holds when the row first draws.
+  column: StatusPageSwitchColumn;
+  // Whether the switch is on when the row first draws.
   initialValue: boolean;
   // The switch's name. It does not change with the switch.
   title: string;
-  // The English sentence under the title, for the way the switch is set.
-  getDescription: (isOn: boolean) => string;
+  /*
+   * The English sentence under the title, for the way the switch is set, if
+   * there is one for it.
+   */
+  getDescription?: ((isOn: boolean) => string | undefined) | undefined;
   // An English sentence after it, whichever way the switch is set.
   note?: string | undefined;
-  // Told after a change is saved.
-  onSaved?: ((value: boolean) => void) | undefined;
+  /*
+   * The switch is on while the column is false, and saves the opposite of
+   * what it shows: a column that stores what to hide, on a card where every
+   * switch reads on = shown.
+   */
+  isInverted?: boolean | undefined;
+  /*
+   * Told whenever the switch moves: at once when it is pressed, and back
+   * again if the change is refused. With whether it is now on.
+   */
+  onChange?: ((isOn: boolean) => void) | undefined;
+  // Told after a change is saved, with whether the switch is now on.
+  onSaved?: ((isOn: boolean) => void) | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -68,8 +92,10 @@ export const getSubscriptionSwitchTestId: (
  * the plan anyway - has the last word.
  */
 export const getPlanNeededToChange: (
-  column: SubscriptionSwitchColumn,
-) => PlanType | null = (column: SubscriptionSwitchColumn): PlanType | null => {
+  column: SubscriptionSwitchColumn | DisplaySettingColumn,
+) => PlanType | null = (
+  column: SubscriptionSwitchColumn | DisplaySettingColumn,
+): PlanType | null => {
   const currentPlan: PlanType | null = ProjectUtil.getCurrentPlan();
 
   if (!currentPlan) {
@@ -127,6 +153,7 @@ const StatusPageSwitchRow: FunctionComponent<ComponentProps> = (
      * refusal below - which puts `value` back - moves the switch back too.
      */
     setIsOn(value);
+    props.onChange?.(value);
     setIsSaving(true);
     setError("");
 
@@ -134,25 +161,32 @@ const StatusPageSwitchRow: FunctionComponent<ComponentProps> = (
       await ModelAPI.updateById<StatusPage>({
         modelType: StatusPage,
         id: props.statusPageId,
-        data: { [props.column]: value } as JSONObject,
+        data: {
+          [props.column]: props.isInverted ? !value : value,
+        } as JSONObject,
       });
 
       props.onSaved?.(value);
     } catch (err) {
       setIsOn(previous);
+      props.onChange?.(previous);
       setError(API.getFriendlyMessage(err));
     }
 
     setIsSaving(false);
   };
 
+  const descriptionText: string | undefined = props.getDescription?.(isOn);
+
   // Translated here, as one element: the Toggle would look a string up again.
-  const description: ReactElement = (
-    <>
-      {translator.translateText(props.getDescription(isOn))}
-      {props.note ? ` ${translator.translateText(props.note)}` : ""}
-    </>
-  );
+  const description: ReactElement | undefined =
+    descriptionText || props.note ? (
+      <>
+        {descriptionText ? translator.translateText(descriptionText) : ""}
+        {descriptionText && props.note ? " " : ""}
+        {props.note ? translator.translateText(props.note) : ""}
+      </>
+    ) : undefined;
 
   return (
     /*

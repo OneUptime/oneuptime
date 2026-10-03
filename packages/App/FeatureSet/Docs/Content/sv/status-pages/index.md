@@ -11,7 +11,7 @@ Statussidor ligger under **Statussidor** i instrumentpanelens vänsternavigering
 - **Skapas med två fält.** En ny statussida frågar bara efter **Namn** och **Beskrivning**. Resurser, varumärke och domäner konfigureras efteråt.
 - **Resurserna är det besökarna ser.** Varje rad på sidan är en **Statussida Resurs** — en monitor (eller monitorgrupp) med eget visningsnamn, verktygstips och drifttidsalternativ. Grupper delar upp en lång sida i sektioner och kan ligga i varandra.
 - **En förhandsgransknings-URL från dag ett.** Varje statussida får en förhandsgranskningslänk så att du kan titta på den innan någon egen domän finns.
-- **Besökarnas rutter styrs av inställningar.** Incidenter, meddelanden, schemalagda händelser och prenumerationssidan dyker upp först när respektive växel i **Avancerade inställningar** är på.
+- **Besökarnas rutter styrs av inställningar.** Incidenter, episoder, meddelanden och schemalagda händelser dyker bara upp så länge respektive växel i **Vad din statussida visar** (på **Avancerade inställningar**) är på, och prenumerationssidan bara så länge **Visa prenumerantsida** är på.
 - **Tre sätt att göra den privat.** Privata användare, ett huvudlösenord eller SAML SSO / OIDC — plus en IP-vitlista.
 - **Prenumeranter får veta automatiskt.** Prenumeranter via e-post, SMS, Slack, Microsoft Teams och webhook kan alla följa en sida, varje kanal bakom sin egen växel.
 
@@ -98,36 +98,23 @@ För vad som sätter en incident på den här sidan från början, och vad som t
 
 ## Välja vad som visas på sidan
 
-De flesta visningsreglagen finns på ett och samma ställe: **Statussidor → din sida → Avancerad → Avancerade inställningar**. Varje kort har en egen knapp **Edit Settings**.
+Vad besökarna ser ställs in i ett enda kort: **Vad din statussida visar**, på **Statussidor → din sida → Avancerad → Avancerade inställningar**. Det har en rad för varje lista som sidan kan visa, därefter **Upptidshistorik** och raden "Powered by OneUptime". Det finns ingen redigeringsknapp: en växel sparas så fort du slår om den, och ett antal dagar när du lämnar rutan eller trycker på Enter.
 
-**Incidentinställningar**:
+- **Visa incidenter** (`showIncidentsOnStatusPage`) — på som standard. Under den avgör **Visa de senaste … dagarna** (`showIncidentHistoryInDays`, standard 14) hur långt bakåt incidentlistan sträcker sig, och **Visa incidentetiketter** (`showIncidentLabelsOnStatusPage`) är av som standard.
+- **Visa bara incidenter som är begränsade till den här sidan** (`onlyShowScopedIncidents`) — också i incidentraden, av som standard. Är den på visar sidan bara de incidenter som är begränsade till den med **Begränsa till dessa statussidor**, och prenumeranterna aviseras bara om dem. Den avgör också vilka incidenter som tar med sina episoder till sidan, så den ligger kvar när **Visa incidenter** är av.
+- **Visa episoder** (`showEpisodesOnStatusPage`) — på som standard, med **Visa de senaste … dagarna** (`showEpisodeHistoryInDays`, standard 14) och **Visa episodetiketter** (`showEpisodeLabelsOnStatusPage`, av som standard). Episoder är en egen modell med egna slutpunkter, inte en vy över incidenter.
+- **Visa meddelanden** (`showAnnouncementsOnStatusPage`) — på som standard, med **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14).
+- **Visa schemalagda underhållshändelser** (`showScheduledMaintenanceEventsOnStatusPage`) — på som standard, med **Visa de senaste … dagarna** (`showScheduledEventHistoryInDays`, standard 14) och **Visa händelseetiketter** (`showScheduledEventLabelsOnStatusPage`, av som standard).
+- **Upptidshistorik** — **Visa de senaste … dagarna** (`showUptimeHistoryInDays`) är längden på drifttidsstapeln bredvid varje resurs. Standard är 90 och värdet måste ligga mellan 1 och 90. Varje **Visa upptid %** och **Visa statushistorikdiagram** på en resurs eller grupp läser den här siffran.
+- **Visa "Powered By OneUptime"-varumärke** — på som standard, så besökarnas sidfot visar "Powered by OneUptime". Slå av den för att dölja raden. Kolumnen sparar det tvärtom, som `hidePoweredByOneUptimeBranding`.
 
-- **Visa incidenter** (`showIncidentsOnStatusPage`) — på som standard. Slår du av den försvinner också navigeringsposten **Incidenter**.
-- **Visa incidenthistorik (i dagar)** (`showIncidentHistoryInDays`) — hur långt bakåt incidentlistan sträcker sig. Standard är 14.
-- **Visa incidentetiketter** (`showIncidentLabelsOnStatusPage`) — av som standard.
+**En lista som är avslagen** försvinner från sidan, tillsammans med sin post i navigeringsfältet om den har en; dess publika endpoint avvisar förfrågningar, och sidans prenumeranter aviseras inte om den typen av händelse. Raden visar då bara växeln: hur långt bakåt en dold lista går, och om den visar etiketter, ändrar ingenting.
 
-**Episodinställningar** — samma tre reglage för incidentepisoder: **Visa episoder** (`showEpisodesOnStatusPage`, på som standard), **Visa episodhistorik (i dagar)** (standard 14) och **Visa episodetiketter** (av som standard). Episoder är en egen modell med egna slutpunkter, inte en vy över incidenter.
-
-**Meddelandeinställningar**:
-
-- **Visa meddelanden** (`showAnnouncementsOnStatusPage`) — på som standard.
-- **Visa meddelandehistorik (i dagar)** (`showAnnouncementHistoryInDays`) — standard är 14.
-
-**Inställningar för schemalagd händelse**:
-
-- **Visa schemalagda underhållshändelser** (`showScheduledMaintenanceEventsOnStatusPage`) — på som standard.
-- **Visa historik för schemalagda händelser (i dagar)** (`showScheduledEventHistoryInDays`) — standard är 14.
-- **Visa händelseetiketter** (`showScheduledEventLabelsOnStatusPage`) — av som standard.
-
-**Inställningar för drifttidshistorik**:
-
-- **Visa upptidshistorik (i dagar)** (`showUptimeHistoryInDays`) — längden på drifttidsstapeln bredvid varje resurs. Standard är 90 och värdet måste ligga mellan 1 och 90. Varje **Visa upptid %** och **Visa statushistorikdiagram** på en resurs eller grupp läser den här siffran.
+**Planer.** På OneUptime Cloud står planen som behövs bredvid en inställning som din plan inte får ändra. De fyra listväxlarna, de tre etikettväxlarna och episodhistoriken kräver **Growth**; att dölja raden "Powered by OneUptime" kräver **Scale**. De andra historikfönstren, **Upptidshistorik** och **Visa bara incidenter som är begränsade till den här sidan** kan ändras på alla planer, och varje inställning sparas för sig.
 
 Om sidan visar posten **Prenumerera** (**Visa prenumerantsida**, `showSubscriberPageOnStatusPage`, på som standard) och via vilka kanaler besökare kan prenumerera ställs inte in på den här skärmen: Båda finns i kortet **Kanaler** under **Prenumeranter → Prenumerantinställningar** (se [Prenumeranter och meddelanden](/docs/status-pages/subscribers)).
 
-**Drivs av OneUptime-varumärke**:
-
-- **Dölj "Powered By OneUptime"-varumärke** — av som standard, så besökarnas sidfot visar "Powered by OneUptime" tills du slår på den.
+Under kortet följer ett kort som exporterar statussidans inställningar till en JSON-fil som du kan importera igen, och kortet för att arkivera statussidan.
 
 **Var färgerna finns.** Färgerna på drifttidsstaplarna sitter inte här — **Standardfärg för stapel**, reglerna för stapelfärg, **Statusar för driftstoppsövervakare** och **Visa total upptidsprocent** bor allihop på **Statussidor → din sida → Varumärke → Översiktssida**. Det finns ingen inställning för tema eller varumärkesfärg någonstans; allt bortom de reglagen görs med **Anpassad CSS**.
 

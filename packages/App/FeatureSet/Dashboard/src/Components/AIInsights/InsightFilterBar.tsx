@@ -1,9 +1,12 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface InsightFilterOption {
+  // English, translated when drawn.
   label: string;
   value: string;
 }
@@ -51,6 +54,7 @@ const getSelectClassName: GetSelectClassNameFunction = (
 const InsightFilterBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isFilteringByType: boolean = props.typeValue !== props.unfilteredValue;
   const isFilteringBySeverity: boolean =
     props.severityValue !== props.unfilteredValue;
@@ -59,7 +63,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
     <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center">
       <div className="relative min-w-0 flex-1">
         <label htmlFor="ai-insight-search" className="sr-only">
-          Search insights
+          {translator.translateText("Search insights")}
         </label>
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
           <Icon icon={IconProp.Search} className="h-4 w-4" />
@@ -75,7 +79,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
         {props.searchText ? (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label={translator.translateText("Clear search")}
             onClick={() => {
               props.onSearchTextChange("");
             }}
@@ -93,7 +97,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative">
           <select
-            aria-label="Filter by insight type"
+            aria-label={translator.translateText("Filter by insight type")}
             value={props.typeValue}
             onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
               props.onTypeChange(event.target.value);
@@ -103,7 +107,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
             {props.typeOptions.map((option: InsightFilterOption) => {
               return (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {translator.translateText(option.label)}
                 </option>
               );
             })}
@@ -119,7 +123,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
 
         <div className="relative">
           <select
-            aria-label="Filter by severity"
+            aria-label={translator.translateText("Filter by severity")}
             value={props.severityValue}
             onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
               props.onSeverityChange(event.target.value);
@@ -129,7 +133,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
             {props.severityOptions.map((option: InsightFilterOption) => {
               return (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {translator.translateText(option.label)}
                 </option>
               );
             })}
@@ -150,7 +154,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
             className="inline-flex h-9 flex-shrink-0 items-center justify-center gap-1 rounded-lg px-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
           >
             <Icon icon={IconProp.Close} className="h-4 w-4" />
-            Clear
+            {translator.translateText("Clear")}
           </button>
         ) : (
           <></>

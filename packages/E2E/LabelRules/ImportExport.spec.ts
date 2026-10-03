@@ -9,6 +9,7 @@ import {
 } from "@playwright/test";
 import { mkdir, readFile } from "fs/promises";
 import path from "path";
+import { createProjectAsOwner } from "../Tests/Helpers/ApiSignup";
 import {
   JSONish,
   registerAndCreateProject,
@@ -187,21 +188,21 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     });
     projectIds.push(sourceId);
     source = await seedLabels(sourceId);
-    const second: JSONish = await createItem({
-      page,
-      projectId: sourceId,
-      path: "/api/project",
-      item: { name: "Label transfer destination" },
+    /*
+     * Without a tenant header, as the Dashboard's project picker creates a
+     * project: Project's tenant column is its own _id, so the API stamps a
+     * tenant header onto the new project's id, and the create fails.
+     */
+    const destinationId: string = await createProjectAsOwner({
+      request: page.request,
+      name: "Label transfer destination",
     });
-    projectIds.push(toId(second["_id"]));
-    destination = await seedLabels(toId(second["_id"]));
-    const empty: JSONish = await createItem({
-      page,
-      projectId: sourceId,
-      path: "/api/project",
-      item: { name: "Label transfer empty project" },
+    projectIds.push(destinationId);
+    destination = await seedLabels(destinationId);
+    emptyProjectId = await createProjectAsOwner({
+      request: page.request,
+      name: "Label transfer empty project",
     });
-    emptyProjectId = toId(empty["_id"]);
     projectIds.push(emptyProjectId);
     await mkdir(artifacts, { recursive: true });
   });
@@ -453,30 +454,50 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     ).toHaveLength(0);
   });
 
-  const invalidPayloads: Array<{
+  /*
+   * Each payload's own message, as BrowserFixture.spec.ts expects it from the
+   * same validation code (Common/Utils/LabelRuleImportExport.ts and
+   * Common/UI/Utils/LabelRuleImportExport.ts), so a rejection for the wrong
+   * reason fails here too.
+   */
+  interface InvalidPayload {
     title: string;
     payload: PortableRuleFile | string;
-  }> = [
-    { title: "malformed JSON", payload: "{ broken json" },
+    message: RegExp;
+  }
+
+  const invalidPayloads: Array<InvalidPayload> = [
+    {
+      title: "malformed JSON",
+      payload: "{ broken json",
+      message: /not valid JSON/i,
+    },
     {
       title: "an unsupported version",
       payload: {
         ...portableFile([rule("Invalid version")]),
         schemaVersion: 99,
       },
+      message: /not a supported label rule export/i,
     },
-    { title: "an empty rule list", payload: portableFile([]) },
+    {
+      title: "an empty rule list",
+      payload: portableFile([]),
+      message: /at least one label rule/i,
+    },
     {
       title: "an unknown condition",
       payload: portableFile([
         rule("Unknown condition", { unsupportedCondition: "do not drop me" }),
       ]),
+      message: /unknown or protected field "unsupportedCondition"/i,
     },
     {
       title: "a missing destination label",
       payload: portableFile([
         rule("Missing label", { labelsToAdd: ["Does not exist"] }),
       ]),
+      message: /"Does not exist" was not found/i,
     },
     {
       title: "a missing prerequisite label",
@@ -485,58 +506,54 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
           networkDeviceLabels: ["Absent prerequisite"],
         }),
       ]),
+      message: /"Absent prerequisite" was not found/i,
     },
     {
       title: "a nonboolean enabled value",
       payload: portableFile([rule("Invalid enabled", { isEnabled: "true" })]),
+      message: /must be true or false/i,
     },
   ];
 
-  invalidPayloads.forEach(
-    (invalid: { title: string; payload: PortableRuleFile | string }) => {
-      test(`rejects ${invalid.title} before creating any rules`, async () => {
-        await navigate(destination.id);
-        const before: Array<JSONish> = await listItems({
-          page,
-          projectId: destination.id,
-          path: networkRulePath,
-          select: { _id: true },
-        });
-        await openImport(invalid.payload);
-        await page
-          .getByRole("button", { name: "Validate and preview" })
-          .click();
-        await expect(
-          page.getByText("Preview import", { exact: true }),
-        ).not.toBeVisible();
-        await expect(page.getByTestId("label-rule-import-json")).toBeVisible();
-        await expect(
-          page.getByTestId("modal").getByRole("alert"),
-        ).toContainText(
-          /invalid|unsupported|unknown|must|required|not found|not exist|at least/i,
-        );
-        const after: Array<JSONish> = await listItems({
-          page,
-          projectId: destination.id,
-          path: networkRulePath,
-          select: { _id: true },
-        });
-        expect(
-          after
-            .map((item: JSONish) => {
-              return item["_id"];
-            })
-            .sort(),
-        ).toEqual(
-          before
-            .map((item: JSONish) => {
-              return item["_id"];
-            })
-            .sort(),
-        );
+  invalidPayloads.forEach((invalid: InvalidPayload) => {
+    test(`rejects ${invalid.title} before creating any rules`, async () => {
+      await navigate(destination.id);
+      const before: Array<JSONish> = await listItems({
+        page,
+        projectId: destination.id,
+        path: networkRulePath,
+        select: { _id: true },
       });
-    },
-  );
+      await openImport(invalid.payload);
+      await page.getByRole("button", { name: "Validate and preview" }).click();
+      await expect(
+        page.getByText("Preview import", { exact: true }),
+      ).not.toBeVisible();
+      await expect(page.getByTestId("label-rule-import-json")).toBeVisible();
+      await expect(page.getByTestId("modal").getByRole("alert")).toContainText(
+        invalid.message,
+      );
+      const after: Array<JSONish> = await listItems({
+        page,
+        projectId: destination.id,
+        path: networkRulePath,
+        select: { _id: true },
+      });
+      expect(
+        after
+          .map((item: JSONish) => {
+            return item["_id"];
+          })
+          .sort(),
+      ).toEqual(
+        before
+          .map((item: JSONish) => {
+            return item["_id"];
+          })
+          .sort(),
+      );
+    });
+  });
 
   test("cancelling a valid preview leaves the destination unchanged", async () => {
     const name: string = "Cancelled import";
@@ -609,14 +626,21 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
   test("a forbidden create is reported and leaves the project unchanged", async () => {
     const name: string = "Permission denied import";
     await navigate(destination.id);
+    /*
+     * What the API answers a create the role does not allow: a 422
+     * (NotAuthorizedException) with TablePermission's message. A 403 is a
+     * different thing - the request itself is forbidden, by an IP allowlist
+     * say - and the Dashboard answers any 403 by navigating to
+     * /accounts/forbidden, so the import would never get to report it.
+     */
     await page.route(`**${networkRulePath}`, async (route: Route) => {
       if (route.request().method() === "POST") {
         await route.fulfill({
-          status: 403,
+          status: 422,
           contentType: "application/json",
           body: JSON.stringify({
             message:
-              "You do not have permission to create Network Device Label Rules.",
+              "You do not have permissions to create Network Device Label Rule. You need one of these permissions: Project Owner, Project Admin, Create Network Device Label Rule",
           }),
         });
         return;

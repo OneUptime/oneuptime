@@ -21,6 +21,9 @@ import {
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface UserInfo {
   name: string;
@@ -71,9 +74,12 @@ export interface ComponentProps {
 const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const getName: (userId: string) => string = (userId: string): string => {
     const info: UserInfo | undefined = props.userById[userId];
-    return info?.name || info?.email || "Unknown user";
+    return (
+      info?.name || info?.email || translator.translateTemplate("Unknown user")
+    );
   };
 
   const getInitials: (userId: string) => string = (userId: string): string => {
@@ -161,7 +167,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
       >
         <span className="inline-flex items-center gap-1 font-semibold text-indigo-700">
           <Icon icon={IconProp.ArrowUturnRight} className="h-3.5 w-3.5" />
-          Override
+          {translator.translateText("Override")}
         </span>
         <span className="text-gray-700">{described.coveringLabel}</span>
         <span
@@ -175,10 +181,22 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
           {described.scope.label}
         </span>
         <span className="basis-full text-[11px] text-gray-500">
-          Override runs{" "}
-          {formatShiftInstant(shift.override.overrideStartsAt, props.timezone)}
-          <span className="mx-1 text-gray-300">&rarr;</span>
-          {formatShiftInstant(shift.override.overrideEndsAt, props.timezone)}
+          <TranslatedSentence
+            template="Override runs {{start}} {{arrow}} {{end}}"
+            values={{
+              start: formatShiftInstant(
+                shift.override.overrideStartsAt,
+                props.timezone,
+              ),
+              end: formatShiftInstant(
+                shift.override.overrideEndsAt,
+                props.timezone,
+              ),
+            }}
+            slots={{
+              arrow: <span className="text-gray-300">&rarr;</span>,
+            }}
+          />
         </span>
       </div>
     );
@@ -222,10 +240,17 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     if (props.coverage.status === ScheduleCoverageStatus.NoUsers) {
       return (
         <p className="mt-1 text-xs text-amber-700">
-          No users are assigned to any layer in this schedule, so nobody will
-          ever be paged and every alert routed here will go unanswered.
+          {translator.translateText(
+            "No users are assigned to any layer in this schedule, so nobody will ever be paged and every alert routed here will go unanswered.",
+          )}
           {props.layersPageLink ? (
-            <> Add users on the {props.layersPageLink}.</>
+            <>
+              {" "}
+              <TranslatedSentence
+                template="Add users on the {{link}}."
+                slots={{ link: props.layersPageLink }}
+              />
+            </>
           ) : null}
         </p>
       );
@@ -233,8 +258,9 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
 
     return (
       <p className="mt-1 text-xs text-amber-700">
-        Add a 24/7 fallback layer, or widen a layer&apos;s active hours, to
-        close this gap.
+        {translator.translateText(
+          "Add a 24/7 fallback layer, or widen a layer's active hours, to close this gap.",
+        )}
       </p>
     );
   };
@@ -245,10 +271,12 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700">
             <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-            On call right now
+            {translator.translateText("On call right now")}
           </div>
           <div className="mt-2 text-sm font-medium text-amber-800">
-            No one is currently on call in this schedule.
+            {translator.translateText(
+              "No one is currently on call in this schedule.",
+            )}
           </div>
           {getNoCoverageRemedy()}
         </div>
@@ -262,7 +290,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
           </span>
-          On call right now
+          {translator.translateText("On call right now")}
         </div>
         <div className="mt-2.5 flex items-center gap-3">
           {getAvatar(current.userId, "h-10 w-10 text-sm")}
@@ -271,9 +299,13 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
               {getName(current.userId)}
             </div>
             <div className="text-xs text-gray-500">
-              Until {formatShiftInstant(current.end, props.timezone)}
+              {translator.translateTemplate("Until {{time}}", {
+                time: formatShiftInstant(current.end, props.timezone),
+              })}
               <span className="ml-1 text-gray-400">
-                ({formatShiftDuration(props.now, current.end)} left)
+                {translator.translateTemplate("({{duration}} left)", {
+                  duration: formatShiftDuration(props.now, current.end),
+                })}
               </span>
             </div>
           </div>
@@ -288,10 +320,12 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-            Up next
+            {translator.translateText("Up next")}
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            No further hand-offs scheduled in the coming weeks.
+            {translator.translateText(
+              "No further hand-offs scheduled in the coming weeks.",
+            )}
           </div>
         </div>
       );
@@ -300,7 +334,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4">
         <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Up next
+          {translator.translateText("Up next")}
         </div>
         <div className="mt-2.5 flex items-center gap-3">
           {getAvatar(next.userId, "h-10 w-10 text-sm")}
@@ -309,7 +343,9 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
               {getName(next.userId)}
             </div>
             <div className="text-xs text-gray-500">
-              Starts {formatShiftInstant(next.start, props.timezone)}
+              {translator.translateTemplate("Starts {{time}}", {
+                time: formatShiftInstant(next.start, props.timezone),
+              })}
               <span className="ml-1 text-gray-400">
                 ({formatRelativeStart(next.start, props.now)})
               </span>
@@ -353,16 +389,29 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             className="h-3.5 w-3.5"
           />
           {isFullyCovered
-            ? `Fully covered for the next ${windowLabel}`
-            : `${displayPercent}% covered over the next ${windowLabel}`}
+            ? translator.translateTemplate(
+                "Fully covered for the next {{window}}",
+                { window: windowLabel },
+              )
+            : translator.translateTemplate(
+                "{{percent}}% covered over the next {{window}}",
+                { percent: displayPercent, window: windowLabel },
+              )}
         </span>
         {!isFullyCovered && (
           <span>
-            {formatDurationFromSeconds(props.coverage.uncoveredSeconds)}{" "}
-            uncovered across{" "}
-            {props.coverage.gaps.length === 1
-              ? "1 gap"
-              : `${props.coverage.gaps.length} gaps`}
+            {translator.translatePlural(
+              {
+                one: "{{duration}} uncovered across {{count}} gap",
+                other: "{{duration}} uncovered across {{count}} gaps",
+              },
+              props.coverage.gaps.length,
+              {
+                duration: formatDurationFromSeconds(
+                  props.coverage.uncoveredSeconds,
+                ),
+              },
+            )}
           </span>
         )}
       </div>
@@ -391,28 +440,50 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
                 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
               />
               <span>
-                <span className="font-semibold">Coverage gap:</span> no one is
-                on call from {formatShiftInstant(gap.start, props.timezone)} to{" "}
-                {formatShiftInstant(gap.end, props.timezone)}
-                <span className="ml-1 text-amber-600">
-                  ({formatShiftDuration(gap.start, gap.end)})
-                </span>
-                .
+                <TranslatedSentence
+                  template="{{label}} no one is on call from {{start}} to {{end}} {{duration}}."
+                  values={{
+                    start: formatShiftInstant(gap.start, props.timezone),
+                    end: formatShiftInstant(gap.end, props.timezone),
+                  }}
+                  slots={{
+                    label: (
+                      <span className="font-semibold">
+                        {translator.translateText("Coverage gap:")}
+                      </span>
+                    ),
+                    duration: (
+                      <span className="text-amber-600">
+                        ({formatShiftDuration(gap.start, gap.end)})
+                      </span>
+                    ),
+                  }}
+                />
               </span>
             </div>
           );
         })}
         {remaining > 0 && (
           <div className="text-xs text-amber-700">
-            + {remaining} more coverage {remaining === 1 ? "gap" : "gaps"} later
-            in this window.
+            {translator.translatePlural(
+              {
+                one: "+ {{count}} more coverage gap later in this window.",
+                other: "+ {{count}} more coverage gaps later in this window.",
+              },
+              remaining,
+            )}
           </div>
         )}
         {shortGapCount > 0 && (
           <div className="text-xs text-amber-700">
-            + {shortGapCount} coverage {shortGapCount === 1 ? "gap" : "gaps"}{" "}
-            shorter than a minute, usually caused by layers whose active hours
-            are misaligned by a few seconds.
+            {translator.translatePlural(
+              {
+                one: "+ {{count}} coverage gap shorter than a minute, usually caused by layers whose active hours are misaligned by a few seconds.",
+                other:
+                  "+ {{count}} coverage gaps shorter than a minute, usually caused by layers whose active hours are misaligned by a few seconds.",
+              },
+              shortGapCount,
+            )}
           </div>
         )}
       </div>
@@ -423,7 +494,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     return (
       <div>
         <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Upcoming hand-offs
+          {translator.translateText("Upcoming hand-offs")}
         </div>
         <ol className="space-y-2">
           {upcoming.map((shift: OnCallShift, index: number) => {

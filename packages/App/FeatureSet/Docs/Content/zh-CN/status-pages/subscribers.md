@@ -130,14 +130,14 @@
 **Show At**（`showAnnouncementAt`）和 **End At**（`endAnnouncementAt`）驱动着一切，但概览页和公告列表问的是不同的问题，而这个差别常常把人绊倒。
 
 - **概览页** 在 `showAnnouncementAt` 已经过去、并且 `endAnnouncementAt` 要么在未来、要么为空时展示一条公告。
-- **`/announcements` 列表** 展示的是 `showAnnouncementAt` 落在 **显示公告历史记录（天数）**（`showAnnouncementHistoryInDays`，默认 14）范围内的公告，然后在客户端把它们分成活动和过往两组。
+- **`/announcements` 列表** 展示的是 `showAnnouncementAt` 落在公告历史记录天数（`showAnnouncementHistoryInDays`，默认 14）范围内的公告，然后在客户端把它们分成活动和过往两组。
 
 有两个后果值得提前想好：
 
 - **没有结束日期的公告永远不会过期。** 把 **停止显示公告于** 留空，它就会无限期地钉在概览页上。凡是有时效的，都给它设一个结束日期。
 - **一条很旧但仍然生效的公告可能从列表里消失。** 如果它的开始时间早于 `showAnnouncementHistoryInDays`，它就会从 `/announcements` 上掉下去，同时还留在概览页上。如果你有长期挂着的通知，就把历史窗口调大。
 
-公告到底显不显示，由 **高级设置** 上的 **公告设置** 卡片控制：**显示公告**（`showAnnouncementsOnStatusPage`，默认 true）和 **显示公告历史记录（天数）**（默认 14）。**显示公告** 关闭时，公告接口会直接拒绝请求。
+公告到底显不显示，在 **高级设置** 上的 **状态页显示的内容** 卡片里设置：**显示公告**（`showAnnouncementsOnStatusPage`，默认 true）以及它下面的 **显示最近 … 天**（`showAnnouncementHistoryInDays`，默认 14）。**显示公告** 关闭时，公告接口会直接拒绝请求。
 
 ## 公告模板
 
