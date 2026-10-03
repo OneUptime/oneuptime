@@ -118,6 +118,15 @@ export interface EntityDropdownProps {
   valueField?: string | undefined;
   colorField?: string | undefined;
   /*
+   * Only the entries that match this, by columns of modelType - `{
+   * isVerified: true }` offers only the domains a project has verified.
+   * Every list the dropdown asks the server for to offer entries (the
+   * search, and the Labels tab's entries for a label) is narrowed by it.
+   * Looking up the label of an entry that is already picked is not, so a
+   * saved value never shows as a raw id.
+   */
+  query?: Record<string, unknown> | undefined;
+  /*
    * Override the auto-detection — explicitly hide the Labels tab even on a
    * labeled entity, or force-show it.
    */
@@ -323,6 +332,17 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return undefined;
   }, [modelType]);
   const colorField: string | undefined = props.colorField || detectedColorField;
+
+  /*
+   * The query is read from a ref when a request goes out, and the search
+   * re-runs when its content changes - not when a caller hands in an equal
+   * object on every render, which would search again on every render.
+   */
+  const baseQueryRef: React.MutableRefObject<Record<string, unknown>> = useRef<
+    Record<string, unknown>
+  >(props.query || {});
+  baseQueryRef.current = props.query || {};
+  const baseQueryKey: string = JSON.stringify(props.query || {});
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -718,7 +738,9 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     debounceRef.current = window.setTimeout(
       async () => {
         try {
-          const query: Query<BaseModel> = {} as Query<BaseModel>;
+          const query: Query<BaseModel> = {
+            ...baseQueryRef.current,
+          } as Query<BaseModel>;
           if (trimmed.length > 0) {
             (query as Record<string, unknown>)[labelField] = new Search(
               trimmed,
@@ -773,6 +795,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     labelField,
     colorField,
     modelToOption,
+    baseQueryKey,
   ]);
 
   /*
@@ -1067,6 +1090,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: modelType,
         query: {
+          ...baseQueryRef.current,
           labels: new Includes(selectedLabelIds),
         } as Query<BaseModel>,
         limit: LIMIT_PER_PROJECT,
@@ -1166,6 +1190,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
         modelType: modelType,
         query: {
+          ...baseQueryRef.current,
           labels: new Includes([labelId]),
         } as Query<BaseModel>,
         limit: LABEL_PREVIEW_LIMIT,
