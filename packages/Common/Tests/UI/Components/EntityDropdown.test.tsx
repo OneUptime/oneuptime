@@ -124,7 +124,109 @@ describe("EntityDropdown", () => {
     fireEvent.click(screen.getByRole("option", { name: "Members" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith("members");
+    expect(onChange).toHaveBeenCalledWith("members", {
+      selectedOptions: [{ value: "members", label: "Members" }],
+      previousOptions: [],
+    });
     expect(screen.queryByTestId("entity-dropdown-menu")).toBeNull();
+  });
+
+  /*
+   * What the pick was, as the list showed it: a form fills in a name after
+   * the record picked (a status page resource's display name follows its
+   * monitor) without asking the server for the record again, and can tell
+   * the name of what was picked before from one somebody typed.
+   */
+  describe("tells onChange what the pick changed", () => {
+    test("a new pick, and the one it replaced", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      render(
+        <EntityDropdown
+          ariaLabel="Team"
+          onChange={onChange}
+          options={options}
+          value="members"
+        />,
+      );
+
+      // A single-select showing its value opens from the value.
+      fireEvent.click(screen.getByRole("button", { name: /Members/ }));
+      fireEvent.click(screen.getByRole("option", { name: "Admins" }));
+
+      expect(onChange).toHaveBeenCalledWith("admins", {
+        selectedOptions: [{ value: "admins", label: "Admins" }],
+        previousOptions: [{ value: "members", label: "Members" }],
+      });
+    });
+
+    test("a cleared pick: nothing picked now, and what was picked before", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      render(
+        <EntityDropdown
+          ariaLabel="Team"
+          onChange={onChange}
+          options={options}
+          value="admins"
+        />,
+      );
+
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Clear selection" })[0]!,
+      );
+
+      expect(onChange).toHaveBeenCalledWith(null, {
+        selectedOptions: [],
+        previousOptions: [{ value: "admins", label: "Admins" }],
+      });
+    });
+
+    test("a removed chip of a multi-select: the rest, and all of them before", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      render(
+        <EntityDropdown
+          ariaLabel="Team"
+          isMultiSelect={true}
+          onChange={onChange}
+          options={options}
+          value={["members", "admins"]}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove Members" }));
+
+      expect(onChange).toHaveBeenCalledWith(["admins"], {
+        selectedOptions: [{ value: "admins", label: "Admins" }],
+        previousOptions: [
+          { value: "members", label: "Members" },
+          { value: "admins", label: "Admins" },
+        ],
+      });
+    });
+
+    /*
+     * An id the list has no label for yet is no name: it is left out rather
+     * than handed over as its own label.
+     */
+    test("never hands over a raw id as a label", () => {
+      const onChange: MockFunction = getJestMockFunction();
+      render(
+        <EntityDropdown
+          ariaLabel="Team"
+          onChange={onChange}
+          options={options}
+          value="an-id-the-list-does-not-know"
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /an-id-the-list-does-not-know/ }),
+      );
+      fireEvent.click(screen.getByRole("option", { name: "Members" }));
+
+      expect(onChange).toHaveBeenCalledWith("members", {
+        selectedOptions: [{ value: "members", label: "Members" }],
+        previousOptions: [],
+      });
+    });
   });
 });

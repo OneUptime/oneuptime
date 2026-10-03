@@ -593,8 +593,11 @@ describe("the unlinked Advanced Options page", () => {
   test("the badge settings it repeated are on Embedded Status", () => {
     const embedded: string = readView("EmbeddedStatus.tsx");
 
-    expect(embedded).toContain("enableEmbeddedOverallStatus: true,");
-    expect(embedded).toContain('title: "Embedded Status Badge",');
+    // Its switch saves when flipped (ModelSwitchCard), with no Edit dialog.
+    expect(embedded).toContain('column="enableEmbeddedOverallStatus"');
+    expect(embedded).toContain(
+      'cardTitle={translationKey("Embedded Status Badge")}',
+    );
     expect(embedded).toContain('title="Regenerate Security Token"');
   });
 });

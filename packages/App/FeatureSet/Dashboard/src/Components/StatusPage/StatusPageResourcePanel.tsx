@@ -1,6 +1,7 @@
 import MonitorElement from "../Monitor/Monitor";
 import MonitorGroupElement from "../MonitorGroup/MonitorGroupElement";
 import BulkAddStatusPageMonitorsModal from "./BulkAddStatusPageMonitorsModal";
+import { insertBeforeFoldedFields } from "./StatusPageResourceFormFields";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -21,12 +22,10 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -102,9 +101,11 @@ export interface ComponentProps {
   onMoveGroupDown: () => void;
   onShowGroupId: () => void;
 
-  /* The resource form, minus anything a grid group adds to it. */
+  /*
+   * The resource form, minus anything a grid group adds to it. One page:
+   * the monitor and its display name, then a folded Advanced section.
+   */
   baseFormFields: Array<ModelField<StatusPageResource>>;
-  formSteps: Array<FormStep<StatusPageResource>>;
 
   /*
    * How many resources this selection turned out to hold, reported on every
@@ -627,8 +628,10 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   /* ------------------------------------------------------------------ */
 
   /*
-   * A grid group's resources need a cell to live in, so its form asks for one.
-   * Everything else about the form is the same wherever it is opened from.
+   * A grid group's resources need a cell to live in, so its form asks for one,
+   * right under the display name: every resource in the group needs it, so
+   * it is never folded away under Advanced. Everything else about the form is
+   * the same wherever it is opened from.
    */
   const formFields: Array<ModelField<StatusPageResource>> = useMemo((): Array<
     ModelField<StatusPageResource>
@@ -649,47 +652,47 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       });
     };
 
-    return [
-      ...props.baseFormFields,
-      {
-        field: {
-          rowAxisValue: true,
+    return insertBeforeFoldedFields<ModelField<StatusPageResource>>(
+      props.baseFormFields,
+      [
+        {
+          field: {
+            rowAxisValue: true,
+          },
+          title: `${rowLabel} (Row)`,
+          description: "Row this resource belongs to in the grid.",
+          fieldType:
+            rowValues.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            rowValues.length > 0 ? toOptions(rowValues) : undefined,
+          required: true,
+          placeholder:
+            rowValues.length > 0
+              ? `Select ${rowLabel.toLowerCase()}`
+              : "Define rows on the group first",
         },
-        title: `${rowLabel} (Row)`,
-        description: "Row this resource belongs to in the grid.",
-        fieldType:
-          rowValues.length > 0
-            ? FormFieldSchemaType.Dropdown
-            : FormFieldSchemaType.Text,
-        dropdownOptions:
-          rowValues.length > 0 ? toOptions(rowValues) : undefined,
-        required: true,
-        placeholder:
-          rowValues.length > 0
-            ? `Select ${rowLabel.toLowerCase()}`
-            : "Define rows on the group first",
-        stepId: "monitor-details",
-      },
-      {
-        field: {
-          columnAxisValue: true,
+        {
+          field: {
+            columnAxisValue: true,
+          },
+          title: `${columnLabel} (Column)`,
+          description: "Column this resource belongs to in the grid.",
+          fieldType:
+            columnValues.length > 0
+              ? FormFieldSchemaType.Dropdown
+              : FormFieldSchemaType.Text,
+          dropdownOptions:
+            columnValues.length > 0 ? toOptions(columnValues) : undefined,
+          required: true,
+          placeholder:
+            columnValues.length > 0
+              ? `Select ${columnLabel.toLowerCase()}`
+              : "Define columns on the group first",
         },
-        title: `${columnLabel} (Column)`,
-        description: "Column this resource belongs to in the grid.",
-        fieldType:
-          columnValues.length > 0
-            ? FormFieldSchemaType.Dropdown
-            : FormFieldSchemaType.Text,
-        dropdownOptions:
-          columnValues.length > 0 ? toOptions(columnValues) : undefined,
-        required: true,
-        placeholder:
-          columnValues.length > 0
-            ? `Select ${columnLabel.toLowerCase()}`
-            : "Define columns on the group first",
-        stepId: "monitor-details",
-      },
-    ];
+      ],
+    );
   }, [
     props.baseFormFields,
     isGrid,
@@ -789,9 +792,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
   /*
    * The handful of group settings that change what a visitor sees. They live on
-   * the group form, three steps deep, and an operator looking at a group has no
-   * other way of knowing that this one is published collapsed or with an uptime
-   * figure beside it.
+   * the group form, folded under Layout and Advanced, and an operator looking
+   * at a group has no other way of knowing that this one is published
+   * collapsed or with an uptime figure beside it.
    */
   const getChips: GetChipsFunction = (): ReactElement => {
     if (!isGroupSelected) {
@@ -1611,7 +1614,6 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           name="Status Page > Resources"
           title={`Add a monitor to ${title}`}
           description="Pick the monitor visitors will see the status of here."
-          modalWidth={ModalWidth.Medium}
           submitButtonText="Add Monitor"
           initialValues={initialValuesForCreate}
           onBeforeCreate={onBeforeCreate}
@@ -1619,7 +1621,6 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             modelType: StatusPageResource,
             id: `create-status-page-resource-${selectionKey}`,
             fields: formFields,
-            steps: props.formSteps,
             formType: FormType.Create,
           }}
           onClose={() => {
@@ -1640,13 +1641,11 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           name="Status Page > Resources"
           title="Edit resource"
           description="Update how this resource shows up on the status page."
-          modalWidth={ModalWidth.Medium}
           modelIdToEdit={resourceIdToEdit}
           formProps={{
             modelType: StatusPageResource,
             id: `edit-status-page-resource-${selectionKey}`,
             fields: formFields,
-            steps: props.formSteps,
             formType: FormType.Update,
           }}
           onClose={() => {

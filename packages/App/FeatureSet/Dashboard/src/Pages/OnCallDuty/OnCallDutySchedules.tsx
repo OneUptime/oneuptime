@@ -1,28 +1,55 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageComponentProps from "../PageComponentProps";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import TimezoneUtil from "Common/UI/Utils/Timezone";
 import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Label from "Common/Models/DatabaseModels/Label";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import {
+  addScheduleFirstLayerMiscData,
+  getOnCallScheduleCreateFormFields,
+} from "../../Components/OnCallPolicy/OnCallScheduleCreateForm";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * Whether the user may add layers and people to them, which "Who takes
+ * turns?" does for them: the schedule's first layer is created as the user.
+ */
+const canAddScheduleLayers: () => boolean = (): boolean => {
+  return (
+    PermissionGate.check(
+      new OnCallDutyPolicyScheduleLayer(),
+      ModelAction.Create,
+    ).isAllowed &&
+    PermissionGate.check(
+      new OnCallDutyPolicyScheduleLayerUser(),
+      ModelAction.Create,
+    ).isAllowed
+  );
+};
 
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
@@ -32,13 +59,18 @@ const OnCallDutyPage: FunctionComponent<
     useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
 
   /*
-   * Like Create On-Call Policy, the create form asks for the name and folds
-   * the description and the labels under Advanced. The timezone stays in
-   * view: it decides when hand-offs happen, and it starts on the reader's
-   * own. Three rows, so no steps.
+   * Like Create On-Call Policy, which asks who gets paged first, the form
+   * asks for the name and who takes turns, and folds how long each turn
+   * lasts, the timezone, the description and the labels under Advanced
+   * (OnCallScheduleCreateForm.ts). Three rows, so no steps. Built once, not
+   * on every render of the page.
    */
-  const advancedSection: FormFieldCollapsibleSection<OnCallDutySchedule> =
-    getAdvancedFormSection<OnCallDutySchedule>();
+  const createFormFields: Array<ModelField<OnCallDutySchedule>> =
+    useMemo((): Array<ModelField<OnCallDutySchedule>> => {
+      return getOnCallScheduleCreateFormFields({
+        canAddLayers: canAddScheduleLayers,
+      });
+    }, []);
 
   return (
     <Fragment>
@@ -88,46 +120,39 @@ const OnCallDutyPage: FunctionComponent<
             },
           ],
         }}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Schedule Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              timezone: true,
-            },
-            title: "Timezone",
-            description:
-              "The timezone this schedule's active-hour restrictions and hand-off times are interpreted in. Defaults to your current timezone.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
-            defaultValue: OneUptimeDate.getCurrentTimezone(),
-            required: false,
-            placeholder: "Select Timezone",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<OnCallDutySchedule>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
+        formFields={createFormFields}
+        onBeforeCreate={(
+          item: OnCallDutySchedule,
+          miscDataProps: JSONObject,
+          formValues: JSONObject,
+        ): Promise<OnCallDutySchedule> => {
+          // How long each turn lasts goes with the people who take turns.
+          addScheduleFirstLayerMiscData({
+            miscDataProps: miscDataProps,
+            formValues: formValues,
+          });
+
+          return Promise.resolve(item);
+        }}
+        onCreateSuccess={(
+          item: OnCallDutySchedule,
+        ): Promise<OnCallDutySchedule> => {
+          /*
+           * A new schedule opens on its Layers: the rotation is there when
+           * someone was picked to take turns, and building it is the one
+           * thing to do when nobody was.
+           */
+          if (item._id) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS] as Route,
+                { modelId: new ObjectID(item._id.toString()) },
+              ),
+            );
+          }
+
+          return Promise.resolve(item);
+        }}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
