@@ -18,15 +18,16 @@ import path from "path";
  *     Access and no longer asks for an expiry;
  *   - the MCP server guide picks Viewer or Project Admin under Access.
  *
- * The choices are read from the form's own source, so a renamed card fails
- * here rather than leaving the docs behind.
+ * The choices are read from the form's own source - the Access question
+ * Create API Key shares with Create Team (Components/Permission/RoleAccess)
+ * - so a renamed card fails here rather than leaving the docs behind.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
 const ACCESS_SOURCE: string = path.join(
   REPO_ROOT,
-  "App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyAccess.ts",
+  "App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess.ts",
 );
 
 const LANGUAGES: ReadonlyArray<string> = [
@@ -56,7 +57,11 @@ function readPage(language: string, page: string): string {
   );
 }
 
-// The titles of the Access cards, as the form's source writes them.
+/*
+ * The titles of the Access cards, as the form's source writes them: each
+ * once (Choose permissions later is written for keys and for teams), and
+ * not the question's own title, Access.
+ */
 function accessTitles(): Array<string> {
   const source: string = fs.readFileSync(ACCESS_SOURCE, "utf8");
   const titles: Array<string> = [];
@@ -65,7 +70,10 @@ function accessTitles(): Array<string> {
   let match: RegExpExecArray | null = titlePattern.exec(source);
 
   while (match) {
-    titles.push(match[1]!);
+    if (match[1] !== "Access" && !titles.includes(match[1]!)) {
+      titles.push(match[1]!);
+    }
+
     match = titlePattern.exec(source);
   }
 

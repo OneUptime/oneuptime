@@ -56,7 +56,7 @@ I team **Owners** e **Admin** sono bloccati di proposito: le loro autorizzazioni
 
 Create tutti i team aggiuntivi che volete — «Reperibilità Frontend», «Supporto», «Revisori in sola lettura» — e date a ciascuno le autorizzazioni che gli servono.
 
-Dove trovarlo: **Impostazioni → Team**. Aprite un team per raggiungere **Members**, **Permissions** e **Block Permissions**.
+Dove trovarlo: **Impostazioni → Team**. Aprite un team per raggiungere **Members** e **Permissions**; **Block Permissions** si trova sotto **Advanced**, in fondo alla pagina Permissions.
 
 ## Autorizzazioni
 
