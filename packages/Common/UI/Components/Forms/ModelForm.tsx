@@ -106,6 +106,16 @@ export type ModelFormOnBeforeCreate<
   formValues: JSONObject,
 ) => Promise<TBaseModel>;
 
+/*
+ * The same, on an Update form: the model that is about to be saved (its _id
+ * set), the misc data the request carries and every value the form holds.
+ * What it returns is what is saved - an escalation rule's edit dialog names a
+ * rule whose name was cleared after its level here.
+ */
+export type ModelFormOnBeforeUpdate<
+  TBaseModel extends BaseModel | AnalyticsBaseModel,
+> = ModelFormOnBeforeCreate<TBaseModel>;
+
 export interface ModelField<TBaseModel extends BaseModel | AnalyticsBaseModel>
   extends Field<TBaseModel> {
   overrideField?:
@@ -155,6 +165,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelIdToEdit?: ObjectID | undefined;
   onError?: ((error: string) => void) | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
@@ -1240,6 +1251,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
       if (props.onBeforeCreate && props.formType === FormType.Create) {
         tBaseModel = await props.onBeforeCreate(
+          tBaseModel,
+          miscDataProps,
+          values as JSONObject,
+        );
+      }
+
+      if (props.onBeforeUpdate && props.formType === FormType.Update) {
+        tBaseModel = await props.onBeforeUpdate(
           tBaseModel,
           miscDataProps,
           values as JSONObject,
