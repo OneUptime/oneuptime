@@ -1,4 +1,6 @@
 import { formatEvidenceLabel } from "../../../Utils/InvestigationEvidenceFormat";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -18,6 +20,7 @@ export const CITATION_CHIP_CLASS_NAME: string =
 const InvestigationCitationChip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
    * Read aloud the way the evidence row shows it (local times, not ISO
    * timestamps); the tooltip keeps the raw label, like the row's does.
@@ -29,7 +32,10 @@ const InvestigationCitationChip: FunctionComponent<ComponentProps> = (
       type="button"
       className={CITATION_CHIP_CLASS_NAME}
       title={props.label}
-      aria-label={`Citation ${props.citationId}: ${spokenLabel}`}
+      aria-label={translator.translateTemplate("Citation {{id}}: {{label}}", {
+        id: props.citationId,
+        label: spokenLabel,
+      })}
       data-citation-id={props.citationId}
       onClick={() => {
         props.onActivate(props.citationId);

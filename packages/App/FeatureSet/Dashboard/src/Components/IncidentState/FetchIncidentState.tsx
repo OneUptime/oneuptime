@@ -13,6 +13,8 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import IncidentStateElement from "./IncidentStateElement";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   incidentStateId: ObjectID;
@@ -26,6 +28,7 @@ export interface ComponentProps {
 const FetchIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const incidentStateId: string = props.incidentStateId.toString();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -94,7 +97,13 @@ const FetchIncidentState: FunctionComponent<ComponentProps> = (
   }
 
   if (!incidentState) {
-    return <p>The selected incident state could not be found.</p>;
+    return (
+      <p>
+        {translator.translateText(
+          "The selected incident state could not be found.",
+        )}
+      </p>
+    );
   }
 
   return <IncidentStateElement incidentState={incidentState} />;

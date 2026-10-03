@@ -40,6 +40,8 @@ import { useEmbeddedMetricCardRefreshNonce } from "../Metrics/EmbeddedMetricCard
 import ChartRefetchFrame, {
   ChartLoadingSkeleton,
 } from "../Metrics/ChartRefetchFrame";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Cumulative-counter → per-second-rate chart for Ceph pages: the
@@ -112,6 +114,7 @@ interface FailedRates {
 const CephRateChart: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // null until the first load lands.
   const [loaded, setLoaded] = useState<LoadedRates | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -286,8 +289,10 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
           style={{ height: `${heightInPx}px` }}
           onDoubleClick={zoom?.onTimeRangeReset}
         >
-          {props.emptyMessage ||
-            "No data reported for the selected time range."}
+          {translator.translateText(
+            props.emptyMessage ||
+              "No data reported for the selected time range.",
+          )}
         </div>
       </ChartRefetchFrame>
     );

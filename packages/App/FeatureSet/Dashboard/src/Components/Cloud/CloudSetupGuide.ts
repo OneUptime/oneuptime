@@ -18,6 +18,12 @@ import {
   codeBlock,
   shellQuote,
 } from "../SetupGuide/SetupGuide";
+import {
+  translatableTerm,
+  translateTemplate,
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The "Connect a managed cloud environment" guide, one per managed platform.
@@ -209,14 +215,20 @@ function cloudKeyStep(
   secretNote: string,
 ): SetupGuideKeyStep {
   return {
-    description: `Pick a Server key, or create one — the commands below update to use it. ${secretNote}`,
+    // Two whole sentences, each in the reader's language.
+    description: `${translateText(
+      "Pick a Server key, or create one — the commands below update to use it.",
+    )} ${secretNote}`,
     endpointLabel: "OTLP Endpoint",
     endpointValue: otlpEndpoint(context),
   };
 }
 
 function secretStoreNote(store: string): string {
-  return `It is a secret: the next step keeps it in ${store} rather than in a plain environment variable, which everyone who can view the configuration can read.`;
+  return translateTemplate(
+    "It is a secret: the next step keeps it in {{store}} rather than in a plain environment variable, which everyone who can view the configuration can read.",
+    { store: translatableTerm(store) },
+  );
 }
 
 function environmentSentence(context: CloudGuideContext, unit: string): string {
@@ -412,7 +424,9 @@ function environmentMissingTopic(context: CloudGuideContext): SetupGuideTopic {
 function cloudLinks(context: CloudGuideContext): Array<SetupGuideLink> {
   return [
     {
-      title: `${context.descriptor.productName} documentation`,
+      title: translateTemplate("{{product}} documentation", {
+        product: context.descriptor.productName,
+      }),
       url: context.descriptor.docsUrl,
     },
     {
@@ -775,7 +789,10 @@ const buildAzureContainerAppsGuide: CloudGuideBuilder = (
     "**Azure portal → Container Apps → your app → Settings → Secrets → + Add**";
 
   return {
-    keyStep: cloudKeyStep(context, secretStoreNote("a Container Apps secret")),
+    keyStep: cloudKeyStep(
+      context,
+      secretStoreNote(translationKey("a Container Apps secret")),
+    ),
     intro: paragraphs([
       `${environmentSentence(context, "Container Apps replica")} No detector knows the region or the subscription, so you set those two by hand.`,
       shapeTabs([

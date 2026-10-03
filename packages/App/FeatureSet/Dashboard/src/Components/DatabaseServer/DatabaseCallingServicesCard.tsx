@@ -8,6 +8,11 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * "Who queries this database": the application services whose CLIENT spans
@@ -33,11 +38,19 @@ export interface ComponentProps {
 export function getCallingServicesFooter(
   shown: number,
   total: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   if (typeof total !== "number" || !Number.isFinite(total) || total <= shown) {
     return "";
   }
-  return `Showing the ${shown} busiest of ${formatDatabaseCount(total)} calling services.`;
+  return translator.translatePlural(
+    {
+      one: "Showing the {{shown}} busiest of {{count}} calling service.",
+      other: "Showing the {{shown}} busiest of {{count}} calling services.",
+    },
+    total,
+    { shown: shown, count: formatDatabaseCount(total) },
+  );
 }
 
 function formatMs(value: number | null): string {
@@ -63,6 +76,7 @@ function formatErrorRate(value: number | null): string {
 const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <Card
       title="Calling services"
@@ -75,16 +89,25 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
           data-testid="database-calling-services-empty"
           className="text-sm text-gray-500"
         >
-          No instrumented application queried this database in the selected
-          range.
+          {translator.translateText(
+            "No instrumented application queried this database in the selected range.",
+          )}
         </div>
       ) : (
         <div className="-m-6 -mt-2 border-t border-gray-200">
           <div className="grid grid-cols-12 gap-4 bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-            <div className="col-span-6">Service</div>
-            <div className="col-span-2 text-right">Queries</div>
-            <div className="col-span-2 text-right">Errors</div>
-            <div className="col-span-2 text-right">p95</div>
+            <div className="col-span-6">
+              {translator.translateText("Service")}
+            </div>
+            <div className="col-span-2 text-right">
+              {translator.translateText("Queries")}
+            </div>
+            <div className="col-span-2 text-right">
+              {translator.translateText("Errors")}
+            </div>
+            <div className="col-span-2 text-right">
+              {translator.translateText("p95")}
+            </div>
           </div>
           <div className="divide-y divide-gray-100">
             {props.services.map(
@@ -130,6 +153,7 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
           {getCallingServicesFooter(
             props.services.length,
             props.totalServices,
+            translator,
           ) ? (
             <div
               data-testid="database-calling-services-footer"
@@ -138,6 +162,7 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
               {getCallingServicesFooter(
                 props.services.length,
                 props.totalServices,
+                translator,
               )}
             </div>
           ) : (

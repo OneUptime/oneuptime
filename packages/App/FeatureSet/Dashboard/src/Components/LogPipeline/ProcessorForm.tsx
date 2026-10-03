@@ -34,6 +34,9 @@ import {
   matchGrokPattern,
 } from "Common/Utils/Grok/Grok";
 import { getGrokPatternNames } from "Common/Utils/Grok/GrokPatterns";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
@@ -115,6 +118,7 @@ function previewAttributeKey(targetPrefix: string, fieldName: string): string {
 const ProcessorForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // Common fields
   const [name, setName] = useState<string>("");
   const [processorType, setProcessorType] = useState<ProcessorType>("");
@@ -397,56 +401,75 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "GrokParser" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Grok Parser Configuration
+              {translator.translateText("Grok Parser Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Extracts structured fields out of an unstructured log line and
-              stores them in the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object, so you can search and filter on them. A grok pattern is
-              regex with names:{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                %&#123;IPV4:client_ip&#125;
-              </code>{" "}
-              means &quot;match an IPv4 address and store it as client_ip&quot;.
+              <TranslatedSentence
+                template={
+                  'Extracts structured fields out of an unstructured log line and stores them in the log\'s {{attributes}} object, so you can search and filter on them. A grok pattern is regex with names: {{example}} means "match an IPv4 address and store it as client_ip".'
+                }
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                  example: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      %&#123;IPV4:client_ip&#125;
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the text from the Source Field (usually the log{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    body
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Reads the text from the Source Field (usually the log {{field}})."
+                    slots={{
+                      field: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          body
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. Runs your pattern against it. The pattern does not have to
-                  match the whole line.
+                  {translator.translateText(
+                    "2. Runs your pattern against it. The pattern does not have to match the whole line.",
+                  )}
                 </p>
                 <p>
-                  3. Every named capture becomes a log attribute. Add{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    :int
-                  </code>{" "}
-                  or{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    :float
-                  </code>{" "}
-                  to a capture to store it as a number.
+                  <TranslatedSentence
+                    template="3. Every named capture becomes a log attribute. Add {{int}} or {{float}} to a capture to store it as a number."
+                    slots={{
+                      int: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          :int
+                        </code>
+                      ),
+                      float: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          :float
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  4. If the line does not match, the log passes through
-                  unchanged.
+                  {translator.translateText(
+                    "4. If the line does not match, the log passes through unchanged.",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
                 <span className="text-gray-500">// Log body</span>
                 <br />
                 <span className="text-sky-400">10.0.1.5 - GET /health 200</span>
@@ -468,7 +491,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <span className="text-sky-400">&quot;/health&quot;</span>,{" "}
                 <span className="text-amber-400">status</span>:{" "}
                 <span className="text-sky-400">200</span>
-              </div>
+              </code>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -574,15 +597,17 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
 
               {grokTestResult?.compiledOnly && (
                 <div className="mt-2 p-2 rounded-md border border-gray-200 bg-gray-50 text-xs text-gray-500">
-                  Pattern is valid. Paste a sample log line above to see what it
-                  extracts.
+                  {translator.translateText(
+                    "Pattern is valid. Paste a sample log line above to see what it extracts.",
+                  )}
                 </div>
               )}
 
               {grokTestResult?.matched === false && (
                 <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-700">
-                  This pattern does not match the sample line. Logs that do not
-                  match are left unchanged.
+                  {translator.translateText(
+                    "This pattern does not match the sample line. Logs that do not match are left unchanged.",
+                  )}
                 </div>
               )}
 
@@ -590,13 +615,19 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <div className="mt-2 p-2 rounded-md border border-emerald-200 bg-emerald-50">
                   {Object.keys(grokTestResult.fields || {}).length === 0 ? (
                     <p className="text-xs text-emerald-700">
-                      Matches, but captures nothing. Name your captures like
-                      %&#123;WORD:my_field&#125; to store them.
+                      <TranslatedSentence
+                        template="Matches, but captures nothing. Name your captures like {{example}} to store them."
+                        slots={{
+                          example: <code>%&#123;WORD:my_field&#125;</code>,
+                        }}
+                      />
                     </p>
                   ) : (
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-emerald-700">
-                        Attributes this processor would add
+                        {translator.translateText(
+                          "Attributes this processor would add",
+                        )}
                       </p>
                       {Object.entries(grokTestResult.fields || {}).map(
                         ([fieldName, fieldValue]: [string, GrokValue]) => {
@@ -633,42 +664,58 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "SeverityRemapper" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Severity Remapper Configuration
+              {translator.translateText("Severity Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Normalizes raw severity values from your logs into standard levels
-              (TRACE, DEBUG, INFO, WARNING, ERROR, FATAL). This processor reads
-              a value from a log attribute and maps it to the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                severityText
-              </code>{" "}
-              field.
+              <TranslatedSentence
+                template="Normalizes raw severity values from your logs into standard levels (TRACE, DEBUG, INFO, WARNING, ERROR, FATAL). This processor reads a value from a log attribute and maps it to the log's {{field}} field."
+                slots={{
+                  field: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      severityText
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. The processor reads the value from the Source Attribute in
-                  your log&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes
-                  </code>{" "}
-                  object.
+                  <TranslatedSentence
+                    template="1. The processor reads the value from the Source Attribute in your log's {{attributes}} object."
+                    slots={{
+                      attributes: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
-                <p>2. It looks up the value in your mappings below.</p>
                 <p>
-                  3. If a match is found, the log&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    severityText
-                  </code>{" "}
-                  is updated to the mapped severity level.
+                  {translator.translateText(
+                    "2. It looks up the value in your mappings below.",
+                  )}
+                </p>
+                <p>
+                  <TranslatedSentence
+                    template="3. If a match is found, the log's {{field}} is updated to the mapped severity level."
+                    slots={{
+                      field: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          severityText
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">// Example: incoming log</span>
                 <br />
                 <span className="text-amber-400">attributes</span>: {"{"}{" "}
@@ -681,7 +728,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <br />
                 <span className="text-amber-400">severityText</span>:{" "}
                 <span className="text-sky-400">&quot;WARNING&quot;</span>
-              </div>
+              </code>
             </div>
 
             <div className="mb-4">
@@ -700,10 +747,19 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-1 text-[11px] text-gray-400">
-                Common values: <code className="text-gray-500">level</code>,{" "}
-                <code className="text-gray-500">log_level</code>,{" "}
-                <code className="text-gray-500">severity</code>,{" "}
-                <code className="text-gray-500">priority</code>
+                <TranslatedSentence
+                  template="Common values: {{values}}"
+                  slots={{
+                    values: (
+                      <>
+                        <code className="text-gray-500">level</code>,{" "}
+                        <code className="text-gray-500">log_level</code>,{" "}
+                        <code className="text-gray-500">severity</code>,{" "}
+                        <code className="text-gray-500">priority</code>
+                      </>
+                    ),
+                  }}
+                />
               </p>
             </div>
 
@@ -767,43 +823,58 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "AttributeRemapper" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Attribute Remapper Configuration
+              {translator.translateText("Attribute Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Renames or copies a key inside the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object. Useful for standardizing attribute names across services
-              or cleaning up legacy key names.
+              <TranslatedSentence
+                template="Renames or copies a key inside the log's {{attributes}} object. Useful for standardizing attribute names across services or cleaning up legacy key names."
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the value from{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[sourceKey]
-                  </code>
-                  .
+                  <TranslatedSentence
+                    template="1. Reads the value from {{key}}."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[sourceKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. Writes that value to{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[targetKey]
-                  </code>
-                  .
+                  <TranslatedSentence
+                    template="2. Writes that value to {{key}}."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[targetKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  3. Optionally removes the original source key (if Preserve
-                  Source is off).
+                  {translator.translateText(
+                    "3. Optionally removes the original source key (if Preserve Source is off).",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">
                   // Before: attributes has &quot;src_ip&quot;
                 </span>
@@ -819,7 +890,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <span className="text-amber-400">attributes</span>: {"{"}{" "}
                 <span className="text-emerald-400">&quot;source_ip&quot;</span>:{" "}
                 <span className="text-sky-400">&quot;10.0.1.5&quot;</span> {"}"}
-              </div>
+              </code>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -874,48 +945,68 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === "CategoryProcessor" && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Category Processor Configuration
+              {translator.translateText("Category Processor Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Tags each log with a category name based on filter rules. The
-              category value is stored in the log&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object under the Target Attribute key. Rules are evaluated in
-              order and <strong>the first matching rule wins</strong>.
+              <TranslatedSentence
+                template="Tags each log with a category name based on filter rules. The category value is stored in the log's {{attributes}} object under the Target Attribute key. Rules are evaluated in order and {{firstMatch}}."
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                  firstMatch: (
+                    <strong>
+                      {translator.translateText("the first matching rule wins")}
+                    </strong>
+                  ),
+                }}
+              />
             </p>
 
             {/* How it works */}
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Each category rule has a filter condition (e.g.{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    severityText = &apos;Error&apos;
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Each category rule has a filter condition (e.g. {{example}})."
+                    slots={{
+                      example: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          severityText = &apos;Error&apos;
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. The processor evaluates rules top to bottom. The first rule
-                  that matches the log is applied.
+                  {translator.translateText(
+                    "2. The processor evaluates rules top to bottom. The first rule that matches the log is applied.",
+                  )}
                 </p>
                 <p>
-                  3. The category name is stored at{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[targetAttribute]
-                  </code>{" "}
-                  on the log.
+                  <TranslatedSentence
+                    template="3. The category name is stored at {{key}} on the log."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[targetAttribute]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  4. You can then filter and search logs by this attribute in
-                  the Logs Viewer.
+                  {translator.translateText(
+                    "4. You can then filter and search logs by this attribute in the Logs Viewer.",
+                  )}
                 </p>
               </div>
-              <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">
                   // Rule: &quot;Critical Errors&quot; when severityText =
                   &apos;Error&apos;
@@ -942,7 +1033,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                   &quot;Critical Errors&quot;
                 </span>{" "}
                 {"}"}
-              </div>
+              </code>
             </div>
 
             <div className="mb-4">
@@ -961,11 +1052,16 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-1 text-[11px] text-gray-400">
-                The category will be accessible as{" "}
-                <code className="text-gray-500">
-                  attributes.{categoryTargetKey || "category"}
-                </code>{" "}
-                in your logs.
+                <TranslatedSentence
+                  template="The category will be accessible as {{key}} in your logs."
+                  slots={{
+                    key: (
+                      <code className="text-gray-500">
+                        attributes.{categoryTargetKey || "category"}
+                      </code>
+                    ),
+                  }}
+                />
               </p>
             </div>
 
@@ -984,7 +1080,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
                           <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                            Category name
+                            {translator.translateText("Category name")}
                           </label>
                           <Input
                             type={InputType.TEXT}
@@ -1022,7 +1118,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                       </div>
                       <div>
                         <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                          When logs match
+                          {translator.translateText("When logs match")}
                         </label>
                         <FilterQueryBuilderField
                           initialValue={cat.filterQuery || ""}

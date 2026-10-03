@@ -11,6 +11,11 @@ import React, {
   useEffect,
   useId,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -26,9 +31,15 @@ export interface SummaryProps {
 
 export const getMonitorTemplateSyncFieldSummary: (
   props: SummaryProps,
-) => string = (props: SummaryProps): string => {
+  translator?: Translator,
+) => string = (
+  props: SummaryProps,
+  translator: Translator = getGlobalTranslator(),
+): string => {
   if (props.monitorType === MonitorType.NetworkDevice) {
-    return "Network device bindings are always preserved. Other step settings are copied from the template.";
+    return translator.translateText(
+      "Network device bindings are always preserved. Other step settings are copied from the template.",
+    ) as string;
   }
 
   const fields: Array<MonitorTemplateSyncField> =
@@ -43,40 +54,55 @@ export const getMonitorTemplateSyncFieldSummary: (
         return step.data?.doNotSyncFields?.includes(field.path);
       })
       .map((field: MonitorTemplateSyncField) => {
-        return field.label;
+        return translator.translateText(field.label) as string;
       });
 
     if (labels.length > 0) {
       protectedSteps.push(
         steps.length > 1
-          ? `Step ${index + 1}: ${labels.join(", ")}`
+          ? translator.translateTemplate("Step {{number}}: {{fields}}", {
+              number: index + 1,
+              fields: labels.join(", "),
+            })
           : labels.join(", "),
       );
     }
   });
 
   if (protectedSteps.length === 0) {
-    return "No fields are protected. Sync copies all step settings, including destinations and request options when applicable.";
+    return translator.translateText(
+      "No fields are protected. Sync copies all step settings, including destinations and request options when applicable.",
+    ) as string;
   }
 
-  return `These fields keep each monitor's current values during sync: ${protectedSteps.join("; ")}. All other step settings are copied from the template.`;
+  return translator.translateTemplate(
+    "These fields keep each monitor's current values during sync: {{fields}}. All other step settings are copied from the template.",
+    { fields: protectedSteps.join("; ") },
+  );
 };
 
 export const MonitorTemplateSyncFieldsSummary: FunctionComponent<
   SummaryProps
 > = (props: SummaryProps): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <div className="mb-5 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-gray-700">
-      <h3 className="font-medium text-gray-900">Template sync settings</h3>
+      <h3 className="font-medium text-gray-900">
+        {translator.translateText("Template sync settings")}
+      </h3>
       <p className="mt-1">
-        {getMonitorTemplateSyncFieldSummary({
-          monitorType: props.monitorType,
-          monitorSteps: props.monitorSteps,
-        })}
+        {getMonitorTemplateSyncFieldSummary(
+          {
+            monitorType: props.monitorType,
+            monitorSteps: props.monitorSteps,
+          },
+          translator,
+        )}
       </p>
       <p className="mt-1">
-        New monitors still start with the template&apos;s values for every
-        field.
+        {translator.translateText(
+          "New monitors still start with the template's values for every field.",
+        )}
       </p>
     </div>
   );
@@ -85,6 +111,7 @@ export const MonitorTemplateSyncFieldsSummary: FunctionComponent<
 const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const id: string = useId();
   const fields: Array<MonitorTemplateSyncField> =
     MonitorTemplateSyncFieldUtil.getFields(props.monitorType);
@@ -127,10 +154,9 @@ const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
     <Card title="Template sync settings">
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Check fields to keep each monitor&apos;s current values when syncing
-          this template to one or all linked monitors. The template&apos;s
-          values remain the defaults for new monitors. Lists such as request
-          headers are preserved in full.
+          {translator.translateText(
+            "Check fields to keep each monitor's current values when syncing this template to one or all linked monitors. The template's values remain the defaults for new monitors. Lists such as request headers are preserved in full.",
+          )}
         </p>
         <div className="divide-y divide-gray-100">
           {fields.map((field: MonitorTemplateSyncField, index: number) => {
@@ -146,14 +172,14 @@ const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
                     id={`${fieldId}-name`}
                     className="text-sm font-medium text-gray-900"
                   >
-                    {field.label}
+                    {translator.translateText(field.label)}
                   </p>
                   {field.description && (
                     <p
                       id={`${fieldId}-description`}
                       className="mt-1 text-sm text-gray-500"
                     >
-                      {field.description}
+                      {translator.translateText(field.description)}
                     </p>
                   )}
                 </div>
@@ -184,7 +210,9 @@ const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
                       props.onChange?.(updatedStep);
                     }}
                   />
-                  <span id={`${fieldId}-label`}>Do not sync this field</span>
+                  <span id={`${fieldId}-label`}>
+                    {translator.translateText("Do not sync this field")}
+                  </span>
                 </label>
               </div>
             );

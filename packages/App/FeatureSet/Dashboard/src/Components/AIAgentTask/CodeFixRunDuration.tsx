@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import OneUptimeDate from "Common/Types/Date";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   status: AIRunStatus | undefined;
@@ -16,6 +18,8 @@ export interface ComponentProps {
 const CodeFixRunDuration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (!props.startedAt) {
     return <span className="text-gray-400">-</span>;
   }
@@ -50,14 +54,20 @@ const CodeFixRunDuration: FunctionComponent<ComponentProps> = (
   if (!duration) {
     return (
       <span className="text-sm text-gray-600 whitespace-nowrap">
-        {props.completedAt ? "< 1 sec" : "Just started"}
+        {props.completedAt
+          ? translator.translateText("< 1 sec")
+          : translator.translateText("Just started")}
       </span>
     );
   }
 
   return (
     <span className="text-sm text-gray-600 whitespace-nowrap">
-      {props.completedAt ? duration : `${duration} so far`}
+      {props.completedAt
+        ? duration
+        : translator.translateTemplate("{{duration}} so far", {
+            duration: duration,
+          })}
     </span>
   );
 };

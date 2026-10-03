@@ -32,6 +32,8 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
 } from "../Utils/DashboardWidgetTimeRangeZoom";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDataSourceChartComponentType;
@@ -54,6 +56,7 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [results, setResults] = useState<Array<AggregatedResult>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -207,7 +210,9 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
                 ? legendTemplate
                 : legendTemplate
                   ? undefined
-                  : `Query ${index + 1}`,
+                  : translator.translateTemplate("Query {{number}}", {
+                      number: index + 1,
+                    }),
             legendUnit: undefined,
           },
           metricQueryData: {
@@ -271,10 +276,11 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <p className="text-xs font-medium text-gray-500">
-          {props.component.arguments.chartTitle?.trim() || "Data Source Chart"}
+          {props.component.arguments.chartTitle?.trim() ||
+            translator.translateText("Data Source Chart")}
         </p>
         <p className="text-xs text-gray-400 text-center">
-          Click to configure a query
+          {translator.translateText("Click to configure a query")}
         </p>
       </div>
     );

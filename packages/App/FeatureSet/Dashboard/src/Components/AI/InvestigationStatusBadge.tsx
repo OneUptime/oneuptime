@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -22,6 +24,7 @@ export type InvestigationStatusIndicator =
   | "failed";
 
 export interface ComponentProps {
+  // English, translated here like a Pill's text.
   text: string;
   indicator: InvestigationStatusIndicator;
 }
@@ -89,14 +92,16 @@ export function renderInvestigationStatusIndicator(
 const InvestigationStatusBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div
-      aria-label="Investigation status"
+      aria-label={translator.translateText("Investigation status")}
       data-indicator={props.indicator}
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
     >
       {renderInvestigationStatusIndicator(props.indicator)}
-      <span>{props.text}</span>
+      <span>{translator.translateText(props.text)}</span>
     </div>
   );
 };

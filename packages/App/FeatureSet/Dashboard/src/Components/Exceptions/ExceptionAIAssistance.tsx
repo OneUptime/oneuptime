@@ -52,6 +52,11 @@ import {
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 // How often an active task is re-read.
 export const AI_TASK_POLL_INTERVAL_MS: number = 5000;
@@ -78,6 +83,7 @@ interface PendingStart {
 const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const exceptionId: string = props.telemetryExceptionId.toString();
   const [tasks, setTasks] = useState<Array<AIAgentTaskInfo>>([]);
   const [hasLoadedTasks, setHasLoadedTasks] = useState<boolean>(false);
@@ -281,14 +287,14 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
               icon={IconProp.CheckCircle}
               className="h-5 w-5 text-emerald-600"
             />
-            AI is ready to work on this exception
+            {translator.translateText("AI is ready to work on this exception")}
           </div>
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-800 sm:ml-auto">
             {readiness.checks.map((check: AIFixReadinessCheck) => {
               return (
                 <li key={check.id} className="flex items-center gap-1">
                   <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
-                  {check.title}
+                  {translator.translateText(check.title)}
                 </li>
               );
             })}
@@ -306,7 +312,10 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
             className="whitespace-nowrap text-sm font-medium text-gray-700"
             data-testid="exception-ai-readiness-progress"
           >
-            {progress.passed} of {progress.total} ready
+            {translator.translateTemplate("{{passed}} of {{total}} ready", {
+              passed: progress.passed,
+              total: progress.total,
+            })}
           </span>
         }
       >
@@ -314,7 +323,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
           <div
             className="h-1.5 overflow-hidden rounded-full bg-gray-100"
             role="progressbar"
-            aria-label="AI setup progress"
+            aria-label={translator.translateText("AI setup progress")}
             aria-valuemin={0}
             aria-valuemax={progress.total}
             aria-valuenow={progress.passed}
@@ -351,11 +360,11 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900">
-                        {check.title}
+                        {translator.translateText(check.title)}
                       </p>
                       {!check.ok && check.detail && (
                         <p className="mt-0.5 text-sm text-gray-600">
-                          {check.detail}
+                          {translator.translateText(check.detail)}
                         </p>
                       )}
                     </div>
@@ -366,7 +375,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
                         )}
                         className="flex-shrink-0 whitespace-nowrap rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-50"
                       >
-                        {checkLink.title}
+                        {translator.translateText(checkLink.title)}
                       </Link>
                     )}
                   </li>
@@ -401,7 +410,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
         key={taskType}
         className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6"
         data-testid={`exception-ai-task-${taskType}`}
-        aria-label={presentation.title}
+        aria-label={translator.translateText(presentation.title)}
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
@@ -414,7 +423,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-semibold text-gray-900">
-                {presentation.title}
+                {translator.translateText(presentation.title)}
               </h3>
               <span
                 className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${AI_TASK_TONE_CLASS_NAMES[state.tone]}`}
@@ -426,11 +435,11 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
                   </span>
                 )}
-                {state.statusLabel}
+                {translator.translateText(state.statusLabel)}
               </span>
             </div>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-              {presentation.description}
+              {translator.translateText(presentation.description)}
             </p>
 
             {task && (
@@ -449,7 +458,10 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
                       state.tone === "danger" ? "text-red-600" : "text-gray-500"
                     } ${state.message ? "mt-1" : ""}`}
                   >
-                    Latest task started {startedAgo}
+                    {translator.translateTemplate(
+                      "Latest task started {{time}}",
+                      { time: startedAgo },
+                    )}
                   </p>
                 )}
               </div>
@@ -529,8 +541,18 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
 
       {pendingStart && (
         <ConfirmModal
-          title={`Confirm ${pendingStart.label}`}
-          description={`${AI_TASK_PRESENTATION[pendingStart.taskType].description}\n\nAre you sure you want to ${pendingStart.label}?`}
+          title={translator.translateTemplate("Confirm {{action}}", {
+            action: translatableTerm(pendingStart.label),
+          })}
+          description={translator.translateTemplate(
+            "{{description}}\n\nAre you sure you want to {{action}}?",
+            {
+              description: translator.translateText(
+                AI_TASK_PRESENTATION[pendingStart.taskType].description,
+              ) as string,
+              action: translatableTerm(pendingStart.label),
+            },
+          )}
           submitButtonText={pendingStart.label}
           onSubmit={() => {
             const taskType: ExceptionAITaskType = pendingStart.taskType;

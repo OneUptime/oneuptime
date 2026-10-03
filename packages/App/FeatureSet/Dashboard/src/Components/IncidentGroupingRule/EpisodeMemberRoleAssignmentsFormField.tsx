@@ -24,6 +24,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUser from "../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { EpisodeMemberRoleAssignment } from "Common/Models/DatabaseModels/IncidentGroupingRule";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface EpisodeMemberRoleAssignmentsFormFieldProps {
   onChange?: ((value: Array<EpisodeMemberRoleAssignment>) => void) | undefined;
@@ -43,6 +45,7 @@ interface RoleData {
 const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   EpisodeMemberRoleAssignmentsFormFieldProps
 > = (props: EpisodeMemberRoleAssignmentsFormFieldProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [roles, setRoles] = useState<Array<RoleData>>([]);
@@ -202,8 +205,9 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
   if (roles.length === 0) {
     return (
       <p className="text-gray-500">
-        No incident roles defined. Go to Incidents {">"} Settings {">"} Roles to
-        create roles first.
+        {translator.translateText(
+          "No incident roles defined. Go to Incidents > Settings > Roles to create roles first.",
+        )}
       </p>
     );
   }
@@ -231,12 +235,12 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
                 />
                 {role.isPrimaryRole && (
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
-                    Primary
+                    {translator.translateText("Primary")}
                   </span>
                 )}
                 {role.canAssignMultipleUsers && (
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                    Multiple
+                    {translator.translateText("Multiple")}
                   </span>
                 )}
               </div>
@@ -255,7 +259,10 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
                       key={userId}
                       className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm"
                     >
-                      <span>{userOption?.label || "Unknown User"}</span>
+                      <span>
+                        {userOption?.label ||
+                          translator.translateText("Unknown User")}
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -276,7 +283,10 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <Dropdown
-                    placeholder={`Select user for ${role.name}`}
+                    placeholder={translator.translateTemplate(
+                      "Select user for {{role}}",
+                      { role: role.name },
+                    )}
                     options={userOptions.filter((opt: DropdownOption) => {
                       // Filter out already selected users for this role
                       return !selectedUsers.includes(opt.value as string);
@@ -296,7 +306,9 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
 
             {!canAddMore && (
               <p className="text-xs text-gray-500">
-                Only one user can be assigned to this role.
+                {translator.translateText(
+                  "Only one user can be assigned to this role.",
+                )}
               </p>
             )}
           </div>

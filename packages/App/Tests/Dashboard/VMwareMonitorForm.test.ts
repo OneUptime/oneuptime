@@ -395,7 +395,7 @@ describe("VMwareMetricPicker", () => {
 
   test("shows the receiver's unit next to the metric name", () => {
     expect(metricPickerSource).toContain(
-      'label: `${m.friendlyName}${m.unit ? ` (${m.unit})` : ""}`,',
+      'label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,',
     );
     expect(metricPickerSource).toContain("selectedMetric.metricName");
   });

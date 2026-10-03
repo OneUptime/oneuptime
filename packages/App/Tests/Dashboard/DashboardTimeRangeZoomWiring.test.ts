@@ -106,7 +106,9 @@ describe("dashboard-wide time range zoom wiring", () => {
     expect(toolbar).toContain(
       "props.isTimeRangeZoomed && props.onResetTimeRangeZoom &&",
     );
-    expect(toolbar).toContain('aria-label="Reset zoom"');
+    expect(toolbar).toContain(
+      'aria-label={translator.translateText("Reset zoom")}',
+    );
   });
 
   test("entering edit mode drops the zoom rather than stranding the board", () => {

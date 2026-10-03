@@ -45,6 +45,8 @@ import {
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloListComponent;
@@ -138,6 +140,7 @@ const isNarrowedByVariable: IsNarrowedByVariableFunction = (
 const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [slos, setSlos] = useState<Array<ServiceLevelObjective>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -288,13 +291,19 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                 style={{ backgroundColor: entry.color.toString() }}
               ></span>
               <span className="font-semibold text-gray-700">{entry.count}</span>
-              <span>{entry.label}</span>
+              <span>{translator.translateText(entry.label)}</span>
             </span>
           );
         })}
         {isCapped ? (
           <span className="text-gray-400">
-            Showing the {maxRows} most urgent
+            {translator.translatePlural(
+              {
+                one: "Showing the {{count}} most urgent",
+                other: "Showing the {{count}} most urgent",
+              },
+              maxRows,
+            )}
           </span>
         ) : (
           <></>
@@ -305,7 +314,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const honeycombTiles: Array<HoneycombTile> = slos.map(
     (slo: ServiceLevelObjective): HoneycombTile => {
       const sloId: string = slo._id?.toString() || "";
-      const name: string = slo.name || "Unnamed SLO";
+      const name: string =
+        slo.name || (translator.translateText("Unnamed SLO") as string);
       const display: SloListRowDisplay = getSloListRowDisplay(slo);
 
       return {
@@ -328,7 +338,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const rows: Array<ReactElement> = slos.map(
     (slo: ServiceLevelObjective): ReactElement => {
       const sloId: string = slo._id?.toString() || "";
-      const name: string = slo.name || "Unnamed SLO";
+      const name: string =
+        slo.name || (translator.translateText("Unnamed SLO") as string);
       const display: SloListRowDisplay = getSloListRowDisplay(slo);
       const route: Route | undefined = getSloRoute(sloId);
       const statusColor: string = display.statusColor.toString();
@@ -377,7 +388,10 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               <div
                 className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden"
                 role="progressbar"
-                aria-label={`Error budget remaining for ${name}`}
+                aria-label={translator.translateTemplate(
+                  "Error budget remaining for {{name}}",
+                  { name: name },
+                )}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={
