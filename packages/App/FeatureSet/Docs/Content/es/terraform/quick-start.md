@@ -14,9 +14,9 @@ The provider authenticates with a **project-scoped API key**. In the OneUptime d
 1. Select your project.
 2. Go to **Ajustes del proyecto** > **Claves API**.
 3. Click **Create API Key**.
-4. Give it a name (for example `terraform`) and an expiry.
-5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
-6. Copy the generated key.
+4. Give it a name (for example `terraform`) and, under **Access**, pick **Project Admin**. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page — and Project Admin covers them. For a narrower key, pick **Choose permissions later** and add only the roles or permissions you need on the key's page.
+5. Create the key. It expires a year from today; to pick another date, open **Advanced** before you create it, or edit the key later.
+6. The key's page opens: copy the generated key.
 
 > **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 

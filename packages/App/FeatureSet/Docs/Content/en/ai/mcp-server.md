@@ -86,8 +86,9 @@ Use an API key for an agent that runs unattended - a scheduled job or a CI pipel
 2. Navigate to **Project Settings** → **API Keys**
 3. Click **Create API Key**
 4. Provide a name (e.g., "MCP Server")
-5. Select the appropriate permissions for your use case
-6. Copy the generated API key
+5. Under **Access**, pick **Viewer** for an agent that only reads, or **Project Admin** for one that also creates, updates and deletes (see [API Key Permissions](#api-key-permissions))
+6. Click **Create API Key**: the key's page opens
+7. Copy the API key
 
 API keys are project-scoped: the MCP server infers your project from the key, so create tools never need a `projectId` argument.
 
@@ -492,11 +493,11 @@ These queries work without authentication, using only the public status page too
 
 ### Read-Only Access
 
-For viewing data only, add read permissions for your API key.
+For viewing data only, pick **Viewer** under **Access** when you create the key, or add read permissions to it on its page.
 
 ### Full Access
 
-For full access to create, update, and delete resources, ensure your API key has Project Admin permissions.
+For full access to create, update, and delete resources, pick **Project Admin** under **Access** when you create the key, or add the Project Admin role to it on its page.
 
 ### Best Practices
 

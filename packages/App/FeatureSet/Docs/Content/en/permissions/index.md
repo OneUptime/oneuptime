@@ -34,6 +34,7 @@ A user account is global to the OneUptime instance — the same login works acro
 A user is "in" a project when they are a member of **at least one team** in it. There is no separate "add user to project" step: inviting somebody to a project invites them to a team.
 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
+- **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team.
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. Things assigned to them by name, such as incident roles and resource ownership, stay assigned until you reassign them.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
@@ -140,6 +141,19 @@ API keys are granted permissions directly, on the key itself — they do not bel
 - Keys support **block permissions** and **label restrictions**, the same way teams do.
 - Keys do **not** support the Owned scope. Ownership resolves against a user, and a key is not a user, so grant keys the access they need explicitly.
 
+**Creating a key** asks for a name and its **Access**:
+
+| Access | What the key can do |
+| --- | --- |
+| Project Admin | Create, change and delete anything in the project, its settings included. Not billing, and not deleting the project. |
+| Project Member | Create, change and delete monitors, incidents, status pages and the project's other resources, as a project member can. |
+| Viewer | Read everything in the project, and change nothing. |
+| Choose permissions later | Nothing yet. Picked to start with. |
+
+The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked. The description and the expiry date are under **Advanced**; a key expires a year from the day it is created unless you pick another date. The new key opens on its page, where you copy it.
+
+On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **Advanced** at the bottom of the page, which says **Configured** while the key has any.
+
 Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.
 
 Where to find it: **Settings → API Keys**. See also the [API Reference](/docs/api-reference/api-reference).
@@ -167,7 +181,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** for the sensitive capabilities, restricted to the `Production` label.
 
-**A CI pipeline that only reports deployments.** Create an API key with just the granular permissions it needs — no roles.
+**A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 
 **Someone who should not see billing.** Do not add them to the Owners team. `ProjectAdmin` already excludes billing.
 
