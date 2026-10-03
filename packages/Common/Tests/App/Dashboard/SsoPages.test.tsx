@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -116,6 +117,36 @@ const mockProviderRow: { _id: string } = {
   _id: "33333333-3333-4333-8333-333333333333",
 };
 
+/*
+ * The team a project's new OIDC provider starts on (Utils/DefaultInviteTeam,
+ * looked up when Settings > OIDC opens). Stubbed so the pages make no
+ * request at all here; its own suite tests the lookup.
+ */
+const mockDefaultInviteTeam: {
+  team: { id: string; name: string } | null;
+  lookups: number;
+} = { team: null, lookups: 0 };
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Utils/DefaultInviteTeam",
+    ) as Record<string, unknown>;
+
+    return {
+      ...actual,
+      findDefaultInviteTeam: async (): Promise<{
+        id: string;
+        name: string;
+      } | null> => {
+        mockDefaultInviteTeam.lookups++;
+        return mockDefaultInviteTeam.team;
+      },
+    };
+  },
+);
+
 interface MockActionButton {
   title: string;
   isVisible?: ((item: unknown) => boolean | undefined) | undefined;
@@ -135,6 +166,20 @@ interface MockCreatedItem {
   projectId?: { toString: () => string } | undefined;
 }
 
+type MockOnCreateSuccess = (
+  item: Record<string, unknown>,
+  modalType?: number,
+) => Promise<unknown>;
+
+/*
+ * What the real table hands onCreateSuccess as the dialog that was saved:
+ * ModalType.Create and ModalType.Edit (pinned against the enum below).
+ */
+const mockModalTypes: { create: number; edit: number } = {
+  create: 0,
+  edit: 1,
+};
+
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   const react: typeof React = jest.requireActual("react") as typeof React;
 
@@ -147,7 +192,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     refreshToggle?: string | undefined;
     actionButtons?: Array<MockActionButton>;
     formFields?: Array<MockFormField>;
+    formSteps?: Array<{ id: string; title: string }>;
     onBeforeCreate?: ((item: unknown) => Promise<unknown>) | undefined;
+    createInitialValues?: Record<string, unknown> | undefined;
+    onCreateSuccess?: MockOnCreateSuccess | undefined;
   }) => ReactElement = (props: {
     id: string;
     modelType: { new (): unknown };
@@ -157,7 +205,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     refreshToggle?: string | undefined;
     actionButtons?: Array<MockActionButton>;
     formFields?: Array<MockFormField>;
+    formSteps?: Array<{ id: string; title: string }>;
     onBeforeCreate?: ((item: unknown) => Promise<unknown>) | undefined;
+    createInitialValues?: Record<string, unknown> | undefined;
+    onCreateSuccess?: MockOnCreateSuccess | undefined;
   }): ReactElement => {
     const [created, setCreated] = react.useState<string>("");
 
@@ -184,6 +235,14 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
             return Object.keys(formField.field || {}).join(",");
           })
           .join("|")}
+        data-form-steps={(props.formSteps || [])
+          .map((step: { id: string; title: string }) => {
+            return `${step.id}: ${step.title}`;
+          })
+          .join("|")}
+        data-create-initial-values={JSON.stringify(
+          props.createInitialValues || null,
+        )}
       >
         {visibleActions.map((button: MockActionButton) => {
           return (
@@ -220,6 +279,37 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           <></>
         )}
         <div data-testid={`created-${props.id}`}>{created}</div>
+        {props.onCreateSuccess ? (
+          <>
+            {[true, false].map((isEnabled: boolean) => {
+              return (
+                <button
+                  key={String(isEnabled)}
+                  type="button"
+                  data-testid={`saved-${props.id}-${isEnabled ? "on" : "off"}`}
+                  onClick={async () => {
+                    await props.onCreateSuccess!(
+                      { _id: mockProviderRow._id, isEnabled },
+                      mockModalTypes.create,
+                    );
+                  }}
+                />
+              );
+            })}
+            <button
+              type="button"
+              data-testid={`edited-${props.id}`}
+              onClick={async () => {
+                await props.onCreateSuccess!(
+                  { _id: mockProviderRow._id, isEnabled: false },
+                  mockModalTypes.edit,
+                );
+              }}
+            />
+          </>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -284,6 +374,7 @@ import Route from "../../../Types/API/Route";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
+import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
@@ -371,18 +462,19 @@ const PAGE_CASES: Array<PageCase> = [
     ],
     testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/oidc`,
     forceSsoCard: null,
+    // What the identity provider gives, then how people sign in.
     formFields: [
       "name",
-      "description",
-      "discoveryURL",
       "issuerURL",
       "clientId",
       "clientSecret",
+      "teams",
+      "isEnabled",
+      "discoveryURL",
       "scopes",
       "emailClaimName",
       "nameClaimName",
-      "isEnabled",
-      "teams",
+      "description",
     ],
     attachesToStatusPage: false,
     upsellTitle: "OpenID Connect (OIDC)",
@@ -437,15 +529,15 @@ const PAGE_CASES: Array<PageCase> = [
     forceSsoCard: null,
     formFields: [
       "name",
-      "description",
-      "discoveryURL",
       "issuerURL",
       "clientId",
       "clientSecret",
+      "isEnabled",
+      "discoveryURL",
       "scopes",
       "emailClaimName",
       "nameClaimName",
-      "isEnabled",
+      "description",
     ],
     attachesToStatusPage: true,
     upsellTitle: "Status Page OIDC",
@@ -605,6 +697,8 @@ beforeEach(() => {
   currentPlanForTest = null;
   currentPlanThrows = false;
   licenseAnswer = null;
+  mockDefaultInviteTeam.team = null;
+  mockDefaultInviteTeam.lookups = 0;
   clearPlugins();
 
   getJestSpyOn(ProjectUtil, "getCurrentPlan").mockImplementation(
@@ -830,4 +924,180 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
       expectConfigurationScreen(pageCase);
     },
   );
+});
+
+/*
+ * Adding an OIDC provider asks for what the identity provider gives - name,
+ * issuer, client ID and secret - on a Provider step, and keeps the rest on a
+ * Sign-in step, filled in (Common/UI/Components/Sso/OidcProviderFormFields;
+ * its own tests pin the fields). Once a provider is saved, the dialog with
+ * the redirect URI to give the identity provider opens straight away, and
+ * says the provider is off until it is turned on. A project's provider
+ * starts on the team the project's members join.
+ */
+const OIDC_PAGE_CASES: Array<PageCase> = PAGE_CASES.filter(
+  (pageCase: PageCase): boolean => {
+    return pageCase.viewAction === "View OIDC Config";
+  },
+);
+
+const TURN_ON_NOTE: string =
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.";
+
+const MEMBERS_TEAM_ID: string = "44444444-4444-4444-8444-444444444444";
+
+test("the stand-in table saves dialogs the way the real one names them", () => {
+  expect(mockModalTypes).toEqual({
+    create: ModalType.Create,
+    edit: ModalType.Edit,
+  });
+});
+
+describe.each(OIDC_PAGE_CASES)("$name: adding a provider", (pageCase: PageCase) => {
+  test("walks Provider, then Sign-in", () => {
+    renderPage(pageCase);
+
+    expect(providerTable(pageCase)).toHaveAttribute(
+      "data-form-steps",
+      "provider: Provider|sign-in: Sign-in",
+    );
+  });
+
+  test("opens the redirect URI to give the identity provider as soon as one is saved, and says it is off", async () => {
+    renderPage(pageCase);
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-off`));
+    });
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      pageCase.modalTitle,
+    );
+
+    for (const printed of pageCase.printed) {
+      expect(
+        within(modal).getByText(printed, { exact: true }),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      within(modal).getByTestId("oidc-config-turn-on-note"),
+    ).toHaveTextContent(TURN_ON_NOTE);
+
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("a provider saved switched on has nothing left to turn on", async () => {
+    renderPage(pageCase);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-on`));
+    });
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(modal).getByText(pageCase.printed[0]!)).toBeInTheDocument();
+    expect(
+      within(modal).queryByTestId("oidc-config-turn-on-note"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("saving an edit opens nothing", async () => {
+    renderPage(pageCase);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`edited-${pageCase.table}`));
+    });
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("the dialog opened from a row that is off says so too", () => {
+    renderPage(pageCase);
+
+    fireEvent.click(screen.getByRole("button", { name: pageCase.viewAction }));
+
+    expect(
+      within(screen.getByTestId("modal")).getByTestId(
+        "oidc-config-turn-on-note",
+      ),
+    ).toHaveTextContent(TURN_ON_NOTE);
+  });
+});
+
+describe("a project's new OIDC provider starts on the members team", () => {
+  const SETTINGS_OIDC: PageCase = OIDC_PAGE_CASES.find(
+    (pageCase: PageCase): boolean => {
+      return pageCase.name === "Settings > OIDC";
+    },
+  )!;
+  const STATUS_PAGE_OIDC: PageCase = OIDC_PAGE_CASES.find(
+    (pageCase: PageCase): boolean => {
+      return pageCase.name === "Status page > OIDC";
+    },
+  )!;
+
+  test("looked up once as the page opens, and handed to the Create form", async () => {
+    mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
+
+    renderPage(SETTINGS_OIDC);
+
+    await waitFor(() => {
+      expect(providerTable(SETTINGS_OIDC)).toHaveAttribute(
+        "data-create-initial-values",
+        JSON.stringify({ teams: [MEMBERS_TEAM_ID] }),
+      );
+    });
+
+    expect(mockDefaultInviteTeam.lookups).toBe(1);
+  });
+
+  test("with nothing picked when the project has no team to start on", async () => {
+    renderPage(SETTINGS_OIDC);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockDefaultInviteTeam.lookups).toBe(1);
+    expect(providerTable(SETTINGS_OIDC)).toHaveAttribute(
+      "data-create-initial-values",
+      "null",
+    );
+  });
+
+  test("a status page's provider has no teams, so nothing is looked up", async () => {
+    mockDefaultInviteTeam.team = { id: MEMBERS_TEAM_ID, name: "Members" };
+
+    renderPage(STATUS_PAGE_OIDC);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockDefaultInviteTeam.lookups).toBe(0);
+    expect(providerTable(STATUS_PAGE_OIDC)).toHaveAttribute(
+      "data-create-initial-values",
+      "null",
+    );
+  });
+
+  test("behind the plan upsell, nothing is looked up", async () => {
+    pinCloud(PlanType.Growth);
+
+    renderPage(SETTINGS_OIDC);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expectPlanUpsell(SETTINGS_OIDC);
+    expect(mockDefaultInviteTeam.lookups).toBe(0);
+  });
 });
