@@ -460,6 +460,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/on-call/schedule-timeline",
       },
       {
+        title: "Escalation Rules",
+        url: "/docs/on-call/escalation-rules",
+      },
+      {
         title: "Calendar Feeds",
         url: "/docs/on-call/calendar-feeds",
       },
