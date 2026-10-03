@@ -24,14 +24,16 @@ import {
   DisplaySettingColumn,
   DisplaySwitchColumn,
 } from "./StatusPageDisplaySettingsCopy";
+import { BrandingSwitchColumn } from "./StatusPageBrandingCopy";
 
 /*
  * One switch for one of a status page's boolean columns, that saves the
  * moment it is flipped - there is nothing else to fill in, so there is no
  * Edit button and no dialog. The same row is the Channels card's on
  * Subscriber Settings and the panel's at the top of a channel's subscriber
- * list, so a channel reads and behaves the same in both places, and every
- * switch on the "What your status page shows" card on Advanced Settings.
+ * list, so a channel reads and behaves the same in both places, every
+ * switch on the "What your status page shows" card on Advanced Settings,
+ * and Search Engine Indexing on the Branding page.
  *
  * The switch moves at once and is locked while the change is saved; a change
  * the server refuses moves it back and says why under it (a plan that does
@@ -45,7 +47,8 @@ import {
 // The status page columns a switch row can write.
 export type StatusPageSwitchColumn =
   | SubscriptionSwitchColumn
-  | DisplaySwitchColumn;
+  | DisplaySwitchColumn
+  | BrandingSwitchColumn;
 
 export interface ComponentProps {
   statusPageId: ObjectID;
@@ -92,9 +95,9 @@ export const getSubscriptionSwitchTestId: (
  * the plan anyway - has the last word.
  */
 export const getPlanNeededToChange: (
-  column: SubscriptionSwitchColumn | DisplaySettingColumn,
+  column: StatusPageSwitchColumn | DisplaySettingColumn,
 ) => PlanType | null = (
-  column: SubscriptionSwitchColumn | DisplaySettingColumn,
+  column: StatusPageSwitchColumn | DisplaySettingColumn,
 ): PlanType | null => {
   const currentPlan: PlanType | null = ProjectUtil.getCurrentPlan();
 

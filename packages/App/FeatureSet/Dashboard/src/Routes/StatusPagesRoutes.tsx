@@ -24,9 +24,6 @@ import StatusPagesViewResources from "../Pages/StatusPages/View/Resources";
 import StatusPagesViewAnnouncement from "../Pages/StatusPages/View/Announcements";
 import StatusPagesArchived from "../Pages/StatusPages/Archived";
 import StatusPagesViewCustomHtmlCss from "../Pages/StatusPages/View/CustomHtmlCss";
-import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
-import StatusPagesViewFooterStyle from "../Pages/StatusPages/View/FooterStyle";
-import StatusPagesViewNavBarStyle from "../Pages/StatusPages/View/NavBarStyle";
 import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
 import StatusPagesViewMonitorRules from "../Pages/StatusPages/View/MonitorRules";
 import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
@@ -43,10 +40,6 @@ import StatusPageViewReports from "../Pages/StatusPages/View/Reports";
 import StatusPageViewSettings from "../Pages/StatusPages/View/StatusPageSettings";
 
 import StatusPageViewMcp from "../Pages/StatusPages/View/Mcp";
-
-import StatusPageViewLanguages from "../Pages/StatusPages/View/Languages";
-
-import StatusPagesViewOverviewPageBranding from "../Pages/StatusPages/View/OverviewPageBranding";
 
 import StatusPageAnnouncements from "../Pages/StatusPages/Announcements";
 
@@ -94,6 +87,24 @@ import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
  */
 export const MOVED_STATUS_PAGE_ADVANCED_OPTIONS_PATH: string =
   "advanced-options";
+
+/*
+ * Where a status page's branding screens used to be, relative to the page's
+ * own URL: Header, Footer, Overview Page and Languages, four of the five
+ * screens the Branding section was split into, and navbar-style, an empty
+ * page no menu linked to. What they held is on the one Branding page now
+ * (the overall uptime % and the statuses that count as downtime, which were
+ * on Overview Page, are on Advanced Settings). Nothing in the RouteMap
+ * points here any more; the URLs are kept only so a bookmark or a link in a
+ * wiki still arrives somewhere.
+ */
+export const MOVED_STATUS_PAGE_BRANDING_PATHS: ReadonlyArray<string> = [
+  "header-style",
+  "footer-style",
+  "overview-page-branding",
+  "languages",
+  "navbar-style",
+];
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -423,6 +434,20 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
+        {MOVED_STATUS_PAGE_BRANDING_PATHS.map((path: string): ReactElement => {
+          return (
+            <PageRoute
+              key={path}
+              path={path}
+              element={
+                <MovedPageRedirect
+                  pageMap={PageMap.STATUS_PAGE_VIEW_BRANDING}
+                />
+              }
+            />
+          );
+        })}
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS,
@@ -559,16 +584,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_LANGUAGES)}
-          element={
-            <StatusPageViewLanguages
-              {...props}
-              pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_LANGUAGES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS,
           )}
@@ -591,64 +606,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_HEADER_STYLE,
-          )}
-          element={
-            <StatusPagesViewHeaderStyle
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE,
-          )}
-          element={
-            <StatusPagesViewFooterStyle
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING,
-          )}
-          element={
-            <StatusPagesViewOverviewPageBranding
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING
-                ] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE,
-          )}
-          element={
-            <StatusPagesViewNavBarStyle
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route
               }
             />
           }

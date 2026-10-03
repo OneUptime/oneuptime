@@ -2701,12 +2701,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/branding",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Essential Branding",
-    ],
+    titles: ["Project", "Status Pages", "View Status Page", "Branding"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
@@ -2750,33 +2745,13 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/footer-style",
-    titles: ["Project", "Status Pages", "View Status Page", "Footer"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/groups",
     titles: ["Project", "Status Pages", "View Status Page", "Resource Groups"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/header-style",
-    titles: ["Project", "Status Pages", "View Status Page", "Header"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/languages",
-    titles: ["Project", "Status Pages", "View Status Page", "Languages"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/mcp",
     titles: ["Project", "Status Pages", "View Status Page", "MCP"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/status-pages/:id/navbar-style",
-    titles: ["Project", "Status Pages", "View Status Page", "Navbar"],
   },
   {
     getter: "getStatusPagesBreadcrumbs",
@@ -2792,17 +2767,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getStatusPagesBreadcrumbs",
     pagePattern: "/dashboard/:projectId/status-pages/:id/oidc",
     titles: ["Project", "Status Pages", "View Status Page", "OIDC"],
-  },
-  {
-    getter: "getStatusPagesBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/status-pages/:id/overview-page-branding",
-    titles: [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "Overview Page Branding",
-    ],
   },
   {
     getter: "getStatusPagesBreadcrumbs",

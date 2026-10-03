@@ -40,7 +40,7 @@ import path from "path";
  * defaults, the plan each needs is the model's own), the number-of-days
  * rule, that no other Dashboard file grows a second home for one of these
  * settings, what Advanced Settings now holds, that the unlinked page is gone
- * with its URL kept as a redirect, the header card's title, and that every
+ * with its URL kept as a redirect, the logo card's title, and that every
  * new string is translated in all seventeen Dashboard locales.
  */
 
@@ -509,13 +509,37 @@ describe("Advanced Settings", () => {
     expect(archive).toBeGreaterThan(exportCard);
   });
 
-  test("has no card with an Edit button or a form left on it", () => {
+  /*
+   * Branding's Overview Page screen held two cards about uptime - the
+   * overall uptime % and which statuses count as downtime - and they moved
+   * here, as they were, when Branding became one page: they are about what
+   * the page shows. They are the only cards with an Edit button here.
+   */
+  test("has no card with an Edit button or a form left on it, but the two about uptime from Branding's Overview Page", () => {
+    expect(source.match(/<CardModelDetail\b/g) || []).toHaveLength(2);
+    expect(source).toContain('name="Status Page > Settings"');
+    expect(source).toContain(
+      'name="Status Page > Branding > Downtime Monitor Statuses"',
+    );
+    expect(source).toContain('title: "Overall Uptime Percent",');
+    expect(source).toContain('title: "Downtime Monitor Statuses",');
+
+    // Between the card and the export.
+    const card: number = source.indexOf(
+      "<StatusPageDisplaySettingsCard statusPageId={modelId} />",
+    );
+    const exportCard: number = source.indexOf("<ExportModelCard");
+
+    for (const name of [
+      'name="Status Page > Settings"',
+      'name="Status Page > Branding > Downtime Monitor Statuses"',
+    ]) {
+      expect(source.indexOf(name)).toBeGreaterThan(card);
+      expect(source.indexOf(name)).toBeLessThan(exportCard);
+    }
+
     for (const leftover of [
-      "CardModelDetail",
-      "editButtonText",
-      "formFields",
       "formSteps",
-      "Edit Settings",
       '"Incident Settings"',
       '"Episode Settings"',
       '"Announcement Settings"',
@@ -575,18 +599,28 @@ describe("the unlinked Advanced Options page", () => {
   });
 });
 
-describe("the Header page", () => {
-  test("titles its card for what it holds: the logo and the cover image", () => {
-    const header: string = readView("HeaderStyle.tsx");
+describe("the Branding page", () => {
+  const branding: string = readView("Branding.tsx");
 
-    expect(header).toContain('title: "Logo and Cover Image",');
-    expect(header).not.toContain("Logo, Cover and Favicon");
-    expect(header).not.toMatch(/favicon/i);
+  // The logo card's own source, from its name to the next card.
+  const logoCard: string = branding.slice(
+    branding.indexOf('name="Status Page > Branding > Header Style"'),
+    branding.indexOf(
+      "<CardModelDetail",
+      branding.indexOf('name="Status Page > Branding > Header Style"'),
+    ),
+  );
+
+  test("titles the logo card for what it holds: the logo and the cover image", () => {
+    expect(logoCard).toContain('title: "Logo and Cover Image",');
+    expect(branding).not.toContain("Logo, Cover and Favicon");
+    expect(logoCard).not.toMatch(/favicon/i);
+    // The Header screen it was on is the Branding page now.
+    expect(fs.existsSync(path.join(VIEW_DIR, "HeaderStyle.tsx"))).toBe(false);
   });
 
-  test("the favicon is on Essential Branding", () => {
-    const branding: string = readView("Branding.tsx");
-
+  test("the favicon has a card of its own on it", () => {
+    expect(branding).toContain('name="Status Page > Branding > Favicon"');
     expect(branding).toContain('title: "Favicon",');
     expect(branding).toContain("faviconFile");
   });

@@ -837,11 +837,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS]: `${RouteParams.ModelID}/slack-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS]: `${RouteParams.ModelID}/microsoft-teams-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
-  [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: `${RouteParams.ModelID}/header-style`,
-  [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: `${RouteParams.ModelID}/footer-style`,
-  [PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]: `${RouteParams.ModelID}/overview-page-branding`,
   [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: `${RouteParams.ModelID}/private-users`,
-  [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: `${RouteParams.ModelID}/navbar-style`,
   [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: `${RouteParams.ModelID}/announcements`,
   [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: `${RouteParams.ModelID}/embedded`,
   [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: `${RouteParams.ModelID}/subscriber-settings`,
@@ -854,7 +850,6 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.STATUS_PAGE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.STATUS_PAGE_VIEW_MCP]: `${RouteParams.ModelID}/mcp`,
-  [PageMap.STATUS_PAGE_VIEW_LANGUAGES]: `${RouteParams.ModelID}/languages`,
   [PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
 };
 
@@ -5624,33 +5619,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_OVERVIEW_PAGE_BRANDING]
-    }`,
-  ),
-
   [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]
     }`,
   ),
 
@@ -5717,12 +5688,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGE_VIEW_MCP]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_MCP]
-    }`,
-  ),
-
-  [PageMap.STATUS_PAGE_VIEW_LANGUAGES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/status-pages/${
-      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_LANGUAGES]
     }`,
   ),
 
