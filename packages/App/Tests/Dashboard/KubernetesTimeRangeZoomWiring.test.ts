@@ -488,7 +488,7 @@ describe("resource detail Metrics tabs: the tab's card keeps the zoom", () => {
     );
     expectCode(
       NETWORK_CHART,
-      "onDoubleClick={zoom?.onTimeRangeReset} > No network traffic reported for the selected time range.",
+      'onDoubleClick={zoom?.onTimeRangeReset} > {translator.translateText("No network traffic reported for the selected time range.",)}',
     );
   });
 });

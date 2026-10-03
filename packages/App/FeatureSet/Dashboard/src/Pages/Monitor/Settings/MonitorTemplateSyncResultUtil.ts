@@ -33,7 +33,8 @@ export function buildSyncResultSummary(data: {
         "Synced {{subject}} onto {{count}} monitors ({{total}} linked to this template).",
     },
     synced,
-    { subject: translatableTerm(data.subject), total: total },
+    // The counts as they always read: raw, like {{total}} beside them.
+    { subject: translatableTerm(data.subject), total: total, count: synced },
   );
 
   if (synced >= total) {
@@ -52,6 +53,7 @@ export function buildSyncResultSummary(data: {
         "{{count}} linked monitors still use the previous configuration — usually because your permissions do not cover them. Run the sync again as a user who can update every linked monitor.",
     },
     remaining,
+    { count: remaining },
   );
 
   return {
