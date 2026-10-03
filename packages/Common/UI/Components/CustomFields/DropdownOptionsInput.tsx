@@ -16,6 +16,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   initialValue?: string | undefined;
@@ -32,6 +34,7 @@ interface EditableDropdownOption extends CustomFieldDropdownOption {
 const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const nextIdRef: MutableRefObject<number> = useRef<number>(0);
 
   const createEditableOption: (
@@ -165,13 +168,20 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                   id={`dropdown-option-value-${option.id}-label`}
                   className="sr-only"
                 >
-                  Dropdown option {index + 1}
+                  {translator.translateTemplate("Dropdown option {{number}}", {
+                    number: index + 1,
+                  })}
                 </span>
                 <Input
                   value={option.value}
                   dataTestId={`dropdown-option-value-${index}`}
                   ariaLabelledby={`dropdown-option-value-${option.id}-label`}
-                  placeholder={props.placeholder || `Option ${index + 1}`}
+                  placeholder={
+                    translator.translateText(props.placeholder) ||
+                    translator.translateTemplate("Option {{number}}", {
+                      number: index + 1,
+                    })
+                  }
                   onChange={(newValue: string) => {
                     updateAt(option.id, { value: newValue });
                   }}
@@ -188,7 +198,16 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                   id={`dropdown-option-color-${option.id}-label`}
                   className="sr-only"
                 >
-                  Color for {option.value || `option ${index + 1}`}
+                  {option.value
+                    ? translator.translateTemplate("Color for {{option}}", {
+                        option: option.value,
+                      })
+                    : translator.translateTemplate(
+                        "Color for option {{number}}",
+                        {
+                          number: index + 1,
+                        },
+                      )}
                 </span>
                 <ColorPicker
                   dataTestId={`dropdown-option-color-${index}`}

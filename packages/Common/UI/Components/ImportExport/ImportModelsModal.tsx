@@ -163,9 +163,19 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
           {result.successCount > 0 ? (
             <Alert
               type={AlertType.SUCCESS}
-              strongTitle={`${result.successCount} ${
-                result.successCount === 1 ? singularName : pluralName
-              } imported successfully.`}
+              strongTitle={translator.translatePlural(
+                {
+                  one: "{{count}} {{itemName}} imported successfully.",
+                  other: "{{count}} {{itemsName}} imported successfully.",
+                },
+                result.successCount,
+                {
+                  itemName: translatableTerm(singularName, {
+                    inSentence: true,
+                  }),
+                  itemsName: translatableTerm(pluralName, { inSentence: true }),
+                },
+              )}
             />
           ) : (
             <></>
@@ -175,9 +185,21 @@ const ImportModelsModal: <TBaseModel extends BaseModel>(
             <div>
               <Alert
                 type={AlertType.DANGER}
-                strongTitle={`${result.failures.length} ${
-                  result.failures.length === 1 ? singularName : pluralName
-                } could not be imported.`}
+                strongTitle={translator.translatePlural(
+                  {
+                    one: "{{count}} {{itemName}} could not be imported.",
+                    other: "{{count}} {{itemsName}} could not be imported.",
+                  },
+                  result.failures.length,
+                  {
+                    itemName: translatableTerm(singularName, {
+                      inSentence: true,
+                    }),
+                    itemsName: translatableTerm(pluralName, {
+                      inSentence: true,
+                    }),
+                  },
+                )}
               />
               <ul className="mt-3 list-disc pl-5 text-sm text-gray-600">
                 {result.failures.map(

@@ -12,7 +12,11 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
-import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translateNamedAction,
+  Translator,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 
@@ -169,9 +173,21 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={
             props.resultDescription ||
-            `Your new ${tableColumnName} is ${newId?.toString() || ""}`
+            translator.translateTemplate(
+              "Your new {{columnName}} is {{value}}",
+              {
+                columnName: translatableTerm(tableColumnName),
+                value: newId?.toString() || "",
+              },
+            )
           }
-          title={props.resultTitle || `New ${tableColumnName}`}
+          title={
+            props.resultTitle ||
+            translateNamedAction(translator, {
+              template: "New {{itemName}}",
+              itemName: tableColumnName,
+            })
+          }
           onSubmit={() => {
             if (props.onUpdateComplete && newId) {
               props.onUpdateComplete(newId);

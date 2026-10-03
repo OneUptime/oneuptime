@@ -664,7 +664,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         onFocus={() => {
           props.onFocus?.();
         }}
-        aria-label={props.ariaLabel}
+        aria-label={tx(props.ariaLabel)}
         aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
         aria-describedby={props.error ? errorId : undefined}
@@ -890,7 +890,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           className="mt-1 text-sm text-red-400"
           role="alert"
         >
-          {props.error}
+          {tx(props.error) ?? props.error}
         </p>
       )}
     </div>
