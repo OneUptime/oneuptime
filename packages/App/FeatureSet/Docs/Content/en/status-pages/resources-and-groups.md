@@ -26,19 +26,19 @@ The card's description changes with the shape of your page. With groups, it read
 
 ## Adding a monitor
 
-Select the group you want the resource to land in (or **Top of page** for an ungrouped row), then click **Add Monitor**. The modal is titled **Add a monitor to {group}** and has two steps: **Monitor Details** and **Advanced**.
-
-On **Monitor Details**:
+Select the group you want the resource to land in (or **Top of page** for an ungrouped row), then click **Add Monitor**. The dialog is titled **Add a monitor to {group}**, and it is one page that asks for one thing — the monitor:
 
 - **Monitor** — the dropdown of monitors in your project, placeholder **Select Monitor**. Required.
-- **Display Name** — required. This is the text visitors read, and it is stored separately from the monitor's own name, so you can rename it here without touching monitoring.
-- **Description** — optional markdown shown under the row. Good for a sentence explaining what the service actually does.
+- **Display Name** — the text visitors read. It fills in with the monitor's name as you pick it, and follows when you pick another monitor, until you type a name of your own. It is stored separately from the monitor's own name, so you can rename it here without touching monitoring.
+- **Advanced** — folded. It holds **Description** (optional markdown shown under the row, good for a sentence explaining what the service actually does) and the [display options](#display-options-on-a-resource). Leave it closed and the resource gets their defaults.
+
+Pick a monitor, click **Add Monitor**, and the row is on the page. In a grid group the dialog also asks for the row and the column the monitor goes in, above **Advanced** — see [List layout vs grid layout](#list-layout-vs-grid-layout).
 
 If your project has monitor groups enabled, a link under the dropdown reads **Add a Monitor Group instead.** — click it and the **Monitor** dropdown is swapped for a **Monitor Group** dropdown (**Select Monitor Group**). The link then flips to **Add a Monitor instead.** so you can go back. Use a monitor group when you want one row on the page to represent several checks rolled together.
 
 ### Adding several at once
 
-**Add Multiple** (also **Add multiple monitors** in the **More actions** menu) opens **Add Multiple Monitors**. It has the same two steps, but the first one is a **Monitors** multi-select instead of a single dropdown, and the display options you choose on **Advanced** apply to every monitor you picked. This is the fastest way to seed a new page.
+**Add Multiple** (also **Add multiple monitors** in the **More actions** menu) opens **Add Multiple Monitors**. It is one page too: a **Monitors** multi-select instead of a single dropdown, then the same folded **Advanced** section, whose display options apply to every monitor you picked. Each resource takes its display name and description from its monitor, and **Add Monitors** adds them — there is nothing to step through. This is the fastest way to seed a new page.
 
 The multi-select also has a **Labels** tab: click a label and every monitor carrying it is selected at once.
 
@@ -52,7 +52,7 @@ The same rule holds everywhere else a resource is created. Adding a monitor that
 
 ## Display options on a resource
 
-The **Advanced** step is the same on the single-add form and the bulk modal. Everything here is per-resource — two rows in the same group can be configured differently.
+The **Advanced** section is the same on the single-add form and the bulk modal. It starts folded on both, and on **Edit resource** too, where its header says **Configured** when something in it is not at its default. Everything here is per-resource — two rows in the same group can be configured differently.
 
 | Field                                                    | Purpose                                                                                            |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -62,7 +62,7 @@ The **Advanced** step is the same on the single-add form and the bulk modal. Eve
 | **Select Uptime Precision** (`uptimePercentPrecision`)   | Only appears once **Show Uptime %** is on. Required, defaults to one decimal.                      |
 | **Show Status History Chart** (`showStatusHistoryChart`) | On by default. Shows the day-by-day uptime history bar chart for the resource.                     |
 
-**Display Name** (`displayName`) and **Description** (`displayDescription`) from the first step are display-only too — they never change the monitor itself.
+**Display Name** (`displayName`) and **Description** (`displayDescription`) are display-only too — they never change the monitor itself.
 
 ## Uptime percentages and history charts
 
@@ -78,19 +78,18 @@ The colors of the history chart bars, and which monitor statuses count as "down"
 
 ## Groups
 
-Click **New Group** to open **Create New Status Page Group**. The form has three steps: **Group Details**, **Layout** and **Advanced**.
-
-**Group Details**:
+Click **New Group** to open **Create New Status Page Group**. It is one page: two fields, then two folded sections.
 
 - **Group Name** (`name`) — required. This is the section heading visitors see.
-- **Group Description** (`description`) — optional markdown, shown under the heading.
-- **Parent Group** (`parentStatusPageGroupId`) — optional. Leave it at **No parent group (top level)** to keep the group at the top level.
-- **Expand on Status Page by Default** (`isExpandedByDefault`) — on by default: whether the section starts open or collapsed for visitors.
+- **Parent Group** (`parentStatusPageGroupId`) — optional. Leave it at **No parent group (top level)** to keep the group at the top level. **Add a sub group** fills it in for you.
+- **Layout** — folded, and its header says **List** or **Grid**. It holds **View Mode** and a grid's axes (see [List layout vs grid layout](#list-layout-vs-grid-layout)), and it opens by itself on a grid group.
+- **Advanced** — folded. It holds the rest, and mirrors the resource options at group level:
+  - **Group Description** (`description`) — optional markdown, shown under the heading.
+  - **Expand on Status Page by Default** (`isExpandedByDefault`) — on by default: whether the section starts open or collapsed for visitors.
+  - **Show Current Group Status** (`showCurrentStatus`) — on by default. Shows a status beside the group heading.
+  - **Show Uptime %** (`showUptimePercent`) — off by default, with **Select Uptime Precision** appearing once it's on.
 
-**Advanced** mirrors the resource toggles at group level:
-
-- **Show Current Group Status** (`showCurrentStatus`) — on by default. Shows a status beside the group heading.
-- **Show Uptime %** (`showUptimePercent`) — off by default, with **Select Uptime Precision** appearing once it's on.
+Most groups need only a name: type it and click **Create Status Page Group**.
 
 Editing works the same way: **Edit Group** in the pane header, or **Edit group** in the navigator's row menu, opens **Edit Status Page Group** with a **Save Changes** button.
 
@@ -110,7 +109,7 @@ Nesting earns its keep on large pages: a hosting provider with regions inside pr
 
 ## List layout vs grid layout
 
-The **Layout** step sets **View Mode** (`viewMode`) for the group, and it changes how the group renders publicly.
+The **Layout** section of the group form sets **View Mode** (`viewMode`) for the group, and it changes how the group renders publicly.
 
 | If you want to…                                                     | Pick                   |
 | ------------------------------------------------------------------- | ---------------------- |
@@ -124,9 +123,9 @@ Choose **Grid** and four more fields appear:
 - **Column Axis Label** — the column dimension, placeholder `Region`.
 - **Column Axis Values** — added with **Add Column** (placeholder `e.g. US-East`).
 
-Each monitor in a grid group is then placed in a cell, so the bulk modal asks for the row and column alongside the monitors, using your own axis labels.
+Each monitor in a grid group is then placed in a cell, so **Add Monitor** and the bulk modal ask for the row and column alongside the monitor, using your own axis labels.
 
-**Set up the axes before you add monitors.** A grid group with no rows or columns shows an amber notice saying there is nowhere to put a monitor until the axes exist, with a **Set up the grid** button — and the **Add Monitor** button is withdrawn until you do it.
+**Set up the axes before you add monitors.** A grid group with no rows or columns shows an amber notice saying there is nowhere to put a monitor until the axes exist, with a **Set up the grid** button that opens the group's form on its **Layout** section — and the **Add Monitor** button is withdrawn until you do it.
 
 ## Ordering what visitors see
 
