@@ -57,7 +57,12 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const testUrl: string = `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/oidc`;
+  /*
+   * The project's sign-in page, which lists its enabled SAML and OIDC
+   * providers (Pages/Onboarding/SSO) - the page SSO enforcement sends people
+   * to. The link used to end in /oidc, a page the Dashboard does not have.
+   */
+  const testUrl: string = `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`;
   const [oidcConfigTarget, setOidcConfigTarget] =
     useState<OidcConfigDialogTarget | null>(null);
   const showOidcConfigId: string = oidcConfigTarget?.id || "";

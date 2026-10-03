@@ -24344,5 +24344,18 @@
   "The headings and questions every postmortem should answer. Apply one on an incident's or an episode's Postmortem page, then fill it in.": "वे शीर्षक और सवाल जिनका जवाब हर पोस्टमॉर्टम को देना चाहिए। किसी घटना या एपिसोड के पोस्टमॉर्टम पेज पर इसे लागू करें, फिर भरें।",
   "The name people pick this template by, and what it is for.": "वह नाम जिससे यह टेम्पलेट चुना जाता है, और यह किस काम का है।",
   "The postmortem's text when this template is applied. It can still be edited before it is saved.": "यह टेम्पलेट लागू करने पर पोस्टमॉर्टम का टेक्स्ट। सहेजने से पहले इसे अब भी संपादित किया जा सकता है।",
-  "all": "सभी"
+  "all": "सभी",
+  "Endpoints are found from the issuer, and sign-in asks for the openid, email and profile scopes.": "एंडपॉइंट जारीकर्ता से खोजे जाते हैं, और साइन-इन openid, email और profile दायरे माँगता है।",
+  "Enter the issuer as a URL that starts with https://.": "जारीकर्ता को https:// से शुरू होने वाले URL के रूप में दर्ज करें।",
+  "People can sign in with this provider only while it is on. Turn it on once your identity provider has the URLs OneUptime shows after you save.": "इस प्रदाता से साइन इन तभी किया जा सकता है जब यह चालू हो। सहेजने के बाद OneUptime जो URL दिखाता है, वे आपके पहचान प्रदाता में जुड़ जाने पर इसे चालू करें।",
+  "People who sign in for the first time join the projects you attach.": "पहली बार साइन इन करने वाले लोग उन प्रोजेक्ट में शामिल होते हैं जिन्हें आप जोड़ते हैं।",
+  "Shown under the name on the sign-in page.": "साइन-इन पेज पर नाम के नीचे दिखाया जाता है।",
+  "Sign-in": "साइन-इन",
+  "The scopes must include openid.": "दायरों में openid शामिल होना चाहिए।",
+  "This provider is off. Once your identity provider has the redirect URI above, edit the provider and turn Enabled on.": "यह प्रदाता बंद है। जब आपके पहचान प्रदाता में ऊपर दिया गया रीडायरेक्ट URI जुड़ जाए, तो प्रदाता को संपादित करें और \"सक्षम\" चालू करें।",
+  "What people see on the sign-in page.": "लोग साइन-इन पेज पर यही देखते हैं।",
+  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.": "चालू होने पर, इस प्रदाता से साइन इन करने से पहले लोगों को किसी प्रोजेक्ट में आमंत्रित होना चाहिए। पहली बार साइन इन करने पर कोई नया व्यक्ति नहीं बनाया जाता।",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.": "चालू होने पर, इस प्रदाता से साइन इन करना केवल इससे जुड़े प्रोजेक्ट में SSO की अनिवार्यता पूरी करता है, इसलिए पहले से साइन इन लोग दूसरे प्रोजेक्ट की पहुँच खो सकते हैं। बंद होने पर, यह उस व्यक्ति के हर प्रोजेक्ट में इसे पूरा करता है, और जुड़े हुए प्रोजेक्ट केवल यह तय करते हैं कि नए लोग कहाँ जोड़े जाएँ।",
+  "Where OneUptime finds the provider's endpoints. It follows the issuer; change it only if your provider publishes its discovery document somewhere else.": "जहाँ OneUptime प्रदाता के एंडपॉइंट खोजता है। यह जारीकर्ता के साथ बदलता है; इसे केवल तभी बदलें जब आपका प्रदाता अपना डिस्कवरी दस्तावेज़ कहीं और प्रकाशित करता हो।",
+  "Your identity provider's issuer, exactly as the provider shows it. Pasting its discovery URL works too.": "आपके पहचान प्रदाता का जारीकर्ता, ठीक वैसा ही जैसा प्रदाता दिखाता है। आप इसका डिस्कवरी URL भी चिपका सकते हैं।"
 }

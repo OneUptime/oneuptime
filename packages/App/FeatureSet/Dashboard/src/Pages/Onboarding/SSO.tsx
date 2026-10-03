@@ -11,20 +11,42 @@ import ModelList from "Common/UI/Components/ModelList/ModelList";
 import Page from "Common/UI/Components/Page/Page";
 import { APP_API_URL, IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * Where a user lands when a project requires single sign-on, and what the
+ * Settings > SSO and Settings > OIDC test links open: the project's enabled
+ * providers, SAML (/project-sso/:projectId/sso-list) and OpenID Connect
+ * (/project-oidc/:projectId/oidc-list) alike. Picking one starts its sign-in.
+ *
+ * It listed SAML providers only, so a project that signs in with OIDC was
+ * told it had no provider at all, and the OIDC test link had nowhere to go.
+ */
 const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   /*
-   * Set once the provider list has loaded empty, which happens when the
-   * project has no enabled SSO provider. The user is then told why and
-   * offered a way back to sign-in instead of a dead end.
+   * How many providers of each kind loaded; null until they have. When both
+   * are none - the project has no enabled provider - the user is told why
+   * and offered a way back to sign-in instead of a dead end.
    */
-  const [hasNoProviders, setHasNoProviders] = useState<boolean>(false);
+  const [samlProviderCount, setSamlProviderCount] = useState<number | null>(
+    null,
+  );
+  const [oidcProviderCount, setOidcProviderCount] = useState<number | null>(
+    null,
+  );
+  const hasNoProviders: boolean =
+    samlProviderCount === 0 && oidcProviderCount === 0;
+
+  const startSignIn: (path: string) => void = (path: string): void => {
+    setIsLoading(true);
+    Navigation.navigate(URL.fromURL(IDENTITY_URL).addRoute(new Route(path)));
+  };
 
   return (
     <Page title={""} breadcrumbLinks={[]}>
@@ -53,20 +75,45 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       _id: true,
                     }}
                     noItemsMessage="No SSO Providers Configured or Enabled"
+                    hideEmptyState={true}
                     onListLoaded={(list: Array<ProjectSSO>) => {
-                      setHasNoProviders(list.length === 0);
+                      setSamlProviderCount(list.length);
                     }}
                     onSelectChange={(list: Array<ProjectSSO>) => {
                       if (list && list.length > 0) {
-                        setIsLoading(true);
-                        Navigation.navigate(
-                          URL.fromURL(IDENTITY_URL).addRoute(
-                            new Route(
-                              `/sso/${ProjectUtil.getCurrentProjectId()}/${
-                                list[0]?._id
-                              }`,
-                            ),
-                          ),
+                        startSignIn(
+                          `/sso/${ProjectUtil.getCurrentProjectId()}/${
+                            list[0]?._id
+                          }`,
+                        );
+                      }
+                    }}
+                  />
+                  <ModelList<ProjectOIDC>
+                    id="oidc-list"
+                    overrideFetchApiUrl={URL.fromString(APP_API_URL.toString())
+                      .addRoute("/project-oidc")
+                      .addRoute(`/${ProjectUtil.getCurrentProjectId()}`)
+                      .addRoute("/oidc-list")}
+                    modelType={ProjectOIDC}
+                    titleField="name"
+                    descriptionField="description"
+                    select={{
+                      name: true,
+                      description: true,
+                      _id: true,
+                    }}
+                    noItemsMessage="No SSO Providers Configured or Enabled"
+                    hideEmptyState={true}
+                    onListLoaded={(list: Array<ProjectOIDC>) => {
+                      setOidcProviderCount(list.length);
+                    }}
+                    onSelectChange={(list: Array<ProjectOIDC>) => {
+                      if (list && list.length > 0) {
+                        startSignIn(
+                          `/oidc/${ProjectUtil.getCurrentProjectId()}/${
+                            list[0]?._id
+                          }`,
                         );
                       }
                     }}

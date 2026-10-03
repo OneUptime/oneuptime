@@ -104,12 +104,10 @@ async function runOnBeforeCreate(
   serviceCase: ServiceCase,
   provider: BaseModel,
 ): Promise<ProviderValues> {
-  const result: OnCreate<BaseModel> = await serviceCase.service.onBeforeCreate(
-    {
-      data: provider,
-      props: { isRoot: true },
-    },
-  );
+  const result: OnCreate<BaseModel> = await serviceCase.service.onBeforeCreate({
+    data: provider,
+    props: { isRoot: true },
+  });
 
   return result.createBy.data as unknown as ProviderValues;
 }

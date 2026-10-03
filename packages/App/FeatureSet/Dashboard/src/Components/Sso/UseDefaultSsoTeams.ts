@@ -39,9 +39,9 @@ export const getDefaultSsoTeamsInitialValues: GetDefaultSsoTeamsInitialValuesFun
     return { teams: [team.id] } as unknown as FormValues<TEntity>;
   };
 
-export type UseDefaultSsoTeamsInitialValuesFunction = <
-  TEntity,
->() => FormValues<TEntity> | undefined;
+export type UseDefaultSsoTeamsInitialValuesFunction = <TEntity>() =>
+  | FormValues<TEntity>
+  | undefined;
 
 // For a provider table's createInitialValues.
 export const useDefaultSsoTeamsInitialValues: UseDefaultSsoTeamsInitialValuesFunction =

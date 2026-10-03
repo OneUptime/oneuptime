@@ -540,7 +540,10 @@ const stepsOf: (steps: unknown) => Array<string> = (
  * provider gives on Provider; Enabled, then everything with an answer folded
  * under Advanced, on Sign-in.
  */
-const OIDC_FORM_STEPS: Array<string> = ["provider: Provider", "sign-in: Sign-in"];
+const OIDC_FORM_STEPS: Array<string> = [
+  "provider: Provider",
+  "sign-in: Sign-in",
+];
 
 const GLOBAL_OIDC_FORM_FIELDS: Array<string> = [
   "name",

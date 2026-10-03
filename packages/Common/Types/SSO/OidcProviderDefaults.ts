@@ -207,7 +207,8 @@ export const includesRequiredOidcScope: (
  * A provider about to be created: the columns every OIDC provider has that
  * are filled in here. ProjectOIDC, StatusPageOIDC and GlobalOIDC all fit it.
  */
-export interface OidcProviderDefaultFields extends SsoProviderDescriptionFields {
+export interface OidcProviderDefaultFields
+  extends SsoProviderDescriptionFields {
   issuerURL?: string | undefined;
   discoveryURL?: URL | undefined;
   scopes?: string | undefined;

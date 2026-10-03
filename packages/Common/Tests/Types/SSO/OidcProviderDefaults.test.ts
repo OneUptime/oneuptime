@@ -149,12 +149,18 @@ describe("splitOidcDiscoveryUrl", () => {
   test.each([
     ["an issuer", "https://accounts.google.com"],
     ["an issuer ending in a slash", "https://acme.us.auth0.com/"],
-    ["the path with nothing in front of it", "/.well-known/openid-configuration"],
+    [
+      "the path with nothing in front of it",
+      "/.well-known/openid-configuration",
+    ],
     [
       "a URL that only mentions the path",
       "https://example.com/.well-known/openid-configuration/extra",
     ],
-    ["another well-known document", "https://example.com/.well-known/jwks.json"],
+    [
+      "another well-known document",
+      "https://example.com/.well-known/jwks.json",
+    ],
     ["nothing", ""],
   ])("is null for %s", (_label: string, value: string) => {
     expect(splitOidcDiscoveryUrl(value)).toBeNull();
@@ -396,7 +402,8 @@ describe("fillOidcProviderDefaults: a provider created with only what the identi
   test("splits a discovery URL sent as the issuer into the issuer and its discovery URL", () => {
     const provider: OidcProviderDefaultFields = {
       name: "Google",
-      issuerURL: " https://accounts.google.com/.well-known/openid-configuration ",
+      issuerURL:
+        " https://accounts.google.com/.well-known/openid-configuration ",
     };
 
     fillOidcProviderDefaults(provider);

@@ -289,6 +289,17 @@ MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
    - **Public Certificate** (گواهی امضای X.509)
 4. مقدار **Signature Algorithm** را روی `RSA-SHA-256` و **Digest Algorithm** را روی `SHA256` بگذارید
 
+## OpenID Connect (OIDC)
+
+یک پروژه می‌تواند از طریق یک ارائه‌دهنده OpenID Connect هم وارد شود، مانند Google Workspace، Okta، Microsoft Entra ID، Auth0 یا Keycloak.
+
+1. یک برنامه (کلاینت OIDC) در ارائه‌دهنده هویت خود ثبت کنید و **Issuer URL**، **Client ID** و **Client Secret** آن را کپی کنید.
+2. در OneUptime به **Project Settings** > **Security** > **OIDC** بروید و روی **Create OIDC** کلیک کنید.
+3. یک **Name** (آنچه افراد در صفحه ورود می‌بینند)، **Issuer URL**، **Client ID** و **Client Secret** را وارد کنید. می‌توانید نشانی کشف ارائه‌دهنده را هم در **Issuer URL** جای‌گذاری کنید.
+4. در گام **Sign-in**، **Teams** از ابتدا روی تیم اعضای پروژه شما تنظیم شده است: کسانی که برای اولین بار وارد می‌شوند به این تیم‌ها می‌پیوندند. بقیه زیر **Advanced** پر می‌شود: **Discovery URL** (صادرکننده به‌همراه `/.well-known/openid-configuration`)، **Scopes** (`openid email profile`)، نام ادعاهای `email` و `name` و یک توضیح («Sign in with» و نام). فقط اگر ارائه‌دهنده شما لازم دارد آن‌ها را تغییر دهید.
+5. ذخیره کنید. پنجره **OIDC Configuration** با **Redirect URI** باز می‌شود: آن را به Redirect URIهای مجاز برنامه خود اضافه کنید. ارائه‌دهنده تازه در ابتدا خاموش است؛ سپس آن را ویرایش کنید و **Enabled** را روشن کنید.
+6. پیش از اجباری کردن SSO برای پروژه، با پیوند کارت **Test OpenID Connect (OIDC)** از طریق ارائه‌دهنده وارد شوید.
+
 ## یادداشت‌هایی درباره SSO و نقش‌ها
 
 ‏OneUptime در حال حاضر از نگاشت نقش‌های SAML از ارائه‌دهنده هویت شما پشتیبانی نمی‌کند. دسترسی نقش‌محور باید جداگانه در **Project Settings** > **Security** > **SSO** در OneUptime پیکربندی شود، جایی که می‌توانید نقش‌های پیش‌فرض را به کاربران SSO تخصیص دهید.

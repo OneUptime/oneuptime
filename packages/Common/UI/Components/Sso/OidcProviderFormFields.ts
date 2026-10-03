@@ -106,8 +106,12 @@ export const GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION: string = translationKey(
   "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.",
 );
 
+/*
+ * Turning it on narrows access for people who are already signed in, which
+ * the old wording said in capitals; it still says so.
+ */
 export const GLOBAL_OIDC_RESTRICT_DESCRIPTION: string = translationKey(
-  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.",
+  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.",
 );
 
 type IsAtDefaultFunction = (value: unknown, defaultValue: string) => boolean;
@@ -130,7 +134,10 @@ const isAtDefault: IsAtDefaultFunction = (
 export const isOidcAdvancedAtDefaults: (
   values: unknown,
   options?: OidcProviderFormOptions,
-) => boolean = (values: unknown, options?: OidcProviderFormOptions): boolean => {
+) => boolean = (
+  values: unknown,
+  options?: OidcProviderFormOptions,
+): boolean => {
   const read: (key: string) => unknown = (key: string): unknown => {
     return readSsoFormValue(values, key);
   };
@@ -181,9 +188,7 @@ export type GetOidcAdvancedSectionFunction = <TEntity>(
  * everything in it is at its default its header says what that default
  * does, and once something differs it says "Configured".
  */
-export const getOidcAdvancedSection: GetOidcAdvancedSectionFunction = <
-  TEntity,
->(
+export const getOidcAdvancedSection: GetOidcAdvancedSectionFunction = <TEntity>(
   options?: OidcProviderFormOptions,
 ): FormFieldCollapsibleSection<TEntity> => {
   return getAdvancedFormSection<TEntity>({

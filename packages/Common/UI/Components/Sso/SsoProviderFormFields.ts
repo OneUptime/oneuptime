@@ -138,7 +138,9 @@ export const getSsoProviderDescriptionAfterRename: (data: {
   name: unknown;
 }): string | null => {
   const isTheFormsOwn: boolean = isDefaultSsoProviderDescription({
-    description: ssoFormValueAsText(readSsoFormValue(data.values, "description")),
+    description: ssoFormValueAsText(
+      readSsoFormValue(data.values, "description"),
+    ),
     name: ssoFormValueAsText(readSsoFormValue(data.values, "name")),
   });
 
@@ -174,9 +176,10 @@ export const getSsoProviderNameField: GetSsoProviderFieldFunction = <TEntity>(
       currentValues: FormValues<TEntity>,
       setNewFormValues: (values: FormValues<TEntity>) => void,
     ): void => {
-      const description: string | null = getSsoProviderDescriptionAfterRename(
-        { values: currentValues, name: value },
-      );
+      const description: string | null = getSsoProviderDescriptionAfterRename({
+        values: currentValues,
+        name: value,
+      });
 
       if (
         description === null ||
@@ -195,7 +198,9 @@ export const getSsoProviderNameField: GetSsoProviderFieldFunction = <TEntity>(
 };
 
 export const getSsoProviderDescriptionField: GetSsoProviderFoldedFieldFunction =
-  <TEntity>(options: SsoProviderFoldedFieldOptions<TEntity>): Field<TEntity> => {
+  <TEntity>(
+    options: SsoProviderFoldedFieldOptions<TEntity>,
+  ): Field<TEntity> => {
     return {
       field: { description: true } as unknown as SelectFormFields<TEntity>,
       title: "Description",
@@ -222,9 +227,7 @@ export const getSsoProviderEnabledField: GetSsoProviderFieldFunction = <
   };
 };
 
-export const getSsoProviderTeamsField: GetSsoProviderFieldFunction = <
-  TEntity,
->(
+export const getSsoProviderTeamsField: GetSsoProviderFieldFunction = <TEntity>(
   options: SsoProviderFieldOptions,
 ): Field<TEntity> => {
   return {

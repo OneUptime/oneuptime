@@ -22,7 +22,7 @@ Global SSO, herunder "Require SSO for Login"-kontakten for hele instansen, er en
 
    - Klik på **Opret Global SSO**.
    - For SAML: indtast et **Navn**, **Sign On URL** og **Udsteder** (Issuer) fra din identitetsudbyder, og indsæt det **Offentlige certifikat**. Vælg metoderne for **Signatur** og **Digest** (behold standardværdierne — `RSA-SHA256` / `SHA256` — hvis du er i tvivl).
-   - For OIDC: indtast **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (skal indeholde `openid`) og claim-navnene for **email** / **name**.
+   - For OIDC: indtast et **Name**, **Issuer URL** samt **Client ID** og **Client Secret** for den app, du har registreret i din IdP. Du kan også indsætte din IdP's discovery-URL i **Issuer URL**. Resten udfyldes under **Advanced**: **Discovery URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), claim-navnene `email` og `name` samt en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
 
 3. **Kopiér OneUptime-URL'erne ind i din identitetsudbyder**
 

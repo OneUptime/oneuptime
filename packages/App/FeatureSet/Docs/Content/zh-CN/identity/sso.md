@@ -289,6 +289,17 @@ OneUptime 的 SSO 实现使用 SAML 2.0 协议，应能与任何合规的身份�
    - **公开证书**（X.509 签名证书）
 4. 将 **签名算法** 设置为 `RSA-SHA-256`，将 **摘要算法** 设置为 `SHA256`
 
+## OpenID Connect (OIDC)
+
+项目也可以通过 OpenID Connect 提供商登录，例如 Google Workspace、Okta、Microsoft Entra ID、Auth0 或 Keycloak。
+
+1. 在您的身份提供商中注册一个应用（OIDC 客户端），并复制其 **签发者 URL**、**客户端 ID** 和 **客户端密钥**。
+2. 在 OneUptime 中，导航至 **项目设置** > **安全** > **OIDC**，然后点击 **创建OIDC**。
+3. 输入 **名称**（人们在登录页面上看到的内容）、**签发者 URL**、**客户端 ID** 和 **客户端密钥**。也可以把提供商的发现 URL 粘贴到 **签发者 URL** 中。
+4. 在 **登录** 步骤中，**团队** 已预先选好您项目的成员团队：首次登录的人员会加入这些团队。其余内容会在 **高级** 中自动填好：**发现 URL**（签发者后接 `/.well-known/openid-configuration`）、**范围**（`openid email profile`）、`email` 和 `name` 声明名称，以及描述（“Sign in with”加名称）。仅当您的提供商需要时才更改它们。
+5. 保存。**OIDC Configuration** 对话框会打开并显示 **Redirect URI**：请将其添加到应用允许的重定向 URI 中。新提供商默认处于关闭状态，之后请编辑它并开启 **已启用**。
+6. 在为项目强制要求 SSO 之前，请使用 **Test OpenID Connect (OIDC)** 卡片上的链接通过该提供商登录。
+
 ## 关于 SSO 和角色的说明
 
 OneUptime 目前不支持从身份提供商映射 SAML 角色。基于角色的访问控制必须在 OneUptime 的 **项目设置** > **SSO** 设置中单独配置，您可以在其中为 SSO 用户分配默认角色。

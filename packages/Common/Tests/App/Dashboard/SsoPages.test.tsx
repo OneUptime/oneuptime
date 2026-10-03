@@ -460,7 +460,7 @@ const PAGE_CASES: Array<PageCase> = [
       `https://oneuptime.example.com/identity/oidc-callback/${PROJECT_ID}/${PROVIDER_ID}`,
       `https://oneuptime.example.com/${PROJECT_ID}/${PROVIDER_ID}`,
     ],
-    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/oidc`,
+    testLink: `https://oneuptime.example.com/dashboard/${PROJECT_ID}/sso`,
     forceSsoCard: null,
     // What the identity provider gives, then how people sign in.
     formFields: [
@@ -953,83 +953,88 @@ test("the stand-in table saves dialogs the way the real one names them", () => {
   });
 });
 
-describe.each(OIDC_PAGE_CASES)("$name: adding a provider", (pageCase: PageCase) => {
-  test("walks Provider, then Sign-in", () => {
-    renderPage(pageCase);
+describe.each(OIDC_PAGE_CASES)(
+  "$name: adding a provider",
+  (pageCase: PageCase) => {
+    test("walks Provider, then Sign-in", () => {
+      renderPage(pageCase);
 
-    expect(providerTable(pageCase)).toHaveAttribute(
-      "data-form-steps",
-      "provider: Provider|sign-in: Sign-in",
-    );
-  });
-
-  test("opens the redirect URI to give the identity provider as soon as one is saved, and says it is off", async () => {
-    renderPage(pageCase);
-
-    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-off`));
+      expect(providerTable(pageCase)).toHaveAttribute(
+        "data-form-steps",
+        "provider: Provider|sign-in: Sign-in",
+      );
     });
 
-    const modal: HTMLElement = screen.getByTestId("modal");
+    test("opens the redirect URI to give the identity provider as soon as one is saved, and says it is off", async () => {
+      renderPage(pageCase);
 
-    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
-      pageCase.modalTitle,
-    );
+      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
 
-    for (const printed of pageCase.printed) {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-off`));
+      });
+
+      const modal: HTMLElement = screen.getByTestId("modal");
+
+      expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+        pageCase.modalTitle,
+      );
+
+      for (const printed of pageCase.printed) {
+        expect(
+          within(modal).getByText(printed, { exact: true }),
+        ).toBeInTheDocument();
+      }
+
       expect(
-        within(modal).getByText(printed, { exact: true }),
-      ).toBeInTheDocument();
-    }
+        within(modal).getByTestId("oidc-config-turn-on-note"),
+      ).toHaveTextContent(TURN_ON_NOTE);
 
-    expect(
-      within(modal).getByTestId("oidc-config-turn-on-note"),
-    ).toHaveTextContent(TURN_ON_NOTE);
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
 
-    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
-
-    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-  });
-
-  test("a provider saved switched on has nothing left to turn on", async () => {
-    renderPage(pageCase);
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-on`));
+      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
     });
 
-    const modal: HTMLElement = screen.getByTestId("modal");
+    test("a provider saved switched on has nothing left to turn on", async () => {
+      renderPage(pageCase);
 
-    expect(within(modal).getByText(pageCase.printed[0]!)).toBeInTheDocument();
-    expect(
-      within(modal).queryByTestId("oidc-config-turn-on-note"),
-    ).not.toBeInTheDocument();
-  });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`saved-${pageCase.table}-on`));
+      });
 
-  test("saving an edit opens nothing", async () => {
-    renderPage(pageCase);
+      const modal: HTMLElement = screen.getByTestId("modal");
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId(`edited-${pageCase.table}`));
+      expect(within(modal).getByText(pageCase.printed[0]!)).toBeInTheDocument();
+      expect(
+        within(modal).queryByTestId("oidc-config-turn-on-note"),
+      ).not.toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
-  });
+    test("saving an edit opens nothing", async () => {
+      renderPage(pageCase);
 
-  test("the dialog opened from a row that is off says so too", () => {
-    renderPage(pageCase);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`edited-${pageCase.table}`));
+      });
 
-    fireEvent.click(screen.getByRole("button", { name: pageCase.viewAction }));
+      expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    });
 
-    expect(
-      within(screen.getByTestId("modal")).getByTestId(
-        "oidc-config-turn-on-note",
-      ),
-    ).toHaveTextContent(TURN_ON_NOTE);
-  });
-});
+    test("the dialog opened from a row that is off says so too", () => {
+      renderPage(pageCase);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: pageCase.viewAction }),
+      );
+
+      expect(
+        within(screen.getByTestId("modal")).getByTestId(
+          "oidc-config-turn-on-note",
+        ),
+      ).toHaveTextContent(TURN_ON_NOTE);
+    });
+  },
+);
 
 describe("a project's new OIDC provider starts on the members team", () => {
   const SETTINGS_OIDC: PageCase = OIDC_PAGE_CASES.find(

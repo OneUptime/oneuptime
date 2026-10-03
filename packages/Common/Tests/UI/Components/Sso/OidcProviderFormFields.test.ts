@@ -227,10 +227,7 @@ describe("the fields each form gets", () => {
 
   test("asks for the four things the identity provider gives, and requires them", () => {
     const issuer: Field<ProjectOIDC> = fieldFor(PROJECT_FIELDS, "issuerURL");
-    const secret: Field<ProjectOIDC> = fieldFor(
-      PROJECT_FIELDS,
-      "clientSecret",
-    );
+    const secret: Field<ProjectOIDC> = fieldFor(PROJECT_FIELDS, "clientSecret");
 
     for (const key of ["name", "issuerURL", "clientId", "clientSecret"]) {
       expect([key, fieldFor(PROJECT_FIELDS, key).required]).toEqual([
@@ -607,15 +604,16 @@ describe("the folded Advanced section", () => {
   });
 
   test.each([
-    ["a discovery URL set by hand", { discoveryURL: "https://x.example.com/d" }],
+    [
+      "a discovery URL set by hand",
+      { discoveryURL: "https://x.example.com/d" },
+    ],
     ["other scopes", { scopes: "openid email" }],
     ["another email claim", { emailClaimName: "upn" }],
     ["another name claim", { nameClaimName: "preferred_username" }],
     ["a description of one's own", { description: "Staff only" }],
   ])("is not, with %s", (_label: string, change: Record<string, unknown>) => {
-    expect(isOidcAdvancedAtDefaults({ ...AT_DEFAULTS, ...change })).toBe(
-      false,
-    );
+    expect(isOidcAdvancedAtDefaults({ ...AT_DEFAULTS, ...change })).toBe(false);
   });
 
   test("on the Global form, a switch turned on is not at its default", () => {
