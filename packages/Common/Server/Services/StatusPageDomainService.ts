@@ -821,9 +821,48 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  /*
+   * Which of these certificate domains are status page domains. The renewal
+   * run renews - and removes - only the certificates this returns, so the
+   * certificates of dashboard domains and of the primary host, which share
+   * the AcmeCertificate table, are never mistaken for status page domains
+   * whose CNAME stopped validating.
+   */
+  @CaptureSpan()
+  public async getOwnedDomains(domains: Array<string>): Promise<Array<string>> {
+    if (domains.length === 0) {
+      return [];
+    }
+
+    const statusPageDomains: Array<StatusPageDomain> = await this.findBy({
+      query: {
+        fullDomain: QueryHelper.any(domains),
+      },
+      select: {
+        fullDomain: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return statusPageDomains
+      .map((statusPageDomain: StatusPageDomain) => {
+        return statusPageDomain.fullDomain || "";
+      })
+      .filter((fullDomain: string) => {
+        return fullDomain.length > 0;
+      });
+  }
+
   @CaptureSpan()
   public async renewCertsWhichAreExpiringSoon(): Promise<void> {
     await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
+      getOwnedDomains: async (domains: Array<string>) => {
+        return await this.getOwnedDomains(domains);
+      },
       validateCname: async (fullDomain: string) => {
         return await this.isCnameValid(fullDomain);
       },

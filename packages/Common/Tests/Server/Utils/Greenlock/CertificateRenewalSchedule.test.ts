@@ -20,7 +20,9 @@
  * the reactive sweep spends from the same allowance.
  *
  * AcmeCertificateService.findBy is spied on, so no database is touched, and
- * orderCert is spied on so no ACME order is ever attempted.
+ * orderCert is spied on so no ACME order is ever attempted. Every run here
+ * owns every certificate it is shown; which certificates a run may touch at
+ * all is pinned in CertificateRenewalOwnership.test.ts.
  */
 
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
@@ -40,6 +42,11 @@ function certificateExpiringInDays(
       days,
     ),
   } as unknown as AcmeCertificate;
+}
+
+// The caller owns every domain it is asked about.
+async function ownsEveryDomain(domains: Array<string>): Promise<Array<string>> {
+  return domains;
 }
 
 /*
@@ -63,6 +70,7 @@ async function domainsRenewedFor(
     });
 
   await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
+    getOwnedDomains: ownsEveryDomain,
     validateCname: async (): Promise<boolean> => {
       return true;
     },
@@ -237,6 +245,7 @@ describe("Certificate renewal run", () => {
       });
 
     await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
+      getOwnedDomains: ownsEveryDomain,
       validateCname: async (): Promise<boolean> => {
         return true;
       },

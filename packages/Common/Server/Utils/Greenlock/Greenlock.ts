@@ -74,10 +74,31 @@ export default class GreenlockUtil {
     );
   }
 
+  /*
+   * Renew the caller's certificates that are due, at most maxPerRun of them
+   * per run (RENEW_MAX_PER_RUN unless the caller asks for fewer).
+   *
+   * AcmeCertificate is one table shared by every owner of a certificate:
+   * status page domains, dashboard domains and the installation's own
+   * primary host (CoreSSL). Each owner runs this on its own schedule and can
+   * only judge its own domains - its validateCname reports false for every
+   * domain it has no row for. So a run must never act on a certificate it
+   * does not own. Before getOwnedDomains existed, the status page run
+   * treated every dashboard certificate (and the primary host's, whenever
+   * its lead time came before CoreSSL's 30-day renewal) as a status page
+   * whose CNAME had stopped validating, and deleted it.
+   *
+   * getOwnedDomains is handed every due domain and returns the ones the
+   * caller owns. Ownership is settled before the cap, so a backlog that
+   * belongs to someone else cannot take this caller's slots. A certificate
+   * nobody claims is left exactly as it is: neither renewed nor removed.
+   */
   @CaptureSpan()
   public static async renewAllCertsWhichAreExpiringSoon(data: {
+    getOwnedDomains: (domains: Array<string>) => Promise<Array<string>>;
     validateCname: (domain: string) => Promise<boolean>;
     notifyDomainRemoved: (domain: string) => Promise<void>;
+    maxPerRun?: number | undefined;
   }): Promise<void> {
     try {
       logger.debug("Renewing all certificates");
@@ -128,19 +149,47 @@ export default class GreenlockUtil {
       );
 
       /*
+       * A lookup that fails throws out of the run before anything is renewed
+       * or removed: not knowing who owns a certificate is never a reason to
+       * touch it.
+       */
+      const ownedDomains: Set<string> =
+        dueCertificates.length > 0
+          ? new Set<string>(
+              await data.getOwnedDomains(
+                dueCertificates.map((certificate: AcmeCertificate) => {
+                  return certificate.domain as string;
+                }),
+              ),
+            )
+          : new Set<string>();
+
+      const ownedDueCertificates: AcmeCertificate[] = dueCertificates.filter(
+        (certificate: AcmeCertificate) => {
+          return ownedDomains.has(certificate.domain as string);
+        },
+      );
+
+      /*
        * Still sorted by expiry, so a run that cannot take the whole backlog
        * spends itself on the domains closest to expiring and leaves the rest -
        * which by construction still have weeks of lead time - to the next run.
        */
-      const batch: AcmeCertificate[] = dueCertificates.slice(
-        0,
+      const maxPerRun: number = Math.min(
+        data.maxPerRun ?? GreenlockUtil.RENEW_MAX_PER_RUN,
         GreenlockUtil.RENEW_MAX_PER_RUN,
       );
 
+      const batch: AcmeCertificate[] = ownedDueCertificates.slice(
+        0,
+        Math.max(maxPerRun, 0),
+      );
+
       logger.debug(
-        `Found ${dueCertificates.length} certificates due for renewal, renewing ${batch.length} in this run`,
+        `Found ${dueCertificates.length} certificates due for renewal, ${ownedDueCertificates.length} of them owned by this caller, renewing ${batch.length} in this run`,
         {
           dueCount: dueCertificates.length,
+          ownedDueCount: ownedDueCertificates.length,
           batchCount: batch.length,
         },
       );
