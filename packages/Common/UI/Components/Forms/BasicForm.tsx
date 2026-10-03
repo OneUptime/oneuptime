@@ -1111,6 +1111,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               key={`${section.id}-${getFieldName(firstField)}`}
                               title={section.title}
                               description={section.description}
+                              sectionId={section.id}
                               /*
                                * The section's own answer, or - without one -
                                * whether a field in it that is on screen holds

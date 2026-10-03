@@ -352,6 +352,9 @@ interface StateChangeField {
   field: Record<string, boolean>;
   fieldType: FormFieldSchemaType;
   title: string;
+  collapsibleSection?:
+    | { id: string; title: string; openWhenConfigured?: boolean | undefined }
+    | undefined;
   description?: string | undefined;
   defaultValue?: unknown;
   required?: boolean | undefined;
@@ -758,7 +761,7 @@ describe.each(OPEN_CASES)(
         );
       });
 
-      test("keeps the public note next to the checkbox that governs it", async () => {
+      test("asks the checkbox that governs the change first, with the public note folded right under it", async () => {
         const props: StateChangeModalProps = await openModal(
           openCase,
           QUIET_EVENT,
@@ -768,11 +771,24 @@ describe.each(OPEN_CASES)(
           props.formProps.fields.map((field: StateChangeField): string => {
             return field.title;
           }),
-        ).toEqual(["Select Note Template", "Public Note", CHECKBOX_TITLE]);
+        ).toEqual([CHECKBOX_TITLE, "Select Note Template", "Public Note"]);
         expect(fieldByKey(props, "publicNote").fieldType).toBe(
           FormFieldSchemaType.Markdown,
         );
         expect(fieldByKey(props, "publicNote").required).toBe(false);
+
+        // The checkbox is open; the template and the note are one folded line.
+        expect(
+          fieldByKey(props, NOTIFY_FIELD_KEY).collapsibleSection,
+        ).toBeUndefined();
+
+        for (const key of ["publicNoteTemplate", "publicNote"]) {
+          expect(fieldByKey(props, key).collapsibleSection).toEqual({
+            id: "state-change-note",
+            title: "Add a public note",
+            openWhenConfigured: false,
+          });
+        }
       });
 
       test("still records the change on this event, in the chosen state", async () => {
@@ -1365,6 +1381,15 @@ describe("ChangeScheduledMaintenanceState: what the real form sends", () => {
   };
 
   const writeNote: () => Promise<void> = async (): Promise<void> => {
+    // The note is folded under "Add a public note": open it, as a user would.
+    const fold: HTMLElement = screen.getByRole("button", {
+      name: "Add a public note",
+    });
+
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(fold);
+    expect(fold).toHaveAttribute("aria-expanded", "true");
+
     // The markdown source view is a plain textarea.
     fireEvent.click(screen.getByTitle("Switch to markdown source"));
 

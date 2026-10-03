@@ -12,6 +12,11 @@ import {
   getSteppedFormFooter,
 } from "../Forms/Utils/FinishFromAnyStep";
 import { getFormModalWidth } from "../Forms/Utils/FormModalWidth";
+import {
+  OpenFormSections,
+  OpenFormSectionsContext,
+  useOpenFormSections,
+} from "../Forms/Utils/OpenFormSections";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
@@ -94,14 +99,21 @@ const BasicFormModal: <T extends GenericObject>(
     setIsLoading(Boolean(props.isLoading));
   }, [props.isLoading]);
 
+  // Which folded sections are open: an editor in one widens the dialog.
+  const openFormSections: OpenFormSections = useOpenFormSections();
+
   return (
     <Modal
       {...props}
       submitButtonText={submitButtonText}
-      // A form with a Markdown editor opens wide, its toolbar on one line.
+      /*
+       * A form with a Markdown editor opens wide, its toolbar on one line -
+       * or grows wide when a folded section with one is opened.
+       */
       modalWidth={getFormModalWidth({
         fields: props.formProps.fields,
         width: props.modalWidth ?? (hasSteps ? ModalWidth.Medium : undefined),
+        openSectionIds: openFormSections.openSectionIds,
       })}
       submitButtonType={ButtonType.Submit}
       isLoading={isLoading}
@@ -125,7 +137,9 @@ const BasicFormModal: <T extends GenericObject>(
           : undefined
       }
     >
-      <>
+      <OpenFormSectionsContext.Provider
+        value={openFormSections.reportSectionOpen}
+      >
         {isLoading && <ComponentLoader />}
 
         {props.error && <ErrorMessage message={props.error} />}
@@ -159,7 +173,7 @@ const BasicFormModal: <T extends GenericObject>(
             }}
           />
         )}
-      </>
+      </OpenFormSectionsContext.Provider>
     </Modal>
   );
 };
