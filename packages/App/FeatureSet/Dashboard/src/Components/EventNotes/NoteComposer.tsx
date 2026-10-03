@@ -24,6 +24,8 @@ import {
   isNoteBlank,
   toDateTimeInputValue,
 } from "./EventNotesUtil";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface NoteComposerValues {
   note: string;
@@ -129,6 +131,7 @@ export const AudienceBadge: FunctionComponent<{
 const NoteComposer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { translateString } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
@@ -180,8 +183,12 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
   ]);
 
   const postedAtLabel: string = props.values.postedAt
-    ? OneUptimeDate.getDateAsLocalShortDateTimeString(props.values.postedAt)
-    : tx("now");
+    ? translator.translateTemplate("Posted {{time}}", {
+        time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+          props.values.postedAt,
+        ),
+      })
+    : tx("Posted now");
 
   return (
     <form
@@ -226,8 +233,8 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-2.5">
         <span id={editorLabelId} className="sr-only">
           {props.mode === "create"
-            ? tx(`New ${props.copy.noteNoun}`)
-            : tx(`Edit ${props.copy.noteNoun}`)}
+            ? tx(props.copy.newNoteLabel)
+            : tx(props.copy.editNoteLabel)}
         </span>
         <AudienceBadge visibility={props.visibility} copy={props.copy} />
         {props.mode === "edit" && (
@@ -353,7 +360,9 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
           </button>
           <p className="mb-1 basis-full text-xs text-gray-500">
             {tx("Shown on the status page as the time of this update.")}{" "}
-            {tx("Times are in")} {OneUptimeDate.getCurrentTimezoneString()}.
+            {translator.translateTemplate("Times are in {{timezone}}.", {
+              timezone: OneUptimeDate.getCurrentTimezoneString(),
+            })}
           </p>
         </div>
       )}
@@ -457,9 +466,7 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
               }`}
             >
               <Icon icon={IconProp.Clock} className="h-4 w-4" />
-              <span>
-                {tx("Posted")} {postedAtLabel}
-              </span>
+              <span>{postedAtLabel}</span>
             </button>
           )}
         </div>

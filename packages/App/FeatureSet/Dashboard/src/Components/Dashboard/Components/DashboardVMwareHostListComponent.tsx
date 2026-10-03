@@ -23,6 +23,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The vcenter receiver stamps identity on RESOURCE attributes, so a
@@ -265,14 +266,18 @@ function renderHostRow(r: VMwareResource): ReactElement {
       <td
         className="px-3 py-2 text-xs"
         style={{ color: getPercentTextColor(r.latestCpuPercent) }}
-        title={`Capacity ${formatMhz(r.cpuCapacityMhz)}`}
+        title={translateTemplate("Capacity {{capacity}}", {
+          capacity: formatMhz(r.cpuCapacityMhz),
+        })}
       >
         {formatPercent(r.latestCpuPercent)}
       </td>
       <td
         className="px-3 py-2 text-xs"
         style={{ color: getPercentTextColor(r.latestMemoryPercent) }}
-        title={`Capacity ${formatBytes(r.maxMemoryBytes)}`}
+        title={translateTemplate("Capacity {{capacity}}", {
+          capacity: formatBytes(r.maxMemoryBytes),
+        })}
       >
         {formatPercent(r.latestMemoryPercent)}
       </td>

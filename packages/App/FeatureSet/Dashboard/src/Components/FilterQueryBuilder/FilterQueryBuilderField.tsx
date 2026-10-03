@@ -17,6 +17,11 @@ import {
   LogicalConnector,
 } from "./Types";
 import { buildFilterQuery, parseFilterQuery } from "./FilterQueryParser";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   value?: string | undefined;
@@ -26,9 +31,15 @@ export interface ComponentProps {
   config: FilterBuilderConfig;
 }
 
+// "log must match" starts the row, so its first letter is a capital.
+function capitalizeFirst(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+}
+
 const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { config } = props;
 
   const initial: string = props.value ?? props.initialValue ?? "";
@@ -102,9 +113,13 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
       {conditions.length > 1 && (
         <div className="mb-3 flex items-center gap-3">
           <span className="text-sm text-gray-500">
-            {config.entityNameSingular.charAt(0).toUpperCase() +
-              config.entityNameSingular.slice(1)}{" "}
-            must match
+            {capitalizeFirst(
+              translator.translateTemplate("{{entity}} must match", {
+                entity: translatableTerm(config.entityNameSingular, {
+                  inSentence: true,
+                }),
+              }),
+            )}
           </span>
           <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50">
             <button
@@ -118,7 +133,7 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
                 handleConnectorChange("AND");
               }}
             >
-              All conditions
+              {translator.translateText("All conditions")}
             </button>
             <button
               type="button"
@@ -131,7 +146,7 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
                 handleConnectorChange("OR");
               }}
             >
-              Any condition
+              {translator.translateText("Any condition")}
             </button>
           </div>
         </div>
@@ -223,7 +238,9 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-              <span className="font-medium">Preview query</span>
+              <span className="font-medium">
+                {translator.translateText("Preview query")}
+              </span>
             </summary>
             <div className="mt-2 rounded-lg bg-gray-900 p-3.5 overflow-x-auto">
               <code className="text-[13px] text-emerald-400 font-mono break-all leading-relaxed whitespace-pre-wrap">

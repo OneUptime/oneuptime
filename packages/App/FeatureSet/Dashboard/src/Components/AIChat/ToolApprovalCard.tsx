@@ -5,6 +5,8 @@ import {
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -50,6 +52,16 @@ const statusChipTone: { [key in AIChatToolActionStatus]: string } = {
   [AIChatToolActionStatus.Skipped]: "bg-gray-100 text-gray-500",
 };
 
+// How each status reads on its chip: English keys, translated when drawn.
+const statusLabel: { [key in AIChatToolActionStatus]: string } = {
+  [AIChatToolActionStatus.Pending]: translationKey("Pending"),
+  [AIChatToolActionStatus.Approved]: translationKey("Approved"),
+  [AIChatToolActionStatus.Executed]: translationKey("Executed"),
+  [AIChatToolActionStatus.Denied]: translationKey("Denied"),
+  [AIChatToolActionStatus.Failed]: translationKey("Failed"),
+  [AIChatToolActionStatus.Skipped]: translationKey("Skipped"),
+};
+
 const statusIcon: { [key in AIChatToolActionStatus]: IconProp } = {
   [AIChatToolActionStatus.Pending]: IconProp.Clock,
   [AIChatToolActionStatus.Approved]: IconProp.Check,
@@ -62,6 +74,7 @@ const statusIcon: { [key in AIChatToolActionStatus]: IconProp } = {
 const ToolApprovalCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const pending: Array<AIChatToolAction> = props.toolActions.filter(
     (action: AIChatToolAction) => {
       return (
@@ -128,7 +141,9 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipTone[action.status]}`}
                 >
                   <Icon icon={statusIcon[action.status]} className="h-3 w-3" />
-                  {action.status}
+                  {translator.translateText(
+                    statusLabel[action.status] || action.status,
+                  )}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
                   {action.title}
@@ -151,10 +166,14 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
             </div>
             <div className="text-xs font-semibold text-amber-800">
               {props.interactive
-                ? `The AI wants to perform ${pending.length} action${
-                    pending.length === 1 ? "" : "s"
-                  }`
-                : "Waiting for approval"}
+                ? translator.translatePlural(
+                    {
+                      one: "The AI wants to perform {{count}} action",
+                      other: "The AI wants to perform {{count}} actions",
+                    },
+                    pending.length,
+                  )
+                : translator.translateText("Waiting for approval")}
             </div>
           </div>
 
@@ -196,7 +215,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                               : "bg-white text-gray-500 hover:bg-gray-50"
                           }`}
                         >
-                          Allow
+                          {translator.translateText("Allow")}
                         </button>
                         <button
                           type="button"
@@ -214,7 +233,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                               : "bg-white text-gray-500 hover:bg-gray-50"
                           }`}
                         >
-                          Skip
+                          {translator.translateText("Skip")}
                         </button>
                       </div>
                     )}
@@ -247,8 +266,14 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                   <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
                 )}
                 {approvedCount > 0
-                  ? `Run ${approvedCount} action${approvedCount === 1 ? "" : "s"}`
-                  : "Skip all"}
+                  ? translator.translatePlural(
+                      {
+                        one: "Run {{count}} action",
+                        other: "Run {{count}} actions",
+                      },
+                      approvedCount,
+                    )
+                  : translator.translateText("Skip all")}
               </button>
               <button
                 type="button"
@@ -262,7 +287,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                 }}
                 className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100"
               >
-                Deny all
+                {translator.translateText("Deny all")}
               </button>
             </div>
           )}

@@ -23,6 +23,8 @@ import {
 } from "../../Utils/ExceptionLogsScope";
 import DashboardLogsViewer from "../Logs/LogsViewer";
 import ExceptionSegmentedControl from "./ExceptionSegmentedControl";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   instance: ExceptionInstance | undefined;
@@ -39,6 +41,7 @@ export interface ComponentProps {
 const ExceptionLogs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedScopeKey, setSelectedScopeKey] = useState<
     ExceptionLogsViewerScopeKey | undefined
   >(undefined);
@@ -109,8 +112,9 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Logs} className="h-5 w-5 text-gray-400" />
           </div>
           <p className="mt-3 max-w-md text-sm text-gray-600">
-            No occurrence with a trace or a service is stored for this
-            exception, so there are no logs to correlate yet.
+            {translator.translateText(
+              "No occurrence with a trace or a service is stored for this exception, so there are no logs to correlate yet.",
+            )}
           </p>
         </div>
       </Card>
@@ -130,7 +134,7 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-gray-900">
-              Logs around the latest occurrence
+              {translator.translateText("Logs around the latest occurrence")}
               {occurredAt && !Number.isNaN(occurredAt.getTime()) && (
                 <span className="ml-2 text-sm font-normal text-gray-500">
                   {OneUptimeDate.getDateAsLocalShortDateTimeString(occurredAt)}
@@ -141,7 +145,7 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
               className="mt-0.5 text-sm text-gray-600"
               data-testid="exception-logs-scope-description"
             >
-              {scope.description}
+              {translator.translateText(scope.description)}
             </p>
           </div>
         </div>

@@ -51,6 +51,8 @@ import React, {
   ReactElement,
   useMemo,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -119,6 +121,7 @@ export interface ComponentProps {
 const InventoryTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isArchivedView: boolean = Boolean(props.archivedOnly);
 
   const tableKey: string =
@@ -326,7 +329,9 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
               return (
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900">
-                    {item.displayName || item.entityKey || "Unnamed"}
+                    {item.displayName ||
+                      item.entityKey ||
+                      translator.translateText("Unnamed")}
                   </span>
                   {item.description ? (
                     <span className="text-xs text-gray-500 line-clamp-1">

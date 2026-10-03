@@ -34,6 +34,8 @@ import {
 } from "Common/Types/Monitor/ProxmoxAlertTemplates";
 import { ProxmoxMetricDefinition } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepProxmoxMonitor: MonitorStepProxmoxMonitor;
@@ -69,6 +71,7 @@ const scopeOptions: Array<DropdownOption> = [
 const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -373,11 +376,12 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         {selectedTemplateId && (
           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Template Configuration
+              {translator.translateText("Template Configuration")}
             </h4>
             <p className="text-xs text-blue-700 mb-3">
-              The following settings have been auto-configured. You can adjust
-              the time range below.
+              {translator.translateText(
+                "The following settings have been auto-configured. You can adjust the time range below.",
+              )}
             </p>
 
             <FieldLabelElement

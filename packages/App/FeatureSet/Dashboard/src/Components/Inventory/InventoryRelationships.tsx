@@ -41,6 +41,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "What is this connected to?" — both directions of the relationship graph
@@ -155,6 +157,7 @@ export interface ComponentProps {
 const InventoryRelationships: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const entityKey: string = props.entityKey;
   const entityType: string | undefined = props.entityType || undefined;
   const requestKey: string = JSON.stringify([entityKey, entityType || ""]);
@@ -412,7 +415,9 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
           className="h-4 w-4 shrink-0 text-gray-400"
         />
         <span className="text-sm text-gray-500">
-          {getRelationshipPhrase(row.relationshipType, directionOf(row))}
+          {translator.translateText(
+            getRelationshipPhrase(row.relationshipType, directionOf(row)),
+          )}
         </span>
         {row.otherId ? (
           <AppLink
@@ -473,11 +478,17 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
         data-testid={`inventory-connections-${config.section}`}
       >
         <h3 className="text-sm font-semibold text-gray-900">
-          {config.title} ({total})
+          {translator.translateText(config.title)} ({total})
         </h3>
         {section.unknownTotal > 0 && (
           <p className="mt-0.5 text-xs text-gray-500">
-            {section.unknownTotal.toLocaleString()} no longer in inventory
+            {translator.translatePlural(
+              {
+                one: "{{count}} no longer in inventory",
+                other: "{{count}} no longer in inventory",
+              },
+              section.unknownTotal,
+            )}
           </p>
         )}
         <ul className="divide-y divide-gray-100">
@@ -488,9 +499,11 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
         {sectionError && (
           <div role="alert" className="mt-1 text-sm text-red-600">
             <p>
-              {sectionError.action === "reload"
-                ? "Could not reload this list."
-                : "Could not load more connections."}
+              {translator.translateText(
+                sectionError.action === "reload"
+                  ? "Could not reload this list."
+                  : "Could not load more connections.",
+              )}
               {sectionError.detail ? ` ${sectionError.detail}` : ""}
             </p>
             {isOutdated && (
@@ -501,7 +514,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
                   Navigation.reload();
                 }}
               >
-                Reload page
+                {translator.translateText("Reload page")}
               </button>
             )}
           </div>
@@ -512,12 +525,19 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             data-testid={`inventory-connections-${config.section}-changed`}
           >
             <p className="text-sm text-amber-700">
-              This list changed while you were browsing.
+              {translator.translateText(
+                "This list changed while you were browsing.",
+              )}
             </p>
             <button
               type="button"
               className={actionClassName}
-              aria-label={`Reload list: ${config.title}`}
+              aria-label={translator.translateTemplate(
+                "Reload list: {{list}}",
+                {
+                  list: translator.translateText(config.title) as string,
+                },
+              )}
               disabled={Boolean(pending)}
               aria-busy={pending === "reload"}
               ref={registerFocusable(reloadFocusId(config.section))}
@@ -525,26 +545,35 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
                 void loadSection(config.section, "reload");
               }}
             >
-              {pending === "reload" ? "Loading…" : "Reload list"}
+              {translator.translateText(
+                pending === "reload" ? "Loading…" : "Reload list",
+              )}
             </button>
           </div>
         )}
         {section.nextOffset !== null && !isOutdated && (
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-sm text-gray-500">
-              Showing {section.rows.length.toLocaleString()} of {total}
+              {translator.translateTemplate("Showing {{shown}} of {{total}}", {
+                shown: translator.formatNumber(section.rows.length),
+                total,
+              })}
             </p>
             <button
               type="button"
               className={actionClassName}
-              aria-label={`Show more: ${config.title}`}
+              aria-label={translator.translateTemplate("Show more: {{list}}", {
+                list: translator.translateText(config.title) as string,
+              })}
               disabled={Boolean(pending)}
               aria-busy={pending === "more"}
               onClick={() => {
                 void loadSection(config.section, "more");
               }}
             >
-              {pending === "more" ? "Loading…" : "Show more"}
+              {translator.translateText(
+                pending === "more" ? "Loading…" : "Show more",
+              )}
             </button>
           </div>
         )}
@@ -559,9 +588,16 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
       const error: EntityDetailErrorDescription | null = current.error;
       return (
         <ErrorMessage
-          message={`Could not load this item's connections.${
-            error?.detail ? ` ${error.detail}` : ""
-          }`}
+          message={
+            error?.detail
+              ? translator.translateTemplate(
+                  "Could not load this item's connections. {{detail}}",
+                  { detail: error.detail },
+                )
+              : (translator.translateText(
+                  "Could not load this item's connections.",
+                ) as string)
+          }
           onRefreshClick={() => {
             if (error?.isOutdated) {
               // Asking again gets the same answer; only the new bundle helps.
@@ -586,8 +622,9 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
     if (!data.entity) {
       return (
         <p className="text-sm text-gray-500">
-          This item is no longer in the inventory, so there are no connections
-          to show.
+          {translator.translateText(
+            "This item is no longer in the inventory, so there are no connections to show.",
+          )}
         </p>
       );
     }
@@ -603,9 +640,9 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
     if (sections.length === 0) {
       return (
         <p className="text-sm text-gray-500">
-          Nothing is connected to this item yet. Connections are worked out from
-          telemetry that mentions two things at once — a span that names both a
-          service and the pod it ran on, for example.
+          {translator.translateText(
+            "Nothing is connected to this item yet. Connections are worked out from telemetry that mentions two things at once — a span that names both a service and the pod it ran on, for example.",
+          )}
         </p>
       );
     }
@@ -617,8 +654,9 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-500"
             data-testid="inventory-connections-scan-limited"
           >
-            This item has more connections than the list counts; totals are
-            lower bounds.
+            {translator.translateText(
+              "This item has more connections than the list counts; totals are lower bounds.",
+            )}
           </p>
         )}
         {sections}
@@ -640,7 +678,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             to={props.fullMapRoute}
             className="inline-flex items-center gap-x-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
           >
-            <span>Open full map</span>
+            <span>{translator.translateText("Open full map")}</span>
             <Icon
               icon={IconProp.ArrowRight}
               size={SizeProp.Smaller}

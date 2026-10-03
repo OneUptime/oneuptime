@@ -71,6 +71,8 @@ import NoteComposer, {
 } from "./NoteComposer";
 import NoteTemplateMenu, { NoteTemplateOption } from "./NoteTemplateMenu";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 type NoteTemplateModel = BaseModel & {
   templateName?: string | undefined;
@@ -188,12 +190,17 @@ const toActionGate: (result: PermissionGateResult) => NoteActionGate = (
 function EventNotes<TNote extends BaseModel>(
   props: ComponentProps<TNote>,
 ): ReactElement {
+  const translator: Translator = useTranslator();
   const { translateString } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
 
-  const copy: NotesCopy = getNotesCopy(props.visibility, props.eventNoun);
+  const copy: NotesCopy = getNotesCopy(
+    props.visibility,
+    props.eventNoun,
+    translator,
+  );
   const model: TNote = useMemo(() => {
     return new props.modelType();
   }, [props.modelType]);
@@ -1018,8 +1025,10 @@ function EventNotes<TNote extends BaseModel>(
                 <span>{tx(group.label)}</span>
                 <span className="h-px flex-1 bg-gray-100" />
                 <span className="font-medium normal-case tracking-normal text-gray-400">
-                  {group.notes.length}{" "}
-                  {group.notes.length === 1 ? tx("note") : tx("notes")}
+                  {translator.translatePlural(
+                    { one: "{{count}} note", other: "{{count}} notes" },
+                    group.notes.length,
+                  )}
                 </span>
               </h3>
               <ol className="relative">
@@ -1101,7 +1110,10 @@ function EventNotes<TNote extends BaseModel>(
                 ? tx("Show older notes")
                 : tx("Show newer notes")}
               <span className="text-gray-400">
-                ({totalCount - notes.length} {tx("more")})
+                {translator.translatePlural(
+                  { one: "({{count}} more)", other: "({{count}} more)" },
+                  totalCount - notes.length,
+                )}
               </span>
             </button>
           </div>
@@ -1227,8 +1239,14 @@ function EventNotes<TNote extends BaseModel>(
                 data-testid="notes-summary"
               >
                 {isSearching
-                  ? `${totalCount} ${totalCount === 1 ? tx("match") : tx("matches")}`
-                  : `${totalCount} ${totalCount === 1 ? tx("note") : tx("notes")}`}
+                  ? translator.translatePlural(
+                      { one: "{{count}} match", other: "{{count}} matches" },
+                      totalCount,
+                    )
+                  : translator.translatePlural(
+                      { one: "{{count}} note", other: "{{count}} notes" },
+                      totalCount,
+                    )}
               </span>
               <button
                 type="button"

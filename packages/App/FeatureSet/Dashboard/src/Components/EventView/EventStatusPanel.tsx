@@ -307,7 +307,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
       <div
         className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}
         role="group"
-        aria-label="Event actions"
+        aria-label={translateString("Event actions")}
       >
         {props.actions.map((action: EventStateAction) => {
           return getActionButton(action);
@@ -380,7 +380,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
       {props.durationStartsAt && (
         <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
           <Icon icon={IconProp.Clock} className="h-4 w-4 text-gray-400" />
-          <span>{props.durationPrefix || "Ongoing for"}</span>
+          <span>{translateString(props.durationPrefix || "Ongoing for")}</span>
           <span className="font-medium text-gray-700">
             <LiveDuration
               startDate={props.durationStartsAt}
@@ -426,7 +426,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
               {props.identifier && (
                 <span
                   className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-600"
-                  title="Number"
+                  title={translateString("Number")}
                 >
                   {props.identifier}
                 </span>
@@ -483,7 +483,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             {props.identifier && (
               <span
                 className="text-sm font-semibold text-gray-900"
-                title="Number"
+                title={translateString("Number")}
               >
                 {props.identifier}
               </span>

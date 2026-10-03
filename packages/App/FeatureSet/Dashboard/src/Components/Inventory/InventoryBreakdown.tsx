@@ -11,6 +11,8 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import React, { FunctionComponent, ReactElement } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "What is actually in here?" — the category breakdown on the Inventory
@@ -34,6 +36,7 @@ export interface ComponentProps {
 const InventoryBreakdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   type RowRouteFunction = (entityType: string) => Route;
 
   const getRowRoute: RowRouteFunction = (entityType: string): Route => {
@@ -75,8 +78,9 @@ const InventoryBreakdown: FunctionComponent<ComponentProps> = (
         description="Your inventory grouped by what kind of thing each item is."
       >
         <p className="text-sm text-gray-500">
-          Nothing to break down yet. Categories appear here as items are
-          discovered or added.
+          {translator.translateText(
+            "Nothing to break down yet. Categories appear here as items are discovered or added.",
+          )}
         </p>
       </Card>
     );
@@ -100,7 +104,7 @@ const InventoryBreakdown: FunctionComponent<ComponentProps> = (
               >
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-sm font-semibold text-gray-900">
-                    {group.label}
+                    {translator.translateText(group.label)}
                   </h3>
                   <span className="text-sm font-medium text-gray-500">
                     {group.total}
@@ -121,7 +125,9 @@ const InventoryBreakdown: FunctionComponent<ComponentProps> = (
                                 size={SizeProp.Smaller}
                                 className="h-4 w-4 text-gray-400"
                               />
-                              <span className="truncate">{row.label}</span>
+                              <span className="truncate">
+                                {translator.translateText(row.label)}
+                              </span>
                             </span>
                             <span className="ml-2 font-medium text-gray-900">
                               {row.count}

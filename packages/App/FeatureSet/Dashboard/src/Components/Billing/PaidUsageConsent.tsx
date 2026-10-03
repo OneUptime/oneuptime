@@ -10,6 +10,8 @@ import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { ReactElement, useEffect, useState } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface Props {
   title: string;
@@ -22,6 +24,7 @@ interface Props {
 
 /** Shared by single-resource forms and bulk monitor recommendations. */
 export default function PaidUsageConsent(props: Props): ReactElement {
+  const translator: Translator = useTranslator();
   const projectId: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();
   const [status, setStatus] = useState<{
@@ -88,11 +91,16 @@ export default function PaidUsageConsent(props: Props): ReactElement {
           className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-gray-700"
           role="status"
         >
-          {state === "loading" && "Checking paid feature access…"}
+          {state === "loading" &&
+            translator.translateText("Checking paid feature access…")}
           {state === "locked" &&
-            "Add a payment method before using this paid feature. Free features remain available without a card."}
+            translator.translateText(
+              "Add a payment method before using this paid feature. Free features remain available without a card.",
+            )}
           {state === "error" &&
-            "We could not check paid feature access. Try again before continuing."}
+            translator.translateText(
+              "We could not check paid feature access. Try again before continuing.",
+            )}
           {state !== "loading" && (
             <div className="mt-2 flex items-center gap-3">
               {projectId && (
@@ -101,7 +109,7 @@ export default function PaidUsageConsent(props: Props): ReactElement {
                   openInNewTab={true}
                   to={new Route(`/dashboard/${projectId}/settings/billing`)}
                 >
-                  Set up billing
+                  {translator.translateText("Set up billing")}
                 </Link>
               )}
               <Button

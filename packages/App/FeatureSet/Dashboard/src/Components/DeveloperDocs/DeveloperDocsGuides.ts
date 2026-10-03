@@ -80,6 +80,11 @@ import {
   isModelInPublicApi,
   TerraformModelOperations,
 } from "Common/Utils/DeveloperDocs/TerraformSchema";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What each Developer page says, as data: numbered steps (in the same layout
@@ -268,6 +273,28 @@ function nouns(context: DeveloperDocsGuideContext): {
   };
 }
 
+/*
+ * The resource's names as terms of a translated sentence, cased for the
+ * middle of a sentence in the reader's language, and the record the page is
+ * about when it has a name. The guide's headings and descriptions are whole
+ * sentences around these; its code and markdown stay as they are.
+ */
+function sentenceTerms(context: DeveloperDocsGuideContext): {
+  singular: TranslatableTerm;
+  plural: TranslatableTerm;
+  recordName: string | undefined;
+} {
+  return {
+    singular: translatableTerm(getDeveloperDocsSingularName(context.resource), {
+      inSentence: true,
+    }),
+    plural: translatableTerm(getDeveloperDocsPluralName(context.resource), {
+      inSentence: true,
+    }),
+    recordName: context.record?.displayName || undefined,
+  };
+}
+
 function getModelType(
   context: DeveloperDocsGuideContext,
 ): DatabaseBaseModelType {
@@ -450,7 +477,7 @@ function terraformLinks(
 
   if (typeName) {
     links.push({
-      title: `${typeName} reference`,
+      title: translateTemplate("{{type}} reference", { type: typeName }),
       url: `${TERRAFORM_REGISTRY_DOCS_URL}/resources/${getTerraformShortTypeName(typeName)}`,
     });
   }
@@ -517,7 +544,8 @@ function getTerraformResourceGuide(
   context: DeveloperDocsGuideContext,
   record: DeveloperDocsRecord,
 ): DeveloperDocsGuide {
-  const { singular, theRecord } = nouns(context);
+  const { singular } = nouns(context);
+  const terms: ReturnType<typeof sentenceTerms> = sentenceTerms(context);
   const copy: DeveloperDocsGuideCopy = guideCopy(
     DeveloperDocsPageType.Terraform,
     context,
@@ -546,8 +574,18 @@ function getTerraformResourceGuide(
     steps: [
       connectTerraformStep(context),
       {
-        title: `Add ${theRecord}`,
-        description: `Its settings as they are now, and an import block: it tells Terraform the ${singular} already exists, so Terraform adopts it instead of creating a copy. Comments name the records its IDs point at.`,
+        title: terms.recordName
+          ? translateTemplate('Add the {{singular}} "{{name}}"', {
+              singular: terms.singular,
+              name: terms.recordName,
+            })
+          : translateTemplate("Add this {{singular}}", {
+              singular: terms.singular,
+            }),
+        description: translateTemplate(
+          "Its settings as they are now, and an import block: it tells Terraform the {{singular}} already exists, so Terraform adopts it instead of creating a copy. Comments name the records its IDs point at.",
+          { singular: terms.singular },
+        ),
         markdown: joinParts([
           codeBlock("hcl", config.hcl),
           secretsMarkdown({
@@ -559,7 +597,10 @@ function getTerraformResourceGuide(
       },
       {
         title: "Import it",
-        description: `The plan shows the ${singular} being imported and nothing to change. Apply it, and the ${singular} is managed by Terraform from then on.`,
+        description: translateTemplate(
+          "The plan shows the {{singular}} being imported and nothing to change. Apply it, and the {{singular}} is managed by Terraform from then on.",
+          { singular: terms.singular },
+        ),
         markdown: codeBlock(
           "bash",
           "terraform init\nterraform plan\nterraform apply",
@@ -568,7 +609,15 @@ function getTerraformResourceGuide(
     ],
     sections: recipesSection({
       title: "Build on it",
-      description: `What people often set up next to ${theRecord}. Each one refers to it by its address in the configuration above, so put it in the same file.`,
+      description: terms.recordName
+        ? translateTemplate(
+            'What people often set up next to the {{singular}} "{{name}}". Each one refers to it by its address in the configuration above, so put it in the same file.',
+            { singular: terms.singular, name: terms.recordName },
+          )
+        : translateTemplate(
+            "What people often set up next to this {{singular}}. Each one refers to it by its address in the configuration above, so put it in the same file.",
+            { singular: terms.singular },
+          ),
       recipes,
     }),
     topics: [
@@ -600,7 +649,7 @@ function getTerraformUnsupportedGuide(
   context: DeveloperDocsGuideContext,
   typeName: string | null,
 ): DeveloperDocsGuide {
-  const { plural } = nouns(context);
+  const { plural } = sentenceTerms(context);
   const copy: DeveloperDocsGuideCopy = guideCopy(
     DeveloperDocsPageType.Terraform,
     context,
@@ -608,11 +657,15 @@ function getTerraformUnsupportedGuide(
 
   return {
     ...copy,
-    notice: `The Terraform provider cannot create or change ${plural}.${
-      typeName
-        ? ` You can still read them with the \`${typeName}\` data source.`
-        : ""
-    }`,
+    notice: typeName
+      ? translateTemplate(
+          "The Terraform provider cannot create or change {{plural}}. You can still read them with the `{{typeName}}` data source.",
+          { plural, typeName },
+        )
+      : translateTemplate(
+          "The Terraform provider cannot create or change {{plural}}.",
+          { plural },
+        ),
     steps: [connectTerraformStep(context)],
     sections: [],
     topics: [],
@@ -745,7 +798,9 @@ function getTerraformCollectionGuide(
       connectTerraformStep(context),
       createStep,
       {
-        title: `Bring in the ${plural} you already have`,
+        title: translateTemplate("Bring in the {{plural}} you already have", {
+          plural: sentenceTerms(context).plural,
+        }),
         description:
           "Terraform adopts them as they are, without creating copies.",
         markdown: importMarkdown,
@@ -753,7 +808,10 @@ function getTerraformCollectionGuide(
     ],
     sections: recipesSection({
       title: "Common setups",
-      description: `Ready-made configurations for ${plural}, filled in from this project.`,
+      description: translateTemplate(
+        "Ready-made configurations for {{plural}}, filled in from this project.",
+        { plural: sentenceTerms(context).plural },
+      ),
       recipes: getTerraformRecipes({
         modelType,
         scope: "list",
@@ -819,7 +877,9 @@ function pickFields(json: JSONObject, select: JSONObject): JSONObject {
 function apiLinks(context: DeveloperDocsGuideContext): Array<SetupGuideLink> {
   return [
     {
-      title: `${getDeveloperDocsSingularName(context.resource)} API reference`,
+      title: translateTemplate("{{name}} API reference", {
+        name: translatableTerm(getDeveloperDocsSingularName(context.resource)),
+      }),
       url: getApiReferenceUrl({
         modelType: getModelType(context),
         oneuptimeUrl: context.oneuptimeUrl,
@@ -866,7 +926,10 @@ function endpointsSection(
   return [
     {
       title: "Endpoints",
-      description: `Every request below goes to ${getApiBaseUrl(context.oneuptimeUrl)}, with the ApiKey header.`,
+      description: translateTemplate(
+        "Every request below goes to {{url}}, with the ApiKey header.",
+        { url: getApiBaseUrl(context.oneuptimeUrl) },
+      ),
       markdown: rows
         .filter((row: [boolean, string, string]): boolean => {
           return row[0];
@@ -913,7 +976,6 @@ function getApiResourceGuide(
   context: DeveloperDocsGuideContext,
   record: DeveloperDocsRecord,
 ): DeveloperDocsGuide {
-  const { singular } = nouns(context);
   const modelType: DatabaseBaseModelType = getModelType(context);
   const path: string | null = getModelApiPath(modelType);
   const operations: TerraformModelOperations =
@@ -923,7 +985,9 @@ function getApiResourceGuide(
   if (!path || !isModelInPublicApi(modelType)) {
     return {
       ...guideCopy(DeveloperDocsPageType.Api, context),
-      notice: `The REST API does not cover ${nouns(context).plural}.`,
+      notice: translateTemplate("The REST API does not cover {{plural}}.", {
+        plural: sentenceTerms(context).plural,
+      }),
       steps: [],
       sections: [],
       topics: [],
@@ -943,7 +1007,10 @@ function getApiResourceGuide(
   if (operations.canRead) {
     steps.push({
       title: "Read it",
-      description: `Ask for the fields you need in select. This ${singular}'s ID is ${record.id}.`,
+      description: translateTemplate(
+        "Ask for the fields you need in select. This {{singular}}'s ID is {{id}}.",
+        { singular: sentenceTerms(context).singular, id: record.id },
+      ),
       markdown: joinParts([
         curl({ method: "POST", url: `${itemUrl}/get-item`, body: { select } }),
         Object.keys(readJson).length > 1 ? responseBlock(readJson) : "",
@@ -966,7 +1033,12 @@ function getApiResourceGuide(
   if (operations.canDelete) {
     steps.push({
       title: "Delete it",
-      description: `This deletes the ${singular} for good.`,
+      description: translateTemplate(
+        "This deletes the {{singular}} for good.",
+        {
+          singular: sentenceTerms(context).singular,
+        },
+      ),
       markdown: curl({ method: "DELETE", url: itemUrl }),
     });
   }
@@ -1032,7 +1104,18 @@ function tasksSection(
   return [
     {
       title: "Common tasks",
-      description: `What people do most with ${nouns(context).theRecord} over the API, filled in with this project's own records.`,
+      description: sentenceTerms(context).recordName
+        ? translateTemplate(
+            'What people do most with the {{singular}} "{{name}}" over the API, filled in with this project\'s own records.',
+            {
+              singular: sentenceTerms(context).singular,
+              name: sentenceTerms(context).recordName as string,
+            },
+          )
+        : translateTemplate(
+            "What people do most with this {{singular}} over the API, filled in with this project's own records.",
+            { singular: sentenceTerms(context).singular },
+          ),
       variants,
     },
   ];
@@ -1051,7 +1134,9 @@ function getApiCollectionGuide(
   if (!path || !isModelInPublicApi(modelType)) {
     return {
       ...guideCopy(DeveloperDocsPageType.Api, context),
-      notice: `The REST API does not cover ${plural}.`,
+      notice: translateTemplate("The REST API does not cover {{plural}}.", {
+        plural: sentenceTerms(context).plural,
+      }),
       steps: [],
       sections: [],
       topics: [],
@@ -1068,8 +1153,12 @@ function getApiCollectionGuide(
     const sample: DeveloperDocsSample | undefined = context.sample;
 
     steps.push({
-      title: `List your ${plural}`,
-      description: `Newest first, ${DEVELOPER_DOCS_LIST_LIMIT} at a time.`,
+      title: translateTemplate("List your {{plural}}", {
+        plural: sentenceTerms(context).plural,
+      }),
+      description: translateTemplate("Newest first, {{limit}} at a time.", {
+        limit: DEVELOPER_DOCS_LIST_LIMIT,
+      }),
       markdown: joinParts([
         curl({
           method: "POST",
@@ -1125,7 +1214,9 @@ function getApiCollectionGuide(
     topics.push(paginationTopic(context));
     topics.push(QUERY_TOPIC);
     topics.push({
-      title: `Count your ${plural}`,
+      title: translateTemplate("Count your {{plural}}", {
+        plural: sentenceTerms(context).plural,
+      }),
       summary: "count",
       markdown: joinParts([
         "Takes the same query as a list, and answers with how many match.",
@@ -1193,7 +1284,11 @@ function mcpToolsTopic(
 ): SetupGuideTopic {
   return {
     title: "The tools your assistant uses",
-    summary: `${tools.get}, ${tools.list}, ${tools.update} and more`,
+    summary: translateTemplate("{{get}}, {{list}}, {{update}} and more", {
+      get: tools.get,
+      list: tools.list,
+      update: tools.update,
+    }),
     markdown: [
       `| Tool | What it does |`,
       `| --- | --- |`,
@@ -1210,7 +1305,7 @@ function mcpToolsTopic(
 }
 
 function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
-  const { singular, plural, theRecord } = nouns(context);
+  const { singular, plural } = nouns(context);
   const mcpUrl: string = getMcpServerUrl(context.oneuptimeUrl);
   const tools: McpToolNames | null = getMcpToolNames(getModelType(context));
   const prompts: Array<string> = getAssistantPrompts({
@@ -1230,8 +1325,17 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
     },
   );
   const askTitle: string = context.record
-    ? `Ask about ${theRecord}`
-    : `Ask about your ${plural}`;
+    ? sentenceTerms(context).recordName
+      ? translateTemplate('Ask about the {{singular}} "{{name}}"', {
+          singular: sentenceTerms(context).singular,
+          name: sentenceTerms(context).recordName as string,
+        })
+      : translateTemplate("Ask about this {{singular}}", {
+          singular: sentenceTerms(context).singular,
+        })
+    : translateTemplate("Ask about your {{plural}}", {
+        plural: sentenceTerms(context).plural,
+      });
   const links: Array<SetupGuideLink> = [
     { title: "MCP server", url: docsUrl(context, "ai/mcp-server") },
   ];
@@ -1249,7 +1353,10 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
         {
           title: askTitle,
           description: context.record
-            ? `Try one of these. Each names the ${singular} and its ID, so the assistant finds it straight away.`
+            ? translateTemplate(
+                "Try one of these. Each names the {{singular}} and its ID, so the assistant finds it straight away.",
+                { singular: sentenceTerms(context).singular },
+              )
             : "Try one of these.",
           prompts,
         },
@@ -1269,9 +1376,18 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
 
   return {
     ...guideCopy(DeveloperDocsPageType.AiAssistants, context),
-    notice: `OneUptime's MCP server does not have tools for ${plural} yet. An assistant that can run commands (Claude Code, Cursor, or GitHub Copilot in agent mode) can still work with ${
-      context.record ? `this ${singular}` : `your ${plural}`
-    } through the REST API.`,
+    notice: context.record
+      ? translateTemplate(
+          "OneUptime's MCP server does not have tools for {{plural}} yet. An assistant that can run commands (Claude Code, Cursor, or GitHub Copilot in agent mode) can still work with this {{singular}} through the REST API.",
+          {
+            plural: sentenceTerms(context).plural,
+            singular: sentenceTerms(context).singular,
+          },
+        )
+      : translateTemplate(
+          "OneUptime's MCP server does not have tools for {{plural}} yet. An assistant that can run commands (Claude Code, Cursor, or GitHub Copilot in agent mode) can still work with your {{plural}} through the REST API.",
+          { plural: sentenceTerms(context).plural },
+        ),
     steps: [
       {
         ...apiKeyStep(context),
@@ -1280,7 +1396,10 @@ function getAiGuide(context: DeveloperDocsGuideContext): DeveloperDocsGuide {
       },
       {
         title: askTitle,
-        description: `Start your assistant in the same shell, so it can use the key in ${ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE}, then try one of these.`,
+        description: translateTemplate(
+          "Start your assistant in the same shell, so it can use the key in {{variable}}, then try one of these.",
+          { variable: ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE },
+        ),
         prompts,
       },
     ],
