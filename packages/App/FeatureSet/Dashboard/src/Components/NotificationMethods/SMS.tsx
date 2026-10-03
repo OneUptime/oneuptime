@@ -22,6 +22,18 @@ import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import NotificationChannelOffPanel from "./NotificationChannelOffPanel";
+import {
+  isAddingOffered,
+  isCodeResendOffered,
+  ProjectChannelState,
+  useProjectChannelState,
+} from "./ProjectNotificationChannels";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+  ProjectNotificationChannel,
+} from "./ProjectNotificationChannelsCopy";
 
 const SMS: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -39,6 +51,16 @@ const SMS: () => JSX.Element = (): ReactElement => {
 
   const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
     useState<boolean>(false);
+
+  /*
+   * Whether the project has SMS on. While it is off the server refuses a
+   * new number and a code sent again, so the list offers neither: the panel
+   * at its top says so, with the switch itself for those who may turn it on.
+   */
+  const channelState: ProjectChannelState = useProjectChannelState(
+    ProjectNotificationChannel.SMS,
+  );
+  const isChannelOff: boolean = channelState === ProjectChannelState.Off;
 
   useEffect(() => {
     setError("");
@@ -117,7 +139,11 @@ const SMS: () => JSX.Element = (): ReactElement => {
                 return false;
               }
 
-              return true;
+              // The server refuses to send a code while SMS is off.
+              return isCodeResendOffered(
+                ProjectNotificationChannel.SMS,
+                channelState,
+              );
             },
             onClick: async (
               item: UserSMS,
@@ -141,14 +167,23 @@ const SMS: () => JSX.Element = (): ReactElement => {
         name="User Settings > Notification Methods > SMS"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={isAddingOffered(channelState)}
+        topContent={
+          <NotificationChannelOffPanel
+            list={ChannelGatedMethodList.SMS}
+            state={channelState}
+          />
+        }
         cardProps={{
           title: "Phone Numbers for SMS Notifications",
           description:
             "Manage Phone Numbers that will receive SMS notifications for this project.",
         }}
         noItemsMessage={
-          "No phone numbers found. Please add one to receive notifications."
+          isChannelOff
+            ? getChannelGatedMethodList(ChannelGatedMethodList.SMS)
+                .noItemsWhileOff
+            : "No phone numbers found. Please add one to receive notifications."
         }
         formFields={[
           {

@@ -12,7 +12,7 @@ En statusside støtter fem kanaler. De og siden der besøkende melder seg på, s
 
 - **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — på som standard. Legger punktet **Abonner** i navigasjonslinjen på statussiden, der besøkende melder seg på via kanalene nedenfor.
 - **E-post** (`enableEmailSubscribers`) — på som standard. Alt annet er av til du slår det på.
-- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betales hver SMS fra prosjektets saldo for SMS og anrop, med mindre siden har sin egen **Twilio-konfigurasjon**. For å slå den på må **Aktiver SMS-varsler** også være på for prosjektet, under **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betales hver SMS fra prosjektets saldo for SMS og anrop, med mindre siden har sin egen **Twilio-konfigurasjon**. For å slå den på må **SMS** også være på for prosjektet, i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 - **Slack** (`enableSlackSubscribers`) — av som standard.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
 - **Webhook** (`enableWebhookSubscribers`) — av som standard.

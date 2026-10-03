@@ -12,7 +12,7 @@
 
 - **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — به‌طور پیش‌فرض روشن. آیتم **Subscribe** را در نوار پیمایش صفحه وضعیت می‌گذارد، جایی که بازدیدکنندگان از راه کانال‌های زیر مشترک می‌شوند.
 - **Email** (`enableEmailSubscribers`) — به‌طور پیش‌فرض روشن. باقی همه‌چیز تا وقتی روشنشان نکنید خاموش‌اند.
-- **SMS** (`enableSmsSubscribers`) — به‌طور پیش‌فرض خاموش. در OneUptime Cloud هزینه هر پیامک از موجودی پیامک و تماس پروژه پرداخت می‌شود، مگر اینکه صفحه **Twilio Config** خودش را داشته باشد. برای روشن کردنش، **Enable SMS Notifications** پروژه هم باید در **Project Settings > Notifications > Notification Settings** روشن باشد.
+- **SMS** (`enableSmsSubscribers`) — به‌طور پیش‌فرض خاموش. در OneUptime Cloud هزینه هر پیامک از موجودی پیامک و تماس پروژه پرداخت می‌شود، مگر اینکه صفحه **Twilio Config** خودش را داشته باشد. برای روشن کردنش، **SMS** پروژه هم باید در کارت **کانال‌های اعلان** در **Project Settings > Notifications > Notification Settings** روشن باشد.
 - **Slack** (`enableSlackSubscribers`) — به‌طور پیش‌فرض خاموش.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — به‌طور پیش‌فرض خاموش.
 - **Webhook** (`enableWebhookSubscribers`) — به‌طور پیش‌فرض خاموش.
