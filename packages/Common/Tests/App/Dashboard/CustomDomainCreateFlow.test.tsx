@@ -177,7 +177,6 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { getJestSpyOn } from "../../Spy";
 
-
 jest.setTimeout(30000);
 
 interface PageCase {
@@ -195,7 +194,9 @@ interface PageCase {
 const PAGES: Array<PageCase> = [
   {
     name: "a status page",
-    Page: StatusPageDomains as (props: PageComponentProps) => React.ReactElement,
+    Page: StatusPageDomains as (
+      props: PageComponentProps,
+    ) => React.ReactElement,
     path: `/dashboard/${PROJECT_ID}/status-pages/${PARENT_ID}/domains`,
     modelType: StatusPageDomain,
     parentColumn: "statusPageId",

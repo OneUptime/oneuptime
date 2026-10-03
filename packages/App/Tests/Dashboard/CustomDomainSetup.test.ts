@@ -71,7 +71,10 @@ const COMPONENT_DIR: string = path.join(
 
 const TABLE: string = path.join(COMPONENT_DIR, "CustomDomainsTable.tsx");
 const KINDS: string = path.join(COMPONENT_DIR, "CustomDomainKinds.ts");
-const DIALOG: string = path.join(COMPONENT_DIR, "CustomDomainDnsSetupModal.tsx");
+const DIALOG: string = path.join(
+  COMPONENT_DIR,
+  "CustomDomainDnsSetupModal.tsx",
+);
 
 const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
@@ -184,12 +187,9 @@ describe("where a custom domain is on its way to HTTPS", () => {
       { isCnameVerified: true, isSslProvisioned: true },
       CustomDomainState.CertificateIssued,
     ],
-  ])(
-    "%s",
-    (_name: string, domain: CustomDomainStateInput, state: string) => {
-      expect(getCustomDomainState(domain)).toBe(state);
-    },
-  );
+  ])("%s", (_name: string, domain: CustomDomainStateInput, state: string) => {
+    expect(getCustomDomainState(domain)).toBe(state);
+  });
 
   test("the Status column reads one sentence per state: the brief's four, and three that say what failed", () => {
     expect(CUSTOM_DOMAIN_STATUS).toEqual({

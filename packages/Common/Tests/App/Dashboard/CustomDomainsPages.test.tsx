@@ -104,14 +104,14 @@ jest.mock("../../../UI/Config", () => {
     ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
   };
 
-  for (const name of ["StatusPageCNameRecord", "DashboardCNameRecord"]) {
-    Object.defineProperty(mocked, name, {
-      get: (): string => {
-        return (globalThis as unknown as { __cnameRecord: string })
-          .__cnameRecord;
-      },
-    });
-  }
+  const cnameRecord: PropertyDescriptor = {
+    get: (): string => {
+      return (globalThis as unknown as { __cnameRecord: string }).__cnameRecord;
+    },
+  };
+
+  Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
 
   return mocked;
 });
@@ -147,7 +147,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
                 <p data-testid="status">{getStatus(row)}</p>
                 {(props.actionButtons || [])
                   .filter(
-                    (action: ActionButtonSchema<CustomDomainModel>): boolean => {
+                    (
+                      action: ActionButtonSchema<CustomDomainModel>,
+                    ): boolean => {
                       return (
                         !action.isVisible || Boolean(action.isVisible(row))
                       );
@@ -901,12 +903,13 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
     test("the certificate options are one folded Advanced section", () => {
       renderPage();
 
-      const sections: Array<FormFieldCollapsibleSection<CustomDomainModel>> =
-        ["isCustomCertificate", "customCertificate", "customCertificateKey"].map(
-          (key: string) => {
-            return fieldOf(key).collapsibleSection!;
-          },
-        );
+      const sections: Array<FormFieldCollapsibleSection<CustomDomainModel>> = [
+        "isCustomCertificate",
+        "customCertificate",
+        "customCertificateKey",
+      ].map((key: string) => {
+        return fieldOf(key).collapsibleSection!;
+      });
 
       expect(sections[0]).toBeDefined();
       // One section: the same object on each field.
@@ -926,9 +929,9 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "isCustomCertificate",
       ).collapsibleSection!;
 
-      expect(
-        section.getSummary!({} as FormValues<CustomDomainModel>),
-      ).toEqual([CustomDomainCopy.advancedSummaryFreeCertificate]);
+      expect(section.getSummary!({} as FormValues<CustomDomainModel>)).toEqual([
+        CustomDomainCopy.advancedSummaryFreeCertificate,
+      ]);
       expect(
         section.getSummary!({
           isCustomCertificate: true,

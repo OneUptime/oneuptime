@@ -146,7 +146,7 @@ type Service = {
  */
 function setUpService(data: {
   rows: Array<DomainRow>;
-  failOrdersFor?: Array<string>;
+  failOrdersFor?: Array<string> | undefined;
 }): Service {
   const service: Service = {
     findByCalls: [],

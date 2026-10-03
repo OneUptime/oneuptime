@@ -140,52 +140,52 @@ export default class CustomDomainOrders {
     }
 
     const order: Promise<CustomDomainVerificationResult> = ordering.then(
-        (outcome: CertificateOrderOutcome): CustomDomainVerificationResult => {
-          /*
-           * Nothing was ordered - another order of the name is running, or
-           * this window's orders are used up - so the click does not keep
-           * the window: the next one may try again. The sweeps order it
-           * meanwhile.
-           */
-          if (
-            outcome === CertificateOrderOutcome.NotOrderedNow ||
-            outcome === CertificateOrderOutcome.LimitReached
-          ) {
-            void CertificateOrder.releaseOnDemandOrder(name);
-          }
+      (outcome: CertificateOrderOutcome): CustomDomainVerificationResult => {
+        /*
+         * Nothing was ordered - another order of the name is running, or
+         * this window's orders are used up - so the click does not keep
+         * the window: the next one may try again. The sweeps order it
+         * meanwhile.
+         */
+        if (
+          outcome === CertificateOrderOutcome.NotOrderedNow ||
+          outcome === CertificateOrderOutcome.LimitReached
+        ) {
+          void CertificateOrder.releaseOnDemandOrder(name);
+        }
 
-          return {
-            certificateStatus:
-              outcome === CertificateOrderOutcome.AlreadyIssued
-                ? CustomDomainCertificateStatus.Issued
-                : CustomDomainCertificateStatus.Issuing,
-          };
-        },
-        (err: unknown): CustomDomainVerificationResult => {
-          logger.error("Cannot order cert for domain: " + domain.fullDomain, {
-            fullDomain: domain.fullDomain,
-          } as LogAttributes);
-          logger.error(err, {
-            fullDomain: domain.fullDomain,
-          } as LogAttributes);
+        return {
+          certificateStatus:
+            outcome === CertificateOrderOutcome.AlreadyIssued
+              ? CustomDomainCertificateStatus.Issued
+              : CustomDomainCertificateStatus.Issuing,
+        };
+      },
+      (err: unknown): CustomDomainVerificationResult => {
+        logger.error("Cannot order cert for domain: " + domain.fullDomain, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
+        logger.error(err, {
+          fullDomain: domain.fullDomain,
+        } as LogAttributes);
 
-          const certificateError: string =
-            err instanceof Exception && err.message
-              ? err.message
-              : "We could not order an SSL certificate for this domain.";
+        const certificateError: string =
+          err instanceof Exception && err.message
+            ? err.message
+            : "We could not order an SSL certificate for this domain.";
 
-          // Not awaited by the answer; it never throws.
-          void CertificateOrder.recordOnDemandOrderFailure(
-            name,
-            certificateError,
-          );
+        // Not awaited by the answer; it never throws.
+        void CertificateOrder.recordOnDemandOrderFailure(
+          name,
+          certificateError,
+        );
 
-          return {
-            certificateStatus: CustomDomainCertificateStatus.Failed,
-            certificateError: certificateError,
-          };
-        },
-      );
+        return {
+          certificateStatus: CustomDomainCertificateStatus.Failed,
+          certificateError: certificateError,
+        };
+      },
+    );
 
     let timer: ReturnType<typeof setTimeout> | undefined = undefined;
 

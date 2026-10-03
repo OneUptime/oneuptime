@@ -97,7 +97,8 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const kind: CustomDomainKind = props.kind;
   const cnameRecord: string = kind.getCnameRecord();
-  const crudApiPath: string = new kind.modelType().crudApiPath?.toString() || "";
+  const crudApiPath: string =
+    new kind.modelType().crudApiPath?.toString() || "";
 
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),

@@ -68,8 +68,11 @@ function withCertificates(
 ): Array<Array<string>> {
   const lookups: Array<Array<string>> = [];
 
-  jest.spyOn(GreenlockUtil, "findCertificatesByDomain").mockImplementation(
-    (async (names: Array<string>): Promise<Map<string, AcmeCertificate>> => {
+  jest
+    .spyOn(GreenlockUtil, "findCertificatesByDomain")
+    .mockImplementation((async (
+      names: Array<string>,
+    ): Promise<Map<string, AcmeCertificate>> => {
       lookups.push([...names]);
 
       const found: Map<string, AcmeCertificate> = new Map();
@@ -89,8 +92,7 @@ function withCertificates(
       }
 
       return found;
-    }) as never,
-  );
+    }) as never);
 
   return lookups;
 }
@@ -306,7 +308,9 @@ describe("CustomDomainOrders.orderOnceCnameIsVerified (Check now)", () => {
         setTimeout(resolve, 0);
       });
 
-      const next: CheckNow = await checkNow({ domain: domain("dash.acme.com") });
+      const next: CheckNow = await checkNow({
+        domain: domain("dash.acme.com"),
+      });
 
       expect(next.orders).toBe(1);
     },
@@ -326,7 +330,10 @@ describe("CustomDomainOrders.orderOnceCnameIsVerified (Check now)", () => {
         return key.startsWith(CertificateOrder.ON_DEMAND_ORDER_NAMESPACE);
       }),
     ).toEqual([
-      [`${CertificateOrder.ON_DEMAND_ORDER_NAMESPACE}-dash.acme.com`, "ordering"],
+      [
+        `${CertificateOrder.ON_DEMAND_ORDER_NAMESPACE}-dash.acme.com`,
+        "ordering",
+      ],
     ]);
   });
 
@@ -342,7 +349,8 @@ describe("CustomDomainOrders.orderOnceCnameIsVerified (Check now)", () => {
 
     expect(done.result).toEqual({
       certificateStatus: CustomDomainCertificateStatus.Failed,
-      certificateError: "We could not order an SSL certificate for this domain.",
+      certificateError:
+        "We could not order an SSL certificate for this domain.",
     });
   });
 
@@ -620,26 +628,28 @@ describe("CustomDomainOrders.getCertificates (the Status column)", () => {
     const expiresAt: Date = new Date("2026-12-30T00:00:00.000Z");
     const failedAt: Date = new Date("2026-10-03T11:00:00.000Z");
 
-    const states: Mock<(domains: Array<string>) => Promise<unknown>> =
-      jest
-        .spyOn(CertificateOrder, "getCertificateStates")
-        .mockResolvedValue(
-          new Map<string, CustomDomainCertificateState>([
-            [
-              "failing.acme.com",
-              {
-                lastOrderError: "Unable to order certificate.",
-                lastOrderFailedAt: failedAt,
-              },
-            ],
-            ["issued.acme.com", { certificateExpiresAt: expiresAt }],
-          ]) as never,
-        ) as unknown as Mock<(domains: Array<string>) => Promise<unknown>>;
+    const states: Mock<(domains: Array<string>) => Promise<unknown>> = jest
+      .spyOn(CertificateOrder, "getCertificateStates")
+      .mockResolvedValue(
+        new Map<string, CustomDomainCertificateState>([
+          [
+            "failing.acme.com",
+            {
+              lastOrderError: "Unable to order certificate.",
+              lastOrderFailedAt: failedAt,
+            },
+          ],
+          ["issued.acme.com", { certificateExpiresAt: expiresAt }],
+        ]) as never,
+      ) as unknown as Mock<(domains: Array<string>) => Promise<unknown>>;
 
     const certificates: Array<CustomDomainCertificate> =
       await CustomDomainOrders.getCertificates([failing, issued]);
 
-    expect(states).toHaveBeenCalledWith(["Failing.Acme.com", "issued.acme.com"]);
+    expect(states).toHaveBeenCalledWith([
+      "Failing.Acme.com",
+      "issued.acme.com",
+    ]);
     expect(certificates).toEqual([
       {
         domainId: failing.id.toString(),

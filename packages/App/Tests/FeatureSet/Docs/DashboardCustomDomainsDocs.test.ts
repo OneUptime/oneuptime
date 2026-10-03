@@ -114,7 +114,9 @@ describe("Dashboard custom domains (English docs)", () => {
       "The free certificate is ordered at that moment",
     );
     expect(dnsSetup).toContain("ALIAS, ANAME or CNAME flattening");
-    expect(dnsSetup).toContain("orders at most once per domain every 15 minutes");
+    expect(dnsSetup).toContain(
+      "orders at most once per domain every 15 minutes",
+    );
   });
 
   it("says the free certificate needs no button", () => {

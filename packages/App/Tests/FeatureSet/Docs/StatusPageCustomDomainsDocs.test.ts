@@ -93,9 +93,7 @@ describe("Status page custom domains (English docs)", () => {
     expect(adding).toContain("The dialog is one page");
     expect(adding).not.toMatch(/two steps|\*\*Basic\*\*|\*\*More\*\*/);
     expect(adding).toContain("**Advanced**");
-    expect(adding).toContain(
-      CustomDomainCopy.advancedSummaryFreeCertificate,
-    );
+    expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**Upload Custom Certificate**");
     expect(adding).toContain("**DNS Setup** opens");
   });
@@ -194,9 +192,7 @@ describe("Status page custom domains (English docs)", () => {
         return line.split("|")[1]!.trim();
       });
 
-    expect(rows.sort()).toEqual(
-      Object.values(CUSTOM_DOMAIN_STATUS).sort(),
-    );
+    expect(rows.sort()).toEqual(Object.values(CUSTOM_DOMAIN_STATUS).sort());
     expect(table).not.toContain("Action Required");
   });
 });

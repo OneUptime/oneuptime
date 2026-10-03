@@ -710,9 +710,7 @@ describe("dashboard certificates (the Status column)", () => {
   });
 
   test("a dashboard without domains answers an empty list", async () => {
-    jest
-      .spyOn(DashboardDomainService, "findBy")
-      .mockResolvedValue([] as never);
+    jest.spyOn(DashboardDomainService, "findBy").mockResolvedValue([] as never);
     jest
       .spyOn(CertificateOrder, "getCertificateStates")
       .mockResolvedValue(new Map() as never);
@@ -748,10 +746,9 @@ describe("DashboardDomainService, wired to the shared steps", () => {
 
     const domain: DomainRow = makeDomain();
 
-    await DashboardDomainService.orderCertOnceCnameIsVerified(
-      domain as never,
-      { waitInMs: 1234 },
-    );
+    await DashboardDomainService.orderCertOnceCnameIsVerified(domain as never, {
+      waitInMs: 1234,
+    });
 
     const call: {
       domain: unknown;
