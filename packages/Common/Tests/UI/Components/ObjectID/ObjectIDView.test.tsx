@@ -153,6 +153,27 @@ describe("ObjectIDView", () => {
     expect(writeText).not.toHaveBeenCalled();
   });
 
+  test("leaving the page before the clipboard answers starts no timer", async () => {
+    let finishCopy: () => void = (): void => {};
+    installClipboard(
+      jest.fn<(text: string) => Promise<void>>((): Promise<void> => {
+        return new Promise<void>((resolve: () => void) => {
+          finishCopy = resolve;
+        });
+      }),
+    );
+    const view: RenderResult = render(<ObjectIDView objectId={PROJECT_ID} />);
+
+    fireEvent.click(pill());
+    view.unmount();
+
+    await act(async () => {
+      finishCopy();
+    });
+
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   test("leaving the page while it is green leaves no timer behind", async () => {
     installClipboard(
       jest.fn<(text: string) => Promise<void>>(async (): Promise<void> => {}),

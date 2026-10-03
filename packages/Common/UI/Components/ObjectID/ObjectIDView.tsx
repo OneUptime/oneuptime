@@ -30,9 +30,14 @@ const ObjectIDView: FunctionComponent<ComponentProps> = (
   const resetTimerRef: React.MutableRefObject<ReturnType<
     typeof setTimeout
   > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     return () => {
+      isMountedRef.current = false;
+
       if (resetTimerRef.current) {
         clearTimeout(resetTimerRef.current);
       }
@@ -46,7 +51,8 @@ const ObjectIDView: FunctionComponent<ComponentProps> = (
      */
     const hasCopied: boolean = await Clipboard.copyToClipboard(props.objectId);
 
-    if (!hasCopied) {
+    // Refused, or the page moved on while the clipboard answered.
+    if (!hasCopied || !isMountedRef.current) {
       return;
     }
 
