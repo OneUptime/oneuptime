@@ -122,8 +122,8 @@ L'en-tête de la carte comporte aussi un menu **Actions**, pour agir sans quitte
 
 - **Execute Runbook** — lancer un [runbook](/docs/runbooks/index) sur cet incident.
 - **Exécuter la politique d'astreinte** — alerter une politique à la demande.
-- **Add Public Note** — les quatre mêmes champs que la page Notes publiques, dans une fenêtre.
-- **Ajouter une note privée** — corps de note et pièces jointes uniquement.
+- **Add Public Note** — l'éditeur de la page Notes publiques, dans une fenêtre : rédigez la note, puis **Post update**. Les modèles, **Draft with AI**, les pièces jointes, **Notify status page subscribers** avec les destinataires et **Preview notification** y sont tous. La note est publiée maintenant ; pour l'antidater, choisissez **Posted now**.
+- **Ajouter une note privée** — l'éditeur de la page Notes privées, dans une fenêtre : rédigez la note, puis **Add note**.
 
 Tout le reste se trouve derrière le bouton **⋯** juste à côté, le même bouton **Plus d'options** que l'en-tête de carte d'un tableau, pour que l'en-tête affiche le moins de boutons possible :
 

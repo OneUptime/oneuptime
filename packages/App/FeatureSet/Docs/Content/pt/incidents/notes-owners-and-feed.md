@@ -122,8 +122,8 @@ O cabeçalho do cartão também tem um menu **Ações**, para que você aja sem 
 
 - **Execute Runbook** — inicia um [runbook](/docs/runbooks/index) contra este incidente.
 - **Executar política de plantão** — aciona uma política sob demanda.
-- **Add Public Note** — os mesmos quatro campos da página de Notas públicas, em um modal.
-- **Adicionar nota privada** — só corpo da nota e anexos.
+- **Add Public Note** — o editor da página de Notas públicas, em um modal: escreva a nota e depois **Post update**. Modelos, **Draft with AI**, anexos, **Notify status page subscribers** com quem ela alcança e **Preview notification** estão todos lá. A nota é publicada agora; para uma hora anterior, escolha **Posted now**.
+- **Adicionar nota privada** — o editor da página de Notas privadas, em um modal: escreva a nota e depois **Add note**.
 
 Todo o resto fica atrás do botão **⋯** ao lado, o mesmo botão **Mais opções** do cabeçalho do cartão de uma tabela, para que o cabeçalho mostre o mínimo de botões possível:
 
