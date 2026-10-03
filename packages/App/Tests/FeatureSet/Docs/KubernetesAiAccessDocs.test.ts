@@ -980,7 +980,7 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
    */
   it("says the postmortem draft is its own switch, on for new projects", () => {
     expect(postmortem).toContain(
-      "**Draft a postmortem automatically when an incident resolves**",
+      "**Draft a postmortem when an incident resolves**",
     );
     expect(postmortem).toContain("It is **on by default for new projects**");
     expect(postmortem).toContain(
@@ -998,7 +998,7 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
 
     expect(codeFixes).toContain("**on by default for new projects**");
     expect(insights).toContain(
-      "Both settings are **on by default for new projects**",
+      "All three settings are **on by default for new projects**",
     );
     expect(codeFixes).not.toMatch(/off by default/i);
     expect(insights).not.toMatch(/off by default/i);

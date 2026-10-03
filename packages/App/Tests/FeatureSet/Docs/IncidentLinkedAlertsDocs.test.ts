@@ -1797,24 +1797,32 @@ describe("Incident Linked Alerts docs", () => {
     });
 
     it("have a Settings page of their own, Linked Alerts, where the docs send readers, in every language", () => {
-      const cards: Array<string> = fs
-        .readFileSync(INCIDENT_LINKED_ALERTS_SETTINGS_FILE, "utf8")
-        .split("<CardModelDetail")
+      const settingsSource: string = fs.readFileSync(
+        INCIDENT_LINKED_ALERTS_SETTINGS_FILE,
+        "utf8",
+      );
+      const cards: Array<string> = settingsSource
+        .split("<ModelSwitchesCard<Project>")
         .slice(1);
 
-      // One card, holding both switches and nothing else it could overwrite on Update.
+      /*
+       * One card of switches, holding both and nothing else: each saves its
+       * own column the moment it is flipped (there is no Edit dialog that
+       * could write anything else).
+       */
       expect(cards).toHaveLength(1);
+      expect(settingsSource).not.toContain("<CardModelDetail");
 
       const card: string = cards[0] as string;
 
       for (const column of LINK_SWITCH_COLUMNS) {
-        expect(card).toContain(`${column}:`);
+        expect(card).toContain(`column: "${column}"`);
       }
 
       expect(card).not.toContain("NumberPrefix");
 
       const cardTitle: string | undefined = card.match(
-        /cardProps=\{\{\s*title:\s*"([^"]+)"/,
+        /cardTitle=\{translationKey\("([^"]+)"\)\}/,
       )?.[1];
 
       expect(cardTitle).toBe(LINKED_ALERTS_TITLE);

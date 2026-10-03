@@ -13,6 +13,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  *   - it starts folded, every time the page opens;
  *   - its description says what is in it, folded or open, so a reader
  *     looking for block permissions finds them without opening every fold;
+ *   - a page can say instead, while it is folded, what the cards in it are
+ *     set to (summary) - what their defaults do, say: "Every incident is
+ *     investigated, whatever its severity, and nothing limits how much AI
+ *     does." The description is then the line under its title once open;
  *   - while folded it says "Configured" on its header when something in it
  *     is set (the page says when: an API key with block permissions), so
  *     folding never hides that a setting is in force;
@@ -36,6 +40,13 @@ export interface ComponentProps {
    * too, so nobody has to open it to find out.
    */
   description?: string | undefined;
+  /*
+   * While it is folded, what its cards are set to, in place of the
+   * description: one or more whole sentences, already translated or
+   * English. The page works it out from what its cards hold, so a reader
+   * learns what the defaults do - or what is set - without opening it.
+   */
+  summary?: string | ReactElement | undefined;
   // Whether anything in it is set: the folded header then says "Configured".
   isConfigured?: boolean | undefined;
   children: ReactElement | Array<ReactElement>;
@@ -57,7 +68,7 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
       <CollapsibleSection
         title={ADVANCED_FORM_SECTION_TITLE}
         description={props.description}
-        collapsedDescription={props.description}
+        collapsedDescription={props.summary || props.description}
         variant="card"
         defaultCollapsed={true}
         badge={
