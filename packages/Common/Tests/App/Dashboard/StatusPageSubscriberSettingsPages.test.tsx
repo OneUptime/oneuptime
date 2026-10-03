@@ -187,6 +187,8 @@ import {
   SUBSCRIPTION_SWITCH_COLUMNS,
   SubscriptionSwitchColumn,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberChannelsCopy";
+import { DISPLAY_SETTING_COLUMNS } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
+import { STATUS_PAGE_DISPLAY_SETTINGS_CARD_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCard";
 import SubscriberUnsubscribeCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberUnsubscribeCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import EmailSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmailSubscribers";
@@ -609,30 +611,47 @@ describe("Subscriber Settings", () => {
 });
 
 describe("Advanced Settings", () => {
+  /*
+   * What the page shows is one card of its own now ("What your status page
+   * shows", drawn for real here); no detail card with an Edit dialog is
+   * left on the page.
+   */
   test("no card shows or edits Show Subscriber Page or a subscriber channel", async () => {
     await renderPage(<StatusPageSettings {...PAGE_PROPS} />);
 
-    expect(recordedDetailCards.length).toBeGreaterThan(0);
+    expect(recordedDetailCards).toEqual([]);
 
-    const columns: Array<string> = recordedDetailCards.flatMap(columnsOfCard);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(STATUS_PAGE_DISPLAY_SETTINGS_CARD_TEST_ID),
+      ).toBeInTheDocument();
+    });
 
-    expect(columns.length).toBeGreaterThan(0);
+    const requested: Array<string> = getItemMock.mock.calls.flatMap(
+      (call: Array<unknown>): Array<string> => {
+        return Object.keys(
+          ((call[0] as Record<string, unknown>)["select"] as Record<
+            string,
+            unknown
+          >) || {},
+        );
+      },
+    );
+
+    expect(requested.length).toBeGreaterThan(0);
 
     for (const column of SUBSCRIPTION_SWITCH_COLUMNS) {
-      expect(columns).not.toContain(column);
+      expect(DISPLAY_SETTING_COLUMNS).not.toContain(column);
+      expect(requested).not.toContain(column);
+      expect(screen.queryByTestId(`subscription-switch-${column}`)).toBeNull();
     }
   });
 
   test("has no Subscriber Settings card", async () => {
     await renderPage(<StatusPageSettings {...PAGE_PROPS} />);
 
-    const titles: Array<unknown> = recordedDetailCards.map(
-      (card: Record<string, unknown>): unknown => {
-        return (card["cardProps"] as Record<string, unknown>)["title"];
-      },
-    );
-
-    expect(titles).not.toContain("Subscriber Settings");
+    expect(screen.queryByText("Subscriber Settings")).not.toBeInTheDocument();
+    expect(recordedChannelCards).toEqual([]);
   });
 });
 

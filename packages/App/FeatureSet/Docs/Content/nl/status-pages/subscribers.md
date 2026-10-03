@@ -130,14 +130,14 @@ Bijlagen worden geserveerd via `GET {statusPageCrudPath}/status-page-announcemen
 **Show At** (`showAnnouncementAt`) en **End At** (`endAnnouncementAt`) sturen alles aan, maar de overzichtspagina en de aankondigingenlijst stellen elk een andere vraag, en dat verschil laat mensen struikelen.
 
 - **De overzichtspagina** toont een aankondiging wanneer `showAnnouncementAt` in het verleden ligt en `endAnnouncementAt` in de toekomst ligt of leeg is.
-- **De lijst `/announcements`** toont aankondigingen waarvan `showAnnouncementAt` binnen **Aankondigingsgeschiedenis weergeven (in dagen)** (`showAnnouncementHistoryInDays`, standaard 14) valt, en splitst ze daarna aan de clientkant in actief en verlopen.
+- **De lijst `/announcements`** toont aankondigingen waarvan `showAnnouncementAt` binnen het geschiedenisvenster van de aankondigingen (`showAnnouncementHistoryInDays`, standaard 14) valt, en splitst ze daarna aan de clientkant in actief en verlopen.
 
 Twee gevolgen waarop je maar beter kunt anticiperen:
 
 - **Een aankondiging zonder einddatum verloopt nooit.** Laat **Stop met tonen aankondiging om** leeg en ze blijft onbeperkt boven aan de overzichtspagina staan. Zet een einddatum op alles wat tijdgebonden is.
 - **Een oude maar nog actieve aankondiging kan uit de lijst verdwijnen.** Is ze langer dan `showAnnouncementHistoryInDays` geleden begonnen, dan valt ze van `/announcements` af terwijl ze op het overzicht blijft staan. Verruim het geschiedenisvenster als je langlopende mededelingen gebruikt.
 
-Of aankondigingen überhaupt verschijnen, bepaalt de kaart **Aankondigingsinstellingen** op **Geavanceerde instellingen**: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en **Aankondigingsgeschiedenis weergeven (in dagen)** (standaard 14). Staat **Aankondigingen weergeven** uit, dan weigert het endpoint voor aankondigingen het verzoek regelrecht.
+Of aankondigingen überhaupt verschijnen, stel je in de kaart **Wat uw statuspagina toont** op **Geavanceerde instellingen** in: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en daaronder **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14). Staat **Aankondigingen weergeven** uit, dan weigert het endpoint voor aankondigingen het verzoek regelrecht.
 
 ## Aankondigingssjablonen
 

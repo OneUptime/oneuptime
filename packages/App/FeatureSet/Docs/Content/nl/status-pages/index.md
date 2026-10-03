@@ -11,7 +11,7 @@ Statuspagina's staan onder **Statuspagina's** in de linkernavigatie van het dash
 - **Aangemaakt met twee velden.** Een nieuwe statuspagina vraagt alleen om **Naam** en **Beschrijving**. Resources, huisstijl en domeinen richt je daarna in.
 - **Resources zijn wat bezoekers zien.** Elke rij op de pagina is een **Statuspagina Bron** — een monitor (of monitorgroep) met een eigen weergavenaam, tooltip en uptime-opties. Groepen splitsen een lange pagina in secties en kunnen genest worden.
 - **Vanaf dag één een preview-URL.** Elke statuspagina krijgt een previewlink, zodat je hem kunt bekijken voordat er een eigen domein bestaat.
-- **Routes voor bezoekers hangen aan instellingen.** Incidenten, aankondigingen, geplande gebeurtenissen en de abonneepagina verschijnen elk alleen wanneer hun schakelaar op **Geavanceerde instellingen** aan staat.
+- **Routes voor bezoekers hangen aan instellingen.** Incidenten, episodes, aankondigingen en geplande gebeurtenissen verschijnen elk alleen zolang hun schakelaar in **Wat uw statuspagina toont** (op **Geavanceerde instellingen**) aan staat, en de abonneepagina alleen zolang **Abonneepagina weergeven** aan staat.
 - **Drie manieren om hem privé te maken.** Privégebruikers, een hoofdwachtwoord, of SAML SSO / OIDC — plus een IP-whitelist.
 - **Abonnees krijgen automatisch bericht.** Abonnees via e-mail, sms, Slack, Microsoft Teams en webhook kunnen allemaal een pagina volgen, elk kanaal achter zijn eigen schakelaar.
 
@@ -98,36 +98,23 @@ Voor wat een incident überhaupt op deze pagina zet, en wat het er weer af haalt
 
 ## Kiezen wat er op de pagina komt
 
-De meeste weergaveschakelaars zitten op één plek: **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen**. Elke kaart heeft een eigen knop **Edit Settings**.
+Wat bezoekers zien, stel je in één kaart in: **Wat uw statuspagina toont**, op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen**. Die heeft een rij voor elke lijst die de pagina kan tonen, daarna **Uptimegeschiedenis** en de regel "Powered by OneUptime". Er is geen bewerkknop: een schakelaar wordt opgeslagen zodra je hem omzet, een aantal dagen zodra je het vak verlaat of op Enter drukt.
 
-**Incidentinstellingen**:
+- **Incidenten weergeven** (`showIncidentsOnStatusPage`) — standaard aan. Daaronder bepaalt **De laatste … dagen weergeven** (`showIncidentHistoryInDays`, standaard 14) hoe ver de incidentenlijst terugkijkt, en **Incidentlabels weergeven** (`showIncidentLabelsOnStatusPage`) staat standaard uit.
+- **Alleen incidenten tonen die tot deze pagina zijn beperkt** (`onlyShowScopedIncidents`) — ook in de incidentenrij, standaard uit. Staat hij aan, dan toont de pagina alleen de incidenten die met **Beperken tot deze statuspagina's** tot haar zijn beperkt, en krijgen haar abonnees alleen daarover meldingen. Hij bepaalt ook welke incidenten hun episodes naar de pagina brengen; daarom blijft hij staan als **Incidenten weergeven** uit staat.
+- **Episoden weergeven** (`showEpisodesOnStatusPage`) — standaard aan, met **De laatste … dagen weergeven** (`showEpisodeHistoryInDays`, standaard 14) en **Episodelabels weergeven** (`showEpisodeLabelsOnStatusPage`, standaard uit). Episodes zijn een eigen model met eigen endpoints, geen weergave van incidenten.
+- **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`) — standaard aan, met **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14).
+- **Geplande onderhoudsgebeurtenissen weergeven** (`showScheduledMaintenanceEventsOnStatusPage`) — standaard aan, met **De laatste … dagen weergeven** (`showScheduledEventHistoryInDays`, standaard 14) en **Gebeurtenislabels weergeven** (`showScheduledEventLabelsOnStatusPage`, standaard uit).
+- **Uptimegeschiedenis** — **De laatste … dagen weergeven** (`showUptimeHistoryInDays`) is de lengte van de uptimebalk naast elke resource. Standaard 90, en moet tussen 1 en 90 liggen. Elke optie **Uptime % weergeven** en **Statusgeschiedenisgrafiek weergeven** op een resource of groep leest dit getal.
+- **'Powered By OneUptime'-branding weergeven** — standaard aan, dus de voettekst voor bezoekers leest "Powered by OneUptime". Zet hem uit om de regel te verbergen. De kolom slaat het andersom op, als `hidePoweredByOneUptimeBranding`.
 
-- **Incidenten weergeven** (`showIncidentsOnStatusPage`) — standaard aan. Zet je dit uit, dan verdwijnt ook het navigatie-item **Incidenten**.
-- **Incidentgeschiedenis weergeven (in dagen)** (`showIncidentHistoryInDays`) — hoe ver de incidentenlijst terugkijkt. Standaard 14.
-- **Incidentlabels weergeven** (`showIncidentLabelsOnStatusPage`) — standaard uit.
+**Een lijst die uit staat** verdwijnt van de pagina, samen met haar item in de navigatiebalk als ze er een heeft; haar openbare endpoint weigert verzoeken, en de abonnees van de pagina krijgen geen meldingen over dat soort gebeurtenis. Haar rij toont dan alleen de schakelaar: hoe ver een verborgen lijst teruggaat en of ze labels toont, verandert niets.
 
-**Episode-instellingen** — dezelfde drie schakelaars voor incident-episodes: **Episoden weergeven** (`showEpisodesOnStatusPage`, standaard aan), **Episodegeschiedenis weergeven (in dagen)** (standaard 14) en **Episodelabels weergeven** (standaard uit). Episodes zijn een eigen model met eigen endpoints, geen weergave van incidenten.
-
-**Aankondigingsinstellingen**:
-
-- **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`) — standaard aan.
-- **Aankondigingsgeschiedenis weergeven (in dagen)** (`showAnnouncementHistoryInDays`) — standaard 14.
-
-**Instellingen voor geplande gebeurtenis**:
-
-- **Geplande onderhoudsgebeurtenissen weergeven** (`showScheduledMaintenanceEventsOnStatusPage`) — standaard aan.
-- **Geschiedenis van geplande gebeurtenissen weergeven (in dagen)** (`showScheduledEventHistoryInDays`) — standaard 14.
-- **Gebeurtenislabels weergeven** (`showScheduledEventLabelsOnStatusPage`) — standaard uit.
-
-**Instellingen uptime-geschiedenis**:
-
-- **Uptimegeschiedenis weergeven (in dagen)** (`showUptimeHistoryInDays`) — de lengte van de uptimebalk naast elke resource. Standaard 90, en moet tussen 1 en 90 liggen. Elke optie **Uptime % weergeven** en **Statusgeschiedenisgrafiek weergeven** op een resource of groep leest dit getal.
+**Abonnementen.** Op OneUptime Cloud staat naast een instelling die je abonnement niet mag wijzigen het abonnement dat nodig is. De vier lijstschakelaars, de drie labelschakelaars en de episodegeschiedenis vragen **Growth**; de regel "Powered by OneUptime" verbergen vraagt **Scale**. De andere geschiedenisvensters, **Uptimegeschiedenis** en **Alleen incidenten tonen die tot deze pagina zijn beperkt** kun je met elk abonnement wijzigen, en elke instelling wordt apart opgeslagen.
 
 Of de pagina een item **Abonneren** toont (**Abonneepagina weergeven**, `showSubscriberPageOnStatusPage`, standaard aan) en via welke kanalen bezoekers zich kunnen abonneren, stel je niet op dit scherm in: beide staan in de kaart **Kanalen** onder **Abonnees → Abonneeinstellingen** (zie [Abonnees en aankondigingen](/docs/status-pages/subscribers)).
 
-**Aangedreven door OneUptime-branding**:
-
-- **Verberg 'Powered By OneUptime'-branding** — standaard uit, dus de voettekst voor bezoekers leest "Powered by OneUptime" totdat je dit aanzet.
+Onder de kaart staan een kaart die de instellingen van de statuspagina exporteert naar een JSON-bestand dat je later weer kunt importeren, en de kaart om de statuspagina te archiveren.
 
 **Waar de kleuren zitten.** De kleuren van de uptimebalk staan hier niet — de **Standaard balkkleur**, de balkkleurregels, de **Downtime-monitorstatussen** en **Totaal uptimepercentage weergeven** staan allemaal op **Statuspagina's → jouw pagina → Huisstijl → Overzichtspagina**. Er is nergens een instelling voor thema of merkkleur; alles buiten die bedieningselementen doe je met **Aangepaste CSS**.
 

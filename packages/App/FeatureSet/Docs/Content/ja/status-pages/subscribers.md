@@ -130,14 +130,14 @@ SMS、Slack、Microsoft Teams、Webhook の購読者はこれを飛ばします 
 すべてを動かすのは **Show At**（`showAnnouncementAt`）と **End At**（`endAnnouncementAt`）ですが、概要ページとお知らせ一覧は違う問いを立てていて、その差が人をつまずかせます。
 
 - **概要ページ** は、`showAnnouncementAt` が過去で、かつ `endAnnouncementAt` が未来か空のときにお知らせを表示します。
-- **`/announcements` の一覧** は、`showAnnouncementAt` が **お知らせ履歴の表示（日数）**（`showAnnouncementHistoryInDays`、既定は 14）の範囲に入るお知らせを取ってきて、それをクライアント側でアクティブと過去に振り分けます。
+- **`/announcements` の一覧** は、`showAnnouncementAt` がお知らせの履歴の日数（`showAnnouncementHistoryInDays`、既定は 14）の範囲に入るお知らせを取ってきて、それをクライアント側でアクティブと過去に振り分けます。
 
 見越しておく価値のある結果が 2 つあります。
 
 - **終了日時のないお知らせは期限切れになりません。** **お知らせの表示終了日時** を空のままにすると、概要ページにいつまでも固定されたままです。期間の決まっているものには必ず終了日時を入れてください。
 - **古いけれどまだアクティブなお知らせが、一覧から消えることがあります。** 開始が `showAnnouncementHistoryInDays` より前だと、概要ページには残ったまま `/announcements` から外れます。長く出し続ける告知があるなら、履歴の期間を広げてください。
 
-そもそもお知らせを出すかどうかは、**詳細設定** の **お知らせの設定** カードで決まります — **お知らせを表示**（`showAnnouncementsOnStatusPage`、既定は true）と **お知らせ履歴の表示（日数）**（既定は 14）です。**お知らせを表示** がオフだと、お知らせのエンドポイントはリクエストそのものを拒否します。
+そもそもお知らせを出すかどうかは、**詳細設定** の **ステータスページに表示する内容** カードで決まります — **お知らせを表示**（`showAnnouncementsOnStatusPage`、既定は true）と、その下の **過去 … 日間を表示**（`showAnnouncementHistoryInDays`、既定は 14）です。**お知らせを表示** がオフだと、お知らせのエンドポイントはリクエストそのものを拒否します。
 
 ## お知らせのテンプレート
 
