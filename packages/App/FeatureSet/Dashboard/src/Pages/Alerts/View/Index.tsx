@@ -1,4 +1,6 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
@@ -24,7 +26,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, {
   Fragment,
@@ -145,6 +147,14 @@ interface FetchDataOptions {
    */
   isBackgroundRefresh: boolean;
 }
+
+/*
+ * The Alert Details card's Edit asks for the title and the severity, and
+ * folds the labels and Private Alert under Advanced, in the order Create
+ * Alert folds them. Three rows, so no steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<Alert> =
+  getAdvancedFormSection<Alert>();
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -1031,23 +1041,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               refreshData();
               refreshFeed();
             }}
-            formSteps={[
-              {
-                title: "Alert Details",
-                id: "alert-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Alert Title",
-                stepId: "alert-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Alert Title",
@@ -1063,7 +1062,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Alert Severity",
                 description: "What type of alert is this?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "alert-details",
                 dropdownModal: {
                   type: AlertSeverity,
                   labelField: "name",
@@ -1075,33 +1073,19 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 required: true,
                 placeholder: "Alert Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<Alert>({
+                collapsibleSection: advancedSection,
+              }),
               {
                 field: {
                   isPrivate: true,
                 },
                 title: "Private Alert",
-                stepId: "alert-details",
                 description:
                   "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
+                collapsibleSection: advancedSection,
               },
             ]}
             modelDetailProps={{

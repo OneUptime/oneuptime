@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -11,7 +13,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Service from "Common/Models/DatabaseModels/Service";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -84,6 +86,15 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
   }, 0);
   return sum / series.length;
 };
+
+/*
+ * The Service Details card's Edit asks for the name and the description,
+ * and folds the tech stack (also on the service's Settings page, and read
+ * from its telemetry when left blank) and the labels under Advanced. Three
+ * rows, so no steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<Service> =
+  getAdvancedFormSection<Service>();
 
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -667,16 +678,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setError(API.getFriendlyMessage(err));
           });
         }}
-        formSteps={[
-          {
-            title: "Service Info",
-            id: "service-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         isEditable={true}
         formFields={[
           {
@@ -684,7 +685,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               name: true,
             },
             title: "Name",
-            stepId: "service-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Service Name",
@@ -696,7 +696,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               description: true,
             },
-            stepId: "service-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
@@ -706,7 +705,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               techStack: true,
             },
-            stepId: "service-info",
             title: "Tech Stack",
             /*
              * Optional, like the same field on Service > Settings and like
@@ -723,24 +721,11 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             required: false,
             placeholder: "Tech Stack",
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Service>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

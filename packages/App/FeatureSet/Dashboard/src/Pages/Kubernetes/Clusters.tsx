@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -25,7 +27,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -125,6 +127,14 @@ const KubernetesClusters: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * The create form asks for the two things a cluster is matched by - its name and the
+   * identifier its telemetry reports - and folds the rest under Advanced:
+   * the description and the labels. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<KubernetesCluster> =
+    getAdvancedFormSection<KubernetesCluster>();
+
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
@@ -168,17 +178,12 @@ const KubernetesClusters: FunctionComponent<
             "Clusters being monitored in this project. Install the OneUptime kubernetes-agent Helm chart to connect a cluster.",
         }}
         showViewIdButton={true}
-        formSteps={[
-          { title: "Cluster Info", id: "cluster-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-us-east",
@@ -188,7 +193,6 @@ const KubernetesClusters: FunctionComponent<
               clusterIdentifier: true,
             },
             title: "Cluster Identifier",
-            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-us-east-1",
@@ -200,28 +204,14 @@ const KubernetesClusters: FunctionComponent<
               description: true,
             },
             title: "Description",
-            stepId: "cluster-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production cluster running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<KubernetesCluster>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         columns={[
           {

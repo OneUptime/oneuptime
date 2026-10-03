@@ -29,7 +29,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1197,23 +1197,12 @@ const IncidentView: FunctionComponent<
               refreshData();
               refreshFeed();
             }}
-            formSteps={[
-              {
-                title: "Incident Details",
-                id: "incident-details",
-              },
-              {
-                title: "Labels",
-                id: "labels",
-              },
-            ]}
             formFields={[
               {
                 field: {
                   title: true,
                 },
                 title: "Incident Title",
-                stepId: "incident-details",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Incident Title",
@@ -1229,7 +1218,6 @@ const IncidentView: FunctionComponent<
                 title: "Incident Severity",
                 description: "What type of incident is this?",
                 fieldType: FormFieldSchemaType.Dropdown,
-                stepId: "incident-details",
                 dropdownModal: {
                   type: IncidentSeverity,
                   labelField: "name",
@@ -1241,23 +1229,7 @@ const IncidentView: FunctionComponent<
                 required: true,
                 placeholder: "Incident Severity",
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
-                stepId: "labels",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              getLabelsFormField<Incident>(),
             ]}
             modelDetailProps={{
               selectMoreFields: {

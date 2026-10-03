@@ -27,7 +27,7 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import AffectedResourcesPicker, {
@@ -530,24 +530,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                   return getMaintenanceEndsAtError(values);
                 },
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels ",
+              getLabelsFormField<ScheduledMaintenance>({
                 stepId: "event",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
                 collapsibleSection: detailsAdvancedSection,
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
-              },
+              }),
               {
                 field: {
                   statusPages: true,

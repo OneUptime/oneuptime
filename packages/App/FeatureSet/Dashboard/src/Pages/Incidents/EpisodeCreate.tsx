@@ -17,6 +17,7 @@ import Card from "Common/UI/Components/Card/Card";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -179,23 +180,8 @@ const EpisodeCreate: FunctionComponent<
                   );
                 },
               },
-              {
-                field: {
-                  labels: true,
-                },
-
-                title: "Labels ",
+              getLabelsFormField<IncidentEpisode>({
                 stepId: "episode-details",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
                 collapsibleSection: advancedSection,
                 getSummaryElement: (item: FormValues<IncidentEpisode>) => {
                   if (!item.labels || !Array.isArray(item.labels)) {
@@ -229,7 +215,7 @@ const EpisodeCreate: FunctionComponent<
                     </div>
                   );
                 },
-              },
+              }),
               {
                 field: {
                   onCallDutyPolicies: true,

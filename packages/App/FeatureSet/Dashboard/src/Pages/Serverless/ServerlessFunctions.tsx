@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -14,7 +16,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -58,6 +60,14 @@ const ServerlessFunctions: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * The create form asks for the two things a function is matched by - its name and the
+   * identifier its telemetry reports - and folds the rest under Advanced:
+   * the description and the labels. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<ServerlessFunction> =
+    getAdvancedFormSection<ServerlessFunction>();
+
   return (
     <Fragment>
       <ModelTable<ServerlessFunction>
@@ -98,17 +108,12 @@ const ServerlessFunctions: FunctionComponent<
           description:
             "Serverless / FaaS functions auto-discovered from OpenTelemetry that carries faas.name (or a serverless cloud.platform like aws_lambda).",
         }}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "checkout-handler",
@@ -118,7 +123,6 @@ const ServerlessFunctions: FunctionComponent<
               functionIdentifier: true,
             },
             title: "Function Identifier",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "checkout-handler",
@@ -130,28 +134,14 @@ const ServerlessFunctions: FunctionComponent<
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Handles checkout events",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<ServerlessFunction>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         filters={[
           {

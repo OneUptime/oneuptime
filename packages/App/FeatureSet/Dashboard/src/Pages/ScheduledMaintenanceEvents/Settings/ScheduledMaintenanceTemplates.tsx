@@ -7,7 +7,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -141,24 +141,12 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
   }
 
   fields = fields.concat([
-    {
-      field: {
-        labels: true,
-      },
-      title: "Labels ",
+    getLabelsFormField<ScheduledMaintenanceTemplate>({
       stepId: "event",
-      description:
-        "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
       collapsibleSection: advancedSection,
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
-    },
+      description:
+        "Events created from this template start with these labels.",
+    }),
   ]);
 
   if (!data.excludeAffectedResources) {

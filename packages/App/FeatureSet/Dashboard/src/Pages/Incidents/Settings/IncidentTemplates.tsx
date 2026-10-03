@@ -8,7 +8,8 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -20,7 +21,10 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IncidentStatusPageScopeCopy from "../../../Components/Incident/IncidentStatusPageScopeCopy";
@@ -202,6 +206,16 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     loadCustomFieldDefinitions();
   }, []);
 
+  /*
+   * The owners and the labels of the incidents declared from a template are
+   * options few templates set, so they fold under Advanced at the end of
+   * Incident Details - as a scheduled maintenance template folds its owners
+   * and labels on its Event step - rather than walking two steps of one
+   * optional field each.
+   */
+  const advancedSection: FormFieldCollapsibleSection<IncidentTemplate> =
+    getAdvancedFormSection<IncidentTemplate>();
+
   return (
     <Fragment>
       <ModelTable<IncidentTemplate>
@@ -289,14 +303,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
           {
             title: "On-Call",
             id: "on-call",
-          },
-          {
-            title: "Owners",
-            id: "owners",
-          },
-          {
-            title: "Labels",
-            id: "labels",
           },
         ]}
         formFields={[
@@ -391,6 +397,22 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "Initial State",
           },
+          /*
+           * People and teams in one picker, kept in ownerUsers / ownerTeams:
+           * IncidentTemplateService adds them as the template's owners.
+           */
+          getOwnersFormField({
+            stepId: "incident-details",
+            description:
+              "Who owns incidents declared from this template. They are notified when the incident is created or updated.",
+            collapsibleSection: advancedSection,
+          }),
+          getLabelsFormField<IncidentTemplate>({
+            stepId: "incident-details",
+            description:
+              "Incidents created from this template start with these labels.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               monitors: true,
@@ -557,33 +579,6 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: "Monitor Status",
-          },
-          /*
-           * People and teams in one picker, kept in ownerUsers / ownerTeams:
-           * IncidentTemplateService adds them as the template's owners.
-           */
-          getOwnersFormField({
-            stepId: "owners",
-            description:
-              "Who owns incidents declared from this template. They are notified when the incident is created or updated.",
-          }),
-          {
-            field: {
-              labels: true,
-            },
-
-            title: "Labels ",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
           },
         ]}
         showRefreshButton={true}

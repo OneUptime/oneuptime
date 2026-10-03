@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -9,7 +11,7 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
@@ -31,6 +33,9 @@ export enum PermissionType {
   BlockPermissions = "BlockPermissions",
 }
 
+const advancedSection: FormFieldCollapsibleSection<Probe> =
+  getAdvancedFormSection<Probe>();
+
 const ProbeView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
@@ -50,23 +55,19 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={true}
         /*
-         * Deliberately NOT a multi-step form. With steps, the modal's primary
-         * button reads "Next" until the last step, so someone editing the name
-         * or the auto-enable toggle sees only "Cancel" and "Next" and closes
-         * the modal thinking there is nothing to save - and the edit is lost.
-         * Five fields fit on one page with a real "Save Changes" button.
+         * One page, with a real "Save Changes" button: the name and the
+         * description, and Advanced folding the logo, the auto-enable switch
+         * and the labels (it says "Configured" when any is set). It was
+         * meant to be a one-page form long before stepped edit dialogs
+         * could save from any step, and the "More" step held only the
+         * switch and the labels.
          */
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "More", id: "more" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "internal-probe",
@@ -80,7 +81,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "This probe is to monitor all the internal services.",
@@ -91,40 +91,25 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               iconFile: true,
             },
             title: "Probe Logo",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
+            collapsibleSection: advancedSection,
           },
           {
             field: {
               shouldAutoEnableProbeOnNewMonitors: true,
             },
             title: "Enable monitoring automatically on new monitors",
-            stepId: "more",
             description:
               "When on, this probe is pre-selected for every new monitor you create.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-
-            title: "Labels ",
-            stepId: "more",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<Probe>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         modelDetailProps={{
           onItemLoaded: (item: Probe) => {

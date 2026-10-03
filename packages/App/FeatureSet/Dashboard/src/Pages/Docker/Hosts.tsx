@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -25,7 +27,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -123,6 +125,14 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
+  /*
+   * The create form asks for the two things a Docker host is matched by - its name and the
+   * identifier its telemetry reports - and folds the rest under Advanced:
+   * the description and the labels. Three rows, so no steps.
+   */
+  const advancedSection: FormFieldCollapsibleSection<DockerHost> =
+    getAdvancedFormSection<DockerHost>();
+
   return (
     <Fragment>
       <ModelTable<DockerHost>
@@ -164,17 +174,12 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "Hosts being monitored in this project. Install the OneUptime Docker Agent to connect a host.",
         }}
         showViewIdButton={true}
-        formSteps={[
-          { title: "Basic Info", id: "basic-info" },
-          { title: "Labels", id: "labels" },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "production-docker-host-1",
@@ -184,7 +189,6 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               hostIdentifier: true,
             },
             title: "Host Identifier",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "docker-host-prod-1",
@@ -196,28 +200,14 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Production Docker host running in US East",
+            collapsibleSection: advancedSection,
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<DockerHost>({
+            collapsibleSection: advancedSection,
+          }),
         ]}
         columns={[
           {

@@ -15,7 +15,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceOwnerTeam from "Common/Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "Common/Models/DatabaseModels/ServiceOwnerUser";
@@ -121,22 +121,7 @@ const ServicesPage: FunctionComponent<
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels",
-            description:
-              "Labels help you categorize and organize your services.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: false,
-            placeholder: "Labels",
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
+          getLabelsFormField<Service>(),
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}

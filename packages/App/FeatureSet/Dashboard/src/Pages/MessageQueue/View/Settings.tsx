@@ -4,7 +4,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -50,22 +50,11 @@ const MessageQueueSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Queue"
-        formSteps={[
-          {
-            title: "Queue Info",
-            id: "queue-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
         formFields={[
           {
             field: {
               name: true,
             },
-            stepId: "queue-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -82,29 +71,12 @@ const MessageQueueSettings: FunctionComponent<
             field: {
               description: true,
             },
-            stepId: "queue-info",
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Order events from checkout to fulfilment",
           },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
+          getLabelsFormField<MessageQueue>(),
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,

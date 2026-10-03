@@ -35,6 +35,7 @@ import AffectedResourcesPicker, {
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { JSONObject } from "Common/Types/JSON";
@@ -1527,23 +1528,8 @@ const IncidentCreate: FunctionComponent<
                     );
                   },
                 },
-                {
-                  field: {
-                    labels: true,
-                  },
-
-                  title: "Labels ",
+                getLabelsFormField<Incident>({
                   stepId: "incident-details",
-                  description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Labels",
                   collapsibleSection: advancedSection,
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.labels || !Array.isArray(item.labels)) {
@@ -1579,7 +1565,7 @@ const IncidentCreate: FunctionComponent<
                       </div>
                     );
                   },
-                },
+                }),
                 {
                   field: {
                     isPrivate: true,

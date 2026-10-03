@@ -7,6 +7,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1189,6 +1190,16 @@ const MonitorCreate: FunctionComponent<
                     "Search monitor types - try ping, ssl, k8s, postgres",
                   cardSelectCollapsibleGroups: true,
                 },
+                /*
+                 * Labels are folded under Advanced at the end of Monitor
+                 * Info rather than walked as a last step of their own: the
+                 * one step every monitor type shows, Manual included. A
+                 * template's labels fill it in, and the section then says
+                 * "Configured".
+                 */
+                getLabelsFormField<Monitor>({
+                  stepId: "monitor-info",
+                }),
                 {
                   field: {
                     monitorSteps: true,
@@ -1288,23 +1299,6 @@ const MonitorCreate: FunctionComponent<
 
                   placeholder: "Select Monitoring Interval",
                 },
-                {
-                  field: {
-                    labels: true,
-                  },
-                  title: "Labels",
-                  stepId: "labels",
-                  description:
-                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Labels",
-                },
               ]}
               steps={[
                 {
@@ -1332,10 +1326,6 @@ const MonitorCreate: FunctionComponent<
                       values.monitorType as MonitorType,
                     );
                   },
-                },
-                {
-                  title: "Labels",
-                  id: "labels",
                 },
               ]}
               onBeforeCreate={async (item: Monitor): Promise<Monitor> => {

@@ -1,4 +1,4 @@
-import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Field, {
   FormFieldCollapsibleSection,
@@ -77,22 +77,8 @@ export const getOnCallPolicyCreateFormFields: (
       placeholder: "Description",
       collapsibleSection: advanced,
     },
-    {
-      field: {
-        labels: true,
-      },
-      title: "Labels ",
-      description:
-        "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Labels",
+    getLabelsFormField<OnCallDutyPolicy>({
       collapsibleSection: advanced,
-    },
+    }),
   ];
 };

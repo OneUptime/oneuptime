@@ -27,6 +27,7 @@ import {
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Label from "Common/Models/DatabaseModels/Label";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -166,22 +167,8 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   );
                 },
               },
-              {
-                field: {
-                  labels: true,
-                },
-                title: "Labels",
+              getLabelsFormField<Alert>({
                 stepId: "alert-details",
-                description:
-                  "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: Label,
-                  labelField: "name",
-                  valueField: "_id",
-                },
-                required: false,
-                placeholder: "Labels",
                 collapsibleSection: advancedSection,
                 getSummaryElement: (item: FormValues<Alert>) => {
                   if (!item.labels || !Array.isArray(item.labels)) {
@@ -215,7 +202,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     </div>
                   );
                 },
-              },
+              }),
               {
                 field: {
                   isPrivate: true,
