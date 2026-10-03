@@ -32,7 +32,8 @@ const StatusPageMcp: FunctionComponent<
     { modelId },
   );
 
-  const authenticationSettingsRoute: Route = RouteUtil.populateRouteParams(
+  // Security -> Access: who can see the page.
+  const accessRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS] as Route,
     { modelId },
   );
@@ -277,11 +278,8 @@ Is there any maintenance scheduled on ${statusPageId} this week?`}
                 template="This only affects the four unauthenticated tools above. Your status page website, its RSS feed, and its public JSON API keep working exactly as before, so turning this off does not make a public status page private. To restrict who can see the page itself, use {{authenticationSettingsLink}} instead."
                 slots={{
                   authenticationSettingsLink: (
-                    <Link
-                      to={authenticationSettingsRoute}
-                      className="underline"
-                    >
-                      {translator.translateText("Authentication Settings")}
+                    <Link to={accessRoute} className="underline">
+                      {translator.translateText("Access")}
                     </Link>
                   ),
                 }}

@@ -226,7 +226,26 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * Access first: who can see the page is one choice there (anyone with
+       * the link, only people who sign in, anyone with the password). The
+       * entries after it set up the sign-in that the second choice uses. It
+       * is the old "Authentication Settings" page, at the same address.
+       */}
       <SideMenuSection title="Security">
+        <SideMenuItem
+          link={{
+            title: "Access",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Eye}
+        />
+
         <SideMenuItem
           link={{
             title: "Private Users",
@@ -269,19 +288,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Refresh}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "Authentication Settings",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Settings}
         />
       </SideMenuSection>
 

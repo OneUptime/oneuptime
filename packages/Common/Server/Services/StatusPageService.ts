@@ -94,6 +94,7 @@ import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
+import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -771,11 +772,19 @@ export class Service extends DatabaseService<StatusPage> {
         }
       }
 
+      /*
+       * Who can see the page is one choice (Types/StatusPage/StatusPageAccess):
+       * the password is asked for only on a page that is not public, with the
+       * switch on and a password set. A public page returned above, so a page
+       * here is private, as the check above read it.
+       */
       const shouldEnforceMasterPassword: boolean = Boolean(
         statusPage &&
-          statusPage.enableMasterPassword &&
-          statusPage.masterPassword &&
-          !statusPage.isPublicStatusPage,
+          isStatusPageMasterPasswordRequired({
+            isPublicStatusPage: Boolean(statusPage.isPublicStatusPage),
+            enableMasterPassword: statusPage.enableMasterPassword,
+            hasMasterPassword: Boolean(statusPage.masterPassword),
+          }),
       );
 
       if (shouldEnforceMasterPassword) {

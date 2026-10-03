@@ -144,14 +144,10 @@ export function getStatusPagesBreadcrumbs(
       "View Status Page",
       "OIDC",
     ]),
+    // "Access": who can see the page (the old Authentication Settings).
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS,
-      [
-        "Project",
-        "Status Pages",
-        "View Status Page",
-        "Authentication Settings",
-      ],
+      ["Project", "Status Pages", "View Status Page", "Access"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS, [
       "Project",

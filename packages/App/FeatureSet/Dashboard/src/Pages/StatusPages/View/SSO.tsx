@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import PlanGatedPage from "../../../Components/Billing/PlanGatedPage";
+import StatusPageRequireSsoCard from "../../../Components/StatusPage/StatusPageRequireSsoCard";
 import { SSO_REQUIRED_PLAN } from "../../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -8,9 +9,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
@@ -23,7 +22,6 @@ import {
   STATUS_PAGE_URL,
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import React, {
   Fragment,
@@ -48,7 +46,8 @@ interface SamlConfigDialogTarget {
 
 /*
  * Status page > SSO: SAML sign-on for private status page users, the link to
- * test it, and "Force SSO for Login" for the status page.
+ * test it, and "Require SSO for Login" for the status page (a switch that
+ * saves when flipped: StatusPageRequireSsoCard).
  *
  * Adding one asks for what the identity provider gives - its sign-on URL,
  * issuer and certificate; the signature and digest methods and the
@@ -206,43 +205,11 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           }
         />
 
-        {/* API Key View  */}
-        <CardModelDetail
-          name="SSO Settings"
-          editButtonText={"Edit Settings"}
-          cardProps={{
-            title: "SSO Settings",
-            description: "Configure settings for SSO.",
-          }}
-          isEditable={true}
-          formFields={[
-            {
-              field: {
-                requireSsoForLogin: true,
-              },
-              title: "Force SSO for Login",
-              description:
-                "Please test SSO before you you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
-              fieldType: FormFieldSchemaType.Toggle,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: StatusPage,
-            id: "sso-settings",
-            fields: [
-              {
-                field: {
-                  requireSsoForLogin: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Force SSO for Login",
-                description:
-                  "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the status page.",
-              },
-            ],
-            modelId: modelId,
-          }}
-        />
+        {/*
+         * "Require SSO for Login": one switch that saves when flipped, and
+         * asks first before it turns off signing in with a password.
+         */}
+        <StatusPageRequireSsoCard statusPageId={modelId} />
 
         {showSingleSignOnUrlId && (
           <ConfirmModal
