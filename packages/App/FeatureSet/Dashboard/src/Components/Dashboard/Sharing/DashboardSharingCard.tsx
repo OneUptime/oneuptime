@@ -298,9 +298,14 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
           <Link
             to={url}
             openInNewTab={true}
-            className="min-w-0 break-all font-mono text-sm text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+            className="min-w-0 break-all text-sm text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
           >
-            {url.toString()}
+            {/*
+             * The class sits on the text's own element: Link wraps a bare
+             * string in a span, which the page's `* { font-family }` rule
+             * would draw in Inter.
+             */}
+            <span className="font-mono">{url.toString()}</span>
           </Link>
           <CopyTextButton
             textToBeCopied={url.toString()}

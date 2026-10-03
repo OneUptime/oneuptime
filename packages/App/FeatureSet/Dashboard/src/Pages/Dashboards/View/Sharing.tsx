@@ -151,13 +151,22 @@ const DashboardSharing: FunctionComponent<
                     );
                   }
 
+                  /*
+                   * The monospace class sits on each line: the page's
+                   * `* { font-family }` rule would draw a line in Inter
+                   * whatever its list says.
+                   */
                   return (
                     <ul
-                      className="space-y-1 font-mono text-sm text-gray-900"
+                      className="space-y-1 text-sm text-gray-900"
                       data-testid={DASHBOARD_IP_ALLOWLIST_ENTRIES_TEST_ID}
                     >
                       {entries.map((entry: string, index: number) => {
-                        return <li key={`${entry}-${index}`}>{entry}</li>;
+                        return (
+                          <li key={`${entry}-${index}`} className="font-mono">
+                            {entry}
+                          </li>
+                        );
                       })}
                     </ul>
                   );
