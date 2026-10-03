@@ -24202,5 +24202,19 @@
   "History chart colors, languages, and whether search engines may list this page.": "历史图表颜色、语言，以及是否允许搜索引擎收录此页面。",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "显示在状态页概览的最上方，位于所有其他内容之前。支持 Markdown。",
   "The language first-time visitors see, and the languages they can switch to in the footer.": "首次访问者看到的语言，以及他们可以在页脚中切换的语言。",
-  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "访问者在状态页上看到的名称。在您输入自己的名称之前，它会随您在上方的选择而变化。"
+  "Add global probes to new monitors": "将全局探测器添加到新监视器",
+  "Check this monitor": "检查此监视器",
+  "Monitoring is turned off": "监控已关闭",
+  "Monitors that already exist keep their probes.": "已有的监视器保留其探测器。",
+  "New monitors start with OneUptime's global probes, along with the custom probes you add to new monitors.": "新监视器从 OneUptime 的全局探测器开始，并带上你设置为加入新监视器的自定义探测器。",
+  "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.": "监控关闭期间，没有任何东西检查此监视器：其状态保持为最后记录的状态，也不会创建事件或警报。",
+  "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "在重新打开监控之前，没有任何东西会检查此监视器，因此即使它所监视的对象宕机，也不会创建事件或警报。",
+  "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime 会检查此监视器，并在满足其标准时创建事件和警报。",
+  "Pause this monitor without deleting it. Its settings and history are kept.": "暂停此监视器而不删除它。其设置和历史记录会保留。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "访问者在状态页上看到的名称。在您输入自己的名称之前，它会随您在上方的选择而变化。",
+  "Turn monitoring on": "打开监控",
+  "Turn off monitoring": "关闭监控",
+  "Turn off monitoring?": "要关闭监控吗？",
+  "Which probes a monitor starts with when you create it. You can change any monitor's probes on its Probes page.": "创建监视器时它开始使用的探测器。你可以在每个监视器的探测器页面上更改其探测器。",
+  "New monitors start with only the custom probes you add to new monitors.": "新监视器只从你设置为加入新监视器的自定义探测器开始。"
 }

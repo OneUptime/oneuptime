@@ -1,5 +1,6 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
+import MonitoringCard from "../../../Components/Monitor/MonitoringCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -97,45 +98,14 @@ const MonitorCriteria: FunctionComponent<
 
     return (
       <div>
+        {/*
+         * Whether the monitor is checked: one switch that saves when it is
+         * flipped. The banner above the page follows it (and its own "Turn
+         * monitoring on" button moves it) through ModelSwitchEvents. A
+         * manual monitor runs no checks, so it has no switch.
+         */}
         {monitor?.monitorType !== MonitorType.Manual && (
-          <CardModelDetail
-            name="Monitor Settings"
-            editButtonText="Edit Settings"
-            cardProps={{
-              title: "Monitor Settings",
-              description: "Here are some advanced settings for this monitor.",
-            }}
-            onSaveSuccess={() => {
-              setAlertRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-            }}
-            isEditable={true}
-            formFields={[
-              {
-                field: {
-                  disableActiveMonitoring: true,
-                },
-
-                title: "Disable Active Monitoring",
-                fieldType: FormFieldSchemaType.Toggle,
-                required: false,
-              },
-            ]}
-            modelDetailProps={{
-              showDetailsInNumberOfColumns: 1,
-              modelType: Monitor,
-              id: "model-detail-monitors",
-              fields: [
-                {
-                  field: {
-                    disableActiveMonitoring: true,
-                  },
-                  title: "Disable Active Monitoring",
-                  fieldType: FieldType.Boolean,
-                },
-              ],
-              modelId: modelId,
-            }}
-          />
+          <MonitoringCard monitorId={modelId} />
         )}
 
         {monitor?.monitorType &&

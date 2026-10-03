@@ -24202,5 +24202,19 @@
   "History chart colors, languages, and whether search engines may list this page.": "इतिहास चार्ट के रंग, भाषाएं, और क्या सर्च इंजन इस पृष्ठ को सूचीबद्ध कर सकते हैं।",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "आपके स्थिति पृष्ठ के अवलोकन में सबसे ऊपर, बाकी सब से पहले दिखाया जाता है। Markdown समर्थित है।",
   "The language first-time visitors see, and the languages they can switch to in the footer.": "वह भाषा जो पहली बार आने वाले विज़िटर्स देखते हैं, और वे भाषाएं जिन पर वे फ़ुटर से स्विच कर सकते हैं।",
-  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "वह नाम जो विज़िटर्स स्थिति पृष्ठ पर देखते हैं। जब तक आप अपना नाम नहीं लिखते, यह ऊपर आपके चुनाव के साथ बदलता रहता है।"
+  "Add global probes to new monitors": "नए मॉनिटर में ग्लोबल प्रोब जोड़ें",
+  "Check this monitor": "इस मॉनिटर की जाँच करें",
+  "Monitoring is turned off": "निगरानी बंद है",
+  "Monitors that already exist keep their probes.": "जो मॉनिटर पहले से हैं, वे अपने प्रोब रखते हैं।",
+  "New monitors start with OneUptime's global probes, along with the custom probes you add to new monitors.": "नए मॉनिटर OneUptime के ग्लोबल प्रोब के साथ शुरू होते हैं, साथ ही उन कस्टम प्रोब के साथ जिन्हें आप नए मॉनिटर में जोड़ते हैं।",
+  "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.": "निगरानी बंद रहने तक इस मॉनिटर की कोई जाँच नहीं होती: इसकी स्थिति अंतिम दर्ज स्थिति पर बनी रहती है, और यह कोई घटना या अलर्ट नहीं खोलता।",
+  "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "निगरानी फिर से चालू होने तक इस मॉनिटर की कोई जाँच नहीं होगी, इसलिए यह कोई घटना या अलर्ट नहीं खोलेगा, भले ही जिस पर यह नज़र रखता है वह बंद हो जाए।",
+  "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime इस मॉनिटर की जाँच करता है और इसके मानदंड पूरे होने पर घटनाएं और अलर्ट खोलता है।",
+  "Pause this monitor without deleting it. Its settings and history are kept.": "इस मॉनिटर को हटाए बिना रोकें। इसकी सेटिंग्स और इतिहास बने रहते हैं।",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "वह नाम जो विज़िटर्स स्थिति पृष्ठ पर देखते हैं। जब तक आप अपना नाम नहीं लिखते, यह ऊपर आपके चुनाव के साथ बदलता रहता है।",
+  "Turn monitoring on": "निगरानी चालू करें",
+  "Turn off monitoring": "निगरानी बंद करें",
+  "Turn off monitoring?": "निगरानी बंद करें?",
+  "Which probes a monitor starts with when you create it. You can change any monitor's probes on its Probes page.": "बनाते समय कोई मॉनिटर किन प्रोब के साथ शुरू होता है। आप किसी भी मॉनिटर के प्रोब उसके प्रोब पेज पर बदल सकते हैं।",
+  "New monitors start with only the custom probes you add to new monitors.": "नए मॉनिटर केवल उन कस्टम प्रोब के साथ शुरू होते हैं जिन्हें आप नए मॉनिटर में जोड़ते हैं।"
 }

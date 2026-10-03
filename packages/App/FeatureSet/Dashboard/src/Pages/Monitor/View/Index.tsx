@@ -289,6 +289,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onRefresh={() => {
             data.refresh();
           }}
+          /*
+           * The hero's "Turn monitoring on" is an edit of the monitor: the
+           * hero and the feed show it as the details card's saves do.
+           */
+          onMonitoringTurnedOn={onDetailsSaved}
         />
       </div>
 

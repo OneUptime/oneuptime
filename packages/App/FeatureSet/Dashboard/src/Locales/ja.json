@@ -24202,5 +24202,19 @@
   "History chart colors, languages, and whether search engines may list this page.": "履歴チャートの色、言語、検索エンジンにこのページの掲載を許可するかどうか。",
   "Shown at the top of your status page's overview, above everything else. Markdown is supported.": "ステータスページの概要の一番上、ほかのすべての上に表示されます。Markdown を使用できます。",
   "The language first-time visitors see, and the languages they can switch to in the footer.": "初めての訪問者に表示される言語と、フッターで切り替えられる言語。",
-  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "訪問者がステータスページで目にする名前です。独自の名前を入力するまで、上で選んだものに合わせて変わります。"
+  "Add global probes to new monitors": "新しいモニターにグローバルプローブを追加",
+  "Check this monitor": "このモニターをチェック",
+  "Monitoring is turned off": "監視はオフです",
+  "Monitors that already exist keep their probes.": "既存のモニターはプローブをそのまま保持します。",
+  "New monitors start with OneUptime's global probes, along with the custom probes you add to new monitors.": "新しいモニターは、OneUptime のグローバルプローブと、新しいモニターに追加するよう設定したカスタムプローブで開始します。",
+  "Nothing checks this monitor while monitoring is off: its status stays at the last one recorded, and it opens no incidents or alerts.": "監視がオフの間、このモニターは何もチェックされません。ステータスは最後に記録されたままで、インシデントやアラートも作成されません。",
+  "Nothing will check this monitor until monitoring is turned back on, so it opens no incidents or alerts, even if what it watches goes down.": "監視を再びオンにするまで、このモニターは何もチェックされません。監視対象がダウンしても、インシデントやアラートは作成されません。",
+  "OneUptime checks this monitor and opens incidents and alerts when its criteria match.": "OneUptime はこのモニターをチェックし、条件に一致するとインシデントとアラートを作成します。",
+  "Pause this monitor without deleting it. Its settings and history are kept.": "このモニターを削除せずに一時停止します。設定と履歴は保持されます。",
+  "The name visitors see on the status page. It follows what you pick above until you type a name of your own.": "訪問者がステータスページで目にする名前です。独自の名前を入力するまで、上で選んだものに合わせて変わります。",
+  "Turn monitoring on": "監視をオンにする",
+  "Turn off monitoring": "監視をオフにする",
+  "Turn off monitoring?": "監視をオフにしますか？",
+  "Which probes a monitor starts with when you create it. You can change any monitor's probes on its Probes page.": "作成したモニターが最初に使うプローブです。各モニターのプローブは、そのモニターのプローブページで変更できます。",
+  "New monitors start with only the custom probes you add to new monitors.": "新しいモニターは、新しいモニターに追加するよう設定したカスタムプローブだけで開始します。"
 }
