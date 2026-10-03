@@ -26,7 +26,6 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/monitors/probe-disabled",
   "/dashboard/:projectId/monitors/probe-disconnected",
   "/dashboard/:projectId/monitors/:id",
-  "/dashboard/:projectId/monitors/:id/interval",
   "/dashboard/:projectId/monitors/:id/documentation",
   "/dashboard/:projectId/monitors/:id/owners",
   "/dashboard/:projectId/monitors/:id/status-timeline",

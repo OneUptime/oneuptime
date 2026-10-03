@@ -1604,11 +1604,6 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getMonitorBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/monitors/:id/interval",
-    titles: ["Project", "Monitors", "View Monitor", "Interval"],
-  },
-  {
-    getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/:id/logs",
     titles: ["Project", "Monitors", "View Monitor", "Monitoring Logs"],
   },
@@ -1630,7 +1625,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getMonitorBreadcrumbs",
     pagePattern: "/dashboard/:projectId/monitors/:id/probes",
-    titles: ["Project", "Monitors", "View Monitor", "Probes"],
+    titles: ["Project", "Monitors", "View Monitor", "Probes & Interval"],
   },
   {
     getter: "getMonitorBreadcrumbs",
