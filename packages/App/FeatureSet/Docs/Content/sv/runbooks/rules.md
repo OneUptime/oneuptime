@@ -61,7 +61,7 @@ Du kan se alla regelutlösta körningar under **Runbooks → Körningar**, filtr
 
 ## Inaktiverade runbooks
 
-Om en regel refererar till ett runbook med `isEnabled = false` matchar regeln fortfarande, men runbook-körningen hoppas över. Återaktivera runbooket för att återuppta.
+Om en regel refererar till ett runbook som är avstängt (**Run this runbook** avstängt på runbookets **Settings**-sida, `isEnabled = false`) matchar regeln fortfarande, men runbook-körningen hoppas över. Slå på reglaget igen för att återuppta.
 
 ## Testa en regel
 

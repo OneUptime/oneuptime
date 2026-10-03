@@ -163,7 +163,7 @@ The **Settings** page is where you change how an SLO measures:
 | **Objective**            | **Target** and **At-Risk Threshold**.                                                         | The card also shows the error budget the objective allows, for example "43m 12s of downtime per 30-day window".                                          |
 | **Compliance Period**    | **Window Type**, **Window (Days)** for rolling windows, **Timezone** for calendar months.      | Burn rate rules keep the thresholds they were created with, so review them after changing the window.                                                   |
 | **Downtime Calculation** | **Multi Monitor Mode** and **Downtime Monitor Statuses**.                                     | Leave the statuses empty to count every non-operational status, including ones added later.                                                             |
-| **Evaluation**           | **Enabled**. The card also shows when the SLO was last evaluated.                             | A disabled SLO keeps its history and settings but is not evaluated, and its burn rate rules do not fire. Disabling resolves the burn rate alerts and incidents it has open. |
+| **Evaluation**           | The **Evaluate this SLO** switch, which saves as soon as you flip it. Under it, when the SLO was last evaluated. | A disabled SLO keeps its history and settings but is not evaluated, and its burn rate rules do not fire. Turning it off asks first, because it also resolves the burn rate alerts and incidents the SLO has open. While it is off, the banner on every page of the SLO has a **Turn evaluation on** button. |
 | **Archive**              | **Archive** or **Unarchive** the SLO.                                                         | See [Archiving an SLO](#archiving-an-slo).                                                                                                               |
 
 OneUptime re-evaluates the SLO on its next run after you change its objective, period or downtime calculation.
@@ -183,7 +183,7 @@ Archived SLOs are listed on the **Archived** page, under **Advanced** in the SLO
 
 An unarchived SLO reappears in the SLO list and is evaluated again on the next run, with its SLI and error budget recomputed from its monitors' history.
 
-Archiving and disabling are separate switches: an SLO that was disabled before it was archived **stays disabled** when you unarchive it. Turn it back on in **Settings** → **Evaluation**.
+Archiving and disabling are separate switches: an SLO that was disabled before it was archived **stays disabled** when you unarchive it. Turn it back on with **Turn evaluation on** on the banner, or the **Evaluate this SLO** switch in **Settings** → **Evaluation**.
 
 | You want to…                                   | Do this     |
 | ---------------------------------------------- | ----------- |

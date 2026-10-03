@@ -61,7 +61,7 @@ Du kan se alle regel-udløste kørsler under **Runbooks → Udførelser**, filtr
 
 ## Deaktiverede runbooks
 
-Hvis en regel refererer til et runbook med `isEnabled = false`, matcher reglen stadig, men runbook-kørslen springes over. Genaktivér runbook'et for at fortsætte.
+Hvis en regel refererer til et runbook, der er slået fra (**Run this runbook** slået fra på runbook'ets **Settings**-side, `isEnabled = false`), matcher reglen stadig, men runbook-kørslen springes over. Slå kontakten til igen for at fortsætte.
 
 ## Test en regel
 

@@ -9,6 +9,7 @@ import {
   FormFieldFacts,
   FormStepProblem,
   LONG_FORM_FIELD_LIMIT,
+  MIN_SCANNED_FORMS,
   SHORT_FORM_ROW_LIMIT,
   ShortFormWithSteps,
   SourceFileSystem,
@@ -981,20 +982,22 @@ describe("the project's forms", () => {
     files,
   });
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
     /*
-     * About 230 since labels-not-a-step: some 25 forms walked a second step
-     * only for their Labels, and are one page now that the field folds
-     * under Advanced (LabelsFormFieldGuard).
+     * 214 in CI on 2026-10-03, and falling as forms come down to one page
+     * (labels-not-a-step alone took some 25 forms off their second step).
      */
     expect(
       forms.filter((form: FormFacts): boolean => {
         return form.hasSteps;
       }).length,
-    ).toBeGreaterThan(200);
+    ).toBeGreaterThan(100);
   });
 
   // The form the maintainer pointed at, found and stepped.

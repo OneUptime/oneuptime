@@ -116,10 +116,13 @@ function criteriaTitlesOf(file: string, formLabel: RegExp): Array<string> {
 }
 
 describe("rule conditions name their criteria plainly", () => {
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("the scan really read the rule forms", () => {
-    expect(ruleForms.length).toBeGreaterThan(60);
-    expect(criteria.length).toBeGreaterThan(200);
+    expect(ruleForms.length).toBeGreaterThan(40);
+    expect(criteria.length).toBeGreaterThan(150);
   });
 
   test("every criterion has a title of its own", () => {
@@ -348,7 +351,7 @@ describe("the help on rule pages names criteria plainly", () => {
   );
 
   test("the walk found the rule pages", () => {
-    expect(rulePages.length).toBeGreaterThan(60);
+    expect(rulePages.length).toBeGreaterThan(30);
   });
 
   test("what the help panel shows never names a Pattern criterion", () => {

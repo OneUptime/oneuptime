@@ -25,6 +25,10 @@ import {
   SLO_UNARCHIVE_CARD_DESCRIPTION,
   SLO_UNARCHIVE_CONFIRM_MESSAGE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloArchiveCopy";
+import { getTurnOffSloEvaluationConfirmation } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationCard";
+import SloEvaluationSwitchCopy, {
+  SLO_EVALUATION_SWITCH_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
 import { SLO_MULTI_MONITOR_MODE_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
 import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -44,6 +48,7 @@ import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -531,9 +536,9 @@ describe("saving an SLO settings card", () => {
   }
 
   /*
-   * The banner says "This SLO is disabled" right above the Evaluation card;
-   * saving that card must make the banner re-read the SLO, or the page
-   * contradicts itself until a reload.
+   * A card's save can change what the banner says (a target out of range,
+   * fixed on the Objective card); the banner must read the SLO again, or
+   * the page contradicts itself until a reload.
    */
   test("re-reads the notice banner after a card saves", async () => {
     const createOrUpdate: ReturnType<typeof jest.spyOn> = jest
@@ -549,7 +554,7 @@ describe("saving an SLO settings card", () => {
     await findText("This SLO is disabled");
     expect(bannerFetchCount()).toBe(1);
 
-    await userEvent.click(await findText("Edit Evaluation"));
+    await userEvent.click(await findText("Edit Objective"));
     await userEvent.click(await findText("Save Changes"));
 
     await waitFor(
@@ -629,5 +634,253 @@ describe("saving an SLO settings card", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Evaluation is one switch, "Evaluate this SLO", saving the moment it is
+ * flipped, with when the SLO was last evaluated as a line under it. It used
+ * to be Edit Evaluation, flip "Enabled", Save. Turning it off asks first,
+ * because it also resolves the SLO's open burn rate alerts and incidents;
+ * the banner above it follows the switch, and its own "Turn evaluation on"
+ * moves the switch.
+ */
+describe("the Evaluation switch", () => {
+  function bannerFetchCount(): number {
+    return getItemRequests().filter((request: GetItemRequest): boolean => {
+      return (
+        request.select?.["sloStatus"] === true &&
+        request.select?.["isArchived"] === true
+      );
+    }).length;
+  }
+
+  async function findSwitch(): Promise<HTMLElement> {
+    return await screen.findByTestId(
+      SLO_EVALUATION_SWITCH_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+  }
+
+  function evaluationCard(): HTMLElement {
+    return cardOf(screen.getByTestId(SLO_EVALUATION_SWITCH_TEST_ID));
+  }
+
+  function saveSucceeds(): ReturnType<typeof jest.spyOn> {
+    return jest
+      .spyOn(ModelAPI, "updateById")
+      .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+  }
+
+  test("is one switch with no Edit button, and Last Evaluated under it", async () => {
+    openSettings();
+
+    const control: HTMLElement = await findSwitch();
+
+    expect(
+      screen.getByRole("switch", {
+        name: SloEvaluationSwitchCopy.switchTitle,
+      }),
+    ).toBe(control);
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Edit Evaluation")).toBeNull();
+
+    const card: HTMLElement = evaluationCard();
+    expect(
+      within(card).getByText(SloEvaluationSwitchCopy.cardDescription),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(SloEvaluationSwitchCopy.switchOnDescription),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(SloEvaluationSwitchCopy.lastEvaluatedTitle),
+    ).toBeInTheDocument();
+    expect(within(card).getByText(/ago$/)).toBeInTheDocument();
+  });
+
+  test("an SLO never evaluated says so under the switch", async () => {
+    serveSlo({ lastEvaluatedAt: null });
+
+    openSettings();
+    await findSwitch();
+
+    expect(
+      within(evaluationCard()).getByText(
+        SloEvaluationSwitchCopy.notEvaluatedYet,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(evaluationCard()).getByText(
+        SloEvaluationSwitchCopy.notEvaluatedYetDescription,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("turning evaluation off asks first, and says it resolves what the burn rate rules have open", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    openSettings();
+    const control: HTMLElement = await findSwitch();
+
+    fireEvent.click(control);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    expect(dialog).toHaveAccessibleName(
+      SloEvaluationSwitchCopy.turnOffConfirmTitle,
+    );
+    expect(
+      within(dialog).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(SloEvaluationSwitchCopy.turnOffConfirmDescription);
+    expect(update).not.toHaveBeenCalled();
+
+    // From here on the server has the SLO disabled.
+    serveSlo({ isEnabled: false });
+
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: SloEvaluationSwitchCopy.turnOffConfirmButton,
+      }),
+    );
+
+    await waitFor(
+      () => {
+        expect(update).toHaveBeenCalledWith({
+          modelType: ServiceLevelObjective,
+          id: MODEL_ID,
+          data: { isEnabled: false },
+        });
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    // The banner above hears the switch and says so, without a reload.
+    expect(await findText("This SLO is disabled")).toBeInTheDocument();
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(
+      within(evaluationCard()).getByText(
+        SloEvaluationSwitchCopy.switchOffDescription,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("cancelled, evaluation stays on and nothing is saved", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    openSettings();
+    const control: HTMLElement = await findSwitch();
+
+    fireEvent.click(control);
+
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Cancel",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(control).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("turning a disabled SLO back on saves at once, and the banner goes", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    serveSlo({ isEnabled: false });
+
+    openSettings();
+
+    await findText("This SLO is disabled");
+    expect(bannerFetchCount()).toBe(1);
+
+    const control: HTMLElement = await findSwitch();
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    // From here on the server has the SLO live again.
+    serveSlo({});
+
+    fireEvent.click(control);
+
+    await waitFor(
+      () => {
+        expect(update).toHaveBeenCalledWith({
+          modelType: ServiceLevelObjective,
+          id: MODEL_ID,
+          data: { isEnabled: true },
+        });
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await waitFor(
+      () => {
+        expect(bannerFetchCount()).toBe(2);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    await waitFor(
+      () => {
+        expect(screen.queryByText("This SLO is disabled")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+
+  test("the banner's Turn evaluation on moves the switch below it", async () => {
+    const update: ReturnType<typeof jest.spyOn> = saveSucceeds();
+
+    serveSlo({ isEnabled: false });
+
+    openSettings();
+
+    const control: HTMLElement = await findSwitch();
+    expect(control).toHaveAttribute("aria-checked", "false");
+
+    serveSlo({});
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: SloEvaluationSwitchCopy.turnOnButton },
+        { timeout: WAIT_TIMEOUT },
+      ),
+    );
+
+    await waitFor(
+      () => {
+        expect(update).toHaveBeenCalledWith({
+          modelType: ServiceLevelObjective,
+          id: MODEL_ID,
+          data: { isEnabled: true },
+        });
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await waitFor(
+      () => {
+        expect(control).toHaveAttribute("aria-checked", "true");
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    await waitFor(
+      () => {
+        expect(screen.queryByText("This SLO is disabled")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+
+  test("the confirmation is for turning evaluation off only, as a danger", () => {
+    expect(getTurnOffSloEvaluationConfirmation(true)).toBeUndefined();
+    expect(getTurnOffSloEvaluationConfirmation(false)).toEqual({
+      title: SloEvaluationSwitchCopy.turnOffConfirmTitle,
+      description: SloEvaluationSwitchCopy.turnOffConfirmDescription,
+      submitButtonText: SloEvaluationSwitchCopy.turnOffConfirmButton,
+      submitButtonType: ButtonStyleType.DANGER,
+    });
   });
 });

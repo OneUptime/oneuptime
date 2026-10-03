@@ -253,7 +253,8 @@ describe("forms with a Markdown editor", () => {
   // A broken walk must not pass by finding nothing.
   test("are really found, the maintainer's dialog among them", () => {
     expect(files.length).toBeGreaterThan(2000);
-    expect(markdownForms.length).toBeGreaterThan(50);
+    // 58 in CI on 2026-10-03; see MIN_SCANNED_FORMS for why the floor is low.
+    expect(markdownForms.length).toBeGreaterThan(25);
 
     const noteTemplates: FormFacts | undefined = markdownForms.find(
       (form: FormFacts): boolean => {

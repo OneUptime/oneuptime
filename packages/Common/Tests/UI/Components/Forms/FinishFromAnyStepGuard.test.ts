@@ -9,6 +9,7 @@ import {
   FormFacts,
   FormFieldFacts,
   FormStepsScanner,
+  MIN_SCANNED_FORMS,
   SourceFileSystem,
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
@@ -407,15 +408,18 @@ describe("the project's forms", () => {
     return `${item.field.file}:${item.field.line} ${item.form.label} > ${item.field.title || item.field.key}`;
   };
 
-  // A broken walk must not pass by finding nothing.
+  /*
+   * A broken walk must not pass by finding nothing. The floors sit far below
+   * today's counts: see MIN_SCANNED_FORMS.
+   */
   test("are really read", () => {
-    expect(forms.length).toBeGreaterThan(500);
+    expect(forms.length).toBeGreaterThan(MIN_SCANNED_FORMS);
     expect(skippable.length).toBeGreaterThan(10);
     expect(
       fields.filter((item: FormField): boolean => {
         return item.field.customElementComponents.length > 0;
       }).length,
-    ).toBeGreaterThan(60);
+    ).toBeGreaterThan(40);
   });
 
   test("say customElementCanBeSkipped only on a custom element", () => {

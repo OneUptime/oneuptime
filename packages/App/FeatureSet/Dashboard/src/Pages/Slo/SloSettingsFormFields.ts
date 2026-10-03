@@ -21,12 +21,14 @@ import {
  * cards show, kept React-free for the same reason as SloFormFields.ts: App
  * tests can import this without pulling the Dashboard's react into App.
  *
- * Settings owns how an SLO measures. The create wizard asks only for the
- * objective and period and leaves the rest to server defaults, so this page
- * is the one place the downtime rules and evaluation switch can be changed.
- * Objective and period are editable here too, because they are what the
- * SLO measures against and the Overview's details card no longer edits
- * them.
+ * Settings owns how an SLO measures. The create form asks only for the
+ * name and the target, with the threshold and period folded at their
+ * defaults, and leaves the rest to server defaults, so this page is the
+ * one place the downtime rules can be changed. Objective and period
+ * are editable here too, because they are what the SLO measures against
+ * and the Overview's details card no longer edits them. Whether the SLO is
+ * evaluated at all is not a form: it is the Evaluation card's switch,
+ * which saves when it is flipped (Components/Slo/SloEvaluationCard).
  */
 
 const SECONDS_PER_DAY: number = 24 * 60 * 60;
@@ -141,28 +143,6 @@ export const getSloDowntimeSettingsFormFields: GetSloSettingsFormFieldsFunction 
         },
         required: false,
         placeholder: "Every non-operational status",
-      },
-    ];
-  };
-
-export const getSloEvaluationSettingsFormFields: GetSloSettingsFormFieldsFunction =
-  (): Array<ModelField<ServiceLevelObjective>> => {
-    return [
-      {
-        field: {
-          isEnabled: true,
-        },
-        title: "Enabled",
-        /*
-         * Worth spelling out: disabling is not only "stop measuring".
-         * ServiceLevelObjectiveService.onUpdateSuccess resolves every alert
-         * and incident the burn rate rules have open, because nothing would
-         * ever resolve them once the worker stops looking at this SLO.
-         */
-        description:
-          "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
       },
     ];
   };

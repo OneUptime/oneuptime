@@ -32,7 +32,6 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS_PROBE_VIEW]: `settings/probes/${RouteParams.ModelID}`,
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
-  [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
   [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: `${RouteParams.ModelID}/status-timeline`,
   [PageMap.MONITOR_VIEW_SLOS]: `${RouteParams.ModelID}/slos`,
@@ -1301,12 +1300,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW]
-    }`,
-  ),
-
-  [PageMap.MONITOR_VIEW_INTERVAL]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/monitors/${
-      MonitorsRoutePath[PageMap.MONITOR_VIEW_INTERVAL]
     }`,
   ),
 

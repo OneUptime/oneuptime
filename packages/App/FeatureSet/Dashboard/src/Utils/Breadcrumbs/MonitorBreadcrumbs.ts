@@ -71,12 +71,6 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "View Monitor",
       "Metrics",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_INTERVAL, [
-      "Project",
-      "Monitors",
-      "View Monitor",
-      "Interval",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_STATUS_TIMELINE, [
       "Project",
       "Monitors",
@@ -99,7 +93,7 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Monitors",
       "View Monitor",
-      "Probes",
+      "Probes & Interval",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_LOGS, [
       "Project",

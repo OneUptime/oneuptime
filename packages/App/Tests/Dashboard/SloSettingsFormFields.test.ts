@@ -10,7 +10,6 @@ import {
   describeSloErrorBudget,
   describeSloWindow,
   getSloDowntimeSettingsFormFields,
-  getSloEvaluationSettingsFormFields,
   getSloMultiMonitorModeDropdownOptions,
   getSloObjectiveSettingsFormFields,
   getSloPeriodSettingsFormFields,
@@ -23,6 +22,9 @@ import Permission from "Common/Types/Permission";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { DEFAULT_ROLLING_WINDOW_DAYS } from "Common/Utils/Slo/SloHealth";
+import SloEvaluationSwitchCopy, {
+  SLO_EVALUATION_SWITCH_COLUMN,
+} from "../../FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -43,14 +45,12 @@ type SloValues = FormValues<ServiceLevelObjective>;
 const OBJECTIVE_FIELDS: Array<SloField> = getSloObjectiveSettingsFormFields();
 const PERIOD_FIELDS: Array<SloField> = getSloPeriodSettingsFormFields();
 const DOWNTIME_FIELDS: Array<SloField> = getSloDowntimeSettingsFormFields();
-const EVALUATION_FIELDS: Array<SloField> = getSloEvaluationSettingsFormFields();
 const CREATE_FIELDS: Array<SloField> = getSloFormFields();
 
 const SETTINGS_CARDS: Array<{ name: string; fields: Array<SloField> }> = [
   { name: "Objective", fields: OBJECTIVE_FIELDS },
   { name: "Compliance Period", fields: PERIOD_FIELDS },
   { name: "Downtime Calculation", fields: DOWNTIME_FIELDS },
-  { name: "Evaluation", fields: EVALUATION_FIELDS },
 ];
 
 function columnOf(field: SloField): string {
@@ -128,7 +128,12 @@ function makeStatus(
 }
 
 describe("SLO settings cards", () => {
-  test("edit the objective, period, downtime rules and evaluation switch, one card each", () => {
+  /*
+   * Whether the SLO is evaluated is not a form any more: it is the
+   * Evaluation card's switch, which saves when it is flipped
+   * (Components/Slo/SloEvaluationCard).
+   */
+  test("edit the objective, period and downtime rules, one card each", () => {
     expect(OBJECTIVE_FIELDS.map(columnOf)).toEqual([
       "targetPercentage",
       "atRiskThresholdPercentage",
@@ -142,7 +147,12 @@ describe("SLO settings cards", () => {
       "multiMonitorMode",
       "downtimeMonitorStatuses",
     ]);
-    expect(EVALUATION_FIELDS.map(columnOf)).toEqual(["isEnabled"]);
+  });
+
+  test("leave isEnabled to the Evaluation switch", () => {
+    for (const card of SETTINGS_CARDS) {
+      expect(card.fields.map(columnOf)).not.toContain("isEnabled");
+    }
   });
 
   test("never edit the same column from two cards", () => {
@@ -397,13 +407,22 @@ describe("the Downtime Calculation card", () => {
   });
 });
 
-describe("the Evaluation card", () => {
-  test("switches evaluation with a toggle that may be left off", () => {
-    const field: SloField = fieldIn(EVALUATION_FIELDS, "isEnabled");
+describe("the Evaluation switch", () => {
+  test("writes isEnabled, which an SLO editor may update", () => {
+    expect(SLO_EVALUATION_SWITCH_COLUMN).toBe("isEnabled");
+    expect(
+      new ServiceLevelObjective().getColumnAccessControlFor(
+        SLO_EVALUATION_SWITCH_COLUMN,
+      )?.update,
+    ).toContain(Permission.EditServiceLevelObjective);
+  });
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
-    expect(field.required).toBe(false);
-    expect(String(field.description)).toContain("resolves");
+  test("reads on = evaluated, and warns before it resolves what the burn rate rules have open", () => {
+    expect(SloEvaluationSwitchCopy.switchTitle).toBe("Evaluate this SLO");
+    expect(SloEvaluationSwitchCopy.turnOffConfirmDescription).toContain(
+      "resolves",
+    );
+    expect(SloEvaluationSwitchCopy.turnOnButton).toBe("Turn evaluation on");
   });
 });
 
