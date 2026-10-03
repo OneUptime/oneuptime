@@ -47,6 +47,10 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DiscoveredResourceCreate, {
+  DiscoveredResourceNaming,
+  namedAfterIdentity,
+} from "../Utils/Telemetry/DiscoveredResourceCreate";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -243,6 +247,18 @@ export interface AiAccessLoosening {
   bindsCredential: boolean;
 }
 
+/*
+ * A cluster is matched to its telemetry by the clusterName its
+ * kubernetes-agent reports (k8s.cluster.name), and named after it unless
+ * somebody gives it a display name of their own (DiscoveredResourceCreate).
+ */
+const KUBERNETES_CLUSTER_NAMING: DiscoveredResourceNaming<Model> =
+  namedAfterIdentity<Model>({
+    identityColumn: "clusterIdentifier",
+    resourceName: "Kubernetes cluster",
+    identityName: "cluster name",
+  });
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -257,6 +273,12 @@ export class Service extends DatabaseService<Model> {
       createBy.data.project?.id ||
       createBy.props.tenantId ||
       undefined;
+
+    // Named after its cluster name when nobody gave it a name.
+    DiscoveredResourceCreate.fillName({
+      createBy,
+      naming: KUBERNETES_CLUSTER_NAMING,
+    });
 
     const data: JSONObject = createBy.data as unknown as JSONObject;
 
@@ -307,6 +329,21 @@ export class Service extends DatabaseService<Model> {
           !createBy.props.isRoot && this.isAiAccessSettingWritten(data),
       },
     };
+  }
+
+  /*
+   * A cluster that is already there - discovered from its telemetry or
+   * added before - is refused by its cluster name, not as a clash of names.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreateUniqueCheck(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    await DiscoveredResourceCreate.refuseClash({
+      service: this,
+      createBy,
+      naming: KUBERNETES_CLUSTER_NAMING,
+    });
   }
 
   @CaptureSpan()

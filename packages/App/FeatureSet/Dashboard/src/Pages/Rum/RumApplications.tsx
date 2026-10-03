@@ -17,6 +17,11 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -58,9 +63,11 @@ const RumApplications: FunctionComponent<
   }
 
   /*
-   * The create form asks for what an application cannot be created without: its
-   * name and the identifier its telemetry reports. The description and the
-   * labels fold under Advanced, so the form is three rows and has no steps.
+   * The create form asks for the one thing an application cannot be created
+   * without: the service.name its SDK reports. The display name follows it
+   * - an application added here is named like a discovered one - and folds
+   * under Advanced with the description and the labels, so the form is two
+   * rows (DiscoveredResourceFormFields).
    */
   const advancedSection: FormFieldCollapsibleSection<RumApplication> =
     getAdvancedFormSection<RumApplication>();
@@ -101,26 +108,23 @@ const RumApplications: FunctionComponent<
             "Browser & mobile applications auto-discovered from OpenTelemetry RUM telemetry (browser.* / device.* resource attributes). One row per application.",
         }}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "storefront-web",
-          },
-          {
+          getIdentityFormField<RumApplication>({
             field: {
               appIdentifier: true,
             },
-            title: "App Identifier",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
+            title: "App Name (service.name)",
             placeholder: "storefront-web",
             description:
-              "This should match the service.name attribute reported by the browser / mobile OTel SDK.",
-          },
+              "The service.name your browser or mobile OpenTelemetry SDK reports, exactly. Telemetry is matched to this application by it.",
+          }),
+          getDisplayNameFormField<RumApplication>({
+            getDefaultName:
+              getNameFromIdentityField<RumApplication>("appIdentifier"),
+            placeholder: "Storefront",
+            description:
+              "Starts as the app name, the way discovered applications are named. Type a name of your own to show it instead. Telemetry is still matched by the app name.",
+            collapsibleSection: advancedSection,
+          }),
           {
             field: {
               description: true,
