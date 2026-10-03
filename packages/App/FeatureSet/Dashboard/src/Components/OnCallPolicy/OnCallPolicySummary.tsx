@@ -1,12 +1,22 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -57,9 +67,35 @@ const formatDuration: (minutes: number) => string = (
 const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [overview, setOverview] = useState<PolicyOverview | null>(null);
+
+  /*
+   * Where a policy that pages nobody is fixed: its Escalation Rules page,
+   * which adds the first rule or the responders a rule is missing. Offered
+   * where the summary says nobody is paged, so the fix is one click away.
+   */
+  const getEscalationRulesButton: () => ReactElement = (): ReactElement => {
+    return (
+      <Button
+        title="Go to Escalation Rules"
+        icon={IconProp.BarsArrowDown}
+        buttonStyle={ButtonStyleType.NORMAL}
+        buttonSize={ButtonSize.Small}
+        dataTestId="policy-summary-escalation-rules-button"
+        onClick={() => {
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route,
+              { modelId: props.onCallDutyPolicyId },
+            ),
+          );
+        }}
+      />
+    );
+  };
 
   const loadData: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -358,13 +394,18 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
 
     if (overview.levels === 0) {
       return (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-8 text-center">
+        <div
+          className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-8 text-center"
+          data-testid="policy-summary-no-rules"
+        >
           <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
-            This policy has no escalation rules yet, so triggering it will not
-            page anyone. Open the{" "}
-            <span className="font-semibold text-gray-900">Escalation</span> tab
-            to add the first level.
+            {translator.translateText(
+              "This policy has no escalation rules yet, so triggering it will not page anyone.",
+            )}
           </p>
+          <div className="mt-4 flex justify-center">
+            {getEscalationRulesButton()}
+          </div>
         </div>
       );
     }
@@ -552,7 +593,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
             )}
           </div>
         ) : (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div
+            className="rounded-xl border border-amber-200 bg-amber-50 p-4"
+            data-testid="policy-summary-no-responders"
+          >
             <div className="flex items-start gap-2.5">
               <Icon
                 icon={IconProp.Alert}
@@ -560,12 +604,14 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
               />
               <div>
                 <p className="text-sm font-semibold text-amber-800">
-                  No responders are assigned
+                  {translator.translateText("No responders are assigned")}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-amber-700">
-                  This policy will not page anyone when it is triggered. Add
-                  on-call schedules, teams, or users on the Escalation tab.
+                  {translator.translateText(
+                    "This policy will not page anyone when it is triggered.",
+                  )}
                 </p>
+                <div className="mt-3">{getEscalationRulesButton()}</div>
               </div>
             </div>
           </div>

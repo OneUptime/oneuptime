@@ -1,7 +1,11 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ObjectID from "Common/Types/ObjectID";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -9,15 +13,33 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import { ON_CALL_POLICY_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import { getOnCallPolicyCreateFormFields } from "../../Components/OnCallPolicy/OnCallPolicyCreateForm";
+
+/*
+ * Whether the user may add escalation rules, which "Who gets paged first?"
+ * does for them: the policy's first rule is created as the user.
+ */
+const canAddEscalationRules: () => boolean = (): boolean => {
+  return PermissionGate.check(
+    new OnCallDutyPolicyEscalationRule(),
+    ModelAction.Create,
+  ).isAllowed;
+};
 
 const OnCallDutyPage: FunctionComponent<
   PageComponentProps
@@ -72,6 +94,20 @@ const OnCallDutyPage: FunctionComponent<
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
+  /*
+   * Name, who gets paged first, and the description and labels folded under
+   * Advanced (OnCallPolicyCreateForm.ts). Built once: the page re-renders as
+   * owners and facets load, and a new field list would rebuild an open form.
+   */
+  const createFormFields: Array<ModelField<OnCallDutyPolicy>> = useMemo(
+    (): Array<ModelField<OnCallDutyPolicy>> => {
+      return getOnCallPolicyCreateFormFields({
+        canAddEscalationRules: canAddEscalationRules,
+      });
+    },
+    [],
+  );
+
   return (
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
@@ -110,45 +146,24 @@ const OnCallDutyPage: FunctionComponent<
             "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "On-Call Duty Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            title: "Labels ",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        formFields={createFormFields}
+        onCreateSuccess={(item: OnCallDutyPolicy): Promise<OnCallDutyPolicy> => {
+          /*
+           * A new policy opens on its Escalation Rules: Level 1 is there when
+           * someone was picked to be paged first, and adding the first rule
+           * is the one thing to do when nobody was.
+           */
+          if (item._id) {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route,
+                { modelId: new ObjectID(item._id.toString()) },
+              ),
+            );
+          }
+
+          return Promise.resolve(item);
+        }}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         viewPageRoute={Navigation.getCurrentRoute()}
