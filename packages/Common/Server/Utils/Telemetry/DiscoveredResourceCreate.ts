@@ -68,6 +68,11 @@ export interface NamedAfterIdentityOptions {
 export const ARCHIVED_RESOURCE_HINT: string =
   "It is archived: unarchive it instead of adding it again.";
 
+// A text value without the spaces around it; empty for anything else.
+const readText: (value: unknown) => string = (value: unknown): string => {
+  return typeof value === "string" ? value.trim() : "";
+};
+
 const readColumn: (data: BaseModel, column: string) => unknown = (
   data: BaseModel,
   column: string,
@@ -168,7 +173,7 @@ export default class DiscoveredResourceCreate {
       values[identityColumn] = (values[identityColumn] as string).trim();
     }
 
-    const sentName: string = getNameFromIdentity(values["name"]);
+    const sentName: string = readText(values["name"]);
 
     if (sentName) {
       if (isPerson) {
@@ -218,9 +223,7 @@ export default class DiscoveredResourceCreate {
       return;
     }
 
-    const identity: string = getNameFromIdentity(
-      values[data.naming.identityColumn],
-    );
+    const identity: string = readText(values[data.naming.identityColumn]);
 
     if (identity) {
       const sameIdentity: TModel | null = await data.service.findOneBy({
@@ -248,7 +251,7 @@ export default class DiscoveredResourceCreate {
       }
     }
 
-    const name: string = getNameFromIdentity(values["name"]);
+    const name: string = readText(values["name"]);
 
     if (name) {
       const sameName: TModel | null = await data.service.findOneBy({
