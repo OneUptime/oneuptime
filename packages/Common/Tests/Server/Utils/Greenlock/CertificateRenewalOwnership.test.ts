@@ -20,6 +20,8 @@
  */
 
 import GreenlockUtil from "../../../../Server/Utils/Greenlock/Greenlock";
+import { CertificateOrderOutcome } from "../../../../Server/Utils/Greenlock/CertificateOrderOutcome";
+import { useInMemoryRedis } from "./InMemoryRedis";
 import AcmeCertificateService from "../../../../Server/Services/AcmeCertificateService";
 import StatusPageDomainService from "../../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService, {
@@ -124,20 +126,37 @@ function setUpWorld(data: {
     notified: { statusPage: [], dashboard: [] },
   };
 
+  // Each renewal takes its name's order lock.
+  useInMemoryRedis();
+
   jest.spyOn(QueryHelper, "any").mockImplementation(((
     values: Array<string>,
   ) => {
     return { inList: values.map(String) };
   }) as never);
 
-  // Pages like the database: findAllBy walks it with skip and limit.
+  /*
+   * Pages like the database: findAllBy walks it with skip and limit. A
+   * lookup by name (GreenlockUtil.findCertificatesByDomain, which a renewal
+   * makes again under the name's lock) gets those names' rows only.
+   */
   jest
     .spyOn(AcmeCertificateService, "findBy")
-    .mockImplementation((async (call: { skip?: number; limit?: number }) => {
+    .mockImplementation((async (call: {
+      query?: { domain?: unknown };
+      skip?: number;
+      limit?: number;
+    }) => {
       const skip: number = Number(call.skip || 0);
       const limit: number = Number(call.limit || world.certificates.length);
+      const names: Array<string> | null = call.query?.domain
+        ? inList(call.query.domain)
+        : null;
 
       return [...world.certificates]
+        .filter((certificate: Certificate) => {
+          return !names || names.includes(certificate.domain);
+        })
         .sort((a: Certificate, b: Certificate) => {
           return a.expiresAt.getTime() - b.expiresAt.getTime();
         })
@@ -169,9 +188,12 @@ function setUpWorld(data: {
 
   jest
     .spyOn(GreenlockUtil, "orderCert")
-    .mockImplementation(async (order: { domain: string }): Promise<void> => {
-      world.ordered.push(order.domain);
-    });
+    .mockImplementation(
+      async (order: { domain: string }): Promise<CertificateOrderOutcome> => {
+        world.ordered.push(order.domain);
+        return CertificateOrderOutcome.Ordered;
+      },
+    );
 
   const wireDomainService: (
     service: unknown,
@@ -349,12 +371,65 @@ describe("a renewal run over the shared certificate table", () => {
    * Removal itself is intended - a certificate for a domain that no longer
    * points here should go - it just has to be the owner's certificate.
    */
-  test("an owned certificate whose CNAME stopped validating is still removed, and only its owner hears about it", async () => {
+  /*
+   * Regression: a CNAME check that failed for a moment during a renewal
+   * removed the certificate, with days or weeks left to run, and the domain
+   * went off HTTPS. Now the certificate keeps serving, and a later run
+   * renews it once the record answers again.
+   */
+  test("an owned certificate whose CNAME check fails while it is still valid is kept, and not renewed this run", async () => {
     const brokenStatusPage: string = STATUS_PAGE_DOMAINS[1]!;
     const brokenDashboard: string = DASHBOARD_DOMAINS[1]!;
 
     const world: World = setUpWorld({
       certificates: mixedDueCertificates(),
+      brokenCnames: [brokenStatusPage, brokenDashboard],
+    });
+
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(world.deleted).toEqual([]);
+    expect(world.notified.statusPage).toEqual([]);
+    expect(world.notified.dashboard).toEqual([]);
+    expect(world.ordered).toEqual([
+      STATUS_PAGE_DOMAINS[0],
+      DASHBOARD_DOMAINS[0],
+    ]);
+    expect(remainingDomains(world)).toEqual(ALL_DOMAINS);
+
+    /*
+     * The record answers again: the next run once the failure's retry delay
+     * is up renews them.
+     */
+    world.brokenCnames.clear();
+    world.ordered.length = 0;
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(OneUptimeDate.addRemoveMinutes(new Date(), 15));
+
+    await StatusPageDomainService.renewCertsWhichAreExpiringSoon();
+    await DashboardDomainService.renewCertsWhichAreExpiringSoon();
+
+    expect(sorted(world.ordered)).toEqual(
+      sorted([...STATUS_PAGE_DOMAINS, ...DASHBOARD_DOMAINS]),
+    );
+  });
+
+  test("an owned certificate that has expired and whose CNAME check fails is removed, and only its owner hears about it", async () => {
+    const brokenStatusPage: string = STATUS_PAGE_DOMAINS[1]!;
+    const brokenDashboard: string = DASHBOARD_DOMAINS[1]!;
+
+    const world: World = setUpWorld({
+      certificates: [
+        expiringInDays(STATUS_PAGE_DOMAINS[0]!, 3),
+        expiringInDays(DASHBOARD_DOMAINS[0]!, 1),
+        expiringInDays(PRIMARY_HOST, 2),
+        expiringInDays(brokenStatusPage, -5),
+        expiringInDays(brokenDashboard, -4),
+        expiringInDays(UNOWNED_DOMAIN, -10),
+      ],
       brokenCnames: [brokenStatusPage, brokenDashboard],
     });
 
@@ -559,9 +634,14 @@ describe("the regression, with each service's real CNAME check", () => {
 
       jest
         .spyOn(GreenlockUtil, "orderCert")
-        .mockImplementation(async (order: { domain: string }) => {
-          ordered.push(order.domain);
-        });
+        .mockImplementation(
+          async (order: {
+            domain: string;
+          }): Promise<CertificateOrderOutcome> => {
+            ordered.push(order.domain);
+            return CertificateOrderOutcome.Ordered;
+          },
+        );
 
       // The caller has no row for the foreign domain, in either lookup.
       jest.spyOn(service as never, "findBy").mockResolvedValue([] as never);
@@ -605,6 +685,9 @@ describe("GreenlockUtil.renewAllCertsWhichAreExpiringSoon ownership mechanics", 
       ownershipQueries: [],
     };
 
+    // Each renewal takes its name's order lock.
+    useInMemoryRedis();
+
     jest.spyOn(AcmeCertificateService, "findBy").mockResolvedValue(
       [...certificates].map((certificate: Certificate) => {
         return { ...certificate } as unknown as AcmeCertificate;
@@ -622,9 +705,12 @@ describe("GreenlockUtil.renewAllCertsWhichAreExpiringSoon ownership mechanics", 
 
     jest
       .spyOn(GreenlockUtil, "orderCert")
-      .mockImplementation(async (order: { domain: string }) => {
-        run.ordered.push(order.domain);
-      });
+      .mockImplementation(
+        async (order: { domain: string }): Promise<CertificateOrderOutcome> => {
+          run.ordered.push(order.domain);
+          return CertificateOrderOutcome.Ordered;
+        },
+      );
 
     return run;
   }

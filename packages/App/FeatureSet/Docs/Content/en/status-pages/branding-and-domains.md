@@ -143,7 +143,7 @@ OneUptime checks every unverified domain every 15 minutes and verifies yours as 
 - **The record is not found yet.** The dialog stays open and says which record it looked for. A new DNS record can take a while to show up. Click **Check now** again later, or leave it to the 15-minute check.
 - **The record is found.** The dialog says "Your CNAME record is verified." and what happens to the certificate next. The free certificate is ordered at that moment.
 
-Until a domain is verified and its certificate ordered, its row has a **DNS Setup** action that opens the same dialog. On a verified domain whose certificate order keeps failing, **Check now** there shows why, and orders again at most once every 15 minutes; between those, OneUptime keeps retrying on its own.
+Until a domain is verified and its certificate is in place, its row has a **DNS Setup** action that opens the same dialog. On a verified domain whose certificate order keeps failing, or whose certificate has expired, **Check now** there orders again and shows why the last order failed. It orders at most once per domain every 15 minutes; between those, OneUptime keeps retrying on its own.
 
 ## SSL certificates
 
@@ -151,11 +151,13 @@ Every custom domain gets a free certificate from Let's Encrypt, issued and renew
 
 - **Check now** orders the certificate the moment the record is found. The dialog then says the certificate is usually live within 15 minutes.
 - When the 15-minute check verifies a domain, it orders the domain's certificate in the same check.
-- Renewal is automatic, well before the certificate expires.
+- Renewal is automatic, well before the certificate expires. If your DNS does not answer for a moment while a certificate is being renewed, the certificate keeps serving and is renewed on a later attempt. A failed DNS check never removes a certificate that is still valid.
 
-A new certificate is served within 15 minutes of being issued, because that is how often certificates are written out to the servers that answer for your domain. The Status column says _usually_ within 15 minutes: when many domains are waiting at once, they are worked through a few at a time, because every OneUptime certificate is ordered from one shared Let's Encrypt account.
+A new certificate is served within 15 minutes of being issued, because that is how often certificates are written out to the servers that answer for your domain. The Status column says _usually_ within 15 minutes: when many domains are waiting at once, they are worked through a few at a time.
 
-If the order that **Check now** places fails, the dialog shows the reason, and OneUptime tries again every 15 minutes. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details. **Check now** places at most one order per domain every 15 minutes, because every order counts against Let's Encrypt's limits for the shared account; a click in between shows how the last order went.
+Every OneUptime certificate is ordered from one shared Let's Encrypt account, and Let's Encrypt limits how many new orders one account may place in a short time, and how often an order for the same domain may fail. OneUptime keeps all of its orders - new domains, **Check now**, reissues and renewals - within those limits together, and renewals always come first, so a burst of new domains never holds up the renewals that keep existing domains online.
+
+If an order fails, the domain's Status column says so, with the reason on the line below, and **Check now** in **DNS Setup** shows it too. OneUptime keeps trying on its own, waiting a little longer after each failure in a row, so a domain whose order keeps failing does not use up the orders every other domain needs. The usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80. On a self-hosted install the worker logs have the details. Once you have fixed the cause, click **Check now** to order again straight away. It places at most one order per domain every 15 minutes; a click in between shows how the last order went.
 
 If you uploaded your own certificate under **Advanced**, OneUptime serves that one instead, within 15 minutes of saving. Upload its replacement before it expires by editing the domain.
 
@@ -165,7 +167,7 @@ Renewal being automatic covers the ordinary case, but sometimes you want a brand
 
 Its modal, **Reissue SSL Certificate for this Status Page**, asks LetsEncrypt for a fresh certificate for the domain and replaces the one we serve with it. Your status page stays online on the existing certificate while that happens, and the new certificate is served within 15 minutes.
 
-**A domain can only be reissued once every 24 hours.** LetsEncrypt rate limits how often the same domain can be issued, and every OneUptime certificate is ordered against one shared account — including the automatic renewals keeping everybody else's pages online. If you press the button inside that window the modal tells you how long is left instead of ordering.
+**A domain can only be reissued once every 24 hours.** LetsEncrypt rate limits how often the same domain can be issued, and every OneUptime certificate is ordered against one shared account — including the automatic renewals keeping everybody else's pages online. If you press the button inside that window the modal tells you how long is left instead of ordering. If a certificate for the domain is being ordered at that moment, or the installation's Let's Encrypt orders are used up for the moment, the modal says so, nothing is ordered, and the press does not count as your reissue.
 
 The action does not appear on a domain using a certificate you uploaded yourself; there is no LetsEncrypt certificate there for us to reissue, so upload a new one by editing the domain instead. It also does not appear before the domain's first certificate is ordered, which happens on its own once its CNAME record is verified.
 
@@ -173,16 +175,19 @@ The same button, with the same 24 hour limit, is on dashboard custom domains und
 
 ## Reading the domain Status column
 
-The **Status** column says where each domain is on its way to HTTPS, in one of four states. Only the first asks anything of you.
+The **Status** column says where each domain is on its way to HTTPS, in one of seven states. When an order failed, the reason is on the line below.
 
-| What the Status column says                            | What it means                                                                                                                                                |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Waiting for DNS: add the CNAME record.                 | The CNAME record is not found yet. Open **DNS Setup** for the record, add it at your DNS provider, then click **Check now** or wait for the 15-minute check. |
-| Issuing a free certificate, usually within 15 minutes. | The record is verified, and the certificate is being ordered or written out. Nothing to do.                                                                  |
-| Certificate issued, renews automatically.              | Done. The domain serves its certificate over HTTPS, and OneUptime renews it.                                                                                 |
-| Uses your uploaded certificate.                        | The record is verified, and the domain is served with the certificate you uploaded.                                                                          |
+| What the Status column says                                 | What it means                                                                                                                                                                     |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Waiting for DNS: add the CNAME record.                      | The CNAME record is not found yet. Open **DNS Setup** for the record, add it at your DNS provider, then click **Check now** or wait for the 15-minute check.                      |
+| Issuing a free certificate, usually within 15 minutes.      | The record is verified, and the certificate is being ordered or written out. Nothing to do.                                                                                       |
+| Could not issue a free certificate yet. We keep trying.     | The record is verified, but ordering its certificate failed, for the reason on the line below. Fix the cause, then open **DNS Setup** and click **Check now** to order again now. |
+| Certificate expired. We keep trying to renew it.            | The domain's certificate has expired because its renewals failed. Open **DNS Setup** and click **Check now** to renew it now and see why.                                         |
+| Certificate issued, renews automatically.                   | Done. The domain serves its certificate over HTTPS, and OneUptime renews it.                                                                                                      |
+| Certificate issued, but renewing it failed. We keep trying. | The domain still serves a valid certificate, but its last renewal failed, for the reason on the line below. OneUptime tries again well before the certificate expires.            |
+| Uses your uploaded certificate.                             | The record is verified, and the domain is served with the certificate you uploaded.                                                                                               |
 
-If a row stays on "Waiting for DNS" long after you created the record, check that the record's name is the full domain and that its value matches your installation's CNAME record exactly. If it stays on "Issuing a free certificate" for more than an hour, check for a CAA record that leaves out `letsencrypt.org` and, on a self-hosted install, that your server answers on port 80.
+If a row stays on "Waiting for DNS" long after you created the record, check that the record's name is the full domain and that its value matches your installation's CNAME record exactly. If it says it could not issue a free certificate, check for a CAA record that leaves out `letsencrypt.org` and, on a self-hosted install, that your server answers on port 80.
 
 ## Powered by OneUptime
 
