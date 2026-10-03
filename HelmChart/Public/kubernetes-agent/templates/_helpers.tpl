@@ -107,7 +107,7 @@ Usage (the include is nindent-ed under the `nodeSelector:` key):
 Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
 toggles. Returns a comma-separated string of the OBI feature names that are
 currently enabled. (An empty string does NOT mean "no metrics": OBI falls back
-to its default, `application`.) Current OBI (since v0.12) refuses to start on a token it does
+to its default, `application`.) Current OBI (since v0.11) refuses to start on a token it does
 not know, so every token here must exist in the pinned version.
 */}}
 {{- define "kubernetes-agent.ebpfMetricsFeatures" -}}

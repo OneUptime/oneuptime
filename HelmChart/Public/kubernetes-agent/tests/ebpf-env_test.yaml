@@ -138,7 +138,7 @@ tests:
             name: OTEL_EBPF_METRICS_FEATURES
             value: application,application_span,application_service_graph,network
 
-  # OBI v0.14 removed `application_host`, and since v0.12 an unknown feature
+  # OBI v0.14 removed `application_host`, and since v0.11 an unknown feature
   # stops OBI starting: every eBPF pod would crash-loop. Values files written
   # for older charts say hostMetrics: true, so it must be a no-op, not an error.
   - it: never passes the removed application_host feature, even when an old values file asks for it
@@ -152,7 +152,7 @@ tests:
             value: application,application_span,application_service_graph,network,stats_tcp_rtt,stats_tcp_failed_connections,stats_tcp_retransmits
 
   # Every token the chart can render, all at once. Each must exist in the
-  # pinned OBI: since v0.12 it exits on an unknown one ("unknown metrics feature"),
+  # pinned OBI: since v0.11 it exits on an unknown one ("unknown metrics feature"),
   # taking every eBPF pod down. Checked against v0.14's FeatureMapper
   # (pkg/export/feature.go); re-check it when the tag moves.
   - it: renders only feature names the pinned OBI knows, with every toggle on

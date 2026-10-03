@@ -948,7 +948,7 @@ ebpf:
     # still install. It mapped to OBI's `application_host` feature, which
     # only ever emitted a host-info gauge (`traces_host_info`) — never the
     # per-process CPU and memory this used to promise — and which OBI v0.14
-    # removed. Current OBI (since v0.12) refuses to start on a feature it
+    # removed. Current OBI (since v0.11) refuses to start on a feature it
     # does not know, so the chart no longer passes it. Per-node CPU, memory, disk and network
     # metrics come from the top-level `hostMetrics` (the collector's
     # hostmetrics receiver), which is unrelated.

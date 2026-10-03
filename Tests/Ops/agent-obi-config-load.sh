@@ -9,7 +9,7 @@
 # TEXT, and text cannot tell whether OBI accepts them or what it does with
 # them. Each of these has bitten, or nearly:
 #
-#   - OBI (since v0.12) refuses to start on a metrics feature it does not know, so
+#   - OBI (since v0.11) refuses to start on a metrics feature it does not know, so
 #     the `application_host` the chart used to pass crash-loops every node on
 #     v0.14. A wrong config is a DaemonSet that never comes up.
 #   - OBI's YAML loader ignores keys it does not know, so a setting OBI renamed
