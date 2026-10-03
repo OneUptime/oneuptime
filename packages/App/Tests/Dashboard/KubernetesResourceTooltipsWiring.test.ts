@@ -220,7 +220,12 @@ const DETAIL_FIELDS: Record<
     ['"Desired Replicas"', "hpaDesiredReplicas"],
     ['"Metrics"', "hpaMetrics"],
   ],
-  VPADetail: [["`Recommendation (${rec.containerName})`", "vpaRecommendation"]],
+  VPADetail: [
+    [
+      'translator.translateTemplate("Recommendation ({{containerName}})", { containerName: rec.containerName })',
+      "vpaRecommendation",
+    ],
+  ],
 };
 
 // Texts a detail page shows outside its summary fields.
@@ -365,7 +370,7 @@ describe("NodeDetail: the Network Throughput chart header", () => {
     );
     expect(extraCharts).toContain(
       compact(
-        `<span>Network Throughput</span>
+        `<span>{translator.translateText("Network Throughput")}</span>
          <InfoTooltip
            label="Network Throughput"
            text={ ${REC}.nodeNetworkThroughput }

@@ -513,8 +513,9 @@ describe("incident-only layout", () => {
       "setResendNotificationErrorState({ subjectId: modelIdString, value: BaseAPI.getFriendlyMessage(err), });",
     );
     expect(resendBody).not.toContain("setRefreshError");
+    // One translated sentence, filled with the resend's own error.
     expect(INCIDENT_PAGE.view).toContain(
-      '"Could not resend notifications: " + resendNotificationError',
+      'translator.translateTemplate( "Could not resend notifications: {{error}}", { error: resendNotificationError }, )',
     );
 
     // A refresh does not retry the resend, so it never clears the error.
@@ -696,8 +697,10 @@ describe("header duration label", () => {
         'durationPrefix = translationKey("Lasted");',
       );
       expect(page.changeState).not.toContain("Resolved in");
+      expect(page.changeState).not.toContain('"{{stateName}} in"');
+      // The stat bar's label: "<resolved state's name> in", translated whole.
       expect(page.view).toContain(
-        'label={`${resolvedState?.name || "Resolved"} in`}',
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: resolvedState?.name || translatableTerm("Resolved"), })}',
       );
     },
   );
