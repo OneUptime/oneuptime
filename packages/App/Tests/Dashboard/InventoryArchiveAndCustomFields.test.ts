@@ -118,10 +118,17 @@ describe("archiving", () => {
   });
 
   test("an empty archive has its own empty state, without the main list's setup guide", () => {
-    const archived: string = table.slice(
-      table.indexOf("const emptyState: EmptyStateOptions = isArchivedView ? {"),
-      table.indexOf('} : { ...facetEmptyState, title: "Nothing here yet."'),
+    const archivedStart: number = table.indexOf(
+      "const emptyState: EmptyStateOptions = isArchivedView ? {",
     );
+    const archivedEnd: number = table.indexOf(
+      '} : { ...facetEmptyState, title: "Nothing here yet."',
+    );
+
+    expect(archivedStart).toBeGreaterThan(-1);
+    expect(archivedEnd).toBeGreaterThan(archivedStart);
+
+    const archived: string = table.slice(archivedStart, archivedEnd);
 
     expect(archived).toContain("...facetEmptyState,");
     expect(archived).toContain('title: "No archived items."');
