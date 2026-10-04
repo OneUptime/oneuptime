@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "任何擁有連結的人無須登入即可看到此儀表板及其所有小工具。",
   "Remove Password": "移除密碼",
   "Share Publicly": "公開分享",
-  "Stop asking for the password?": "不再要求輸入密碼嗎？"
+  "Stop asking for the password?": "不再要求輸入密碼嗎？",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "公告顯示結束時間必須晚於開始顯示時間。",
+  "Leave empty to keep the announcement up until you set an end.": "留空則公告會一直顯示，直到您設定結束時間。",
+  "Shows from {{startsAt}} and stays until you end it.": "從 {{startsAt}} 開始顯示，並一直顯示到您結束它為止。",
+  "Shows from {{startsAt}} until {{endsAt}}.": "從 {{startsAt}} 顯示到 {{endsAt}}。",
+  "Shows now and stays until you end it.": "立即顯示，並一直顯示到您結束它為止。",
+  "Shows now and stays until {{endsAt}}.": "立即顯示，並一直顯示到 {{endsAt}}。",
+  "Stopped showing at {{endsAt}}.": "已於 {{endsAt}} 停止顯示。",
+  "Subscribers are not notified about this edit.": "不會就此次編輯通知訂閱者。",
+  "Subscribers are not notified.": "不會通知訂閱者。",
+  "Subscribers are notified about this edit.": "會就此次編輯通知訂閱者。",
+  "Subscribers are notified when it starts showing.": "開始顯示時會通知訂閱者。",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "由此範本建立的公告開始顯示時，會通知這些狀態頁面的訂閱者。",
+  "Subscribers of these status pages are told when the announcement starts showing.": "公告開始顯示時，會通知這些狀態頁面的訂閱者。",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "公告何時顯示在其狀態頁面上，以及是否讓這些狀態頁面的訂閱者得知。",
+  "Schedule & Notifications": "排程與通知"
 }

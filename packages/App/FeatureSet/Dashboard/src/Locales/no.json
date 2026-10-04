@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle med lenken ser dette dashbordet og alle widgetene på det, uten å logge på.",
   "Remove Password": "Fjern passord",
   "Share Publicly": "Del offentlig",
-  "Stop asking for the password?": "Slutte å spørre om passordet?"
+  "Stop asking for the password?": "Slutte å spørre om passordet?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "Slutten på visningen må være etter starten.",
+  "Leave empty to keep the announcement up until you set an end.": "La feltet stå tomt for å la kunngjøringen bli stående til du angir en slutt.",
+  "Shows from {{startsAt}} and stays until you end it.": "Vises fra {{startsAt}} og blir stående til du avslutter den.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Vises fra {{startsAt}} til {{endsAt}}.",
+  "Shows now and stays until you end it.": "Vises nå og blir stående til du avslutter den.",
+  "Shows now and stays until {{endsAt}}.": "Vises nå og blir stående til {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "Sluttet å vises {{endsAt}}.",
+  "Subscribers are not notified about this edit.": "Abonnenter varsles ikke om denne endringen.",
+  "Subscribers are not notified.": "Abonnenter varsles ikke.",
+  "Subscribers are notified about this edit.": "Abonnenter varsles om denne endringen.",
+  "Subscribers are notified when it starts showing.": "Abonnenter varsles når den begynner å vises.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenter på disse statussidene varsles når en kunngjøring laget fra denne malen begynner å vises.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Abonnenter på disse statussidene varsles når kunngjøringen begynner å vises.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Når kunngjøringen vises på statussidene sine, og om abonnentene deres får vite om den.",
+  "Schedule & Notifications": "Tidsplan og varsler"
 }

@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alla med länken ser den här instrumentpanelen och alla dess widgetar utan att logga in.",
   "Remove Password": "Ta bort lösenord",
   "Share Publicly": "Dela offentligt",
-  "Stop asking for the password?": "Sluta fråga efter lösenordet?"
+  "Stop asking for the password?": "Sluta fråga efter lösenordet?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "Slutet på visningen måste ligga efter starten.",
+  "Leave empty to keep the announcement up until you set an end.": "Lämna tomt för att låta meddelandet ligga kvar tills du anger ett slut.",
+  "Shows from {{startsAt}} and stays until you end it.": "Visas från {{startsAt}} och ligger kvar tills du avslutar det.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Visas från {{startsAt}} till {{endsAt}}.",
+  "Shows now and stays until you end it.": "Visas nu och ligger kvar tills du avslutar det.",
+  "Shows now and stays until {{endsAt}}.": "Visas nu och ligger kvar till {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "Slutade visas {{endsAt}}.",
+  "Subscribers are not notified about this edit.": "Prenumeranter aviseras inte om den här ändringen.",
+  "Subscribers are not notified.": "Prenumeranter aviseras inte.",
+  "Subscribers are notified about this edit.": "Prenumeranter aviseras om den här ändringen.",
+  "Subscribers are notified when it starts showing.": "Prenumeranter aviseras när det börjar visas.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Prenumeranter på dessa statussidor aviseras när ett meddelande som skapats från den här mallen börjar visas.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Prenumeranter på dessa statussidor aviseras när meddelandet börjar visas.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "När meddelandet visas på sina statussidor och om deras prenumeranter får veta om det.",
+  "Schedule & Notifications": "Schema och aviseringar"
 }

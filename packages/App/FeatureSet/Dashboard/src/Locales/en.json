@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Anyone with the link will see this dashboard and every widget on it, without signing in.",
   "Remove Password": "Remove Password",
   "Share Publicly": "Share Publicly",
-  "Stop asking for the password?": "Stop asking for the password?"
+  "Stop asking for the password?": "Stop asking for the password?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "End Showing Announcement At must be after Start Showing Announcement At.",
+  "Leave empty to keep the announcement up until you set an end.": "Leave empty to keep the announcement up until you set an end.",
+  "Shows from {{startsAt}} and stays until you end it.": "Shows from {{startsAt}} and stays until you end it.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Shows from {{startsAt}} until {{endsAt}}.",
+  "Shows now and stays until you end it.": "Shows now and stays until you end it.",
+  "Shows now and stays until {{endsAt}}.": "Shows now and stays until {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "Stopped showing at {{endsAt}}.",
+  "Subscribers are not notified about this edit.": "Subscribers are not notified about this edit.",
+  "Subscribers are not notified.": "Subscribers are not notified.",
+  "Subscribers are notified about this edit.": "Subscribers are notified about this edit.",
+  "Subscribers are notified when it starts showing.": "Subscribers are notified when it starts showing.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Subscribers of these status pages are told when an announcement made from this template starts showing.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Subscribers of these status pages are told when the announcement starts showing.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "When the announcement shows on its status pages, and whether their subscribers hear about it.",
+  "Schedule & Notifications": "Schedule & Notifications"
 }

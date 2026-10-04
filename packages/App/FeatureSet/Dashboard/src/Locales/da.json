@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle med linket kan se dette dashboard og alle dets widgets uden at logge ind.",
   "Remove Password": "Fjern adgangskode",
   "Share Publicly": "Del offentligt",
-  "Stop asking for the password?": "Holde op med at spørge om adgangskoden?"
+  "Stop asking for the password?": "Holde op med at spørge om adgangskoden?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "Slutningen af visningen skal ligge efter starten.",
+  "Leave empty to keep the announcement up until you set an end.": "Lad feltet være tomt for at holde meddelelsen synlig, indtil du angiver en slutning.",
+  "Shows from {{startsAt}} and stays until you end it.": "Vises fra {{startsAt}} og bliver stående, indtil du afslutter den.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Vises fra {{startsAt}} til {{endsAt}}.",
+  "Shows now and stays until you end it.": "Vises nu og bliver stående, indtil du afslutter den.",
+  "Shows now and stays until {{endsAt}}.": "Vises nu og bliver stående til {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "Holdt op med at blive vist {{endsAt}}.",
+  "Subscribers are not notified about this edit.": "Abonnenter underrettes ikke om denne ændring.",
+  "Subscribers are not notified.": "Abonnenter underrettes ikke.",
+  "Subscribers are notified about this edit.": "Abonnenter underrettes om denne ændring.",
+  "Subscribers are notified when it starts showing.": "Abonnenter underrettes, når den begynder at blive vist.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenter på disse statussider underrettes, når en meddelelse oprettet ud fra denne skabelon begynder at blive vist.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Abonnenter på disse statussider underrettes, når meddelelsen begynder at blive vist.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Hvornår meddelelsen vises på dens statussider, og om deres abonnenter hører om den.",
+  "Schedule & Notifications": "Tidsplan og notifikationer"
 }

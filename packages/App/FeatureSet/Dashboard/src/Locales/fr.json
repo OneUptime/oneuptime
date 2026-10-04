@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Toute personne disposant du lien verra ce tableau de bord et tous ses widgets, sans se connecter.",
   "Remove Password": "Supprimer le mot de passe",
   "Share Publicly": "Partager publiquement",
-  "Stop asking for the password?": "Ne plus demander le mot de passe ?"
+  "Stop asking for the password?": "Ne plus demander le mot de passe ?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "La fin de l'affichage doit être postérieure à son début.",
+  "Leave empty to keep the announcement up until you set an end.": "Laissez vide pour garder l'annonce affichée jusqu'à ce que vous fixiez une fin.",
+  "Shows from {{startsAt}} and stays until you end it.": "S'affiche à partir du {{startsAt}} et reste affichée jusqu'à ce que vous y mettiez fin.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "S'affiche du {{startsAt}} au {{endsAt}}.",
+  "Shows now and stays until you end it.": "S'affiche dès maintenant et reste affichée jusqu'à ce que vous y mettiez fin.",
+  "Shows now and stays until {{endsAt}}.": "S'affiche dès maintenant et reste affichée jusqu'au {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "N'est plus affichée depuis le {{endsAt}}.",
+  "Subscribers are not notified about this edit.": "Les abonnés ne sont pas notifiés de cette modification.",
+  "Subscribers are not notified.": "Les abonnés ne sont pas notifiés.",
+  "Subscribers are notified about this edit.": "Les abonnés sont notifiés de cette modification.",
+  "Subscribers are notified when it starts showing.": "Les abonnés sont notifiés dès qu'elle s'affiche.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Les abonnés de ces pages de statut sont informés dès qu'une annonce créée à partir de ce modèle s'affiche.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Les abonnés de ces pages de statut sont informés dès que l'annonce s'affiche.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Quand l'annonce s'affiche sur ses pages de statut, et si leurs abonnés en sont informés.",
+  "Schedule & Notifications": "Planification et notifications"
 }

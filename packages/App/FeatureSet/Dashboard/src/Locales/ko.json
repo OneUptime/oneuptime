@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "링크가 있는 사람은 누구나 로그인하지 않고 이 대시보드와 모든 위젯을 볼 수 있습니다.",
   "Remove Password": "비밀번호 제거",
   "Share Publicly": "공개로 공유",
-  "Stop asking for the password?": "더 이상 비밀번호를 요청하지 않으시겠습니까?"
+  "Stop asking for the password?": "더 이상 비밀번호를 요청하지 않으시겠습니까?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "표시 종료 시점은 표시 시작 시점 이후여야 합니다.",
+  "Leave empty to keep the announcement up until you set an end.": "비워 두면 종료 시점을 설정할 때까지 공지사항이 계속 표시됩니다.",
+  "Shows from {{startsAt}} and stays until you end it.": "{{startsAt}}부터 표시되며 직접 종료할 때까지 계속 표시됩니다.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "{{startsAt}}부터 {{endsAt}}까지 표시됩니다.",
+  "Shows now and stays until you end it.": "지금 표시되며 직접 종료할 때까지 계속 표시됩니다.",
+  "Shows now and stays until {{endsAt}}.": "지금 표시되며 {{endsAt}}까지 계속 표시됩니다.",
+  "Stopped showing at {{endsAt}}.": "{{endsAt}}에 표시가 종료되었습니다.",
+  "Subscribers are not notified about this edit.": "이 수정 사항은 구독자에게 알리지 않습니다.",
+  "Subscribers are not notified.": "구독자에게 알리지 않습니다.",
+  "Subscribers are notified about this edit.": "이 수정 사항을 구독자에게 알립니다.",
+  "Subscribers are notified when it starts showing.": "표시가 시작되면 구독자에게 알립니다.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "이 템플릿으로 만든 공지사항의 표시가 시작되면 이 상태 페이지의 구독자에게 알립니다.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "공지사항의 표시가 시작되면 이 상태 페이지의 구독자에게 알립니다.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "공지사항이 상태 페이지에 표시되는 시점과 해당 구독자에게 알릴지 여부입니다.",
+  "Schedule & Notifications": "일정 및 알림"
 }

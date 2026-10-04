@@ -292,9 +292,14 @@ describe("the announcement only offers the update checkbox when editing", () => 
       "AnnouncementView.tsx",
     );
 
-    expect(source).toContain('id: "more"');
+    /*
+     * On the Status Pages step, folded with the schedule in Schedule &
+     * Notifications, whose line says whether this edit is sent
+     * (Components/Announcement/AnnouncementForm).
+     */
+    expect(source).toContain('id: "status-pages"');
     expect(source).toMatch(
-      /getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(\{ stepId: "more",/,
+      /getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>\(\{ stepId: "status-pages", description: "[^"]+", collapsibleSection: detailsScheduleSection, \}\)/,
     );
   });
 });

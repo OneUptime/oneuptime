@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Iedereen met de link ziet dit dashboard en alle widgets erop, zonder zich aan te melden.",
   "Remove Password": "Wachtwoord verwijderen",
   "Share Publicly": "Openbaar delen",
-  "Stop asking for the password?": "Niet meer om het wachtwoord vragen?"
+  "Stop asking for the password?": "Niet meer om het wachtwoord vragen?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "Het einde van de weergave moet na het begin liggen.",
+  "Leave empty to keep the announcement up until you set an end.": "Laat leeg om de aankondiging zichtbaar te houden tot u een einde instelt.",
+  "Shows from {{startsAt}} and stays until you end it.": "Wordt getoond vanaf {{startsAt}} en blijft staan tot u deze beëindigt.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Wordt getoond van {{startsAt}} tot {{endsAt}}.",
+  "Shows now and stays until you end it.": "Wordt nu getoond en blijft staan tot u deze beëindigt.",
+  "Shows now and stays until {{endsAt}}.": "Wordt nu getoond en blijft staan tot {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "Wordt sinds {{endsAt}} niet meer getoond.",
+  "Subscribers are not notified about this edit.": "Abonnees krijgen geen melding van deze wijziging.",
+  "Subscribers are not notified.": "Abonnees krijgen geen melding.",
+  "Subscribers are notified about this edit.": "Abonnees krijgen een melding van deze wijziging.",
+  "Subscribers are notified when it starts showing.": "Abonnees krijgen een melding zodra deze wordt getoond.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnees van deze statuspagina's krijgen een melding zodra een aankondiging op basis van dit sjabloon wordt getoond.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Abonnees van deze statuspagina's krijgen een melding zodra de aankondiging wordt getoond.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Wanneer de aankondiging op de statuspagina's wordt getoond, en of hun abonnees ervan horen.",
+  "Schedule & Notifications": "Schema & meldingen"
 }

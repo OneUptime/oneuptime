@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "リンクを知っている人は誰でも、サインインせずにこのダッシュボードとそのすべてのウィジェットを表示できます。",
   "Remove Password": "パスワードを削除",
   "Share Publicly": "公開して共有",
-  "Stop asking for the password?": "パスワードの入力を求めないようにしますか？"
+  "Stop asking for the password?": "パスワードの入力を求めないようにしますか？",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "表示終了日時は表示開始日時より後にしてください。",
+  "Leave empty to keep the announcement up until you set an end.": "空欄のままにすると、終了日時を設定するまでお知らせが表示され続けます。",
+  "Shows from {{startsAt}} and stays until you end it.": "{{startsAt}}から表示され、終了するまで表示され続けます。",
+  "Shows from {{startsAt}} until {{endsAt}}.": "{{startsAt}}から{{endsAt}}まで表示されます。",
+  "Shows now and stays until you end it.": "今すぐ表示され、終了するまで表示され続けます。",
+  "Shows now and stays until {{endsAt}}.": "今すぐ表示され、{{endsAt}}まで表示され続けます。",
+  "Stopped showing at {{endsAt}}.": "{{endsAt}}に表示を終了しました。",
+  "Subscribers are not notified about this edit.": "この編集は購読者に通知されません。",
+  "Subscribers are not notified.": "購読者には通知されません。",
+  "Subscribers are notified about this edit.": "この編集は購読者に通知されます。",
+  "Subscribers are notified when it starts showing.": "表示が始まると購読者に通知されます。",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "このテンプレートから作成したお知らせの表示が始まると、これらのステータスページの購読者に通知されます。",
+  "Subscribers of these status pages are told when the announcement starts showing.": "お知らせの表示が始まると、これらのステータスページの購読者に通知されます。",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "お知らせがステータスページに表示されるタイミングと、その購読者に知らせるかどうかです。",
+  "Schedule & Notifications": "スケジュールと通知"
 }

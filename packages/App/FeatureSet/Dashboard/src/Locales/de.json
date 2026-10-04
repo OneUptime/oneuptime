@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Alle mit dem Link sehen dieses Dashboard mit allen seinen Widgets, ohne sich anzumelden.",
   "Remove Password": "Passwort entfernen",
   "Share Publicly": "Öffentlich teilen",
-  "Stop asking for the password?": "Nicht mehr nach dem Passwort fragen?"
+  "Stop asking for the password?": "Nicht mehr nach dem Passwort fragen?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "Das Ende der Anzeige muss nach ihrem Beginn liegen.",
+  "Leave empty to keep the announcement up until you set an end.": "Leer lassen, damit die Ankündigung sichtbar bleibt, bis Sie ein Ende festlegen.",
+  "Shows from {{startsAt}} and stays until you end it.": "Wird ab {{startsAt}} angezeigt und bleibt sichtbar, bis Sie sie beenden.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Wird von {{startsAt}} bis {{endsAt}} angezeigt.",
+  "Shows now and stays until you end it.": "Wird sofort angezeigt und bleibt sichtbar, bis Sie sie beenden.",
+  "Shows now and stays until {{endsAt}}.": "Wird sofort angezeigt und bleibt bis {{endsAt}} sichtbar.",
+  "Stopped showing at {{endsAt}}.": "Wird seit {{endsAt}} nicht mehr angezeigt.",
+  "Subscribers are not notified about this edit.": "Abonnenten werden über diese Änderung nicht benachrichtigt.",
+  "Subscribers are not notified.": "Abonnenten werden nicht benachrichtigt.",
+  "Subscribers are notified about this edit.": "Abonnenten werden über diese Änderung benachrichtigt.",
+  "Subscribers are notified when it starts showing.": "Abonnenten werden benachrichtigt, sobald sie angezeigt wird.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Abonnenten dieser Statusseiten werden benachrichtigt, sobald eine Ankündigung aus dieser Vorlage angezeigt wird.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Abonnenten dieser Statusseiten werden benachrichtigt, sobald die Ankündigung angezeigt wird.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Wann die Ankündigung auf ihren Statusseiten angezeigt wird und ob deren Abonnenten davon erfahren.",
+  "Schedule & Notifications": "Zeitplan & Benachrichtigungen"
 }

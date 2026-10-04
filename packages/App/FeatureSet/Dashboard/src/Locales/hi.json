@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "लिंक वाला कोई भी व्यक्ति साइन इन किए बिना यह डैशबोर्ड और उसके सभी विजेट देखेगा।",
   "Remove Password": "पासवर्ड हटाएं",
   "Share Publicly": "सार्वजनिक रूप से साझा करें",
-  "Stop asking for the password?": "पासवर्ड मांगना बंद करें?"
+  "Stop asking for the password?": "पासवर्ड मांगना बंद करें?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "घोषणा दिखाना समाप्त करने का समय उसे दिखाना शुरू करने के समय के बाद होना चाहिए।",
+  "Leave empty to keep the announcement up until you set an end.": "खाली छोड़ें, ताकि जब तक आप समाप्ति तय न करें, घोषणा दिखती रहे।",
+  "Shows from {{startsAt}} and stays until you end it.": "{{startsAt}} से दिखती है और तब तक दिखती रहती है जब तक आप इसे समाप्त न करें।",
+  "Shows from {{startsAt}} until {{endsAt}}.": "{{startsAt}} से {{endsAt}} तक दिखती है।",
+  "Shows now and stays until you end it.": "अभी से दिखती है और तब तक दिखती रहती है जब तक आप इसे समाप्त न करें।",
+  "Shows now and stays until {{endsAt}}.": "अभी से दिखती है और {{endsAt}} तक दिखती रहती है।",
+  "Stopped showing at {{endsAt}}.": "{{endsAt}} को दिखना बंद हो गई।",
+  "Subscribers are not notified about this edit.": "इस संपादन के बारे में सब्सक्राइबर्स को सूचित नहीं किया जाता।",
+  "Subscribers are not notified.": "सब्सक्राइबर्स को सूचित नहीं किया जाता।",
+  "Subscribers are notified about this edit.": "इस संपादन के बारे में सब्सक्राइबर्स को सूचित किया जाता है।",
+  "Subscribers are notified when it starts showing.": "दिखना शुरू होने पर सब्सक्राइबर्स को सूचित किया जाता है।",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "इस टेम्पलेट से बनी घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित किया जाता है।",
+  "Subscribers of these status pages are told when the announcement starts showing.": "घोषणा दिखना शुरू होने पर इन स्थिति पृष्ठों के सब्सक्राइबर्स को सूचित किया जाता है।",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "घोषणा अपने स्थिति पृष्ठों पर कब दिखती है, और क्या उनके सब्सक्राइबर्स को इसके बारे में पता चलता है।",
+  "Schedule & Notifications": "अनुसूची और सूचनाएँ"
 }

@@ -25,6 +25,30 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 import { getNotifySubscribersOfUpdateFormField } from "../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  AnnouncementFormKind,
+  getAnnouncementEndsAtError,
+  getScheduleAndNotificationsSection,
+} from "../../Components/Announcement/AnnouncementForm";
+
+/*
+ * The details card's Edit walks the steps of Create Announcement -
+ * Announcement, then Status Pages (Components/Announcement/AnnouncementForm).
+ * The notify switch is not on it: subscribers are told once, when the
+ * announcement starts showing, so the column takes no updates. Its place in
+ * Schedule & Notifications is taken by "Notify subscribers about this
+ * update", which the folded line reads out.
+ */
+const detailsAdvancedSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
+  getAdvancedFormSection<StatusPageAnnouncement>();
+
+const detailsScheduleSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
+  getScheduleAndNotificationsSection<StatusPageAnnouncement>(
+    AnnouncementFormKind.Edit,
+  );
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
@@ -92,20 +116,12 @@ const AnnouncementView: FunctionComponent<
         createEditModalWidth={ModalWidth.Large}
         formSteps={[
           {
-            title: "Basic Information",
-            id: "basic",
+            title: "Announcement",
+            id: "announcement",
           },
           {
             title: "Status Pages",
             id: "status-pages",
-          },
-          {
-            title: "Resources Affected",
-            id: "resources-affected",
-          },
-          {
-            title: "Schedule & Settings",
-            id: "more",
           },
         ]}
         isEditable={true}
@@ -114,8 +130,8 @@ const AnnouncementView: FunctionComponent<
             field: {
               title: true,
             },
-            stepId: "basic",
-            title: "Announcement Title",
+            stepId: "announcement",
+            title: "Title",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Announcement Title",
@@ -123,14 +139,15 @@ const AnnouncementView: FunctionComponent<
               minLength: 2,
             },
           },
+          // Required, as the server requires it.
           {
             field: {
               description: true,
             },
             title: "Description",
-            stepId: "basic",
+            stepId: "announcement",
             fieldType: FormFieldSchemaType.Markdown,
-            required: false,
+            required: true,
             description: MarkdownUtil.getMarkdownCheatsheet(
               "Add an announcement note",
             ),
@@ -140,11 +157,12 @@ const AnnouncementView: FunctionComponent<
               attachments: true,
             },
             title: "Attachments",
-            stepId: "basic",
+            stepId: "announcement",
             fieldType: FormFieldSchemaType.MultipleFiles,
             required: false,
             description:
               "Attach files that should be available with this announcement on the status page.",
+            collapsibleSection: detailsAdvancedSection,
           },
           {
             field: {
@@ -166,8 +184,8 @@ const AnnouncementView: FunctionComponent<
             field: {
               monitors: true,
             },
-            title: "Monitors affected (Optional)",
-            stepId: "resources-affected",
+            title: "Monitors Affected",
+            stepId: "status-pages",
             description:
               "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -177,42 +195,42 @@ const AnnouncementView: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitors (Optional)",
+            placeholder: "Select Monitors",
           },
           {
             field: {
               showAnnouncementAt: true,
             },
-            stepId: "more",
+            stepId: "status-pages",
             title: "Start Showing Announcement At",
             fieldType: FormFieldSchemaType.DateTime,
             required: true,
             placeholder: "Pick Date and Time",
+            collapsibleSection: detailsScheduleSection,
           },
           {
             field: {
               endAnnouncementAt: true,
             },
-            stepId: "more",
+            stepId: "status-pages",
             title: "End Showing Announcement At",
+            description:
+              "Leave empty to keep the announcement up until you set an end.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             placeholder: "Pick Date and Time",
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotified: true,
+            collapsibleSection: detailsScheduleSection,
+            customValidation: (
+              values: FormValues<StatusPageAnnouncement>,
+            ): string | null => {
+              return getAnnouncementEndsAtError(values);
             },
-            title: "Notify Status Page Subscribers",
-            stepId: "more",
-            description: "Should status page subscribers be notified?",
-            fieldType: FormFieldSchemaType.Checkbox,
-            required: false,
           },
           getNotifySubscribersOfUpdateFormField<StatusPageAnnouncement>({
-            stepId: "more",
+            stepId: "status-pages",
             description:
               "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
+            collapsibleSection: detailsScheduleSection,
           }),
         ]}
         modelDetailProps={{

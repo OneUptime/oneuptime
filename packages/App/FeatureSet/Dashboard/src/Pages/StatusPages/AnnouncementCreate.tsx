@@ -3,6 +3,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
+import Link from "Common/Types/Link";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import React, {
   FunctionComponent,
@@ -27,10 +28,34 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import OneUptimeDate from "Common/Types/Date";
 import Page from "Common/UI/Components/Page/Page";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM,
+  ANNOUNCEMENT_TEMPLATE_QUERY_PARAM,
+  AnnouncementFormKind,
+  getAnnouncementEndsAtError,
+  getInitialAnnouncementStatusPageIds,
+  getScheduleAndNotificationsSection,
+  readAnnouncementQueryId,
+} from "../../Components/Announcement/AnnouncementForm";
+
+/*
+ * Two steps - Announcement and Status Pages - and the review step (see
+ * Components/Announcement/AnnouncementForm for why). Built once: BasicForm
+ * folds the fields next to each other that carry the same section.
+ */
+const advancedSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
+  getAdvancedFormSection<StatusPageAnnouncement>();
+
+const scheduleAndNotificationsSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
+  getScheduleAndNotificationsSection<StatusPageAnnouncement>(
+    AnnouncementFormKind.Create,
+  );
 
 const AnnouncementCreate: FunctionComponent<
   PageComponentProps
@@ -42,59 +67,110 @@ const AnnouncementCreate: FunctionComponent<
   const [initialValuesForAnnouncement, setInitialValuesForAnnouncement] =
     useState<JSONObject>({});
 
+  /*
+   * The status page whose Announcements tab the page was opened from, once
+   * it is known to exist: it is picked on the form, and Create goes back to
+   * its tab.
+   */
+  const [fromStatusPageId, setFromStatusPageId] = useState<string | null>(
+    null,
+  );
+
   useEffect(() => {
-    if (Navigation.getQueryStringByName("announcementTemplateId")) {
-      fetchAnnouncementTemplate(
-        new ObjectID(
-          Navigation.getQueryStringByName("announcementTemplateId") || "",
-        ),
-      );
-    } else {
+    loadInitialValues({
+      statusPageId: readAnnouncementQueryId(
+        Navigation.getQueryStringByName(ANNOUNCEMENT_STATUS_PAGE_QUERY_PARAM),
+      ),
+      announcementTemplateId: readAnnouncementQueryId(
+        Navigation.getQueryStringByName(ANNOUNCEMENT_TEMPLATE_QUERY_PARAM),
+      ),
+    }).catch((err: unknown) => {
+      setError(API.getFriendlyMessage(err));
       setIsLoading(false);
-    }
+    });
   }, []);
 
-  const fetchAnnouncementTemplate: (id: ObjectID) => Promise<void> = async (
-    id: ObjectID,
-  ): Promise<void> => {
+  const loadInitialValues: (data: {
+    statusPageId: string | null;
+    announcementTemplateId: string | null;
+  }) => Promise<void> = async (data: {
+    statusPageId: string | null;
+    announcementTemplateId: string | null;
+  }): Promise<void> => {
+    if (!data.statusPageId && !data.announcementTemplateId) {
+      setIsLoading(false);
+      return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
-      //fetch announcement template
+      const [statusPage, announcementTemplate]: [
+        StatusPage | null,
+        StatusPageAnnouncementTemplate | null,
+      ] = await Promise.all([
+        data.statusPageId
+          ? ModelAPI.getItem<StatusPage>({
+              modelType: StatusPage,
+              id: new ObjectID(data.statusPageId),
+              select: {
+                _id: true,
+                name: true,
+              },
+            })
+          : Promise.resolve(null),
+        data.announcementTemplateId
+          ? ModelAPI.getItem<StatusPageAnnouncementTemplate>({
+              modelType: StatusPageAnnouncementTemplate,
+              id: new ObjectID(data.announcementTemplateId),
+              select: {
+                title: true,
+                description: true,
+                statusPages: true,
+                monitors: true,
+                shouldStatusPageSubscribersBeNotified: true,
+              },
+            })
+          : Promise.resolve(null),
+      ]);
 
-      const announcementTemplate: StatusPageAnnouncementTemplate | null =
-        await ModelAPI.getItem<StatusPageAnnouncementTemplate>({
-          modelType: StatusPageAnnouncementTemplate,
-          id: id,
-          select: {
-            title: true,
-            description: true,
-            statusPages: true,
-            monitors: true,
-            shouldStatusPageSubscribersBeNotified: true,
-          },
-        });
+      // A page that is gone, or not in this project, is not picked.
+      const statusPageId: string | null = statusPage?.id?.toString() || null;
+
+      let initialValue: JSONObject = {};
 
       if (announcementTemplate) {
-        const initialValue: JSONObject = {
+        initialValue = {
           ...BaseModel.toJSONObject(
             announcementTemplate,
             StatusPageAnnouncementTemplate,
           ),
-          statusPages: announcementTemplate.statusPages?.map(
-            (statusPage: StatusPage) => {
-              return statusPage.id!.toString();
-            },
-          ),
           monitors: announcementTemplate.monitors?.map((monitor: Monitor) => {
             return monitor.id!.toString();
           }),
-          showAnnouncementAt: OneUptimeDate.getCurrentDate(),
         };
-
-        setInitialValuesForAnnouncement(initialValue);
       }
+
+      const statusPageIds: Array<string> = getInitialAnnouncementStatusPageIds(
+        {
+          statusPageId: statusPageId,
+          templateStatusPageIds: announcementTemplate?.statusPages?.map(
+            (templateStatusPage: StatusPage) => {
+              return templateStatusPage.id!.toString();
+            },
+          ),
+        },
+      );
+
+      if (statusPageIds.length > 0) {
+        initialValue["statusPages"] = statusPageIds;
+      } else {
+        delete initialValue["statusPages"];
+      }
+
+      setFromStatusPageId(statusPageId);
+      setInitialValuesForAnnouncement(initialValue);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -102,30 +178,51 @@ const AnnouncementCreate: FunctionComponent<
     setIsLoading(false);
   };
 
+  /*
+   * Opened from a status page, the trail goes back through that page's
+   * Announcements tab, as the tab's own trail reads; otherwise through the
+   * project's Announcements list.
+   */
+  const breadcrumbLinks: Array<Link> = [
+    {
+      title: "Status Pages",
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGES] as Route),
+    },
+    ...(fromStatusPageId
+      ? [
+          {
+            title: "View Status Page",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+              { modelId: fromStatusPageId },
+            ),
+          },
+          {
+            title: "Announcements",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
+              { modelId: fromStatusPageId },
+            ),
+          },
+        ]
+      : [
+          {
+            title: "Announcements",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
+            ),
+          },
+        ]),
+    {
+      title: "Create Announcement",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
+      ),
+    },
+  ];
+
   return (
-    <Page
-      title={"Create Announcement"}
-      breadcrumbLinks={[
-        {
-          title: "Status Pages",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGES] as Route,
-          ),
-        },
-        {
-          title: "Announcements",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
-          ),
-        },
-        {
-          title: "Create Announcement",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
-          ),
-        },
-      ]}
-    >
+    <Page title={"Create Announcement"} breadcrumbLinks={breadcrumbLinks}>
       <Card
         title="Create New Announcement"
         description={
@@ -142,28 +239,42 @@ const AnnouncementCreate: FunctionComponent<
               initialValues={initialValuesForAnnouncement}
               name="Create New Announcement"
               id="create-announcement-form"
+              steps={[
+                {
+                  title: "Announcement",
+                  id: "announcement",
+                },
+                {
+                  title: "Status Pages",
+                  id: "status-pages",
+                },
+              ]}
               fields={[
                 {
                   field: {
                     title: true,
                   },
-                  title: "Announcement Title",
+                  title: "Title",
                   fieldType: FormFieldSchemaType.Text,
-                  stepId: "basic",
+                  stepId: "announcement",
                   required: true,
                   placeholder: "Announcement Title",
                   validation: {
                     minLength: 2,
                   },
                 },
+                /*
+                 * Required, as the server requires it: the text people read
+                 * on the status page.
+                 */
                 {
                   field: {
                     description: true,
                   },
                   title: "Description",
-                  stepId: "basic",
+                  stepId: "announcement",
                   fieldType: FormFieldSchemaType.Markdown,
-                  required: false,
+                  required: true,
                   description: MarkdownUtil.getMarkdownCheatsheet(
                     "Add an announcement note",
                   ),
@@ -173,11 +284,12 @@ const AnnouncementCreate: FunctionComponent<
                     attachments: true,
                   },
                   title: "Attachments",
-                  stepId: "basic",
+                  stepId: "announcement",
                   fieldType: FormFieldSchemaType.MultipleFiles,
                   required: false,
                   description:
                     "Attach files that should be available with this announcement on the status page.",
+                  collapsibleSection: advancedSection,
                 },
                 {
                   field: {
@@ -240,8 +352,8 @@ const AnnouncementCreate: FunctionComponent<
                   field: {
                     monitors: true,
                   },
-                  title: "Monitors affected (Optional)",
-                  stepId: "resources-affected",
+                  title: "Monitors Affected",
+                  stepId: "status-pages",
                   description:
                     "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -251,7 +363,7 @@ const AnnouncementCreate: FunctionComponent<
                     valueField: "_id",
                   },
                   required: false,
-                  placeholder: "Select Monitors (Optional)",
+                  placeholder: "Select Monitors",
                   getSummaryElement: (
                     item: FormValues<StatusPageAnnouncement>,
                   ) => {
@@ -293,15 +405,21 @@ const AnnouncementCreate: FunctionComponent<
                     );
                   },
                 },
+                /*
+                 * Folded to one line that says what happens: it shows now,
+                 * stays until someone ends it, and the subscribers are told
+                 * when it starts showing - the model's defaults.
+                 */
                 {
                   field: {
                     showAnnouncementAt: true,
                   },
-                  stepId: "more",
+                  stepId: "status-pages",
                   title: "Start Showing Announcement At",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  collapsibleSection: scheduleAndNotificationsSection,
                   getDefaultValue: () => {
                     return OneUptimeDate.getCurrentDate();
                   },
@@ -310,48 +428,48 @@ const AnnouncementCreate: FunctionComponent<
                   field: {
                     endAnnouncementAt: true,
                   },
-                  stepId: "more",
+                  stepId: "status-pages",
                   title: "End Showing Announcement At",
+                  description:
+                    "Leave empty to keep the announcement up until you set an end.",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: false,
                   placeholder: "Pick Date and Time",
+                  collapsibleSection: scheduleAndNotificationsSection,
+                  customValidation: (
+                    values: FormValues<StatusPageAnnouncement>,
+                  ): string | null => {
+                    return getAnnouncementEndsAtError(values);
+                  },
                 },
                 {
                   field: {
                     shouldStatusPageSubscribersBeNotified: true,
                   },
-
                   title: "Notify Status Page Subscribers",
-                  stepId: "more",
-                  description: "Should status page subscribers be notified?",
+                  stepId: "status-pages",
+                  description:
+                    "Subscribers of these status pages are told when the announcement starts showing.",
                   fieldType: FormFieldSchemaType.Checkbox,
+                  collapsibleSection: scheduleAndNotificationsSection,
                   defaultValue: true,
                   required: false,
                 },
               ]}
-              steps={[
-                {
-                  title: "Basic Information",
-                  id: "basic",
-                },
-                {
-                  title: "Status Pages",
-                  id: "status-pages",
-                },
-                {
-                  title: "Resources Affected",
-                  id: "resources-affected",
-                },
-                {
-                  title: "Schedule & Settings",
-                  id: "more",
-                },
-              ]}
               onSuccess={(_createdItem: StatusPageAnnouncement) => {
+                /*
+                 * Back where Create was pressed: the status page's own
+                 * Announcements tab, or the project's list.
+                 */
                 Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
-                  ),
+                  fromStatusPageId
+                    ? RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
+                        { modelId: fromStatusPageId },
+                      )
+                    : RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
+                      ),
                 );
               }}
               submitButtonText={"Create Announcement"}

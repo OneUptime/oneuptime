@@ -24581,5 +24581,20 @@
   "Anyone with the link will see this dashboard and every widget on it, without signing in.": "Все, у кого есть ссылка, увидят эту панель со всеми её виджетами без входа в систему.",
   "Remove Password": "Удалить пароль",
   "Share Publicly": "Открыть общий доступ",
-  "Stop asking for the password?": "Больше не запрашивать пароль?"
+  "Stop asking for the password?": "Больше не запрашивать пароль?",
+  "End Showing Announcement At must be after Start Showing Announcement At.": "Окончание показа должно быть позже его начала.",
+  "Leave empty to keep the announcement up until you set an end.": "Оставьте пустым, чтобы объявление оставалось на странице, пока вы не зададите окончание.",
+  "Shows from {{startsAt}} and stays until you end it.": "Показывается с {{startsAt}} и остаётся, пока вы его не завершите.",
+  "Shows from {{startsAt}} until {{endsAt}}.": "Показывается с {{startsAt}} до {{endsAt}}.",
+  "Shows now and stays until you end it.": "Показывается сейчас и остаётся, пока вы его не завершите.",
+  "Shows now and stays until {{endsAt}}.": "Показывается сейчас и остаётся до {{endsAt}}.",
+  "Stopped showing at {{endsAt}}.": "Показ завершён {{endsAt}}.",
+  "Subscribers are not notified about this edit.": "Подписчики не получат уведомление об этом изменении.",
+  "Subscribers are not notified.": "Подписчики не получат уведомление.",
+  "Subscribers are notified about this edit.": "Подписчики получат уведомление об этом изменении.",
+  "Subscribers are notified when it starts showing.": "Подписчики получат уведомление, когда начнётся показ.",
+  "Subscribers of these status pages are told when an announcement made from this template starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления, созданного по этому шаблону.",
+  "Subscribers of these status pages are told when the announcement starts showing.": "Подписчики этих страниц статуса получат уведомление, когда начнётся показ объявления.",
+  "When the announcement shows on its status pages, and whether their subscribers hear about it.": "Когда объявление показывается на своих страницах статуса и узнают ли об этом их подписчики.",
+  "Schedule & Notifications": "Расписание и уведомления"
 }
