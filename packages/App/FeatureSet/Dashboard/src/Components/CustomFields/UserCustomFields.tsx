@@ -153,7 +153,7 @@ const UserCustomFields: FunctionComponent<ComponentProps> = (
           id="empty-state-user-custom-fields"
           icon={IconProp.TableCells}
           title="No custom fields defined"
-          description="There are no custom fields defined for team members in this project. Define custom fields in Project Settings to capture additional information about each user."
+          description="There are no custom fields defined for team members in this project. Define custom fields in Users → Settings → Custom Fields to capture additional information about each user."
         />
       );
     }

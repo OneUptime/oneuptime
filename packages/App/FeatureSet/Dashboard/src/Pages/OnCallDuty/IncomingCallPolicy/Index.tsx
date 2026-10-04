@@ -608,7 +608,7 @@ const IncomingCallPolicyView: FunctionComponent<
           >
             <Alert
               type={AlertType.WARNING}
-              title="You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Call & SMS to add your Twilio Account SID and Auth Token."
+              title="You need to add a Twilio configuration before you can use this feature. Go to Project Settings → Notification Settings to add your Twilio Account SID and Auth Token."
             />
           </Modal>
         )}

@@ -206,7 +206,7 @@ const EpisodeMemberRoleAssignmentsFormField: FunctionComponent<
     return (
       <p className="text-gray-500">
         {translator.translateText(
-          "No incident roles defined. Go to Incidents > Settings > Roles to create roles first.",
+          "No incident roles defined. Go to Incidents → Settings → Incident Roles to create roles first.",
         )}
       </p>
     );

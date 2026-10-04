@@ -1,41 +1,37 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import GenerateFromAIModal, {
   GenerateAIRequestData,
-  AITemplate,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
 import { POSTMORTEM_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import usePostmortemTemplates, {
+  PostmortemTemplatesState,
+} from "../../../Components/Postmortem/usePostmortemTemplates";
+import {
+  PostmortemTemplateOption,
+  toAITemplates,
+} from "../../../Components/Postmortem/PostmortemTemplates";
+import { getPostmortemCardButtons } from "../../../Components/Postmortem/PostmortemCardButtons";
+import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
 
 const POSTMORTEM_FORM_FIELDS: Fields<IncidentEpisode> = [
   {
@@ -57,106 +53,15 @@ const EpisodePostmortem: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [incidentPostmortemTemplates, setIncidentPostmortemTemplates] =
-    useState<Array<IncidentPostmortemTemplate>>([]);
+  const postmortemTemplates: PostmortemTemplatesState =
+    usePostmortemTemplates();
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
-  const [showTemplateEditModal, setShowTemplateEditModal] =
-    useState<boolean>(false);
-  const [templateInitialValues, setTemplateInitialValues] =
-    useState<FormValues<IncidentEpisode> | null>(null);
+  // The note a template or AI wrote, while the editor is open on it.
+  const [draftNote, setDraftNote] = useState<string | null>(null);
   const [showAIGenerateModal, setShowAIGenerateModal] =
     useState<boolean>(false);
-  const [aiTemplates, setAiTemplates] = useState<Array<AITemplate>>([]);
-
-  const fetchTemplates: () => Promise<void> = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const listResult: ListResult<IncidentPostmortemTemplate> =
-        await ModelAPI.getList<IncidentPostmortemTemplate>({
-          modelType: IncidentPostmortemTemplate,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            templateName: true,
-            postmortemNote: true,
-          },
-          sort: {},
-        });
-
-      setIncidentPostmortemTemplates(listResult.data);
-
-      // Also set AI templates format
-      const templates: Array<AITemplate> = listResult.data.map(
-        (template: IncidentPostmortemTemplate) => {
-          const templateItem: AITemplate = {
-            id: template._id?.toString() || "",
-            name: template.templateName || "Unnamed Template",
-          };
-          if (template.postmortemNote) {
-            templateItem.content = template.postmortemNote;
-          }
-          return templateItem;
-        },
-      );
-
-      setAiTemplates(templates);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setIsLoading(false);
-  };
-
-  const applyTemplate: (templateId: ObjectID) => Promise<void> = async (
-    templateId: ObjectID,
-  ): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const template: IncidentPostmortemTemplate | null =
-        await ModelAPI.getItem<IncidentPostmortemTemplate>({
-          modelType: IncidentPostmortemTemplate,
-          id: templateId,
-          select: {
-            postmortemNote: true,
-          },
-        });
-
-      if (!template || !template.postmortemNote) {
-        setError("The selected template does not contain a postmortem note.");
-        setShowTemplateModal(false);
-        return;
-      }
-
-      setTemplateInitialValues({
-        postmortemNote: template.postmortemNote,
-      });
-      setShowTemplateModal(false);
-      setShowTemplateEditModal(true);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!showTemplateModal && !showAIGenerateModal) {
-      return;
-    }
-
-    fetchTemplates().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [showTemplateModal, showAIGenerateModal]);
 
   const handleGeneratePostmortemFromAI: (
     data: GenerateAIRequestData,
@@ -196,10 +101,20 @@ const EpisodePostmortem: FunctionComponent<
     generatedContent: string,
   ): void => {
     setShowAIGenerateModal(false);
-    setTemplateInitialValues({
-      postmortemNote: generatedContent,
-    });
-    setShowTemplateEditModal(true);
+    setDraftNote(generatedContent);
+  };
+
+  const handleTemplatePicked: (template: PostmortemTemplateOption) => void = (
+    template: PostmortemTemplateOption,
+  ): void => {
+    setShowTemplateModal(false);
+
+    if (!template.note.trim()) {
+      setError("The selected template does not contain a postmortem note.");
+      return;
+    }
+
+    setDraftNote(template.note);
   };
 
   return (
@@ -210,28 +125,22 @@ const EpisodePostmortem: FunctionComponent<
           title: "Postmortem",
           description:
             "Document the postmortem analysis for this episode. Include learnings, action items, and preventive measures.",
-          buttons: [
-            {
-              title: "Generate with AI",
-              icon: IconProp.Bolt,
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowAIGenerateModal(true);
-              },
+          buttons: getPostmortemCardButtons({
+            model: new IncidentEpisode(),
+            hasTemplates: postmortemTemplates.templates.length > 0,
+            onGenerateWithAI: () => {
+              setShowAIGenerateModal(true);
             },
-            {
-              title: "Apply Template",
-              icon: IconProp.Template,
-              buttonStyle: ButtonStyleType.OUTLINE,
-              onClick: () => {
-                setShowTemplateModal(true);
-              },
+            onApplyTemplate: () => {
+              setShowTemplateModal(true);
             },
-          ],
+          }),
         }}
         refresher={refreshToggle}
         createEditModalWidth={ModalWidth.Large}
         editButtonText="Edit Postmortem"
+        // The dialog names what it edits, as the button does - not "Edit Incident Episode".
+        editModalTitle="Edit Postmortem"
         isEditable={true}
         onSaveSuccess={() => {
           setRefreshToggle((previous: boolean) => {
@@ -257,21 +166,6 @@ const EpisodePostmortem: FunctionComponent<
         }}
       />
 
-      {showTemplateModal &&
-      incidentPostmortemTemplates.length === 0 &&
-      !isLoading ? (
-        <ConfirmModal
-          title={`No Postmortem Templates`}
-          description={`No postmortem templates have been created yet. You can create these in Project Settings > Incident > Postmortem Templates.`}
-          submitButtonText={"Close"}
-          onSubmit={() => {
-            setShowTemplateModal(false);
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
       {error ? (
         <ConfirmModal
           title={`Error`}
@@ -285,61 +179,29 @@ const EpisodePostmortem: FunctionComponent<
         <></>
       )}
 
-      {showTemplateModal && incidentPostmortemTemplates.length > 0 ? (
-        <BasicFormModal<JSONObject>
-          title="Apply Postmortem Template"
+      {showTemplateModal && postmortemTemplates.templates.length > 0 ? (
+        <ApplyPostmortemTemplateModal
           name="Incident Episode > Apply Postmortem Template"
-          isLoading={isLoading}
-          submitButtonText="Apply Template"
+          templates={postmortemTemplates.templates}
+          onPick={handleTemplatePicked}
           onClose={() => {
             setShowTemplateModal(false);
-            setIsLoading(false);
-          }}
-          onSubmit={async (data: JSONObject) => {
-            await applyTemplate(
-              data["incidentPostmortemTemplateId"] as ObjectID,
-            );
-          }}
-          formProps={{
-            initialValues: {},
-            fields: [
-              {
-                field: {
-                  incidentPostmortemTemplateId: true,
-                },
-                title: "Select Template",
-                description:
-                  "Choose a postmortem template to populate the note.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: DropdownUtil.getDropdownOptionsFromEntityArray(
-                  {
-                    array: incidentPostmortemTemplates,
-                    labelField: "templateName",
-                    valueField: "_id",
-                  },
-                ),
-                required: true,
-                placeholder: "Select Template",
-              },
-            ],
           }}
         />
       ) : (
         <></>
       )}
 
-      {showTemplateEditModal ? (
+      {draftNote !== null ? (
         <ModelFormModal<IncidentEpisode>
           title="Edit Postmortem"
           submitButtonText="Save Changes"
           modalWidth={ModalWidth.Large}
           onClose={() => {
-            setShowTemplateEditModal(false);
-            setTemplateInitialValues(null);
+            setDraftNote(null);
           }}
           onSuccess={() => {
-            setShowTemplateEditModal(false);
-            setTemplateInitialValues(null);
+            setDraftNote(null);
             setRefreshToggle((previous: boolean) => {
               return !previous;
             });
@@ -347,13 +209,16 @@ const EpisodePostmortem: FunctionComponent<
           name="episode-postmortem-from-template"
           modelType={IncidentEpisode}
           modelIdToEdit={modelId}
-          initialValues={templateInitialValues || undefined}
+          initialValues={{
+            postmortemNote: draftNote,
+          }}
           formProps={{
             id: "episode-postmortem-template-form",
             fields: POSTMORTEM_FORM_FIELDS,
             formType: FormType.Update,
             modelType: IncidentEpisode,
             name: "Postmortem",
+            // The note is the form's only field, so there is nothing to fetch.
             doNotFetchExistingModel: true,
           }}
         />
@@ -370,7 +235,10 @@ const EpisodePostmortem: FunctionComponent<
           }}
           onGenerate={handleGeneratePostmortemFromAI}
           onSuccess={handleAIGenerationSuccess}
-          templates={[...POSTMORTEM_TEMPLATES, ...aiTemplates]}
+          templates={[
+            ...POSTMORTEM_TEMPLATES,
+            ...toAITemplates(postmortemTemplates.templates),
+          ]}
         />
       ) : (
         <></>

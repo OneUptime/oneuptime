@@ -171,6 +171,16 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
   doNotFetchExistingModel?: boolean | undefined;
+  /*
+   * An Update form that opens on a draft of some of its fields - a
+   * postmortem template, or a postmortem AI wrote - rather than on the
+   * record alone. The form still fetches the record, and these values are
+   * laid over it: every field the draft leaves out starts from what is
+   * stored. (doNotFetchExistingModel with initialValues starts those fields
+   * empty instead, and BasicForm sends an untouched switch as off, so saving
+   * a draft quietly turned the postmortem's status page switch off.)
+   */
+  draftValues?: FormValues<TBaseModel> | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
@@ -1436,7 +1446,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
         hideSubmitButton={props.hideSubmitButton}
         formRef={props.formRef}
         initialValues={
-          (itemToEdit || props.initialValues) as
+          (itemToEdit && props.draftValues
+            ? { ...itemToEdit, ...props.draftValues }
+            : itemToEdit || props.initialValues) as
             | FormValues<TBaseModel>
             | undefined
         }

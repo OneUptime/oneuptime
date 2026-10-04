@@ -78,7 +78,7 @@ Allez dans **Incidents → Paramètres → Modèles de post-mortem** (`/dashboar
 - **Nom du modèle** et **Description du modèle**, tous deux obligatoires.
 - **Modèle de post-mortem**, le corps lui-même, en Markdown, obligatoire.
 
-L'application se fait depuis l'incident, pas depuis les paramètres. Ouvrez un incident, choisissez **Post-mortem** dans son menu latéral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) et utilisez **Appliquer le modèle**. Cela ouvre une fenêtre **Appliquer le modèle de post-mortem** avec une liste déroulante **Sélectionner le modèle** ; en choisir un charge le corps du modèle dans l'éditeur **Note du post-mortem**, où vous le retravaillez avant d'enregistrer. Les épisodes d'incident ont la même page **Post-mortem** et puisent dans la même bibliothèque de modèles.
+L'application se fait depuis l'incident, pas depuis les paramètres. Ouvrez un incident, choisissez **Post-mortem** dans son menu latéral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) et utilisez **Appliquer le modèle**. Cela ouvre une fenêtre **Appliquer le modèle de post-mortem** avec une liste déroulante **Sélectionner le modèle** ; en choisir un charge le corps du modèle dans l'éditeur **Note du post-mortem**, où vous le retravaillez avant d'enregistrer. Les épisodes d'incident ont la même page **Post-mortem** et puisent dans la même bibliothèque de modèles. **Appliquer le modèle** n'apparaît qu'une fois que le projet a un modèle de post-mortem ; s'il n'y en a qu'un, il est déjà sélectionné. L'éditeur s'ouvre sur le post-mortem de l'incident tel qu'il est, avec le modèle comme note : sa présence sur la page de statut, sa date de publication et ses pièces jointes restent inchangées.
 
 ## Champs personnalisés
 
