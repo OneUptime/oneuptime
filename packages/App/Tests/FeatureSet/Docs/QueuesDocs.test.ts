@@ -90,6 +90,9 @@ import {
   resolveMessagingMetricDiscoveryRows,
 } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { normalizeObiReceivingSideMessagingSpanKind } from "../../../FeatureSet/Telemetry/Utils/ObiReceivingSideMessagingSpan";
+import { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1879,6 +1882,75 @@ describe("Queues docs", (): void => {
             ?.destination,
         ).toBe("orders");
       }
+    });
+
+    /*
+     * The Kubernetes agent's eBPF tracer (OBI) sends a broker's own Kafka,
+     * MQTT and NATS spans as PRODUCER / CONSUMER, and ingest stores them as
+     * SERVER (ObiReceivingSideMessagingSpan). An MQTT broker's PUBLISH to a
+     * subscriber is told from a client's by the port of the far end; the
+     * page states the port the rule starts at, and what it costs on either
+     * side of it — without promising more than the rule does.
+     */
+    it("says a broker's own eBPF spans are SERVER, and states the port rule for MQTT and NATS publishes where the ingest rule starts, with its costs", (): void => {
+      const paragraph: string = paragraphWith(
+        traces(),
+        "A broker's own spans are SERVER spans as well.",
+      );
+      const start: number = EPHEMERAL_PORT_RANGE_START;
+      const storedKind: (port: number, system?: string) => SpanKind = (
+        port: number,
+        system: string = "mqtt",
+      ): SpanKind => {
+        return normalizeObiReceivingSideMessagingSpanKind({
+          kind: SpanKind.Producer,
+          attributes: {
+            "resource.telemetry.distro.name":
+              "opentelemetry-ebpf-instrumentation",
+            "resource.service.name": "mosquitto",
+            "messaging.system": system,
+            "messaging.operation.type": "send",
+            "messaging.destination.name": "sensors/temp",
+            "server.address": "mqtt-subscriber",
+            "server.port": String(port),
+            "network.peer.port": String(port),
+          },
+        });
+      };
+
+      expect(paragraph).toContain("Kafka, MQTT or NATS");
+      expect(paragraph).toContain(
+        "so a broker is not listed among the producers or consumers of the topics it carries",
+      );
+      // Not every broker span is caught: see the low-port sentence below.
+      expect(paragraph).not.toMatch(/\bnever\b/);
+      expect(paragraph).toContain(`from port ${start} up`);
+      expect(paragraph).toContain("49152–65535");
+      // Above the start: an application's own publish reads as the broker's.
+      expect(paragraph).toContain(
+        `listens on a port from ${start} up, such as a Docker port published at random, is therefore not listed as a producer of its topics, and a topic that only such applications use may not be discovered from the tracer's spans at all.`,
+      );
+      // Below it: the broker's publish to that subscriber stays PRODUCER.
+      expect(paragraph).toContain(
+        `A subscriber that connects to a broker from a port below ${start} (a narrowed port range, or a port a NAT rewrote) still has the broker listed as a producer of the topics delivered to it.`,
+      );
+      for (const system of ["mqtt", "nats"]) {
+        expect({ system, below: storedKind(start - 1, system) }).toEqual({
+          system,
+          below: SpanKind.Producer,
+        });
+        expect({ system, at: storedKind(start, system) }).toEqual({
+          system,
+          at: SpanKind.Server,
+        });
+        expect({ system, top: storedKind(65535, system) }).toEqual({
+          system,
+          top: SpanKind.Server,
+        });
+      }
+      // Only MQTT and NATS publishes: the paragraph names no other system.
+      expect(storedKind(start, "kafka")).toBe(SpanKind.Producer);
+      expect(paragraph).toContain("for MQTT and NATS publishes");
     });
 
     it("reads the destination keys in the resolver's order, then each system's own", (): void => {

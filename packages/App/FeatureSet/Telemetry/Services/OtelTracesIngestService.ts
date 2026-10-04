@@ -748,8 +748,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                    * on the receiving side (a broker, a subscriber handed a
                    * delivery) as PRODUCER / CONSUMER; v0.13 and every
                    * consumer of span kinds here treat it as SERVER, so it is
-                   * stored as SERVER — except a NATS client's split delivery
-                   * naming its broker, kept CONSUMER (the cases are in
+                   * stored as SERVER, and so are a broker's spans OBI types
+                   * client-side: a NATS MSG it wrote, and an MQTT or NATS
+                   * publish to a subscriber at an ephemeral port — except
+                   * a NATS client's split delivery naming its broker, kept
+                   * CONSUMER (the cases are in
                    * ObiReceivingSideMessagingSpan). Decided before the
                    * evaluation row, so drop filters, scrub rules, pipelines
                    * and the entity keys all see the stored kind.
