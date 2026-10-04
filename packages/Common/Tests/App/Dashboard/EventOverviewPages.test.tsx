@@ -2142,6 +2142,43 @@ const namedSlo: NamedSloFunction = (name: string): ServiceLevelObjective => {
 };
 
 describe("incident-only behaviour", () => {
+  /*
+   * Measurements can start when the incident was declared, and the server
+   * works them out again when that time is corrected.
+   */
+  test("a corrected declared time makes the Measurements card read again", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const before: string = latestProps<{ refreshKey: string }>(
+      "Measurements",
+    ).refreshKey;
+
+    getItemMock.mockImplementation(() => {
+      const incident: Incident = INCIDENT_CASE.buildEvent(
+        "Checkout slow",
+      ) as Incident;
+      incident.declaredAt = minutesAfterStart(-5);
+      return Promise.resolve(incident);
+    });
+
+    act(() => {
+      latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
+        .onSaveSuccess!();
+    });
+
+    await waitFor(() => {
+      expect(
+        latestProps<{ refreshKey: string }>("Measurements").refreshKey,
+      ).not.toBe(before);
+    });
+  });
+
   test("the header names who declared the incident once the details card has read it", async () => {
     serve(INCIDENT_CASE, {
       timeline: REOPENED_TIMELINE,

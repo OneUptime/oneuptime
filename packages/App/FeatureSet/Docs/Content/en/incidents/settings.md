@@ -337,9 +337,11 @@ Each incident's page shows its own measurements in a **Measurements** card, righ
 | **Not reached**               | The incident is resolved, and the moment the measurement waited for never came — an incident resolved without being acknowledged. |
 | **Not measured**              | A moment can never happen (**Not Applicable**), with the reason, like a skipped state.                                          |
 | **Ends before it starts**     | The recorded times disagree (**Invalid**), with how far apart they are.                                                         |
-| **Not worked out yet**        | OneUptime has not worked it out for this incident yet: just after the measurement was created, or after its start, end or unit changed. |
+| **Not worked out yet**        | OneUptime has not worked it out for this incident yet, as just after the measurement was created. |
 
-Alerts and scheduled maintenance events have the same card on their pages. For a maintenance event, **Not reached** comes once the event is completed. The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
+A measurement whose start or end you change keeps showing its old value on each incident until OneUptime has worked it out again, as its chart does. Right after a state change from the incident's header, the card reads the new values as soon as OneUptime has worked them out, usually at once.
+
+Alerts and scheduled maintenance events have the same card on their pages. For a maintenance event, **Not reached** comes once the event has ended. The card is left out when no enabled measurement has **Show on incident pages** on, and for someone who may not read measurements.
 
 ### Impact Started At, and why it is blank
 

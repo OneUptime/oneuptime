@@ -118,8 +118,9 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     detailsCard: 'name="Incident Details"',
     nextCard: "<IncidentMemberRoleAssignment",
     isEventOver: /isEventOver=\{Boolean\(durationEndDate\)\}/,
+    // Its state timeline, and when it was declared.
     refreshKey:
-      "refreshKey={getEventMeasurementRefreshKey(incidentStateTimeline)}",
+      "refreshKey={getEventMeasurementRefreshKey({ timeline: incidentStateTimeline, times: [incidentStartedAt], })}",
   },
   {
     label: "alert",
@@ -129,7 +130,7 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     nextCard: 'name="Affected Resources"',
     isEventOver: /isEventOver=\{Boolean\(durationEndDate\)\}/,
     refreshKey:
-      "refreshKey={getEventMeasurementRefreshKey(alertStateTimeline)}",
+      "refreshKey={getEventMeasurementRefreshKey({ timeline: alertStateTimeline, })}",
   },
   {
     label: "scheduled maintenance",
@@ -137,10 +138,12 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     source: "SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS",
     detailsCard: 'name="Scheduled Maintenance Details"',
     nextCard: "<OverviewCustomFields",
+    // Ended or completed: the header's own "ended" kind.
     isEventOver:
-      /isEventOver=\{Boolean\(scheduledMaintenance\?\.currentScheduledMaintenanceState ?\?\.isResolvedState,?\)\}/,
+      /isEventOver=\{Boolean\(scheduledMaintenance\?\.currentScheduledMaintenanceState ?\?\.isEndedState \|\| scheduledMaintenance\?\.currentScheduledMaintenanceState ?\?\.isResolvedState,?\)\}/,
+    // Its current state, and its planned window.
     refreshKey:
-      "refreshKey={scheduledMaintenance?.currentScheduledMaintenanceState?._id?.toString()}",
+      "refreshKey={getEventMeasurementRefreshKey({ currentStateId: scheduledMaintenance?.currentScheduledMaintenanceState?._id, times: [eventStartsAt, eventEndsAt], })}",
   },
 ];
 
@@ -202,7 +205,7 @@ describe.each(OVERVIEW_PAGES)(
   },
 );
 
-test("the maintenance page reads whether the event is completed with the event itself", () => {
+test("the maintenance page reads whether the event has ended, and its state, with the event itself", () => {
   const view: string = readSource(
     "Pages",
     "ScheduledMaintenanceEvents",
@@ -215,7 +218,7 @@ test("the maintenance page reads whether the event is completed with the event i
   );
 
   expect(fetch).toContain(
-    "currentScheduledMaintenanceState: { _id: true, isResolvedState: true, },",
+    "currentScheduledMaintenanceState: { _id: true, isEndedState: true, isResolvedState: true, },",
   );
 });
 

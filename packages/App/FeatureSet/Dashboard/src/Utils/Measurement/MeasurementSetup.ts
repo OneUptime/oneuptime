@@ -799,7 +799,7 @@ export const MEASUREMENT_VALUE_COPY: {
   notMeasured: translationKey("Not measured"),
   // Invalid: the recorded end is before the start. The server says by how much.
   endsBeforeStart: translationKey("Ends before it starts"),
-  // No value yet, or one worked out before the measurement last changed.
+  // No value for this event yet, as just after the measurement is created.
   notWorkedOut: translationKey("Not worked out yet"),
   notWorkedOutReason: translationKey(
     "OneUptime works it out in the background.",

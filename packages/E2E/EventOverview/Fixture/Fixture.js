@@ -1828,8 +1828,8 @@ for (const [eventType, markdown, color, when] of alertEpisodeFeed) {
  *     ask for;
  *   - none: no measurements at all (the cards draw nothing);
  *   - states: the default ones plus one whose end is before its start
- *     (Invalid) and one changed after the values were worked out (not
- *     worked out yet).
+ *     (Invalid) and one created a moment ago, which the background job has
+ *     not worked out for any event yet (not worked out yet).
  */
 const MEASUREMENT_MODES = ["none", "states"];
 const measurementsMode = MEASUREMENT_MODES.includes(params.get("measurements"))
@@ -1929,7 +1929,7 @@ if (measurementsMode === "states") {
       endAnchorType: "Impact Started At",
       showOnIncidentView: true,
     }),
-    // Changed a minute from now: its values are the old measurement's.
+    // Created a moment ago: no event has a value for it yet.
     measurementDefinition(IncidentMeasurement, 8, {
       name: "Time to close",
       order: 8,
@@ -1937,7 +1937,7 @@ if (measurementsMode === "states") {
       endAnchorType: "State Role Entered",
       endIncidentStateRole: "Resolved",
       endStateOccurrence: "Last",
-      backfillRequestedAt: new Date(NOW.getTime() + MINUTE),
+      createdAt: NOW,
       showOnIncidentView: true,
     }),
   );
@@ -2122,6 +2122,24 @@ function measurementAnchor(domain, record, definition, end) {
 let measurementValueCounter = 0;
 
 /*
+ * When a work-out happened, on the server's clock: a moment later each
+ * time, as the server's own clock moves on while the page's is pinned, so a
+ * page can tell the values worked out after a state change from the ones it
+ * had (haveEventMeasurementsCaughtUp).
+ */
+let measurementComputeCounter = 0;
+
+function measurementComputedAt() {
+  measurementComputeCounter += 1;
+  return new Date(NOW.getTime() + measurementComputeCounter);
+}
+
+// The ones no event has a value for yet: just created.
+function isWorkedOutYet(definition) {
+  return definition.name !== "Time to close";
+}
+
+/*
  * Works every measurement of one event out again from its timeline, and
  * replaces its stored values, as IncidentMeasurementValueService and its
  * twins do.
@@ -2130,11 +2148,13 @@ function recomputeMeasurements(domain, parentId) {
   const record = table(domain.parent).find((item) => {
     return String(item._id) === String(parentId);
   });
-  const definitions = table(domain.definition);
+  const definitions = table(domain.definition).filter(isWorkedOutYet);
 
   if (!record || definitions.length === 0) {
     return;
   }
+
+  const computedAt = measurementComputedAt();
 
   const timeline = table(domain.timeline)
     .filter((entry) => {
@@ -2188,7 +2208,7 @@ function recomputeMeasurements(domain, parentId) {
         : undefined,
       endedAt: evaluation.endedAt ? new Date(evaluation.endedAt) : undefined,
       valueInSeconds: evaluation.valueInSeconds,
-      computedAt: NOW,
+      computedAt,
     };
 
     if (existing >= 0) {

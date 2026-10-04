@@ -1272,7 +1272,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             source={ALERT_EVENT_MEASUREMENTS}
             eventId={modelId}
             isEventOver={Boolean(durationEndDate)}
-            refreshKey={getEventMeasurementRefreshKey(alertStateTimeline)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: alertStateTimeline,
+            })}
             headerLayout="stacked"
           />
 

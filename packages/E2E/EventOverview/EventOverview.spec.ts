@@ -8764,6 +8764,9 @@ test.describe("measurements", () => {
       },
     ]);
 
+    const readsBefore: Array<RecordedModelRequest> =
+      await measurementRequests(page);
+
     await watchForSkeleton(page);
     await page.locator("#incident-resolve-btn").click();
     const dialog: Locator = page.getByRole("dialog", {
@@ -8791,6 +8794,24 @@ test.describe("measurements", () => {
         "Running for less than a minute",
       ]);
     expect(await skeletonWasSeen(page)).toBe(false);
+
+    /*
+     * One read of the values, and only them: the fixture works them out as
+     * the timeline entry is saved, so the first read already has values
+     * newer than the ones on screen, and the card stops waiting. (It would
+     * read again after 3 seconds otherwise: wait past that.)
+     */
+    await page.waitForTimeout(3500);
+
+    const readsAfter: Array<RecordedModelRequest> = (
+      await measurementRequests(page)
+    ).slice(readsBefore.length);
+
+    expect(
+      readsAfter.map((request: RecordedModelRequest): string => {
+        return request.modelName;
+      }),
+    ).toEqual(["IncidentMeasurementValue"]);
     await expectNoErrorStates(page);
   });
 

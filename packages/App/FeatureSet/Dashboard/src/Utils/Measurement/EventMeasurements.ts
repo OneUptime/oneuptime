@@ -14,6 +14,7 @@ import MeasurementUnit, {
   getMeasurementUnit,
 } from "Common/Types/Measurement/MeasurementUnit";
 import ObjectID from "Common/Types/ObjectID";
+import ScheduledMaintenanceMeasurementAnchorType from "Common/Types/ScheduledMaintenance/ScheduledMaintenanceMeasurementAnchorType";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { MeasurementDomain } from "Common/Utils/Measurement/MeasurementMoments";
 import {
@@ -189,7 +190,7 @@ export enum EventMeasurementState {
   NotMeasured = "not-measured",
   // Invalid: the recorded end is before the start.
   EndsBeforeStart = "ends-before-start",
-  // No value yet, or one worked out before the measurement last changed.
+  // No value for this event yet, as just after the measurement is created.
   NotWorkedOut = "not-worked-out",
 }
 
@@ -269,35 +270,15 @@ const isStateAnchor: IsStateAnchorFunction = (
   return Boolean(anchorType && STATE_ANCHOR_TYPES.includes(anchorType));
 };
 
-/**
- * Whether a stored value still describes the measurement: one worked out
- * before the measurement's start, end or unit last changed (which asks for
- * every event to be worked out again) is for a measurement that no longer
- * exists in that form.
+/*
+ * The only starts that can lie ahead of now: a maintenance event's planned
+ * window. Every other start is a moment that has happened once it is
+ * recorded, whatever the reader's own clock says.
  */
-export const isEventMeasurementValueCurrent: (data: {
-  measurement: MeasurementValues;
-  value: MeasurementValues;
-}) => boolean = (data: {
-  measurement: MeasurementValues;
-  value: MeasurementValues;
-}): boolean => {
-  const changedAt: Date | undefined = readDate(
-    data.measurement["backfillRequestedAt"],
-  );
-
-  if (!changedAt) {
-    return true;
-  }
-
-  const computedAt: Date | undefined = readDate(data.value["computedAt"]);
-
-  if (!computedAt) {
-    return false;
-  }
-
-  return computedAt.getTime() >= changedAt.getTime();
-};
+const SCHEDULED_ANCHOR_TYPES: Array<string> = [
+  ScheduledMaintenanceMeasurementAnchorType.ScheduledStartsAt,
+  ScheduledMaintenanceMeasurementAnchorType.ScheduledEndsAt,
+];
 
 type GetReadingFunction = (data: {
   source: EventMeasurementSource;
@@ -328,15 +309,15 @@ const getReading: GetReadingFunction = (data: {
     state: EventMeasurementState.NotWorkedOut,
   };
 
+  /*
+   * A measurement whose start or end was changed keeps its old value until
+   * the server has worked the event out again, as its chart does; the
+   * server's own backfill marker cannot tell that change from one of the
+   * unit or the Enabled switch, which leave the value as it is.
+   */
   const value: MeasurementValues | undefined = data.value;
 
-  if (
-    !value ||
-    !isEventMeasurementValueCurrent({
-      measurement: data.measurement,
-      value: value,
-    })
-  ) {
+  if (!value) {
     return reading;
   }
 
@@ -408,11 +389,20 @@ const getReading: GetReadingFunction = (data: {
 
   if (startedAt) {
     reading.startedAt = startedAt;
-    // A clock that starts later (a scheduled start) has not started yet.
-    reading.state =
-      startedAt.getTime() <= data.now.getTime()
-        ? EventMeasurementState.Running
-        : EventMeasurementState.NotStarted;
+
+    /*
+     * A clock that starts at a planned time still ahead has not started
+     * yet. Any other start has happened, even when the reader's clock is
+     * behind the server's: it is running.
+     */
+    const startsLater: boolean =
+      SCHEDULED_ANCHOR_TYPES.includes(
+        readString(data.measurement[form.start.anchorType]) || "",
+      ) && startedAt.getTime() > data.now.getTime();
+
+    reading.state = startsLater
+      ? EventMeasurementState.NotStarted
+      : EventMeasurementState.Running;
     return reading;
   }
 
@@ -438,7 +428,11 @@ export const getEventMeasurementReadings: (data: {
   source: EventMeasurementSource;
   measurements: Array<MeasurementValues>;
   values: Array<MeasurementValues>;
-  // Resolved, or completed for maintenance: no state it waits for comes.
+  /*
+   * Resolved, or ended for maintenance: no state it waits for comes. Only
+   * for values worked out since the event's last state change (see
+   * haveEventMeasurementsCaughtUp).
+   */
   isEventOver: boolean;
   now: Date;
 }) => Array<EventMeasurementReading> = (data: {
@@ -808,25 +802,49 @@ export const shouldEventMeasurementsTick: (
   });
 };
 
-/**
- * A key that changes whenever an event's state timeline does - a state
- * changed from the page's header adds an entry - and only then, so the
- * Measurements card, whose values are worked out from that timeline, reads
- * them again exactly when they can have changed: not when a note is added,
- * a role is assigned or an AI report arrives.
- */
-export const getEventMeasurementRefreshKey: (
-  timeline: Array<{ _id?: unknown; startsAt?: unknown }>,
-) => string = (
-  timeline: Array<{ _id?: unknown; startsAt?: unknown }>,
-): string => {
-  return timeline
-    .map((entry: { _id?: unknown; startsAt?: unknown }): string => {
-      const startsAt: Date | undefined = readDate(entry.startsAt);
+type TimeKeyFunction = (value: unknown) => string;
 
-      return `${readId(entry._id) || ""}@${startsAt ? startsAt.getTime() : ""}`;
+const timeKey: TimeKeyFunction = (value: unknown): string => {
+  const date: Date | undefined = readDate(value);
+
+  return date ? String(date.getTime()) : "";
+};
+
+/**
+ * A key that changes whenever what an event's measurements are worked out
+ * from does - and only then - so the Measurements card reads its values
+ * again exactly when they can have changed: a state changed from the
+ * page's header (a new timeline entry, or a new current state), or one of
+ * the event's own times the measurements start or end at (when it was
+ * declared, a maintenance event's planned window). Not when a note is
+ * added, a role is assigned or an AI report arrives. The server works the
+ * values out again on each of these too.
+ */
+export const getEventMeasurementRefreshKey: (data: {
+  // The event's state timeline, when the page reads it.
+  timeline?: Array<{ _id?: unknown; startsAt?: unknown }> | undefined;
+  // Its current state, when the page reads that instead.
+  currentStateId?: unknown;
+  // The event's own times that measurements can start or end at.
+  times?: Array<unknown> | undefined;
+}) => string = (data: {
+  timeline?: Array<{ _id?: unknown; startsAt?: unknown }> | undefined;
+  currentStateId?: unknown;
+  times?: Array<unknown> | undefined;
+}): string => {
+  const timeline: string = (data.timeline || [])
+    .map((entry: { _id?: unknown; startsAt?: unknown }): string => {
+      return `${readId(entry._id) || ""}@${timeKey(entry.startsAt)}`;
     })
     .join(",");
+
+  const times: string = (data.times || [])
+    .map((time: unknown): string => {
+      return timeKey(time);
+    })
+    .join(",");
+
+  return `${timeline}|${readId(data.currentStateId) || ""}|${times}`;
 };
 
 /*
@@ -835,10 +853,72 @@ export const getEventMeasurementRefreshKey: (
  */
 export const EVENT_MEASUREMENT_TICK_INTERVAL_IN_MS: number = 30 * 1000;
 
-/*
- * The values are worked out on the server after a state change has been
- * saved, not before, so a read made the moment the page refreshes can still
- * find the old ones. One more read this long after a refresh picks up what
- * the server wrote meanwhile.
+/**
+ * When the newest of an event's values was worked out (computedAt, a server
+ * time), or undefined when it has none.
  */
-export const EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS: number = 3 * 1000;
+export const getLatestEventMeasurementComputedAt: (
+  values: Array<MeasurementValues>,
+) => Date | undefined = (
+  values: Array<MeasurementValues>,
+): Date | undefined => {
+  let latest: Date | undefined = undefined;
+
+  for (const value of values) {
+    const computedAt: Date | undefined = readDate(value["computedAt"]);
+
+    if (computedAt && (!latest || computedAt.getTime() > latest.getTime())) {
+      latest = computedAt;
+    }
+  }
+
+  return latest;
+};
+
+/**
+ * Whether the values read after a state change are the ones the server
+ * worked out for it. The server works every value of an event out again,
+ * and stamps each with a new computedAt, after the change is saved - not
+ * before its response - so a read straight after can still find the old
+ * ones. They have caught up once every value was worked out after the
+ * newest one read before the change: two server times compared, never the
+ * reader's clock. With nothing read before, there is nothing to wait for.
+ */
+export const haveEventMeasurementsCaughtUp: (data: {
+  values: Array<MeasurementValues>;
+  // getLatestEventMeasurementComputedAt of the values read before.
+  since: Date | undefined;
+}) => boolean = (data: {
+  values: Array<MeasurementValues>;
+  since: Date | undefined;
+}): boolean => {
+  if (!data.since) {
+    return true;
+  }
+
+  const since: number = data.since.getTime();
+
+  return data.values.every((value: MeasurementValues): boolean => {
+    const computedAt: Date | undefined = readDate(value["computedAt"]);
+
+    return Boolean(computedAt && computedAt.getTime() > since);
+  });
+};
+
+/*
+ * How long to wait before reading again while the values have not caught
+ * up: 3, 6, 12 and 24 seconds, then the card stops waiting and shows what
+ * it has. Most of the time the first read after the change has them.
+ */
+export const EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS: Array<number> = [
+  3 * 1000,
+  6 * 1000,
+  12 * 1000,
+  24 * 1000,
+];
+
+export const getEventMeasurementSettleDelay: (
+  attempt: number,
+) => number | null = (attempt: number): number | null => {
+  return EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS[attempt] ?? null;
+};

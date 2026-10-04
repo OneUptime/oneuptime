@@ -379,6 +379,8 @@ function makeEvent(overrides?: {
   createdBy?: User | null;
   // In the project's completed state.
   isCompleted?: boolean;
+  // In the project's ended state.
+  isEnded?: boolean;
   // The id of the state it is in.
   stateId?: string;
 }): ScheduledMaintenance {
@@ -408,9 +410,14 @@ function makeEvent(overrides?: {
     event.createdByUser = user;
   }
 
-  if (overrides?.isCompleted !== undefined || overrides?.stateId) {
+  if (
+    overrides?.isCompleted !== undefined ||
+    overrides?.isEnded !== undefined ||
+    overrides?.stateId
+  ) {
     const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
     state.isResolvedState = Boolean(overrides?.isCompleted);
+    state.isEndedState = Boolean(overrides?.isEnded);
 
     if (overrides?.stateId) {
       state._id = overrides.stateId;
@@ -537,7 +544,11 @@ describe("Scheduled maintenance overview page", () => {
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
         // Its state and whether it is completed, for the Measurements card.
-        currentScheduledMaintenanceState: { _id: true, isResolvedState: true },
+        currentScheduledMaintenanceState: {
+          _id: true,
+          isEndedState: true,
+          isResolvedState: true,
+        },
       });
     });
 
@@ -1217,27 +1228,33 @@ describe("Scheduled maintenance overview page", () => {
     });
 
     test.each([
-      { label: "a scheduled event", isCompleted: undefined, isOver: false },
+      { label: "a scheduled event", state: undefined, isOver: false },
       {
-        label: "an event in a state not completed",
-        isCompleted: false,
+        label: "an event in a state that has not ended",
+        state: { isCompleted: false, isEnded: false },
         isOver: false,
       },
-      { label: "a completed event", isCompleted: true, isOver: true },
+      // The header's own "ended" kind: Ended, or Completed.
+      {
+        label: "an ended event",
+        state: { isEnded: true },
+        isOver: true,
+      },
+      {
+        label: "a completed event",
+        state: { isCompleted: true },
+        isOver: true,
+      },
     ])(
       "tells the card whether the event is over: $label",
       async ({
-        isCompleted,
+        state,
         isOver,
       }: {
-        isCompleted: boolean | undefined;
+        state: { isCompleted?: boolean; isEnded?: boolean } | undefined;
         isOver: boolean;
       }) => {
-        getItemMock.mockResolvedValue(
-          makeEvent(
-            isCompleted === undefined ? {} : { isCompleted: isCompleted },
-          ) as never,
-        );
+        getItemMock.mockResolvedValue(makeEvent(state || {}) as never);
 
         await renderPage();
 
@@ -1266,7 +1283,7 @@ describe("Scheduled maintenance overview page", () => {
         measurementsCardRenderMock,
       );
 
-      expect(before.refreshKey).toBe(ONGOING_STATE_ID);
+      expect(before.refreshKey).toContain(ONGOING_STATE_ID);
       expect(before.isEventOver).toBe(false);
 
       fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
@@ -1276,16 +1293,64 @@ describe("Scheduled maintenance overview page", () => {
         measurementsCardRenderMock,
       );
 
-      expect(after.refreshKey).toBe(COMPLETED_STATE_ID);
+      expect(after.refreshKey).toContain(COMPLETED_STATE_ID);
+      expect(after.refreshKey).not.toBe(before.refreshKey);
       expect(after.isEventOver).toBe(true);
     });
 
-    test("an edit that leaves the state alone does not make it read again", async () => {
+    /*
+     * Measurements can start or end at the planned window ("started late
+     * by", "ran over by"); the server works them out again when it moves.
+     */
+    test("reads again when the planned window is moved, the state unchanged", async () => {
+      const event: ScheduledMaintenance = makeEvent({
+        isCompleted: false,
+        stateId: ONGOING_STATE_ID,
+      });
+      const rescheduled: ScheduledMaintenance = makeEvent({
+        isCompleted: false,
+        stateId: ONGOING_STATE_ID,
+      });
+      rescheduled.startsAt = new Date(event.startsAt!.getTime() + HOUR);
+      rescheduled.endsAt = new Date(event.endsAt!.getTime() + HOUR);
+
+      getItemMock
+        .mockResolvedValueOnce(event as never)
+        .mockResolvedValueOnce(rescheduled as never);
+
+      await renderPage();
+
+      const before: string | undefined = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      ).refreshKey;
+
+      await act(async () => {
+        (
+          cardProps("Scheduled Maintenance Details") as unknown as {
+            onSaveSuccess: () => void;
+          }
+        ).onSaveSuccess();
+      });
+      await flush();
+
+      const after: string | undefined = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      ).refreshKey;
+
+      expect(after).toContain(ONGOING_STATE_ID);
+      expect(after).not.toBe(before);
+    });
+
+    test("an edit that leaves the state and the window alone does not make it read again", async () => {
       getItemMock.mockResolvedValue(
         makeEvent({ isCompleted: false, stateId: ONGOING_STATE_ID }) as never,
       );
 
       await renderPage();
+
+      const before: string | undefined = lastProps<MeasurementsCardProps>(
+        measurementsCardRenderMock,
+      ).refreshKey;
 
       await act(async () => {
         (
@@ -1300,7 +1365,7 @@ describe("Scheduled maintenance overview page", () => {
       expect(lastProps<FeedProps>(feedRenderMock).refreshToken).toBe(1);
       expect(
         lastProps<MeasurementsCardProps>(measurementsCardRenderMock).refreshKey,
-      ).toBe(ONGOING_STATE_ID);
+      ).toBe(before);
     });
   });
 

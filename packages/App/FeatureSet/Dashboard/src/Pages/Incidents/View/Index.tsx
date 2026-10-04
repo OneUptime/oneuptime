@@ -1480,7 +1480,10 @@ const IncidentView: FunctionComponent<
             source={INCIDENT_EVENT_MEASUREMENTS}
             eventId={modelId}
             isEventOver={Boolean(durationEndDate)}
-            refreshKey={getEventMeasurementRefreshKey(incidentStateTimeline)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: incidentStateTimeline,
+              times: [incidentStartedAt],
+            })}
             headerLayout="stacked"
           />
 

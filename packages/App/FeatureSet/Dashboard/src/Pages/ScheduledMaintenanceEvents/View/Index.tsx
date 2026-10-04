@@ -38,7 +38,10 @@ import AffectedResourcesPicker, {
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
-import { SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS } from "../../../Utils/Measurement/EventMeasurements";
+import {
+  SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS,
+  getEventMeasurementRefreshKey,
+} from "../../../Utils/Measurement/EventMeasurements";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -281,12 +284,13 @@ const ScheduledMaintenanceView: FunctionComponent<
                 email: true,
               },
               /*
-               * For the Measurements card: whether the event is completed
+               * For the Measurements card: whether the event has ended
                * (nothing it waits for comes after that), and which state it
                * is in (a new one is when its values can have changed).
                */
               currentScheduledMaintenanceState: {
                 _id: true,
+                isEndedState: true,
                 isResolvedState: true,
               },
             },
@@ -782,9 +786,15 @@ const ScheduledMaintenanceView: FunctionComponent<
             eventId={modelId}
             isEventOver={Boolean(
               scheduledMaintenance?.currentScheduledMaintenanceState
-                ?.isResolvedState,
+                ?.isEndedState ||
+                scheduledMaintenance?.currentScheduledMaintenanceState
+                  ?.isResolvedState,
             )}
-            refreshKey={scheduledMaintenance?.currentScheduledMaintenanceState?._id?.toString()}
+            refreshKey={getEventMeasurementRefreshKey({
+              currentStateId:
+                scheduledMaintenance?.currentScheduledMaintenanceState?._id,
+              times: [eventStartsAt, eventEndsAt],
+            })}
             headerLayout="stacked"
           />
 

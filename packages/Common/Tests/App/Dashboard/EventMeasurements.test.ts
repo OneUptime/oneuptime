@@ -1,6 +1,6 @@
 import {
   ALERT_EVENT_MEASUREMENTS,
-  EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS,
+  EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS,
   EVENT_MEASUREMENT_SOURCES,
   EVENT_MEASUREMENT_TICK_INTERVAL_IN_MS,
   EventMeasurementDisplay,
@@ -17,8 +17,10 @@ import {
   getEventMeasurementDisplay,
   getEventMeasurementReadings,
   getEventMeasurementRefreshKey,
+  getEventMeasurementSettleDelay,
   getEventMeasurementValuesRequest,
-  isEventMeasurementValueCurrent,
+  getLatestEventMeasurementComputedAt,
+  haveEventMeasurementsCaughtUp,
   roundMeasurementAmount,
   shouldEventMeasurementsTick,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/EventMeasurements";
@@ -442,59 +444,23 @@ describe("how a stored value reads", () => {
   });
 
   /*
-   * Changing where a measurement starts or ends asks for every event to be
-   * worked out again. Until this one has been, its value is the old
-   * measurement's, and is not shown under the new one's name.
+   * The server marks a measurement for working out again when its start,
+   * end, unit or Enabled switch changes, and cannot tell those apart. The
+   * unit and the switch leave every stored duration right, so a value is
+   * shown until the server has worked it out again, as its chart is.
    */
-  test("a value worked out before the measurement last changed is not worked out yet", () => {
+  test("a value worked out before the measurement last changed is still shown", () => {
     const reading: EventMeasurementReading = readOne({
-      measurement: incidentMeasurement({ backfillRequestedAt: minutesAgo(5) }),
+      measurement: incidentMeasurement({
+        unit: "hours",
+        backfillRequestedAt: minutesAgo(5),
+      }),
       value: incidentValue({ computedAt: minutesAgo(16) }),
     });
 
-    expect(reading.state).toBe(EventMeasurementState.NotWorkedOut);
-  });
-
-  test("a value worked out since then is shown", () => {
-    expect(
-      readOne({
-        measurement: incidentMeasurement({
-          backfillRequestedAt: minutesAgo(30),
-        }),
-        value: incidentValue({ computedAt: minutesAgo(16) }),
-      }).state,
-    ).toBe(EventMeasurementState.Recorded);
-  });
-
-  test("whether a value is current: the same instant counts, a missing time does not", () => {
-    const at: Date = minutesAgo(10);
-
-    expect(
-      isEventMeasurementValueCurrent({
-        measurement: { backfillRequestedAt: at },
-        value: { computedAt: new Date(at.getTime()) },
-      }),
-    ).toBe(true);
-    expect(
-      isEventMeasurementValueCurrent({
-        measurement: { backfillRequestedAt: at },
-        value: {},
-      }),
-    ).toBe(false);
-    // Dates as the API may hand them: ISO strings.
-    expect(
-      isEventMeasurementValueCurrent({
-        measurement: { backfillRequestedAt: at.toISOString() },
-        value: { computedAt: minutesAgo(1).toISOString() },
-      }),
-    ).toBe(true);
-    // Never changed since it was created: every value counts.
-    expect(
-      isEventMeasurementValueCurrent({
-        measurement: {},
-        value: {},
-      }),
-    ).toBe(true);
+    expect(reading.state).toBe(EventMeasurementState.Recorded);
+    expect(reading.valueInSeconds).toBe(180);
+    expect(reading.unit).toBe(MeasurementUnit.Hours);
   });
 
   describe("Pending", () => {
@@ -519,22 +485,66 @@ describe("how a stored value reads", () => {
       expect(reading.reason).toBeUndefined();
     });
 
-    test("a clock that starts at a time still ahead has not started yet, and starts when it comes", () => {
+    test("a clock that starts at a planned time still ahead has not started yet, and starts when it comes", () => {
       const scheduledStart: Date = new Date(NOW.getTime() + 2 * 60 * 60000);
-      const value: MeasurementValues = pending({ startedAt: scheduledStart });
 
-      const before: EventMeasurementReading = readOne({ value: value });
+      type ReadMaintenanceFunction = (now: Date) => EventMeasurementReading;
+
+      const readMaintenance: ReadMaintenanceFunction = (
+        now: Date,
+      ): EventMeasurementReading => {
+        return getEventMeasurementReadings({
+          source: SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS,
+          measurements: [
+            {
+              _id: MEASUREMENT_ID,
+              name: "Start delay",
+              startAnchorType: "Scheduled Starts At",
+              endAnchorType: "State Role Entered",
+              endScheduledMaintenanceStateRole: "Ongoing",
+            },
+          ],
+          values: [
+            {
+              scheduledMaintenanceMeasurementId: MEASUREMENT_ID,
+              status: MeasurementStatus.Pending,
+              startedAt: scheduledStart,
+            },
+          ],
+          isEventOver: false,
+          now: now,
+        })[0]!;
+      };
+
+      const before: EventMeasurementReading = readMaintenance(NOW);
 
       expect(before.state).toBe(EventMeasurementState.NotStarted);
       expect(before.startedAt?.getTime()).toBe(scheduledStart.getTime());
       expect(shouldEventMeasurementsTick([before])).toBe(true);
 
-      const after: EventMeasurementReading = readOne({
-        value: value,
-        now: new Date(scheduledStart.getTime() + MINUTE_IN_MS),
+      expect(
+        readMaintenance(new Date(scheduledStart.getTime() + MINUTE_IN_MS))
+          .state,
+      ).toBe(EventMeasurementState.Running);
+    });
+
+    /*
+     * Only a planned time can lie ahead. A start the server recorded has
+     * happened, even when the reader's clock is behind the server's.
+     */
+    test("a recorded start is running even when the reader's clock is behind", () => {
+      const reading: EventMeasurementReading = readOne({
+        value: pending({ startedAt: new Date(NOW.getTime() + 90 * 1000) }),
       });
 
-      expect(after.state).toBe(EventMeasurementState.Running);
+      expect(reading.state).toBe(EventMeasurementState.Running);
+      expect(
+        getEventMeasurementDisplay({
+          reading: reading,
+          translator: ENGLISH,
+          now: NOW,
+        }).text,
+      ).toBe("Running for less than a minute");
     });
 
     test("a clock whose start has not happened has not started yet", () => {
@@ -973,7 +983,7 @@ describe("the page's clock", () => {
     expect(EVENT_MEASUREMENT_TICK_INTERVAL_IN_MS).toBe(30 * 1000);
   });
 
-  test("reads again when the state timeline changes, and only then", () => {
+  test("reads again when what the values are worked out from changes, and only then", () => {
     const created: { _id: string; startsAt: Date } = {
       _id: "a1",
       startsAt: minutesAgo(19),
@@ -982,41 +992,146 @@ describe("the page's clock", () => {
       _id: "a2",
       startsAt: minutesAgo(16),
     };
+    const declaredAt: Date = minutesAgo(19);
 
-    const key: string = getEventMeasurementRefreshKey([created, acknowledged]);
+    const key: string = getEventMeasurementRefreshKey({
+      timeline: [created, acknowledged],
+      times: [declaredAt],
+    });
 
-    // The same timeline, read again into new objects: the same key.
+    // The same timeline and times, read again into new objects: the same key.
     expect(
-      getEventMeasurementRefreshKey([
-        { ...created, startsAt: new Date(created.startsAt.getTime()) },
-        { ...acknowledged },
-      ]),
+      getEventMeasurementRefreshKey({
+        timeline: [
+          { ...created, startsAt: new Date(created.startsAt.getTime()) },
+          { ...acknowledged },
+        ],
+        times: [new Date(declaredAt.getTime())],
+      }),
     ).toBe(key);
     // A state change adds an entry.
     expect(
-      getEventMeasurementRefreshKey([
-        created,
-        acknowledged,
-        { _id: "a3", startsAt: NOW },
-      ]),
+      getEventMeasurementRefreshKey({
+        timeline: [created, acknowledged, { _id: "a3", startsAt: NOW }],
+        times: [declaredAt],
+      }),
     ).not.toBe(key);
     // An entry's time corrected moves the values too.
     expect(
-      getEventMeasurementRefreshKey([
-        created,
-        { ...acknowledged, startsAt: minutesAgo(17) },
-      ]),
+      getEventMeasurementRefreshKey({
+        timeline: [created, { ...acknowledged, startsAt: minutesAgo(17) }],
+        times: [declaredAt],
+      }),
+    ).not.toBe(key);
+    // So does the event's own time: declared earlier.
+    expect(
+      getEventMeasurementRefreshKey({
+        timeline: [created, acknowledged],
+        times: [minutesAgo(25)],
+      }),
     ).not.toBe(key);
     // Entries without ids still tell themselves apart by time.
     expect(
-      getEventMeasurementRefreshKey([{ startsAt: minutesAgo(19) }]),
-    ).not.toBe(getEventMeasurementRefreshKey([{ startsAt: minutesAgo(18) }]));
-    expect(getEventMeasurementRefreshKey([])).toBe("");
+      getEventMeasurementRefreshKey({
+        timeline: [{ startsAt: minutesAgo(19) }],
+      }),
+    ).not.toBe(
+      getEventMeasurementRefreshKey({
+        timeline: [{ startsAt: minutesAgo(18) }],
+      }),
+    );
   });
 
-  test("reads again a few seconds after a refresh, for what the server worked out meanwhile", () => {
-    expect(EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS).toBeGreaterThanOrEqual(1000);
-    expect(EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS).toBeLessThanOrEqual(10000);
+  test("a maintenance event's key follows its current state and its planned window", () => {
+    const window: Array<Date> = [minutesAgo(-60), minutesAgo(-120)];
+    const key: string = getEventMeasurementRefreshKey({
+      currentStateId: new ObjectID("44444444-4444-4444-8444-444444444441"),
+      times: window,
+    });
+
+    expect(
+      getEventMeasurementRefreshKey({
+        currentStateId: "44444444-4444-4444-8444-444444444441",
+        times: window.map((time: Date): Date => {
+          return new Date(time.getTime());
+        }),
+      }),
+    ).toBe(key);
+    expect(
+      getEventMeasurementRefreshKey({
+        currentStateId: "44444444-4444-4444-8444-444444444442",
+        times: window,
+      }),
+    ).not.toBe(key);
+    // Rescheduled: the window moved, the state did not.
+    expect(
+      getEventMeasurementRefreshKey({
+        currentStateId: "44444444-4444-4444-8444-444444444441",
+        times: [minutesAgo(-90), minutesAgo(-150)],
+      }),
+    ).not.toBe(key);
+  });
+
+  /*
+   * The server works an event's values out after a state change is saved,
+   * not before its response, and stamps every one with a new computedAt.
+   * After a change the card reads until every value is newer than the
+   * newest one it had: two server times, never the reader's clock.
+   */
+  test("knows when the values read after a change are the server's new ones", () => {
+    const before: Array<MeasurementValues> = [
+      incidentValue({ computedAt: minutesAgo(16) }),
+      incidentValue({ computedAt: minutesAgo(12) }),
+    ];
+    const since: Date | undefined = getLatestEventMeasurementComputedAt(before);
+
+    expect(since?.getTime()).toBe(minutesAgo(12).getTime());
+
+    // The same values again: not yet.
+    expect(haveEventMeasurementsCaughtUp({ values: before, since })).toBe(
+      false,
+    );
+    // One worked out again, one not: not yet.
+    expect(
+      haveEventMeasurementsCaughtUp({
+        values: [
+          incidentValue({ computedAt: NOW }),
+          incidentValue({ computedAt: minutesAgo(12) }),
+        ],
+        since,
+      }),
+    ).toBe(false);
+    // Every one worked out after the change (as ISO strings, too).
+    expect(
+      haveEventMeasurementsCaughtUp({
+        values: [
+          incidentValue({ computedAt: NOW }),
+          incidentValue({ computedAt: NOW.toISOString() }),
+        ],
+        since,
+      }),
+    ).toBe(true);
+    // A value with no time cannot be shown to be new.
+    expect(
+      haveEventMeasurementsCaughtUp({
+        values: [incidentValue({ computedAt: null })],
+        since,
+      }),
+    ).toBe(false);
+    // Nothing read before: nothing to wait for.
+    expect(
+      haveEventMeasurementsCaughtUp({ values: before, since: undefined }),
+    ).toBe(true);
+    expect(getLatestEventMeasurementComputedAt([])).toBeUndefined();
+  });
+
+  test("waits a little longer each time, and then stops waiting", () => {
+    expect(EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS).toEqual([
+      3000, 6000, 12000, 24000,
+    ]);
+    expect(getEventMeasurementSettleDelay(0)).toBe(3000);
+    expect(getEventMeasurementSettleDelay(3)).toBe(24000);
+    expect(getEventMeasurementSettleDelay(4)).toBeNull();
   });
 });
 

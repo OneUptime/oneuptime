@@ -1,6 +1,5 @@
 import MeasurementSummaryElement from "./MeasurementSummaryElement";
 import {
-  EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS,
   EVENT_MEASUREMENT_TICK_INTERVAL_IN_MS,
   EventMeasurementDisplay,
   EventMeasurementListRequest,
@@ -10,7 +9,10 @@ import {
   getEventMeasurementDefinitionsRequest,
   getEventMeasurementDisplay,
   getEventMeasurementReadings,
+  getEventMeasurementSettleDelay,
   getEventMeasurementValuesRequest,
+  getLatestEventMeasurementComputedAt,
+  haveEventMeasurementsCaughtUp,
   shouldEventMeasurementsTick,
 } from "../../Utils/Measurement/EventMeasurements";
 import {
@@ -39,6 +41,7 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -48,16 +51,15 @@ export interface ComponentProps {
   source: EventMeasurementSource;
   eventId: ObjectID;
   /*
-   * The event is resolved (completed, for maintenance): a state it was
-   * still waiting for reads "Not reached" rather than a clock that runs on.
+   * The event is resolved (ended, for maintenance): a state it was still
+   * waiting for reads "Not reached" rather than a clock that runs on.
    */
   isEventOver: boolean;
   /*
-   * Changes when the event's state does (getEventMeasurementRefreshKey of
-   * its state timeline, or its current state): the card reads its values
-   * again, and once more a moment later (see
-   * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS). Nothing else on the page moves
-   * a measurement, so nothing else makes it read.
+   * Changes when what the measurements are worked out from does
+   * (getEventMeasurementRefreshKey: a state change, or one of the event's
+   * own times), and only then: the card reads its values again until they
+   * are the ones the server worked out for the change.
    */
   refreshKey?: string | number | undefined;
   // "stacked" in the narrow right-hand column of an overview page.
@@ -69,6 +71,20 @@ interface LoadedMeasurements {
   eventId: string;
   measurements: Array<MeasurementValues>;
   values: Array<MeasurementValues>;
+  /*
+   * Read after a change, before the server had worked the values out for
+   * it: they describe the event as it was, so they are not read against
+   * whether it is over now.
+   */
+  isBehind: boolean;
+}
+
+// Waiting, after a change, for the values the server works out for it.
+interface SettleState {
+  // The newest computedAt read before the change.
+  since: Date | undefined;
+  // Which wait this read comes after (getEventMeasurementSettleDelay).
+  attempt: number;
 }
 
 const TONE_CLASS_NAMES: Record<EventMeasurementTone, string> = {
@@ -117,6 +133,9 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
   const [loaded, setLoaded] = useState<LoadedMeasurements | null>(null);
   const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
 
+  // The same as `loaded`, for reads and effects that outlive a render.
+  const loadedRef: MutableRefObject<LoadedMeasurements | null> =
+    useRef<LoadedMeasurements | null>(null);
   // Bumped by every read and on unmount: only the newest read lands.
   const requestRef: MutableRefObject<number> = useRef<number>(0);
   const settleTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null> =
@@ -126,30 +145,89 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
     string | null
   >(null);
 
-  const isReadable: boolean =
-    canRead(props.source.measurementModel) && canRead(props.source.valueModel);
+  // Asked once per kind of event, not on every tick of the clock.
+  const isReadable: boolean = useMemo((): boolean => {
+    return (
+      canRead(props.source.measurementModel) && canRead(props.source.valueModel)
+    );
+  }, [props.source]);
 
-  const load: () => Promise<void> = async (): Promise<void> => {
+  const show: (next: LoadedMeasurements) => void = (
+    next: LoadedMeasurements,
+  ): void => {
+    loadedRef.current = next;
+    setLoaded(next);
+  };
+
+  const clearSettleTimer: () => void = (): void => {
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+  };
+
+  const load: (settle: SettleState | null) => Promise<void> = async (
+    settle: SettleState | null,
+  ): Promise<void> => {
     requestRef.current++;
     const requestNumber: number = requestRef.current;
     const requestedEventId: string = eventIdString;
+    const known: LoadedMeasurements | null =
+      loadedRef.current?.eventId === requestedEventId
+        ? loadedRef.current
+        : null;
+
+    /*
+     * Still behind after this read (or this read failed): wait a little
+     * longer and read again, or, after the last wait, show what there is.
+     */
+    const waitLonger: () => void = (): void => {
+      const delay: number | null = settle
+        ? getEventMeasurementSettleDelay(settle.attempt)
+        : null;
+
+      if (settle && delay !== null) {
+        settleTimerRef.current = setTimeout(() => {
+          settleTimerRef.current = null;
+
+          load({ since: settle.since, attempt: settle.attempt + 1 }).catch(
+            () => {
+              // Handled in load.
+            },
+          );
+        }, delay);
+
+        return;
+      }
+
+      if (loadedRef.current?.eventId === requestedEventId) {
+        show({ ...loadedRef.current, isBehind: false });
+      }
+    };
 
     try {
-      const definitionsRequest: EventMeasurementListRequest =
-        getEventMeasurementDefinitionsRequest(props.source);
+      // A change of state changes no measurement: keep the definitions.
+      let measurements: Array<MeasurementValues> | null = known
+        ? known.measurements
+        : null;
 
-      const definitions: ListResult<BaseModel> =
-        await ModelAPI.getList<BaseModel>({
-          modelType: props.source.measurementModel,
-          query: definitionsRequest.query as Query<BaseModel>,
-          select: definitionsRequest.select as Select<BaseModel>,
-          sort: definitionsRequest.sort as Sort<BaseModel>,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
+      if (!measurements) {
+        const definitionsRequest: EventMeasurementListRequest =
+          getEventMeasurementDefinitionsRequest(props.source);
 
-      const measurements: Array<MeasurementValues> = (definitions.data ||
-        []) as unknown as Array<MeasurementValues>;
+        const definitions: ListResult<BaseModel> =
+          await ModelAPI.getList<BaseModel>({
+            modelType: props.source.measurementModel,
+            query: definitionsRequest.query as Query<BaseModel>,
+            select: definitionsRequest.select as Select<BaseModel>,
+            sort: definitionsRequest.sort as Sort<BaseModel>,
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+          });
+
+        measurements = (definitions.data ||
+          []) as unknown as Array<MeasurementValues>;
+      }
 
       let values: Array<MeasurementValues> = [];
 
@@ -179,25 +257,34 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      setLoaded({
+      const isBehind: boolean = Boolean(
+        settle &&
+          !haveEventMeasurementsCaughtUp({
+            values: values,
+            since: settle.since,
+          }),
+      );
+
+      show({
         eventId: requestedEventId,
         measurements: measurements,
         values: values,
+        isBehind: isBehind,
       });
       setNow(OneUptimeDate.getCurrentDate());
+
+      if (isBehind) {
+        waitLonger();
+      }
     } catch {
       /*
        * Best effort, like the page's other optional cards: a first read
-       * that fails draws nothing, and a refresh that fails keeps the
-       * values already on screen.
+       * that fails draws nothing, and a refresh that fails keeps the values
+       * already on screen - and keeps waiting for the new ones.
        */
-    }
-  };
-
-  const clearSettleTimer: () => void = (): void => {
-    if (settleTimerRef.current) {
-      clearTimeout(settleTimerRef.current);
-      settleTimerRef.current = null;
+      if (settle && requestNumber === requestRef.current) {
+        waitLonger();
+      }
     }
   };
 
@@ -211,19 +298,25 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
 
     clearSettleTimer();
 
-    load().catch(() => {
+    /*
+     * After a change, wait for values worked out after the newest one on
+     * screen; a first read takes what it finds.
+     */
+    const known: LoadedMeasurements | null =
+      loadedRef.current?.eventId === eventIdString ? loadedRef.current : null;
+
+    const settle: SettleState | null = isRefresh
+      ? {
+          since: known
+            ? getLatestEventMeasurementComputedAt(known.values)
+            : undefined,
+          attempt: 0,
+        }
+      : null;
+
+    load(settle).catch(() => {
       // Handled in load.
     });
-
-    if (isRefresh) {
-      settleTimerRef.current = setTimeout(() => {
-        settleTimerRef.current = null;
-
-        load().catch(() => {
-          // Handled in load.
-        });
-      }, EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
-    }
   }, [eventIdString, props.refreshKey, isReadable]);
 
   useEffect(() => {
@@ -239,7 +332,8 @@ const EventMeasurementsCard: FunctionComponent<ComponentProps> = (
           source: props.source,
           measurements: loaded.measurements,
           values: loaded.values,
-          isEventOver: props.isEventOver,
+          // Values from before the change describe the event as it was.
+          isEventOver: props.isEventOver && !loaded.isBehind,
           now: now,
         })
       : [];

@@ -96,7 +96,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
 import EventMeasurementsCard from "../../../../App/FeatureSet/Dashboard/src/Components/Measurement/EventMeasurementsCard";
 import {
   ALERT_EVENT_MEASUREMENTS,
-  EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS,
+  EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS,
   EventMeasurementSource,
   INCIDENT_EVENT_MEASUREMENTS,
   SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS,
@@ -224,6 +224,42 @@ const VALUES: Array<IncidentMeasurementValue> = [
   }),
   // Time to detect: not worked out for this incident yet.
 ];
+
+// The page's key once the incident is resolved: a new timeline entry.
+const RESOLVED_KEY: string = "created,acknowledged,resolved";
+
+// The incident's values once the server has worked them out for that.
+const resolvedValues: () => Array<IncidentMeasurementValue> =
+  (): Array<IncidentMeasurementValue> => {
+    return VALUES.map(
+      (value: IncidentMeasurementValue): IncidentMeasurementValue => {
+        if (value.incidentMeasurementId?.toString() === RESOLVE_ID) {
+          return make(IncidentMeasurementValue, {
+            incidentMeasurementId: new ObjectID(RESOLVE_ID),
+            status: MeasurementStatus.Recorded,
+            startedAt: minutesAgo(19),
+            endedAt: NOW,
+            valueInSeconds: 19 * 60,
+            computedAt: NOW,
+          });
+        }
+
+        if (value.incidentMeasurementId?.toString() === POSTMORTEM_ID) {
+          return make(IncidentMeasurementValue, {
+            incidentMeasurementId: new ObjectID(POSTMORTEM_ID),
+            status: MeasurementStatus.Pending,
+            startedAt: NOW,
+            computedAt: NOW,
+          });
+        }
+
+        return make(IncidentMeasurementValue, {
+          ...value,
+          computedAt: NOW,
+        });
+      },
+    );
+  };
 
 interface ListRequest {
   modelType: { new (): BaseModel };
@@ -581,47 +617,118 @@ describe("EventMeasurementsCard", () => {
     expect(listRequests()).toHaveLength(2);
   });
 
-  test("reads again when the event's state changes, and once more a moment later", async () => {
+  /*
+   * The server works an incident's values out after its state change is
+   * saved - not before its response - and stamps each with a new
+   * computedAt. So after a change the card reads the values (only: a state
+   * change changes no definition) until every one is newer than the newest
+   * it had, and does not read the old ones against the incident's new state.
+   */
+  test("reads only the values again when the event's state changes, and stops once they are the new ones", async () => {
     const view: RenderResult = await renderCard();
 
     expect(listRequests()).toHaveLength(2);
 
-    // The page resolved the incident... the server has not worked it out yet.
-    view.rerender(cardElement({ refreshKey: "created,acknowledged,resolved" }));
+    // Worked out for the change before the card reads.
+    api.values = resolvedValues();
+    view.rerender(cardElement({ refreshKey: RESOLVED_KEY, isEventOver: true }));
+    await flush();
+
+    expect(
+      listRequests().map((request: ListRequest) => {
+        return request.modelType;
+      }),
+    ).toEqual([
+      IncidentMeasurement,
+      IncidentMeasurementValue,
+      IncidentMeasurementValue,
+    ]);
+    expect(valueOf("Time to resolve")).toBe("19 minutes");
+
+    await act(async () => {
+      jest.advanceTimersByTime(2 * MINUTE_IN_MS);
+    });
+    await flush();
+
+    expect(listRequests()).toHaveLength(3);
+  });
+
+  test("values the server has not worked out yet are read again until they are, and never read as Not reached meanwhile", async () => {
+    const view: RenderResult = await renderCard();
+
+    // The page resolved the incident; the server has not worked it out yet.
+    view.rerender(cardElement({ refreshKey: RESOLVED_KEY, isEventOver: true }));
+    await flush();
+
+    expect(listRequests()).toHaveLength(3);
+    // The old value describes the incident as it was: a clock still running.
+    expect(valueOf("Time to resolve")).toBe("Running for 19 minutes");
+
+    // It has, by the next read.
+    api.values = resolvedValues();
+
+    await act(async () => {
+      jest.advanceTimersByTime(EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS[0]!);
+    });
     await flush();
 
     expect(listRequests()).toHaveLength(4);
-    expect(valueOf("Time to resolve")).toBe("Running for 19 minutes");
-
-    // ...and has, by the time of the second read.
-    api.values = VALUES.map((value: IncidentMeasurementValue) => {
-      return value.incidentMeasurementId?.toString() === RESOLVE_ID
-        ? make(IncidentMeasurementValue, {
-            incidentMeasurementId: new ObjectID(RESOLVE_ID),
-            status: MeasurementStatus.Recorded,
-            startedAt: minutesAgo(19),
-            endedAt: NOW,
-            valueInSeconds: 19 * 60,
-            computedAt: NOW,
-          })
-        : value;
-    });
-
-    await act(async () => {
-      jest.advanceTimersByTime(EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
-    });
-    await flush();
-
-    expect(listRequests()).toHaveLength(6);
     expect(valueOf("Time to resolve")).toBe("19 minutes");
 
-    // Just the one extra read.
+    // Caught up: nothing more to read.
     await act(async () => {
-      jest.advanceTimersByTime(10 * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
+      jest.advanceTimersByTime(2 * MINUTE_IN_MS);
     });
     await flush();
 
-    expect(listRequests()).toHaveLength(6);
+    expect(listRequests()).toHaveLength(4);
+  });
+
+  test("stops waiting after a while, and then reads what it has against the event as it is", async () => {
+    const view: RenderResult = await renderCard();
+
+    view.rerender(cardElement({ refreshKey: RESOLVED_KEY, isEventOver: true }));
+    await flush();
+
+    // The server never gets to it: reads 3, 6, 12 and 24 seconds apart.
+    for (const delay of EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS) {
+      expect(valueOf("Time to resolve")).toBe("Running for 19 minutes");
+
+      await act(async () => {
+        jest.advanceTimersByTime(delay);
+      });
+      await flush();
+    }
+
+    const reads: number = 2 + 1 + EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS.length;
+
+    expect(listRequests()).toHaveLength(reads);
+    // Done waiting: never resolved before it ended, as far as it knows.
+    expect(valueOf("Time to resolve")).toBe("Not reached");
+
+    await act(async () => {
+      jest.advanceTimersByTime(5 * MINUTE_IN_MS);
+    });
+    await flush();
+
+    expect(listRequests()).toHaveLength(reads);
+  });
+
+  test("a project with no measurements reads nothing when the event's state changes", async () => {
+    api.definitions = [];
+
+    const view: RenderResult = await renderCard();
+
+    view.rerender(cardElement({ refreshKey: RESOLVED_KEY, isEventOver: true }));
+    await flush();
+
+    await act(async () => {
+      jest.advanceTimersByTime(2 * MINUTE_IN_MS);
+    });
+    await flush();
+
+    expect(listRequests()).toHaveLength(1);
+    expect(view.container).toBeEmptyDOMElement();
   });
 
   test("a page re-render with the same state reads nothing again", async () => {
@@ -631,7 +738,7 @@ describe("EventMeasurementsCard", () => {
     await flush();
 
     await act(async () => {
-      jest.advanceTimersByTime(5 * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
+      jest.advanceTimersByTime(2 * MINUTE_IN_MS);
     });
     await flush();
 
@@ -642,7 +749,7 @@ describe("EventMeasurementsCard", () => {
     await renderCard();
 
     await act(async () => {
-      jest.advanceTimersByTime(5 * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
+      jest.advanceTimersByTime(2 * MINUTE_IN_MS);
     });
     await flush();
 
@@ -678,18 +785,29 @@ describe("EventMeasurementsCard", () => {
     expect(view.container).toBeEmptyDOMElement();
   });
 
-  test("a refresh that fails keeps what is on screen", async () => {
+  test("a refresh that fails keeps what is on screen, and tries again", async () => {
     const view: RenderResult = await renderCard();
 
     getListMock.mockImplementation((() => {
       return Promise.reject(new Error("Gateway timeout"));
     }) as never);
 
-    view.rerender(cardElement({ refreshKey: "created,acknowledged,resolved" }));
+    view.rerender(cardElement({ refreshKey: RESOLVED_KEY }));
     await flush();
 
     expect(rows()).toHaveLength(5);
     expect(valueOf("Time to acknowledge")).toBe("3 minutes");
+
+    // Back again by the next try.
+    serve();
+    api.values = resolvedValues();
+
+    await act(async () => {
+      jest.advanceTimersByTime(EVENT_MEASUREMENT_SETTLE_DELAYS_IN_MS[0]!);
+    });
+    await flush();
+
+    expect(valueOf("Time to resolve")).toBe("19 minutes");
   });
 
   test("a reader who may not read the measurements gets no card, and nothing is asked", async () => {
@@ -754,7 +872,8 @@ describe("EventMeasurementsCard", () => {
   test("once gone, it reads nothing more", async () => {
     const view: RenderResult = await renderCard();
 
-    view.rerender(cardElement({ refreshKey: "created,acknowledged,resolved" }));
+    // A change the server has not worked out yet: the card is waiting.
+    view.rerender(cardElement({ refreshKey: RESOLVED_KEY }));
     await flush();
 
     const readsBefore: number = listRequests().length;
@@ -762,7 +881,7 @@ describe("EventMeasurementsCard", () => {
     view.unmount();
 
     await act(async () => {
-      jest.advanceTimersByTime(10 * EVENT_MEASUREMENT_SETTLE_DELAY_IN_MS);
+      jest.advanceTimersByTime(5 * MINUTE_IN_MS);
     });
 
     expect(listRequests()).toHaveLength(readsBefore);
