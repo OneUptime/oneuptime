@@ -239,8 +239,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` behält Ihre bestehende Konfiguration; übergeben Sie alle neuen `--set`-Overrides zusätzlich.
 
-> **eBPF-Span-Metriken haben neue Namen.** `ebpf.features.spanMetrics` sendet jetzt `traces.span.metrics.calls` und `traces.span.metrics.duration` (Sekunden) statt `traces_spanmetrics_calls_total` und `traces_spanmetrics_latency`: dieselben Reihen unter den Namen, die OBI beibehält (die alten hat OBI als veraltet markiert). Ein Dashboard, ein Diagramm oder ein Metriken-Monitor auf einem alten Namen erhält nach dem Upgrade keine neuen Daten mehr, ohne Fehlermeldung — stellen Sie ihn auf den neuen Namen um und passen Sie auch `filters.metrics`-Einträge an, die einen alten Namen nennen.
-
 > **Achtung: `--reuse-values` merged keine neuen Standardwerte aus dem Chart.** Helm verwendet Ihre zuvor gerenderten Werte wortgetreu wieder — daher bleibt jedes neue Top-Level-Feld, das in einer neueren Chart-Version hinzugefügt wird (z. B. `profiling.*`, `ebpf.features.*`), in Ihrem bestehenden Release ungesetzt, und das Template wird gerendert, als hätten Sie es deaktiviert.
 >
 > **Helm 3.14+** — wechseln Sie zu `--reset-then-reuse-values`. Es liest die Chart-Standardwerte für Keys neu ein, die Sie nicht überschrieben haben:
@@ -254,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 oder älter** — lassen Sie `--reuse-values` weg und übergeben Sie Ihre ursprünglichen `--set`-Flags (oder `-f values.yaml`) explizit. Neue Chart-Standardwerte gelten für alles, was Sie nicht überschreiben.
 >
 > Wenn die Pods eines neuen Features (z. B. `kubernetes-agent-profiling-*`) nach dem Upgrade nicht erscheinen, liegt das fast immer daran. `helm get values <release>` zeigt, was Helm tatsächlich hat — Felder, die in der Ausgabe fehlen, bedeuten, dass die Standardwerte für sie nicht gemerged wurden.
+
+> **eBPF-Span-Metriken haben neue Namen.** `ebpf.features.spanMetrics` sendet jetzt `traces.span.metrics.calls` und `traces.span.metrics.duration` (Sekunden) statt `traces_spanmetrics_calls_total` und `traces_spanmetrics_latency`: dieselben Reihen unter den Namen, die OBI beibehält (die alten hat OBI als veraltet markiert). Ein Dashboard, ein Diagramm oder ein Metriken-Monitor auf einem alten Namen erhält nach dem Upgrade keine neuen Daten mehr, ohne Fehlermeldung — stellen Sie ihn auf den neuen Namen um und passen Sie auch `filters.metrics`-Einträge an, die einen alten Namen nennen.
 
 ## Deinstallation
 

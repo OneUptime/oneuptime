@@ -239,8 +239,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` आपके मौजूदा कॉन्फ़िगरेशन को बनाए रखता है; इसके ऊपर कोई भी नया `--set` ओवरराइड पास करें।
 
-> **eBPF span मेट्रिक्स के नाम बदल गए हैं।** `ebpf.features.spanMetrics` अब `traces_spanmetrics_calls_total` और `traces_spanmetrics_latency` की जगह `traces.span.metrics.calls` और `traces.span.metrics.duration` (सेकंड) भेजता है: वही सीरीज़, उन नामों से जिन्हें OBI रखता है (पुराने नाम OBI ने deprecated कर दिए हैं)। किसी पुराने नाम पर बना डैशबोर्ड, चार्ट या मेट्रिक्स मॉनिटर अपग्रेड के बाद बिना किसी त्रुटि के नया डेटा पाना बंद कर देता है — उसे नए नाम पर ले जाएँ, और पुराने नाम वाली `filters.metrics` एंट्रीज़ भी बदलें।
-
 > **ध्यान दें: `--reuse-values` chart से नए डिफ़ॉल्ट को मर्ज नहीं करता है।** Helm आपके पहले रेंडर किए गए मानों को verbatim पुन: उपयोग करता है — इसलिए नए chart संस्करण में जोड़ा गया कोई भी नया शीर्ष-स्तरीय फ़ील्ड (जैसे `profiling.*`, `ebpf.features.*`) आपके मौजूदा रिलीज़ पर अनसेट रहता है और टेम्पलेट इस तरह से रेंडर करता है जैसे आपने इसे अक्षम कर दिया हो।
 >
 > **Helm 3.14+** — `--reset-then-reuse-values` पर स्विच करें। यह उन कीज़ के लिए chart डिफ़ॉल्ट को पुनः पढ़ता है जिन्हें आपने ओवरराइड नहीं किया है:
@@ -254,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 या उससे पहले** — `--reuse-values` को छोड़ दें और अपने मूल `--set` फ़्लैग्स (या `-f values.yaml`) को स्पष्ट रूप से पास करें। आपके द्वारा ओवरराइड नहीं किए गए हर चीज़ के लिए नए chart डिफ़ॉल्ट लागू होंगे।
 >
 > यदि किसी नए फ़ीचर के पॉड्स (जैसे `kubernetes-agent-profiling-*`) अपग्रेड के बाद दिखाई नहीं देते, तो लगभग हमेशा यही कारण होता है। `helm get values <release>` दिखाता है कि Helm के पास वास्तव में क्या है — आउटपुट से गायब फ़ील्ड्स का अर्थ है कि उनके लिए डिफ़ॉल्ट मर्ज नहीं हुए थे।
+
+> **eBPF span मेट्रिक्स के नाम बदल गए हैं।** `ebpf.features.spanMetrics` अब `traces_spanmetrics_calls_total` और `traces_spanmetrics_latency` की जगह `traces.span.metrics.calls` और `traces.span.metrics.duration` (सेकंड) भेजता है: वही सीरीज़, उन नामों से जिन्हें OBI रखता है (पुराने नाम OBI ने deprecated कर दिए हैं)। किसी पुराने नाम पर बना डैशबोर्ड, चार्ट या मेट्रिक्स मॉनिटर अपग्रेड के बाद बिना किसी त्रुटि के नया डेटा पाना बंद कर देता है — उसे नए नाम पर ले जाएँ, और पुराने नाम वाली `filters.metrics` एंट्रीज़ भी बदलें।
 
 ## अनइंस्टॉल करना
 

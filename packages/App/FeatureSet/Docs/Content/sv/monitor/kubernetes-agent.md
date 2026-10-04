@@ -239,8 +239,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` behåller din befintliga konfiguration; lägg till nya `--set`-överskridanden ovanpå den.
 
-> **eBPF:s span-mätvärden har bytt namn.** `ebpf.features.spanMetrics` skickar nu `traces.span.metrics.calls` och `traces.span.metrics.duration` (sekunder) i stället för `traces_spanmetrics_calls_total` och `traces_spanmetrics_latency`: samma serier under de namn som OBI behåller (de gamla har OBI markerat som föråldrade). En instrumentpanel, ett diagram eller en mätvärdesmonitor på ett gammalt namn får inga nya data efter uppgraderingen, utan något fel — flytta den till det nya namnet och uppdatera även `filters.metrics`-poster som nämner ett gammalt namn.
-
 > **Observera: `--reuse-values` slår inte ihop nya standardvärden från diagrammet.** Helm återanvänder dina tidigare renderade värden ordagrant — så varje nytt fält på toppnivå som lagts till i en nyare diagramversion (t.ex. `profiling.*`, `ebpf.features.*`) förblir osatt på din befintliga release och mallen renderas som om du hade inaktiverat det.
 >
 > **Helm 3.14+** — växla till `--reset-then-reuse-values`. Det läser om diagrammets standardvärden för nycklar du inte har åsidosatt:
@@ -254,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 eller tidigare** — släpp `--reuse-values` och skicka dina ursprungliga `--set`-flaggor (eller `-f values.yaml`) explicit. Nya diagramstandardvärden tillämpas för allt du inte åsidosätter.
 >
 > Om en ny funktions poddar (t.ex. `kubernetes-agent-profiling-*`) inte dyker upp efter uppgradering är detta nästan alltid orsaken. `helm get values <release>` visar vad Helm faktiskt har — fält som saknas från utdata betyder att standardvärden inte slogs ihop för dem.
+
+> **eBPF:s span-mätvärden har bytt namn.** `ebpf.features.spanMetrics` skickar nu `traces.span.metrics.calls` och `traces.span.metrics.duration` (sekunder) i stället för `traces_spanmetrics_calls_total` och `traces_spanmetrics_latency`: samma serier under de namn som OBI behåller (de gamla har OBI markerat som föråldrade). En instrumentpanel, ett diagram eller en mätvärdesmonitor på ett gammalt namn får inga nya data efter uppgraderingen, utan något fel — flytta den till det nya namnet och uppdatera även `filters.metrics`-poster som nämner ett gammalt namn.
 
 ## Avinstallation
 

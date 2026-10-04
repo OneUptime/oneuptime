@@ -327,8 +327,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` 會保留您現有的組態；在它之上傳入任何新的 `--set` 覆寫。
 
-> **eBPF span 指標已更名。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 與 `traces.span.metrics.duration`（秒），不再傳送 `traces_spanmetrics_calls_total` 與 `traces_spanmetrics_latency`：資料序列相同，只是改用 OBI 保留的名稱（舊名稱已被 OBI 棄用）。以舊名稱建立的儀表板、圖表或指標監測器在升級後將收不到新資料，也不會出現錯誤——請改用新名稱，並一併更新 `filters.metrics` 中引用舊名稱的項目。
-
 > **請注意：`--reuse-values` 不會合併來自 chart 的新預設值。** Helm 會原封不動地重用您先前已轉譯的值 — 因此在較新的 chart 版本中新增的任何頂層欄位（例如 `profiling.*`、`ebpf.features.*`）在您現有的 release 中會保持未設定，而樣板會像您已停用它一樣轉譯。
 >
 > **Helm 3.14+** — 改用 `--reset-then-reuse-values`。它會為您未覆寫的鍵重新讀取 chart 預設值：
@@ -342,6 +340,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 或更早版本** — 移除 `--reuse-values` 並明確傳入您原本的 `--set` 旗標（或 `-f values.yaml`）。對於您未覆寫的所有內容，新的 chart 預設值將會套用。
 >
 > 如果某個新功能的 pod（例如 `kubernetes-agent-profiling-*`）在升級後未出現，這幾乎一定就是原因。`helm get values <release>` 會顯示 Helm 實際擁有的內容 — 輸出中缺少的欄位代表這些欄位的預設值未被合併。
+
+> **eBPF span 指標已更名。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 與 `traces.span.metrics.duration`（秒），不再傳送 `traces_spanmetrics_calls_total` 與 `traces_spanmetrics_latency`：資料序列相同，只是改用 OBI 保留的名稱（舊名稱已被 OBI 棄用）。以舊名稱建立的儀表板、圖表或指標監測器在升級後將收不到新資料，也不會出現錯誤——請改用新名稱，並一併更新 `filters.metrics` 中引用舊名稱的項目。
 
 ## 解除安裝
 

@@ -347,8 +347,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` keeps your existing configuration; pass any new `--set` overrides on top of it.
 
-> **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
-
 > **Heads up: `--reuse-values` does not merge new defaults from the chart.** Helm reuses your previously rendered values verbatim — so any new top-level field added in a newer chart version (e.g. `profiling.*`, `ebpf.features.*`) stays unset on your existing release and the template renders as if you'd disabled it.
 >
 > **Helm 3.14+** — switch to `--reset-then-reuse-values`. It re-reads the chart defaults for keys you haven't overridden:
@@ -362,6 +360,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 or earlier** — drop `--reuse-values` and pass your original `--set` flags (or `-f values.yaml`) explicitly. New chart defaults will apply for everything you don't override.
 >
 > If a new feature's pods (e.g. `kubernetes-agent-profiling-*`) don't show up after upgrading, this is almost always why. `helm get values <release>` shows what Helm actually has — fields missing from the output mean defaults weren't merged for them.
+
+> **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 
 ## Uninstalling
 

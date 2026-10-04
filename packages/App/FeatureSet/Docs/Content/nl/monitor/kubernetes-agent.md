@@ -239,8 +239,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` behoudt uw bestaande configuratie; geef nieuwe `--set`-overrides daarbovenop door.
 
-> **eBPF-span-metrics hebben nieuwe namen.** `ebpf.features.spanMetrics` stuurt nu `traces.span.metrics.calls` en `traces.span.metrics.duration` (seconden) in plaats van `traces_spanmetrics_calls_total` en `traces_spanmetrics_latency`: dezelfde reeksen onder de namen die OBI behoudt (de oude heeft OBI als verouderd gemarkeerd). Een dashboard, chart of metrics-monitor op een oude naam krijgt na de upgrade geen nieuwe gegevens meer, zonder foutmelding — zet hem over naar de nieuwe naam en pas ook `filters.metrics`-items aan die een oude naam noemen.
-
 > **Let op: `--reuse-values` voegt geen nieuwe standaardwaarden uit de chart samen.** Helm hergebruikt uw eerder gerenderde waarden letterlijk — dus elk nieuw top-level veld dat is toegevoegd in een nieuwere chart-versie (bijv. `profiling.*`, `ebpf.features.*`) blijft ongezet op uw bestaande release en de template rendert alsof u het had uitgeschakeld.
 >
 > **Helm 3.14+** — schakel over naar `--reset-then-reuse-values`. Het leest de chart-standaarden opnieuw voor sleutels die u niet heeft overschreven:
@@ -254,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 of eerder** — laat `--reuse-values` weg en geef uw originele `--set`-vlaggen (of `-f values.yaml`) expliciet door. Nieuwe chart-standaarden zullen worden toegepast voor alles wat u niet overschrijft.
 >
 > Als de pods van een nieuwe functie (bijv. `kubernetes-agent-profiling-*`) niet verschijnen na het upgraden, is dit bijna altijd de reden. `helm get values <release>` toont wat Helm daadwerkelijk heeft — velden die ontbreken in de output betekenen dat standaarden niet zijn samengevoegd.
+
+> **eBPF-span-metrics hebben nieuwe namen.** `ebpf.features.spanMetrics` stuurt nu `traces.span.metrics.calls` en `traces.span.metrics.duration` (seconden) in plaats van `traces_spanmetrics_calls_total` en `traces_spanmetrics_latency`: dezelfde reeksen onder de namen die OBI behoudt (de oude heeft OBI als verouderd gemarkeerd). Een dashboard, chart of metrics-monitor op een oude naam krijgt na de upgrade geen nieuwe gegevens meer, zonder foutmelding — zet hem over naar de nieuwe naam en pas ook `filters.metrics`-items aan die een oude naam noemen.
 
 ## Deïnstalleren
 

@@ -95,6 +95,28 @@ const h2Above: HeadingFunction = (markdown: string, line: string): string => {
     .pop()!;
 };
 
+type NextLineFunction = (markdown: string, line: string) => string;
+
+// The first non-blank line after `line`.
+const lineAfter: NextLineFunction = (
+  markdown: string,
+  line: string,
+): string => {
+  return markdown
+    .slice(markdown.indexOf(line) + line.length)
+    .split("\n")
+    .find((next: string): boolean => {
+      return next.trim() !== "";
+    })!;
+};
+
+/*
+ * The last line of the plain upgrade command. Other sections pass
+ * --reuse-values along with a --set, so only the upgrade section has it
+ * on a line of its own.
+ */
+const UPGRADE_COMMAND_END: RegExp = /^ *--reuse-values$/m;
+
 describe("kubernetes-agent docs: eBPF span metrics under their new names", () => {
   test("every docs language is checked", () => {
     expect(LANGUAGES.length).toBe(17);
@@ -123,10 +145,13 @@ describe("kubernetes-agent docs: eBPF span metrics under their new names", () =>
         const notes: Array<string> = renameNotesOf(markdown);
 
         expect(notes).toHaveLength(1);
-        // The section the note is in is the one that runs `helm upgrade`.
-        expect(getSection(markdown, h2Above(markdown, notes[0]!))).toContain(
-          "helm upgrade",
+        // The section the note is in is the one with the upgrade command,
+        expect(getSection(markdown, h2Above(markdown, notes[0]!))).toMatch(
+          UPGRADE_COMMAND_END,
         );
+        // after everything that section says about the command.
+        expect(lineAfter(markdown, notes[0]!)).toMatch(/^#/);
+        expect(notes[0]).toContain("`filters.metrics`");
         // And the old names appear nowhere else on the page.
         expect(markdown.split(OLD_CALLS)).toHaveLength(2);
         expect(markdown.split(OLD_LATENCY)).toHaveLength(2);
@@ -220,6 +245,10 @@ describe("kubernetes-agent chart copy: eBPF span metrics under their new names",
     ]);
     expect(upgrading).toContain("`application_span_otel`");
     expect(upgrading).toContain("`application_span_sizes`");
+    // Kept true by the last test in this file.
+    expect(upgrading).toContain(
+      "OneUptime's own pages and the service map do not read these metrics.",
+    );
   });
 });
 
@@ -248,6 +277,8 @@ describe("OneUptime reads no eBPF span-metrics family", () => {
     "Tests",
   ];
 
+  const SOURCE_EXTENSIONS: Array<string> = [".ts", ".tsx", ".js", ".mjs"];
+
   const SPAN_METRICS_NAME: RegExp =
     /traces_spanmetrics_|traces\.span\.metrics\.|traces_span_metrics_/;
 
@@ -265,7 +296,7 @@ describe("OneUptime reads no eBPF span-metrics family", () => {
         if (!SKIPPED_DIRECTORIES.includes(entry.name)) {
           files.push(...listSourceFiles(fullPath));
         }
-      } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      } else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name))) {
         files.push(fullPath);
       }
     }
@@ -273,7 +304,7 @@ describe("OneUptime reads no eBPF span-metrics family", () => {
     return files;
   }
 
-  test("in any TypeScript source outside the docs", () => {
+  test("in any TypeScript or JavaScript source outside the docs", () => {
     const offenders: Array<string> = SCAN_DIRS.flatMap(listSourceFiles)
       .filter((file: string): boolean => {
         // The in-app guide documents the metrics; it reads nothing.

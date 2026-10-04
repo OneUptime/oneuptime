@@ -239,8 +239,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` mantiene la configurazione esistente; passate eventuali nuove sovrascritture `--set` oltre ad essa.
 
-> **Le metriche di span eBPF hanno nuovi nomi.** `ebpf.features.spanMetrics` ora invia `traces.span.metrics.calls` e `traces.span.metrics.duration` (secondi) al posto di `traces_spanmetrics_calls_total` e `traces_spanmetrics_latency`: le stesse serie, con i nomi che OBI mantiene (OBI ha deprecato i vecchi). Una dashboard, un grafico o un monitor metriche basato su un vecchio nome non riceve più dati dopo l'aggiornamento, senza alcun errore: spostatelo sul nuovo nome e aggiornate anche le voci di `filters.metrics` che citano un vecchio nome.
-
 > **Attenzione: `--reuse-values` non unisce i nuovi valori predefiniti del chart.** Helm riutilizza i valori precedentemente renderizzati alla lettera — quindi qualsiasi nuovo campo di alto livello aggiunto in una versione più recente del chart (es. `profiling.*`, `ebpf.features.*`) rimane non impostato nella vostra release esistente e il template viene renderizzato come se l'aveste disabilitato.
 >
 > **Helm 3.14+** — passate a `--reset-then-reuse-values`. Rilegge i valori predefiniti del chart per le chiavi che non avete sovrascritto:
@@ -254,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 o precedenti** — eliminate `--reuse-values` e passate esplicitamente i vostri flag originali `--set` (o `-f values.yaml`). I nuovi valori predefiniti del chart si applicheranno a tutto ciò che non sovrascrivete.
 >
 > Se i pod di una nuova feature (es. `kubernetes-agent-profiling-*`) non compaiono dopo l'aggiornamento, è quasi sempre questo il motivo. `helm get values <release>` mostra ciò che Helm ha effettivamente — i campi mancanti dall'output significano che i predefiniti non sono stati uniti per essi.
+
+> **Le metriche di span eBPF hanno nuovi nomi.** `ebpf.features.spanMetrics` ora invia `traces.span.metrics.calls` e `traces.span.metrics.duration` (secondi) al posto di `traces_spanmetrics_calls_total` e `traces_spanmetrics_latency`: le stesse serie, con i nomi che OBI mantiene (OBI ha deprecato i vecchi). Una dashboard, un grafico o un monitor metriche basato su un vecchio nome non riceve più dati dopo l'aggiornamento, senza alcun errore: spostatelo sul nuovo nome e aggiornate anche le voci di `filters.metrics` che citano un vecchio nome.
 
 ## Disinstallazione
 

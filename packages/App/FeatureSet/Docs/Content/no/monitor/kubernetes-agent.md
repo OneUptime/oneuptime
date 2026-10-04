@@ -239,8 +239,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 `--reuse-values` beholder den eksisterende konfigurasjonen din; send eventuelle nye `--set`-overstyringer på toppen av det.
 
-> **eBPF-span-metrikker har fått nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene under navnene OBI beholder (de gamle har OBI avviklet). Et dashbord, et diagram eller en metrikk-monitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feilmelding — flytt det til det nye navnet, og oppdater også `filters.metrics`-oppføringer som nevner et gammelt navn.
-
 > **Obs: `--reuse-values` slår ikke sammen nye standardverdier fra Helm-kartet.** Helm gjenbruker dine tidligere rendrede verdier ordrett — så ethvert nytt toppnivåfelt som er lagt til i en nyere kartversjon (f.eks. `profiling.*`, `ebpf.features.*`) forblir usatt på din eksisterende utgivelse, og malen rendres som om du hadde deaktivert det.
 >
 > **Helm 3.14+** — bytt til `--reset-then-reuse-values`. Den leser standardverdiene i kartet på nytt for nøkler du ikke har overstyrt:
@@ -254,6 +252,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > **Helm 3.13 eller eldre** — dropp `--reuse-values` og send dine opprinnelige `--set`-flagg (eller `-f values.yaml`) eksplisitt. Nye kartstandarder vil gjelde for alt du ikke overstyrer.
 >
 > Hvis pods for en ny funksjon (f.eks. `kubernetes-agent-profiling-*`) ikke dukker opp etter oppgradering, er dette nesten alltid grunnen. `helm get values <release>` viser hva Helm faktisk har — felt som mangler i utdataene betyr at standardverdier ikke ble slått sammen for dem.
+
+> **eBPF-span-metrikker har fått nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene under navnene OBI beholder (de gamle har OBI avviklet). Et dashbord, et diagram eller en metrikk-monitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feilmelding — flytt det til det nye navnet, og oppdater også `filters.metrics`-oppføringer som nevner et gammelt navn.
 
 ## Avinstallering
 
