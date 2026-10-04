@@ -73,7 +73,7 @@ export interface ComponentProps {
 }
 
 const DEFAULT_DESCRIPTION: string = translationKey(
-  "Here is how your monitor is performing at this moment.",
+  "The most recent check of this monitor, and how the criteria judged it.",
 );
 
 const Summary: FunctionComponent<ComponentProps> = (

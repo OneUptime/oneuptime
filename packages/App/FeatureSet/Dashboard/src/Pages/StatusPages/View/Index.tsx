@@ -26,7 +26,6 @@ const StatusPageView: FunctionComponent<
         name="Status Page > Status Page Details"
         cardProps={{
           title: "Status Page Details",
-          description: "Here are more details for this status page.",
         }}
         isEditable={true}
         formFields={[

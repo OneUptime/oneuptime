@@ -339,7 +339,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <div>
                 <span>
                   {translator.translateText(
-                    "Here is your probe key. Please keep this a secret.",
+                    "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
                   )}
                 </span>
                 <br />

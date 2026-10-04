@@ -64,7 +64,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Pending Invitations",
           description:
-            "Here is a list of projects and teams you have been invited to.",
+            "When someone invites you to a project or a team, the invitation waits here until you accept or reject it.",
         }}
         noItemsMessage={"No project or team invitations for you so far."}
         singularName="Project Invitation"

@@ -42,7 +42,7 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
         cardProps={{
           title: "Status Page Announcement Template Details",
           description:
-            "Here are more details for this status page announcement template.",
+            "New announcements made from this template start with these details. Announcements already made from it keep their own.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}

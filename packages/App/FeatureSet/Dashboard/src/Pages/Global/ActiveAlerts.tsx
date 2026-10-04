@@ -76,7 +76,7 @@ const ActiveAlerts: FunctionComponent<
         cardProps={{
           title: "Active Alerts",
           description:
-            "Here is a list of active alerts for all of the projects you are a part of.",
+            "Alerts nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
         }}
         emptyState={{
           isAllClear: true,

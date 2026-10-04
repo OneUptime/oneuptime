@@ -41,7 +41,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Current Balance",
             description:
-              "Here is your current SMS, Call, WhatsApp, and Telegram balance for this project.",
+              "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
             buttons: [
               {
                 title: "Recharge Balance",

@@ -18,7 +18,6 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Project Details"
         cardProps={{
           title: "Project Details",
-          description: "Here are more details for this Project.",
         }}
         isEditable={true}
         formFields={[

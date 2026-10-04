@@ -40,7 +40,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Telemetry Ingestion Key Details",
           description:
-            "Here are more details for this Telemetry Ingestion Key.",
+            "Your apps and collectors send this key with their telemetry, so it lands in this project.",
         }}
         refresher={refresher}
         isEditable={true}

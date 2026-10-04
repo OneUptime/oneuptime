@@ -221,7 +221,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     <FeedCard
       title={"Alert Feed"}
       description={
-        "This is the timeline and feed for this alert. You can see all the updates and information about this alert here."
+        "Everything that has happened to this alert: status changes, notes, owners and every notification sent."
       }
       feedOptions={feedOptions}
       onRefresh={refresh}

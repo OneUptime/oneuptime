@@ -281,7 +281,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "On-Call Policy Logs",
           description:
-            "Here are all the notification logs. This will help you to debug any notification issues that your team may face.",
+            "Each time an on-call policy ran: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
         }}
         selectMoreFields={{
           statusMessage: true,

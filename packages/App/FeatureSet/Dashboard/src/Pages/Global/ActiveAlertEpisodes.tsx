@@ -83,7 +83,7 @@ const ActiveAlertEpisodes: FunctionComponent<
         cardProps={{
           title: "Active Alert Episodes",
           description:
-            "Here is a list of active alert episodes for all of the projects you are a part of.",
+            "Alert episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
         }}
         noItemsMessage="No active episodes. All episodes are resolved."
         emptyState={{ isAllClear: true }}

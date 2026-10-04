@@ -275,7 +275,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           title: props.title || "Alert Episodes",
           description:
             props.description ||
-            "Here is a list of alert episodes for this project.",
+            "Episodes group related alerts so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
           /*
            * Routes to the episode create page rather than the table's built in
            * create modal, so ModelTable's own permission gate never sees this

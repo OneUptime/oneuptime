@@ -59,7 +59,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Scheduled Maintenance Template Details",
           description:
-            "Here are more details for this ScheduledMaintenance template.",
+            "New events scheduled from this template start with these details. Events already scheduled from it keep their own.",
         }}
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}

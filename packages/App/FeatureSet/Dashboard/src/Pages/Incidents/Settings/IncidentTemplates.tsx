@@ -237,7 +237,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Incident Templates",
           description:
-            "Here is a list of all the incident templates in this project.",
+            "Ready-made incidents for problems you expect, with the title, severity, monitors and on-call policy filled in. Use one with Create from Template on the Incidents page.",
         }}
         noItemsMessage={"No incident templates found."}
         query={{

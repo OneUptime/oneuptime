@@ -187,7 +187,6 @@ const IncomingCallPolicyView: FunctionComponent<
         name="Incoming Call Policy > Details"
         cardProps={{
           title: "Incoming Call Policy Details",
-          description: "Here are more details for this incoming call policy.",
         }}
         isEditable={true}
         formFields={[

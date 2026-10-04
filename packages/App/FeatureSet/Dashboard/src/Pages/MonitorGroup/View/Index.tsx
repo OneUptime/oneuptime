@@ -188,7 +188,6 @@ const MonitorGroupView: FunctionComponent<
         name="MonitorGroup Details"
         cardProps={{
           title: "Monitor Group Details",
-          description: "Here are more details for this monitor group.",
         }}
         isEditable={true}
         formFields={[
@@ -269,7 +268,7 @@ const MonitorGroupView: FunctionComponent<
 
       <Card
         title="Uptime Graph"
-        description="Here the 90 day uptime history of this monitor group."
+        description="This group's status over the last 90 days, one bar per day."
         rightElement={getUptimePercent()}
       >
         <MonitorUptimeGraph

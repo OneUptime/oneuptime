@@ -248,7 +248,7 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
         <FieldLabelElement
           title={"Security Events Preview"}
           description={
-            "Here is the preview of the security events that will be monitored based on the filters you have set above."
+            "The security events these filters match, so you can check the filters before you save."
           }
           hideOptionalLabel={true}
           isHeading={true}

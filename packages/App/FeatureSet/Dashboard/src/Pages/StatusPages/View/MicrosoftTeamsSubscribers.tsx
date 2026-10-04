@@ -435,7 +435,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
             cardProps={{
               title: "Microsoft Teams Subscribers",
               description:
-                "Here are the list of Microsoft Teams channels that have subscribed to the status page.",
+                "Microsoft Teams channels that get this status page's updates. Visitors subscribe on the status page, or you can add them here.",
               buttons: [
                 {
                   title: "Add in Bulk",

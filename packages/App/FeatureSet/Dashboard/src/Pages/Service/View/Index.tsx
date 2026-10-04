@@ -661,7 +661,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Service > Service Details"
         cardProps={{
           title: "Service Details",
-          description: "Here are more details for this service.",
           buttons: [
             <EditInSettingsLink
               key="edit-in-settings"

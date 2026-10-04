@@ -219,7 +219,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
         <FieldLabelElement
           title={"Spans Preview"}
           description={
-            "Here is the preview of the Traces that will be monitored based on the filters you have set above."
+            "The spans these filters match, so you can check the filters before you save."
           }
           hideOptionalLabel={true}
           isHeading={true}

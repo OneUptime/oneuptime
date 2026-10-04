@@ -78,18 +78,12 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         name="Runner Details"
         cardProps={{
           title: "Runner Details",
+          // Only a Runner the Kubernetes agent chart installed has something to say.
           description: kubernetesAgentRunnerNote ? (
-            <span>
-              {translator.translateText(
-                "Here are more details for this Runner.",
-              )}{" "}
-              <span data-testid="kubernetes-agent-runner-note">
-                {kubernetesAgentRunnerNote}
-              </span>
+            <span data-testid="kubernetes-agent-runner-note">
+              {kubernetesAgentRunnerNote}
             </span>
-          ) : (
-            "Here are more details for this Runner."
-          ),
+          ) : undefined,
         }}
         isEditable={true}
         /*
@@ -180,8 +174,6 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         name="Runner Status"
         cardProps={{
           title: "Runner Status",
-          description:
-            "Here is more details on the connection status for this Runner.",
         }}
         isEditable={false}
         modelDetailProps={{

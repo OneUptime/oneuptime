@@ -48,7 +48,7 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Status Page Announcement Templates",
           description:
-            "Here is a list of all the status page announcement templates in this project.",
+            "Ready-made announcements for news you post often, such as a planned upgrade. Use one with Create from Template on the Announcements page, and edit it before you publish.",
         }}
         noItemsMessage={"No status page announcement templates found."}
         query={{
