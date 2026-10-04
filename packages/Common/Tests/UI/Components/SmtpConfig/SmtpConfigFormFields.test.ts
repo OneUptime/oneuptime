@@ -40,6 +40,7 @@ import {
   getSmtpAdvancedSummary,
   getSmtpAuthType,
   getSmtpConfigFormSteps,
+  getSmtpServerColumnsGraphIgnores,
   getSmtpTransport,
   readSmtpFormValue,
   showsSmtpOAuthCredentials,
@@ -47,7 +48,9 @@ import {
   showsSmtpPassword,
   showsSmtpServerFields,
   showsSmtpUsername,
+  withoutValuesGraphIgnores,
 } from "../../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
  * The one builder behind both mail server forms - a project's Custom SMTP
@@ -726,6 +729,127 @@ describe("what each transport and sign-in shows", () => {
     expect(showsSmtpPassword({}, PROJECT)).toBe(true);
     expect(showsSmtpOAuthProviderType({}, PROJECT)).toBe(false);
     expect(showsSmtpOAuthCredentials({}, PROJECT)).toBe(false);
+  });
+});
+
+describe("what a new Microsoft Graph config is created with", () => {
+  function projectConfig(values: Record<string, unknown>): ProjectSmtpConfig {
+    const config: ProjectSmtpConfig = new ProjectSmtpConfig();
+    Object.assign(config, values);
+    return config;
+  }
+
+  const TYPED: Record<string, unknown> = {
+    name: "Microsoft 365",
+    hostname: "smtp.office365.com",
+    port: 587,
+    username: "alerts@example.com",
+    password: "an-old-password",
+    clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
+    clientSecret: "graph-client-secret",
+    fromEmail: "alerts@example.com",
+    fromName: "Example Alerts",
+  };
+
+  test("are the hostname, port, username and password, which Graph never uses", () => {
+    expect(getSmtpServerColumnsGraphIgnores(PROJECT)).toEqual([
+      "hostname",
+      "port",
+      "username",
+      "password",
+    ]);
+    expect(getSmtpServerColumnsGraphIgnores(GLOBAL)).toEqual([
+      "smtpHost",
+      "smtpPort",
+      "smtpUsername",
+      "smtpPassword",
+    ]);
+
+    // Exactly the fields the form hides once Graph is picked.
+    const hiddenByGraph: Array<string> = PROJECT_FIELDS.filter(
+      (field: Field<ProjectSmtpConfig>): boolean => {
+        return Boolean(
+          field.showIf &&
+            !field.collapsibleSection &&
+            !field.showIf({
+              transportType: MailTransportType.MicrosoftGraph,
+            } as unknown as FormValues<ProjectSmtpConfig>),
+        );
+      },
+    ).map(keyOf);
+
+    expect(hiddenByGraph).toEqual(getSmtpServerColumnsGraphIgnores(PROJECT));
+  });
+
+  test("leaves them out of a Graph config, and keeps everything else", () => {
+    const config: ProjectSmtpConfig = withoutValuesGraphIgnores(
+      projectConfig({
+        ...TYPED,
+        transportType: MailTransportType.MicrosoftGraph,
+      }),
+      PROJECT,
+    );
+
+    const json: Record<string, unknown> = BaseModel.toJSONObject(
+      config,
+      ProjectSmtpConfig,
+    ) as Record<string, unknown>;
+
+    for (const key of ["hostname", "port", "username", "password"]) {
+      expect({ key, inJson: key in json }).toEqual({ key, inJson: false });
+    }
+
+    expect({
+      name: json["name"],
+      transportType: json["transportType"],
+      clientId: json["clientId"],
+      clientSecret: json["clientSecret"],
+      fromName: json["fromName"],
+    }).toEqual({
+      name: "Microsoft 365",
+      transportType: MailTransportType.MicrosoftGraph,
+      clientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
+      clientSecret: "graph-client-secret",
+      fromName: "Example Alerts",
+    });
+  });
+
+  test("leaves an SMTP config, or one with no transport picked, as it is", () => {
+    for (const transportType of [MailTransportType.SMTP, undefined]) {
+      const config: ProjectSmtpConfig = projectConfig({
+        ...TYPED,
+        transportType,
+      });
+
+      expect(withoutValuesGraphIgnores(config, PROJECT)).toBe(config);
+      expect({
+        hostname: String(config.hostname),
+        port: Number(config.port),
+        username: config.username,
+        password: config.password,
+      }).toEqual({
+        hostname: "smtp.office365.com",
+        port: 587,
+        username: "alerts@example.com",
+        password: "an-old-password",
+      });
+    }
+  });
+
+  test("reads the instance's own columns too", () => {
+    const values: Record<string, unknown> = {
+      smtpTransportType: MailTransportType.MicrosoftGraph,
+      smtpHost: "smtp.office365.com",
+      smtpPort: 587,
+      smtpClientId: "client",
+    };
+
+    withoutValuesGraphIgnores(values as unknown as GlobalConfig, GLOBAL);
+
+    expect(values).toEqual({
+      smtpTransportType: MailTransportType.MicrosoftGraph,
+      smtpClientId: "client",
+    });
   });
 });
 

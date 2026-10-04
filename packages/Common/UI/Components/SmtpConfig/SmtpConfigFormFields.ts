@@ -670,3 +670,41 @@ export const PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES: FormValues<ProjectSmtpCo
   {
     port: DEFAULT_SMTP_PORT,
   } as unknown as FormValues<ProjectSmtpConfig>;
+
+/*
+ * The server and sign-in columns Microsoft Graph has no use for: it posts
+ * to Graph, not to a hostname and port, and signs in with the OAuth app.
+ */
+export const getSmtpServerColumnsGraphIgnores: <TEntity>(
+  columns: SmtpConfigFormColumns<TEntity>,
+) => Array<Extract<keyof TEntity, string>> = <TEntity>(
+  columns: SmtpConfigFormColumns<TEntity>,
+): Array<Extract<keyof TEntity, string>> => {
+  return [columns.hostname, columns.port, columns.username, columns.password];
+};
+
+/**
+ * What a new config keeps of the values its form held. Once Microsoft Graph
+ * is picked the form hides the hostname, port, username and password, but
+ * still holds them - the port it starts on, or what was typed before Graph
+ * was picked - so they are left out of what is created, as the form left
+ * them out of what it showed. Any other config is created as it is. For a
+ * create form's onBeforeCreate: an edited config keeps what it holds.
+ */
+export const withoutValuesGraphIgnores: <TEntity>(
+  item: TEntity,
+  columns: SmtpConfigFormColumns<TEntity>,
+) => TEntity = <TEntity>(
+  item: TEntity,
+  columns: SmtpConfigFormColumns<TEntity>,
+): TEntity => {
+  if (getSmtpTransport(item, columns) !== MailTransportType.MicrosoftGraph) {
+    return item;
+  }
+
+  for (const column of getSmtpServerColumnsGraphIgnores(columns)) {
+    delete (item as unknown as Record<string, unknown>)[column];
+  }
+
+  return item;
+};

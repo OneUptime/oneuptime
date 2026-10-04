@@ -80,6 +80,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           name={`${props.name} > ${isCreate ? "Create New" : "Edit"} ${singularName}`}
           modelType={props.modelType}
           initialValues={isCreate ? props.createInitialValues : undefined}
+          onBeforeCreate={props.onBeforeCreate}
           submitButtonText={
             isCreate ? `Create ${singularName}` : "Save Changes"
           }
@@ -538,10 +539,14 @@ describe("creating a project's mail server", () => {
     expect(input("port")).toBeVisible();
   });
 
-  test("Microsoft Graph takes the server and sign-in away and asks for the OAuth app", async () => {
+  test("Microsoft Graph takes the server and sign-in away, asks for the OAuth app, and saves none of what it hid", async () => {
     await renderPage();
 
     await type("name", "Microsoft 365");
+    // Typed before Graph was picked: hidden by it, and not saved with it.
+    await type("hostname", "smtp.office365.com");
+    await type("username", "alerts@example.com");
+    await type("password", "an-old-password");
     await openAdvanced();
     await pick("Microsoft Graph");
 
@@ -589,7 +594,6 @@ describe("creating a project's mail server", () => {
       tokenUrl: text(model["tokenUrl"]),
       scope: model["scope"],
       fromEmail: text(model["fromEmail"]),
-      hostname: text(model["hostname"]),
     }).toEqual({
       name: "Microsoft 365",
       transportType: MailTransportType.MicrosoftGraph,
@@ -598,7 +602,38 @@ describe("creating a project's mail server", () => {
       tokenUrl: "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token",
       scope: "https://graph.microsoft.com/.default",
       fromEmail: "alerts@example.com",
-      hostname: "",
+    });
+
+    // Not the port the form started on, nor what was typed before Graph.
+    for (const key of ["hostname", "port", "username", "password"]) {
+      expect({ key, saved: model[key] ?? null }).toEqual({ key, saved: null });
+    }
+  });
+
+  test("an SMTP config keeps everything it was given", async () => {
+    await renderPage();
+
+    await type("name", "Relay");
+    await type("hostname", "smtp.example.com");
+    await type("username", "relay-user");
+    await type("password", "relay-password");
+    await clickFooter("modal-footer-submit-button");
+    await type("fromEmail", "alerts@example.com");
+    await type("fromName", "Example Alerts");
+    await clickFooter("modal-footer-submit-button");
+
+    const model: Record<string, unknown> = await saved();
+
+    expect({
+      hostname: text(model["hostname"]),
+      port: text(model["port"]),
+      username: model["username"],
+      password: model["password"],
+    }).toEqual({
+      hostname: "smtp.example.com",
+      port: "587",
+      username: "relay-user",
+      password: "relay-password",
     });
   });
 

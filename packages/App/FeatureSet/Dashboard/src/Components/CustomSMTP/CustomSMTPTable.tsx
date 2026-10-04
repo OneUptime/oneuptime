@@ -14,8 +14,10 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import {
   PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES,
+  PROJECT_SMTP_CONFIG_FORM_COLUMNS,
   getProjectSmtpConfigFormFields,
   getSmtpConfigFormSteps,
+  withoutValuesGraphIgnores,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
@@ -97,6 +99,18 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
         formFields={getProjectSmtpConfigFormFields()}
         // Port 587 to start from: the column has no default.
         createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}
+        /*
+         * A Microsoft Graph config is created without the hostname, port,
+         * username and password the form hid once Graph was picked.
+         */
+        onBeforeCreate={async (
+          item: ProjectSmtpConfig,
+        ): Promise<ProjectSmtpConfig> => {
+          return withoutValuesGraphIgnores<ProjectSmtpConfig>(
+            item,
+            PROJECT_SMTP_CONFIG_FORM_COLUMNS,
+          );
+        }}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
