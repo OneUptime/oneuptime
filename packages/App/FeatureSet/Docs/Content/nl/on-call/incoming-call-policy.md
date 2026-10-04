@@ -86,13 +86,14 @@ Omdat u OneUptime zelf host, moet u uw eigen Twilio-account configureren. Dit ge
 
 1. Log in op uw OneUptime-dashboard
 2. Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**
-3. Klik op **Aangepaste bel/SMS-configuratie aanmaken**
+3. Klik onder **Twilio-configuratie** op **Create Twilio Config**
 4. Vul de volgende velden in:
    - **Naam**: Een beschrijvende naam (bijv. "Productie Twilio-configuratie")
    - **Beschrijving**: Optionele beschrijving
    - **Twilio Account SID**: Uw Twilio Account SID (begint met `AC`)
    - **Twilio Auth Token**: Uw Twilio Auth Token
    - **Twilio primair telefoonnummer**: Een telefoonnummer van uw Twilio-account voor uitgaande gesprekken
+   - **Instellen als projectstandaard**: staat aan bij de eerste Twilio-configuratie van het project, zodat sms-berichten en oproepen aan projectleden ook via dit account gaan. Schakel het uit als dit account alleen voor inkomende oproepen is.
 5. Klik op **Opslaan**
 
 ## Stap 3: Een inkomend belbeleid aanmaken

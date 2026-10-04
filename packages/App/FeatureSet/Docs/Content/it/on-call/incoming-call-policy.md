@@ -86,13 +86,14 @@ Poiché si ospita OneUptime autonomamente, sarà necessario configurare il propr
 
 1. Accedere al Dashboard di OneUptime
 2. Accedere a **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**
-3. Fare clic su **Crea Config Chiamata/SMS Personalizzata**
+3. In **Configurazione Twilio**, fare clic su **Create Twilio Config**
 4. Compilare i seguenti campi:
    - **Nome**: Un nome descrittivo (ad es. "Config Twilio Produzione")
    - **Descrizione**: Descrizione opzionale
    - **Twilio Account SID**: Il proprio Twilio Account SID (inizia con `AC`)
    - **Twilio Auth Token**: Il proprio Twilio Auth Token
    - **Numero di telefono principale Twilio**: Un numero di telefono dal proprio account Twilio per le chiamate in uscita
+   - **Imposta come predefinito del progetto**: attivo per la prima configurazione Twilio del progetto, quindi anche gli SMS e le chiamate ai membri del progetto passano da questo account. Disattivarlo se questo account serve solo per le chiamate in arrivo.
 5. Fare clic su **Salva**
 
 ## Fase 3: Creare una Policy di Chiamata In Entrata

@@ -86,13 +86,14 @@ sequenceDiagram
 
 1. به داشبورد OneUptime خود وارد شوید
 2. به **Project Settings** > **Notifications** > **Notification Settings** بروید
-3. روی **Create Custom Call/SMS Config** کلیک کنید
+3. در **Twilio Config** روی **Create Twilio Config** کلیک کنید
 4. فیلدهای زیر را پر کنید:
    - **Name**: نامی دوستانه (برای نمونه «Production Twilio Config»)
    - **Description**: توضیح اختیاری
    - **Twilio Account SID**: مقدار Account SID شما در Twilio (با `AC` آغاز می‌شود)
    - **Twilio Auth Token**: مقدار Auth Token شما در Twilio
    - **Twilio Primary Phone Number**: شماره تلفنی از حساب Twilio شما برای تماس‌های خروجی
+   - **Set as Project Default**: برای نخستین پیکربندی Twilio پروژه روشن است، بنابراین پیامک‌ها و تماس‌های اعضای پروژه هم از طریق این حساب فرستاده می‌شوند. اگر این حساب فقط برای تماس‌های ورودی است، آن را خاموش کنید.
 5. روی **Save** کلیک کنید
 
 ## گام ۳: ساخت یک سیاست تماس ورودی

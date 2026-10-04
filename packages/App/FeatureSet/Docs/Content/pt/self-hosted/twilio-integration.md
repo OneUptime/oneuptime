@@ -15,7 +15,7 @@ Para um projeto:
 1. Acesse **Configurações do projeto > Notificações > Configurações de notificações**.
 2. Em **Configuração do Twilio**, selecione **Criar configuração do Twilio**.
 3. Insira um nome, **Twilio Account SID**, **Twilio Auth Token** e **Número de telefone principal do Twilio**. Opcionalmente, insira **Números de telefone secundários do Twilio** para outros países, separados por vírgulas.
-4. Ative **Definir como padrão do projeto** para usar essa configuração em SMS e chamadas para os membros do projeto, incluindo notificações de plantão. Criar uma configuração sem ativar essa opção não a seleciona para essas notificações.
+4. **Definir como padrão do projeto** vem ativado na primeira configuração do projeto, então os SMS e as chamadas para os membros do projeto, incluindo notificações de plantão, passam por ela assim que você salvar. Desative-o se esta conta for apenas para páginas de status ou chamadas recebidas. Em qualquer configuração posterior, a opção começa desativada: ative-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para mover essas mensagens para ela. Uma solicitação à API que omite `isProjectDefault` é tratada da mesma forma.
 5. Salve. Apenas uma configuração pode ser o padrão do projeto. As páginas de status usam a configuração explicitamente atribuída a cada página.
 
 Para um padrão de toda a instalação, um administrador pode abrir **Painel de administração > Configurações > Chamadas e SMS**, editar as credenciais e os números do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto não tem um padrão. Mantenha o Auth Token confidencial.
