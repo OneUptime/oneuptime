@@ -16,9 +16,9 @@ import { OBI_TELEMETRY_DISTRO_NAME } from "./ObiReceivingSideMessagingSpan";
  *
  * Up to v0.13 that did not matter: the injection ran before the process was
  * admitted to OBI's PID filter. v0.14 queues it AFTER admission (OBI #3363,
- * commit 2752eb8e7, which put the Node.js injection on the same queue as
- * the Java agent's), so every injected process reports, once per OBI start
- * and once per process start:
+ * commit 2752eb8e7), the way the Java agent's injection has been queued
+ * since #2949, so every injected process reports, once per OBI start and
+ * once per process start:
  *
  *   GET /json/list   SERVER, no parent, server.port 9229, client.address
  *                    127.0.0.1, with two INTERNAL children "in queue" and

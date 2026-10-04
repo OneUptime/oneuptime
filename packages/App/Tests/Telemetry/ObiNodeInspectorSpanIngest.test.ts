@@ -544,6 +544,29 @@ describe("OBI v0.14's Node.js inspector spans at ingest", () => {
     );
   });
 
+  test("an inspector request without client.address is dropped by its loopback network.peer.address", async () => {
+    const captured: CapturedTraceRows = setupTraceMocks();
+    const body: JSONObject = requestWith([
+      DOWNSTREAM_JSON_LIST_SPAN_ID,
+      ...DOWNSTREAM_JSON_LIST_CHILDREN,
+      "71eb8ebd06cb4bc5",
+    ]);
+    const jsonList: JSONObject = allSpans(body).find(
+      (span: JSONObject): boolean => {
+        return span["spanId"] === DOWNSTREAM_JSON_LIST_SPAN_ID;
+      },
+    )!;
+    jsonList["attributes"] = (jsonList["attributes"] as JSONArray).filter(
+      (attribute: JSONObject): boolean => {
+        return attribute["key"] !== "client.address";
+      },
+    );
+
+    await ingest(body);
+
+    expect(storedSpanIds(captured)).toEqual(["71eb8ebd06cb4bc5"]);
+  });
+
   test("drop filters, scrub rules, pipelines and LLM extraction never see a dropped span", async () => {
     const captured: CapturedTraceRows = setupTraceMocks();
     const seenBy: Record<string, Array<string>> = {
@@ -679,7 +702,7 @@ describe("the drop sits before the evaluation row", () => {
       .replace(/\s+/g, " ");
   }
 
-  test("the pre-pass runs once, before the resource loop; the drop after the kind is known and before LLM extraction and the evaluation row", () => {
+  test("the pre-pass runs once, before the resource loop; the drop after the kind is known and before the span's events, LLM extraction and the evaluation row", () => {
     const source: string = readTracesService();
     const prePass: string =
       "const obiNodeInspectorRequestSpans: Set<string> = collectObiNodeInspectorRequestSpans(resourceSpans);";
@@ -695,6 +718,9 @@ describe("the drop sits before the evaluation row", () => {
     expect(source.split(drop)).toHaveLength(2);
     expect(source.indexOf(drop)).toBeGreaterThan(
       source.indexOf("const spanKind: SpanKind ="),
+    );
+    expect(source.indexOf(drop)).toBeLessThan(
+      source.indexOf("this.getSpanEvents("),
     );
     expect(source.indexOf(drop)).toBeLessThan(
       source.indexOf("LlmSpanUtil.extract("),

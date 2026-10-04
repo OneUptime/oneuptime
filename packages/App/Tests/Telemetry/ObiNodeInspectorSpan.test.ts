@@ -135,7 +135,6 @@ describe("isObiNodeInspectorRequestSpan: OBI's inspector requests are matched", 
     for (const port of [
       "9229",
       9229,
-
       BigInt(9229),
       long(9229),
     ] as Array<unknown>) {
@@ -318,6 +317,10 @@ describe("isObiNodeInspectorRequestSpan: one condition off and the span is kept"
     ],
     ["128.0.0.1", server(jsonList({ "client.address": "128.0.0.1" }))],
     [
+      "a loopback-looking address with a four-digit octet",
+      server(jsonList({ "client.address": "127.0.0.1000" })),
+    ],
+    [
       "a name, even localhost",
       server(jsonList({ "client.address": "localhost" })),
     ],
@@ -378,6 +381,14 @@ describe("isObiNodeInspectorRequestSpan: one condition off and the span is kept"
     [
       "the target path answered 400",
       server(upgrade({ "http.response.status_code": 400 })),
+    ],
+    [
+      "the target path answered 100, another 1xx",
+      server(upgrade({ "http.response.status_code": "100" })),
+    ],
+    [
+      "the target path answered 102, another 1xx",
+      server(upgrade({ "http.response.status_code": 102 })),
     ],
     [
       "the target path with no status",
@@ -601,6 +612,36 @@ describe("collectObiNodeInspectorRequestSpans", () => {
     }
   }
 
+  // The span of a request with this `${traceId}/${spanId}` key.
+  function spanIn(request: JSONObject, key: string): JSONObject {
+    const span: JSONObject | undefined = spansOf(request).find(
+      (candidate: JSONObject): boolean => {
+        return (
+          `${candidate["traceId"] as string}/${candidate["spanId"] as string}` ===
+          key
+        );
+      },
+    );
+    expect(span).toBeDefined();
+    return span!;
+  }
+
+  function attributesOf(span: JSONObject): JSONArray {
+    return (span["attributes"] as JSONArray) || [];
+  }
+
+  // Calls visit with every attribute of every span of the request.
+  function forEachSpanAttribute(
+    request: JSONObject,
+    visit: (attribute: JSONObject) => void,
+  ): void {
+    for (const span of spansOf(request)) {
+      for (const attribute of attributesOf(span)) {
+        visit(attribute);
+      }
+    }
+  }
+
   test("finds every inspector request span in OBI v0.14.0's export, and nothing else", () => {
     expect(
       [...collectObiNodeInspectorRequestSpans(resourceSpansOf(FIXTURE))].sort(),
@@ -643,10 +684,146 @@ describe("collectObiNodeInspectorRequestSpans", () => {
   });
 
   test("the same spans from a resource that is not OBI's are not collected", () => {
+    for (const distro of [
+      "opentelemetry-js-instrumentation",
+      "OpenTelemetry-eBPF-Instrumentation",
+      "beyla",
+      "",
+    ]) {
+      const request: JSONObject = fixtureCopy();
+      setDistro(request, distro);
+      expect({
+        distro: distro,
+        collected: collectObiNodeInspectorRequestSpans(resourceSpansOf(request))
+          .size,
+      }).toEqual({ distro: distro, collected: 0 });
+    }
+  });
+
+  test("OBI's distro name on the spans instead of their resource is not OBI's resource", () => {
     const request: JSONObject = fixtureCopy();
-    setDistro(request, "opentelemetry-js-instrumentation");
+    for (const resourceSpan of resourceSpansOf(request)) {
+      const resource: JSONObject = resourceSpan["resource"] as JSONObject;
+      resource["attributes"] = (resource["attributes"] as JSONArray).filter(
+        (attribute: JSONObject): boolean => {
+          return attribute["key"] !== "telemetry.distro.name";
+        },
+      );
+    }
+    for (const span of spansOf(request)) {
+      span["attributes"] = [
+        ...attributesOf(span),
+        { key: "telemetry.distro.name", value: { stringValue: OBI_DISTRO } },
+      ];
+    }
+
     expect(
       collectObiNodeInspectorRequestSpans(resourceSpansOf(request)).size,
+    ).toBe(0);
+  });
+
+  test("network.peer.address stands in for an absent client.address, and only then", () => {
+    // downstream's GET /json/list carries both, each 127.0.0.1.
+    const key: string = FIXTURE_REQUEST_SPANS[0]!;
+    function setAddress(
+      request: JSONObject,
+      attributeKey: string,
+      address: string | null,
+    ): void {
+      const span: JSONObject = spanIn(request, key);
+      span["attributes"] = attributesOf(span).filter(
+        (attribute: JSONObject): boolean => {
+          return attribute["key"] !== attributeKey;
+        },
+      );
+      if (address !== null) {
+        (span["attributes"] as JSONArray).push({
+          key: attributeKey,
+          value: { stringValue: address },
+        });
+      }
+    }
+
+    const peerOnly: JSONObject = fixtureCopy();
+    setAddress(peerOnly, "client.address", null);
+    expect(
+      [
+        ...collectObiNodeInspectorRequestSpans(resourceSpansOf(peerOnly)),
+      ].sort(),
+    ).toEqual([...FIXTURE_REQUEST_SPANS].sort());
+
+    const remotePeerOnly: JSONObject = fixtureCopy();
+    setAddress(remotePeerOnly, "client.address", null);
+    setAddress(remotePeerOnly, "network.peer.address", "10.244.0.9");
+    const remotePeerCollected: Set<string> =
+      collectObiNodeInspectorRequestSpans(resourceSpansOf(remotePeerOnly));
+    expect(remotePeerCollected.has(key)).toBe(false);
+    expect(remotePeerCollected.size).toBe(FIXTURE_REQUEST_SPANS.length - 1);
+
+    // A client in another pod, whatever network.peer.address says.
+    const remoteClient: JSONObject = fixtureCopy();
+    setAddress(remoteClient, "client.address", "10.244.1.7");
+    const remoteClientCollected: Set<string> =
+      collectObiNodeInspectorRequestSpans(resourceSpansOf(remoteClient));
+    expect(remoteClientCollected.has(key)).toBe(false);
+    expect(remoteClientCollected.size).toBe(FIXTURE_REQUEST_SPANS.length - 1);
+  });
+
+  test("every scalar AnyValue form TelemetryUtil reads: snake_case strings, and doubles in either case", () => {
+    /*
+     * Every string as string_value: the resource's distro, and the spans'
+     * addresses, method and path.
+     */
+    const snakeCase: JSONObject = fixtureCopy();
+    function toSnakeCase(attribute: JSONObject): void {
+      const value: JSONObject = attribute["value"] as JSONObject;
+      if (value["stringValue"] !== undefined) {
+        attribute["value"] = { string_value: value["stringValue"] };
+      }
+    }
+    for (const resourceSpan of resourceSpansOf(snakeCase)) {
+      for (const attribute of (resourceSpan["resource"] as JSONObject)[
+        "attributes"
+      ] as JSONArray) {
+        toSnakeCase(attribute);
+      }
+    }
+    forEachSpanAttribute(snakeCase, toSnakeCase);
+    expect(
+      [
+        ...collectObiNodeInspectorRequestSpans(resourceSpansOf(snakeCase)),
+      ].sort(),
+    ).toEqual([...FIXTURE_REQUEST_SPANS].sort());
+
+    // server.port and the status as doubles.
+    for (const doubleKey of ["doubleValue", "double_value"]) {
+      const doubles: JSONObject = fixtureCopy();
+      forEachSpanAttribute(doubles, (attribute: JSONObject): void => {
+        const value: JSONObject = attribute["value"] as JSONObject;
+        if (value["intValue"] !== undefined) {
+          attribute["value"] = { [doubleKey]: Number(value["intValue"]) };
+        }
+      });
+      expect({
+        doubleKey: doubleKey,
+        collected: [
+          ...collectObiNodeInspectorRequestSpans(resourceSpansOf(doubles)),
+        ].sort(),
+      }).toEqual({
+        doubleKey: doubleKey,
+        collected: [...FIXTURE_REQUEST_SPANS].sort(),
+      });
+    }
+
+    // A double with a fraction is no port.
+    const fraction: JSONObject = fixtureCopy();
+    forEachSpanAttribute(fraction, (attribute: JSONObject): void => {
+      if (attribute["key"] === "server.port") {
+        attribute["value"] = { doubleValue: 9229.5 };
+      }
+    });
+    expect(
+      collectObiNodeInspectorRequestSpans(resourceSpansOf(fraction)).size,
     ).toBe(0);
   });
 
@@ -687,7 +864,7 @@ describe("collectObiNodeInspectorRequestSpans", () => {
     expect(collectObiNodeInspectorRequestSpans(resourceSpans).size).toBe(0);
   });
 
-  test("a parented or non-SERVER span of the same shape is not collected", () => {
+  test("a parented, non-SERVER or kind-less span of the same shape is not collected", () => {
     const request: JSONObject = fixtureCopy();
     const spans: Array<JSONObject> = spansOf(request).filter(
       (span: JSONObject): boolean => {
@@ -700,10 +877,13 @@ describe("collectObiNodeInspectorRequestSpans", () => {
     spans[0]!["parentSpanId"] = "71eb8ebd06cb4bc5";
     spans[1]!["kind"] = 3;
     spans[2]!["kind"] = "SPAN_KIND_CLIENT";
+    delete spans[3]!["kind"];
+    spans[4]!["kind"] = 0;
+    spans[5]!["kind"] = "SPAN_KIND_UNSPECIFIED";
 
     expect(
       collectObiNodeInspectorRequestSpans(resourceSpansOf(request)).size,
-    ).toBe(FIXTURE_REQUEST_SPANS.length - 3);
+    ).toBe(FIXTURE_REQUEST_SPANS.length - 6);
   });
 
   test("reads one attribute of a resource that is not OBI's, and no attribute of a span that is not a parentless SERVER span", () => {
@@ -841,5 +1021,81 @@ describe("collectObiNodeInspectorRequestSpans", () => {
     expect(
       collectObiNodeInspectorRequestSpans(resourceSpansOf(request)).size,
     ).toBe(FIXTURE_REQUEST_SPANS.length);
+  });
+
+  /*
+   * The pre-pass runs over every request before the span loop, without
+   * yielding, and reads the attributes of every parentless SERVER span OBI
+   * sends. Timed here on a request of 10,000 of an app's requests and their
+   * 10,000 "in queue" sub-spans, none of them OBI's own: 50-120 ms in Jest
+   * on a development machine (the agent's collector sends at most 200 spans
+   * a request). The bound leaves over 15x headroom, so a slow CI machine
+   * does not flake; a bound that trips means the pre-pass went from one
+   * pass over the request to a pass per span. (process.hrtime, as
+   * InfrastructureTopologyScale.test.ts does: monotonic, no wall clock.)
+   */
+  test("is one pass over the request: 20,000 OBI spans in under 2 s, none of them an inspector request", () => {
+    const REQUESTS: number = 10_000;
+    const BOUND_MS: number = 2_000;
+
+    const spans: JSONArray = [];
+    for (let index: number = 0; index < REQUESTS; index++) {
+      const traceId: string = (index + 1).toString(16).padStart(32, "0");
+      const requestSpanId: string = (2 * index + 1)
+        .toString(16)
+        .padStart(16, "0");
+      // OBI writes the sub-span ahead of its parent.
+      spans.push({
+        traceId: traceId,
+        spanId: (2 * index + 2).toString(16).padStart(16, "0"),
+        parentSpanId: requestSpanId,
+        kind: 1,
+        name: "in queue",
+      });
+      spans.push({
+        traceId: traceId,
+        spanId: requestSpanId,
+        kind: 2,
+        name: "GET /api/items/:id",
+        attributes: [
+          { key: "server.port", value: { intValue: "3000" } },
+          { key: "client.address", value: { stringValue: "loadgen" } },
+          { key: "server.address", value: { stringValue: "app" } },
+          { key: "http.response.status_code", value: { intValue: "200" } },
+          { key: "http.request.method", value: { stringValue: "GET" } },
+          { key: "url.path", value: { stringValue: `/api/items/${index}` } },
+          { key: "url.scheme", value: { stringValue: "http" } },
+          { key: "http.route", value: { stringValue: "/api/items/:id" } },
+          {
+            key: "network.peer.address",
+            value: { stringValue: "10.244.0.25" },
+          },
+          { key: "network.peer.port", value: { intValue: "48486" } },
+          { key: "network.protocol.version", value: { stringValue: "1.1" } },
+        ],
+      });
+    }
+    const resourceSpans: JSONArray = [
+      {
+        resource: {
+          attributes: [
+            { key: "service.name", value: { stringValue: "app" } },
+            {
+              key: "telemetry.distro.name",
+              value: { stringValue: OBI_DISTRO },
+            },
+          ],
+        },
+        scopeSpans: [{ scope: {}, spans: spans }],
+      },
+    ];
+
+    const start: bigint = process.hrtime.bigint();
+    const collected: Set<string> =
+      collectObiNodeInspectorRequestSpans(resourceSpans);
+    const elapsedMs: number = Number(process.hrtime.bigint() - start) / 1e6;
+
+    expect(collected.size).toBe(0);
+    expect(elapsedMs).toBeLessThan(BOUND_MS);
   });
 });
