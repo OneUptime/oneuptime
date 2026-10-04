@@ -40,9 +40,10 @@ bash Tests/Ops/agent-ebpf-e2e/run.sh
 It creates a KinD cluster named `agent-ebpf-e2e`, runs the test, prints one
 line per check, and deletes the cluster. Every `kubectl` and `helm` call uses
 the test cluster's own kubeconfig (written into the capture directory), never
-your current context. Expect 10-12 minutes; loading the images (about 2.3 GB,
-the profiler alone is 1 GB) into two nodes is the slowest part. Its exit
-status is the analyzer's.
+your current context. Expect 10-15 minutes, and over 30 on a Docker Desktop VM
+busy with other clusters; loading the images (about 2.3 GB, the profiler alone
+is 1 GB) into two nodes is the slowest part. Its exit status is the
+analyzer's.
 
 | Variable                                                     | Default                     | Effect                                                                                                |
 | ------------------------------------------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -60,9 +61,13 @@ status is the analyzer's.
 | `E2E_BPFFS`                                                  | `true`                      | kind: `false` does not mount bpffs in the nodes                                                       |
 | `LOAD_SECONDS`, `CONCURRENCY`, `PAUSE_MS`, `WARMUP`, `FLUSH` | `90`, `8`, `50`, `30`, `30` | the load and the waits around it                                                                      |
 
-On Docker Desktop the profiler samples far less when the VM is heavily loaded
-(a load average above about 100 on 10 CPUs left the app with no samples at
-all), which fails PR-5. CI runners are dedicated VMs.
+PR-5 is the one check that is sensitive to a loaded machine. The profiler
+drops every sample of a process until it has synchronized that process, and it
+synchronizes them one at a time, in the order it first samples them. On a
+Docker Desktop VM shared with other clusters (a load average around 100 on 10
+CPUs), one run ended its load without a single sample of the app and failed
+PR-5. `run.sh` starts the root-namespace profiler before the warmup so that the
+backlog can drain first; CI runners are dedicated VMs.
 
 ### Re-checking a capture
 
@@ -117,12 +122,14 @@ OBI discovery.
    ([`manifests/workloads.yaml`](manifests/workloads.yaml); the app's npm
    dependencies are installed by an init container, so nothing is built).
 5. `helm install`, wait for the DaemonSets and for OBI's "Script successfully
-   injected", then a 30 s warmup.
+   injected". On kind, with profiling on, start the root-namespace profiler
+   (below) here, so that it has caught up with the processes it samples before
+   the load. Then a 30 s warmup.
 6. With profiling on, start [`manifests/ctxprobe.yaml`](manifests/ctxprobe.yaml)
-   (bpftool on the apps node's pin) and, on kind, the root-namespace profiler
-   (below). Run the load ([`apps/loadgen.js`](apps/loadgen.js): one process, 8
-   loops over the app's 4 routes for 90 s), wait 30 s for the exports to flush,
-   collect, and run [`analyze.py`](analyze.py).
+   (bpftool on the apps node's pin). Run the load
+   ([`apps/loadgen.js`](apps/loadgen.js): one process, 8 loops over the app's 4
+   routes for 90 s), wait 30 s for the exports to flush, collect, and run
+   [`analyze.py`](analyze.py).
 
 ### kind and k3s
 
@@ -150,9 +157,9 @@ runners only. In CI that leg is not blocking until it has a green history.
 
 Thresholds sit well below what a healthy run measures and well above what the
 regressions they guard against measured. For example, OBI v0.13 (which did not
-inject its Node.js agent into Node 26) put the app's own SELECT in 27% of its
-request traces and its own downstream GET in 24%; a healthy v0.14 run measured
-97.9-99.6% and 99.9-100%.
+inject its Node.js agent into Node 26) put the app's own SELECT in 27-30% of
+its request traces and its own downstream GET in 24-26%; healthy v0.14 runs
+measured 94.2-99.6% and 99.8-100%.
 
 | Check | Asserts                                                                                                                          |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -197,11 +204,13 @@ With `E2E_HOST_PROFILER=false` on kind, PR-5 to PR-7 are skipped. Asked for
 but missing, the root-namespace profiler's capture fails PR-5. With
 `E2E_BPFFS=false`, OBI-5 is skipped. The CI job fails on any FAIL or SKIP.
 
-The negative controls this was checked against, on a KinD cluster:
-`E2E_OBI_IMAGE=otel/ebpf-instrument:v0.13.0` fails OBI-6, OBI-7, TR-3, TR-4 and
-TR-11; `E2E_BPFFS=false` fails PR-2 and PR-4 (and with the root-namespace
-profiler on, PR-5, which then finds no pin to read);
-`E2E_HELM_ARGS="--set profiling.obiProcessContext=false"` fails PR-4.
+Negative controls, on an arm64 KinD cluster: `E2E_BPFFS=false` fails exactly
+PR-2, PR-4 and PR-5 (OBI-5 is skipped, as asked, and OBI logs its bpffs
+warning); `E2E_OBI_IMAGE=otel/ebpf-instrument:v0.13.0` fails exactly OBI-6
+(Node 26 taken for Rust), OBI-7, TR-3, TR-4 and TR-11 (v0.13 always filled
+`traces_ctx_v1`, so PR-4 to PR-6 pass); and, in a run before the
+root-namespace profiler was added,
+`E2E_HELM_ARGS="--set profiling.obiProcessContext=false"` failed only PR-4.
 
 ## Network
 
