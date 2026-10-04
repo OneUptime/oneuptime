@@ -2,6 +2,7 @@ import Field, { FormFieldCollapsibleSection } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 import FormValues from "../Types/FormValues";
 import { getPeoplePickerValueKeys } from "../../PeoplePicker/PeoplePickerTypes";
+import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
 import {
   MORE_FIELDS_SECTION_TITLE as FOLDED_MORE_FIELDS_TITLE,
@@ -163,6 +164,15 @@ export const normalizeFormValue: NormalizeValueFunction = (
     return value.getTime();
   }
 
+  /*
+   * A colour is held as the Color the picker gives or as the text a Create
+   * form starts with ("#6366f1", Utils/CreateFormDefaults): the same colour
+   * either way.
+   */
+  if (value instanceof Color) {
+    return value.toString().trim().toLowerCase();
+  }
+
   return value;
 };
 
@@ -237,7 +247,20 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     return false;
   }
 
-  const value: unknown = normalizeFormValue(formValues[fieldName]);
+  /*
+   * A colour field's text is a colour too: "#6366F1" typed into a default
+   * and the Color the picker hands back are the same colour.
+   */
+  const normalize: (raw: unknown) => unknown = (raw: unknown): unknown => {
+    const normalized: unknown = normalizeFormValue(raw);
+
+    return field.fieldType === FormFieldSchemaType.Color &&
+      typeof normalized === "string"
+      ? normalized.trim().toLowerCase()
+      : normalized;
+  };
+
+  const value: unknown = normalize(formValues[fieldName]);
 
   let defaultValue: unknown = field.defaultValue;
 
@@ -253,7 +276,7 @@ export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
     defaultValue = field.columnDefaultValue;
   }
 
-  defaultValue = normalizeFormValue(defaultValue);
+  defaultValue = normalize(defaultValue);
 
   // Never touched: whatever it is, it is what the form starts with.
   if (value === undefined || value === null) {

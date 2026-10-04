@@ -50,7 +50,7 @@ Ve a **Incidentes → Ajustes → Estado del Incidente**. La página es una list
 
 - **Nombre** — obligatorio, al menos dos caracteres. El marcador de posición sugiere algo como «Investigating».
 - **Descripción** — texto libre opcional que explica cuándo un incidente se queda en este estado.
-- **Color** — obligatorio. Se elige en el selector de color; se guarda como un valor hexadecimal como `#fd625e`.
+- **Color** — obligatorio, y ya elegido al abrir el formulario: un color que ningún estado de la lista usa todavía. Puedes elegir otro en el selector de color; se guarda como un valor hexadecimal como `#fd625e`.
 
 Los tres indicadores no se pueden establecer desde este formulario: pertenecen a las filas iniciales. Por tanto, todo estado que añadas es un estado sin indicador, lo cual tiene dos consecuencias que conviene tener en cuenta:
 

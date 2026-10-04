@@ -11,7 +11,9 @@ import {
   getAdvancedFormSection,
   isFormFieldValueSet,
   isFormSectionConfigured,
+  normalizeFormValue,
 } from "../../../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import Color from "../../../../../Types/Color";
 import { PeoplePickerKind } from "../../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import { JSONObject } from "../../../../../Types/JSON";
 import IconProp from "../../../../../Types/Icon/IconProp";
@@ -321,6 +323,80 @@ describe("isFormFieldValueSet", () => {
 
     expect(isFormFieldValueSet(json, { headers: { a: "b" } })).toBe(true);
     expect(isFormFieldValueSet(json, { headers: {} })).toBe(false);
+  });
+
+  /*
+   * A Create form starts a colour it picked as text ("#6366f1"); the picker
+   * hands back a Color. The same colour either way is the default, not set.
+   */
+  test("a colour is set unless it is the colour the form started with, as text or as a Color", () => {
+    const picked: Field<JSONObject> = field(
+      "color",
+      FormFieldSchemaType.Color,
+      { defaultValue: "#6366f1" },
+    );
+
+    // Untouched: the text the form started with.
+    expect(isFormFieldValueSet(picked, { color: "#6366f1" })).toBe(false);
+    // The picker handed the same colour back, as a Color, in any case.
+    expect(
+      isFormFieldValueSet(picked, {
+        color: new Color("#6366f1") as unknown as JSONObject,
+      }),
+    ).toBe(false);
+    expect(
+      isFormFieldValueSet(picked, {
+        color: new Color("#6366F1") as unknown as JSONObject,
+      }),
+    ).toBe(false);
+    // Another colour is set.
+    expect(
+      isFormFieldValueSet(picked, {
+        color: new Color("#0891b2") as unknown as JSONObject,
+      }),
+    ).toBe(true);
+    // Cleared: nothing set.
+    expect(isFormFieldValueSet(picked, { color: null })).toBe(false);
+
+    // Without a default (an Edit form): any colour is the record's, set.
+    const edited: Field<JSONObject> = field("color", FormFieldSchemaType.Color);
+
+    expect(
+      isFormFieldValueSet(edited, {
+        color: new Color("#ef4444") as unknown as JSONObject,
+      }),
+    ).toBe(true);
+    expect(isFormFieldValueSet(edited, {})).toBe(false);
+  });
+
+  test("a colour compares as its lowercase text", () => {
+    expect(normalizeFormValue(new Color("#6366F1"))).toBe("#6366f1");
+    expect(normalizeFormValue(new Color(" #0891b2 "))).toBe("#0891b2");
+    // Text on its own is left as it is: it may not be a colour at all.
+    expect(normalizeFormValue("#6366F1")).toBe("#6366F1");
+  });
+
+  test("a colour field's text compares as a colour, whatever its case", () => {
+    const written: Field<JSONObject> = field(
+      "color",
+      FormFieldSchemaType.Color,
+      { defaultValue: "#6366F1" },
+    );
+
+    expect(
+      isFormFieldValueSet(written, {
+        color: new Color("#6366f1") as unknown as JSONObject,
+      }),
+    ).toBe(false);
+    expect(isFormFieldValueSet(written, { color: " #6366f1 " })).toBe(false);
+    expect(isFormFieldValueSet(written, { color: "#0891B2" })).toBe(true);
+
+    // Only a colour field: other text keeps its case.
+    const text: Field<JSONObject> = field("code", FormFieldSchemaType.Text, {
+      defaultValue: "ABC",
+    });
+
+    expect(isFormFieldValueSet(text, { code: "abc" })).toBe(true);
   });
 
   test("reads a field kept under an override key", () => {

@@ -29,8 +29,11 @@ const SERVER: { timeout: number } = { timeout: 30000 };
  * alone; the table has no Multiple Users column; Incident Commander's Delete
  * is locked and its form has no Allow Multiple Users; a role added with
  * Allow Multiple Users (folded under More fields) is saved with it, shows
- * on its Edit's folded header, and can be deleted. Growth, because creating an
- * incident role is a Growth feature when billing is on.
+ * on its Edit's folded header, and can be deleted. The form is one page: the
+ * icon and the colour are folded under More fields too, the colour already
+ * picked - one Incident Commander's purple is not - and saved as picked.
+ * Growth, because creating an incident role is a Growth feature when billing
+ * is on.
  *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
  *   npx playwright test Tests/Dashboard/IncidentRoles.spec.ts \
@@ -85,6 +88,37 @@ const rolesOnServer: (
       canAssignMultipleUsers: Boolean(row["canAssignMultipleUsers"]),
     };
   });
+};
+
+// A role's colour as the server keeps it ("#6366f1").
+const colorOnServer: (
+  page: Page,
+  projectId: string,
+  name: string,
+) => Promise<string> = async (
+  page: Page,
+  projectId: string,
+  name: string,
+): Promise<string> => {
+  const response: APIResponse = await page.request.post(
+    urlFor("/api/incident-role/get-list"),
+    {
+      headers: { tenantid: projectId },
+      data: {
+        query: { projectId, name },
+        select: { _id: true, color: true },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      },
+    },
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+  const body: { data: Array<{ color?: { value?: string } | string }> } =
+    await response.json();
+  const color: { value?: string } | string | undefined = body.data[0]?.color;
+
+  return String(typeof color === "string" ? color : color?.value || "");
 };
 
 const rowOf: (page: Page, name: string) => Locator = (
@@ -181,7 +215,10 @@ test.describe("Incident roles", () => {
       await page.keyboard.press("Escape");
       await expect(lockedDelete).toHaveCount(0);
 
-      // Its form has no Allow Multiple Users: it is always one person.
+      /*
+       * Its form has no Allow Multiple Users: it is always one person. Its
+       * More fields holds the icon and the colour only.
+       */
       await rowOf(page, "Incident Commander")
         .getByRole("button", { name: "Edit" })
         .click();
@@ -189,7 +226,9 @@ test.describe("Incident roles", () => {
       await expect(
         modal.getByPlaceholder("Responder", { exact: true }),
       ).toHaveValue("Incident Commander", SERVER);
-      await expect(advancedHeader).toHaveCount(0);
+      await expect(advancedHeader).toBeVisible();
+      await expect(advancedHeader).toContainText("Role Icon");
+      await expect(advancedHeader).toContainText("Role Color");
       await expect(modal.getByText("Allow Multiple Users")).toHaveCount(0);
       await modal.getByTestId("modal-footer-close-button").click();
       await expect(modal).toBeHidden();
@@ -222,24 +261,21 @@ test.describe("Incident roles", () => {
       await expect(multipleUsers).toHaveAttribute("aria-checked", "true");
 
       /*
-       * Then how it looks, on the last step: the first shows a plain Next,
-       * and Create Incident Role is on the last step only.
+       * How it looks is in the same fold, already done: the colour is
+       * picked - not Incident Commander's purple - and the icon is optional.
+       * One page, so Create Incident Role is right there, and no Next.
        */
+      const colorBox: Locator = modal.getByPlaceholder(
+        "Please select color for this role.",
+        { exact: true },
+      );
+      await expect(colorBox).toHaveValue(/^#[0-9a-f]{6}$/);
+      const pickedColor: string = await colorBox.inputValue();
+      expect(pickedColor).not.toBe("#a855f7");
+      await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(
+        0,
+      );
       const submit: Locator = modal.getByTestId("modal-footer-submit-button");
-      await expect(submit).toHaveCount(0);
-      await modal.getByTestId("modal-footer-next-button").click();
-      await modal
-        .getByPlaceholder("Please select color for this role.", {
-          exact: true,
-        })
-        .click();
-      const picker: Locator = page.getByTestId("color-picker-popup");
-      await expect(picker).toBeVisible();
-      await picker.locator("input").first().fill("#0891b2");
-      // Escape closes the picker, not the form.
-      await page.keyboard.press("Escape");
-      await expect(picker).toBeHidden();
-      await expect(modal).toBeVisible();
       await expect(submit).toHaveText("Create Incident Role");
       await submit.click();
       await expect(modal).toBeHidden(SERVER);
@@ -263,6 +299,9 @@ test.describe("Incident roles", () => {
             canAssignMultipleUsers: false,
           },
         ]);
+
+      // Saved with the colour the form picked.
+      expect(await colorOnServer(page, projectId, added)).toBe(pickedColor);
 
       // Its Edit keeps the switch folded, its header saying it is on.
       await rowOf(page, added).getByRole("button", { name: "Edit" }).click();

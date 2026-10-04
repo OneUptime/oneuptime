@@ -43,6 +43,16 @@ export const Violet500: Color = Color.fromString("#8b5cf6");
 export const Fuchsia500: Color = Color.fromString("#d946ef");
 export const Rose500: Color = Color.fromString("#f43f5e");
 
+/*
+ * *-600 colors from tailwindcss: the shade of a hue whose -500 is too light
+ * to show on a white card (Utils/DistinctColor picks these for new records).
+ */
+export const Amber600: Color = Color.fromString("#d97706");
+export const Lime600: Color = Color.fromString("#65a30d");
+export const Green600: Color = Color.fromString("#16a34a");
+export const Teal600: Color = Color.fromString("#0d9488");
+export const Sky600: Color = Color.fromString("#0284c7");
+
 export const BrightColors: Color[] = [
   Black,
   Indigo500,

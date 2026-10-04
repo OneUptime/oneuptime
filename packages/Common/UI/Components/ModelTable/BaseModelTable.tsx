@@ -226,6 +226,11 @@ export interface BaseTableCallbacks<
     onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
     onSuccess?: ((item: TBaseModel) => void) | undefined;
     onClose?: (() => void) | undefined;
+    /*
+     * The rows the table shows, handed to a Create form: a colour it picks
+     * for the new record is one none of them uses yet.
+     */
+    existingItems?: Array<TBaseModel> | undefined;
   }) => ReactElement;
 }
 
@@ -5233,6 +5238,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             modalType === ModalType.Edit && currentEditableItem
               ? new ObjectID(currentEditableItem["_id"] as string)
               : undefined,
+          existingItems: modalType === ModalType.Create ? data : undefined,
         })
       ) : (
         <></>
