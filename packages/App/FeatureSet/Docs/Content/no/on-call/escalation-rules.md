@@ -31,6 +31,8 @@ Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottak
 
 Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert nivå varsles, hvem det varsler og hva som skjer etter det siste. Et nivå der ikke alle mottakerne kan varsles, sier fra om det på kortet sitt; klikk på merket for å se hvem og hvorfor.
 
+Hvordan hver person et nivå varsler blir nådd, bestemmer personens egne vaktregler: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder og et kort per alvorlighetsgrad som viser hvilken varselmetode som brukes og etter hvor lang tid. En prosjektadministrator kan se og endre et medlems regler under **Brukere** > medlemmet > **Vaktregler**.
+
 ## Rediger, omorganiser og slett regler
 
 - **Edit rule** åpner den samme dialogen på én side, fylt ut med regelen slik den er: mottakerne, ventetiden og navnet og beskrivelsen under **Avansert**. Legg til eller fjern mottakere og lagre. Tømmer du navnet, får regelen igjen nivåets navn.

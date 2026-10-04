@@ -31,6 +31,8 @@ Wanneer een incident of waarschuwing het beleid bereikt, roept **Level 1** metee
 
 Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wanneer elk niveau wordt opgeroepen, wie het oproept en wat er na het laatste gebeurt. Een niveau waarvan niet alle ontvangers kunnen worden opgeroepen, meldt dat op zijn kaart; klik op het label om te zien wie en waarom.
 
+Hoe iedere persoon die een niveau oproept wordt bereikt, bepalen diens eigen bereikbaarheidsregels: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt gebruikt. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**.
+
 ## Regels bewerken, herordenen en verwijderen
 
 - **Edit rule** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Geavanceerd**. Voeg ontvangers toe of verwijder ze en sla op. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.
