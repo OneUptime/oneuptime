@@ -145,7 +145,10 @@ const useRecordToCreateFrom: (
 ) => RecordToCreateFromState = (
   created: CreatedRecordKind,
 ): RecordToCreateFromState => {
-  // Read once: the form latches what it starts with.
+  /*
+   * Read once: the form latches what it starts with. Opened again at another
+   * address, the page is drawn afresh (RemountOnAddressChange).
+   */
   const [address] = useState<CreateFromRecordAddress | null>(() => {
     return readCreateFromRecord(created, (name: string): string | null => {
       return Navigation.getQueryStringByName(name);
